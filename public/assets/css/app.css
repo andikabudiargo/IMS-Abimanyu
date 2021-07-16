@@ -1,0 +1,141 @@
+/*
+Box untuk warning kalo session habis
+*/
+
+.boxOverlay {
+    position: absolute;
+    display: none;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0,0,0,0.5);
+    z-index: 2;
+    cursor: pointer;
+}
+
+.textoverlay{
+  font-size: 24px;
+  text-align: center;
+}
+
+.boxAlert {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 25%;
+  height: 200px;
+  line-height: 200px;
+  background-color: #efeff3;
+  border-radius: 5px;
+  z-index: 11; /* 1px higher than the overlay layer */
+  border-radius: 5px;
+}
+
+@media only screen and (max-width: 600px) {
+  .boxAlert {
+    width: 90%;
+    top: 50%;
+    left: 50%;
+    /* bring your own prefixes */
+    transform: translate(-50%, -50%);
+  }
+}
+
+.textBox{
+  position: relative;
+  top: 20%;
+  left: 50%;
+  font-size: 24px;
+  color: white;
+  transform: translate(-50%,-50%);
+  -ms-transform: translate(-50%,-50%);
+}
+  
+
+
+/*loading spinner*/
+
+.loading-spinner-container {
+  background: rgba(0, 0, 0, 0.5);
+  bottom: 0;
+  left: 0;
+  opacity: 0;
+  position: fixed;
+  right: 0;
+  top: 0;
+  transition: 0.3s;
+  visibility: hidden;
+  z-index: 1000;
+}
+
+.loading-spinner-container.-show {
+  opacity: 1;
+  visibility: visible;
+}
+
+.loading-spinner {
+  display: inline-block;
+  position: absolute;
+  width: 64px;
+  height: 64px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.loading-spinner div {
+  position: absolute;
+  top: 27px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: #2e3750;
+  animation-timing-function: cubic-bezier(0, 1, 1, 0);
+}
+
+.loading-spinner div:nth-child(1) {
+  left: 6px;
+  animation: loading-spinner1 0.6s infinite;
+}
+
+.loading-spinner div:nth-child(2) {
+  left: 6px;
+  animation: loading-spinner2 0.6s infinite;
+}
+
+.loading-spinner div:nth-child(3) {
+  left: 26px;
+  animation: loading-spinner2 0.6s infinite;
+}
+
+.loading-spinner div:nth-child(4) {
+  left: 45px;
+  animation: loading-spinner3 0.6s infinite;
+}
+
+
+/* ANIMATIONS */
+@keyframes pin-flashing {
+  50% {
+      background: #aaa;
+  }
+}
+
+@keyframes loading-spinner1 {
+  0% { transform: scale(0); }
+  100% { transform: scale(1); }
+}
+
+@keyframes loading-spinner3 {
+  0% { transform: scale(1); }
+  100% { transform: scale(0); }
+}
+
+@keyframes loading-spinner2 {
+  0% { transform: translate(0, 0); }
+  100% { transform: translate(19px, 0); }
+}
