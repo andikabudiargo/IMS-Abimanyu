@@ -158,7 +158,7 @@
 
 @endsection
 
-@section('style')
+@section('styles')
   <style>
     .checkbox {
         margin-bottom: 1px !important;

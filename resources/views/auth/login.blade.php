@@ -7,16 +7,27 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=0,minimal-ui">
     <meta name="csrf-token" content="{{csrf_token()}}">
-    <meta name="description" content="Template Vuexy">
-    <meta name="keywords" content="admin template, Vuexy admin template">
+    <meta name="description" content="Integrated Manufacture System">
+    <meta name="keywords" content="abimany, manufacture, ims">
     <meta name="author" content="Oki">
-    <title>{{ env('APP_NAME')}} - @yield('title')</title>
+    <title>{{ env('APP_NAME')}} - Login</title>
 
-    {{-- <link rel="apple-touch-icon" href="{{asset('app-assets/images/ico/apple-icon-120.png')}}"> --}}
-    <link rel="shortcut icon" type="image/x-icon" href="{{asset('app-assets/images/ico/favicon.ico')}}">
+    <link rel="apple-touch-icon" sizes="57x57" href="{{asset('app-assets/images/ico/favicon/apple-icon-57x57.png')}}">
+    <link rel="apple-touch-icon" sizes="60x60" href="{{asset('app-assets/images/ico/favicon/apple-icon-60x60.png')}}">
+    <link rel="apple-touch-icon" sizes="72x72" href="{{asset('app-assets/images/ico/favicon/apple-icon-72x72.png')}}">
+    <link rel="apple-touch-icon" sizes="76x76" href="{{asset('app-assets/images/ico/favicon/apple-icon-76x76.png')}}">
+    <link rel="apple-touch-icon" sizes="114x114" href="{{asset('app-assets/images/ico/favicon/apple-icon-114x114.png')}}">
+    <link rel="apple-touch-icon" sizes="120x120" href="{{asset('app-assets/images/ico/favicon/apple-icon-120x120.png')}}">
+    <link rel="apple-touch-icon" sizes="144x144" href="{{asset('app-assets/images/ico/favicon/apple-icon-144x144.png')}}">
+    <link rel="apple-touch-icon" sizes="152x152" href="{{asset('app-assets/images/ico/favicon/apple-icon-152x152.png')}}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{asset('app-assets/images/ico/favicon/apple-icon-180x180.png')}}">
+    <link rel="icon" type="image/png" sizes="192x192" href="{{asset('app-assets/images/ico/favicon/android-icon-192x192.png')}}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{asset('app-assets/images/ico/favicon/favicon-32x32.png')}}">
+    <link rel="icon" type="image/png" sizes="96x96" href="{{asset('app-assets/images/ico/favicon/favicon-96x96.png')}}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{asset('app-assets/images/ico/favicon/favicon-16x16.png')}}">
+    <link rel="icon" type="image/x-icon" href="{{asset('app-assets/images/ico/favicon/favicon.ico')}}">
 
     <link rel="stylesheet" type="text/css" href="{{asset('app-assets/vendors/css/vendors.min.css')}}">
-
     <link rel="stylesheet" type="text/css" href="{{asset('app-assets/css/bootstrap.css')}}">
     <link rel="stylesheet" type="text/css" href="{{asset('app-assets/css/bootstrap-extended.css')}}">
     <link rel="stylesheet" type="text/css" href="{{asset('app-assets/css/colors.css')}}">
@@ -49,10 +60,12 @@
                         <!-- Login v1 -->
                         <div class="card mb-0">
                             <div class="card-body">
-                                <h2 class="brand-text text-primary ml-1">{{ env('APP_NAME') }}</h2>
-                                <p class="brand-text text-primary ml-1">{{ env('APP_NAME_ALIAS') }}</p>
+                                <div class="mb-2">
+                                    <img src="{{asset('app-assets/images/logo/logo.png')}}" alt="logo" class="logo" style="height: 100px;">
+                                    {{-- <h2 class="text-primary">{{ env('APP_NAME') }}</h2> --}}
+                                    <h2 class="text-secondary">{{ env('APP_NAME_ALIAS') }}</h2>
+                                </div>
                                 <h4 class="card-title mb-1">sign-in</h4>
-
                                 <form autocomplete="off" class="auth-login-form mt-2" id="form-login"
                                     action="{{ route('login') }}" method="POST">
                                     {{ csrf_field() }}
@@ -85,12 +98,18 @@
                                     <button id="login" name="login" type="submit" value="Login"
                                         class="btn btn-primary btn-block" tabindex="4">Sign in</button>
                                 </form>
-
                                 <p class="text-center mt-2">
                                     {{-- <span>New on our platform?</span> --}}
-                                    <a href="page-auth-register-v1.html">
+                                    {{-- <a href="page-auth-register-v1.html">
                                         <span>Create an account</span>
-                                    </a>
+                                    </a> --}}
+                                </p>
+                            </div>
+                            <div class="card-body">
+                                <p class="clearfix mb-0">
+                                    <span class="float-md-left d-block d-md-inline-block mt-25">COPYRIGHT &copy; {{ env('APP_YEAR_CREATED') }}
+                                        <span class="d-sm-inline-block">{{ env('APP_COMPANY') }}, All rights Reserved</span>
+                                    </span>
                                 </p>
                             </div>
                         </div>

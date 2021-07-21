@@ -141,9 +141,7 @@ class UserController extends Controller
         \LogActivity::addToLog('User update data');
 
         $this->validate($request, [
-            'username' => 'required',
             'name' => 'required',
-            'email' => 'required|email|unique:users,email,'.$id,
             'password' => 'same:confirm-password',
             'roles' => 'required'
         ]);

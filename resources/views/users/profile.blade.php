@@ -42,7 +42,7 @@
                             <!-- header media -->
                             <div class="media">
                                 <a href="javascript:void(0);" class="mr-25">
-                                    <img src="{{ asset(Auth::user()->filename) }}" id="accountUploadImg" class="rounded mr-50 img-thumnbnail rounded-circle" alt="profile image" height="80" width="80"  />
+                                    <img class="round" src="{{ asset(Auth::user()->filename) }}" onerror="this.src='{{ asset('app-assets/images/avatars/default.png')}}';" id="accountUploadImg" class="rounded mr-50 img-thumnbnail rounded-circle" alt="profile image" height="80" width="80">
                                 </a>
                                 <form action="{{ route('file.upload.post') }}" method="POST" id="upload-image" enctype="multipart/form-data">
                                     @csrf

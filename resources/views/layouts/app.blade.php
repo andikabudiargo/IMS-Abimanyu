@@ -6,13 +6,25 @@
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=0,minimal-ui">
     <meta name="csrf-token" content="{{csrf_token()}}">
-    <meta name="description" content="Template Vuexy">
-    <meta name="keywords" content="admin template, Vuexy admin template">
+    <meta name="description" content="Integrated Manufacture System">
+    <meta name="keywords" content="abimany, manufacture, ims">
     <meta name="author" content="Oki">
     <title>{{ env('APP_NAME')}} - @yield('title')</title>
 
-    {{-- <link rel="apple-touch-icon" href="{{asset('app-assets/images/ico/apple-icon-120.png')}}"> --}}
-    <link rel="shortcut icon" type="image/x-icon" href="{{asset('app-assets/images/ico/favicon.ico')}}">
+    <link rel="apple-touch-icon" sizes="57x57" href="{{asset('app-assets/images/ico/favicon/apple-icon-57x57.png')}}">
+    <link rel="apple-touch-icon" sizes="60x60" href="{{asset('app-assets/images/ico/favicon/apple-icon-60x60.png')}}">
+    <link rel="apple-touch-icon" sizes="72x72" href="{{asset('app-assets/images/ico/favicon/apple-icon-72x72.png')}}">
+    <link rel="apple-touch-icon" sizes="76x76" href="{{asset('app-assets/images/ico/favicon/apple-icon-76x76.png')}}">
+    <link rel="apple-touch-icon" sizes="114x114" href="{{asset('app-assets/images/ico/favicon/apple-icon-114x114.png')}}">
+    <link rel="apple-touch-icon" sizes="120x120" href="{{asset('app-assets/images/ico/favicon/apple-icon-120x120.png')}}">
+    <link rel="apple-touch-icon" sizes="144x144" href="{{asset('app-assets/images/ico/favicon/apple-icon-144x144.png')}}">
+    <link rel="apple-touch-icon" sizes="152x152" href="{{asset('app-assets/images/ico/favicon/apple-icon-152x152.png')}}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{asset('app-assets/images/ico/favicon/apple-icon-180x180.png')}}">
+    <link rel="icon" type="image/png" sizes="192x192" href="{{asset('app-assets/images/ico/favicon/android-icon-192x192.png')}}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{asset('app-assets/images/ico/favicon/favicon-32x32.png')}}">
+    <link rel="icon" type="image/png" sizes="96x96" href="{{asset('app-assets/images/ico/favicon/favicon-96x96.png')}}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{asset('app-assets/images/ico/favicon/favicon-16x16.png')}}">
+    <link rel="icon" type="image/x-icon" href="{{asset('app-assets/images/ico/favicon/favicon.ico')}}">
     
     <link rel="stylesheet" type="text/css" href="{{asset('app-assets/vendors/css/vendors.min.css')}}">
     <link rel="stylesheet" type="text/css" href="{{asset('app-assets/vendors/css/forms/select/select2.min.css')}}">
@@ -20,7 +32,7 @@
     <link rel="stylesheet" type="text/css" href="{{asset('app-assets/vendors/css/extensions/sweetalert2.min.css')}}">
     <link rel="stylesheet" type="text/css" href="{{asset('app-assets/fonts/font-awesome/css/font-awesome.min.css')}}">
     <link rel="stylesheet" type="text/css" href="{{asset('app-assets/vendors/css/extensions/jstree.min.css')}}">
-    
+    <link rel="stylesheet" type="text/css" href="{{asset('app-assets/vendors/css/forms/wizard/bs-stepper.min.css')}}">
 
     <link rel="stylesheet" type="text/css" href="{{asset('app-assets/vendors/css/tables/datatable/dataTables.bootstrap4.min.css')}}">
     <link rel="stylesheet" type="text/css" href="{{asset('app-assets/vendors/css/tables/datatable/responsive.bootstrap4.min.css')}}">
@@ -40,6 +52,8 @@
     
     <link rel="stylesheet" type="text/css" href="{{asset('app-assets/css/core/menu/menu-types/vertical-menu.css')}}">
     <link rel="stylesheet" type="text/css" href="{{asset('app-assets/css/plugins/extensions/ext-component-tree.css')}}">
+    <link rel="stylesheet" type="text/css" href="{{asset('app-assets/css/plugins/forms/form-validation.css')}}">
+    <link rel="stylesheet" type="text/css" href="{{asset('app-assets/css/plugins/forms/form-wizard.css')}}">
     <link rel="stylesheet" type="text/css" href="{{asset('app-assets/css/pages/page-misc.css')}}">
     <link rel="stylesheet" type="text/css" href="{{asset('assets/css/style.css')}}">
     <link rel="stylesheet" type="text/css" href="{{asset('assets/css/app.css')}}">
@@ -89,6 +103,10 @@
     <script src="{{asset('app-assets/vendors/js/extensions/sweetalert2.all.min.js')}}"></script>
     <script src="{{asset('app-assets/vendors/js/extensions/polyfill.min.js')}}"></script>
     <script src="{{asset('app-assets/vendors/js/extensions/dragula.min.js')}}"></script>
+    <script src="{{asset('app-assets/vendors/js/forms/wizard/bs-stepper.min.js')}}"></script>
+    <script src="{{asset('app-assets/vendors/js/forms/validation/jquery.validate.min.js')}}"></script>
+    <script src="{{asset('app-assets/vendors/js/pickers/flatpickr/flatpickr.min.js')}}"></script>
+    <script src="{{asset('app-assets/vendors/js/forms/cleave/cleave.min.js')}}"></script>
 
     <script src="{{asset('assets/js/draggable-modal.js')}}"></script>
 

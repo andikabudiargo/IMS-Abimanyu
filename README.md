@@ -1,5 +1,5 @@
-# laravel7-vuexy
-## Skeleton laravel 7 menggunakan vuexy
+# IMS
+## IMS Integrated Manufature System using vuexy template
 ##### install:
 
 ```
@@ -14,7 +14,7 @@ ganti nama database di .env dengan yang sesuai
 contoh:
 DB_CONNECTION=pgsql
 DB_HOST=localhost
-DB_DATABASE=vuexy
+DB_DATABASE=ims
 DB_USERNAME=postgres
 DB_PASSWORD=root123
 DB_PORT=5432

@@ -350,7 +350,7 @@
                 { data: 'name', name: 'name',title:'Name' },
                 { data: 'username', name: 'username',title:'Username'},
                 { data: 'email', name: 'email',title:'Email' },
-                { data: 'status', name: 'email',title:'Status' },
+                { data: 'status', name: 'status',title:'Status' },
                 { data: 'roles', name: 'roles',title:'Roles' },
                 { data: 'last_login_at', name: 'last_login_at',title:'Last login' },
                 { data: 'last_login_ip', name: 'last_login_ip',title:'Last IP' },

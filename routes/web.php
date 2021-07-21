@@ -55,6 +55,26 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('permission/delete',['as'=>'delete.permission','uses'=>'PermissionController@destroy']);
 	Route::get('permission/dd',['as'=>'dd.permission','uses'=>'PermissionController@ddpermission']);
 
+	Route::get('customers',['as'=>'customers.index','uses'=>'CustomerController@index','middleware' => ['permission:customer-index']]);
+	Route::get('customers/create',['as'=>'customer.create','uses'=>'CustomerController@create','middleware' => ['permission:customer-create']]);
+	Route::post('customers/store',['as'=>'customer.store','uses'=>'CustomerController@store']);
+	Route::get('customers/list',['as'=>'customer.list','uses'=>'CustomerController@list']);
+	Route::get('customers/show',['as'=>'customer.show','uses'=>'CustomerController@show']);
+	Route::get('customers/edit',['as'=>'customer.edit','uses'=>'CustomerController@edit']);
+	Route::get('customers/update',['as'=>'customer.update','uses'=>'CustomerController@update']);
+	Route::post('customers/delete',['as'=>'customer.destroy','uses'=>'CustomerController@destroy']);
+
+	Route::get('suppliers',['as'=>'suppliers.index','uses'=>'SupplierController@index']);
+	Route::get('suppliers/create',['as'=>'supplier.create','uses'=>'SupplierController@create']);
+	Route::post('suppliers/store',['as'=>'supplier.store','uses'=>'SupplierController@store']);
+	Route::get('suppliers/list',['as'=>'supplier.list','uses'=>'SupplierController@list']);
+	Route::get('suppliers/show',['as'=>'supplier.show','uses'=>'SupplierController@show']);
+	Route::get('suppliers/edit',['as'=>'supplier.edit','uses'=>'SupplierController@edit']);
+	Route::get('suppliers/update',['as'=>'supplier.update','uses'=>'SupplierController@update']);
+	Route::post('suppliers/delete',['as'=>'supplier.destroy','uses'=>'SupplierController@destroy']);
+
+	Route::post('dynamic/dependent',['as'=>'dynamic.dependent','uses'=>'DependentController@dependentFetch']);
+
 	Route::get('add-to-log', ['as'=>'add.to.log','uses'=>'LogActivityController@myTestAddToLog']);
 	Route::get('showLogLists', ['as'=>'show.log.lists','uses'=>'LogActivityController@showLogLists']);
 	Route::get('logActivity',['as'=>'log.activity','uses'=>'LogActivityController@index']);
