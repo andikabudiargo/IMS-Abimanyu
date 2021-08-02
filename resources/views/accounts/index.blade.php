@@ -4,7 +4,7 @@
 @include('layouts.breadcrumb')
 @include('partials.alert')
 
-<section id="customers-index">
+<section id="accounts-index">
     <div class="row">
       <div class="col-12">
         <div class="card">
@@ -17,22 +17,22 @@
                 <div class="form-row">
                     <div class="col-md-4"> 
                         <div class="form-group">
-                        <label for="basicInput">Kode</label>
-                        <input type="text" class="form-control text-uppercase" id="searchCustomerCode" name="searchCustomerCode" placeholder="" />
+                        <label for="basicInput">Account</label>
+                        <input type="text" class="form-control text-uppercase" id="searchAccCode" name="searchAccCode" placeholder="" />
                         </div>
                     </div>
                     <div class="col-md-4"> 
                     <div class="form-group">
-                        <label for="basicInput">Nama</label>
-                        <input type="text" class="form-control text-uppercase" id="searchCustomer" name="searchCustomer" placeholder="" />
+                        <label for="basicInput">Description</label>
+                        <input type="text" class="form-control text-uppercase" id="searchAcc" name="searchAcc" placeholder="" />
                     </div>
                     </div>
                 </div>
                 <div class="form-row">
                     <div class="col-12"> 
                         <button type="button" class="btn btn-primary" id ="btnSearch" name="btnSearch">Search</button>
-                        @can('customer-create')
-                        <a href="{{ route('customer.create') }}" class="btn btn-info"><i class="fa fa-plus"></i> Create</a>
+                        @can('account-create')
+                        <a href="{{ route('account.create') }}" class="btn btn-info"><i class="fa fa-plus"></i> Create</a>
                         @endcan
                     </div>
                 </div>
@@ -42,8 +42,7 @@
       </div>
     </div>
 </section>
-
-<section id="table-customers">
+<section id="table-accounts">
     <div class="card">
       <div class="card-header">
         <h4 class="card-title">List @yield('title')</h4>
@@ -81,7 +80,23 @@
 @section('scripts')
 <script type="text/javascript">
     $(document).ready(function(){    
+      let href;
+      $(document).on('click', '#deleteButton', function(event) {
+          event.preventDefault();
+          href = $(this).data('href');
+          console.log(href);
+          $('#modalConfirmation').attr("action", href);
+      });
     });
+
+    let showAlert = "{{ Session::get('alert') }}";
+
+    if ( showAlert ){
+      showList();
+      $("#alert-message-alert").fadeTo(5000, 500).slideUp(500, function(){
+        $("#alert-message-alert").slideUp(500);
+      });
+    }
 
      //refresh di cards
     $('a[data-action="reload"]').on('click', function () {
@@ -89,13 +104,12 @@
     });
 
     $("#btnSearch").click(function(e){
-		let nama =$("#searchCustomer").val();
-        let code =$("#searchCustomerCode").val();
+		    let nama =$("#searchAcc").val();
+        let code =$("#searchAccCode").val();
         showList(nama,code);
     });
 
     function showList(nama,code){
-        // let dtdom = '<"card-header border-bottom p-1"<"head-label">><"d-flex justify-content-between align-items-center mx-0 row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-4"f><"col-sm-12 col-md-2"<"dt-action-buttons text-right"B>>>t<"d-flex justify-content-between mx-0 row"<"col-sm-12 col-md-6"i><"col-sm-12 col-md-6"p>>';
         let dtdom ='<"d-flex justify-content-between align-items-center header-actions mx-1 row mt-75"' +
             '<"col-lg-12 col-xl-6" l>' +
             '<"col-lg-12 col-xl-6 pl-xl-75 pl-0"<"dt-action-buttons text-xl-right text-lg-left text-md-right text-left d-flex align-items-center justify-content-lg-end align-items-center flex-sm-nowrap flex-wrap mr-1"<"mr-1"f>B>>' +
@@ -104,12 +118,12 @@
             '<"col-sm-12 col-md-6"i>' +
             '<"col-sm-12 col-md-6"p>' +
             '>';
-        let arr_col_print =[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17]; 
+        let arr_col_print =[2,3,4,5,6,7,8,9]; 
         $(function(){
         let oTable =$("#detailedTable").DataTable({
             ajax:
             {
-              url:'{{ route("customer.list")}}',
+              url:'{{ route("account.list")}}',
               data:{
                   name:nama,
                   code:code
@@ -217,9 +231,17 @@
               },
               {
                 responsivePriority: 1,
-                targets: 2
+                targets: 3
               },
-              { width: '10%', targets: 1 }
+              { width: '10%', targets: 1 },
+              {
+                  targets: 4,
+                  className: 'dt-right'
+              },
+              {
+                  targets: [0,1],
+                  className: 'dt-center'
+              }
             ],
             drawCallback: function( settings ) {
               feather.replace({
@@ -227,28 +249,20 @@
                     height: 14
               });
             },
-            order: [[ 1, 'asc' ]],
+            order: [[ 2, 'asc' ]],
             bDestroy: true, //pakai ini supaya bisa di load berulang2
             // scrollX: true, //pakai ini supaya waktu responsive  bisa di scroll horizontal
             columns: [
                 { data: 'group_id',name:'group_id', title:'',orderable: false, searchable: false },
                 { data: 'action', name: 'action',title:'action', orderable: false, searchable: false },
-                { data: 'kode', name: 'kode',title:'Kode' },
-                { data: 'nama', name: 'nama',title:'Nama' },
-                { data: 'inisial', name: 'inisial',title:'Inisial' },
-                { data: 'nama_kontak', name: 'nama_kontak',title:'Nama Kontak' },
-                { data: 'telepon', name: 'telepon',title:'Telepon' },
-                { data: 'hp', name: 'hp',title:'HP' },
-                { data: 'fax', name: 'fax',title:'Fax' },
-                { data: 'alamat_tagih', name: 'alamat_tagih',title:'Alamat tagih' },
-                { data: 'alamat_kirim_1', name: 'alamat_kirim_1',title:'Alamat Kirim 1' },
-                { data: 'alamat_kirim_2', name: 'alamat_kirim_2',title:'Alamat Kirim 2' },
-                { data: 'npwp', name: 'npwp',title:'NPWP' },
-                { data: 'nppkp', name: 'nppkp',title:'NPPKP' },
-                { data: 'alamat_npwp', name: 'alamat_npwp',title:'Alamat NPWP' },
-                { data: 'blacklist', name: 'blacklist',title:'Blacklist' },
-                { data: 'epte', name: 'epte',title:'EPTE' },
-                
+                { data: 'account', name: 'account',title:'Account' },
+                { data: 'description', name: 'description',title:'Description' },
+                { data: 'opening_balance', name: 'opening_balance',title:'Opening Balance', render: $.fn.dataTable.render.number( ',', '.', 0 ) },
+                { data: 'group', name: 'group',title:'Group' },
+                { data: 'dept', name: 'dept',title:'Dept' },
+                { data: 'type', name: 'type',title:'Type' },
+                { data: 'created_date', name: 'created_date',title:'Created date' },
+                { data: 'cash_bank', name: 'cash_bank',title:'Cash Bank' },
             ],
       });
     //   $('div.head-label').html('<h6 class="mb-0">Data Users</h6>');

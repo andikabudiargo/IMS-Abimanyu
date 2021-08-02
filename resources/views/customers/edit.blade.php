@@ -36,7 +36,7 @@
             </div>
         </div>
         <div class="bs-stepper-content">
-            <form id="frmAdd" name="frmAdd" action="{{ route('customer.store') }}" method="post" autocomplete="off">
+            <form id="frmAdd" name="frmAdd" action="{{ route('customer.update',['id'=> $customers->id]) }}" method="post" autocomplete="off">
                 @csrf                
                 <div id="detilCustomer" class="content">
                     <div class="content-header">
@@ -46,11 +46,11 @@
                     <div class="row">
                         <div class="form-group col-md-4">
                             <label class="form-label" for="kode">Kode</label>
-                            <input type="text" id="kode" name="kode" value="{{ old('kode') }}" class="form-control" required maxlength="20" autofocus/>
+                            <input type="text" id="kode" name="kode" value="{{ old('kode',$customers->kode) }}" class="form-control" required maxlength="20" disabled/>
                         </div>
                         <div class="form-group col-md-4 align-self-end" >
                             <div class="custom-control custom-checkbox">
-                                <input type="checkbox" class="custom-control-input" id="epte" name="epte" {{ old('epte') == 't' ? 'checked' : '' }} />
+                                <input type="checkbox" class="custom-control-input" id="epte" name="epte"  {{ old('epte',$customers->epte) == 't' ? 'checked' : '' }} />
                                 <label class="custom-control-label" for="epte">EPTE</label>
                             </div>
                         </div>
@@ -58,65 +58,65 @@
                     <div class="row">
                         <div class="form-group col-md-6">
                             <label class="form-label" for="nama">Nama</label>
-                            <input type="text" id="nama" name="nama" value="{{ old('nama') }}" class="form-control" required maxlength="30"/>
+                            <input type="text" id="nama" name="nama" value="{{ old('nama',$customers->nama) }}" class="form-control" required maxlength="30" autofocus/>
                         </div>
                         <div class="form-group col-md-6">
                             <label class="form-label" for="inisial">Inisial</label>
-                            <input type="text" id="inisial" name="inisial" value="{{ old('inisial') }}" class="form-control text-uppercase" required maxlength="3"/>
+                            <input type="text" id="inisial" name="inisial" value="{{ old('inisial',$customers->inisial) }}" class="form-control text-uppercase" required maxlength="3"/>
                         </div>
                     </div>
                     <div class="row">
                         <div class="form-group col-md-6">
                             <label class="form-label" for="alamatTagih">Alamat Tagih</label>
-                            <textarea type="text" id="alamatTagih" name="alamatTagih" class="form-control" rows="2" maxlength="100">{{ old('alamatTagih') }}</textarea>
+                            <textarea type="text" id="alamatTagih" name="alamatTagih" class="form-control" rows="2" maxlength="100">{{ old('alamatTagih',$customers->alamat_tagih) }}</textarea>
                         </div>
                     </div>
                     <div class="row">
                         <div class="form-group col-md-6">
                             <label class="form-label" for="alamatKirim1">Alamat Kirim 1</label>
-                            <textarea type="text" id="alamatKirim1" name="alamatKirim1" class="form-control" rows="2"  maxlength="100">{{ old('alamatKirim1') }}</textarea>
+                            <textarea type="text" id="alamatKirim1" name="alamatKirim1" class="form-control" rows="2"  maxlength="100">{{ old('alamatKirim1',$customers->alamat_kirim_1) }}</textarea>
                         </div>
                         <div class="form-group col-md-6">
                             <label class="form-label" for="alamatKirim2">Alamat Kirim 2</label>
-                            <textarea type="text" id="alamatKirim2" name="alamatKirim2" class="form-control" rows="2"  maxlength="100">{{ old('alamatKirim2') }}</textarea>
+                            <textarea type="text" id="alamatKirim2" name="alamatKirim2" class="form-control" rows="2"  maxlength="100">{{ old('alamatKirim2',$customers->alamat_kirim_2) }}</textarea>
                         </div>
                     </div>
                     <div class="row">
                         <div class="form-group col-md-3">
                             <label class="form-label" for="telepon">Telepon</label>
-                            <input type="text" id="telepon" name="telepon" value="{{ old('telepon') }}" class="form-control angka" maxlength="20" />
+                            <input type="text" id="telepon" name="telepon" value="{{ old('telepon',$customers->telepon) }}" class="form-control angka" maxlength="20" />
                         </div>
                         <div class="form-group col-md-3">
                             <label class="form-label" for="fax">Fax</label>
-                            <input type="text" id="fax" name="fax" value="{{ old('fax') }}" class="form-control angka" maxlength="20"/>
+                            <input type="text" id="fax" name="fax" value="{{ old('fax',$customers->fax) }}" class="form-control angka" maxlength="20"/>
                         </div>
                         <div class="form-group col-md-3">
                             <label class="form-label" for="hp">HP</label>
-                            <input type="text" id="hp" name="hp" value="{{ old('hp') }}" class="form-control angka" maxlength="15"/>
+                            <input type="text" id="hp" name="hp" value="{{ old('hp',$customers->hp) }}" class="form-control angka" maxlength="15"/>
                         </div>
                     </div>
                     <div class="row">
                         <div class="form-group col-md-6">
                             <label class="form-label" for="kontak">Kontak</label>
-                            <input type="text" id="kontak" name="kontak" value="{{ old('kontak') }}" class="form-control" maxlength="20" />
+                            <input type="text" id="kontak" name="kontak" value="{{ old('kontak',$customers->nama_kontak) }}" class="form-control" maxlength="20" />
                         </div>
                     </div>
                     <div class="row">
                         <div class="form-group col-md-6">
                             <label class="form-label" for="email">Email</label>
-                            <input type="email" id="email" name="email" value="{{ old('email') }}" class="form-control" maxlength="50" />
+                            <input type="email" id="email" name="email" value="{{ old('email',$customers->email) }}" class="form-control" maxlength="50" />
                         </div>
                     </div>
 
                     <div class="row">
                         <div class="form-group col-md-3">
                             <label class="form-label" for="limitKredit">Limit kredit</label>
-                            <input type="text" id="limitKredit" name="limitKredit" value="{{ old('limitKredit') }}" class="form-control angka" maxlength="12" />
+                            <input type="text" id="limitKredit" name="limitKredit" value="{{ old('limitKredit',$customers->limit_kredit) }}" class="form-control angka" maxlength="12" />
                         </div>
                         <div class="form-group col-md-2">
                             <label class="form-label" for="umurKredit">Umur kredit</label>
                             <div class="input-group input-group-merge">
-                                <input type="text" id="umurKredit" name="umurKredit" value="{{ old('umurKredit') }}" class="form-control angka" maxlength="4" />
+                                <input type="text" id="umurKredit" name="umurKredit" value="{{ old('umurKredit',$customers->umur_kredit) }}" class="form-control angka" maxlength="4" />
                                 <div class="input-group-append">
                                     <span class="input-group-text">Hari</span>
                                 </div>
@@ -126,21 +126,21 @@
                     <div class="row">
                         <div class="form-group col-md-6">
                             <label class="form-label" for="syaratBayar">Syarat bayar</label>
-                            <input type="text" id="syaratBayar" name="syaratBayar" value="{{ old('syaratBayar') }}" class="form-control"  maxlength="100"/>
+                            <input type="text" id="syaratBayar" name="syaratBayar" value="{{ old('syaratBayar',$customers->syarat_bayar) }}" class="form-control"  maxlength="100"/>
                         </div>
                     </div>
 
                     <div class="row">
                         <div class="form-group col-md-6">
                             <label class="form-label" for="syaratKirim">Syarat kirim</label>
-                            <input type="text" id="syaratKirim" name="syaratKirim" value="{{ old('syaratKirim') }}" class="form-control"  maxlength="100"/>
+                            <input type="text" id="syaratKirim" name="syaratKirim" value="{{ old('syaratKirim',$customers->syarat_kirim) }}" class="form-control"  maxlength="100"/>
                         </div>
                     </div>
                     <div class="row">
                         <div class="form-group col-md-2">
                             <label class="form-label" for="topBatas1">TOP Batas 1</label>
                             <div class="input-group input-group-merge">
-                                <input type="text" id="topBatas1" name="topBatas1" value="{{ old('topBatas1') }}" class="form-control angka" maxlength="4"/>
+                                <input type="text" id="topBatas1" name="topBatas1" value="{{ old('topBatas1',$customers->top_batas_1) }}" class="form-control angka" maxlength="4"/>
                                 <div class="input-group-append">
                                     <span class="input-group-text">Hari</span>
                                 </div>
@@ -149,7 +149,7 @@
                         <div class="form-group col-md-2">
                             <label class="form-label" for="topBatas2">TOP Batas 2</label>
                             <div class="input-group input-group-merge">
-                                <input type="text" id="topBatas2" name="topBatas2" value="{{ old('topBatas2') }}" class="form-control angka" maxlength="4"/>
+                                <input type="text" id="topBatas2" name="topBatas2" value="{{ old('topBatas2',$customers->top_batas_2) }}" class="form-control angka" maxlength="4"/>
                                 <div class="input-group-append">
                                     <span class="input-group-text">Hari</span>
                                 </div>
@@ -162,7 +162,7 @@
                             <select class="select2 w-100" id="sales" name="sales">
                                 <option label=""></option>
                                 @foreach($employees as $val)
-                                    <option value="{{$val->employee_id}}" {{ $val->employee_id == old("sales") ? "selected" : ""}} >{{$val->employee_id}} | {{$val->name}}</option>
+                                    <option value="{{$val->employee_id}}" {{ $val->employee_id == old("sales",$customers->sales) ? "selected" : ""}} >{{$val->employee_id}} | {{$val->name}}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -173,7 +173,7 @@
                             <select class="select2 w-100" id="areaKirim" name="areaKirim">
                                 <option label=""></option>
                                 @foreach($cities as $val)
-                                    <option value="{{$val->region_code}}" {{ $val->region_code == old("areaKirim") ? "selected" : ""}} >{{$val->region_name}}</option>
+                                    <option value="{{$val->region_code}}" {{ $val->region_code == old("areaKirim",$customers->area_kirim) ? "selected" : ""}} >{{$val->region_name}}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -184,7 +184,7 @@
                             <select class="select2 w-100" id="account" name="account">
                                 <option label=""></option>
                                 @foreach($accounts as $val)
-                                    <option value="{{$val->account}}" {{ $val->account == old("account") ? "selected" : ""}} >{{$val->account}} | {{$val->description}} </option>
+                                    <option value="{{$val->account}}" {{ $val->account == old("account",$customers->account) ? "selected" : ""}} >{{$val->account}} | {{$val->description}} </option>
                                 @endforeach
                             </select>
                         </div>
@@ -208,13 +208,13 @@
                     <div class="row">
                         <div class="form-group col-md-6">
                             <label class="form-label" for="npwp">NPWP</label>
-                            <input type="text" id="npwp" name="npwp" value="{{ old('npwp') }}" class="form-control masking-npwp angka" />
+                            <input type="text" id="npwp" name="npwp" value="{{ old('npwp',$customers->npwp) }}" class="form-control masking-npwp angka" />
                         </div>
                     </div>
                     <div class="row">
                         <div class="form-group col-md-6">
                             <label class="form-label" for="alamatNpwp">Alamat NPWP</label>
-                            <textarea type="text" id="alamatNpwp" name="alamatNpwp" class="form-control" rows="2" maxlength="100">{{ old('alamatNpwp') }}</textarea>
+                            <textarea type="text" id="alamatNpwp" name="alamatNpwp" class="form-control" rows="2" maxlength="100">{{ old('alamatNpwp',$customers->alamat_npwp) }}</textarea>
                         </div>
                     </div>
                     <div class="row">
@@ -231,7 +231,7 @@
                     <div class="row">
                         <div class="form-group col-md-6">
                             <label class="form-label" for="nppkp">NPPKP</label>
-                            <input type="text" id="nppkp" name="nppkp" value="{{ old('nppkp') }}" class="form-control" maxlength="30"/>
+                            <input type="text" id="nppkp" name="nppkp" value="{{ old('nppkp',$customers->nppkp) }}" class="form-control" maxlength="30"/>
                         </div>
                     </div>
                     <div class="d-flex justify-content-between">
@@ -253,25 +253,25 @@
                     <div class="row">
                         <div class="form-group col-md-8">
                             <label class="form-label" for="alamatEfaktur">Alamat Efaktur</label>
-                            <textarea type="text" id="alamatEfaktur" name="alamatEfaktur" class="form-control" rows="2" maxlength="100">{{ old('alamatEfaktur') }}</textarea>
+                            <textarea type="text" id="alamatEfaktur" name="alamatEfaktur" class="form-control" rows="2" maxlength="100">{{ old('alamatEfaktur',$customers->efaktur_alamat) }}</textarea>
                         </div>
                     </div>
                     <div class="row">
                         <div class="form-group col-md-2">
                             <label class="form-label" for="blok">Blok</label>
-                            <input type="text" id="blok" name="blok" value="{{ old('blok') }}" class="form-control"  maxlength="10"/>
+                            <input type="text" id="blok" name="blok" value="{{ old('blok',$customers->efaktur_blok) }}" class="form-control"  maxlength="10"/>
                         </div>
                         <div class="form-group col-md-2">
                             <label class="form-label" for="nomor">No</label>
-                            <input type="text" id="nomor" name="nomor" value="{{ old('nomor') }}" class="form-control"   maxlength="5"/>
+                            <input type="text" id="nomor" name="nomor" value="{{ old('nomor',$customers->efaktur_no) }}" class="form-control"   maxlength="5"/>
                         </div>
                         <div class="form-group col-md-2">
                             <label class="form-label" for="rt">RT</label>
-                            <input type="text" id="rt" name="rt" value="{{ old('rt') }}"  class="form-control angka"  maxlength="14"/>
+                            <input type="text" id="rt" name="rt" value="{{ old('rt',$customers->efaktur_rt) }}"  class="form-control angka"  maxlength="14"/>
                         </div>
                         <div class="form-group col-md-2">
                             <label class="form-label" for="rw">RW</label>
-                            <input type="text" id="rw" name="rw" value="{{ old('rw') }}" class="form-control angka"  maxlength="14" />
+                            <input type="text" id="rw" name="rw" value="{{ old('rw',$customers->efaktur_rw) }}" class="form-control angka"  maxlength="14" />
                         </div>
                     </div>
                     <div class="row">
@@ -305,7 +305,7 @@
                     <div class="row">
                         <div class="form-group col-md-2">
                             <label class="form-label" for="kodePos">Kodepos</label>
-                            <input type="text" id="kodePos" name="kodePos" value="{{ old('kodePos') }}" class="form-control disabled-el" disabled />
+                            <input type="text" id="kodePos" name="kodePos" value="{{ old('kodePos',$customers->efaktur_kode_pos) }}" class="form-control disabled-el" disabled />
                         </div>
                     </div>
                     <div class="d-flex justify-content-between">
@@ -359,8 +359,7 @@
         }
         }).settings.ignore = "";
 
-        
-        if ('{{ $errors->any() }}'){
+        if ('{{ $errors->any() }}' || '{{ $edit == 1 }}' ){
             // apabila ada error validation status change_active berubah jadi no
             //Supaya dependent tidak jalan
             change_active = 'no'; 
@@ -372,22 +371,19 @@
             }, 2000);
         }
         
-        '{{ Request::old('provinsi') }}' ? changeselect('provinsi',0,'{{ Request::old('provinsi') }}') : '';   
-        '{{ Request::old('kota') }}' ? changeselect('kota','{{ Request::old('provinsi') }}','{{ Request::old('kota') }}') : '';
-        '{{ Request::old('kelurahan') }}' ? changeselect('kelurahan','{{ Request::old('kota') }}','{{ Request::old('kelurahan') }}') : '';
-        '{{ Request::old('kecamatan') }}' ? changeselect('kecamatan','{{ Request::old('kelurahan') }}','{{ Request::old('kecamatan') }}') : '';
-
+        '{{ Request::old('provinsi', $customers->efaktur_provinsi) }}' ? changeselect('provinsi',0,'{{ Request::old('provinsi',$customers->efaktur_provinsi) }}') : '';   
+        '{{ Request::old('kota',$customers->efaktur_kota) }}' ? changeselect('kota','{{ Request::old('provinsi',$customers->efaktur_provinsi) }}','{{ Request::old('kota',$customers->efaktur_kota) }}') : '';
+        '{{ Request::old('kelurahan',$customers->efaktur_kelurahan) }}' ? changeselect('kelurahan','{{ Request::old('kota',$customers->efaktur_kota) }}','{{ Request::old('kelurahan',$customers->efaktur_kelurahan) }}') : '';
+        '{{ Request::old('kecamatan',$customers->efaktur_kecamatan) }}' ? changeselect('kecamatan','{{ Request::old('kelurahan',$customers->efaktur_kelurahan) }}','{{ Request::old('kecamatan',$customers->efaktur_kecamatan) }}') : '';
 
     });
 
     $("#cmdSave").click(function(){       
         $('.disabled-el').removeAttr('disabled');
-
         //GET ALL IDS
         // var ids = $('*[id]').map(function() {
         //     console.log("$"+this.id+" = $request->input('"+this.id+"');");
         // }).get();
-
         $("#frmAdd").submit(); // Submit the form
     });
 

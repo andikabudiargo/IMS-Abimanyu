@@ -369,11 +369,7 @@
       $('#name').focus();
     });
 
-    $.ajaxSetup({
-        headers: {
-            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-        }
-    });
+   
 
     function validasidelete(permission_id){
 
@@ -505,6 +501,12 @@
         $('#name').focus();
         Swal.fire('Warning ... ', pesan ,'warning');    
       }
+    });
+
+    $.ajaxSetup({
+        headers: {
+            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+        }
     });
 
   </script>

@@ -31,12 +31,32 @@
           </li>
           <li class=" navigation-header"><span data-i18n="Apps &amp; Pages">Apps &amp; Pages</span><i data-feather="more-horizontal"></i>
           </li>
-          <li class=" {{ in_array(\Request::segment(1), ['customers','suppliers']) ? 'active' : '' }} nav-item">
+          <li class=" {{ in_array(\Request::segment(1), ['customers','suppliers','accounts','groups','depts','accTypes','employees','uoms','groupMaterials']) ? 'active' : '' }} nav-item">
             <a class="d-flex align-items-center" href="javascript:void(0);">
               <i data-feather="book"></i>
               <span class="menu-title text-truncate" data-i18n="Form Elements">Master Data
               </span>
             </a>
+            <ul class="menu-content">
+              @can('employee-index')
+              <li class="{{ \Request::segment(1) == 'employees'  ? 'active' : '' }}">
+                <a class="d-flex align-items-center" href="{{ route('employees.index') }}">
+                  <i data-feather="circle"></i>
+                  <span class="menu-item text-truncate" data-i18n="Input">Karyawan</span>
+                </a>
+              </li>
+              @endcan
+            </ul>
+            <ul class="menu-content">
+              @can('jobPosition-index')
+              <li class="{{ \Request::segment(1) == 'jobPositions'  ? 'active' : '' }}">
+                <a class="d-flex align-items-center" href="{{ route('jobPositions.index') }}">
+                  <i data-feather="circle"></i>
+                  <span class="menu-item text-truncate" data-i18n="Input">Jabatan</span>
+                </a>
+              </li>
+              @endcan
+            </ul>
             <ul class="menu-content">
                 @can('customer-index')
                 <li class="{{ \Request::segment(1) == 'customers'  ? 'active' : '' }}">
@@ -56,47 +76,83 @@
                 </a>
               </li>
               @endcan
-          </ul>
+            </ul>
+            <ul class="menu-content">
+              @can('accType-index')
+              <li class="{{ \Request::segment(1) == 'accounts'  ? 'active' : '' }}">
+                <a class="d-flex align-items-center" href="{{ route('accounts.index') }}">
+                  <i data-feather="circle"></i>
+                  <span class="menu-item text-truncate" data-i18n="Input">Account</span>
+                </a>
+              </li>
+              @endcan
+            </ul>
+            <ul class="menu-content">
+              @can('accType-index')
+              <li class="{{ \Request::segment(1) == 'accTypes'  ? 'active' : '' }}">
+                <a class="d-flex align-items-center" href="{{ route('accTypes.index') }}">
+                  <i data-feather="circle"></i>
+                  <span class="menu-item text-truncate" data-i18n="Input">Account Type</span>
+                </a>
+              </li>
+              @endcan
+            </ul>
+            <ul class="menu-content">
+              @can('group-index')
+              <li class="{{ \Request::segment(1) == 'groups'  ? 'active' : '' }}">
+                <a class="d-flex align-items-center" href="{{ route('groups.index') }}">
+                  <i data-feather="circle"></i>
+                  <span class="menu-item text-truncate" data-i18n="Input">Group Account</span>
+                </a>
+              </li>
+              @endcan
+            </ul>
+            <ul class="menu-content">
+              @can('groupMaterial-index')
+              <li class="{{ \Request::segment(1) == 'groupMaterials'  ? 'active' : '' }}">
+                <a class="d-flex align-items-center" href="{{ route('groupMaterials.index') }}">
+                  <i data-feather="circle"></i>
+                  <span class="menu-item text-truncate" data-i18n="Input">Group of Material</span>
+                </a>
+              </li>
+              @endcan
+            </ul>
+            <ul class="menu-content">
+              @can('department-index')
+              <li class="{{ \Request::segment(1) == 'depts'  ? 'active' : '' }}">
+                <a class="d-flex align-items-center" href="{{ route('depts.index') }}">
+                  <i data-feather="circle"></i>
+                  <span class="menu-item text-truncate" data-i18n="Input">Departemen</span>
+                </a>
+              </li>
+              @endcan
+            </ul>
+            <ul class="menu-content">
+              @can('uom-index')
+              <li class="{{ \Request::segment(1) == 'uoms'  ? 'active' : '' }}">
+                <a class="d-flex align-items-center" href="{{ route('uoms.index') }}">
+                  <i data-feather="circle"></i>
+                  <span class="menu-item text-truncate" data-i18n="Input">UOM</span>
+                </a>
+              </li>
+              @endcan
+            </ul>
           </li>
-          <li class=" {{ in_array(\Request::segment(1), []) ? 'active' : '' }} nav-item">
+          <li class=" {{ in_array(\Request::segment(1), ['articles']) ? 'active' : '' }} nav-item">
             <a class="d-flex align-items-center" href="javascript:void(0);">
               <i data-feather="box"></i>
               <span class="menu-title text-truncate" data-i18n="Form Elements">Inventory
               </span>
             </a>
             <ul class="menu-content">
-                @can('user-index')
-                <li class="{{ \Request::segment(1) == '' && \Request::segment(2) == '' ? 'active' : '' }}">
-                  <a class="d-flex align-items-center" href="{{ route('users.index') }}">
-                    <i data-feather="circle"></i>
-                    <span class="menu-item text-truncate" data-i18n="Input">Master Data</span>
-                  </a>
-                @endcan
-                </li>
-                @can('permission-index')
-                <li class="{{ \Request::segment(1) == '' && \Request::segment(2) == '' ? 'active' : '' }}">
-                  <a class="d-flex align-items-center" href="{{ route('permissions.index') }}">
-                    <i data-feather="circle"></i>
-                    <span class="menu-item text-truncate" data-i18n="Input">Kelompok</span>
-                  </a>
-                </li>
-                @endcan
-                @can('role-index')
-                <li class="{{ \Request::segment(1) == '' && \Request::segment(2) == '' ? 'active' : '' }}">
-                  <a class="d-flex align-items-center" href="{{ route('roles.index') }}">
-                    <i data-feather="circle"></i>
-                    <span class="menu-item text-truncate" data-i18n="Input">Jenis barang</span>
-                  </a>
-                </li>
-                @endcan
-                @can('role-index')
-                <li class="{{ \Request::segment(1) == '' && \Request::segment(2) == '' ? 'active' : '' }}">
-                  <a class="d-flex align-items-center" href="{{ route('roles.index') }}">
-                    <i data-feather="circle"></i>
-                    <span class="menu-item text-truncate" data-i18n="Input">No Rak</span>
-                  </a>
-                </li>
-                @endcan
+              @can('article-index')
+              <li class="{{ \Request::segment(1) == 'articles' ? 'active' : '' }}">
+                <a class="d-flex align-items-center" href="{{ route('articles.index') }}">
+                  <i data-feather="circle"></i>
+                  <span class="menu-item text-truncate" data-i18n="Input">Article</span>
+                </a>
+              @endcan
+              </li>
             </ul>
           </li>
           <li class=" {{ in_array(\Request::segment(1), []) ? 'active' : '' }} nav-item">

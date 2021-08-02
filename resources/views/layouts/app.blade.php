@@ -96,8 +96,6 @@
     
     @include('layouts.footer')
 
-    
-
     <script src="{{asset('app-assets/vendors/js/vendors.min.js')}}"></script>
     <script src="{{asset('app-assets/vendors/js/forms/select/select2.full.min.js')}}"></script>
     <script src="{{asset('app-assets/vendors/js/extensions/sweetalert2.all.min.js')}}"></script>
@@ -125,10 +123,14 @@
     <script src="{{asset('app-assets/vendors/js/pickers/flatpickr/flatpickr.min.js')}}"></script>
     <script src="{{asset('app-assets/vendors/js/extensions/jstree.min.js')}}"></script>
 
+    
+
     <script src="{{asset('assets/js/form-select2.js')}}"></script>
+    <script src="{{asset('assets/js/bootstrap-confirmation.min.js')}}"></script>
 
     <script src="{{asset('app-assets/js/core/app-menu.js')}}"></script>
     <script src="{{asset('app-assets/js/core/app.js')}}"></script>
+    
     
             
     <script type="text/javascript">

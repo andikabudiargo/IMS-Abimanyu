@@ -9,9 +9,7 @@
                 <div class="card-header">
                     <h4 class="card-title">Name : {{ $role->name }}</h4>
                 </div>
-                
                 <div class="card-body">
-
                     <div class="row">
                         <div class="col-12">
                         <p class="card-text mb-0">

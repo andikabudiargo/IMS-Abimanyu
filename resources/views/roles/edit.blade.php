@@ -24,8 +24,8 @@
                         <br>
                         <div class="row">
                             <div class="col-12">
-                                <button id="save" name="save" class="btn btn-primary" type="button"><span>Save</span></button>
                                 <a class="btn btn-info" href="{{ route('roles.index') }}"> Back</a>
+                                <button id="save" name="save" class="btn btn-primary" type="button"><span>Save</span></button>
                             </div>
                         </div>
                     </form>

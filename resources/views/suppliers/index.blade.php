@@ -2,9 +2,7 @@
 @section('title', $title)
 @section('content')
 @include('layouts.breadcrumb')
-@include('partials.alert')
-
-<section id="customers-index">
+<section id="suppliers-index">
     <div class="row">
       <div class="col-12">
         <div class="card">
@@ -18,21 +16,21 @@
                     <div class="col-md-4"> 
                         <div class="form-group">
                         <label for="basicInput">Kode</label>
-                        <input type="text" class="form-control text-uppercase" id="searchCustomerCode" name="searchCustomerCode" placeholder="" />
+                        <input type="text" class="form-control text-uppercase" id="searchSupplierCode" name="searchSupplierCode" placeholder="" />
                         </div>
                     </div>
                     <div class="col-md-4"> 
                     <div class="form-group">
                         <label for="basicInput">Nama</label>
-                        <input type="text" class="form-control text-uppercase" id="searchCustomer" name="searchCustomer" placeholder="" />
+                        <input type="text" class="form-control text-uppercase" id="searchSupplier" name="searchSupplier" placeholder="" />
                     </div>
                     </div>
                 </div>
                 <div class="form-row">
                     <div class="col-12"> 
                         <button type="button" class="btn btn-primary" id ="btnSearch" name="btnSearch">Search</button>
-                        @can('customer-create')
-                        <a href="{{ route('customer.create') }}" class="btn btn-info"><i class="fa fa-plus"></i> Create</a>
+                        @can('supplier-create')
+                        <a href="{{ route('supplier.create') }}" class="btn btn-info"><i class="fa fa-plus"></i> Create</a>
                         @endcan
                     </div>
                 </div>
@@ -42,8 +40,7 @@
       </div>
     </div>
 </section>
-
-<section id="table-customers">
+<section id="table-suppliers">
     <div class="card">
       <div class="card-header">
         <h4 class="card-title">List @yield('title')</h4>
@@ -70,9 +67,6 @@
       </div>
     </div>
 </section>
-
-@include('partials.delete-modal')
-
 @endsection
 @section('styles')
 <style>
@@ -89,8 +83,8 @@
     });
 
     $("#btnSearch").click(function(e){
-		let nama =$("#searchCustomer").val();
-        let code =$("#searchCustomerCode").val();
+		let nama =$("#searchSupplier").val();
+        let code =$("#searchSupplierCode").val();
         showList(nama,code);
     });
 
@@ -104,12 +98,12 @@
             '<"col-sm-12 col-md-6"i>' +
             '<"col-sm-12 col-md-6"p>' +
             '>';
-        let arr_col_print =[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17]; 
+        let arr_col_print =[1,2,3,4,5,6,7,8,9]; 
         $(function(){
         let oTable =$("#detailedTable").DataTable({
             ajax:
             {
-              url:'{{ route("customer.list")}}',
+              url:'{{ route("supplier.list")}}',
               data:{
                   name:nama,
                   code:code
@@ -235,20 +229,11 @@
                 { data: 'action', name: 'action',title:'action', orderable: false, searchable: false },
                 { data: 'kode', name: 'kode',title:'Kode' },
                 { data: 'nama', name: 'nama',title:'Nama' },
-                { data: 'inisial', name: 'inisial',title:'Inisial' },
                 { data: 'nama_kontak', name: 'nama_kontak',title:'Nama Kontak' },
                 { data: 'telepon', name: 'telepon',title:'Telepon' },
                 { data: 'hp', name: 'hp',title:'HP' },
                 { data: 'fax', name: 'fax',title:'Fax' },
-                { data: 'alamat_tagih', name: 'alamat_tagih',title:'Alamat tagih' },
-                { data: 'alamat_kirim_1', name: 'alamat_kirim_1',title:'Alamat Kirim 1' },
-                { data: 'alamat_kirim_2', name: 'alamat_kirim_2',title:'Alamat Kirim 2' },
-                { data: 'npwp', name: 'npwp',title:'NPWP' },
-                { data: 'nppkp', name: 'nppkp',title:'NPPKP' },
-                { data: 'alamat_npwp', name: 'alamat_npwp',title:'Alamat NPWP' },
-                { data: 'blacklist', name: 'blacklist',title:'Blacklist' },
-                { data: 'epte', name: 'epte',title:'EPTE' },
-                
+                { data: 'alamat_tagih', name: 'alamat_tagih',title:'Alamat' }
             ],
       });
     //   $('div.head-label').html('<h6 class="mb-0">Data Users</h6>');
