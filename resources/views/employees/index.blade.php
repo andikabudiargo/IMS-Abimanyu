@@ -25,7 +25,7 @@
                     </div>
                     <div class="form-group col-md-4"> 
                       <label class="form-label" for="dept">Departemen</label>
-                      <select class="select2 w-100" id="dept" name="dept">
+                      <select class="select2 form-control" id="dept" name="dept">
                           <option label=""></option>
                           @foreach($depts as $val)
                               <option value="{{$val->code}}">{{$val->code}} - {{$val->name}}</option>
@@ -34,7 +34,7 @@
                     </div>
                     <div class="form-group col-md-4"> 
                       <label class="form-label" for="position">Jabatan</label>
-                      <select class="select2 w-100" id="position" name="position">
+                      <select class="select2 form-control" id="position" name="position">
                           <option label=""></option>
                           @foreach($positions as $val)
                               <option value="{{$val->code}}">{{$val->code}} - {{$val->name}}</option>

@@ -1,3 +1,12 @@
+{{-- alet dati ajax success --}}
+<div class="alert alert-dismissible collapse" role="alert" id="alert-message-success">
+    <div class="alert-body">
+    </div>
+    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+    </button>
+</div>
+
 {{-- alert dari validari form --}}
 <div class="alert alert-warning alert-dismissible collapse" role="alert" id="alert-message">
     <div class="alert-body">

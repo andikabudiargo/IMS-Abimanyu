@@ -15,6 +15,8 @@
 // Route::auth();
 Auth::routes();
 Route::group( ['middleware' => ['auth']], function() {
+	Route::get('/logout' , 'Auth\LoginController@logout');
+	Route::get('/home', 'HomeController@index')->name('home');
     Route::get('/', 'HomeController@index')->name('home');
     Route::get('/welcome', 'HomeController@welcome')->name('welcome');
 	
@@ -65,13 +67,13 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('customers/update',['as'=>'customer.update','uses'=>'CustomerController@update']);
 	Route::post('customers/delete',['as'=>'customer.destroy','uses'=>'CustomerController@destroy']);
 
-	Route::get('suppliers',['as'=>'suppliers.index','uses'=>'SupplierController@index','middleware' => ['permission:suppier-index']]);
-	Route::get('suppliers/create',['as'=>'supplier.create','uses'=>'SupplierController@create','middleware' => ['permission:suppier-create']]);
+	Route::get('suppliers',['as'=>'suppliers.index','uses'=>'SupplierController@index','middleware' => ['permission:supplier-index']]);
+	Route::get('suppliers/create',['as'=>'supplier.create','uses'=>'SupplierController@create','middleware' => ['permission:supplier-create']]);
 	Route::post('suppliers/store',['as'=>'supplier.store','uses'=>'SupplierController@store']);
 	Route::get('suppliers/list',['as'=>'supplier.list','uses'=>'SupplierController@list']);
 	Route::get('suppliers/show',['as'=>'supplier.show','uses'=>'SupplierController@show']);
-	Route::get('suppliers/edit',['as'=>'supplier.edit','uses'=>'SupplierController@edit','middleware' => ['permission:suppier-edit']]);
-	Route::get('suppliers/update',['as'=>'supplier.update','uses'=>'SupplierController@update']);
+	Route::get('suppliers/edit',['as'=>'supplier.edit','uses'=>'SupplierController@edit','middleware' => ['permission:supplier-edit']]);
+	Route::post('suppliers/update',['as'=>'supplier.update','uses'=>'SupplierController@update']);
 	Route::post('suppliers/delete',['as'=>'supplier.destroy','uses'=>'SupplierController@destroy']);
 
 	Route::get('accounts',['as'=>'accounts.index','uses'=>'AccountController@index']);
@@ -157,6 +159,41 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('articles/update',['as'=>'article.update','uses'=>'ArticleController@update']);
 	Route::post('articles/delete',['as'=>'article.destroy','uses'=>'ArticleController@destroy']);
 	Route::get('articles/code/create',['as'=>'article.code.create','uses'=>'ArticleController@articleCodeCreate']);
+	Route::post('articles/get/supplier',['as'=>'get.supplier','uses'=>'ArticleController@getSupplier']);
+
+	Route::get('salesOrders',['as'=>'salesOrders.index','uses'=>'SalesOrderController@index','middleware' => ['permission:salesOrder-index']]);
+	Route::get('salesOrders/create',['as'=>'salesOrder.create','uses'=>'SalesOrderController@create','middleware' => ['permission:salesOrder-create']]);
+	Route::post('salesOrders/store',['as'=>'salesOrder.store','uses'=>'SalesOrderController@store']);
+	Route::get('salesOrders/list',['as'=>'salesOrder.list','uses'=>'SalesOrderController@list']);
+	Route::get('salesOrders/show',['as'=>'salesOrder.show','uses'=>'SalesOrderController@show']);
+	Route::get('salesOrders/edit',['as'=>'salesOrder.edit','uses'=>'SalesOrderController@edit','middleware' => ['permission:salesOrder-edit']]);
+	Route::post('salesOrders/update',['as'=>'salesOrder.update','uses'=>'SalesOrderController@update']);
+	Route::post('salesOrders/delete',['as'=>'salesOrder.destroy','uses'=>'SalesOrderController@destroy']);
+	Route::get('salesOrders/code/create',['as'=>'salesOrder.code.create','uses'=>'SalesOrderController@articleCodeCreate']);
+
+
+	Route::get('purchaseOrders',['as'=>'purchaseOrders.index','uses'=>'PurchaseOrderController@index','middleware' => ['permission:purchaseOrder-index']]);
+	Route::get('purchaseOrders/create',['as'=>'purchaseOrder.create','uses'=>'PurchaseOrderController@create','middleware' => ['permission:purchaseOrder-create']]);
+	Route::post('purchaseOrders/store',['as'=>'purchaseOrder.store','uses'=>'PurchaseOrderController@store']);
+	Route::get('purchaseOrders/list',['as'=>'purchaseOrder.list','uses'=>'PurchaseOrderController@list']);
+	Route::get('purchaseOrders/show',['as'=>'purchaseOrder.show','uses'=>'PurchaseOrderController@show']);
+	Route::get('purchaseOrders/edit',['as'=>'purchaseOrder.edit','uses'=>'PurchaseOrderController@edit','middleware' => ['permission:purchaseOrder-edit']]);
+	Route::post('purchaseOrders/update',['as'=>'purchaseOrder.update','uses'=>'PurchaseOrderController@update']);
+	Route::post('purchaseOrders/delete',['as'=>'purchaseOrder.destroy','uses'=>'PurchaseOrderController@destroy']);
+	Route::get('purchaseOrders/code/create',['as'=>'purchaseOrder.code.create','uses'=>'PurchaseOrderController@articleCodeCreate']);
+	Route::get('purchaseOrders/print',['as'=>'purchaseOrder.print','uses'=>'PurchaseOrderController@print']);
+
+
+	Route::get('workingOrders',['as'=>'workingOrders.index','uses'=>'workingOrderController@index','middleware' => ['permission:workingOrder-index']]);
+	Route::get('workingOrders/create',['as'=>'workingOrder.create','uses'=>'workingOrderController@create','middleware' => ['permission:workingOrder-create']]);
+	Route::post('workingOrders/store',['as'=>'workingOrder.store','uses'=>'workingOrderController@store']);
+	Route::get('workingOrders/list',['as'=>'workingOrder.list','uses'=>'workingOrderController@list']);
+	Route::get('workingOrders/show',['as'=>'workingOrder.show','uses'=>'workingOrderController@show']);
+	Route::get('workingOrders/edit',['as'=>'workingOrder.edit','uses'=>'workingOrderController@edit','middleware' => ['permission:workingOrder-edit']]);
+	Route::post('workingOrders/update',['as'=>'workingOrder.update','uses'=>'workingOrderController@update']);
+	Route::post('workingOrders/delete',['as'=>'workingOrder.destroy','uses'=>'workingOrderController@destroy']);
+	Route::get('workingOrders/code/create',['as'=>'workingOrder.code.create','uses'=>'workingOrderController@articleCodeCreate']);
+	Route::get('workingOrders/print',['as'=>'workingOrder.print','uses'=>'workingOrderController@print']);
 
 	Route::post('dynamic/dependent',['as'=>'dynamic.dependent','uses'=>'DependentController@dependentFetch']);
 

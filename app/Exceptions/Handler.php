@@ -50,6 +50,20 @@ class Handler extends ExceptionHandler
      */
     public function render($request, Throwable $exception)
     {
+
+        if($exception instanceof NotFoundHttpException){
+          return response()->view('errors.404_2', [], 404);
+        }
+
+        if ( ! config('app.debug') && ! $this->isHttpException($exception)) {
+            return response()->view('errors.503', [], 500);
+        }
+
+        // if ($exception instanceof TokenMismatchException) {
+        //     return redirect(route('login'));
+        // }
+
         return parent::render($request, $exception);
+
     }
 }

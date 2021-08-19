@@ -2,6 +2,7 @@
 @section('title', $title)
 @section('content')
 @include('layouts.breadcrumb')
+@include('partials.alert')
 <section id="suppliers-index">
     <div class="row">
       <div class="col-12">
@@ -67,6 +68,9 @@
       </div>
     </div>
 </section>
+
+@include('partials.delete-modal')
+
 @endsection
 @section('styles')
 <style>
@@ -75,7 +79,21 @@
 @section('scripts')
 <script type="text/javascript">
     $(document).ready(function(){    
+      let href;
+      $(document).on('click', '#deleteButton', function(event) {
+          event.preventDefault();
+          href = $(this).data('href');
+          $('#modalConfirmation').attr("action", href);
+      });
     });
+
+    let showAlert = "{{ Session::get('alert') }}";
+    if ( showAlert ){
+      showList();
+      $("#alert-message-alert").fadeTo(5000, 500).slideUp(500, function(){
+        $("#alert-message-alert").slideUp(500);
+      });
+    }
 
      //refresh di cards
     $('a[data-action="reload"]').on('click', function () {
@@ -83,9 +101,9 @@
     });
 
     $("#btnSearch").click(function(e){
-		let nama =$("#searchSupplier").val();
-        let code =$("#searchSupplierCode").val();
-        showList(nama,code);
+		  let nama =$("#searchSupplier").val();
+      let code =$("#searchSupplierCode").val();
+      showList(nama,code);
     });
 
     function showList(nama,code){

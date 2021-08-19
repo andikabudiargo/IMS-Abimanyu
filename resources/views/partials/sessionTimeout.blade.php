@@ -19,7 +19,6 @@
                 <span>Logout</span>
               </button>
               <button id="cmdHelpOk" class="btn btn-success btn-cons" type="button">
-                <i data-feather="log-in"></i>
                   <span>Yes!</span>
               </button>
               

@@ -15,28 +15,42 @@
                     <form id="frmAdd" name="frmAdd" action="{{ route('article.store') }}" method="post" autocomplete="off">
                         @csrf
                         <div class="row">
-                            <div class="col-4">
+                            <div class="col-6">
                                 <div class="form-group">
-                                    <label for="kode">Article Code</label>
+                                    <label for="kode">Article Code 1</label>
                                     <input type="text" id="kode" name="kode" class="form-control disabled-el"  value="{{ old('kode') }}" disabled />
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="form-group">
+                                    <label for="kode2">Article Code 2</label>
+                                    <input type="text" id="kode2" name="kode2" class="form-control disabled-el"  value="{{ old('kode2') }}" disabled />
                                 </div>
                             </div>
                         </div>
                         <div class="row">
                             <div class="form-group col-md-6">
-                                <label class="form-label" for="cust">Customer</label>
-                                <select class="select2 w-100" id="cust" name="cust" autofocus required>
+                                <label class="form-label" for="articleType">Article Type*</label>
+                                <select class="select2 form-control" id="articleType" name="articleType" autofocus required>
                                     <option label=""></option>
-                                    @foreach($custs as $val)
-                                        <option value="{{$val->kode}}" {{ $val->kode == old("cust") ? "selected" : ""}}>{{$val->kode}} - {{$val->nama}}</option>
+                                    @foreach($types as $val)
+                                        <option value="{{$val->code}}" {{ $val->code == old("articleType") ? "selected" : ""}}>{{$val->code}} - {{$val->name}}</option>
                                     @endforeach
+                                </select>
+                            </div>                            
+                        </div>
+                        <div class="row">
+                            <div class="form-group col-md-12">
+                                <label class="form-label" for="cust" id="custLable">Customer*</label>
+                                <select class="select2 form-control" id="cust" name="cust" autofocus required>
+                                   
                                 </select>
                             </div>
                         </div>
                         <div class="row">
                             <div class="col-12">
                                 <div class="form-group">
-                                    <label for="nama">Description</label>
+                                    <label for="nama">Description*</label>
                                     <input type="text" id="nama" name="nama" class="form-control" value="{{ old('nama') }}"  required  maxlength="100"/>
                                 </div>
                             </div>
@@ -52,7 +66,7 @@
                         <div class="row">
                             <div class="form-group col-md-6">
                                 <label class="form-label" for="group">Group of material</label>
-                                <select class="select2 w-100" id="group" name="group" required>
+                                <select class="select2 form-control" id="group" name="group">
                                     <option label=""></option>
                                     @foreach($groups as $val)
                                         <option value="{{$val->code}}" {{ $val->code == old("group") ? "selected" : ""}}>{{$val->code}} - {{$val->name}}</option>
@@ -62,13 +76,21 @@
                         </div>
                         <div class="row">
                             <div class="form-group col-md-6">
-                                <label class="form-label" for="uom">UOM</label>
-                                <select class="select2 w-100" id="uom" name="uom">
+                                <label class="form-label" for="uom">UOM*</label>
+                                <select class="select2 form-control" id="uom" name="uom" required>
                                     <option label=""></option>
                                     @foreach($uoms as $val)
                                         <option value="{{$val->code}}" {{ $val->code == old("uom") ? "selected" : ""}} >{{$val->code}} - {{$val->name}}</option>
                                     @endforeach
                                 </select>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-6">
+                                <div class="form-group">
+                                    <label for="price">Price</label>
+                                    <input type="text" id="price" name="price" class="form-control angka" value="{{ old('price') }}"  maxlength="10"/>
+                                </div>
                             </div>
                         </div>
                         <div class="row">
@@ -122,25 +144,34 @@
 
     $('#cust').on('change', function() {
         let customer = $(this).val();
+        let type = $('#articleType').val();
         if(customer){
             $.ajax({
                 url:"{{route('article.code.create')}}",
                 method:"GET",
                 data:{
                     customer:customer,
+                    type:type
                 },
                 success:function(result){
-                    $('#kode').val(result)
+                    console.log(result);
+                    if (result.indexOf("|") >= 0){
+                        let kode = result.split("|");
+                        $('#kode').val(kode[0]);
+                        $('#kode2').val(kode[1]);
+                    }else{
+                        $('#kode').val(result);    
+                    }
                 },
                 error:function(e){
                     console.log(e);
                 }
             })
         }else{
-            $('#kode').val('none');
+            $('#kode').val('');
+            $('#kode2').val('');
         }
     })
-
 
     $("#cmdSave").click(function(){       
         $('.disabled-el').removeAttr('disabled');
@@ -152,5 +183,31 @@
         $("#frmAdd").validate().resetForm();
         $('#kode').focus();
     });
+
+    $('#articleType').on('change', function() {
+        let type = $(this).val();
+        let obj = "cust";
+        $.ajax({
+            url:"{{route('get.supplier')}}",
+            method:"POST",
+            data:{
+                type:type,
+                dependent:obj
+            },
+            success:function(result){
+                type === 'CM'?$('#custLable').text("Supplier"):$('#custLable').text("Customer");
+                $('#'+obj).html(result);
+                $('#'+obj).val('').trigger('change');
+            }
+        })
+    })
+
+    $.ajaxSetup({
+        headers: {
+            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+        }
+    });
+
+
 </script>
 @endsection

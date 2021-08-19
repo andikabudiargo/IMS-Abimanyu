@@ -5,7 +5,7 @@
                 <h2 class="content-header-title float-left mb-0">@yield('title')</h2>
                 <div class="breadcrumb-wrapper">
                     <ol class="breadcrumb">
-                        <li class="breadcrumb-item"><a href="{{route('home')}}">Home</a>
+                        {{-- <li class="breadcrumb-item"><a href="{{route('home')}}">Home</a> --}}
                         </li>
                         @if(\Request::segment(2) != "")
                             <li class="breadcrumb-item"><a href="{{url(\Request::segment(1))}}">{{ucwords(\Request::segment(1))}}</a></li>

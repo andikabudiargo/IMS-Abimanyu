@@ -2,7 +2,16 @@
 	<div class="navbar-container d-flex content">
 		<div class="bookmark-wrapper d-flex align-items-center">
 			<ul class="nav navbar-nav d-xl-none">
-				<li class="nav-item"><a class="nav-link menu-toggle" href="javascript:void(0);"><i class="ficon" data-feather="menu"></i></a></li>
+				<li class="nav-item">
+					<a class="nav-link menu-toggle" href="javascript:void(0);">
+						<i class="ficon" data-feather="menu"></i>
+					</a>
+				</li>
+			</ul>
+			<ul class="nav navbar-nav d-xl-none d-md-none" style="margin-left:10px">
+				{{-- <li class="nav-item"> --}}
+					<img src="{{asset('app-assets/images/logo/logo.png')}}" alt="logo" class="logo" style="height: 50px;">
+				{{-- </li> --}}
 			</ul>
 			{{-- <ul class="nav navbar-nav bookmark-icons">
 				<li class="nav-item d-none d-lg-block"><a class="nav-link" href="app-email.html" data-toggle="tooltip" data-placement="top" title="Email"><i class="ficon" data-feather="mail"></i></a></li>
@@ -19,8 +28,8 @@
 					</div>
 				</li>
 			</ul> --}}
-			<ul class="nav navbar-nav">
-				<li class="nav-item d-none d-lg-block">
+			<ul class="nav navbar-nav" style="margin-left:10px">
+				<li class="nav-item d-none d-lg-block" >
 					<img src="{{asset('app-assets/images/logo/logo.png')}}" alt="logo" class="logo" style="height: 50px;">
 				</li>
 			</ul>

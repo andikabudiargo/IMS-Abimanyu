@@ -17,15 +17,15 @@
                         <div class="row">
                             <div class="col-4">
                                 <div class="form-group">
-                                    <label for="kode">Article Code {{ $article->id }}</label>
+                                    <label for="kode">Article Code</label>
                                     <input type="text" id="kode" name="kode" class="form-control disabled-el"  value="{{ old('kode',$article->code) }}" disabled />
                                 </div>
                             </div>
                         </div>
                         <div class="row">
-                            <div class="form-group col-md-6">
+                            <div class="form-group col-md-12">
                                 <label class="form-label" for="cust">Customer</label>
-                                <select class="select2 w-100" id="cust" name="cust" autofocus required>
+                                <select class="select2 form-control" id="cust" name="cust" required>
                                     <option label=""></option>
                                     @foreach($custs as $val)
                                         <option value="{{$val->kode}}" {{ $val->kode == old("cust",$article->cust) ? "selected" : ""}}>{{$val->kode}} - {{$val->nama}}</option>
@@ -52,7 +52,7 @@
                         <div class="row">
                             <div class="form-group col-md-6">
                                 <label class="form-label" for="group">Group of material</label>
-                                <select class="select2 w-100" id="group" name="group" required>
+                                <select class="select2 form-control" id="group" name="group" required>
                                     <option label=""></option>
                                     @foreach($groups as $val)
                                         <option value="{{$val->code}}" {{ $val->code == old("group",$article->group) ? "selected" : ""}}>{{$val->code}} - {{$val->name}}</option>
@@ -63,12 +63,20 @@
                         <div class="row">
                             <div class="form-group col-md-6">
                                 <label class="form-label" for="uom">UOM</label>
-                                <select class="select2 w-100" id="uom" name="uom">
+                                <select class="select2 form-control" id="uom" name="uom">
                                     <option label=""></option>
                                     @foreach($uoms as $val)
                                         <option value="{{$val->code}}" {{ $val->code == old("uom",$article->uom) ? "selected" : ""}} >{{$val->code}} - {{$val->name}}</option>
                                     @endforeach
                                 </select>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-6">
+                                <div class="form-group">
+                                    <label for="price">Price</label>
+                                    <input type="text" id="price" name="price" class="form-control angka" value="{{ old('price',$article->costprice) }}"  maxlength="10"/>
+                                </div>
                             </div>
                         </div>
                         <div class="row">

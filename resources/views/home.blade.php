@@ -20,3 +20,29 @@
     </div>
 </section>
 @endsection
+
+@section('styles')
+@endsection
+@section('scripts')
+<script type="text/javascript">
+    var isRtl = $('html').attr('data-textdirection') === 'rtl';
+    // On load Toast
+
+    if ("{{ Session::get('firstLogin') }}" == "success"){
+        setTimeout(function () {
+        toastr['success'](
+                'You have successfully logged in to IMS!',
+                '👋 Welcome {{ strtoupper(Auth::user()->name) }}!',
+                {
+                    closeButton: true,
+                    tapToDismiss: false,
+                    rtl: isRtl
+                }
+            );
+            "{{ Session::forget('firstLogin') }}";
+        }, 3000);
+    }
+    
+</script>
+@endsection
+

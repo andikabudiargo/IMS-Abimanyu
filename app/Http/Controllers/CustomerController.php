@@ -361,15 +361,26 @@ class CustomerController extends Controller
 
     }
 
-    public function delete(Request $request)
+    public function destroy(Request $request)
     {
-        $attr_name=$request['attr_name'];
-        $attr_code=$request['attr_code'];
-        DB::table('attributes')
-        ->where('attr_name',$attr_name)
-        ->where('attr_code',$attr_code)
+        $username =  Auth::user()->username;
+        $id = $request->id;
+
+        $row_affected = DB::table('third_party')
+        ->where('id',$id)
         ->delete();
-        return response()->json(['success'=>"Data sudah di hapus"]);
+
+        if($row_affected>0){
+            $alert  ="alert-success";
+            $message  = "Successfully Deleted";
+            \LogActivity::addToLog('Supplier delete ',"username: $username Status $message");
+            return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);  
+        }else{
+            $alert  ="alert-warning";
+            $message  = "Failed to Delete";
+            \LogActivity::addToLog('Supplier delete ',"username: $username Status $message");
+            return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);
+        }
     }
 
     public function list(Request $request)

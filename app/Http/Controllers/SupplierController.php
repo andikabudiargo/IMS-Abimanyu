@@ -24,19 +24,25 @@ class SupplierController extends Controller
         $data['title'] = "Create Supplier";
         $data['subtitle'] = "Create New Supplier";
                 
-        $data['cities'] = DB::table('regions')
-                            ->where ('index','=',2)
-                            ->orderBy('region_name')
-                            ->get();
-        
         return view("suppliers.create",$data);
     }
 
     public function store(Request $request)
     {
-
-        $kode =$request->input('kode');
-        $nama =$request->input('nama');
+        $username = Auth::user()->username;
+        $kode = $request->input('kode');
+        $nama = $request->input('nama');
+        $alamat = $request->input('alamat');
+        $telepon = $request->input('telepon');
+        $fax = $request->input('fax');
+        $hp = $request->input('hp');
+        $kontak = $request->input('kontak');
+        $email = $request->input('email');
+        $termin = $request->input('termin');
+        $third_party_type='supp';
+        $aktif = '1';
+        $blacklist = '0';
+        $pkp = 'N';
         
         $messages = [
             'required' => 'The field is required.',
@@ -57,141 +63,179 @@ class SupplierController extends Controller
 
         $this->validate($request,$rule,$messages);
 
-        $alert  ="alert-warning";
-        $pesan  = "Simpan data gagal.";
+        DB::beginTransaction();
+        try {
+                DB::table('third_party')->insert([
+                    'kode'=> $kode,
+                    'nama'=> $nama,
+                    'alamat_tagih'=> $alamat,
+                    'pkp'=> $pkp,
+                    'telepon'=> $telepon,
+                    'hp'=> $hp,
+                    'fax'=> $fax,
+                    'email'=> $email,
+                    'nama_kontak'=> $kontak,
+                    'top_batas_1'=> $termin,
+                    'aktif'=> $aktif,
+                    'blacklist'=> $blacklist,
+                    'third_party_type'=> $third_party_type,
+                    'created_by' => Auth::user()->username,
+                    'updated_by' => Auth::user()->username,
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s')
+                ]);
 
-        $request->session()->flash($alert, $pesan);
+                DB::commit();
+                $alert  ="alert-success";
+                $message  = "$kode is successfully saved";
+                \LogActivity::addToLog('Supplier save ',"username: $username Status $message");
+                return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);  
 
-        return view("customers.index");
-
+        } catch (Exception $e) {
+            DB::rollBack();
+            $alert  ="alert-warning";
+            $message  = "$kode is failed to save";
+            \LogActivity::addToLog('Supplier save ',"username: $username Status $message");
+            return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);   
+        }        
         
-        // return redirect()->back();  
-
-        // $attr_name=$request['attr_name'];
-        // $attr_code=$request['attr_code'];
-        // $attr_desc=$request['attr_desc'];
-        // $attr_value=str_replace( array( '.',','),'', $request['attr_value'])  ==''?0: round(str_replace( array( ','),'', $request['attr_value']));
-        // $attr_status=$request['attr_status'] ==''?1:$request['attr_status'];
-
-        // $messages = [
-        //     'required' => 'The field is required.',
-        //     'unique' => 'The code has already been taken'
-        // ];
-
-        // $rule = [
-        //     'attr_code'=>['required',
-        //                     Rule::unique('attributes')->where('attr_code',$attr_code)->where('attr_name',$attr_name)
-        //                 ],
-        //     'attr_desc'=>'required',
-        //     'attr_name'=>'required'
-        // ];
-
-        // $this->validate($request, $rule,$messages);
-        
-        // DB::beginTransaction();
-        // try {
-        //         DB::table('attributes')->insert([
-        //             'attr_name'=>$attr_name,
-        //             'attr_code'=>$attr_code,
-        //             'attr_desc'=>$attr_desc,
-        //             'attr_value'=>$attr_value,
-        //             'attr_status'=>$attr_status,
-        //             'created_by' => Auth::user()->username,
-        //             'updated_by' => Auth::user()->username,
-        //             'created_at' => date('Y-m-d H:i:s'),
-        //             'updated_at' => date('Y-m-d H:i:s')
-        //         ]);
-
-        //         DB::commit();
-        //         $alert  ="alert-success";
-        //         $pesan  = "Data sudah tersimpan, kode: $attr_code";
-        //         $request->session()->flash($alert, $pesan);
-        //         return redirect()->back();  
-
-        // } catch (Exception $e) {
-        //     DB::rollBack();
-        //     $alert  ="alert-warning";
-        //     $pesan  = "Simpan data gagal.";
-        //     $request->session()->flash($alert, $pesan);
-        //     return redirect()->back();  
-        //     return redirect()->back()->with(['attr_code' =>$attr_code,'attr_desc' =>$attr_desc,'errornya' => $pesan]);
-        // }
-
-        // return redirect()->back();
 
         
     }
 
     public function edit(Request $request)
     {
-        $attr_name=$request['attr_name'];
-        $attr_code=$request['attr_code'];
-        $attr_desc=$request['attr_desc'];
+        $id = $request->id;
+        $data['title'] = "Edit Supplier";
+        $data['subtitle'] = "Edit New Supplier";
 
-        $data = DB::table('attributes')
-        ->where('attr_name',$attr_name)
-        ->where('attr_code',$attr_code)
-        ->get();
+        $data['suppliers'] = DB::table('third_party')
+        ->where('id',$id)
+        ->get()->first();
 
-        return  Response()->json($data );
+        $data['edit'] = 1;
+
+        return view('suppliers.edit',$data);
         
     }
 
     public function update(Request $request)
     {
-        $attr_name=$request['attr_name'];    
-        $attr_code=$request['attr_code'];
-        $attr_desc=$request['attr_desc'];
-        $attr_value=$request['attr_value'];
-        $attr_status=$request['attr_status'];
+        $username = Auth::user()->username;
+        $id = $request->id;
+        $kode = $request->input('kode');
+        $nama = $request->input('nama');
+        $alamat = $request->input('alamat');
+        $telepon = $request->input('telepon');
+        $fax = $request->input('fax');
+        $hp = $request->input('hp');
+        $kontak = $request->input('kontak');
+        $email = $request->input('email');
+        $termin = $request->input('termin');
+        $third_party_type='supp';
+        $aktif = '1';
+        $blacklist = '0';
+        $pkp = 'N';
+    
+        $messages = [
+            'required' => 'The field is required.',
+            'unique' => 'The code has already been taken',
+            'iunique' => "The code $kode has already been taken",
+        ];
         
+        Validator::extend('iunique', function ($attribute, $value, $parameters, $validator) {
+            $query = DB::table($parameters[0]);
+            $column = $query->getGrammar()->wrap($parameters[1]);
+            return !$query->whereRaw("lower({$column}) = lower(?)", [$value])->count();
+        });
+
+        $rule = [
+            'nama'=>'required',
+            'kontak'=>'required',
+        ];
+
+        $this->validate($request,$rule,$messages);
+
         DB::beginTransaction();
 
         try {
-                $row_affected=DB::table('attributes')
-                ->where('attr_name',$attr_name)
-                ->where('attr_code',$attr_code)
-                ->update(
+                $row_affected=DB::table('third_party')
+                    ->where('id',$id)
+                    ->update(
                     [
-                        'attr_code'=>$attr_code,
-                        'attr_desc'=>$attr_desc,
-                        'attr_value'=>$attr_value,
-                        'attr_status'=>$attr_status
+                        'nama'=> $nama,
+                        'alamat_tagih'=> $alamat,
+                        'pkp'=> $pkp,
+                        'telepon'=> $telepon,
+                        'hp'=> $hp,
+                        'fax'=> $fax,
+                        'email'=> $email,
+                        'nama_kontak'=> $kontak,
+                        'top_batas_1'=> $termin,
+                        'aktif'=> $aktif,
+                        'blacklist'=> $blacklist,
+                        'third_party_type'=> $third_party_type,
+                        'updated_by' => Auth::user()->username,
+                        'updated_at' => date('Y-m-d H:i:s')
                     ]
                 );
 
                 DB::commit();
 
                 if($row_affected>0){
-                    return response()->json(array('status' => 1, 'message' => 'Data sudah di update'));
+                    $alert  ="alert-success";
+                    $message  = "Successfully updated";
+                    \LogActivity::addToLog('Supplier update ',"username: $username Status $message");
+                    return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);  
                 }else{
-                    return response()->json(array('status' => 0, 'message' => 'Tidak ter-update :'.$attr_code));
+                    $alert  ="alert-warning";
+                    $message  = "Failed to update";
+                    \LogActivity::addToLog('Supplier update ',"username: $username Status $message");
+                    return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);
                 }
 
         } catch (Exception $e) {
             DB::rollBack();
-            return response()->json(array('status' => 2, 'message' => 'Simpan data gagal'));
+            $alert  ="alert-warning";
+            $message  = "Failed to update";
+            \LogActivity::addToLog('Supplier update ',"username: $username Status $message");
+            return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);
         }
     }
 
-    public function delete(Request $request)
+    public function destroy(Request $request)
     {
-        $attr_name=$request['attr_name'];
-        $attr_code=$request['attr_code'];
-        DB::table('attributes')
-        ->where('attr_name',$attr_name)
-        ->where('attr_code',$attr_code)
+        $username =  Auth::user()->username;
+        $id = $request->id;
+
+        $row_affected = DB::table('third_party')
+        ->where('id',$id)
         ->delete();
-        return response()->json(['success'=>"Data sudah di hapus"]);
+
+        if($row_affected>0){
+            $alert  ="alert-success";
+            $message  = "Successfully Deleted";
+            \LogActivity::addToLog('Supplier delete ',"username: $username Status $message");
+            return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);  
+        }else{
+            $alert  ="alert-warning";
+            $message  = "Failed to Delete";
+            \LogActivity::addToLog('Supplier delete ',"username: $username Status $message");
+            return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);
+        }
     }
 
     public function list(Request $request)
     {
-        $query = $request->get('q');
-        // $user = User::where('name', 'LIKE', '%' . $query . '%');
-            
-        $sqlku="SELECT * from third_party where third_party_type = 'supp' and nama like '%$query%'";
-        $data = DB::table(DB::raw("($sqlku) as oki"));
+        $code = strtolower($request->code);
+        $name = strtolower($request->name);
+
+        $data=DB::table('third_party')
+        ->where('third_party_type','supp')
+        ->where('kode','ilike','%'.$code.'%')
+        ->where('nama','ilike','%'.$name.'%')  // string to lower
+        ->orderBy('nama')->get();
+
         return Datatables::of($data)
         ->addColumn('action', function ($data) {
             $buttons = '<div class="d-inline-flex">
@@ -200,16 +244,21 @@ class SupplierController extends Controller
                             </a>';
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
             if (Auth::user()->can('supplier-edit')) {
-            $buttons .=         '<a href="'. route('users.edit', $data->id) .'" class="dropdown-item">
+            $buttons .=         '<a href="'. route('supplier.edit', ['id'=>$data->id]) .'" class="dropdown-item">
                                     <i data-feather="file-text"></i>
                                     Edit
                                 </a>';
             }
             if (Auth::user()->can('supplier-delete')) {
-            $buttons .=         '<a href="javascript:;" onclick="validasidelete(\''.$data->id.'\')" class="dropdown-item">
-                                    <i data-feather="trash-2"></i>
-                                    Delete
-                                </a>';
+                $buttons .=         "<a href='javascript:;'
+                                        id='deleteButton'
+                                        class='dropdown-item'
+                                        data-toggle='modal'
+                                        data-target='#smallModal'
+                                        data-href='". route("supplier.destroy", ["id"=>$data->id]) ."'>
+                                        <i data-feather='trash-2'></i>
+                                        Delete
+                                    </a>";
             }
             $buttons .=     '</div>
                         </div>';
@@ -220,20 +269,28 @@ class SupplierController extends Controller
             return '';
         })
         ->addColumn('blacklist', function ($data) {
-            if ($data->status =='1') {
-                $status = '<div class="custom-control custom-switch custom-control-inline">
+            if ($data->blacklist =='1') {
+                $blacklist = '<div class="custom-control custom-switch custom-control-inline">
                                 <input type="checkbox" class="custom-control-input blackList" id="blackList_'.$data->id.'" data-nama="'.$data->id.'" checked/>
                                 <label id="lblBlackList_'.$data->id.'" class="custom-control-label" for="blackList_'.$data->id.'">Active</label>
                             </div>';
             } else {
-                $status = '<div class="custom-control custom-switch custom-control-inline">
+                $blacklist = '<div class="custom-control custom-switch custom-control-inline">
                                 <input type="checkbox" class="custom-control-input blackList" id="blackList_'.$data->id.'" data-nama="'.$data->id.'"/>
                                 <label id="lblBlackList_'.$data->id.'" class="custom-control-label" for="blackList_'.$data->id.'">Locked</label>
                             </div>';
             }
-            return $status;
+            return $blacklist;
         })
-        ->rawColumns(['action','blacklist'])
+        ->addColumn('epte', function ($data) {
+            if ($data->epte == true){
+                $weightStatus = '<span class="badge badge-pill badge-light-primary">Yes</span>';
+            }else{
+                $weightStatus = '<span class="badge badge-pill badge-light-danger">No</span>';
+            }
+            return $weightStatus;
+        })
+        ->rawColumns(['action','blacklist','epte'])
         ->make(true);
     }
 }

@@ -1,0 +1,591 @@
+@extends('layouts.app')
+@section('title', $title)
+@section('content')
+@include('layouts.breadcrumb')
+@include('partials.alert')
+<section id="add-index">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                {{-- <div class="card-header">
+                    <h4 class="card-title">accounts</h4>
+                </div> --}}
+                <div class="card-body">
+                    <form id="frmAdd" name="frmAdd" autocomplete="off">
+                        @csrf
+                        <input type="text" id="article" name="article" hidden>
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label for="orderNum">Order Number </label>
+                                    <input type="text" id="orderNum" name="orderNum" class="form-control disabled-el" value="{{ $header->so_code }}"  disabled />
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="form-group">
+                                    <label for="orderDate">Order Date</label>
+                                    <input type="text" id="orderDate" name="orderDate" class="form-control flatpickr-basic" value="{{ $header->so_date }}" placeholder="DD-MM-YYYY" disabled />
+                                </div>
+                            </div>
+                            <div class="form-group col-md-3">
+                                <label for="salesman">Salesman</label>
+                                <select class="select2 form-control" id="salesman" name="salesman" disabled>
+                                    <option label=""></option>
+                                    @foreach($employees as $val)
+                                    <option value="{{$val->employee_id}}" {{ $val->employee_id == $header->salesman_code ? "selected" : ""}}>{{$val->employee_id}} - {{$val->name}}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="form-group col-md-2">
+                                <label for="type">Type</label>
+                                <select class="select2 form-control" id="type" name="type" disabled>
+                                    <option label=""></option>
+                                    @foreach($types as $val)
+                                    <option value="{{$val}}" {{ $val == $header->order_type ? "selected" : ""}}>{{$val}}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="form-group col-md-2">
+                                <label for="currency">Currency</label>
+                                <select class="select2 form-control" id="currency" name="currency" disabled>
+                                    {{-- <option label=""></option> --}}
+                                    @foreach($currency as $val)
+                                    <option value="{{$val}}" {{ $val == $header->currency ? "selected" : ""}}>{{$val}}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label for="poNumber">PO Number</label>
+                                    <input type="text" id="poNumber" name="poNumber" class="form-control text-uppercase" value="{{ $header->po_number }}" maxlength="40" disabled />
+                                </div>
+                            </div>
+                            <div class="form-group col-md-5">
+                                <label class="form-label" for="cust">Customer</label>
+                                <select class="select2 form-control" id="cust" name="cust" disabled>
+                                    <option label=""></option>
+                                    @foreach($custs as $val)
+                                        <option value="{{$val->kode}}|{{$val->inisial}}" {{$val->kode == $header->customer_id ? "selected" : ""}}>{{$val->kode}} - {{$val->nama}}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label" for="ppn">PPN</label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control angka text-right" id = "ppn" name="ppn" value="{{ $header->ppn }}" maxlength="2" disabled />
+                                    <div class="input-group-append">
+                                        <span class="input-group-text">%</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="form-group col-md-10">
+                                <label class="form-label" for="note">Notes</label>
+                                <textarea type="text" id="note" name="note" class="form-control" rows="1"  disabled>{{ $header->note }}</textarea>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="card-title">Article</h4>
+                </div>
+                <div class="card-body">
+                    <div>
+                        <table class="" style="width:98%;table-layout:fixed;">
+                            <tbody>
+                                <tr>
+                                    <td class="isian-satu" style="width: 25%">
+                                        <label>Article Code</label>
+                                    </td>
+                                    <td class="isian" style="width: 15%;">
+                                        <label>Group</label>
+                                    </td>
+                                    <td class="isian" style="width: 5%">
+                                        <label>Stock</label>
+                                    </td>
+                                    <td class="isian" style="width: 5%">
+                                        <label>QTY</label>
+                                    </td>
+                                    <td class="isian" style="width: 5%">
+                                        <label>UOM</label>
+                                    </td>
+                                    <td class="isian" style="width: 10%">
+                                        <label>Price</label>
+                                    </td>
+                                    <td class="isian" style="width: 10%">
+                                        <label>Total</label>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>  
+                    <div class="" id="article_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px">
+                        <input type="text" id ="last_row_number" class="d-none" value="{{ count($detail) }}">
+                        @foreach ($detail as $key =>$item)
+                            <div id="new_row{{ $key }}" class="tanda-baris" >
+                                <table class="table-bordered" style="width: 98%;table-layout:fixed;">
+                                    <tbody>
+                                        <tr>
+                                            <td class="isian-satu" style="">
+                                                <select class="select2 dynamicSelect sku-select-system" id="article_id{{ $key }}" name="article_id[]" data-dependent="article_id">
+                                                    @foreach($articles as $val)
+                                                        <option value="{{$val->article_code}}|{{$val->group}}|{{$val->qty}}|{{$val->uom1}}" {{$val->article_code ==$item->article_code ? "selected" : ""}}>{{$val->article_alternative_code}} | {{$val->article_desc}}</option>
+                                                    @endforeach
+                                                </select>
+                                            </td>
+                                            <td class="isian disabled" style="width: 15%;">
+                                                <input type="text" class="form-control-plaintext" id = "group" name="group[]" value="{{ $item->group }}"  disabled>
+                                            </td>
+                                            <td class="isian disabled" style="width: 5%">
+                                                <input type="text" class="form-control-plaintext text-right" id = "qty_stock" name="qty_stock[]" value="{{ $item->qty_stock ==0 ? 0 :$item->qty_stock }}" disabled>
+                                            </td>
+                                            <td class="isian" style="width: 5%">
+                                                <input type="text" class="form-control-plaintext angka text-right" id = "qty_order" name="qty_order[]" value="{{ $item->qty }}" maxlength="9" />
+                                            </td>
+                                            <td class="isian disabled" style="width: 5%">
+                                                <span class="" id = "uom" name="uom[]">{{ $item->uom }}</span>
+                                            </td>
+                                            <td class="isian" style="width: 10%">
+                                                <input type="text" class="form-control-plaintext numeral-mask text-right" id = "price" name="price[]" value="{{ $item->price }}"  maxlength="11">
+                                            </td>
+                                            <td class="isian disabled text-right" style="width: 10%">
+                                                <span id="totalLine" name="totalLine[]">{{'Total: '. number_format($item->qty * $item->price) }}</span>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        @endforeach
+                    </div>
+                    <hr>
+                    <div class="d-flex justify-content-between align-items-end mt-75">
+                        <div class="col-md-4">
+                            <div class="form-group row mb-03">
+                                <label for="totalRow" class="col-sm-4 col-form-label titik-dua tanpa-padding">Row(s)</label>
+                                <div class="col-sm-3">
+                                    <input type="text" class="form-control text-right font-weight-bold" id="totalRow" disabled/>
+                                </div>
+                            </div>
+                            <div class="form-group row mb-03">
+                                <label for="totalQTY" class="col-sm-4 col-form-label titik-dua tanpa-padding">Total QTY</label>
+                                <div class="col-sm-3">
+                                    <input type="text" class="form-control text-right font-weight-bold" id="totalQTY" disabled/>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group row mb-03">
+                                <label for="totalAmount" class="col-sm-3 col-form-label titik-dua tanpa-padding">Bruto</label>
+                                <div class="col-sm-6">
+                                    <input type="text" class="form-control text-right font-weight-bold" id="totalAmount" disabled />
+                                </div>
+                            </div>
+                            <div class="form-group row mb-03">
+                                <label for="totalPPN" class="col-sm-3 col-form-label titik-dua tanpa-padding">PPN <span id="nilaiPPN"></span> </label>
+                                <div class="col-sm-6">
+                                    <input type="text" class="form-control text-right font-weight-bold" id="totalPPN" disabled/>
+                                </div>
+                            </div>
+                            <div class="form-group row mb-03">
+                                <label for="totalPPH" class="col-sm-3 col-form-label titik-dua tanpa-padding">PPH <span>23</span> </label>
+                                <div class="col-sm-6">
+                                    <input type="text" class="form-control text-right font-weight-bold" id="totalPPH" disabled/>
+                                </div>
+                            </div>
+                            <div class="form-group row mb-03">
+                                <label for="totalNetto" class="col-sm-3 col-form-label titik-dua tanpa-padding">Netto</label>
+                                <div class="col-sm-6">
+                                    <input type="text" class="form-control text-right font-weight-bold" id="totalNetto" disabled/>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+@include('salesOrder.addArticle')
+@endsection
+@section('styles')
+<style>
+
+    textarea {
+        resize: none;
+    }
+
+    .mb-03{
+        margin-bottom: 0.3rem;
+    }
+    
+    label.titik-dua::after{
+        content : ":"; 
+        position : absolute;
+        right : 1px;
+    }
+
+    td.isian{
+        padding-right:10px;
+        padding-left:10px;
+    }
+
+    td.isian-satu{
+        padding-right:5px;
+        padding-left:15px;
+        width: 25%;border-top: 1px solid #ffffff !important;
+        border-bottom: 1px solid #ffffff !important;
+        border-left: 1px solid #ffffff !important;
+    }
+
+    td.disabled{
+        background-color:#f8f8f8;
+        color:black;
+    }
+
+    label.tanpa-padding{
+        padding-top: 0px;
+        padding-bottom: 0px;
+    }
+
+    input.tanpa-padding{
+        padding: 0;
+    }
+
+</style>
+@endsection
+@section('scripts')
+<script type="text/javascript">
+    let currentDate = todayDate('dd-mm-yyyy');    
+    $(document).ready(function(){           
+        validateForm('frmAdd');
+        $('#orderDate').val(currentDate);
+        tombolPanah('qty_order');
+        tombolPanah('price');
+        activate_angka();
+        mask_thousand();
+        splitArticle();
+        hitungGrandTotal();
+    });
+    
+    $('#cust').on('change', function() {
+        let cust = $(this).val().split("|");
+        let customer = cust[0];
+        // changeselect('article_id',customer);
+    })
+
+    function reloadPage(){
+        window.location.reload();
+    }
+
+    $("#cmdSave").click(function(){     
+        $('.disabled-el').removeAttr('disabled');
+        // ambil semua data article
+        let objQty= $('input[name="qty_order[]"]');
+        let objPrice= $('input[name="price[]"]');
+        let objUom= $('span[name="uom[]"]'); 
+        let objGroup= $('input[name="group[]"]'); 
+        let articles = []; 
+        let flag=0; 
+        let pesan="";
+        
+        $("#article_row select[name='article_id[]']").map(function(i) {  
+		    let $this=$(this);
+            if ($this.val()){
+                let article=$this.val().split("|");
+                let articleName=$this.select2('data')[0].text;
+                let plu=article[0];
+                let inisial = articleName.substring(2,5); 
+                let qty=objQty.eq(i).val().replace(/[^0-9]/gi, '') || 0;
+                let price=objPrice.eq(i).val().replace(/[^0-9]/gi, '') || 0;
+                let uom=objUom.eq(i).text();
+                let group=objGroup.eq(i).val();
+                let cust=$('#cust').val().split("|");
+                let custName = $('#cust').select2('data')[0].text;
+                let customer=cust[1];
+            
+                //es6
+                // let obj = ingredient.find(obj => obj.plu == plu);
+
+                //jquery
+                //cek apakah article ada yang double input ato ngk
+                let obj = $.grep(articles, function(obj){
+                    return obj.article_code === plu;
+                })[0];
+                
+                if(obj) {
+                    pesan +="Article "+plu+" entered more than once !! <br>"; 
+                    flag=1;
+                } else {
+                    if ((plu!=='') && (qty> 0)){
+                        articles.push({
+                            "article_code":plu,
+                            "qty":qty,
+                            "uom":uom,
+                            "price":price,
+                            "group":group
+                        });
+                    }
+                } 
+            
+                if (qty == 0){
+                    pesan +="QTY of items "+ articleName +" cannot be 0 <br>"; 
+                    flag=1;
+                }
+
+                if (inisial !== customer){
+                    
+                    pesan +="This article "+ articleName +" does not belong to the customer "+custName +" <br>"; 
+                    flag=1;
+                }
+            
+            }
+        });
+
+        if (articles.length == 0){
+			pesan +="Articles must be filled in completely <br>"; 
+			flag=1;
+		}
+
+        if (flag==0){
+
+            let orderNumber = $('#orderNum').val();
+            let orderDate = $('#orderDate').val();
+            let currency = $('#currency').val();
+            let type = $('#type').val();
+            let poNumber = $('#poNumber').val();
+            let cust = $('#cust').val().split("|");
+            let customer = cust[0];
+            let salesman = $('#salesman').val();
+            let ppn = $('#ppn').val().replace(/[^0-9]/gi, '') || 0;
+            let totalPph = $('#totalPPH').val().replace(/[^0-9]/gi, '') || 0;
+            let totalPpn = $('#totalPPN').val().replace(/[^0-9]/gi, '') || 0;
+            let note = $('#note').val();
+
+            $.ajax({
+                type: "post",
+                url: "{{ route('salesOrder.update') }}",
+                data: {
+                    articles:JSON.stringify(articles),
+                    orderNumber:orderNumber,
+                    orderDate:orderDate,
+                    currency:currency,
+                    type:type,
+                    poNumber:poNumber,
+                    customer:customer,
+                    salesman:salesman,
+                    ppn:ppn,
+                    totalPph:totalPph,
+                    totalPpn:totalPpn,
+                    note:note
+                },
+                dataType: "json",
+                success: function(data) {
+                    if (data.status == 0 ){
+                        let message="";
+                        for(let i = 0; i < data.message.length; i++) {
+                            message += "-"+data.message[i]+"<br>";                           
+                        }
+                        $("#alert-message-success").addClass(data.alert);
+                        $("#alert-message-success .alert-body").html(message);
+                        $("#alert-message-success").show();
+                        $("#alert-message-success").fadeTo(5000, 500).slideUp(500, function(){
+                            $("#alert-message-success").slideUp(500);
+                        });
+                        $('#poNumber').focus().select();
+                        $('#orderNum').attr('disabled','disabled');
+
+                    }else{
+                        $("#alert-message-success").addClass(data.alert);
+                        $("#alert-message-success .alert-body").html(data.message);
+                        $("#alert-message-success").show();
+                        $("#alert-message-success").fadeTo(5000, 500).slideUp(500, function(){
+                            $("#alert-message-success").slideUp(500);
+                        });
+                        $('#orderNum').attr('disabled','disabled');
+                    }
+                    
+                },
+                error: function(error) {
+                    console.log(error);
+                }
+            });
+
+        }else{
+            Swal.fire('Warning..',pesan,'warning');
+        }
+    
+    });
+
+    $("#cmdCancel").click(function() {
+        $(".select2").val('').trigger('change');
+        $("#frmAdd").validate().resetForm();
+        $('#kode').focus();
+    });
+    
+    let cloneCount=$('#last_row_number').val();
+    function add_new_row() {    
+        let customer = $('#cust');
+        let cust = customer.val().split("|");
+        if (customer.val()){            
+            $("#article_row").append($("#new_row").clone().html());
+            cloneCount++;
+            $("#article_row").find('#baru').attr('id', 'new_row'+ cloneCount);
+            $("#new_row"+ cloneCount).find('#article_id').attr('id', 'article_id'+ cloneCount);
+            changeselect('article_id','article_id'+ cloneCount,cust[0]);
+            $("#article_id"+cloneCount).select2();
+            $('#remove_button').tooltip();
+            tombolPanah('qty_order');
+            tombolPanah('price');
+            activate_angka();
+            mask_thousand();
+            splitArticle();
+            hitungTotal();
+            hitungGrandTotal();
+        }else{
+            Swal.fire({
+                title: 'Warning',
+                text: "Choose customer",
+                icon: 'warning',
+                confirmButtonColor: '#3085d6',
+                confirmButtonText: 'OK'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    customer.select2('open');
+                }
+            })
+        }
+    };
+
+    function splitArticle(){
+        // split article with delimiter |
+        let objArticle = $('select[name="article_id[]"]');
+        let objGroup= $('input[name="group[]"]');
+        let objStock= $('input[name="qty_stock[]"]');
+        let objUom= $('span[name="uom[]"]'); 
+        let objQty= $('input[name="qty_order[]"]');
+        objArticle.change(function(e){        
+            let objIndex = objArticle.index(this);
+            let detail = objArticle.eq(objIndex).val();
+            let arrDetail = detail.split("|");
+            objGroup.eq(objIndex).val(arrDetail[1]);
+            objStock.eq(objIndex).val(arrDetail[2]||0);
+            objUom.eq(objIndex).text(arrDetail[3]);
+            objArticle.eq(objIndex).select2('open'); //belum bisa jalan
+            if (detail){
+                setTimeout(() => {
+                    objQty.eq(objIndex).focus().select();
+                }, 5);
+            }
+            
+		});
+    }
+
+    function hitungTotal(){
+        let objQty= $('input[name="qty_order[]"]');
+        let objPrice= $('input[name="price[]"]');
+        let objTotal= $('span[name="totalLine[]"]');
+
+        objQty.keyup(function() {
+            let indexnya= objQty.index(this);
+            let qty = objQty.eq(indexnya).val().replace(/[^0-9]/gi, '') || 0; 
+            let price = objPrice.eq(indexnya).val().replace(/[^0-9]/gi, '') ||0;
+            let total = qty*price;
+            objTotal.eq(indexnya).text('Total: '+humanizeNumber(total));
+            hitungGrandTotal();
+        });    
+
+        objPrice.keyup(function() {
+            let indexnya= objPrice.index(this);
+            let qty = objQty.eq(indexnya).val().replace(/[^0-9]/gi, '') || 0; 
+            let price = objPrice.eq(indexnya).val().replace(/[^0-9]/gi, '')||0;
+            let total = qty*price;
+            objTotal.eq(indexnya).text('Total: '+humanizeNumber(total));
+            hitungGrandTotal();
+        });    
+    }
+
+    function hitungGrandTotal(){
+        let objArticle = $('#article_row select[name="article_id[]"]');
+        let objQtyTiw= $('#article_row input[name="qty_order[]"]');
+        let objQTY= $('#article_row input[name="qty_order[]"]');
+        let objPrice= $('#article_row input[name="price[]"]');
+        let ppn= $('#ppn').val();
+        let totalQty= 0;
+        let totalAmount=0
+
+        var arr = objQtyTiw.map(function (i) {
+            let qty = parseInt(objQTY.eq(i).val().replace(/[^0-9]/gi, '')) || 0;
+            let price = parseInt(objPrice.eq(i).val().replace(/[^0-9]/gi, '')) || 0;
+            totalQty+= qty;
+            totalAmount+= qty*price;
+        }).get();
+        
+        $("#totalRow").val(objArticle.length);
+        $("#nilaiPPN").text(ppn+"%");
+        $("#totalQTY").val(humanizeNumber(totalQty));
+        $("#totalAmount").val(humanizeNumber(totalAmount));
+        $("#totalPPN").val(humanizeNumber((parseInt(ppn)*totalAmount)/100));
+        $("#totalPPH").val(0);
+        $("#totalNetto").val(humanizeNumber(totalAmount+((parseInt(ppn)*totalAmount)/100)));
+    }
+
+
+    function changeselect(dependent,obj,value) {
+      $.ajax({
+        url:"{{route('dynamic.dependent')}}",
+        method:"POST",
+        data:{
+            value:value,
+            dependent:dependent
+        },
+        success:function(result){
+            $('#'+obj).html(result);
+            $('#'+obj).val('').trigger('change');
+        }
+      })
+    }
+
+    function tombolPanah(objname){
+        // function kalo mau pindah filed dari atas ke bawah atau sebaliknya
+        let obj = $('input[name="'+objname+'[]"]');
+        obj.keyup(function(e) {
+            indexnya= obj.index(this);
+            indexnya=parseInt(indexnya);
+            if (e.keyCode == 38) {
+                //panah atas
+                indexTarget = indexnya-1;
+                obj.eq(indexTarget).focus().select();
+                return false;
+            }
+            if (e.keyCode == 40) {
+                //panah bawah
+                indexTarget = indexnya+1;
+                obj.eq(indexTarget).focus().select();
+                return false;
+            }
+        });
+}
+    
+    dateLflatPickr = $('.flatpickr-basic');
+    if (dateLflatPickr.length) {
+        dateLflatPickr.flatpickr({
+            dateFormat: "m-d-Y",
+            // "setDate": new Date()
+        });
+    }
+
+    $.ajaxSetup({
+        headers: {
+            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+        }
+    });
+
+</script>
+@endsection

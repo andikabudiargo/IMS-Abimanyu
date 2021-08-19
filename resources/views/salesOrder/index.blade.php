@@ -5,93 +5,110 @@
 @include('partials.alert')
 
 <section id="article-index">
-    <div class="row">
-      <div class="col-12">
-        <div class="card">
-          {{-- <div class="card-header">  
-            <div class="card-title">@yield('title')
-            </div>
-          </div> --}}
-          <div class="card-body">
-            <form class="needs-validation" novalidate>
-                <div class="form-row">
-                    <div class="form-group col-md-4"> 
-                      <label for="seachCode">Kode</label>
-                      <input type="text" class="form-control text-uppercase" id="seachCode" name="seachCode" placeholder=""  />
-                    </div>
-                    <div class="form-group col-md-4"> 
-                      <label for="searchName">Name</label>
-                      <input type="text" class="form-control text-uppercase" id="searchName" name="searchName" placeholder="" />
-                    </div>
-                    <div class="form-group col-md-4"> 
-                      <label class="form-label" for="searchGroup">Group</label>
-                      <select class="select2 form-control" id="searchGroup" name="searchGroup">
-                          <option label=""></option>
-                          @foreach($groups as $val)
-                              <option value="{{$val->code}}">{{$val->code}} - {{$val->name}}</option>
-                          @endforeach
-                      </select>
-                    </div>
-                    <div class="form-group col-md-4"> 
-                      <label class="form-label" for="searchCustomer">Customer/Supplier</label>
-                      <select class="select2 form-control" id="searchCustomer" name="searchCustomer">
-                          <option label=""></option>
-                          @foreach($custs as $val)
-                              <option value="{{$val->kode}}">{{$val->kode}} - {{$val->nama}}</option>
-                          @endforeach
-                      </select>
-                    </div>
-                    <div class="form-group col-md-4"> 
-                      <label class="form-label" for="searchType">Article Type</label>
-                      <select class="select2 form-control" id="searchType" name="searchType">
-                          <option label=""></option>
-                          @foreach($types as $val)
-                            <option value="{{$val->code}}" >{{$val->code}} - {{$val->name}}</option>
-                          @endforeach
-                      </select>
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="col-12"> 
-                        <button type="button" class="btn btn-primary" id ="btnSearch" name="btnSearch">Search</button>
-                        @can('article-create')
-                        <a href="{{ route('article.create') }}" class="btn btn-info"><i class="fa fa-plus"></i> Create</a>
-                        @endcan
-                    </div>
-                </div>
-            </form>
-          </div>
-        </div>
+  <div class="card">
+    <div class="card-header">  
+      <h4 class="card-title">Filter</h4>
+      <div class="heading-elements">
+        <ul class="list-inline mb-0">
+            <li><a data-action="collapse"><i data-feather="chevron-down"></i></a></li>
+        </ul>
       </div>
     </div>
+    <div class="card-content collapse show">
+      <div class="card-body">
+        <form class="needs-validation" novalidate>
+            <div class="form-row">
+              <div class="form-group col-md-3"> 
+                <label for="searchOrder">Order Number</label>
+                <input type="text" class="form-control text-uppercase" id="searchOrder" name="searchOrder" placeholder="" />
+              </div>
+              <div class="form-group col-md-3"> 
+                <label for="seachPo">PO Number</label>
+                <input type="text" class="form-control text-uppercase" id="seachPo" name="seachPo" placeholder=""  />
+              </div>
+              <div class="form-group col-md-3"> 
+                <label class="form-label" for="searchCustomer">Customer</label>
+                <select class="select2 form-control" id="searchCustomer" name="searchCustomer">
+                    <option label=""></option>
+                    @foreach($custs as $val)
+                        <option value="{{$val->kode}}">{{$val->kode}} - {{$val->nama}}</option>
+                    @endforeach
+                </select>
+              </div>
+              <div class="form-group col-md-3"> 
+                <label class="form-label" for="searchSalesman">Salesman</label>
+                <select class="select2 form-control" id="searchSalesman" name="searchSalesman">
+                    <option label=""></option>
+                    @foreach($employees as $val)
+                        <option value="{{$val->employee_id}}">{{$val->employee_id}} - {{$val->name}}</option>
+                    @endforeach
+                </select>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="col-md-3 form-group">
+                <label for="orderDate">Range Date</label>
+                <input type="text" id="orderDate" name="orderDate" class="form-control flatpickr-range" placeholder="YYYY-MM-DD to YYYY-MM-DD" />
+              </div>
+              <div class="form-group col-md-2"> 
+                <label class="form-label" for="searchType">Order Type</label>
+                <select class="select2 form-control" id="searchType" name="searchType">
+                    <option label=""></option>
+                    @foreach($types as $val)
+                        <option value="{{$val}}">{{$val}}</option>
+                    @endforeach
+                </select>
+              </div>
+              <div class="form-group col-md-2"> 
+                <label class="form-label" for="searchStatus">Order Status</label>
+                <select class="select2 form-control" id="searchStatus" name="searchStatus">
+                    <option label=""></option>
+                    @foreach($status as $val)
+                        <option value="{{$val}}">{{$val}}</option>
+                    @endforeach
+                </select>
+              </div>
+            </div>
+            <div class="form-row">
+                <div class="col-12"> 
+                    <button type="button" class="btn btn-primary" id ="btnSearch" name="btnSearch">Search</button>
+                    @can('salesOrder-create')
+                    <a href="{{ route('salesOrder.create') }}" class="btn btn-info"><i class="fa fa-plus"></i> Create</a>
+                    @endcan
+                </div>
+            </div>
+        </form>
+      </div>
+    </div>
+  </div>
 </section>
 
 <section id="table-article">
-    <div class="card">
-      <div class="card-header">
-        <h4 class="card-title"> @yield('title') List</h4>
-        <div class="heading-elements">
-            <ul class="list-inline mb-0">
-                <li><a data-action="collapse"><i data-feather="chevron-down"></i></a></li>
-                <li><a data-action="reload"><i data-feather="rotate-cw"></i></a></li>
-            </ul>
-        </div>
-      </div>
-      <div class="card-content collapse show">
-        <div class="card-body">
-          <div class="row">
-              <div class="col-sm-12">
-                <div class="card-datatable table-responsive pt-0">
-                  <table id="detailedTable" class="table">
-                    <thead class="thead-light">
-                    </thead>
-                  </table>
-                </div>
-              </div>
-          </div>  
-        </div>
+  <div class="card">
+    <div class="card-header">
+      <h4 class="card-title"> @yield('title') List</h4>
+      <div class="heading-elements">
+          <ul class="list-inline mb-0">
+              <li><a data-action="collapse"><i data-feather="chevron-down"></i></a></li>
+              <li><a data-action="reload"><i data-feather="rotate-cw"></i></a></li>
+          </ul>
       </div>
     </div>
+    <div class="card-content collapse show">
+      <div class="card-body">
+        <div class="row">
+            <div class="col-sm-12">
+              <div class="card-datatable table-responsive pt-0">
+                <table id="detailedTable" class="table">
+                  <thead class="thead-light">
+                  </thead>
+                </table>
+              </div>
+            </div>
+        </div>  
+      </div>
+    </div>
+  </div>
 </section>
 
 @include('partials.delete-modal')
@@ -127,16 +144,28 @@
       showList();
   });
 
+  rangePickr = $('.flatpickr-range');
+  if (rangePickr.length) {
+    rangePickr.flatpickr({
+      dateFormat: "d-m-Y",
+      mode: 'range'
+    });
+  }
+
   $("#btnSearch").click(function(e){
-      let name = $("#searchName").val();
-      let code = $("#seachCode").val();
-      let group = $("#searchGroup").val();
-      let cust = $("#searchCustomer").val();
-      let type = $("#searchType").val();
-      showList(name,code,group,cust,type);
+    let searchOrder = $("#searchOrder").val();
+    let seachPo = $("#seachPo").val();
+    let searchCustomer = $("#searchCustomer").val();
+    let searchSalesman = $("#searchSalesman").val();
+    let searchType = $("#searchType").val();
+    let searchStatus = $("#searchStatus").val();
+    let orderDate = $("#orderDate").val();
+    
+    showList(searchOrder,seachPo,searchCustomer,searchSalesman,searchType,searchStatus,orderDate);
+
   });
 
-  function showList(name,code,group,cust,type){
+  function showList(searchOrder,seachPo,searchCustomer,searchSalesman,searchType,searchStatus,orderDate){
     // let dtdom = '<"card-header border-bottom p-1"<"head-label">><"d-flex justify-content-between align-items-center mx-0 row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-4"f><"col-sm-12 col-md-2"<"dt-action-buttons text-right"B>>>t<"d-flex justify-content-between mx-0 row"<"col-sm-12 col-md-6"i><"col-sm-12 col-md-6"p>>';
     let dtdom ='<"d-flex justify-content-between align-items-center header-actions mx-1 row mt-75"' +
         '<"col-lg-12 col-xl-6" l>' +
@@ -151,13 +180,15 @@
       let oTable =$("#detailedTable").DataTable({
         ajax:
         {
-          url:'{{ route("article.list")}}',
+          url:'{{ route("salesOrder.list")}}',
           data:{
-              name:name,
-              code:code,
-              group:group,
-              cust:cust,
-              type:type
+              searchOrder:searchOrder,
+              seachPo:seachPo,
+              searchCustomer:searchCustomer,
+              searchSalesman:searchSalesman,
+              searchType:searchType,
+              searchStatus:searchStatus,
+              orderDate:orderDate
           }
         },
         processing: true,
@@ -264,8 +295,7 @@
             responsivePriority: 1,
             targets: 3
           },
-          { width: '10%', targets: 1 },
-          { className: 'text-right','targets': [5] },
+          { width: '10%', targets: 1 }
         ],
         drawCallback: function( settings ) {
           feather.replace({
@@ -279,13 +309,13 @@
         columns: [
             { data: 'group_id',name:'group_id', title:'',orderable: false, searchable: false },
             { data: 'action', name: 'action',title:'action', orderable: false, searchable: false },
-            { data: 'code', name: 'code',title:'Code' },
-            { data: 'desc', name: 'desc',title:'Name' },
-            { data: 'cust', name: 'cust',title:'Customer' },
-            { data: 'costprice', name: 'costprice',title:'Price',render: $.fn.dataTable.render.number(',','.') },
-            { data: 'uom', name: 'uom',title:'UOM' },
-            { data: 'quality', name: 'quality',title:'Quality' },
-            { data: 'group', name: 'group',title:'Group' },
+            { data: 'so_code', name: 'so_code',title:'SO Code' },
+            { data: 'po_number', name: 'po_number',title:'PO Number' },
+            { data: 'customer_id', name: 'customer_id',title:'Customer' },
+            { data: 'salesman_code', name: 'salesman_code',title:'Salesman' },
+            { data: 'so_date', name: 'so_date',title:'Date' },
+            { data: 'order_type', name: 'order_type',title:'Type' },
+            { data: 'status', name: 'status',title:'Status' },
             { data: 'note', name: 'note',title:'Note' }
 
         ],

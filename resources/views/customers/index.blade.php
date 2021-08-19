@@ -81,7 +81,21 @@
 @section('scripts')
 <script type="text/javascript">
     $(document).ready(function(){    
+      let href;
+      $(document).on('click', '#deleteButton', function(event) {
+          event.preventDefault();
+          href = $(this).data('href');
+          $('#modalConfirmation').attr("action", href);
+      });
     });
+
+    let showAlert = "{{ Session::get('alert') }}";
+    if ( showAlert ){
+      showList();
+      $("#alert-message-alert").fadeTo(5000, 500).slideUp(500, function(){
+        $("#alert-message-alert").slideUp(500);
+      });
+    }
 
      //refresh di cards
     $('a[data-action="reload"]').on('click', function () {

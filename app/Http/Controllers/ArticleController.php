@@ -22,10 +22,16 @@ class ArticleController extends Controller
         ->orderBy('name')
         ->get();
 
+        // $data['custs'] = DB::table('third_party')
+        // ->where ('third_party_type','=','cust')
+        // ->orderBy('nama')
+        // ->get();
+
+
         $data['custs'] = DB::table('third_party')
-        ->where ('third_party_type','=','cust')
         ->orderBy('nama')
         ->get();
+        
 
         $data['groups'] = DB::table('group_materials')
         ->where ('status','=',1)
@@ -45,10 +51,10 @@ class ArticleController extends Controller
         ->orderBy('name')
         ->get();
 
-        $data['custs'] = DB::table('third_party')
-        ->where ('third_party_type','=','cust')
-        ->orderBy('nama')
-        ->get();
+        // $data['custs'] = DB::table('third_party')
+        // ->where ('third_party_type','=','cust')
+        // ->orderBy('nama')
+        // ->get();
 
         $data['groups'] = DB::table('group_materials')
         ->where ('status','=',1)
@@ -64,41 +70,72 @@ class ArticleController extends Controller
 
     public function articleCodeCreate(Request $request){
         $customer = $request->customer;
-        $leadingCode = 'FG';
+        $leadingCode = $request->type;
+    
+        if ($leadingCode != "CM" ){
+            $lastCode = DB::table('article')
+            ->where('third_party','=',$customer)
+            ->orderBy('article_alternative_code','DESC')->first();
 
-        $lastCode = DB::table('article')
-        ->where('third_party','=',$customer)
-        ->orderBy('article_alternative_code','DESC')->first();
+            if (!$lastCode){
+                $newCode = '00001';
+            }else{
+                $newCode = str_pad(substr($lastCode->article_alternative_code,5)+1, 5, "0", STR_PAD_LEFT);
+            }
 
-        if (!$lastCode){
-            $newCode = '00001';
+            $artilceCode = DB::table('third_party')
+            ->where('kode',$customer)
+            ->select(DB::raw("CONCAT('$leadingCode',inisial,'$newCode','|RM',inisial,'$newCode') AS new_code"))->value('new_code');
+
         }else{
-            $newCode = str_pad(substr($lastCode->article_alternative_code,5)+1, 5, "0", STR_PAD_LEFT);
-        }
 
-        $artilceCode = DB::table('third_party')
-        ->where('kode',$customer)
-        ->select(DB::raw("CONCAT('$leadingCode',inisial,'$newCode') AS new_code"))->value('new_code');
+            $lastCode = DB::table('article')
+            ->where('article_alternative_code','like','CM%')
+            ->orderBy('article_alternative_code','DESC')->first();
+
+            if (!$lastCode){
+                $newCode = '00000001';
+            }else{
+                $newCode = str_pad(substr($lastCode->article_alternative_code,8)+1, 8, "0", STR_PAD_LEFT);
+            }
+
+            $artilceCode = 'CM'.$newCode;
+        }
+        
 
         return  Response()->json($artilceCode);
     
+    }
+
+    public function getArticleCode(){
+        $lastCode = DB::table('article')
+        ->orderBy('article_code','DESC')->first();
+        
+        if (!$lastCode){
+            $newCode = '1000001';
+        }else{
+            $newCode = $lastCode->article_code+1;
+        }
+
+        return $newCode;
     }
 
     public function store(Request $request)
     {
         $username =  Auth::user()->username;
         $kode = $request->input('kode');
+        $kode2 = $request->input('kode2');
+        $type = $request->input('articleType');
         $cust = $request->input('cust');
         $nama = $request->input('nama');
         $quality = $request->input('quality');
         $group = $request->input('group');
         $uom = $request->input('uom');
+        $price = $request->input('price');
         $note = $request->input('note');
-        
         $status = '1';
-        $type='FG';
-
         $pesan = '';
+        $type =='FG' ? $type2 = 'RM': $type2 = 'FG';
         
         $messages = [
             'required' => 'The field is required.',
@@ -119,20 +156,15 @@ class ArticleController extends Controller
 
         $this->validate($request,$rule,$messages);
 
-        $lastCode = DB::table('article')
-        ->orderBy('article_code','DESC')->first();
         
-        if (!$lastCode){
-            $newCode = '1000001';
-        }else{
-            $newCode = $lastCode->article_code+1;
-        }
         
 
+        
         DB::beginTransaction();
         try {
+                
                 DB::table('article')->insert([
-                    'article_code' => $newCode,
+                    'article_code' => $this->getArticleCode(),
                     'article_alternative_code' => $kode,
                     'article_desc' => $nama,
                     'group_of_material' => $group,
@@ -140,13 +172,35 @@ class ArticleController extends Controller
                     'quality' => $quality,
                     'note' => $note,
                     'uom' => $uom,
+                    'costprice' => $price,
                     'status' => $status,
                     'article_type' => $type,
                     'created_by' => Auth::user()->username,
                     'updated_by' => Auth::user()->username,
                     'created_at' => date('Y-m-d H:i:s'),
                     'updated_at' => date('Y-m-d H:i:s')
-                ]);
+                ]); 
+
+
+                if ($type != 'CM' ){
+                    DB::table('article')->insert([
+                        'article_code' => $this->getArticleCode(),
+                        'article_alternative_code' => $kode2,
+                        'article_desc' => $nama,
+                        'group_of_material' => $group,
+                        'third_party' => $cust,
+                        'quality' => $quality,
+                        'note' => $note,
+                        'uom' => $uom,
+                        'costprice' => $price,
+                        'status' => $status,
+                        'article_type' => $type2,
+                        'created_by' => Auth::user()->username,
+                        'updated_by' => Auth::user()->username,
+                        'created_at' => date('Y-m-d H:i:s'),
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]);
+                }
 
                 DB::commit();
                 $alert  ="alert-success";
@@ -173,15 +227,17 @@ class ArticleController extends Controller
         
         $data['article'] = DB::table('article')
         ->where('id',$id)
-        ->get(['article_alternative_code as code','article_desc as desc','uom','quality','note','id','group_of_material as group','third_party as cust','quality','status'])->first();
+        ->get(['costprice','article_alternative_code as code','article_desc as desc','uom','quality','note','id','group_of_material as group','third_party as cust','quality','status','article_type'])->first();
 
         $data['types'] = DB::table('article_types')
         ->where ('status','=',1)
         ->orderBy('name')
         ->get();
 
+        $data['article']->article_type  == 'CM' ? $typeTP = 'supp' : $typeTP = 'cust';
+
         $data['custs'] = DB::table('third_party')
-        ->where ('third_party_type','=','cust')
+        ->where ('third_party_type','=',$typeTP)
         ->orderBy('nama')
         ->get();
 
@@ -208,6 +264,7 @@ class ArticleController extends Controller
         $quality = $request->input('quality');
         $group = $request->input('group');
         $uom = $request->input('uom');
+        $price = $request->input('price');
         $note = $request->input('note');
         $status = $request->input('status') ? '0' : '1';
 
@@ -240,6 +297,7 @@ class ArticleController extends Controller
                         'quality' => $quality,
                         'note' => $note,
                         'uom' => $uom,
+                        'costprice' => $price,
                         'status' => $status,
                         'updated_by' => Auth::user()->username,
                         'updated_at' => date('Y-m-d H:i:s')
@@ -299,6 +357,9 @@ class ArticleController extends Controller
         $name = strtolower($request->name);
         $group = strtolower($request->group);
         $cust = strtolower($request->cust);
+        $type = strtolower($request->type);
+
+        // $type == 'CM'? $type='supp' :  $type='cust';
         
         $data=DB::table('article')
         ->join('group_materials', 'group_materials.code', '=', 'article.group_of_material')
@@ -307,13 +368,14 @@ class ArticleController extends Controller
         ->where('article_desc','ilike','%'.$name.'%')  // string to lower
         ->where('group_of_material','ilike','%'.$group.'%')
         ->where('third_party','ilike','%'.$cust.'%')
-        ->orderBy('article_desc')->get(['article_alternative_code as code','article_desc as desc','uom','quality','note','article.id','group_materials.name as group','third_party.nama as cust']);
+        ->where('article_alternative_code','ilike',$type.'%')
+        ->orderBy('article_desc')->get(['costprice','article_alternative_code as code','article_desc as desc','uom','quality','note','article.id','group_materials.name as group','third_party.nama as cust']);
 
         return Datatables::of($data)
         ->addColumn('action', function ($data) {
             $buttons = '<div class="d-inline-flex">
                             <a class="pr-1 dropdown-toggle hide-arrow text-primary" data-toggle="dropdown">
-                                <i data-feather="more-vertical"></i>
+                                <i data-feather="menu"></i>
                             </a>';
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
             if (Auth::user()->can('article-edit')) {
@@ -343,5 +405,27 @@ class ArticleController extends Controller
         })
         ->rawColumns(['action'])
         ->make(true);
+    }
+
+    public function getSupplier(Request $request)
+    {
+        $code = $request->type;
+        $dependent=$request->dependent;
+        
+        $code == 'CM' ? $type = 'supp' : $type= 'cust';
+
+        $data= DB::table('third_party') 
+        ->where('third_party_type',$type)
+        ->orderBy('nama')
+        ->get();            
+        
+        $output='';
+        $output .='<option value=""></option>';
+
+        foreach ($data as $row){
+            $output .="<option value='$row->kode'>$row->kode - $row->nama</option>";
+        }        
+
+        return $output;
     }
 }

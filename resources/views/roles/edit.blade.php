@@ -61,6 +61,7 @@
                     acc[group_name] = [...(acc[group_name] || []), { "text":display_name,type,id,"type": "css","state" :  {  "selected" : diSelect  }  }];
                     return acc;
                 }, {})).map(([key, text]) => ({ text: key, children: text }));
+                // console.log(result);
                 createJSTree(result);
             },
             error: function (xhr, ajaxOptions, thrownError) {
@@ -74,7 +75,8 @@
         let checkboxTree = $('#role-tree-checkbox');   
         checkboxTree.jstree({
             core: {
-                data: jsondata
+                data: jsondata,
+                worker: false
             },
             plugins: ['types', 'checkbox', 'wholerow'],
             types: {
@@ -84,7 +86,7 @@
                 css: {
                     icon: 'far fa-folder'
                 }
-            }        
+            }
         });     
     }
 

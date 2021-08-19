@@ -11,13 +11,13 @@
                     <h4 class="card-title">Suppliers</h4>
                 </div> --}}
                 <div class="card-body">
-                    <form id="frmAdd" name="frmAdd" action="{{ route('supplier.store') }}" method="post" autocomplete="off">
+                    <form id="frmAdd" name="frmAdd" action="{{ route('supplier.update',['id'=> $suppliers->id]) }}"  method="post" autocomplete="off">
                         @csrf
                         <div class="row">
                             <div class="col-4">
                                 <div class="form-group">
                                     <label for="kode">Kode</label>
-                                    <input type="text" id="kode" name="kode" class="form-control" value="{{ old('kode') }}" required maxlength="20" autofocus />
+                                    <input type="text" id="kode" name="kode" class="form-control disabled-el" value="{{ old('kode',$suppliers->kode) }}" required maxlength="20" autofocus disabled/>
                                 </div>
                             </div>
                         </div>
@@ -25,7 +25,7 @@
                             <div class="col-12">
                                 <div class="form-group">
                                     <label for="nama">Name</label>
-                                    <input type="text" id="nama" name="nama" class="form-control" value="{{ old('nama') }}" required  maxlength="100"/>
+                                    <input type="text" id="nama" name="nama" class="form-control" value="{{ old('nama',$suppliers->nama) }}" required  maxlength="100"/>
                                 </div>
                             </div>
                         </div>
@@ -33,41 +33,41 @@
                             <div class="col-12">
                                 <div class="form-group">
                                     <label for="alamat">Address</label>
-                                    <textarea type="text" id="alamat" name="alamat" class="form-control" rows="2" value="{{ old('alamat') }}" maxlength="100"></textarea>
+                                    <textarea type="text" id="alamat" name="alamat" class="form-control" rows="2" maxlength="100">{{ old('alamat',$suppliers->alamat_tagih) }}</textarea>
                                 </div>
                             </div>
                         </div>
                         <div class="row">
                             <div class="form-group col-md-4">
                                 <label class="form-label" for="telepon">Telepon</label>
-                                <input type="text" id="telepon" name="telepon" class="form-control angka" value="{{ old('telepon') }}" maxlength="20" />
+                                <input type="text" id="telepon" name="telepon" class="form-control angka" value="{{ old('telepon',$suppliers->telepon) }}" maxlength="20" />
                             </div>
                             <div class="form-group col-md-4">
                                 <label class="form-label" for="fax">Fax</label>
-                                <input type="text" id="fax" name="fax" class="form-control angka" value="{{ old('fax') }}" maxlength="20"/>
+                                <input type="text" id="fax" name="fax" class="form-control angka" value="{{ old('fax',$suppliers->fax) }}" maxlength="20"/>
                             </div>
                             <div class="form-group col-md-4">
                                 <label class="form-label" for="hp">HP</label>
-                                <input type="text" id="hp" name="hp" class="form-control angka" value="{{ old('hp') }}" maxlength="15"/>
+                                <input type="text" id="hp" name="hp" class="form-control angka" value="{{ old('hp',$suppliers->hp) }}" maxlength="15"/>
                             </div>
                         </div>
                         <div class="row">
                             <div class="form-group col-md-6">
                                 <label class="form-label" for="kontak">Kontak</label>
-                                <input type="text" id="kontak" name="kontak" class="form-control" value="{{ old('kontak') }}" maxlength="20" />
+                                <input type="text" id="kontak" name="kontak" class="form-control" value="{{ old('kontak',$suppliers->nama_kontak) }}" maxlength="20" />
                             </div>
                         </div>
                         <div class="row">
                             <div class="form-group col-md-6">
                                 <label class="form-label" for="email">Email</label>
-                                <input type="email" id="email" name="email" class="form-control" value="{{ old('email') }}" maxlength="50" />
+                                <input type="email" id="email" name="email" class="form-control" value="{{ old('email',$suppliers->email) }}" maxlength="50" />
                             </div>
                         </div>
                         <div class="row">
                             <div class="form-group col-md-4">
                                 <label class="form-label" for="topBatas2">Term</label>
                                 <div class="input-group input-group-merge">
-                                    <input type="text" id="termin" name="termin" class="form-control angka" value="{{ old('termin') }}" maxlength="4"/>
+                                    <input type="text" id="termin" name="termin" class="form-control angka" value="{{ old('termin',$suppliers->top_batas_1) }}" maxlength="4"/>
                                     <div class="input-group-append">
                                         <span class="input-group-text">Hari</span>
                                     </div>
@@ -87,7 +87,9 @@
                         </div> --}}
                         <div class="row">
                             <div class="col-12">
-                                <button class="btn btn-outline-secondary" type="reset" id="cmdCancel" name="cmdCancel">Cancel</button>
+                                <a href="{{ route('suppliers.index') }}" class="btn btn-outline-secondary">
+                                    Cancel
+                                </a>
                                 <button class="btn btn-success" type="button" id="cmdSave" name="cmdSave">Save</button>
                             </div>
                         </div>
@@ -132,9 +134,5 @@
         $("#frmAdd").submit(); // Submit the form
     });
 
-    $("#cmdCancel").click(function() {
-        $(".select2").val('').trigger('change');
-        $("#frmAdd").validate().resetForm();
-    });
 </script>
 @endsection

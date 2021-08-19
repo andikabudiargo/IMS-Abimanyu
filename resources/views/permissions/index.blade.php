@@ -38,7 +38,7 @@
               <div class="demo-inline-spacing col-12" id="kelompok_edit">
                 <div class="custom-control custom-checkbox">
                   <input type="checkbox" class="custom-control-input" id="chk_menu" name="chk_menu"  value="1" checked />
-                  <label class="custom-control-label" for="chk_menu">Menu</label>
+                  <label class="custom-control-label" for="chk_menu">Index</label>
                 </div>
                 <div class="custom-control custom-checkbox">
                   <input type="checkbox" class="custom-control-input" id="chk_list" name="chk_list"  value="1" checked />
