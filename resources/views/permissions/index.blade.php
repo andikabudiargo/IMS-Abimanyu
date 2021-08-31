@@ -37,8 +37,8 @@
               </div>
               <div class="demo-inline-spacing col-12" id="kelompok_edit">
                 <div class="custom-control custom-checkbox">
-                  <input type="checkbox" class="custom-control-input" id="chk_menu" name="chk_menu"  value="1" checked />
-                  <label class="custom-control-label" for="chk_menu">Index</label>
+                  <input type="checkbox" class="custom-control-input" id="chk_index" name="chk_index"  value="1" checked />
+                  <label class="custom-control-label" for="chk_index">Index</label>
                 </div>
                 <div class="custom-control custom-checkbox">
                   <input type="checkbox" class="custom-control-input" id="chk_list" name="chk_list"  value="1" checked />
@@ -418,7 +418,7 @@
 
     function bebersih(){
 
-      $("#chk_menu").prop('checked', true);
+      $("#chk_index").prop('checked', true);
       $("#chk_create").prop('checked', true);
       $("#chk_edit").prop('checked', true);
       $("#chk_list").prop('checked', true);
@@ -447,9 +447,9 @@
       var menu_name=$('#name').val();
       var display_name=$('#display_name').val();
       var description=$('#description').val();
-      var menu,create,edit,list,adelete,other;
+      var index,create,edit,list,adelete,other;
       
-      $('#chk_menu').is(":checked") ?  menu = '1' :  menu = '0';
+      $('#chk_index').is(":checked") ?  index = '1' :  index = '0';
       $('#chk_create').is(":checked") ?  create = '1' :  create = '0';
       $('#chk_edit').is(":checked") ?  edit = '1' :  edit = '0';
       $('#chk_list').is(":checked") ?  list = '1' :  list = '0';
@@ -478,7 +478,7 @@
                   name:menu_name,
                   display_name:display_name,
                   description:description,
-                  menu:menu,
+                  index:index,
                   create:create,
                   edit:edit,
                   list:list,

@@ -22,71 +22,25 @@
                             <input type="text" id="article" name="article" hidden>
                             <div class="row">
                                 <div class="form-group col-md-3">
-                                    <label for="poNumber">Order Number</label> <small class="text-muted"> automatic</small>
-                                    <input type="text" id="poNumber" name="poNumber" class="form-control disabled-el"  disabled />
+                                    <label for="prNumber">Request Number</label> <small class="text-muted"> automatic</small>
+                                    <input type="text" id="prNumber" name="prNumber" class="form-control disabled-el"  disabled />
                                 </div>
                                 <div class="form-group col-md-2">
                                     <label for="orderDate">Order Date*</label>
                                     <input type="text" id="orderDate" name="orderDate" class="form-control" placeholder="DD-MM-YYYY" required />
                                 </div>
-                                <div class="form-group col-md-2">
-                                    <label for="deliveryDate">Delivery Date</label>
-                                    <input type="text" id="deliveryDate" name="deliveryDate" class="form-control" placeholder="DD-MM-YYYY" />
-                                </div>
-                               
-                                <div class="form-group col-md-2">
-                                    <label for="tax">Tax*</label>
-                                    <select class="select2 form-control" id="tax" name="tax" required>
-                                        <option value="PKP">PKP</option>
-                                        <option value="NONPKP">NON PKP</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-2">
-                                    <label class="form-label" for="ppn">PPN</label>
-                                    <div class="input-group">
-                                        <input type="text" class="form-control angka text-right" id = "ppn" name="ppn" value="10" maxlength="2" />
-                                        <div class="input-group-append">
-                                            <span class="input-group-text">%</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="row">
                                 <div class="form-group col-md-5">
-                                    <label class="form-label" for="supplier">Supplier*</label>
-                                    <select class="select2 form-control" id="supplier" name="supplier" required>
+                                    <label class="form-label" for="dept">Department*</label>
+                                    <select class="select2 form-control" id="dept" name="dept" required>
                                         <option label=""></option>
-                                        @foreach($supps as $val)
-                                            <option value="{{$val->kode}}" >{{$val->kode}} - {{$val->nama}}</option>
+                                        @foreach($depts as $val)
+                                            <option value="{{$val->code}}" >{{$val->code}} - {{$val->name}}</option>
                                         @endforeach
                                     </select>
-                                </div>
-                                <div class="col-md-2">
-                                    <label class="form-label" for="term">TERM</label>
-                                    <div class="input-group">
-                                        <input type="text" class="form-control angka text-right" id = "term" name="term" value="0" maxlength="4" />
-                                        <div class="input-group-append">
-                                            <span class="input-group-text">DAYS</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="form-group col-md-2">
-                                    <label for="currency">Currency*</label>
-                                    <select class="select2 form-control" id="currency" name="currency" required>
-                                        @foreach($currency as $val)
-                                        <option value="{{$val}}">{{$val}}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                                <div class="col-md-2">
-                                    <div class="form-group">
-                                        <label for="kurs">Kurs</label>
-                                        <input type="text" id="kurs" name="kurs" class="form-control angka" maxlength="6"  />
-                                    </div>
                                 </div>
                             </div>
                             <div class="row">
-                                <div class="form-group col-md-11">
+                                <div class="form-group col-md-10">
                                     <label class="form-label" for="note">Notes</label>
                                     <textarea type="text" id="note" name="note" class="form-control" rows="1" ></textarea>
                                 </div>
@@ -113,29 +67,17 @@
                         <table class="" style="width:98%;table-layout: fixed;">
                             <tbody>
                                 <tr>
-                                    <td class="isian-satu" style="width: 20%">
-                                        <label>Purchase Request</label>
-                                    </td>
                                     <td class="isian-satu" style="width: 25%">
                                         <label>Article Code</label>
                                     </td>
                                     <td class="isian" style="width: 5%">
-                                        <label>UOM</label>
-                                    </td>
-                                    <td class="isian" style="width: 5%">
-                                        <label>Stock</label>
-                                    </td>
-                                    <td class="isian" style="width: 5%">
                                         <label>QTY</label>
                                     </td>
-                                    <td class="isian" style="width: 10%">
-                                        <label>Price</label>
+                                    <td class="isian" style="width: 5%">
+                                        <label>UOM</label>
                                     </td>
                                     <td class="isian" style="width: 10%">
-                                        <label>New Price</label>
-                                    </td>
-                                    <td class="isian" style="width: 10%">
-                                        <label>Total</label>
+                                        <label>Note</label>
                                     </td>
                                     <td class="isian text-center" style="width: 5%">
                                         <label>-</label>
@@ -153,7 +95,7 @@
                             <span class="align-middle d-sm-inline-block d-none">Add Article</span>
                         </button>
                     </div>
-                    <div class="d-flex justify-content-between align-items-end mt-75">
+                    {{-- <div class="d-flex justify-content-between align-items-end mt-75">
                         <div class="col-md-4">
                             <div class="form-group row mb-03">
                                 <label for="totalRow" class="col-sm-4 col-form-label titik-dua">Row(s)</label>
@@ -203,13 +145,13 @@
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    </div> --}}
                 </div>
             </div>
         </div>
     </div>
 </section>
-@include('purchaseOrder.addArticle')
+@include('purchaseRequest.addArticle')
 @endsection
 @section('styles')
 <style>
@@ -268,31 +210,7 @@
             dateFormat: "d-m-Y",
         });
     }
-
-    deliveryDate = $('#deliveryDate');
-    if (deliveryDate.length) {
-        deliveryDate.flatpickr({
-            dateFormat: "d-m-Y",
-            minDate: currentDate
-        });
-    }
     
-    $('#tax').on('change', function() {
-        let tax = $(this).val();
-        if (tax == 'PKP'){
-            $('#ppn').val(10);
-            $('#ppn').removeAttr('disabled');
-        }else{
-            $('#ppn').val(0);
-            $('#ppn').attr('disabled','disabled');
-            hitungGrandTotal();
-        }
-    })
-
-    $('#persenDiscount,#ppn').on('keyup', function() {
-        hitungGrandTotal();
-    })
-
     function reloadPage(){
         window.location.reload();
     }
@@ -308,11 +226,10 @@
     $("#cmdSave").click(function(){     
         $('.disabled-el').removeAttr('disabled');
         // ambil semua data article
-        let objQty= $('input[name="qty_order[]"]');
-        let objPrice= $('input[name="price[]"]');
-        let objNewPrice= $('input[name="newPrice[]"]');
-        let objUom= $('span[name="uom[]"]'); 
-        let objpr= $('select[name="pRequest[]"]'); 
+        let objQty = $('input[name="qty_order[]"]');
+        let objNote = $('input[name="note[]"]');
+        let objUom = $('span[name="uom[]"]'); 
+        let dept = $('#dept').val(); 
         let articles = []; 
         let flag=0; 
         let pesan="";
@@ -323,15 +240,11 @@
                 let article=$this.val().split("|");
                 let articleName=$this.select2('data')[0].text;
                 let plu=article[0];
+                let supp=article[2];
+                let uom=article[1];
                 let qty=objQty.eq(i).val().replace(/[^0-9]/gi, '') || 0;
-                let newPrice=objNewPrice.eq(i).val().replace(/[^0-9]/gi, '') || 0;
-                let price=objPrice.eq(i).val().replace(/[^0-9]/gi, '') || 0;
-                let pRequest=objpr.eq(i).val();
-                let uom=objUom.eq(i).text();
-                let supp=$('#supplier').val();
-                let suppName = $('#supplier').select2('data')[0].text;
-                let supplier=supp;
-            
+                let note=objNote.eq(i).val();
+                            
                 //es6
                 // let obj = ingredient.find(obj => obj.plu == plu);
 
@@ -350,9 +263,8 @@
                             "article_code":plu,
                             "qty":qty,
                             "uom":uom,
-                            "price":price,
-                            "newPrice":newPrice,
-                            "pRequest":pRequest
+                            "supp":supp,
+                            "note":note,
                         });
                     }
                 } 
@@ -361,9 +273,13 @@
                     pesan +="QTY of items "+ articleName +" cannot be 0 <br>"; 
                     flag=1;
                 }
-            
             }
         });
+
+        if (dept == ''){
+			pesan +="Department must be filled in <br>"; 
+			flag=1;
+		}
 
         if (articles.length == 0){
 			pesan +="Articles must be filled in completely <br>"; 
@@ -373,35 +289,17 @@
         if (flag==0){
 
             let orderDate = $('#orderDate').val();
-            let deliveryDate = $('#deliveryDate').val();
-            let currency = $('#currency').val();
-            let supp = $('#supplier').val();
-            let tax = $('#tax').val();
-            let term = $('#term').val() || 0;
-            let kurs = $('#kurs').val() || 1;
-            let ppn = $('#ppn').val().replace(/[^0-9]/gi, '') || 0;
-            let totalPph = $('#totalPPH').val().replace(/[^0-9]/gi, '') || 0;
-            let totalPpn = $('#totalPPN').val().replace(/[^0-9]/gi, '') || 0;
+            let dept = $('#dept').val();
             let note = $('#note').val();
-            let persenDiscount = $('#persenDiscount').val() || 0;
 
             $.ajax({
                 type: "post",
-                url: "{{ route('purchaseOrder.store') }}",
+                url: "{{ route('purchaseRequest.store') }}",
                 data: {
                     articles:JSON.stringify(articles),
                     orderDate:orderDate,
-                    deliveryDate:deliveryDate,
-                    currency:currency,                
-                    supplier:supp,
-                    tax:tax,
-                    ppn:ppn,
-                    term:term,
-                    totalPph:totalPph,
-                    totalPpn:totalPpn,
-                    kurs:kurs,
+                    dept:dept,
                     note:note,
-                    discount:persenDiscount
                 },
                 dataType: "json",
                 success: function(data) {
@@ -416,7 +314,7 @@
                         $("#alert-message-success").fadeTo(5000, 500).slideUp(500, function(){
                             $("#alert-message-success").slideUp(500);
                         });
-                        $('#poNumber').attr('disabled','disabled');
+                        $('#prNumber').attr('disabled','disabled');
 
                     }else{
                         $("#alert-message-success").addClass(data.alert);
@@ -425,9 +323,10 @@
                         $("#alert-message-success").fadeTo(5000, 500).slideUp(500, function(){
                             $("#alert-message-success").slideUp(500);
                         });
-                        $('#poNumber').attr('disabled','disabled');
+                        $('#prNumber').attr('disabled','disabled');
                         $('#cmdSave').attr('disabled','disabled');
                         $('#addNewRow').attr('disabled','disabled');
+                        $('#prNumber').val(data.prNumber);
                         
                     }
                     
@@ -445,104 +344,29 @@
 
     let cloneCount=1;
     function add_new_row() {
-        let supplier = $('#supplier');
-        let supp = supplier.val();
-        if (supp){            
-            $("#article_row").append($("#new_row").clone().html());
-            cloneCount++;
-            $("#article_row").find('#baru').attr('id', 'new_row'+ cloneCount);
-            $("#new_row"+ cloneCount).find('#article_id').attr('id', 'article_id'+ cloneCount);
-            $("#new_row"+ cloneCount).find('#pRequest').attr('id', 'pRequest'+ cloneCount);
-            changeselect('pRequest','pRequest'+ cloneCount,supp,'');
-            $("#article_id"+cloneCount).select2();
-            $("#pRequest"+cloneCount).select2();
-            $('#remove_button').tooltip();
-            tombolPanah('qty_order');
-            tombolPanah('newPrice');
-            activate_angka();
-            mask_thousand();
-            // splitArticle();
-            isiListArticle();
-            hitungTotal();
-            hitungGrandTotal();
-        }else{
-            Swal.fire({
-                title: 'Warning',
-                text: "Choose supplier",
-                icon: 'warning',
-                confirmButtonColor: '#3085d6',
-                confirmButtonText: 'OK'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    supplier.select2('open');
-                }
-            })
-        }
+        $("#article_row").append($("#new_row").clone().html());
+        cloneCount++;
+        $("#article_row").find('#baru').attr('id', 'new_row'+ cloneCount);
+        $("#new_row"+ cloneCount).find('#article_id').attr('id', 'article_id'+ cloneCount);
+        changeselect('article_pr','article_id'+ cloneCount);
+        $("#article_id"+cloneCount).select2();
+        $('#remove_button').tooltip();
+        tombolPanah('qty_order');
+        activate_angka();
+        mask_thousand();
+        splitArticle();
     };
-
-    function isiListArticle(){
-        // split article with delimiter |
-        let objPrequest = $('#article_row select[name="pRequest[]"]');
-        
-        objPrequest.change(function(e){        
-            let objIndex = objPrequest.index(this);
-            let prCode = objPrequest.eq(objIndex).val();
-            let supp = $('#supplier').val();
-            changeSelectArticle('searchFromPr',objIndex,supp);
-            splitArticle();
-		});
-    }
-
-    function changeSelectArticle(dependent,objIndex,value) {
-        let objArticle = $('#article_row select[name="article_id[]"]');
-        $.ajax({
-            url:"{{route('dynamic.dependent')}}",
-            method:"POST",
-            data:{
-                value:value,
-                dependent:dependent
-            },
-            success:function(result){
-                objArticle.eq(objIndex).html(result);
-                objArticle.eq(objIndex).select2();
-                // objArticle.eq(objIndex).trigger('change');
-            }
-        })
-    }
-
-    function changeselect(dependent,obj,value,type) {
-      $.ajax({
-        url:"{{route('dynamic.dependent')}}",
-        method:"POST",
-        data:{
-            value:value,
-            type:type,
-            dependent:dependent
-        },
-        success:function(result){
-            $('#'+obj).html(result);
-            // $('#'+obj).val('').trigger('change');
-        }
-      })
-    }
 
     function splitArticle(){
         // split article with delimiter |
         let objArticle = $('#article_row select[name="article_id[]"]');
-        let objStock= $('#article_row input[name="qty_stock[]"]');
         let objUom= $('#article_row span[name="uom[]"]'); 
-        let objQty= $('#article_row input[name="qty_order[]"]');
-        let objPrice= $('#article_row input[name="price[]"]');
-        let objNewPrice= $('#article_row input[name="newPrice[]"]');
+        let objQty= $('#article_row input[name="qty_order[]"]'); 
         objArticle.change(function(e){        
             let objIndex = objArticle.index(this);
             let detail = objArticle.eq(objIndex).val();
             let arrDetail = detail.split("|");
-            objStock.eq(objIndex).val(humanizeNumber(arrDetail[2]||0));
-            objUom.eq(objIndex).text(arrDetail[3]);
-            objPrice.eq(objIndex).val(humanizeNumber(arrDetail[4]||0));
-            objNewPrice.eq(objIndex).val(humanizeNumber(arrDetail[4]||0));
-            objArticle.eq(objIndex).select2('open');
+            objUom.eq(objIndex).text(arrDetail[1]);
             if (detail){
                 setTimeout(() => {
                     objQty.eq(objIndex).focus().select();
@@ -551,59 +375,19 @@
 		});
     }
 
-    function hitungTotal(){
-        let objQty= $('#article_row input[name="qty_order[]"]');
-        let objNewPrice= $('#article_row input[name="newPrice[]"]');
-        let objTotal= $('#article_row span[name="totalLine[]"]');
-        
-        objQty.keyup(function() {
-            let indexnya= objQty.index(this);
-            let qty = objQty.eq(indexnya).val().replace(/[^0-9]/gi, '') || 0; 
-            let newPrice = objNewPrice.eq(indexnya).val().replace(/[^0-9]/gi, '') ||0;
-            let total = qty*newPrice;
-            objTotal.eq(indexnya).text(humanizeNumber(total));
-            hitungGrandTotal();
-        });    
-
-        objNewPrice.keyup(function() {
-            let indexnya= objNewPrice.index(this);
-            let qty = objQty.eq(indexnya).val().replace(/[^0-9]/gi, '') || 0; 
-            let newPrice = objNewPrice.eq(indexnya).val().replace(/[^0-9]/gi, '')||0;
-            let total = qty*newPrice;
-            objTotal.eq(indexnya).text(humanizeNumber(total));
-            hitungGrandTotal();
-        });    
+    function changeselect(dependent,obj) {
+      $.ajax({
+        url:"{{route('dynamic.dependent')}}",
+        method:"POST",
+        data:{
+            dependent:dependent
+        },
+        success:function(result){
+            $('#'+obj).html(result);
+            $('#'+obj).val('').trigger('change');
+        }
+      })
     }
-
-    function hitungGrandTotal(){
-        let objArticle = $('#article_row select[name="article_id[]"]');
-        let objQtyTiw= $('#article_row input[name="qty_order[]"]');
-        let objQTY= $('#article_row input[name="qty_order[]"]');
-        let objNewPrice= $('#article_row input[name="newPrice[]"]');
-        let persenDiscount = $('#persenDiscount').val() || 0;
-        let ppn= $('#ppn').val();
-        let totalQty= 0;
-        let totalAmount=0
-
-        var arr = objQtyTiw.map(function (i) {
-            let qty = parseInt(objQTY.eq(i).val().replace(/[^0-9]/gi, '')) || 0;
-            let newPrice = parseInt(objNewPrice.eq(i).val().replace(/[^0-9]/gi, '')) || 0;
-            totalQty+= qty;
-            totalAmount+= qty*newPrice;
-        }).get();
-        
-        $("#totalRow").val(objArticle.length);
-        $("#nilaiPPN").text(ppn+"%");
-        $("#totalQTY").val(humanizeNumber(totalQty));
-        $("#totalAmount").val(humanizeNumber(totalAmount));
-        $("#totalDiscount").val(humanizeNumber((totalAmount*parseInt(persenDiscount))/100));
-        $("#totalPPN").val(humanizeNumber((parseInt(ppn)*totalAmount)/100));
-        $("#totalPPH").val(0);
-        $("#totalNetto").val(humanizeNumber((totalAmount+((parseInt(ppn)*totalAmount)/100))-((totalAmount*parseInt(persenDiscount))/100)));
-
-    }
-
-   
 
     function tombolPanah(objname){
         // function kalo mau pindah filed dari atas ke bawah atau sebaliknya

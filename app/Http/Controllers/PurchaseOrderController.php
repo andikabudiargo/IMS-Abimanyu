@@ -11,6 +11,7 @@ use App\Permission;
 use DataTables;
 use DB;
 use PDF;
+use AppHelpers;
 
 class PurchaseOrderController extends Controller
 {
@@ -41,7 +42,9 @@ class PurchaseOrderController extends Controller
         DB::table('master_code')
         ->where('code_key',$key)
         ->update([
-            'code_number' => DB::raw('code_number + 1')
+            'code_number' => DB::raw('code_number + 1'),
+            'updated_by' => Auth::user()->username,
+            'updated_at' => date('Y-m-d H:i:s')
         ]);
 
         $newCode = DB::table('master_code')
@@ -98,7 +101,7 @@ class PurchaseOrderController extends Controller
 
     public function store(Request $request)
     {
-        
+
         $username =  Auth::user()->username;
         $articles = json_decode($request -> articles);
         $orderDate = $request->orderDate;
@@ -145,6 +148,7 @@ class PurchaseOrderController extends Controller
             $alert ="alert-danger";
             return response()->json(array('status' => 0, 'message' => $error_array,'alert' =>$alert));
         }else{
+            $hasilUpdate = AppHelpers::resetCode('PO');
             $poNumber = $this->getLastCode('PO');
             DB::beginTransaction();
             try {
@@ -184,6 +188,29 @@ class PurchaseOrderController extends Controller
                             'created_by' => Auth::user()->username,
                             'created_at' => date('Y-m-d H:i:s'),
                         ];
+
+                        DB::table('purchase_request_det')
+                        ->where('pr_number',$val->pRequest)
+                        ->where('article_code',$val->article_code)
+                        ->where('supp_code',$supplier)
+                        ->update(
+                            [
+                            'po_number' => $poNumber,
+                            'updated_by' => Auth::user()->username,
+                            'updated_at' => date('Y-m-d H:i:s')
+                            ]
+                        );
+
+                        DB::table('purchase_request_hdr')
+                        ->where('number',$val->pRequest)
+                        ->update(
+                            [
+                            'status' => 7,
+                            'updated_by' => Auth::user()->username,
+                            'updated_at' => date('Y-m-d H:i:s')
+                            ]
+                        );
+
                     }
 
                     DB::table('purchase_order_det')->insert($dataSet);
@@ -432,13 +459,13 @@ class PurchaseOrderController extends Controller
         if($rowAffected>0){
             DB::table('purchase_order_det')->where('po_number',$po_number)->delete();
             $alert  ="alert-success";
-            $message  = "SO $po_number Successfully Deleted";
-            \LogActivity::addToLog('SO delete ',"username: $username Status $message");
+            $message  = "PO $po_number Successfully Deleted";
+            \LogActivity::addToLog('PO delete ',"username: $username Status $message");
             return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);  
         }else{
             $alert  ="alert-warning";
-            $message  = "SO $po_number Failed to Delete";
-            \LogActivity::addToLog('SO delete ',"username: $username Status $message");
+            $message  = "PO $po_number Failed to Delete";
+            \LogActivity::addToLog('PO delete ',"username: $username Status $message");
             return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);
         }
 

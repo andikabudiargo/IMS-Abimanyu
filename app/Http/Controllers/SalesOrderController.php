@@ -39,7 +39,9 @@ class SalesOrderController extends Controller
         DB::table('master_code')
         ->where('code_key',$key)
         ->update([
-            'code_number' => DB::raw('code_number + 1')
+            'code_number' => DB::raw('code_number + 1'),
+            'updated_by' => Auth::user()->username,
+            'updated_at' => date('Y-m-d H:i:s')
         ]);
 
         $newCode = DB::table('master_code')

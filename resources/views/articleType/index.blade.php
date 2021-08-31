@@ -4,7 +4,7 @@
 @include('layouts.breadcrumb')
 @include('partials.alert')
 
-<section id="article-index">
+<section id="articleTypes-index">
     <div class="row">
       <div class="col-12">
         <div class="card">
@@ -15,47 +15,24 @@
           <div class="card-body">
             <form class="needs-validation" novalidate>
                 <div class="form-row">
-                    <div class="form-group col-md-4"> 
-                      <label for="seachCode">Kode</label>
-                      <input type="text" class="form-control text-uppercase" id="seachCode" name="seachCode" placeholder=""  />
+                    <div class="col-md-4"> 
+                        <div class="form-group">
+                        <label for="basicInput">Kode</label>
+                        <input type="text" class="form-control text-uppercase" id="searcharticleTypeCode" name="searcharticleTypeCode" placeholder=""  />
+                        </div>
                     </div>
-                    <div class="form-group col-md-4"> 
-                      <label for="searchName">Name</label>
-                      <input type="text" class="form-control text-uppercase" id="searchName" name="searchName" placeholder="" />
+                    <div class="col-md-4"> 
+                    <div class="form-group">
+                        <label for="basicInput">Keterangan</label>
+                        <input type="text" class="form-control text-uppercase" id="searcharticleType" name="searcharticleType" placeholder="" />
                     </div>
-                    <div class="form-group col-md-4"> 
-                      <label class="form-label" for="searchGroup">Group</label>
-                      <select class="select2 form-control" id="searchGroup" name="searchGroup">
-                          <option label=""></option>
-                          @foreach($groups as $val)
-                              <option value="{{$val->code}}">{{$val->code}} - {{$val->name}}</option>
-                          @endforeach
-                      </select>
-                    </div>
-                    <div class="form-group col-md-4"> 
-                      <label class="form-label" for="searchCustomer">Customer/Supplier</label>
-                      <select class="select2 form-control" id="searchCustomer" name="searchCustomer">
-                          <option label=""></option>
-                          @foreach($custs as $val)
-                              <option value="{{$val->kode}}">{{$val->kode}} - {{$val->nama}}</option>
-                          @endforeach
-                      </select>
-                    </div>
-                    <div class="form-group col-md-4"> 
-                      <label class="form-label" for="searchType">Article Type</label>
-                      <select class="select2 form-control" id="searchType" name="searchType">
-                          <option label=""></option>
-                          @foreach($types as $val)
-                            <option value="{{$val->code}}" >{{$val->code}} - {{$val->name}}</option>
-                          @endforeach
-                      </select>
                     </div>
                 </div>
                 <div class="form-row">
                     <div class="col-12"> 
                         <button type="button" class="btn btn-primary" id ="btnSearch" name="btnSearch">Search</button>
-                        @can('article-create')
-                        <a href="{{ route('article.create') }}" class="btn btn-info"><i class="fa fa-plus"></i> Create</a>
+                        @can('articleType-create')
+                        <a href="{{ route('articleType.create') }}" class="btn btn-info"><i class="fa fa-plus"></i> Create</a>
                         @endcan
                     </div>
                 </div>
@@ -66,7 +43,7 @@
     </div>
 </section>
 
-<section id="table-article">
+<section id="table-articleTypes">
     <div class="card">
       <div class="card-header">
         <h4 class="card-title"> @yield('title') List</h4>
@@ -111,8 +88,10 @@
         console.log(href);
         $('#modalConfirmation').attr("action", href);
     });
+
   });
 
+   
   let showAlert = "{{ Session::get('alert') }}";
 
   if ( showAlert ){
@@ -128,15 +107,12 @@
   });
 
   $("#btnSearch").click(function(e){
-      let name = $("#searchName").val();
-      let code = $("#seachCode").val();
-      let group = $("#searchGroup").val();
-      let cust = $("#searchCustomer").val();
-      let type = $("#searchType").val();
-      showList(name,code,group,cust,type);
+      let code =$("#searcharticleTypeCode").val();
+      let nama =$("#searcharticleType").val();
+      showList(nama,code);
   });
 
-  function showList(name,code,group,cust,type){
+  function showList(nama,code){
     // let dtdom = '<"card-header border-bottom p-1"<"head-label">><"d-flex justify-content-between align-items-center mx-0 row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-4"f><"col-sm-12 col-md-2"<"dt-action-buttons text-right"B>>>t<"d-flex justify-content-between mx-0 row"<"col-sm-12 col-md-6"i><"col-sm-12 col-md-6"p>>';
     let dtdom ='<"d-flex justify-content-between align-items-center header-actions mx-1 row mt-75"' +
         '<"col-lg-12 col-xl-6" l>' +
@@ -146,18 +122,15 @@
         '<"col-sm-12 col-md-6"i>' +
         '<"col-sm-12 col-md-6"p>' +
         '>';
-    let arr_col_print =[2,3,4,5,6]; 
+    let arr_col_print =[2,3,4]; 
     $(function(){
       let oTable =$("#detailedTable").DataTable({
         ajax:
         {
-          url:'{{ route("article.list")}}',
+          url:'{{ route("articleType.list")}}',
           data:{
-              name:name,
-              code:code,
-              group:group,
-              cust:cust,
-              type:type
+              name:nama,
+              code:code
           }
         },
         processing: true,
@@ -262,10 +235,9 @@
           },
           {
             responsivePriority: 1,
-            targets: 2
+            targets: 3
           },
-          { width: '10%', targets: 1 },
-          { className: 'text-right','targets': [5] },
+          { width: '10%', targets: 1 }
         ],
         drawCallback: function( settings ) {
           feather.replace({
@@ -279,15 +251,9 @@
         columns: [
             { data: 'group_id',name:'group_id', title:'',orderable: false, searchable: false },
             { data: 'action', name: 'action',title:'action', orderable: false, searchable: false },
-            { data: 'code', name: 'code',title:'Code' },
-            { data: 'desc', name: 'desc',title:'Name' },
-            { data: 'cust', name: 'cust',title:'Customer' },
-            { data: 'costprice', name: 'costprice',title:'Price',render: $.fn.dataTable.render.number(',','.') },
-            { data: 'uom', name: 'uom',title:'UOM' },
-            { data: 'quality', name: 'quality',title:'Quality' },
-            { data: 'group', name: 'group',title:'Group' },
-            { data: 'note', name: 'note',title:'Note' }
-
+            { data: 'code', name: 'code',title:'Kode' },
+            { data: 'name', name: 'name',title:'Nama' },
+            { data: 'description', name: 'description',title:'Keterangan' }
         ],
       });
     });

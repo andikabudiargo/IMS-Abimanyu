@@ -68,10 +68,41 @@ class DependentController extends Controller
                 $default='';
                 $defaulttxt='Choose article';
                 break;
+            case 'article_pr': 
+                $table='article';
+                $field ='third_party';
+                $field2 ='article_type';
+                $type = $type;
+                $order ='article_desc';
+                $value ='article_code';
+                $value2 ='article_alternative_code';
+                $name  ='article_desc';
+                $default='';
+                $defaulttxt='Choose article';
+                break;
+            case 'pRequest': 
+                $table='purchase_request_det';
+                $field ='supp_code';
+                $order ='pr_number';
+                $value ='pr_number';
+                $name  ='pr_number';
+                $default='';
+                $defaulttxt='Choose PR';
+                break;
+            case 'searchFromPr': 
+                $table='purchase_request_det';
+                $field ='supp_code';
+                $order ='article_code';
+                $value ='article_code';
+                $name  ='article_code';
+                $default='';
+                $defaulttxt='Choose Article';
+                break;
             break;
                 default:
                     $table='';
             }
+                
 
         if($dependent =='article_id'){
             $data= DB::table($table) 
@@ -81,7 +112,32 @@ class DependentController extends Controller
             ->where($field2,$type)
             ->orderBy($order)
             ->select($table.'.*', 'article_stock.article_qty as qty','article.uom as uom1','group_materials.name as group')
-            ->get();            
+            ->get();          
+        }elseif($dependent =='searchFromPr'){
+            $data= DB::table($table) 
+            ->leftJoin('article','article.article_code','=',$table.'.article_code')
+            ->leftJoin('article_stock','article_stock.article_code','=',$table.'.article_code')
+            ->leftJoin('group_materials','group_materials.code','=','article.group_of_material')
+            ->where($field,$code)
+            ->where('po_number','=',null)
+            ->orderBy('article.article_desc')
+            ->distinct('article.article_desc')
+            ->select($table.'.*','article.article_code as artikel_code','article.article_desc','article.costprice','article_stock.article_qty as qty','purchase_request_det.uom as uom1','group_materials.name as group')
+            ->get();          
+
+        }elseif($dependent =='article_pr'){
+            $data= DB::table($table) 
+            ->whereNotIn('article_type',['FG','RM'])
+            ->orderBy($order)
+            ->get();           
+
+        }elseif($dependent =='pRequest'){
+            $data= DB::table($table) 
+            ->where($field,$code)
+            ->where('po_number','=',null)
+            ->orderBy($order)
+            ->distinct($order)
+            ->get();
         }else{
             $data= DB::table($table) 
             ->where($field,$code)
@@ -91,10 +147,14 @@ class DependentController extends Controller
         
         $output='';
         $output .='<option value="'.$default.'">'.$defaulttxt.'</option>';
-
         foreach ($data as $row){
+            
             if($dependent =='article_id'){
                 $output .='<option value="'.$row->$value.'|'.$row->group.'|'.$row->qty.'|'.$row->uom1.'|'.$row->costprice.'">'.$row->$value2.' - '. $row->$name.'</option>';
+            }elseif($dependent =='article_pr'){
+                $output .='<option value="'.$row->article_code.'|'.$row->uom.'|'.$row->third_party.'|'.$row->dept.'">'.$row->article_code.' - '. $row->article_desc.'</option>';
+            }elseif($dependent =='searchFromPr'){
+                $output .='<option value="'.$row->article_code.'|'.$row->group.'|'.$row->qty.'|'.$row->uom1.'|'.$row->costprice.'">'.$row->article_code.' - '. $row->article_desc.'</option>';
             }else{
                 $output .='<option value="'.$row->$value.'">'.$row->$name.'</option>';
             }

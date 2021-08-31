@@ -44,7 +44,7 @@ class PermissionController extends Controller
 		$display_name=ucfirst($request['display_name']);
 		$description=ucfirst($request['description']);
 		$other=$request['other'];
-		$menu=$request['menu'];
+		$index=$request['index'];
 		$create=$request['create'];
 		$edit=$request['edit'];
 		$list=$request['list'];
@@ -56,13 +56,13 @@ class PermissionController extends Controller
 			DB::beginTransaction();
 				try {
 				
-						if ($menu==1){
+						if ($index==1){
 							DB::table('permissions')->insertGetId([
                                 'group_name'=>$name,
                                 'guard_name'=>$guard_name,
 								'name'=>$name.'-index',
-								'display_name'=>$name_inner.' Menu',
-								'description'=>'Menu of '.$name_inner,
+								'display_name'=>$name_inner.' Index',
+								'description'=>'Index of '.$name_inner,
 								'created_at' => date('Y-m-d H:i:s'),
 								'updated_at' => date('Y-m-d H:i:s')
 							]);
