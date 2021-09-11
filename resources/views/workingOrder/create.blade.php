@@ -8,7 +8,12 @@
         <div class="col-md-12">
             <div class="card">
                 <div class="card-header">
-                    <h4 class="card-title">Status: New</h4>
+                    <div class="form-group row">
+                        <label for="woNumber" class="col-sm-4 col-form-label col-form-label-sm">WO Number</label>
+                        <div class="col-md-8">
+                            <input type="text" id="woNumber" name="woNumber" class="form-control form-control-sm disabled-el"  disabled />
+                        </div>
+                    </div>                    
                     <div class="heading-elements">
                         <ul class="list-inline mb-0">
                             <li><a data-action="collapse"><i data-feather="chevron-down"></i></a></li>
@@ -21,72 +26,13 @@
                             @csrf
                             <input type="text" id="article" name="article" hidden>
                             <div class="row">
-                                <div class="form-group col-md-3">
-                                    <label for="poNumber">Order Number</label> <small class="text-muted"> automatic</small>
-                                    <input type="text" id="poNumber" name="poNumber" class="form-control disabled-el"  disabled />
-                                </div>
                                 <div class="form-group col-md-2">
-                                    <label for="orderDate">Order Date*</label>
-                                    <input type="text" id="orderDate" name="orderDate" class="form-control" placeholder="DD-MM-YYYY" required />
-                                </div>
-                                <div class="form-group col-md-2">
-                                    <label for="deliveryDate">Delivery Date</label>
-                                    <input type="text" id="deliveryDate" name="deliveryDate" class="form-control" placeholder="DD-MM-YYYY" />
-                                </div>
-                               
-                                <div class="form-group col-md-2">
-                                    <label for="tax">Tax*</label>
-                                    <select class="select2 form-control" id="tax" name="tax" required>
-                                        <option value="PKP">PKP</option>
-                                        <option value="NONPKP">NON PKP</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-2">
-                                    <label class="form-label" for="ppn">PPN</label>
-                                    <div class="input-group">
-                                        <input type="text" class="form-control angka text-right" id = "ppn" name="ppn" value="10" maxlength="2" />
-                                        <div class="input-group-append">
-                                            <span class="input-group-text">%</span>
-                                        </div>
-                                    </div>
+                                    <label for="woDate">Date*</label>
+                                    <input type="text" id="woDate" name="woDate" class="form-control" placeholder="DD-MM-YYYY" required />
                                 </div>
                             </div>
                             <div class="row">
-                                <div class="form-group col-md-5">
-                                    <label class="form-label" for="supplier">Supplier*</label>
-                                    <select class="select2 form-control" id="supplier" name="supplier" required>
-                                        <option label=""></option>
-                                        @foreach($supps as $val)
-                                            <option value="{{$val->kode}}" >{{$val->kode}} - {{$val->nama}}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                                <div class="col-md-2">
-                                    <label class="form-label" for="term">TERM</label>
-                                    <div class="input-group">
-                                        <input type="text" class="form-control angka text-right" id = "term" name="term" value="0" maxlength="4" />
-                                        <div class="input-group-append">
-                                            <span class="input-group-text">DAYS</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="form-group col-md-2">
-                                    <label for="currency">Currency*</label>
-                                    <select class="select2 form-control" id="currency" name="currency" required>
-                                        @foreach($currency as $val)
-                                        <option value="{{$val}}">{{$val}}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                                <div class="col-md-2">
-                                    <div class="form-group">
-                                        <label for="kurs">Kurs</label>
-                                        <input type="text" id="kurs" name="kurs" class="form-control angka" maxlength="6"  />
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="form-group col-md-11">
+                                <div class="form-group col-md-12">
                                     <label class="form-label" for="note">Notes</label>
                                     <textarea type="text" id="note" name="note" class="form-control" rows="1" ></textarea>
                                 </div>
@@ -113,26 +59,20 @@
                         <table class="" style="width:98%;table-layout: fixed;">
                             <tbody>
                                 <tr>
+                                    <td class="isian-satu" style="width: 20%">
+                                        <label>NO SPK / SO</label>
+                                    </td>
                                     <td class="isian-satu" style="width: 25%">
                                         <label>Article Code</label>
-                                    </td>
-                                    <td class="isian" style="width: 5%">
-                                        <label>UOM</label>
                                     </td>
                                     <td class="isian" style="width: 5%">
                                         <label>Stock</label>
                                     </td>
                                     <td class="isian" style="width: 5%">
-                                        <label>QTY</label>
+                                        <label>QTY Order</label>
                                     </td>
-                                    <td class="isian" style="width: 10%">
-                                        <label>Price</label>
-                                    </td>
-                                    <td class="isian" style="width: 10%">
-                                        <label>New Price</label>
-                                    </td>
-                                    <td class="isian" style="width: 10%">
-                                        <label>Total</label>
+                                    <td class="isian" style="width: 5%">
+                                        <label>QTY Prod</label>
                                     </td>
                                     <td class="isian text-center" style="width: 5%">
                                         <label>-</label>
@@ -144,73 +84,53 @@
                     <div class="" id="article_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px">
                         <input type="text" id ="last_row_number" class="d-none" value="0">
                     </div>
-                    <div class="d-flex justify-content-between align-items-end mt-75 ml-75">
+                    <div class="d-flex justify-content-start align-items-end mt-75 ml-75">
                         <button class="btn btn-primary btn-prev" type="button" id="addNewRow" onclick="add_new_row();">
                             <i data-feather="plus" class="align-middle mr-sm-25 mr-0"></i>
                             <span class="align-middle d-sm-inline-block d-none">Add Article</span>
                         </button>
-                    </div>
-                    <div class="d-flex justify-content-between align-items-end mt-75">
-                        <div class="col-md-4">
-                            <div class="form-group row mb-03">
-                                <label for="totalRow" class="col-sm-4 col-form-label titik-dua">Row(s)</label>
-                                <div class="col-sm-3">
-                                    <input type="text" class="form-control text-right font-weight-bold" id="totalRow" />
-                                </div>
-                            </div>
-                            <div class="form-group row mb-03">
-                                <label for="totalQTY" class="col-sm-4 col-form-label titik-dua">Total QTY</label>
-                                <div class="col-sm-3">
-                                    <input type="text" class="form-control text-right font-weight-bold" id="totalQTY" disabled/>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-5">
-                            <div class="form-group row mb-03">
-                                <label for="totalAmount" class="col-sm-3 col-form-label titik-dua">Bruto</label>
-                                <div class="col-sm-6">
-                                    <input type="text" class="form-control text-right font-weight-bold" id="totalAmount" disabled />
-                                </div>
-                            </div>
-                            <div class="form-group row mb-03">
-                                <label for="totalPPN" class="col-sm-3 col-form-label titik-dua">Discount </label>
-                                <div class="col-sm-2" style="padding-right: 0rem;">
-                                    <input type="text" class="form-control text-right font-weight-bold" id="persenDiscount" maxlength="2"/>
-                                </div>
-                                <div class="col-sm-4" style="padding-left: 0rem;">
-                                    <input type="text" class="form-control text-right font-weight-bold" id="totalDiscount" disabled/>
-                                </div>
-                            </div>
-                            <div class="form-group row mb-03">
-                                <label for="totalPPN" class="col-sm-3 col-form-label titik-dua">PPN <span id="nilaiPPN"></span> </label>
-                                <div class="col-sm-6">
-                                    <input type="text" class="form-control text-right font-weight-bold" id="totalPPN" disabled/>
-                                </div>
-                            </div>
-                            <div class="form-group row mb-03">
-                                <label for="totalPPH" class="col-sm-3 col-form-label titik-dua">PPH <span>22</span> </label>
-                                <div class="col-sm-6">
-                                    <input type="text" class="form-control text-right font-weight-bold" id="totalPPH" disabled/>
-                                </div>
-                            </div>
-                            <div class="form-group row mb-03">
-                                <label for="totalNetto" class="col-sm-3 col-form-label titik-dua">Netto</label>
-                                <div class="col-sm-6">
-                                    <input type="text" class="form-control text-right font-weight-bold" id="totalNetto" disabled/>
-                                </div>
-                            </div>
-                        </div>
+                        <button class="btn btn-primary btn-prev ml-1" type="button" id="prosesWO" onclick="prosesWO();">
+                            <span class="align-middle d-sm-inline-block d-none">Proses</span>
+                        </button>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 </section>
-@include('purchaseOrder.addArticle')
+
+<section id="table-article">
+    <div class="card">
+      <div class="card-header">
+        <h4 class="card-title"> Working order List</h4>
+        <div class="heading-elements">
+            <ul class="list-inline mb-0">
+                <li><a data-action="collapse"><i data-feather="chevron-down"></i></a></li>
+                <li><a data-action="reload"><i data-feather="rotate-cw"></i></a></li>
+            </ul>
+        </div>
+      </div>
+      <div class="card-content collapse show">
+        <div class="card-body">
+          <div class="row">
+              <div class="col-sm-12">
+                <div class="card-datatable table-responsive pt-0">
+                  <table id="detailedTable" class="table">
+                    <thead class="thead-light">
+                    </thead>
+                  </table>
+                </div>
+              </div>
+          </div>  
+        </div>
+      </div>
+    </div>
+</section>
+
+@include('workingOrder.addArticle')
 @endsection
 @section('styles')
 <style>
-
     textarea {
         resize: none;
     }
@@ -256,77 +176,51 @@
     let currentDate = todayDate('dd-mm-yyyy');    
     $(document).ready(function(){           
         validateForm('frmAdd');
-        $('#orderDate').val(currentDate);
+        $('#woDate').val(currentDate);
     });
-
-    orderDate = $('#orderDate');
-    if (orderDate.length) {
-        orderDate.flatpickr({
-            dateFormat: "d-m-Y",
-        });
-    }
-
-    deliveryDate = $('#deliveryDate');
-    if (deliveryDate.length) {
-        deliveryDate.flatpickr({
-            dateFormat: "d-m-Y",
-            minDate: currentDate
-        });
-    }
-    
-    $('#tax').on('change', function() {
-        let tax = $(this).val();
-        if (tax == 'PKP'){
-            $('#ppn').val(10);
-            $('#ppn').removeAttr('disabled');
-        }else{
-            $('#ppn').val(0);
-            $('#ppn').attr('disabled','disabled');
-            hitungGrandTotal();
-        }
-    })
-
-    $('#persenDiscount,#ppn').on('keyup', function() {
-        hitungGrandTotal();
-    })
-
+        
     function reloadPage(){
         window.location.reload();
     }
 
+    woDate = $('#woDate');
+    if (woDate.length) {
+        woDate.flatpickr({
+            dateFormat: "d-m-Y",
+            minDate: currentDate
+        });
+    }
+
     $("#cmdCancel").click(function(){
+        $('#woNumber').val('');
         reloadPage();
     });
 
     $("#cmdNew").click(function(){
+        $('#woNumber').val('');
         reloadPage();
     });
 
     $("#cmdSave").click(function(){     
         $('.disabled-el').removeAttr('disabled');
         // ambil semua data article
-        let objQty= $('input[name="qty_order[]"]');
-        let objPrice= $('input[name="price[]"]');
-        let objNewPrice= $('input[name="newPrice[]"]');
-        let objUom= $('span[name="uom[]"]'); 
+        let objArticle = $("#article_row select[name='article_id[]']");
+        let qtyOrder = $('input[name="qtyOrder[]"]');
+        let qtyProd = $('input[name="qtyProd[]"]');
+        let woDate = $('#woDate').val();
+        let note = $('#note').val();
         let articles = []; 
         let flag=0; 
         let pesan="";
 
-        $("#article_row select[name='article_id[]']").map(function(i) {  
+        objArticle.map(function(i) {  
 		    let $this=$(this);
             if ($this.val()){
                 let article=$this.val().split("|");
                 let articleName=$this.select2('data')[0].text;
                 let plu=article[0];
-                let qty=objQty.eq(i).val().replace(/[^0-9]/gi, '') || 0;
-                let newPrice=objNewPrice.eq(i).val().replace(/[^0-9]/gi, '') || 0;
-                let price=objPrice.eq(i).val().replace(/[^0-9]/gi, '') || 0;
-                let uom=objUom.eq(i).text();
-                let supp=$('#supplier').val();
-                let suppName = $('#supplier').select2('data')[0].text;
-                let supplier=supp;
-            
+                let qty=objProd.eq(i).val().replace(/[^0-9]/gi, '') || 0;
+                            
                 //es6
                 // let obj = ingredient.find(obj => obj.plu == plu);
 
@@ -345,8 +239,9 @@
                             "article_code":plu,
                             "qty":qty,
                             "uom":uom,
+                            "customer_code":customer,
                             "price":price,
-                            "newPrice":newPrice,
+                            "type":type
                         });
                     }
                 } 
@@ -355,9 +250,13 @@
                     pesan +="QTY of items "+ articleName +" cannot be 0 <br>"; 
                     flag=1;
                 }
-            
             }
         });
+
+        if (customer == ''){
+			pesan +="Customer must be filled in <br>"; 
+			flag=1;
+		}
 
         if (articles.length == 0){
 			pesan +="Articles must be filled in completely <br>"; 
@@ -366,36 +265,16 @@
 
         if (flag==0){
 
-            let orderDate = $('#orderDate').val();
-            let deliveryDate = $('#deliveryDate').val();
-            let currency = $('#currency').val();
-            let supp = $('#supplier').val();
-            let tax = $('#tax').val();
-            let term = $('#term').val() || 0;
-            let kurs = $('#kurs').val() || 1;
-            let ppn = $('#ppn').val().replace(/[^0-9]/gi, '') || 0;
-            let totalPph = $('#totalPPH').val().replace(/[^0-9]/gi, '') || 0;
-            let totalPpn = $('#totalPPN').val().replace(/[^0-9]/gi, '') || 0;
-            let note = $('#note').val();
-            let persenDiscount = $('#persenDiscount').val() || 0;
-
             $.ajax({
                 type: "post",
-                url: "{{ route('purchaseOrder.store') }}",
+                url: "{{ route('bom.store') }}",
                 data: {
                     articles:JSON.stringify(articles),
-                    orderDate:orderDate,
-                    deliveryDate:deliveryDate,
-                    currency:currency,                
-                    supplier:supp,
-                    tax:tax,
-                    ppn:ppn,
-                    term:term,
-                    totalPph:totalPph,
-                    totalPpn:totalPpn,
-                    kurs:kurs,
+                    articleCode:articleCode,
+                    customer:customer,
                     note:note,
-                    discount:persenDiscount
+                    group:group,
+                    uom:uom,
                 },
                 dataType: "json",
                 success: function(data) {
@@ -410,7 +289,7 @@
                         $("#alert-message-success").fadeTo(5000, 500).slideUp(500, function(){
                             $("#alert-message-success").slideUp(500);
                         });
-                        $('#poNumber').attr('disabled','disabled');
+                        $('#woNumber').attr('disabled','disabled');
 
                     }else{
                         $("#alert-message-success").addClass(data.alert);
@@ -419,9 +298,10 @@
                         $("#alert-message-success").fadeTo(5000, 500).slideUp(500, function(){
                             $("#alert-message-success").slideUp(500);
                         });
-                        $('#poNumber').attr('disabled','disabled');
+                        $('#woNumber').attr('disabled','disabled');
                         $('#cmdSave').attr('disabled','disabled');
                         $('#addNewRow').attr('disabled','disabled');
+                        $('#woNumber').val(data.woNumber);
                         
                     }
                     
@@ -437,124 +317,284 @@
     
     });
 
+    function prosesWO(){
+        let objArticle = $("#article_row select[name='article_id[]']");
+        let objQtyProd = $('input[name="qtyProd[]"]');
+        let articles = []; 
+        let pesan="";
+        let flag= 0;
+        objArticle.map(function(i) {  
+		    let $this=$(this);
+            if ($this.val()){
+                let article=$this.val().split("|");
+                let plu=article[0];
+                let articleName=$this.select2('data')[0].text;
+                let qty=objQtyProd.eq(i).val().replace(/[^0-9]/gi, '') || 0;
+                                            
+                //es6
+                // let obj = ingredient.find(obj => obj.plu == plu);
+
+                //jquery
+                //cek apakah article ada yang double input ato ngk
+                let obj = $.grep(articles, function(obj){
+                    return obj.article_code === plu;
+                })[0];
+                
+                if(obj) {
+                    pesan +="Article "+articleName+" entered more than once !! <br>"; 
+                    flag=1;
+                } else {
+                    if ((plu!=='') && (qty> 0)){
+                        articles.push({
+                            "article_code":plu,
+                            "qty":qty
+                        });
+                    }
+                } 
+            
+                if (qty == 0){
+                    pesan +="QTY of items "+ articleName +" cannot be 0 <br>"; 
+                    flag=1;
+                }
+            }
+        });
+
+        if (flag==0){
+            console.log(articles);     
+            showList(articles);   
+        }else{
+            Swal.fire('Warning..',pesan,'warning');
+        }
+        
+    }
+
+    function showList(articles){
+        let isidata = $('#detailedTable tr').length;
+        if (isidata >0){
+            let table= $('#detailedTable').DataTable();
+            table.destroy();
+            $('#detailedTable tbody > tr').remove();
+        }
+        
+        let dtdom ='<"d-flex justify-content-between align-items-center header-actions mx-1 row mt-75"' +
+            '<"col-lg-12 col-xl-6" l>' +
+            '<"col-lg-12 col-xl-6 pl-xl-75 pl-0"<"dt-action-buttons text-xl-right text-lg-left text-md-right text-left d-flex align-items-center justify-content-lg-end align-items-center flex-sm-nowrap flex-wrap mr-1"<"mr-1"f>B>>' +
+            '>t' +
+            '<"d-flex justify-content-between mx-2 row mb-1"' +
+            '<"col-sm-12 col-md-6"i>' +
+            '<"col-sm-12 col-md-6"p>' +
+            '>';
+        let arr_col_print =[2,3,4,5,6]; 
+        $(function(){
+            let oTable =$("#detailedTable").DataTable({
+                ajax:{
+                    url:'{{ route("workingOrder.detail.list")}}',
+                    data:{
+                        articles:JSON.stringify(articles),
+                    }
+                },
+                processing: true,
+                serverSide: true,
+                buttons: true,
+                dom:dtdom,
+                lengthMenu: [
+                [ 10, 25, 50, -1 ],
+                [ '10', '25', '50', 'all' ]
+                ],
+                buttons: [
+                {
+                    extend: 'collection',
+                    className: 'btn btn-outline-secondary dropdown-toggle mr-2 mt-07',
+                    text: feather.icons['share'].toSvg({ class: 'font-small-4 mr-50' }) + 'Export',
+                    buttons: [
+                    {
+                        extend: 'print',
+                        text: feather.icons['printer'].toSvg({ class: 'font-small-4 mr-50' }) + 'Print',
+                        className: 'dropdown-item',
+                        exportOptions: { columns: arr_col_print }
+                    },
+                    {
+                        extend: 'csv',
+                        text: feather.icons['file-text'].toSvg({ class: 'font-small-4 mr-50' }) + 'Csv',
+                        className: 'dropdown-item',
+                        exportOptions: { columns: arr_col_print }
+                    },
+                    {
+                        extend: 'excel',
+                        text: feather.icons['file'].toSvg({ class: 'font-small-4 mr-50' }) + 'Excel',
+                        className: 'dropdown-item',
+                        exportOptions: { columns: arr_col_print }
+                    },
+                    {
+                        extend: 'pdf',
+                        text: feather.icons['clipboard'].toSvg({ class: 'font-small-4 mr-50' }) + 'Pdf',
+                        className: 'dropdown-item',
+                        exportOptions: { columns: arr_col_print }
+                    },
+                    {
+                        extend: 'copy',
+                        text: feather.icons['copy'].toSvg({ class: 'font-small-4 mr-50' }) + 'Copy',
+                        className: 'dropdown-item',
+                        exportOptions: { columns: arr_col_print }
+                    }
+                    ],
+                    init: function (api, node, config) {
+                    $(node).removeClass('btn-secondary');
+                    $(node).parent().removeClass('btn-group');
+                    setTimeout(function () {
+                        $(node).closest('.dt-buttons').removeClass('btn-group').addClass('d-inline-flex');
+                    }, 50);
+                    }
+                },
+                ],
+                responsive: {
+                details: {
+                    display: $.fn.dataTable.Responsive.display.modal({
+                    header: function (row) {
+                        var data = row.data();
+                        return 'Details of ' + data['nama'];
+                    }
+                    }),
+                    type: 'column',
+                    renderer: function (api, rowIdx, columns) {
+                    var data = $.map(columns, function (col, i) {
+                        return col.title !== '' // ? Do not show row in modal popup if title is blank (for check box)
+                        ? '<tr data-dt-row="' +
+                            col.rowIndex +
+                            '" data-dt-column="' +
+                            col.columnIndex +
+                            '">' +
+                            '<td>' +
+                            col.title +
+                            ':' +
+                            '</td> ' +
+                            '<td>' +
+                            col.data +
+                            '</td>' +
+                            '</tr>'
+                        : '';
+                    }).join('');
+                    return data ? $('<table class="table"/>').append(data) : false;
+                    }
+                }
+                },
+                language: {
+                paginate: {
+                    // remove previous & next text from pagination
+                    previous: '&nbsp;',
+                    next: '&nbsp;'
+                }
+                },
+                columnDefs: [
+                    { width: '5%', targets: 0 },
+                    { className: 'text-right','targets': [ 4,5 ] },
+                    {
+                        "searchable": false,
+                        "orderable": false,
+                        "targets": 0
+                    }
+                ],
+                drawCallback: function( settings ) {
+                    feather.replace({
+                            width: 14,
+                            height: 14
+                    });
+                },
+                order: [[ 2, 'asc' ]],
+                bDestroy: true, //pakai ini supaya bisa di load berulang2
+                // scrollX: true, //pakai ini supaya waktu responsive  bisa di scroll horizontal
+                columns: [
+                    {
+                        data: 'id',title:"#",
+                        render: function (data, type, row, meta) {
+                            return meta.row + meta.settings._iDisplayStart + 1;
+                        }
+                    },
+                    { data: 'article_alternative_code', name: 'article_alternative_code',title:'Article Code' },
+                    { data: 'article_desc', name: 'article_desc',title:'Desc' },
+                    { data: 'uom', name: 'uom',title:'UOM' },
+                    { data: 'qty', name: 'qty',title:'QTY' },
+                    { data: 'qty_total', name: 'qty_total',title:'QTY Total' ,render: $.fn.dataTable.render.number(',','.') },
+                    { data: 'kelompok', name: 'kelompok',title:'Article Type' ,render: $.fn.dataTable.render.number(',','.') },
+                ],
+            });
+        });
+        
+    }
+
+    
     let cloneCount=1;
     function add_new_row() {
-        let supplier = $('#supplier');
-        let supp = supplier.val();
-        if (supplier.val()){            
-            $("#article_row").append($("#new_row").clone().html());
-            cloneCount++;
-            $("#article_row").find('#baru').attr('id', 'new_row'+ cloneCount);
-            $("#new_row"+ cloneCount).find('#article_id').attr('id', 'article_id'+ cloneCount);
-            changeselect('article_id','article_id'+ cloneCount,supp,'CM');
-            $("#article_id"+cloneCount).select2();
-            $('#remove_button').tooltip();
-            tombolPanah('qty_order');
-            tombolPanah('newPrice');
-            activate_angka();
-            mask_thousand();
-            splitArticle();
-            hitungTotal();
-            hitungGrandTotal();
-        }else{
-            Swal.fire({
-                title: 'Warning',
-                text: "Choose supplier",
-                icon: 'warning',
-                confirmButtonColor: '#3085d6',
-                confirmButtonText: 'OK'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    supplier.select2('open');
-                }
-            })
-        }
+        $("#article_row").append($("#new_row").clone().html());
+        cloneCount++;
+        $("#article_row").find('#baru').attr('id', 'new_row'+ cloneCount);
+        $("#new_row"+ cloneCount).find('#article_id').attr('id', 'article_id'+ cloneCount);
+        $("#new_row"+ cloneCount).find('#salesOrder').attr('id', 'salesOrder'+ cloneCount);
+        changeselect('salesOrder','salesOrder'+ cloneCount,'','');
+        $("#article_id"+cloneCount).select2();
+        $("#salesOrder"+cloneCount).select2();
+        $('#remove_button').tooltip();
+        tombolPanah('qty_prod');
+        activate_angka();
+        mask_thousand();
+        // splitArticle();
+        isiListArticle();
     };
+
+    function isiListArticle(){
+        // split article with delimiter |
+        let objSo = $('#article_row select[name="salesOrder[]"]');
+        objSo.change(function(e){        
+            let objIndex = objSo.index(this);
+            let soCode = objSo.eq(objIndex).val();
+            changeSelectArticle('searchFromSO',objIndex,soCode);
+            splitArticle();
+		});
+    }
+
+    function changeSelectArticle(dependent,objIndex,value) {
+        let objArticle = $('#article_row select[name="article_id[]"]');
+        $.ajax({
+            url:"{{route('dynamic.dependent')}}",
+            method:"POST",
+            data:{
+                value:value,
+                dependent:dependent
+            },
+            success:function(result){
+                objArticle.eq(objIndex).html(result);
+                objArticle.eq(objIndex).select2();
+                // objArticle.eq(objIndex).trigger('change');
+            }
+        })
+    }
 
     function splitArticle(){
         // split article with delimiter |
         let objArticle = $('#article_row select[name="article_id[]"]');
-        let objStock= $('#article_row input[name="qty_stock[]"]');
-        let objUom= $('#article_row span[name="uom[]"]'); 
-        let objQty= $('#article_row input[name="qty_order[]"]');
-        let objPrice= $('#article_row input[name="price[]"]');
-        let objNewPrice= $('#article_row input[name="newPrice[]"]');
+        let objQtyStock = $('input[name="qtyStock[]"]');
+        let objQtyOrder = $('input[name="qtyOrder[]"]');
+        let objQtyProd = $('input[name="qtyProd[]"]');
+        
         objArticle.change(function(e){        
             let objIndex = objArticle.index(this);
             let detail = objArticle.eq(objIndex).val();
             let arrDetail = detail.split("|");
-            objStock.eq(objIndex).val(humanizeNumber(arrDetail[2]||0));
-            objUom.eq(objIndex).text(arrDetail[3]);
-            objPrice.eq(objIndex).val(humanizeNumber(arrDetail[4]||0));
-            objNewPrice.eq(objIndex).val(humanizeNumber(arrDetail[4]||0));
-            objArticle.eq(objIndex).select2('open');
+            objQtyStock.eq(objIndex).val(arrDetail[2]);
+            objQtyOrder.eq(objIndex).val(arrDetail[3]);
             if (detail){
                 setTimeout(() => {
-                    objQty.eq(objIndex).focus().select();
+                    objQtyProd.eq(objIndex).focus().select();
                 }, 5);
             }
 		});
     }
 
-    function hitungTotal(){
-        let objQty= $('#article_row input[name="qty_order[]"]');
-        let objNewPrice= $('#article_row input[name="newPrice[]"]');
-        let objTotal= $('#article_row span[name="totalLine[]"]');
-        
-        objQty.keyup(function() {
-            let indexnya= objQty.index(this);
-            let qty = objQty.eq(indexnya).val().replace(/[^0-9]/gi, '') || 0; 
-            let newPrice = objNewPrice.eq(indexnya).val().replace(/[^0-9]/gi, '') ||0;
-            let total = qty*newPrice;
-            objTotal.eq(indexnya).text(humanizeNumber(total));
-            hitungGrandTotal();
-        });    
-
-        objNewPrice.keyup(function() {
-            let indexnya= objNewPrice.index(this);
-            let qty = objQty.eq(indexnya).val().replace(/[^0-9]/gi, '') || 0; 
-            let newPrice = objNewPrice.eq(indexnya).val().replace(/[^0-9]/gi, '')||0;
-            let total = qty*newPrice;
-            objTotal.eq(indexnya).text(humanizeNumber(total));
-            hitungGrandTotal();
-        });    
-    }
-
-    function hitungGrandTotal(){
-        let objArticle = $('#article_row select[name="article_id[]"]');
-        let objQtyTiw= $('#article_row input[name="qty_order[]"]');
-        let objQTY= $('#article_row input[name="qty_order[]"]');
-        let objNewPrice= $('#article_row input[name="newPrice[]"]');
-        let persenDiscount = $('#persenDiscount').val() || 0;
-        let ppn= $('#ppn').val();
-        let totalQty= 0;
-        let totalAmount=0
-
-        var arr = objQtyTiw.map(function (i) {
-            let qty = parseInt(objQTY.eq(i).val().replace(/[^0-9]/gi, '')) || 0;
-            let newPrice = parseInt(objNewPrice.eq(i).val().replace(/[^0-9]/gi, '')) || 0;
-            totalQty+= qty;
-            totalAmount+= qty*newPrice;
-        }).get();
-        
-        $("#totalRow").val(objArticle.length);
-        $("#nilaiPPN").text(ppn+"%");
-        $("#totalQTY").val(humanizeNumber(totalQty));
-        $("#totalAmount").val(humanizeNumber(totalAmount));
-        $("#totalDiscount").val(humanizeNumber((totalAmount*parseInt(persenDiscount))/100));
-        $("#totalPPN").val(humanizeNumber((parseInt(ppn)*totalAmount)/100));
-        $("#totalPPH").val(0);
-        $("#totalNetto").val(humanizeNumber((totalAmount+((parseInt(ppn)*totalAmount)/100))-((totalAmount*parseInt(persenDiscount))/100)));
-
-    }
-
-    function changeselect(dependent,obj,value,type) {
+    function changeselect(dependent,obj) {
       $.ajax({
         url:"{{route('dynamic.dependent')}}",
         method:"POST",
         data:{
-            value:value,
-            type:type,
             dependent:dependent
         },
         success:function(result){

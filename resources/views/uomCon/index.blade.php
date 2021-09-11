@@ -4,74 +4,71 @@
 @include('layouts.breadcrumb')
 @include('partials.alert')
 
-<section id="article-index">
-  <div class="card">
-    <div class="card-header">  
-      <h4 class="card-title">Filter</h4>
-      <div class="heading-elements">
-        <ul class="list-inline mb-0">
-            <li><a data-action="collapse"><i data-feather="chevron-down"></i></a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="card-content collapse show">
-      <div class="card-body">
-        <form class="needs-validation" novalidate>
-            <div class="form-row">
-              <div class="form-group col-md-3"> 
-                <label for="searchBom">WO Number</label>
-                <input type="text" class="form-control text-uppercase" id="searchBom" name="searchBom" placeholder=""  />
-              </div>
-              {{-- <div class="form-group col-md-5">
-                <label class="form-label" for="articleCode">Article*</label>
-                <select class="select2 form-control" id="articleCode" name="articleCode" required>
-                    <option label=""></option>
-                    @foreach($articles as $val)
-                        <option value="{{ $val->article_code }}" >{{ $val->article_alternative_code }} - {{ $val->article_desc }}</option>
-                    @endforeach
-                </select>
-              </div> --}}
+<section id="depts-index">
+    <div class="row">
+      <div class="col-12">
+        <div class="card">
+          {{-- <div class="card-header">  
+            <div class="card-title">@yield('title')
             </div>
-            <div class="form-row">
-                <div class="col-12"> 
-                    <button type="button" class="btn btn-primary" id ="btnSearch" name="btnSearch">Search</button>
-                    @can('bom-create')
-                    <a href="{{ route('workingOrder.create') }}" class="btn btn-info"><i class="fa fa-plus"></i> Create</a>
-                    @endcan
+          </div> --}}
+          <div class="card-body">
+            <form class="needs-validation" novalidate>
+                <div class="form-row">
+                    <div class="col-md-4"> 
+                        <div class="form-group">
+                        <label for="basicInput">Kode</label>
+                        <input type="text" class="form-control text-uppercase" id="searchUomCode" name="searchUomCode" placeholder=""  />
+                        </div>
+                    </div>
+                    <div class="col-md-4"> 
+                    <div class="form-group">
+                        <label for="basicInput">Nama</label>
+                        <input type="text" class="form-control text-uppercase" id="searchUom" name="searchUom" placeholder="" />
+                    </div>
+                    </div>
                 </div>
-            </div>
-        </form>
+                <div class="form-row">
+                    <div class="col-12"> 
+                        <button type="button" class="btn btn-primary" id ="btnSearch" name="btnSearch">Search</button>
+                        @can('uom-create')
+                        <a href="{{ route('uomCon.create') }}" class="btn btn-info"><i class="fa fa-plus"></i> Create</a>
+                        @endcan
+                    </div>
+                </div>
+            </form>
+          </div>
+        </div>
       </div>
     </div>
-  </div>
 </section>
 
-<section id="table-article">
-  <div class="card">
-    <div class="card-header">
-      <h4 class="card-title"> @yield('title') List</h4>
-      <div class="heading-elements">
-          <ul class="list-inline mb-0">
-              <li><a data-action="collapse"><i data-feather="chevron-down"></i></a></li>
-              <li><a data-action="reload"><i data-feather="rotate-cw"></i></a></li>
-          </ul>
+<section id="table-depts">
+    <div class="card">
+      <div class="card-header">
+        <h4 class="card-title"> @yield('title') List</h4>
+        <div class="heading-elements">
+            <ul class="list-inline mb-0">
+                <li><a data-action="collapse"><i data-feather="chevron-down"></i></a></li>
+                <li><a data-action="reload"><i data-feather="rotate-cw"></i></a></li>
+            </ul>
+        </div>
       </div>
-    </div>
-    <div class="card-content collapse show">
-      <div class="card-body">
-        <div class="row">
-            <div class="col-sm-12">
-              <div class="card-datatable table-responsive pt-0">
-                <table id="detailedTable" class="table">
-                  <thead class="thead-light">
-                  </thead>
-                </table>
+      <div class="card-content collapse show">
+        <div class="card-body">
+          <div class="row">
+              <div class="col-sm-12">
+                <div class="card-datatable table-responsive pt-0">
+                  <table id="detailedTable" class="table">
+                    <thead class="thead-light">
+                    </thead>
+                  </table>
+                </div>
               </div>
-            </div>
-        </div>  
+          </div>  
+        </div>
       </div>
     </div>
-  </div>
 </section>
 
 @include('partials.delete-modal')
@@ -91,8 +88,10 @@
         console.log(href);
         $('#modalConfirmation').attr("action", href);
     });
+
   });
 
+   
   let showAlert = "{{ Session::get('alert') }}";
 
   if ( showAlert ){
@@ -107,22 +106,13 @@
       showList();
   });
 
-  rangePickr = $('.flatpickr-range');
-  if (rangePickr.length) {
-    rangePickr.flatpickr({
-      dateFormat: "d-m-Y",
-      mode: 'range'
-    });
-  }
-
   $("#btnSearch").click(function(e){
-    let searchBom = $("#searchBom").val();
-    let articleCode = $("#articleCode").val();
-    showList(searchBom,articleCode);
-
+      let code =$("#searchUomCode").val();
+      let nama =$("#searchUom").val();
+      showList(nama,code);
   });
 
-  function showList(searchBom,articleCode){
+  function showList(nama,code){
     // let dtdom = '<"card-header border-bottom p-1"<"head-label">><"d-flex justify-content-between align-items-center mx-0 row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-4"f><"col-sm-12 col-md-2"<"dt-action-buttons text-right"B>>>t<"d-flex justify-content-between mx-0 row"<"col-sm-12 col-md-6"i><"col-sm-12 col-md-6"p>>';
     let dtdom ='<"d-flex justify-content-between align-items-center header-actions mx-1 row mt-75"' +
         '<"col-lg-12 col-xl-6" l>' +
@@ -132,15 +122,15 @@
         '<"col-sm-12 col-md-6"i>' +
         '<"col-sm-12 col-md-6"p>' +
         '>';
-    let arr_col_print =[2,3,4,5,6]; 
+    let arr_col_print =[2,3,4]; 
     $(function(){
       let oTable =$("#detailedTable").DataTable({
         ajax:
         {
-          url:'{{ route("bom.list")}}',
+          url:'{{ route("uom.list")}}',
           data:{
-              searchBom:searchBom,
-              articleCode:articleCode,
+              name:nama,
+              code:code
           }
         },
         processing: true,
@@ -245,17 +235,9 @@
           },
           {
             responsivePriority: 1,
-            targets: 2
-          },
-          {
-            responsivePriority: 3,
             targets: 3
           },
-          {
-            responsivePriority: 4,
-            targets: 4
-          },
-          { width: '10%', targets: 1 },
+          { width: '10%', targets: 1 }
         ],
         drawCallback: function( settings ) {
           feather.replace({
@@ -269,12 +251,9 @@
         columns: [
             { data: 'group_id',name:'group_id', title:'',orderable: false, searchable: false },
             { data: 'action', name: 'action',title:'action', orderable: false, searchable: false },
-            { data: 'bom_code', name: 'bom_code',title:'BOM Code' },
-            { data: 'customer', name: 'customer',title:'Customer' },
-            { data: 'article_code', name: 'article_code',title:'Article' },
-            { data: 'group_of_material', name: 'group_of_material',title:'Group' },
-            { data: 'status', name: 'status',title:'Status' },
-            { data: 'note', name: 'note',title:'Note' },
+            { data: 'code', name: 'code',title:'Kode' },
+            { data: 'name', name: 'name',title:'Nama' },
+            { data: 'weight', name: 'weight',title:'Timbangan' }
         ],
       });
     });

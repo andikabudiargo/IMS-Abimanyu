@@ -130,6 +130,16 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('uoms/update',['as'=>'uom.update','uses'=>'UomController@update']);
 	Route::post('uoms/delete',['as'=>'uom.destroy','uses'=>'UomController@destroy']);
 
+	Route::get('uomCons',['as'=>'uomCons.index','uses'=>'UomConController@index','middleware' => ['permission:uomCon-index']]);
+	Route::get('uomCons/create',['as'=>'uomCon.create','uses'=>'UomConController@create','middleware' => ['permission:uomCon-create']]);
+	Route::post('uomCons/store',['as'=>'uomCon.store','uses'=>'UomConController@store']);
+	Route::get('uomCons/list',['as'=>'uomCon.list','uses'=>'UomConController@list']);
+	Route::get('uomCons/show',['as'=>'uomCon.show','uses'=>'UomConController@show']);
+	Route::get('uomCons/edit',['as'=>'uomCon.edit','uses'=>'UomConController@edit','middleware' => ['permission:uomCon-edit']]);
+	Route::post('uomCons/update',['as'=>'uomCon.update','uses'=>'UomConController@update']);
+	Route::post('uomCons/delete',['as'=>'uomCon.destroy','uses'=>'UomConController@destroy']);
+	Route::get('uomCons/get/factor',['as'=>'uomCon.get.factor','uses'=>'UomConController@getFactor']);
+
 	Route::get('jobPositions',['as'=>'jobPositions.index','uses'=>'JobPositionController@index','middleware' => ['permission:jobPosition-index']]);
 	Route::get('jobPositions/create',['as'=>'jobPosition.create','uses'=>'JobPositionController@create','middleware' => ['permission:jobPosition-create']]);
 	Route::post('jobPositions/store',['as'=>'jobPosition.store','uses'=>'JobPositionController@store']);
@@ -205,10 +215,23 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('purchaseRequests/print',['as'=>'purchaseRequest.print','uses'=>'PurchaseRequestController@print']);
 
 
+	Route::get('boms',['as'=>'boms.index','uses'=>'BomController@index','middleware' => ['permission:bom-index']]);
+	Route::get('boms/create',['as'=>'bom.create','uses'=>'BomController@create','middleware' => ['permission:bom-create']]);
+	Route::post('boms/store',['as'=>'bom.store','uses'=>'BomController@store']);
+	Route::get('boms/list',['as'=>'bom.list','uses'=>'BomController@list']);
+	Route::get('boms/show',['as'=>'bom.show','uses'=>'BomController@show']);
+	Route::get('boms/edit',['as'=>'bom.edit','uses'=>'BomController@edit','middleware' => ['permission:bom-edit']]);
+	Route::post('boms/update',['as'=>'bom.update','uses'=>'BomController@update']);
+	Route::post('boms/delete',['as'=>'bom.destroy','uses'=>'BomController@destroy']);
+	Route::get('boms/code/create',['as'=>'bom.code.create','uses'=>'BomController@articleCodeCreate']);
+	Route::get('boms/print',['as'=>'bom.print','uses'=>'BomController@print']);
+
+
 	Route::get('workingOrders',['as'=>'workingOrders.index','uses'=>'workingOrderController@index','middleware' => ['permission:workingOrder-index']]);
 	Route::get('workingOrders/create',['as'=>'workingOrder.create','uses'=>'workingOrderController@create','middleware' => ['permission:workingOrder-create']]);
 	Route::post('workingOrders/store',['as'=>'workingOrder.store','uses'=>'workingOrderController@store']);
 	Route::get('workingOrders/list',['as'=>'workingOrder.list','uses'=>'workingOrderController@list']);
+	Route::get('workingOrders/list/detail',['as'=>'workingOrder.detail.list','uses'=>'workingOrderController@listDetail']);
 	Route::get('workingOrders/show',['as'=>'workingOrder.show','uses'=>'workingOrderController@show']);
 	Route::get('workingOrders/edit',['as'=>'workingOrder.edit','uses'=>'workingOrderController@edit','middleware' => ['permission:workingOrder-edit']]);
 	Route::post('workingOrders/update',['as'=>'workingOrder.update','uses'=>'workingOrderController@update']);

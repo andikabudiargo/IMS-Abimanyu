@@ -31,7 +31,7 @@
         </li>
         <li class=" navigation-header"><span data-i18n="Apps &amp; Pages">Apps &amp; Pages</span><i data-feather="more-horizontal"></i>
         </li>
-        <li class=" {{ in_array(\Request::segment(1), ['articles','stockTake','uoms','groupMaterials','articleTypes']) ? 'active' : '' }} nav-item">
+        <li class=" {{ in_array(\Request::segment(1), ['articles','stockTake','uoms','uomCons','groupMaterials','articleTypes']) ? 'active' : '' }} nav-item">
           <a class="d-flex align-items-center" href="javascript:void(0);">
             <i data-feather="box"></i>
             <span class="menu-title text-truncate" data-i18n="Form Elements">Inventory
@@ -51,6 +51,14 @@
               <a class="d-flex align-items-center" href="{{ route('uoms.index') }}">
                 <i data-feather="circle"></i>
                 <span class="menu-item text-truncate" data-i18n="Input">UOM</span>
+              </a>
+            </li>
+            @endcan
+            @can('uomCon-index')
+            <li class="{{ \Request::segment(1) == 'uomCons'  ? 'active' : '' }}">
+              <a class="d-flex align-items-center" href="{{ route('uomCons.index') }}">
+                <i data-feather="circle"></i>
+                <span class="menu-item text-truncate" data-i18n="Input">UOM Conversion</span>
               </a>
             </li>
             @endcan
@@ -148,26 +156,26 @@
             @endcan
           </ul>
         </li>
-        <li class=" {{ in_array(\Request::segment(1), ['wo']) ? 'active' : '' }} nav-item">
+        <li class=" {{ in_array(\Request::segment(1), ['boms','workingOrders']) ? 'active' : '' }} nav-item">
           <a class="d-flex align-items-center" href="javascript:void(0);">
             <i data-feather='package'></i>
             <span class="menu-title text-truncate" data-i18n="Form Elements">Production
             </span>
           </a>
           <ul class="menu-content">
-            @can('purchaseOrder-index')
-            <li class="{{ \Request::segment(1) == 'purchaseOrdersSS' ? 'active' : '' }} disabled" >
-              <a class="d-flex align-items-center" href="{{ route('purchaseOrders.index') }}">
+            @can('workingOrder-index')
+            <li class="{{ \Request::segment(1) == 'workingOrders' ? 'active' : '' }} " >
+              <a class="d-flex align-items-center" href="{{ route('workingOrders.index') }}">
                 <i data-feather="circle"></i>
                 <span class="menu-item text-truncate" data-i18n="Input">Working Order</span>
               </a>
             </li>
             @endcan
-            @can('purchaseOrder-index')
-            <li class="{{ \Request::segment(1) == 'purchaseOrdersSS' ? 'active' : '' }} disabled" >
-              <a class="d-flex align-items-center" href="{{ route('purchaseOrders.index') }}">
+            @can('bom-index')
+            <li class="{{ \Request::segment(1) == 'boms' ? 'active' : '' }}" >
+              <a class="d-flex align-items-center" href="{{ route('boms.index') }}">
                 <i data-feather="circle"></i>
-                <span class="menu-item text-truncate" data-i18n="Input">Biil Of Material</span>
+                <span class="menu-item text-truncate" data-i18n="Input">Bill Of Material</span>
               </a>
             </li>
             @endcan

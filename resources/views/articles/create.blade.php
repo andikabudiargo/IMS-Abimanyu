@@ -56,13 +56,24 @@
                             </div>
                         </div>
                         <div class="row">
+                            <div class="form-group col-md-6">
+                                <label class="form-label" for="uom">UOM*</label>
+                                <select class="select2 form-control" id="uom" name="uom" required>
+                                    <option label=""></option>
+                                    @foreach($uoms as $val)
+                                        <option value="{{$val->code}}" {{ $val->code == old("uom") ? "selected" : ""}} >{{$val->code}} - {{$val->name}}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+                        {{-- <div class="row">
                             <div class="col-12">
                                 <div class="form-group">
                                     <label for="quality">Quality</label>
                                     <input type="text" id="quality" name="quality" class="form-control" value="{{ old('quality') }}"  maxlength="30"/>
                                 </div>
                             </div>
-                        </div>
+                        </div> --}}
                         <div class="row">
                             <div class="form-group col-md-6">
                                 <label class="form-label" for="group">Group of material</label>
@@ -70,17 +81,6 @@
                                     <option label=""></option>
                                     @foreach($groups as $val)
                                         <option value="{{$val->code}}" {{ $val->code == old("group") ? "selected" : ""}}>{{$val->code}} - {{$val->name}}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="form-group col-md-6">
-                                <label class="form-label" for="uom">UOM*</label>
-                                <select class="select2 form-control" id="uom" name="uom" required>
-                                    <option label=""></option>
-                                    @foreach($uoms as $val)
-                                        <option value="{{$val->code}}" {{ $val->code == old("uom") ? "selected" : ""}} >{{$val->code}} - {{$val->name}}</option>
                                     @endforeach
                                 </select>
                             </div>
@@ -103,6 +103,7 @@
                             <div class="col-12">
                                 <button class="btn btn-outline-secondary" type="reset" id="cmdCancel" name="cmdCancel">Cancel</button>
                                 <button class="btn btn-success" type="button" id="cmdSave" name="cmdSave">Save</button>
+                                <button class="btn btn-success" type="button" id="cmdProses" name="cmdProses">Proses</button>
                             </div>
                         </div>
                     </form>
@@ -121,6 +122,55 @@
 @endsection
 @section('scripts')
 <script type="text/javascript">
+    let kode = "{{ Session::get('articleCode') }}"; 
+    alert(kode);
+
+    function getSuppAcronym(aString){
+        let initials= "";
+        let namaPerusahaan = ["CV","PT","Pte.","Ltd.","Corp.","Inc."];
+        let wordCount = aString.split(' ').length;
+        let finalWordCount = wordCount-1;
+        if (wordCount == 1){
+            initials = aString.substring(0, 3).toUpperCase();
+        }else if (wordCount > 1){ 
+            let aString1 = aString;
+            aString = aString.split(' ');
+            let dataExist = namaPerusahaan.indexOf(aString[wordCount-1].toUpperCase());
+            if (dataExist != -1){
+                let newString="";
+                for (let i=0 ;i < wordCount-1;i++){
+                    if (i<3){
+                        newString+=aString[i].trim() +' ';
+                    }
+                }   
+                aString1 = newString;
+            }
+
+            // console.log(aString1);
+            // console.log(aString1.trim().split(' ').length==2);
+
+            if (aString1.trim().split(' ').length == 2){
+                aString1 = aString1+' '+aString1.trim().slice(-1);
+            }
+
+            if (aString1.trim().split(' ').length > 3){
+                aString1 = aString1.trim().split(' ').slice(0,3).join(' ');
+                console.log(aString1);
+            }
+
+            initials = aString1.split(' ').reduce((result, currentWord) => 
+            result + currentWord.charAt(0).toUpperCase(), '');
+        }
+        
+        console.log(initials);
+    }
+
+    document.getElementById("cmdProses").addEventListener("click", myFunction);
+    function myFunction() {
+        let aString = document.getElementById('nama').value;
+        getAcronym(aString);    
+    }
+
     $(document).ready(function(){           
         $("#frmAdd").validate({
             invalidHandler: function(event, validator) {
@@ -142,36 +192,36 @@
         
     });
 
-    $('#cust').on('change', function() {
-        let customer = $(this).val();
-        let type = $('#articleType').val();
-        if(customer){
-            $.ajax({
-                url:"{{route('article.code.create')}}",
-                method:"GET",
-                data:{
-                    customer:customer,
-                    type:type
-                },
-                success:function(result){
-                    console.log(result);
-                    if (result.indexOf("|") >= 0){
-                        let kode = result.split("|");
-                        $('#kode').val(kode[0]);
-                        $('#kode2').val(kode[1]);
-                    }else{
-                        $('#kode').val(result);    
-                    }
-                },
-                error:function(e){
-                    console.log(e);
-                }
-            })
-        }else{
-            $('#kode').val('');
-            $('#kode2').val('');
-        }
-    })
+    // $('#cust').on('change', function() {
+    //     let customer = $(this).val();
+    //     let type = $('#articleType').val();
+    //     if(customer){
+    //         $.ajax({
+    //             url:"{{route('article.code.create')}}",
+    //             method:"GET",
+    //             data:{
+    //                 customer:customer,
+    //                 type:type
+    //             },
+    //             success:function(result){
+    //                 console.log(result);
+    //                 if (result.indexOf("|") >= 0){
+    //                     let kode = result.split("|");
+    //                     $('#kode').val(kode[0]);
+    //                     $('#kode2').val(kode[1]);
+    //                 }else{
+    //                     $('#kode').val(result);    
+    //                 }
+    //             },
+    //             error:function(e){
+    //                 console.log(e);
+    //             }
+    //         })
+    //     }else{
+    //         $('#kode').val('');
+    //         $('#kode2').val('');
+    //     }
+    // })
 
     $("#cmdSave").click(function(){       
         $('.disabled-el').removeAttr('disabled');
@@ -186,6 +236,7 @@
 
     $('#articleType').on('change', function() {
         let type = $(this).val();
+        console.log(type);
         let obj = "cust";
         $.ajax({
             url:"{{route('get.supplier')}}",

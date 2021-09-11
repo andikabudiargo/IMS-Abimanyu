@@ -19,10 +19,10 @@
         <form class="needs-validation" novalidate>
             <div class="form-row">
               <div class="form-group col-md-3"> 
-                <label for="searchBom">WO Number</label>
+                <label for="searchBom">Bom Number</label>
                 <input type="text" class="form-control text-uppercase" id="searchBom" name="searchBom" placeholder=""  />
               </div>
-              {{-- <div class="form-group col-md-5">
+              <div class="form-group col-md-5">
                 <label class="form-label" for="articleCode">Article*</label>
                 <select class="select2 form-control" id="articleCode" name="articleCode" required>
                     <option label=""></option>
@@ -30,13 +30,13 @@
                         <option value="{{ $val->article_code }}" >{{ $val->article_alternative_code }} - {{ $val->article_desc }}</option>
                     @endforeach
                 </select>
-              </div> --}}
+              </div>
             </div>
             <div class="form-row">
                 <div class="col-12"> 
                     <button type="button" class="btn btn-primary" id ="btnSearch" name="btnSearch">Search</button>
                     @can('bom-create')
-                    <a href="{{ route('workingOrder.create') }}" class="btn btn-info"><i class="fa fa-plus"></i> Create</a>
+                    <a href="{{ route('bom.create') }}" class="btn btn-info"><i class="fa fa-plus"></i> Create</a>
                     @endcan
                 </div>
             </div>

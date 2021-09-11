@@ -36,25 +36,24 @@
         <table class="table-bordered" style="width: 98%;table-layout: fixed;">
             <tbody>
                 <tr>
-                    <td class="isian-satu" style="width: 20%">
-                        <select class="dynamicSelect sku-select-system" id="salesOrder" name="salesOrder[]" data-dependent="salesOrder">
-                        </select>
-                    </td>
-                    <td class="" style="width: 25%">
+                    <td class="isian-satu" style="width: 25%">
                         <select class="dynamicSelect sku-select-system" id="article_id" name="article_id[]" data-dependent="article_id">
                         </select>
                     </td>
-                    <td class="isian disabled" style="width: 5%">
-                        <input type="text" class="form-control-plaintext text-right" id = "qtyStock" name="qtyStock[]" disabled>
-                    </td>
-                    <td class="isian disabled" style="width: 5%">
-                        <input type="text" class="form-control-plaintext numeral-mask text-right" id = "qtyOrder" name="qtyOrder[]" disabled />
-                    </td>
                     <td class="isian" style="width: 5%">
-                        <input type="text" class="form-control-plaintext numeral-mask text-right" id = "qtyProd" name="qtyProd[]" maxlength="9" />
+                        <input type="text" class="form-control-plaintext numeral-mask text-right" id = "qtyBom" name="qtyBom[]" maxlength="6" />
+                    </td>
+                    <td class="isian disabled" style="width: 5%">
+                        <span class="" id = "uom" name="uom[]"></span>
+                    </td>
+                    <td class="isian disabled" style="width: 10%">
+                        <input type="text" class="form-control-plaintext numeral-mask text-right" id = "price" name="price[]" disabled>
+                    </td>
+                    <td class="isian disabled" style="width: 10%">
+                        <span class="" id = "type" name="type[]"></span>
                     </td>
                     <td class="isian text-center" style="width: 5%">
-                        <a onmouseover="this.style.cursor='pointer'" onclick="$(this).parents('.tanda-baris').remove();hitungGrandTotal()">
+                        <a onmouseover="this.style.cursor='pointer'" onclick="$(this).parents('.tanda-baris').remove();">
                             <i data-feather="trash-2" class="remove_button feather-24">
                             </i>
                         </a>

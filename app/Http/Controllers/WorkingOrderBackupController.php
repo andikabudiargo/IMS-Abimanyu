@@ -33,7 +33,7 @@ class WorkingOrderController extends Controller
 
         $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'AUTHORIZED','4'=>'RECEIVED','5'=>'CANCELED','6'=>"CLOSE"];
             
-        return view("workingOrder.index",$data);
+        return view("purchaseOrder.index",$data);
     }
 
     public function getLastCode($key)
@@ -60,9 +60,17 @@ class WorkingOrderController extends Controller
     {
         $data['title'] = "Create Working Order";
         $data['subtitle'] = "Create Working Order";
-       
-        return view("workingOrder.create",$data);
+        
+        $data['supps'] = DB::table('third_party')
+        ->where ('third_party_type','=','supp')
+        ->orderBy('nama')
+        ->get();
 
+        $data['shift'] = ['PAGI','SIANG','SORE'];
+        $data['group'] = ['A','B','C'];
+        $data['line'] = ['Spray Booth','B','C'];
+
+        return view("workingOrder.create",$data);
     }
 
     public function articleCodeCreate(Request $request){
@@ -528,44 +536,6 @@ class WorkingOrderController extends Controller
             return '';
         })
         ->rawColumns(['action'])
-        ->make(true);
-    }
-
-    public function listDetail(Request $request)
-    {
-        $articles = json_decode($request -> articles);
-
-        $dataSet = [];
-        $randomCode = rand();
-        foreach ($articles as $val) {
-            $dataSet[] = [
-                'code' => $randomCode,
-                'article_code' => $val->article_code,
-                'qty' => $val->qty,
-            ];
-        }
-
-        DB::table('wo_detail_temp')->insert($dataSet);
-
-        $data=DB::select("SELECT article_alternative_code,article_desc,article.uom,qty,qty_proses,qty_total ,article.article_type,(select name from article_types where code = article.article_type) as kelompok from (
-            select article_code,sum(oki.qty) as qty,sum(mari.qty) as qty_proses,sum(oki.qty*mari.qty) as qty_total from (
-            select * from bom_det where bom_code in (
-            select bom_code from bom_hdr 
-            left join wo_detail_temp on bom_hdr.article_code = wo_detail_temp.article_code
-            where bom_hdr.article_code in (select article_code from wo_detail_temp))) oki
-            left join(
-            select bom_code,qty from bom_hdr 
-            left join wo_detail_temp on bom_hdr.article_code = wo_detail_temp.article_code
-            where bom_hdr.article_code in (select article_code from wo_detail_temp)) mari
-            on oki.bom_code= mari.bom_code
-            group by article_code) so
-            left join article on article.article_code = so.article_code");
-
-        DB::table('wo_detail_temp')
-        ->where('code',$randomCode)
-        ->delete();
-                        
-        return Datatables::of($data)
         ->make(true);
     }
 

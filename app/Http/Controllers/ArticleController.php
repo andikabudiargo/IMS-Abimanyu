@@ -68,11 +68,11 @@ class ArticleController extends Controller
         return view("articles.create",$data);
     }
 
-    public function articleCodeCreate(Request $request){
-        $customer = $request->customer;
-        $leadingCode = $request->type;
+    public function articleCodeCreate($custCode,$leadCode){
+        $customer = $custCode;
+        $leadingCode = $leadCode;
     
-        if ($leadingCode != "CM" ){
+        if ($leadingCode == "FG" || $leadingCode == "RM"){
             $lastCode = DB::table('article')
             ->where('third_party','=',$customer)
             ->orderBy('article_alternative_code','DESC')->first();
@@ -85,12 +85,12 @@ class ArticleController extends Controller
 
             $artilceCode = DB::table('third_party')
             ->where('kode',$customer)
-            ->select(DB::raw("CONCAT('$leadingCode',inisial,'$newCode','|RM',inisial,'$newCode') AS new_code"))->value('new_code');
+            ->select(DB::raw("CONCAT('FG',inisial,'$newCode','|RM',inisial,'$newCode') AS new_code"))->value('new_code');
 
         }else{
-
             $lastCode = DB::table('article')
-            ->where('article_alternative_code','like','CM%')
+            ->where('article_alternative_code','not like','FG%')
+            ->orWhere('article_alternative_code','not like','RM%')
             ->orderBy('article_alternative_code','DESC')->first();
 
             if (!$lastCode){
@@ -99,11 +99,10 @@ class ArticleController extends Controller
                 $newCode = str_pad(substr($lastCode->article_alternative_code,8)+1, 8, "0", STR_PAD_LEFT);
             }
 
-            $artilceCode = 'CM'.$newCode;
+            $artilceCode = $leadingCode.$newCode;
         }
         
-
-        return  Response()->json($artilceCode);
+        return  $artilceCode;
     
     }
 
@@ -123,8 +122,8 @@ class ArticleController extends Controller
     public function store(Request $request)
     {
         $username =  Auth::user()->username;
-        $kode = $request->input('kode');
-        $kode2 = $request->input('kode2');
+        // $kode = $request->input('kode');
+        // $kode2 = $request->input('kode2');
         $type = $request->input('articleType');
         $cust = $request->input('cust');
         $nama = $request->input('nama');
@@ -135,12 +134,12 @@ class ArticleController extends Controller
         $note = $request->input('note');
         $status = '1';
         $pesan = '';
-        $type =='FG' ? $type2 = 'RM': $type2 = 'FG';
+        // $type =='FG' ? $type2 = 'RM': $type2 = 'FG';
         
         $messages = [
             'required' => 'The field is required.',
             'unique' => 'The code has already been taken',
-            'iunique' => "The code $kode has already been taken",
+            // 'iunique' => "The code $kode has already been taken",
         ];
         
         Validator::extend('iunique', function ($attribute, $value, $parameters, $validator) {
@@ -150,42 +149,26 @@ class ArticleController extends Controller
         });
 
         $rule = [
-            'kode'=>'required|iunique:article,article_alternative_code',
+            // 'kode'=>'required|iunique:article,article_alternative_code',
             'nama'=>'required'
         ];
 
         $this->validate($request,$rule,$messages);
 
-        
-        
+        if ($type == 'FG' || $type == 'RM'){
+            $articleCode = $this->articleCodeCreate($cust,$type);
+        }else{
+            $articleCode = $this->articleCodeCreate($cust,$type);
+        }
 
+        $articles = explode("|",$articleCode);
         
         DB::beginTransaction();
         try {
-                
-                DB::table('article')->insert([
-                    'article_code' => $this->getArticleCode(),
-                    'article_alternative_code' => $kode,
-                    'article_desc' => $nama,
-                    'group_of_material' => $group,
-                    'third_party' => $cust,
-                    'quality' => $quality,
-                    'note' => $note,
-                    'uom' => $uom,
-                    'costprice' => $price,
-                    'status' => $status,
-                    'article_type' => $type,
-                    'created_by' => Auth::user()->username,
-                    'updated_by' => Auth::user()->username,
-                    'created_at' => date('Y-m-d H:i:s'),
-                    'updated_at' => date('Y-m-d H:i:s')
-                ]); 
-
-
-                if ($type != 'CM' ){
+                foreach($articles as $val){
                     DB::table('article')->insert([
                         'article_code' => $this->getArticleCode(),
-                        'article_alternative_code' => $kode2,
+                        'article_alternative_code' => $val,
                         'article_desc' => $nama,
                         'group_of_material' => $group,
                         'third_party' => $cust,
@@ -194,26 +177,47 @@ class ArticleController extends Controller
                         'uom' => $uom,
                         'costprice' => $price,
                         'status' => $status,
-                        'article_type' => $type2,
+                        'article_type' => $type,
                         'created_by' => Auth::user()->username,
                         'updated_by' => Auth::user()->username,
                         'created_at' => date('Y-m-d H:i:s'),
                         'updated_at' => date('Y-m-d H:i:s')
-                    ]);
+                    ]); 
                 }
+                
+
+                // if ($type != 'CM' ){
+                //     DB::table('article')->insert([
+                //         'article_code' => $this->getArticleCode(),
+                //         'article_alternative_code' => $kode2,
+                //         'article_desc' => $nama,
+                //         'group_of_material' => $group,
+                //         'third_party' => $cust,
+                //         'quality' => $quality,
+                //         'note' => $note,
+                //         'uom' => $uom,
+                //         'costprice' => $price,
+                //         'status' => $status,
+                //         'article_type' => $type2,
+                //         'created_by' => Auth::user()->username,
+                //         'updated_by' => Auth::user()->username,
+                //         'created_at' => date('Y-m-d H:i:s'),
+                //         'updated_at' => date('Y-m-d H:i:s')
+                //     ]);
+                // }
 
                 DB::commit();
                 $alert  ="alert-success";
-                $message  = "$kode is successfully saved";
+                $message  = "$articleCode is successfully saved";
                 \LogActivity::addToLog('Article save ',"username: $username Status $message");
-                return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);  
+                return redirect()->back()->with(['alert'=>$alert,'message'=> $message,'articleCode'=>$articleCode]);  
 
         } catch (Exception $e) {
             DB::rollBack();
             $alert  ="alert-warning";
-            $message  = "$kode is failed to save";
+            $message  = "$articleCode is failed to save";
             \LogActivity::addToLog('Article save ',"username: $username Status $message");
-            return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);   
+            return redirect()->back()->with(['alert'=>$alert,'message'=> $message,'articleCode'=>$articleCode]);   
         }
         
     }
@@ -362,8 +366,8 @@ class ArticleController extends Controller
         // $type == 'CM'? $type='supp' :  $type='cust';
         
         $data=DB::table('article')
-        ->join('group_materials', 'group_materials.code', '=', 'article.group_of_material')
-        ->join('third_party', 'third_party.kode', '=', 'article.third_party')
+        ->leftJoin('group_materials', 'group_materials.code', '=', 'article.group_of_material')
+        ->leftJoin('third_party', 'third_party.kode', '=', 'article.third_party')
         ->where('article_alternative_code','ilike','%'.$code.'%')
         ->where('article_desc','ilike','%'.$name.'%')  // string to lower
         ->where('group_of_material','ilike','%'.$group.'%')
@@ -411,9 +415,8 @@ class ArticleController extends Controller
     {
         $code = $request->type;
         $dependent=$request->dependent;
+        $code == 'FG' || $code == 'RM' ? $type = 'cust' : $type= 'supp';
         
-        $code == 'CM' ? $type = 'supp' : $type= 'cust';
-
         $data= DB::table('third_party') 
         ->where('third_party_type',$type)
         ->orderBy('nama')
