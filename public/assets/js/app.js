@@ -163,38 +163,42 @@
         goLogout();
     });
 
-    $(".angka").keypress(function (e) {
+    $(".angka").on("input", function(evt) {
         //angka bulat alias integer, tidak boleh ada karakter lain
-        if (e.which != 8 && e.which != 0 &&  e.which != 32 && (e.which < 48 || e.which > 57)) {
-            return false;
+        let self = $(this);
+        self.val(self.val().replace(/\D/g, ""));
+        if ((evt.which < 48 || evt.which > 57)){
+            evt.preventDefault();
         }
     });
 
     function activate_angka(){
-        $(".angka").keypress(function (e) {
+        $(".angka").on("input", function(evt) {
             //angka bulat alias integer, tidak boleh ada karakter lain
-            if (e.which != 8 && e.which != 0 &&  e.which != 32 && (e.which < 48 || e.which > 57)) {
-                return false;
+            let self = $(this);
+            self.val(self.val().replace(/\D/g, ""));
+            if ((evt.which < 48 || evt.which > 57)){
+                evt.preventDefault();
             }
         });
     }
 
-    function activate_angka_with_dot_decimal(){
-        $('.angka-with-dot-decimal').keypress(function(event) {
+    function angka_dua_decimal(){
+        $(".angka-dua-decimal").on("keypress", function(event) {
             //bisa pake tanda . dan hanya bisa inpur dua digit desimal
-        
-            var $this = $(this);
-            if ((event.which != 46 || $this.val().indexOf('.') != -1) &&
+            var self = $(this);
+            if ((event.which != 46 || self.val().indexOf('.') != -1) &&
                 ((event.which < 48 || event.which > 57) &&
                 (event.which != 0 && event.which != 8))) {
                     event.preventDefault();
             }
         
             var text = $(this).val();
+            console.log(event.which);
             if ((event.which == 46) && (text.indexOf('.') == -1)) {
                 setTimeout(function() {
-                    if ($this.val().substring($this.val().indexOf('.')).length > 3) {
-                        $this.val($this.val().substring(0, $this.val().indexOf('.') + 3));
+                    if (self.val().substring(self.val().indexOf('.')).length > 3) {
+                        self.val(self.val().substring(0, self.val().indexOf('.') + 3));
                     }
                 }, 1);
             }
@@ -206,23 +210,23 @@
                     event.preventDefault();
             }
         });
-    }
+    }    
     
-    $('.angka-with-dot-decimal').keypress(function(event) {
+    $(".angka-dua-decimal").on("keypress", function(event) {
         //bisa pake tanda . dan hanya bisa inpur dua digit desimal
-    
-        var $this = $(this);
-        if ((event.which != 46 || $this.val().indexOf('.') != -1) &&
+        var self = $(this);
+        if ((event.which != 46 || self.val().indexOf('.') != -1) &&
             ((event.which < 48 || event.which > 57) &&
             (event.which != 0 && event.which != 8))) {
                 event.preventDefault();
         }
     
         var text = $(this).val();
+        console.log(event.which);
         if ((event.which == 46) && (text.indexOf('.') == -1)) {
             setTimeout(function() {
-                if ($this.val().substring($this.val().indexOf('.')).length > 3) {
-                    $this.val($this.val().substring(0, $this.val().indexOf('.') + 3));
+                if (self.val().substring(self.val().indexOf('.')).length > 3) {
+                    self.val(self.val().substring(0, self.val().indexOf('.') + 3));
                 }
             }, 1);
         }
@@ -232,6 +236,26 @@
             (event.which != 0 && event.which != 8) &&
             ($(this)[0].selectionStart >= text.length - 2)) {
                 event.preventDefault();
+        }
+    });
+
+    $(".angka-decimal").on("keypress", function(event) {
+        //bisa pake tanda . dan hanya bisa inpur dua digit desimal
+        var self = $(this);
+        if ((event.which != 46 || self.val().indexOf('.') != -1) &&
+            ((event.which < 48 || event.which > 57) &&
+            (event.which != 0 && event.which != 8))) {
+                event.preventDefault();
+        }
+    
+        var text = $(this).val();
+        console.log(event.which);
+        if ((event.which == 46) && (text.indexOf('.') == -1)) {
+            setTimeout(function() {
+                if (self.val().substring(self.val().indexOf('.')).length > 3) {
+                    self.val(self.val().substring(0, self.val().indexOf('.') + 3));
+                }
+            }, 1);
         }
     });
 
@@ -394,3 +418,8 @@
         }
         return tanggal;
     }
+
+
+    $(".select2").on('change', function() {
+        $(this).valid();
+    });

@@ -15,32 +15,34 @@
                     <form id="frmAdd" name="frmAdd" action="{{ route('uom.store') }}" method="post" autocomplete="off">
                         @csrf
                         <div class="row">
-                            <div class="col-4">
+                            <div class="col-md-4">
                                 <div class="form-group">
-                                    <label for="kode">Kode</label>
+                                    <label for="kode">Code</label>
                                     <input type="text" id="kode" name="kode" class="form-control text-uppercase"  value="{{ old('kode') }}" required maxlength="4" autofocus />
                                 </div>
                             </div>
                         </div>
                         <div class="row">
-                            <div class="col-12">
+                            <div class="col-md-12">
                                 <div class="form-group">
-                                    <label for="nama">Nama</label>
+                                    <label for="nama">Name</label>
                                     <input type="text" id="nama" name="nama" class="form-control" value="{{ old('nama') }}"  required  maxlength="20"/>
                                 </div>
                             </div>
                         </div>
                         <div class="row">
-                            <div class="col-12">
-                                <div class="custom-control custom-checkbox">
-                                    <input type="checkbox" class="custom-control-input" id="weight" name="weight" {{ old('weight') == 't' ? 'checked' : '' }} />
-                                    <label class="custom-control-label" for="weight">Timbangan</label>
-                                </div>
+                            <div class="form-group col-md-12">
+                                <label class="form-label" for="uomType">Type</label>
+                                <select class="select2 form-control" id="uomType" name="uomType" required>
+                                    <option value="PIECE" {{ 'PIECE' == old("uom") ? "selected" : ""}} >Piece</option>
+                                    <option value="MASS" {{ 'MASS' == old("uom") ? "selected" : ""}} >Mass</option>
+                                    <option value="LENGTH" {{ 'LENGTH' == old("uom") ? "selected" : ""}}>Length</option>
+                                </select>
                             </div>
                         </div>
                         <br>
                         <div class="row">
-                            <div class="col-12">
+                            <div class="col-md-12">
                                 <button class="btn btn-outline-secondary" type="reset" id="cmdCancel" name="cmdCancel">Cancel</button>
                                 <button class="btn btn-success" type="button" id="cmdSave" name="cmdSave">Save</button>
                             </div>

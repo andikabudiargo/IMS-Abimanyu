@@ -3,7 +3,6 @@
 @section('content')
 @include('layouts.breadcrumb')
 @include('partials.alert')
-
 <section id="add-index">
     <div class="row">
         <div class="col-6">
@@ -12,38 +11,38 @@
                     <h4 class="card-title">yield('title')</h4>
                 </div> --}}
                 <div class="card-body">
-                    <form id="frmAdd" name="frmAdd" action="{{ route('uom.update',['id'=> $uom->id]) }}" method="post" autocomplete="off">
+                    <form id="frmAdd" name="frmAdd" action="{{ route('uomCon.store') }}" method="post" autocomplete="off">
                         @csrf
                         <div class="row">
-                            <div class="col-4">
-                                <div class="form-group">
-                                    <label for="kode">Kode</label>
-                                    <input type="text" id="kode" name="kode" class="form-control .disabled-el"  value="{{old('kode',$uom->code)}}" required disabled  />
-                                </div>
+                            <div class="form-group col-md-6">
+                                <label class="form-label" for="dept">Unit From *</label>
+                                <select class="select2 form-control dynamicSelect" id="unitFrom" name="unitFrom" data-dependent="unitTo" required>
+                                    <option label=""></option>
+                                    @foreach($uoms as $val)
+                                        <option value="{{$val->code}}|{{$val->uom_group}}" {{ $val->code == old("unitFrom") ? "selected" : ""}}>{{$val->code}} - {{$val->name}}</option>
+                                    @endforeach
+                                </select>
                             </div>
                         </div>
                         <div class="row">
-                            <div class="col-12">
-                                <div class="form-group">
-                                    <label for="nama">Nama</label>
-                                    <input type="text" id="nama" name="nama" class="form-control" value="{{old('nama',$uom->name)}}"  required  maxlength="20"  autofocus />
-                                </div>
+                            <div class="form-group col-md-6">
+                                <label class="form-label" for="dept">Unit To *</label>
+                                <select class="select2 form-control" id="unitTo" name="unitTo" required>                                
+                                </select>
                             </div>
                         </div>
                         <div class="row">
-                            <div class="col-12">
-                                <div class="custom-control custom-checkbox">
-                                    <input type="checkbox" class="custom-control-input" id="weight" name="weight" {{ old('epte',$uom->weight) == 't' ? 'checked' : '' }} />
-                                    <label class="custom-control-label" for="weight">Timbangan</label>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="unitFactor">Unit Factor</label>
+                                    <input type="text" id="unitFactor" name="unitFactor" class="form-control angka" value="{{ old('unitFactor') }}"  required  maxlength="20"/>
                                 </div>
                             </div>
                         </div>
                         <br>
                         <div class="row">
                             <div class="col-12">
-                                <a href="{{ route('uoms.index') }}" class="btn btn-outline-secondary">
-                                    Cancel
-                                </a>
+                                <button class="btn btn-outline-secondary" type="reset" id="cmdCancel" name="cmdCancel">Cancel</button>
                                 <button class="btn btn-success" type="button" id="cmdSave" name="cmdSave">Save</button>
                             </div>
                         </div>
@@ -55,11 +54,6 @@
 </section>
 @endsection
 @section('styles')
-<style>
-    textarea {
-        resize: none;
-    }
-</style>
 @endsection
 @section('scripts')
 <script type="text/javascript">

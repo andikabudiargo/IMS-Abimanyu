@@ -3,7 +3,6 @@
 @section('content')
 @include('layouts.breadcrumb')
 @include('partials.alert')
-
 <section id="depts-index">
     <div class="row">
       <div class="col-12">
@@ -17,21 +16,15 @@
                 <div class="form-row">
                     <div class="col-md-4"> 
                         <div class="form-group">
-                        <label for="basicInput">Kode</label>
+                        <label for="basicInput">Unit</label>
                         <input type="text" class="form-control text-uppercase" id="searchUomCode" name="searchUomCode" placeholder=""  />
                         </div>
-                    </div>
-                    <div class="col-md-4"> 
-                    <div class="form-group">
-                        <label for="basicInput">Nama</label>
-                        <input type="text" class="form-control text-uppercase" id="searchUom" name="searchUom" placeholder="" />
-                    </div>
                     </div>
                 </div>
                 <div class="form-row">
                     <div class="col-12"> 
                         <button type="button" class="btn btn-primary" id ="btnSearch" name="btnSearch">Search</button>
-                        @can('uom-create')
+                        @can('uomCon-create')
                         <a href="{{ route('uomCon.create') }}" class="btn btn-info"><i class="fa fa-plus"></i> Create</a>
                         @endcan
                     </div>
@@ -43,32 +36,32 @@
     </div>
 </section>
 
-<section id="table-depts">
-    <div class="card">
-      <div class="card-header">
-        <h4 class="card-title"> @yield('title') List</h4>
-        <div class="heading-elements">
-            <ul class="list-inline mb-0">
-                <li><a data-action="collapse"><i data-feather="chevron-down"></i></a></li>
-                <li><a data-action="reload"><i data-feather="rotate-cw"></i></a></li>
-            </ul>
-        </div>
-      </div>
-      <div class="card-content collapse show">
-        <div class="card-body">
-          <div class="row">
-              <div class="col-sm-12">
-                <div class="card-datatable table-responsive pt-0">
-                  <table id="detailedTable" class="table">
-                    <thead class="thead-light">
-                    </thead>
-                  </table>
-                </div>
-              </div>
-          </div>  
-        </div>
+<section id="table-uomCon">
+  <div class="card">
+    <div class="card-header">
+      <h4 class="card-title"> @yield('title') List</h4>
+      <div class="heading-elements">
+          <ul class="list-inline mb-0">
+              <li><a data-action="collapse"><i data-feather="chevron-down"></i></a></li>
+              <li><a data-action="reload"><i data-feather="rotate-cw"></i></a></li>
+          </ul>
       </div>
     </div>
+    <div class="card-content collapse show">
+      <div class="card-body">
+        <div class="row">
+            <div class="col-sm-12">
+              <div class="card-datatable table-responsive pt-0">
+                <table id="detailedTable" class="table">
+                  <thead class="thead-light">
+                  </thead>
+                </table>
+              </div>
+            </div>
+        </div>  
+      </div>
+    </div>
+  </div>
 </section>
 
 @include('partials.delete-modal')

@@ -163,6 +163,7 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('articles',['as'=>'articles.index','uses'=>'ArticleController@index','middleware' => ['permission:article-index']]);
 	Route::get('articles/create',['as'=>'article.create','uses'=>'ArticleController@create','middleware' => ['permission:article-create']]);
 	Route::post('articles/store',['as'=>'article.store','uses'=>'ArticleController@store']);
+	Route::post('articles/image/store',['as'=>'article.image.store','uses'=>'ArticleController@storeImage']);
 	Route::get('articles/list',['as'=>'article.list','uses'=>'ArticleController@list']);
 	Route::get('articles/show',['as'=>'article.show','uses'=>'ArticleController@show']);
 	Route::get('articles/edit',['as'=>'article.edit','uses'=>'ArticleController@edit','middleware' => ['permission:article-edit']]);

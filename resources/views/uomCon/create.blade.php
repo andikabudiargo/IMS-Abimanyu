@@ -3,7 +3,6 @@
 @section('content')
 @include('layouts.breadcrumb')
 @include('partials.alert')
-
 <section id="add-index">
     <div class="row">
         <div class="col-6">
@@ -35,8 +34,8 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="form-group">
-                                    <label for="unitFactor">Unit Factor</label>
-                                    <input type="text" id="unitFactor" name="unitFactor" class="form-control angka" value="{{ old('unitFactor') }}"  required  maxlength="20"/>
+                                    <label for="unitFactor">Unit Factor *</label>
+                                    <input type="text" id="unitFactor" name="unitFactor" class="form-control angka-decimal" value="{{ old('unitFactor') }}"  required  maxlength="20" required/>
                                 </div>
                             </div>
                         </div>
@@ -55,11 +54,6 @@
 </section>
 @endsection
 @section('styles')
-<style>
-    textarea {
-        resize: none;
-    }
-</style>
 @endsection
 @section('scripts')
 <script type="text/javascript">
@@ -85,15 +79,12 @@
     });
 
     $("#cmdSave").click(function(){       
-        $('.disabled-el').removeAttr('disabled');
         $("#frmAdd").submit(); // Submit the form
     });
 
     $("#cmdCancel").click(function() {
-        $("#frmAdd").validate().resetForm();
-        $('#kode').focus();
+        reloadPage();
     });
-
 
     $(document).on('change', '.dynamicSelect', function() {
         if (change_active === "yes"){
@@ -133,6 +124,8 @@
             .then(response => response.json())
             .then(data => hasil.val(data.hasil));
     })
+    
+   
 
     $.ajaxSetup({
         headers: {

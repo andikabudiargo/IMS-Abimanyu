@@ -30,56 +30,54 @@ class UomConController extends Controller
     public function store(Request $request)
     {
         $username =  Auth::user()->username;
-        $kode = strtoupper($request->input('kode'));
-        $nama = $request->input('nama');
-        $weight = $request->input('weight') ? true : false;
+        $unitFrom = $request->input('unitFrom');
+        $unitTo = $request->input('unitTo');
+        $unitFactor = $request->input('unitFactor');
         $pesan = '';
         
         $messages = [
             'required' => 'The field is required.',
             'unique' => 'The code has already been taken',
-            'iunique' => "The code $kode has already been taken",
         ];
-        
-        Validator::extend('iunique', function ($attribute, $value, $parameters, $validator) {
-            $query = DB::table($parameters[0]);
-            $column = $query->getGrammar()->wrap($parameters[1]);
-            return !$query->whereRaw("lower({$column}) = lower(?)", [$value])->count();
-        });
-
+    
         $rule = [
-            'kode'=>'required|iunique:uom,code',
-            'nama'=>'required'
+            'unitFrom'=>'required',
+            'unitTo'=>'required',
+            'unitFactor'=>'required'
         ];
 
         $this->validate($request,$rule,$messages);
 
         DB::beginTransaction();
         try {
-                DB::table('uom')->insert([
-                    'code'=>$kode,
-                    'name'=>$nama,
-                    'weight'=>$weight,
-                    'created_by' => Auth::user()->username,
-                    'updated_by' => Auth::user()->username,
-                    'created_at' => date('Y-m-d H:i:s'),
-                    'updated_at' => date('Y-m-d H:i:s')
-                ]);
+                DB::table('uom_con')
+                ->updateOrInsert(
+                    [
+                        'unit_from' => $unitFrom,
+                        'unit_to' => $unitTo
+                    ],
+                    [
+                        'unit_factor' => $unitFactor,
+                        'created_by' => Auth::user()->username,
+                        'updated_by' => Auth::user()->username,
+                        'created_at' => date('Y-m-d H:i:s'),
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]
+                );
 
                 DB::commit();
                 $alert  ="alert-success";
-                $message  = "$kode is successfully saved";
-                \LogActivity::addToLog('Uom save ',"username: $username Status $message");
+                $message  = "Data is successfully saved";
+                \LogActivity::addToLog('Uom save ',"username: $username Unit From : $unitFrom Unit To : $unitTo");
                 return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);  
 
         } catch (Exception $e) {
             DB::rollBack();
             $alert  ="alert-warning";
-            $message  = "$kode is failed to save";
-            \LogActivity::addToLog('Dept save ',"username: $username Status $message");
+            $message  = "Data is failed to save";
+            \LogActivity::addToLog('Dept save ',"username: $username Unit From : $unitFrom Unit To : $unitTo");
             return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);   
         }
-        
     }
 
     public function edit(Request $request)

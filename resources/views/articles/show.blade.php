@@ -8,7 +8,7 @@
         <div class="col-md-6">
             <div class="card">
                 <div class="card-body">
-                    <form id="frmAdd" name="frmAdd" action="{{ route('article.update',['id'=> $article->id,'artCode' =>$article->article_code])}}" method="post" autocomplete="off">
+                    <form id="frmAdd" name="frmAdd">
                         @csrf
                         <div class="row">
                             <div class="col-4">
@@ -30,7 +30,7 @@
                             </div>              
                             <div class="form-group col-md-6">
                                 <label class="form-label" for="group">Group of material</label>
-                                <select class="select2 form-control" id="group" name="group" required>
+                                <select class="select2 form-control" id="group" name="group" disabled>
                                     <option label=""></option>
                                     @foreach($groups as $val)
                                         <option value="{{$val->code}}" {{ $val->code == old("group",$article->group) ? "selected" : ""}}>{{$val->code}} - {{$val->name}}</option>
@@ -52,18 +52,18 @@
                             <div class="col-12">
                                 <div class="form-group">
                                 <label for="nama">Description *</label>
-                                    <input type="text" id="nama" name="nama" class="form-control" value="{{ old('nama',$article->desc) }}"  required  maxlength="100"/>
+                                    <input type="text" id="nama" name="nama" class="form-control" value="{{ old('nama',$article->desc) }}" maxlength="100" disabled />
                                 </div>
                             </div>
                         </div>                      
                         <div class="row">
                             <div class="form-group col-md-6">
                                 <label for="price">Price</label>
-                                <input type="text" id="price" name="price" class="form-control numeral-mask text-right" value="{{ old('price',$article->costprice) }}"  maxlength="10"/>
+                                <input type="text" id="price" name="price" class="form-control numeral-mask text-right" value="{{ old('price',$article->costprice) }}"  maxlength="10" disabled />
                             </div>
                             <div class="form-group col-md-6">
                                 <label class="form-label" for="uom">Smallest unit *</label>
-                                <select class="select2 form-control" id="uom" name="uom" required>
+                                <select class="select2 form-control" id="uom" name="uom" disabled>
                                     <option label=""></option>
                                     @foreach($uoms as $val)
                                         <option value="{{$val->code}}" {{ $val->code == old("uom",$article->uom) ? "selected" : ""}} >{{$val->code}} - {{$val->name}}</option>
@@ -74,40 +74,21 @@
                         <div class="row">
                             <div class="form-group col-md-12">
                                 <label class="form-label" for="note">Notes</label>
-                                <textarea type="text" id="note" name="note" class="form-control" rows="3" maxlength="100">{{ old('note',$article->note) }}</textarea>
+                                <textarea type="text" id="note" name="note" class="form-control" rows="3" maxlength="100" disabled>{{ old('note',$article->note) }}</textarea>
                             </div>
-                        </div>
-                        <div id="fileUpload" class="d-none">
                         </div>
                         <div class="form-group col-md-4 align-self-end" >
                             <div class="custom-control custom-checkbox">
-                                <input type="checkbox" class="custom-control-input" id="status" name="status"  {{ old('status',$article->status) == '0' ? 'checked' : '' }} />
+                                <input type="checkbox" class="custom-control-input" id="status" name="status"  {{ old('status',$article->status) == '0' ? 'checked' : '' }} disabled />
                                 <label class="custom-control-label" for="status">Aktif</label>
                             </div>
                         </div>                        
                     </form>
                     <div class="row">
-                        <div class="col-md-12">
-                            <div class="card">
-                                <div class="card-header">
-                                    <h4 class="card-title">Product image</h4>
-                                </div>
-                                <form class="dropzone dropzone-area" id="dropzone" action="{{ route('article.image.store') }}" 
-                                        method="post" 
-                                        autocomplete="off" 
-                                        enctype="multipart/form-data">
-                                    @csrf
-                                    <div class="dz-message">Drop files here or click to upload.</div>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="row">
                         <div class="col-12">
                             <a href="{{ route('articles.index') }}" class="btn btn-outline-secondary">
-                                Cancel
+                                Back
                             </a>
-                            <button class="btn btn-success" type="button" id="cmdSave" name="cmdSave">Save</button>
                         </div>
                     </div>
                 </div>
@@ -129,12 +110,6 @@
                                 {{-- <div class="item-name">
                                     {{ $item->name }}
                                 </div> --}}
-                            </div>
-                            <div class="text-center">
-                                <button type="button" class="btn btn-light btn-wishlist btn-block removeItem">
-                                    <i data-feather="x"></i>
-                                    <span>Remove</span>
-                                </button>
                             </div>
                         </div>
                     @endforeach
@@ -200,7 +175,6 @@
 @section('scripts')
 <script src="{{asset('app-assets/vendors/js/extensions/dropzone.min.js')}}"></script>
 <script type="text/javascript">
-    let hapusCount=1;
     $(document).ready(function(){           
         $("#frmAdd").validate({
             invalidHandler: function(event, validator) {
@@ -222,49 +196,6 @@
         mask_thousand();
     });
 
-    $(".select2").on('change', function() {
-        $(this).valid();
-    });
-    
-    // Dropzone.autoDiscover = false;
-    Dropzone.options.dropzone = {
-        maxFilesize: 3, // MB
-        acceptedFiles: ".jpeg,.jpg,.png,.gif",
-        addRemoveLinks: true,
-        dictRemoveFile: 'Delete',
-        parallelUploads:10,
-        uploadMultiple:true,
-        timeout: 5000,
-        autoProcessQueue: false,
-        init: function () {
-            let myDropzone = this;
-            $("#cmdSave").click(function (e) {
-                e.preventDefault();
-                // let jumFile = myDropzone.getAcceptedFiles().length;
-                let jumFile = myDropzone.getQueuedFiles().length
-                if (jumFile > 0){
-                    myDropzone.processQueue();
-                }else{
-                    $('.disabled-el').removeAttr('disabled');
-                    $("#frmAdd").submit();
-                }
-            });
-        },
-        success: function( file, response ){
-            // obj = JSON.parse(response);
-            // console.log(response.message); // <---- here is your filename
-
-            jQuery.each( response.files, function( i, val ) {
-                if(!$('#files_'+i).length){
-                    $('#fileUpload').append('<input type="text" id="files_'+ i+'" name="files[]" value="'+ val +'">');
-                }
-            });
-            
-            $('.disabled-el').removeAttr('disabled');
-            $("#frmAdd").submit();
-        }
-    };
-
     $('.img-list').on('click', function(e) {
         $('#imgViewer').html('').append( $(e.currentTarget).clone())
         $('#viewImg').modal('show')
@@ -273,21 +204,6 @@
     $('.img-list').each(function(i,e) {
         $(e).wrap('<div class="img-wrapper"></div>')
     })
-
-    let removeItem = $('.removeItem');
-    removeItem.on('click', function () {
-        $(this).closest('.ecommerce-card').remove();
-        let namaFile = $(this).closest('.ecommerce-card').data('namafile');
-        
-        toastr['error']('', 'Removed Item 🗑️', {
-            closeButton: true,
-            tapToDismiss: false
-        });
-
-        $('#fileUpload').append('<input type="text" id="fileDihapus_'+ hapusCount+'" name="fileDihapus[]" value="'+ namaFile +'">');
-
-        hapusCount++;
-    });
 
 </script>
 @endsection

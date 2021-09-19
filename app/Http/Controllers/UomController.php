@@ -32,7 +32,7 @@ class UomController extends Controller
         $username =  Auth::user()->username;
         $kode = strtoupper($request->input('kode'));
         $nama = $request->input('nama');
-        $weight = $request->input('weight') ? true : false;
+        $uomType = $request -> input('uomType');
         $pesan = '';
         
         $messages = [
@@ -48,8 +48,9 @@ class UomController extends Controller
         });
 
         $rule = [
-            'kode'=>'required|iunique:uom,code',
-            'nama'=>'required'
+            'kode' => 'required|iunique:uom,code',
+            'nama' => 'required',
+            'uomType' => 'required'
         ];
 
         $this->validate($request,$rule,$messages);
@@ -59,7 +60,7 @@ class UomController extends Controller
                 DB::table('uom')->insert([
                     'code'=>$kode,
                     'name'=>$nama,
-                    'weight'=>$weight,
+                    'uom_group' => $uomType,
                     'created_by' => Auth::user()->username,
                     'updated_by' => Auth::user()->username,
                     'created_at' => date('Y-m-d H:i:s'),
@@ -103,7 +104,7 @@ class UomController extends Controller
         $id = $request->id;
         $kode = strtoupper($request->input('kode'));
         $nama = $request->input('nama');
-        $weight = $request->input('weight') ? true : false;
+        $uomType = $request -> input('uomType');
         $status = '1';
         $pesan = '';
         
@@ -128,7 +129,7 @@ class UomController extends Controller
                 ->update(
                     [
                         'name'=>$nama,
-                        'weight'=>$weight,
+                        'uom_group' => $uomType,
                         'updated_by' => Auth::user()->username,
                         'updated_at' => date('Y-m-d H:i:s')
                     ]
@@ -186,16 +187,16 @@ class UomController extends Controller
         $code = strtolower($request->code);
         $name = strtolower($request->name);
 
-        $data=DB::table('uom')
-        ->where('code','ilike','%'.$code.'%')
-        ->where('name','ilike','%'.$name.'%')  // string to lower
-        ->orderBy('name')->get();
+        $data=DB::table('uom');
+        $code ? $data->where('code','ilike','%'.$code.'%') : "";
+        $name ? $data->where('name','ilike','%'.$name.'%') : "";  // string to lower
+        $data->orderBy('name')->get();
 
         return Datatables::of($data)
         ->addColumn('action', function ($data) {
             $buttons = '<div class="d-inline-flex">
                             <a class="pr-1 dropdown-toggle hide-arrow text-primary" data-toggle="dropdown">
-                                <i data-feather="more-vertical"></i>
+                                <i data-feather="menu"></i>
                             </a>';
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
             if (Auth::user()->can('department-edit')) {
@@ -223,16 +224,7 @@ class UomController extends Controller
         ->addColumn('group_id', function () {
             return '';
         })
-
-        ->addColumn('weight', function ($data) {
-            if ($data->weight == true){
-                $weightStatus = '<span class="badge badge-pill badge-light-primary">Yes</span>';
-            }else{
-                $weightStatus = '<span class="badge badge-pill badge-light-danger">No</span>';
-            }
-            return $weightStatus;
-        })
-        ->rawColumns(['action','weight'])
+        ->rawColumns(['action'])
         ->make(true);
     }
 }

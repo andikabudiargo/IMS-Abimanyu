@@ -53,16 +53,12 @@ class Handler extends ExceptionHandler
 
         if($exception instanceof NotFoundHttpException){
           return response()->view('errors.404_2', [], 404);
-        }
-
-        if ( ! config('app.debug') && ! $this->isHttpException($exception)) {
+        }elseif( ! config('app.debug') && ! $this->isHttpException($exception)) {
             return response()->view('errors.503', [], 500);
+        }elseif($exception instanceof \Illuminate\Session\TokenMismatchException) {
+            return redirect(route('login'));
         }
-
-        // if ($exception instanceof TokenMismatchException) {
-        //     return redirect(route('login'));
-        // }
-
+        
         return parent::render($request, $exception);
 
     }

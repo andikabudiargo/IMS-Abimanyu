@@ -31,11 +31,13 @@
                             </div>
                         </div>
                         <div class="row">
-                            <div class="col-12">
-                                <div class="custom-control custom-checkbox">
-                                    <input type="checkbox" class="custom-control-input" id="weight" name="weight" {{ old('epte',$uom->weight) == 't' ? 'checked' : '' }} />
-                                    <label class="custom-control-label" for="weight">Timbangan</label>
-                                </div>
+                            <div class="form-group col-md-12">
+                                <label class="form-label" for="uomType">Type</label>
+                                <select class="select2 form-control" id="uomType" name="uomType" required>
+                                    <option value="PIECE" {{ 'PIECE' == old("uom",$uom->uom_group) ? "selected" : ""}} >Piece</option>
+                                    <option value="MASS" {{ 'MASS' == old("uom",$uom->uom_group) ? "selected" : ""}} >Mass</option>
+                                    <option value="LENGTH" {{ 'LENGTH' == old("uom",$uom->uom_group) ? "selected" : ""}}>Length</option>
+                                </select>
                             </div>
                         </div>
                         <br>

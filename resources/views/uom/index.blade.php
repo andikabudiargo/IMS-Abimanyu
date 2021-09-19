@@ -17,13 +17,13 @@
                 <div class="form-row">
                     <div class="col-md-4"> 
                         <div class="form-group">
-                        <label for="basicInput">Kode</label>
+                        <label for="basicInput">Code</label>
                         <input type="text" class="form-control text-uppercase" id="searchUomCode" name="searchUomCode" placeholder=""  />
                         </div>
                     </div>
                     <div class="col-md-4"> 
                     <div class="form-group">
-                        <label for="basicInput">Nama</label>
+                        <label for="basicInput">Name</label>
                         <input type="text" class="form-control text-uppercase" id="searchUom" name="searchUom" placeholder="" />
                     </div>
                     </div>
@@ -253,12 +253,11 @@
             { data: 'action', name: 'action',title:'action', orderable: false, searchable: false },
             { data: 'code', name: 'code',title:'Kode' },
             { data: 'name', name: 'name',title:'Nama' },
-            { data: 'weight', name: 'weight',title:'Timbangan' }
+            { data: 'uom_group', name: 'uom_group',title:'Type' }
         ],
       });
     });
     //$('div.head-label').html('<h6 class="mb-0">Data Users</h6>');
-    
   }
 
   $.ajaxSetup({

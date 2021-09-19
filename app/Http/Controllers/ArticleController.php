@@ -69,6 +69,13 @@ class ArticleController extends Controller
     }
 
     public function articleCodeCreate($custCode,$leadCode){
+        /*
+        pembuatan article_alternative_code sesuai dengan aturan, kalo FG dan RM harus ada kode cabang nya
+        apabila type nya FG atau RM makan akan terbentuk sekaligus 2 article
+        eg. FGXXX0001
+        XXX= Initial dari customer
+        */
+
         $customer = $custCode;
         $leadingCode = $leadCode;
     
@@ -119,27 +126,40 @@ class ArticleController extends Controller
         return $newCode;
     }
 
+    public function storeImage(Request $request){
+        $image = $request->file('file');    
+        $files = [];
+        foreach($image as $val){
+            // Simpan file si folder storage/app/public/article-image dengan nama file yang sudah di generater= otomatis
+            // jangan lupa untuk membuat symbolic link php artisan storage:link
+            $image = $val->store('article-image');
+            $files[]=$image;
+        }
+
+        return response()->json(array('files' => $files));
+    }
+
     public function store(Request $request)
     {
+        // Dump, Die, Debug Fungsinya untuk nge-debug hasil dari submit
+        // ddd($request);
+        
         $username =  Auth::user()->username;
-        // $kode = $request->input('kode');
-        // $kode2 = $request->input('kode2');
         $type = $request->input('articleType');
         $cust = $request->input('cust');
         $nama = $request->input('nama');
-        $quality = $request->input('quality');
         $group = $request->input('group');
         $uom = $request->input('uom');
         $price = $request->input('price');
+        $price = str_replace(",","",$price);
         $note = $request->input('note');
+        $files = $request->input('files');
         $status = '1';
         $pesan = '';
-        // $type =='FG' ? $type2 = 'RM': $type2 = 'FG';
         
         $messages = [
             'required' => 'The field is required.',
             'unique' => 'The code has already been taken',
-            // 'iunique' => "The code $kode has already been taken",
         ];
         
         Validator::extend('iunique', function ($attribute, $value, $parameters, $validator) {
@@ -149,30 +169,24 @@ class ArticleController extends Controller
         });
 
         $rule = [
-            // 'kode'=>'required|iunique:article,article_alternative_code',
             'nama'=>'required'
         ];
 
         $this->validate($request,$rule,$messages);
 
-        if ($type == 'FG' || $type == 'RM'){
-            $articleCode = $this->articleCodeCreate($cust,$type);
-        }else{
-            $articleCode = $this->articleCodeCreate($cust,$type);
-        }
-
-        $articles = explode("|",$articleCode);
+        $articleCode = $this->articleCodeCreate($cust,$type);
+        $articles = explode("|",$articleCode);      
         
         DB::beginTransaction();
         try {
                 foreach($articles as $val){
+                    $artCode = $this->getArticleCode();
                     DB::table('article')->insert([
-                        'article_code' => $this->getArticleCode(),
+                        'article_code' => $artCode,
                         'article_alternative_code' => $val,
                         'article_desc' => $nama,
                         'group_of_material' => $group,
                         'third_party' => $cust,
-                        'quality' => $quality,
                         'note' => $note,
                         'uom' => $uom,
                         'costprice' => $price,
@@ -183,28 +197,21 @@ class ArticleController extends Controller
                         'created_at' => date('Y-m-d H:i:s'),
                         'updated_at' => date('Y-m-d H:i:s')
                     ]); 
-                }
-                
 
-                // if ($type != 'CM' ){
-                //     DB::table('article')->insert([
-                //         'article_code' => $this->getArticleCode(),
-                //         'article_alternative_code' => $kode2,
-                //         'article_desc' => $nama,
-                //         'group_of_material' => $group,
-                //         'third_party' => $cust,
-                //         'quality' => $quality,
-                //         'note' => $note,
-                //         'uom' => $uom,
-                //         'costprice' => $price,
-                //         'status' => $status,
-                //         'article_type' => $type2,
-                //         'created_by' => Auth::user()->username,
-                //         'updated_by' => Auth::user()->username,
-                //         'created_at' => date('Y-m-d H:i:s'),
-                //         'updated_at' => date('Y-m-d H:i:s')
-                //     ]);
-                // }
+                    if($files){
+                        foreach($files as $val){
+                            DB::table('images')->insert([
+                                'key' => $artCode,
+                                'name' => $nama,
+                                'path' => $val,
+                                'created_by' => Auth::user()->username,
+                                'updated_by' => Auth::user()->username,
+                                'created_at' => date('Y-m-d H:i:s'),
+                                'updated_at' => date('Y-m-d H:i:s')
+                            ]); 
+                        }
+                    }
+                }
 
                 DB::commit();
                 $alert  ="alert-success";
@@ -231,14 +238,18 @@ class ArticleController extends Controller
         
         $data['article'] = DB::table('article')
         ->where('id',$id)
-        ->get(['costprice','article_alternative_code as code','article_desc as desc','uom','quality','note','id','group_of_material as group','third_party as cust','quality','status','article_type'])->first();
+        ->get(['article_code','costprice','article_alternative_code as code','article_desc as desc','uom','quality','note','id','group_of_material as group','third_party as cust','quality','status','article_type','imgfile'])->first();
+
+        $data['images'] = DB::table('images')
+        ->where('key',$data['article']->article_code)
+        ->get();
 
         $data['types'] = DB::table('article_types')
         ->where ('status','=',1)
         ->orderBy('name')
         ->get();
 
-        $data['article']->article_type  == 'CM' ? $typeTP = 'supp' : $typeTP = 'cust';
+        $data['article']->article_type  == 'FG' || $data['article']->article_type  == 'RM'  ? $typeTP = 'cust' : $typeTP = 'supp';
 
         $data['custs'] = DB::table('third_party')
         ->where ('third_party_type','=',$typeTP)
@@ -258,19 +269,65 @@ class ArticleController extends Controller
         
     }
 
+    public function show(Request $request)
+    {
+
+        $id=$request->id;
+        $data['title'] = "Edit Article";
+        $data['subtitle'] = "Edit Article";
+        
+        $data['article'] = DB::table('article')
+        ->where('id',$id)
+        ->get(['article_code','costprice','article_alternative_code as code','article_desc as desc','uom','quality','note','id','group_of_material as group','third_party as cust','quality','status','article_type','imgfile'])->first();
+
+        $data['images'] = DB::table('images')
+        ->where('key',$data['article']->article_code)
+        ->get();
+
+        $data['types'] = DB::table('article_types')
+        ->where ('status','=',1)
+        ->orderBy('name')
+        ->get();
+
+        $data['article']->article_type  == 'FG' || $data['article']->article_type  == 'RM'  ? $typeTP = 'cust' : $typeTP = 'supp';
+
+        $data['custs'] = DB::table('third_party')
+        ->where ('third_party_type','=',$typeTP)
+        ->orderBy('nama')
+        ->get();
+
+        $data['groups'] = DB::table('group_materials')
+        ->where ('status','=',1)
+        ->orderBy('name')
+        ->get();
+
+        $data['uoms'] = DB::table('uom')
+        ->orderBy('name')
+        ->get();
+
+        return view('articles.show',$data);
+        
+    }
+
     public function update(Request $request)
     {
+
         $username =  Auth::user()->username;
         $id = $request->id;
-        $kode = $request->input('kode');
+        $artCode = $request->artCode;
+        $type = $request->input('articleType');
         $cust = $request->input('cust');
         $nama = $request->input('nama');
-        $quality = $request->input('quality');
         $group = $request->input('group');
         $uom = $request->input('uom');
         $price = $request->input('price');
+        $price = str_replace(",","",$price);
         $note = $request->input('note');
+        $files = $request->input('files');
+        $fileDihapus = $request->input('fileDihapus');
         $status = $request->input('status') ? '0' : '1';
+        $pesan = '';
+        
 
         // status : 1= aktif, 0= closing
 
@@ -298,7 +355,6 @@ class ArticleController extends Controller
                         'article_desc' => $nama,
                         'group_of_material' => $group,
                         'third_party' => $cust,
-                        'quality' => $quality,
                         'note' => $note,
                         'uom' => $uom,
                         'costprice' => $price,
@@ -308,6 +364,24 @@ class ArticleController extends Controller
                     ]
                 );
 
+                if($fileDihapus){
+                    DB::table('images')->whereIn('path',$fileDihapus)->delete();
+                }
+
+                if($files){
+                    foreach($files as $val){
+                        DB::table('images')->insert([
+                            'key' => $artCode,
+                            'name' => $nama,
+                            'path' => $val,
+                            'created_by' => Auth::user()->username,
+                            'updated_by' => Auth::user()->username,
+                            'created_at' => date('Y-m-d H:i:s'),
+                            'updated_at' => date('Y-m-d H:i:s')
+                        ]); 
+                    }
+                }
+                
                 DB::commit();
 
                 if($row_affected>0){
@@ -364,16 +438,17 @@ class ArticleController extends Controller
         $type = strtolower($request->type);
 
         // $type == 'CM'? $type='supp' :  $type='cust';
-        
-        $data=DB::table('article')
-        ->leftJoin('group_materials', 'group_materials.code', '=', 'article.group_of_material')
-        ->leftJoin('third_party', 'third_party.kode', '=', 'article.third_party')
-        ->where('article_alternative_code','ilike','%'.$code.'%')
-        ->where('article_desc','ilike','%'.$name.'%')  // string to lower
-        ->where('group_of_material','ilike','%'.$group.'%')
-        ->where('third_party','ilike','%'.$cust.'%')
-        ->where('article_alternative_code','ilike',$type.'%')
-        ->orderBy('article_desc')->get(['costprice','article_alternative_code as code','article_desc as desc','uom','quality','note','article.id','group_materials.name as group','third_party.nama as cust']);
+        $data=DB::table('article');
+        $data->select('article.*','costprice','article_alternative_code as code','article_desc as desc','uom','quality','note','article.id','group_materials.name as group','third_party.nama as cust');
+        $data->leftJoin('group_materials', 'group_materials.code', '=', 'article.group_of_material');
+        $data->leftJoin('third_party', 'third_party.kode', '=', 'article.third_party');
+        $code ? $data->where('article_alternative_code','ilike','%'.$code.'%') :'';
+        $name ? $data->where('article_desc','ilike','%'.$name.'%') :'';
+        $group ? $data->where('group_of_material','ilike','%'.$group.'%') :'';
+        $cust ? $data->where('third_party','ilike','%'.$cust.'%') :'';
+        $type ? $data->where('article_alternative_code','ilike',$type.'%') :'';      
+        $data->orderBy('article_desc');
+        $data->get(['costprice','article_alternative_code as code','article_desc as desc','uom','quality','note','article.id','group_materials.name as group','third_party.nama as cust']);
 
         return Datatables::of($data)
         ->addColumn('action', function ($data) {
@@ -382,12 +457,17 @@ class ArticleController extends Controller
                                 <i data-feather="menu"></i>
                             </a>';
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
+            
             if (Auth::user()->can('article-edit')) {
             $buttons .=         '<a href="'. route('article.edit', ['id'=>$data->id]) .'" class="dropdown-item">
                                     <i data-feather="file-text"></i>
                                     Edit
                                 </a>';
             }
+            $buttons .=         '<a href="'. route('article.show', ['id'=>$data->id]) .'" class="dropdown-item">
+                                    <i data-feather="list"></i>
+                                    Detail
+                                </a>';
             if (Auth::user()->can('article-delete')) {
             $buttons .=         "<a href='javascript:;'
                                     id='deleteButton'
