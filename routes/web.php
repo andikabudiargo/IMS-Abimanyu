@@ -127,7 +127,7 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('uoms/list',['as'=>'uom.list','uses'=>'UomController@list']);
 	Route::get('uoms/show',['as'=>'uom.show','uses'=>'UomController@show']);
 	Route::get('uoms/edit',['as'=>'uom.edit','uses'=>'UomController@edit','middleware' => ['permission:uom-edit']]);
-	Route::post('uoms/update',['as'=>'uom.update','uses'=>'UomController@update']);
+	Route::post('uom/update',['as'=>'uom.update','uses'=>'UomController@update']);
 	Route::post('uoms/delete',['as'=>'uom.destroy','uses'=>'UomController@destroy']);
 
 	Route::get('uomCons',['as'=>'uomCons.index','uses'=>'UomConController@index','middleware' => ['permission:uomCon-index']]);
@@ -136,7 +136,7 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('uomCons/list',['as'=>'uomCon.list','uses'=>'UomConController@list']);
 	Route::get('uomCons/show',['as'=>'uomCon.show','uses'=>'UomConController@show']);
 	Route::get('uomCons/edit',['as'=>'uomCon.edit','uses'=>'UomConController@edit','middleware' => ['permission:uomCon-edit']]);
-	Route::post('uomCons/update',['as'=>'uomCon.update','uses'=>'UomConController@update']);
+	// Route::post('uomCons/update',['as'=>'uomCon.update','uses'=>'UomConController@update']);
 	Route::post('uomCons/delete',['as'=>'uomCon.destroy','uses'=>'UomConController@destroy']);
 	Route::get('uomCons/get/factor',['as'=>'uomCon.get.factor','uses'=>'UomConController@getFactor']);
 
@@ -202,6 +202,7 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('purchaseOrders/delete',['as'=>'purchaseOrder.destroy','uses'=>'PurchaseOrderController@destroy']);
 	Route::get('purchaseOrders/code/create',['as'=>'purchaseOrder.code.create','uses'=>'PurchaseOrderController@articleCodeCreate']);
 	Route::get('purchaseOrders/print',['as'=>'purchaseOrder.print','uses'=>'PurchaseOrderController@print']);
+	Route::get('purchaseOrders/price/list',['as'=>'purchaseOrder.price.list','uses'=>'PurchaseOrderController@priceList']);
 
 
 	Route::get('purchaseRequests',['as'=>'purchaseRequests.index','uses'=>'PurchaseRequestController@index','middleware' => ['permission:purchaseRequest-index']]);

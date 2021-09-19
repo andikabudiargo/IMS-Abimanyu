@@ -7,19 +7,31 @@
     <div class="row">
       <div class="col-12">
         <div class="card">
-          {{-- <div class="card-header">  
-            <div class="card-title">@yield('title')
+          <div class="card-header">  
+            <div class="card-title">Filter
             </div>
-          </div> --}}
+          </div>
           <div class="card-body">
             <form class="needs-validation" novalidate>
                 <div class="form-row">
-                    <div class="col-md-4"> 
-                        <div class="form-group">
-                        <label for="basicInput">Unit</label>
-                        <input type="text" class="form-control text-uppercase" id="searchUomCode" name="searchUomCode" placeholder=""  />
-                        </div>
-                    </div>
+                  <div class="form-group col-md-6">
+                    <label class="form-label" for="unitFrom">Unit From</label>
+                    <select class="select2 form-control" id="unitFrom" name="unitFrom" data-dependent="unitTo">
+                        <option value="">All</option>
+                        @foreach($uoms as $val)
+                            <option value="{{$val->code}}">{{$val->code}} - {{$val->name}}</option>
+                        @endforeach
+                    </select>
+                  </div>
+                  <div class="form-group col-md-6">
+                    <label class="form-label" for="unitTo">Unit To</label>
+                    <select class="select2 form-control" id="unitTo" name="unitTo" data-dependent="unitTo">
+                        <option value="">All</option>
+                        @foreach($uoms as $val)
+                            <option value="{{$val->code}}">{{$val->code}} - {{$val->name}}</option>
+                        @endforeach
+                    </select>
+                  </div>
                 </div>
                 <div class="form-row">
                     <div class="col-12"> 
@@ -84,7 +96,6 @@
 
   });
 
-   
   let showAlert = "{{ Session::get('alert') }}";
 
   if ( showAlert ){
@@ -100,12 +111,13 @@
   });
 
   $("#btnSearch").click(function(e){
-      let code =$("#searchUomCode").val();
-      let nama =$("#searchUom").val();
-      showList(nama,code);
+      let unitFrom =$("#unitFrom").val();
+      console.log(unitFrom);
+      let unitTo =$("#unitTo").val();
+      showList(unitFrom,unitTo);
   });
 
-  function showList(nama,code){
+  function showList(unitFrom,unitTo){
     // let dtdom = '<"card-header border-bottom p-1"<"head-label">><"d-flex justify-content-between align-items-center mx-0 row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-4"f><"col-sm-12 col-md-2"<"dt-action-buttons text-right"B>>>t<"d-flex justify-content-between mx-0 row"<"col-sm-12 col-md-6"i><"col-sm-12 col-md-6"p>>';
     let dtdom ='<"d-flex justify-content-between align-items-center header-actions mx-1 row mt-75"' +
         '<"col-lg-12 col-xl-6" l>' +
@@ -120,10 +132,10 @@
       let oTable =$("#detailedTable").DataTable({
         ajax:
         {
-          url:'{{ route("uom.list")}}',
+          url:'{{ route("uomCon.list")}}',
           data:{
-              name:nama,
-              code:code
+            unitFrom:unitFrom,
+            unitTo:unitTo
           }
         },
         processing: true,
@@ -180,37 +192,6 @@
             }
           },
         ],
-        responsive: {
-          details: {
-            display: $.fn.dataTable.Responsive.display.modal({
-              header: function (row) {
-                var data = row.data();
-                return 'Details of ' + data['nama'];
-              }
-            }),
-            type: 'column',
-            renderer: function (api, rowIdx, columns) {
-              var data = $.map(columns, function (col, i) {
-                return col.title !== '' // ? Do not show row in modal popup if title is blank (for check box)
-                  ? '<tr data-dt-row="' +
-                      col.rowIndex +
-                      '" data-dt-column="' +
-                      col.columnIndex +
-                      '">' +
-                      '<td>' +
-                      col.title +
-                      ':' +
-                      '</td> ' +
-                      '<td>' +
-                      col.data +
-                      '</td>' +
-                      '</tr>'
-                  : '';
-              }).join('');
-              return data ? $('<table class="table"/>').append(data) : false;
-            }
-          }
-        },
         language: {
           paginate: {
             // remove previous & next text from pagination
@@ -219,18 +200,8 @@
           }
         },
         columnDefs: [
-          {
-            // For Responsive
-            className: 'control',
-            orderable: false,
-            responsivePriority: 2,
-            targets: 0
-          },
-          {
-            responsivePriority: 1,
-            targets: 3
-          },
-          { width: '10%', targets: 1 }
+          { width: '10%', targets: 0 },
+          { className: 'text-right','targets': [ 3 ] },
         ],
         drawCallback: function( settings ) {
           feather.replace({
@@ -242,16 +213,15 @@
         bDestroy: true, //pakai ini supaya bisa di load berulang2
         // scrollX: true, //pakai ini supaya waktu responsive  bisa di scroll horizontal
         columns: [
-            { data: 'group_id',name:'group_id', title:'',orderable: false, searchable: false },
             { data: 'action', name: 'action',title:'action', orderable: false, searchable: false },
-            { data: 'code', name: 'code',title:'Kode' },
-            { data: 'name', name: 'name',title:'Nama' },
-            { data: 'weight', name: 'weight',title:'Timbangan' }
+            { data: 'unit_from', name: 'unit_from',title:'Unit From' },
+            { data: 'unit_to', name: 'unit_to',title:'Unit To' },
+            { data: 'unit_factor', name: 'unit_factor',title:'Factor' }
+            // ,render: $.fn.dataTable.render.number(',','.',)
         ],
       });
     });
     //$('div.head-label').html('<h6 class="mb-0">Data Users</h6>');
-    
   }
 
   $.ajaxSetup({

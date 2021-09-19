@@ -169,7 +169,7 @@ class ArticleTypeController extends Controller
         ->where('id',$id)
         ->delete();
 
-        if($row_affected>0){
+        if($row_affected > 0){
             $alert  ="alert-success";
             $message  = "Successfully Deleted";
             \LogActivity::addToLog('Article type delete ',"username: $username Status $message");
@@ -188,31 +188,32 @@ class ArticleTypeController extends Controller
         $code = strtolower($request->code);
         $name = strtolower($request->name);
 
-        $data=DB::table('article_types')
-        ->where('code','ilike','%'.$code.'%')
-        ->where('name','ilike','%'.$name.'%')  // string to lower
-        ->orderBy('name')->get();
+        //ilike = string to lower
+        $data=DB::table('article_types');
+        $code ? $data->where('code','ilike','%'.$code.'%') : "";
+        $name ? $data->where('name','ilike','%'.$name.'%') : "";
+        $data->orderBy('name')->get();;
 
         return Datatables::of($data)
         ->addColumn('action', function ($data) {
             $buttons = '<div class="d-inline-flex">
                             <a class="pr-1 dropdown-toggle hide-arrow text-primary" data-toggle="dropdown">
-                                <i data-feather="more-vertical"></i>
+                                <i data-feather="menu"></i>
                             </a>';
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
-            if (Auth::user()->can('accType-edit')) {
-            $buttons .=         '<a href="'. route('accType.edit', ['id'=>$data->id]) .'" class="dropdown-item">
+            if (Auth::user()->can('articleType-edit')) {
+            $buttons .=         '<a href="'. route('articleType.edit', ['id'=>$data->id]) .'" class="dropdown-item">
                                     <i data-feather="file-text"></i>
                                     Edit
                                 </a>';
             }
-            if (Auth::user()->can('accType-delete')) {
+            if (Auth::user()->can('articleType-delete')) {
             $buttons .=         "<a href='javascript:;'
                                     id='deleteButton'
                                     class='dropdown-item'
                                     data-toggle='modal'
                                     data-target='#smallModal'
-                                    data-href='". route("accType.destroy", ["id"=>$data->id]) ."'>
+                                    data-href='". route("articleType.destroy", ["id"=>$data->id]) ."'>
                                     <i data-feather='trash-2'></i>
                                     Delete
                                 </a>";
@@ -222,9 +223,6 @@ class ArticleTypeController extends Controller
 
             return $buttons;
             })
-        ->addColumn('group_id', function ($user) {
-            return '';
-        })
         ->rawColumns(['action'])
         ->make(true);
     }

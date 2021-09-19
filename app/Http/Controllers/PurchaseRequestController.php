@@ -164,8 +164,8 @@ class PurchaseRequestController extends Controller
     public function show(Request $request)
     {
         $id=$request->id;
-        $data['title'] = "Edit Purchase Request";
-        $data['subtitle'] = "Edit Purchase Request";
+        $data['title'] = "Detail Purchase Request";
+        $data['subtitle'] = "Detail Purchase Request";
 
         $data['header'] = DB::table('purchase_request_hdr')
         ->where('id',$id)

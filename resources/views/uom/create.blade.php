@@ -37,6 +37,7 @@
                                     <option value="PIECE" {{ 'PIECE' == old("uom") ? "selected" : ""}} >Piece</option>
                                     <option value="MASS" {{ 'MASS' == old("uom") ? "selected" : ""}} >Mass</option>
                                     <option value="LENGTH" {{ 'LENGTH' == old("uom") ? "selected" : ""}}>Length</option>
+                                    <option value="VOLUME" {{ 'VOLUME' == old("uom") ? "selected" : ""}}>Volume</option>
                                 </select>
                             </div>
                         </div>

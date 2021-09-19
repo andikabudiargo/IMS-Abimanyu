@@ -125,8 +125,6 @@
             .then(data => hasil.val(data.hasil));
     })
     
-   
-
     $.ajaxSetup({
         headers: {
             'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')

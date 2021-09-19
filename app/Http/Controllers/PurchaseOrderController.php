@@ -95,13 +95,12 @@ class PurchaseOrderController extends Controller
         ->where('kode',$customer)
         ->select(DB::raw("CONCAT('$leadingCode',inisial,'$newCode') AS new_code"))->value('new_code');
 
-        return  Response()->json($artilceCode);
+        return Response()->json($artilceCode);
     
     }
 
     public function store(Request $request)
     {
-
         $username =  Auth::user()->username;
         $articles = json_decode($request -> articles);
         $orderDate = $request->orderDate;
@@ -280,8 +279,28 @@ class PurchaseOrderController extends Controller
         $data['subtitle'] = "Edit Purchase Order";
 
         $data['header'] = DB::table('purchase_order_hdr')
-        ->where('id',$id)
+        ->leftJoin('purchase_request_det','purchase_order_hdr.po_number','purchase_request_det.po_number')
+        ->where('purchase_order_hdr.id',$id)
         ->get()->first();
+
+        $data['prHeader'] = DB::table('purchase_request_det') 
+        ->where('supp_code',$data['header']->supplier_id)
+        ->where('po_number','=',$data['header']->po_number)
+        ->orderBy('pr_number')
+        ->distinct('pr_number')
+        ->get();
+
+        $data['articles'] = DB::table('purchase_request_det') 
+            ->leftJoin('article','article.article_code','=','purchase_request_det'.'.article_code')
+            ->leftJoin('article_stock','article_stock.article_code','=','purchase_request_det'.'.article_code')
+            ->leftJoin('group_materials','group_materials.code','=','article.group_of_material')
+            ->where('supp_code',$data['header']->supplier_id)
+            ->where('po_number','=',$data['header']->po_number)
+            ->where('pr_number','=',$data['header']->pr_number)
+            ->orderBy('article.article_desc')
+            ->distinct('article.article_desc')
+            ->select('purchase_request_det'.'.*','article.article_alternative_code','article.article_code as artikel_code','article.article_desc','article.costprice','article_stock.article_qty as qty_stock','purchase_request_det.uom as uom1','group_materials.name as group')
+            ->get();
 
         $data['detail'] = DB::table('purchase_order_det')
         ->leftJoin('article','article.article_code','=','purchase_order_det.article_code')
@@ -291,14 +310,14 @@ class PurchaseOrderController extends Controller
         ->orderBy('id')
         ->get();       
 
-        $data['articles']= DB::table('article') 
-        ->leftJoin('article_stock','article_stock.article_code','=','article.article_code')
-        ->leftJoin('group_materials','group_materials.code','=','article.group_of_material')
-        // ->where('third_party',$data['header']->customer_id)
-        ->where('article_type','CM')
-        ->orderBy('article_desc')
-        ->select('article'.'.*', 'article_stock.article_qty as qty','article.uom as uom1','group_materials.name as group')
-        ->get();   
+        // $data['articles']= DB::table('article') 
+        // ->leftJoin('article_stock','article_stock.article_code','=','article.article_code')
+        // ->leftJoin('group_materials','group_materials.code','=','article.group_of_material')
+        // // ->where('third_party',$data['header']->customer_id)
+        // ->where('article_type','CM')
+        // ->orderBy('article_desc')
+        // ->select('article'.'.*', 'article_stock.article_qty as qty','article.uom as uom1','group_materials.name as group')
+        // ->get();   
 
         $data['supps'] = DB::table('third_party')
         ->where ('third_party_type','=','supp')
@@ -468,6 +487,21 @@ class PurchaseOrderController extends Controller
             \LogActivity::addToLog('PO delete ',"username: $username Status $message");
             return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);
         }
+
+    }
+
+    public function priceList(Request $request)
+    {
+        $articleCode = $request -> article;
+        $listArticle = DB::table('purchase_order_det')
+        ->leftJoin('purchase_order_hdr','purchase_order_hdr.po_number','purchase_order_det.po_number')
+        ->where('article_code',$articleCode)
+        ->select('purchase_order_det.po_number','po_date','price', 'purchase_order_hdr.created_at')
+        ->orderBy('created_at','desc')
+        ->limit(10)
+        ->get();
+
+        return Response()->json($listArticle);
 
     }
 

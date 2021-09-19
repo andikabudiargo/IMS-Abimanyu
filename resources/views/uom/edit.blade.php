@@ -37,6 +37,7 @@
                                     <option value="PIECE" {{ 'PIECE' == old("uom",$uom->uom_group) ? "selected" : ""}} >Piece</option>
                                     <option value="MASS" {{ 'MASS' == old("uom",$uom->uom_group) ? "selected" : ""}} >Mass</option>
                                     <option value="LENGTH" {{ 'LENGTH' == old("uom",$uom->uom_group) ? "selected" : ""}}>Length</option>
+                                    <option value="VOLUME" {{ 'VOLUME' == old("uom",$uom->uom_group) ? "selected" : ""}}>Volume</option>
                                 </select>
                             </div>
                         </div>

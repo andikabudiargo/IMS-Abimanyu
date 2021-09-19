@@ -146,7 +146,7 @@
         '<"col-sm-12 col-md-6"i>' +
         '<"col-sm-12 col-md-6"p>' +
         '>';
-    let arr_col_print =[2,3,4,5,6]; 
+    let arr_col_print =[2,3,4,5,6,7]; 
     $(function(){
       let oTable =$("#detailedTable").DataTable({
         ajax:
@@ -284,7 +284,7 @@
             { data: 'cust', name: 'cust',title:'Customer' },
             { data: 'costprice', name: 'costprice',title:'Price',render: $.fn.dataTable.render.number(',','.') },
             { data: 'uom', name: 'uom',title:'UOM' },
-            { data: 'quality', name: 'quality',title:'Quality' },
+            // { data: 'quality', name: 'quality',title:'Quality' },
             { data: 'group', name: 'group',title:'Group' },
             { data: 'note', name: 'note',title:'Note' }
 

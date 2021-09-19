@@ -27,11 +27,41 @@ class SupplierController extends Controller
         return view("suppliers.create",$data);
     }
 
+    public function supplierCodeCreate($initial){
+        /*
+            pembuatan article_alternative_code sesuai dengan aturan, kalo FG dan RM harus ada kode cabang nya
+            apabila type nya FG atau RM makan akan terbentuk sekaligus 2 article
+            kode customer
+            INISIAL di bentuk oleh javascript
+            MAJU PT = MAJXXXXXSUPP
+            MAJU JAYA PT = MJAXXXXXSUPP
+            MAJU JAYA ABADI PT = MJAXXXXXSUPP
+            MAJU JAYA SENTOSA CV = MJSXXXXXSUPP
+        */
+         
+        $lastCode = DB::table('third_party')
+        ->where('kode','like',$initial.'%SUPP')
+        ->value('kode');
+
+        if (!$lastCode){
+            $newCode = '00001';
+        }else{
+            $lastCode = substr($lastCode,3,5);
+            $newCode = str_pad($lastCode+1, 5, "0", STR_PAD_LEFT);
+        }
+
+        $newCode = $initial.str_pad($newCode, 5, "0", STR_PAD_LEFT)."SUPP";
+
+        return  $newCode;
+    
+    }
+
     public function store(Request $request)
     {
         $username = Auth::user()->username;
-        $kode = $request->input('kode');
-        $nama = $request->input('nama');
+        $nama = strtoupper($request->input('nama'));
+        $inisial = strtoupper($request->input('inisial'));
+        $kode = $this->supplierCodeCreate($inisial);
         $alamat = $request->input('alamat');
         $telepon = $request->input('telepon');
         $fax = $request->input('fax');
@@ -47,17 +77,17 @@ class SupplierController extends Controller
         $messages = [
             'required' => 'The field is required.',
             'unique' => 'The code has already been taken',
-            'iunique' => "The $kode has already been taken",
+            // 'iunique' => "The $kode has already been taken",
         ];
         
-        Validator::extend('iunique', function ($attribute, $value, $parameters, $validator) {
-            $query = DB::table($parameters[0]);
-            $column = $query->getGrammar()->wrap($parameters[1]);
-            return !$query->whereRaw("lower({$column}) = lower(?)", [$value])->count();
-        });
+        // Validator::extend('iunique', function ($attribute, $value, $parameters, $validator) {
+        //     $query = DB::table($parameters[0]);
+        //     $column = $query->getGrammar()->wrap($parameters[1]);
+        //     return !$query->whereRaw("lower({$column}) = lower(?)", [$value])->count();
+        // });
 
         $rule = [
-            'kode'=>'required|iunique:third_party,kode',
+            // 'kode'=>'required|iunique:third_party,kode',
             'nama'=>'required'
         ];
 
@@ -230,17 +260,18 @@ class SupplierController extends Controller
         $code = strtolower($request->code);
         $name = strtolower($request->name);
 
-        $data=DB::table('third_party')
-        ->where('third_party_type','supp')
-        ->where('kode','ilike','%'.$code.'%')
-        ->where('nama','ilike','%'.$name.'%')  // string to lower
-        ->orderBy('nama')->get();
+        //ilike = string to lower
+        $data=DB::table('third_party');
+        $data->where('third_party_type','supp');
+        $code ? $data->where('kode','ilike','%'.$code.'%'):"";
+        $name ? $data->where('nama','ilike','%'.$name.'%'):""; 
+        $data->orderBy('nama')->get();
 
         return Datatables::of($data)
         ->addColumn('action', function ($data) {
             $buttons = '<div class="d-inline-flex">
                             <a class="pr-1 dropdown-toggle hide-arrow text-primary" data-toggle="dropdown">
-                                <i data-feather="more-vertical"></i>
+                                <i data-feather="menu"></i>
                             </a>';
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
             if (Auth::user()->can('supplier-edit')) {

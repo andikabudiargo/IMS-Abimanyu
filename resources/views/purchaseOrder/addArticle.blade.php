@@ -56,6 +56,12 @@
                     <td class="isian disabled" style="width: 10%">
                         <input type="text" class="form-control-plaintext numeral-mask text-right" id = "price" name="price[]"  maxlength="11" disabled>
                     </td>
+                    <td class="text-center" style="width: 5%">
+                        <a onmouseover="this.style.cursor='pointer'" id="listPrice" name="listPrice[]">
+                            <i data-feather="info" class="feather-24">
+                            </i>
+                        </a>
+                    </td>
                     <td class="isian" style="width: 10%">
                         <input type="text" class="form-control-plaintext numeral-mask text-right" id = "newPrice" name="newPrice[]"  maxlength="11">
                     </td>

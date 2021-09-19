@@ -45,13 +45,42 @@ class CustomerController extends Controller
         return view("customers.create",$data);
     }
 
+    public function customerCodeCreate($initial){
+        /*
+            pembuatan article_alternative_code sesuai dengan aturan, kalo FG dan RM harus ada kode cabang nya
+            apabila type nya FG atau RM makan akan terbentuk sekaligus 2 article
+            kode customer
+            INISIAL di bentuk oleh javascript
+            MAJU PT = MAJXXXXXCUST
+            MAJU JAYA PT = MJAXXXXXCUST
+            MAJU JAYA ABADI PT = MJAXXXXXCUST
+            MAJU JAYA SENTOSA CV = MJSXXXXXCUST
+        */
+         
+        $lastCode = DB::table('third_party')
+        ->where('kode','like',$initial.'%CUST')
+        ->value('kode');
+
+        if (!$lastCode){
+            $newCode = '00001';
+        }else{
+            $lastCode = substr($lastCode,3,5);
+            $newCode = str_pad($lastCode+1, 5, "0", STR_PAD_LEFT);
+        }
+
+        $newCode = $initial.str_pad($newCode, 5, "0", STR_PAD_LEFT)."CUST";
+
+        return  $newCode;
+    
+    }
+
     public function store(Request $request)
     {
         $username = Auth::user()->username;
-        $kode = $request->input('kode');
         $epte = $request->input('epte') ? true : false;
-        $nama = $request->input('nama');
+        $nama = strtoupper($request->input('nama'));
         $inisial = strtoupper($request->input('inisial'));
+        $kode = $this->customerCodeCreate($inisial);
         $alamatTagih = $request->input('alamatTagih');
         $alamatKirim1 = $request->input('alamatKirim1');
         $alamatKirim2 = $request->input('alamatKirim2');
@@ -91,26 +120,26 @@ class CustomerController extends Controller
         $messages = [
             'required' => 'The field is required.',
             'unique' => 'The code has already been taken',
-            'iunique' => "The code $kode has already been taken",
-            'initunique' => "The intial $inisial has already been taken",
+            // 'iunique' => "The code $kode has already been taken",
+            // 'initunique' => "The intial $inisial has already been taken",
         ];
         
-        Validator::extend('iunique', function ($attribute, $value, $parameters, $validator) {
-            $query = DB::table($parameters[0]);
-            $column = $query->getGrammar()->wrap($parameters[1]);
-            return !$query->whereRaw("lower({$column}) = lower(?)", [$value])->count();
-        });
+        // Validator::extend('iunique', function ($attribute, $value, $parameters, $validator) {
+        //     $query = DB::table($parameters[0]);
+        //     $column = $query->getGrammar()->wrap($parameters[1]);
+        //     return !$query->whereRaw("lower({$column}) = lower(?)", [$value])->count();
+        // });
 
-        Validator::extend('initunique', function ($attribute, $value, $parameters, $validator) {
-            $query = DB::table($parameters[0]);
-            $column = $query->getGrammar()->wrap($parameters[1]);
-            return !$query->whereRaw("lower({$column}) = lower(?)", [$value])->count();
-        });
+        // Validator::extend('initunique', function ($attribute, $value, $parameters, $validator) {
+        //     $query = DB::table($parameters[0]);
+        //     $column = $query->getGrammar()->wrap($parameters[1]);
+        //     return !$query->whereRaw("lower({$column}) = lower(?)", [$value])->count();
+        // });
 
         $rule = [
-            'kode'=>'required|iunique:third_party,kode',
+            // 'kode'=>'required|iunique:third_party,kode',
             'nama'=>'required',
-            'inisial'=>'required|initunique:third_party,inisial'
+            // 'inisial'=>'required|initunique:third_party,inisial'
         ];
 
         $this->validate($request,$rule,$messages);
@@ -263,25 +292,25 @@ class CustomerController extends Controller
         $messages = [
             'required' => 'The field is required.',
             'unique' => 'The code has already been taken',
-            'iunique' => "The code $kode has already been taken",
-            'initunique' => "The intial $inisial has already been taken",
+            // 'iunique' => "The code $kode has already been taken",
+            // 'initunique' => "The intial $inisial has already been taken",
         ];
         
-        Validator::extend('iunique', function ($attribute, $value, $parameters, $validator) {
-            $query = DB::table($parameters[0]);
-            $column = $query->getGrammar()->wrap($parameters[1]);
-            return !$query->whereRaw("lower({$column}) = lower(?)", [$value])->count();
-        });
+        // Validator::extend('iunique', function ($attribute, $value, $parameters, $validator) {
+        //     $query = DB::table($parameters[0]);
+        //     $column = $query->getGrammar()->wrap($parameters[1]);
+        //     return !$query->whereRaw("lower({$column}) = lower(?)", [$value])->count();
+        // });
 
-        Validator::extend('initunique', function ($attribute, $value, $parameters, $validator) {
-            $query = DB::table($parameters[0]);
-            $column = $query->getGrammar()->wrap($parameters[1]);
-            return !$query->whereRaw("lower({$column}) = lower(?)", [$value])->count();
-        });
+        // Validator::extend('initunique', function ($attribute, $value, $parameters, $validator) {
+        //     $query = DB::table($parameters[0]);
+        //     $column = $query->getGrammar()->wrap($parameters[1]);
+        //     return !$query->whereRaw("lower({$column}) = lower(?)", [$value])->count();
+        // });
 
         $rule = [
             'nama'=>'required',
-            'inisial'=>'required|initunique:third_party,inisial'
+            // 'inisial'=>'required|initunique:third_party,inisial'
         ];
 
         $this->validate($request,$rule,$messages);
@@ -389,11 +418,12 @@ class CustomerController extends Controller
         $code = strtolower($request->code);
         $name = strtolower($request->name);
 
-        $data=DB::table('third_party')
-        ->where('third_party_type','cust')
-        ->where('kode','ilike','%'.$code.'%')
-        ->where('nama','ilike','%'.$name.'%')  // string to lower
-        ->orderBy('nama')->get();
+        // ilike = string to lower
+        $data=DB::table('third_party');
+        $data->where('third_party_type','cust');
+        $code ? $data->where('kode','ilike','%'.$code.'%') : "";
+        $name ? $data->where('nama','ilike','%'.$name.'%') : "";
+        $data->orderBy('nama')->get();
 
         // $query = $request->get('q');
         // $sqlku="SELECT * from third_party where third_party_type = 'cust' and nama like '%$query%'";
@@ -403,7 +433,7 @@ class CustomerController extends Controller
         ->addColumn('action', function ($data) {
             $buttons = '<div class="d-inline-flex">
                             <a class="pr-1 dropdown-toggle hide-arrow text-primary" data-toggle="dropdown">
-                                <i data-feather="more-vertical"></i>
+                                <i data-feather="menu"></i>
                             </a>';
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
             if (Auth::user()->can('customer-edit')) {

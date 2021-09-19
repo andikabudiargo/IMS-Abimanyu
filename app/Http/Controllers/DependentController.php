@@ -14,9 +14,9 @@ class DependentController extends Controller
 
     public function dependentFetch(Request $request)
     {
-        $code= $request->get('value');
-        $type= $request->get('type');
-        $dependent=$request->get('dependent');
+        $code= $request->value;
+        $type= $request->type;
+        $dependent=$request->dependent;
         $akhusus='';
 
         switch ($dependent) { 
@@ -130,6 +130,7 @@ class DependentController extends Controller
                 $order ='article_code';
                 $value ='article_code';
                 $name  ='article_code';
+                $prNumber = $request->prNumber;
                 $default='';
                 $defaulttxt='Choose Article';
                 break;
@@ -162,9 +163,10 @@ class DependentController extends Controller
             ->leftJoin('group_materials','group_materials.code','=','article.group_of_material')
             ->where($field,$code)
             ->where('po_number','=',null)
+            ->where('pr_number','=',$prNumber)
             ->orderBy('article.article_desc')
             ->distinct('article.article_desc')
-            ->select($table.'.*','article.article_code as artikel_code','article.article_desc','article.costprice','article_stock.article_qty as qty','purchase_request_det.uom as uom1','group_materials.name as group')
+            ->select($table.'.*','article.article_alternative_code','article.article_code as artikel_code','article.article_desc','article.costprice','article_stock.article_qty as qty_stock','purchase_request_det.uom as uom1','group_materials.name as group')
             ->get();          
         }elseif($dependent =='searchFromSO'){
             $data= DB::table($table) 

@@ -40,7 +40,7 @@
                         </div>
                         <div class="row">
                             <div class="col-12">
-                                <a href="{{ route('accTypes.index') }}" class="btn btn-outline-secondary">
+                                <a href="{{ route('articleTypes.index') }}" class="btn btn-outline-secondary">
                                     Cancel
                                 </a>
                                 <button class="btn btn-success" type="button" id="cmdSave" name="cmdSave">Save</button>

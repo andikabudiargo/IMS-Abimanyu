@@ -119,7 +119,10 @@
                         <table class="" style="width:98%;table-layout: fixed;">
                             <tbody>
                                 <tr>
-                                    <td class="isian-satu" style="width: 25%">
+                                    <td class="isian-satu" style="width: 20%">
+                                        <label>Purchase Request</label>
+                                    </td>
+                                    <td class="">
                                         <label>Article Code</label>
                                     </td>
                                     <td class="isian" style="width: 5%">
@@ -133,6 +136,9 @@
                                     </td>
                                     <td class="isian" style="width: 10%">
                                         <label>Price</label>
+                                    </td>
+                                    <td class="text-center" style="width: 5%">
+                                        <label>-</label>
                                     </td>
                                     <td class="isian" style="width: 10%">
                                         <label>New Price</label>
@@ -154,10 +160,17 @@
                                 <table class="table-bordered" style="width: 98%;table-layout: fixed;">
                                     <tbody>
                                         <tr>
-                                            <td class="isian-satu" style="">
+                                            <td class="isian-satu" style="width: 20%">
+                                                <select class="select2 dynamicSelect sku-select-system" id="pRequest{{ $key }}" name="pRequest[]" data-dependent="pRequest">
+                                                    @foreach($prHeader as $val)
+                                                        <option value="{{ $val->pr_number }}" >{{ $val->pr_number }}</option>
+                                                    @endforeach
+                                                </select>
+                                            </td>
+                                            <td class="" style="">
                                                 <select class="select2 dynamicSelect sku-select-system" id="article_id{{ $key }}" name="article_id[]" data-dependent="article_id">
                                                     @foreach($articles as $val)
-                                                        <option value="{{$val->article_code}}|{{$val->group}}|{{$val->qty}}|{{$val->uom1}}" {{$val->article_code ==$item->article_code ? "selected" : ""}}>{{$val->article_alternative_code}} | {{$val->article_desc}}</option>
+                                                        <option value="{{ $val->article_code }}|{{ $val->group }}|{{ $val->qty_stock }}|{{ $val->qty }}|{{ $val->uom1 }}|{{ $val->costprice }}">{{ $val->article_alternative_code }} - {{ $val->article_desc }}</option>
                                                     @endforeach
                                                 </select>
                                             </td>
@@ -172,6 +185,12 @@
                                             </td>
                                             <td class="isian disabled" style="width: 10%">
                                                 <input type="text" class="form-control-plaintext numeral-mask text-right" id = "price" name="price[]" value="{{ $item->old_price }}"  maxlength="11">
+                                            </td>
+                                            <td class="text-center" style="width: 5%">
+                                                <a onmouseover="this.style.cursor='pointer'" id="listPrice" name="listPrice[]">
+                                                    <i data-feather="info" class="feather-24">
+                                                    </i>
+                                                </a>
                                             </td>
                                             <td class="isian" style="width: 10%">
                                                 <input type="text" class="form-control-plaintext numeral-mask text-right" id = "newPrice" name="newPrice[]" value="{{ $item->price }}"  maxlength="11">
@@ -254,6 +273,33 @@
         </div>
     </div>
 </section>
+<div class="modal fade text-left bisa-geser" id="modalListPrice" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4>List price</h4>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <h5><span class="semi-bold" id='modalArticle'></span></h5>
+                <div class="table-responsive">
+                    <table class="table" id='modalTableData'>
+                        <thead>
+                            <tr>
+                                <td>PO Number</td>
+                                <td>Date</td>
+                                <td>Price</td>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 @include('purchaseOrder.addArticle')
 @endsection
 @section('styles')
@@ -308,6 +354,7 @@
         activate_angka();
         mask_thousand();
         splitArticle();
+        isiListArticle();
         hitungGrandTotal();
     });
 
@@ -337,7 +384,6 @@
             hitungGrandTotal();
         }
     })
-
 
     $('#persenDiscount,#ppn').on('keyup', function() {
         hitungGrandTotal();
@@ -486,7 +532,6 @@
         }
     
     });
-
     
     let cloneCount=$('#last_row_number').val();
     function add_new_row() {    
@@ -497,14 +542,17 @@
             cloneCount++;
             $("#article_row").find('#baru').attr('id', 'new_row'+ cloneCount);
             $("#new_row"+ cloneCount).find('#article_id').attr('id', 'article_id'+ cloneCount);
-            changeselect('article_id','article_id'+ cloneCount,supp,'CM');
+            $("#new_row"+ cloneCount).find('#pRequest').attr('id', 'pRequest'+ cloneCount);
+            changeselect('pRequest','pRequest'+ cloneCount,supp,'');
             $("#article_id"+cloneCount).select2();
+            $("#pRequest"+cloneCount).select2();
             $('#remove_button').tooltip();
             tombolPanah('qty_order');
             tombolPanah('newPrice');
             activate_angka();
             mask_thousand();
             splitArticle();
+            isiListArticle();
             hitungTotal();
             hitungGrandTotal();
         }else{
@@ -530,14 +578,18 @@
         let objQty= $('#article_row input[name="qty_order[]"]');
         let objPrice= $('#article_row input[name="price[]"]');
         let objNewPrice= $('#article_row input[name="newPrice[]"]');
+        let objListPrice= $('#article_row a[name="listPrice[]"]');
         objArticle.change(function(e){        
+            // article_code.'|'group.'|'qty_stock.'|'qty.'|'uom1.'|'costprice.'"
             let objIndex = objArticle.index(this);
             let detail = objArticle.eq(objIndex).val();
+            let detailText = objArticle.eq(objIndex).select2('data')[0].text;
             let arrDetail = detail.split("|");
+            objListPrice.eq(objIndex).attr('onClick', 'listPrice('+arrDetail[0]+',"'+detailText+'");');
             objStock.eq(objIndex).val(humanizeNumber(arrDetail[2]||0));
-            objUom.eq(objIndex).text(arrDetail[3]);
-            objPrice.eq(objIndex).val(humanizeNumber(arrDetail[4]||0));
-            objNewPrice.eq(objIndex).val(humanizeNumber(arrDetail[4]||0));
+            objUom.eq(objIndex).text(arrDetail[4]);
+            objPrice.eq(objIndex).val(humanizeNumber(arrDetail[5]||0));
+            objNewPrice.eq(objIndex).val(humanizeNumber(arrDetail[5]||0));
             objArticle.eq(objIndex).select2('open');
             if (detail){
                 setTimeout(() => {
@@ -545,6 +597,34 @@
                 }, 5);
             }
 		});
+    }
+
+    function listPrice(article,desc){
+        $("#modalTableData tbody> tr").remove();
+        $.ajax({
+            dataType: 'json',
+            type:'GET',
+            url: "{{ route('purchaseOrder.price.list') }}",
+            data: { article:article },
+            success: function(data) {
+                if(data.length > 0 ){
+                    let html = '';
+                    for(let i=0;i<data.length;i++){
+                        html += '<tr>';
+                        html += '<td>'+data[i].po_number+'</td>';
+                        html += '<td>'+data[i].po_date+'</td>';
+                        html += '<td class="text-right">'+humanizeNumber(data[i].price)+'</td>';
+                        html += '</tr>';
+                    }
+                    $('#modalTableData tbody').append(html);
+                }                
+            },
+            error: function(data) {
+                swal.fire("Warning","Error data","warning");
+            }
+        });
+        $('#modalArticle').text(desc);
+        $('#modalListPrice').modal('show'); 
     }
 
     function hitungTotal(){
@@ -599,6 +679,37 @@
 
     }
 
+    function isiListArticle(){
+        // split article with delimiter |
+        let objPrequest = $('#article_row select[name="pRequest[]"]');
+        
+        objPrequest.change(function(e){        
+            let objIndex = objPrequest.index(this);
+            let prNumber = objPrequest.eq(objIndex).val();
+            let supp = $('#supplier').val();
+            changeSelectArticle('searchFromPr',objIndex,supp,prNumber);
+            splitArticle();
+		});
+    }
+
+    function changeSelectArticle(dependent,objIndex,value,prNumber) {
+        let objArticle = $('#article_row select[name="article_id[]"]');
+        $.ajax({
+            url:"{{route('dynamic.dependent')}}",
+            method:"POST",
+            data:{
+                value:value,
+                prNumber:prNumber,
+                dependent:dependent
+            },
+            success:function(result){
+                objArticle.eq(objIndex).html(result);
+                objArticle.eq(objIndex).select2();
+                // objArticle.eq(objIndex).trigger('change');
+            }
+        })
+    }
+
     function changeselect(dependent,obj,value,type) {
       $.ajax({
         url:"{{route('dynamic.dependent')}}",
@@ -610,7 +721,7 @@
         },
         success:function(result){
             $('#'+obj).html(result);
-            $('#'+obj).val('').trigger('change');
+            // $('#'+obj).val('').trigger('change');
         }
       })
     }

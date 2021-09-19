@@ -44,25 +44,26 @@
                         <small class="text-muted">Detil data customer</small>
                     </div>
                     <div class="row">
-                        <div class="form-group col-md-4">
+                        {{-- <div class="form-group col-md-4">
                             <label class="form-label" for="kode">Kode</label>
-                            <input type="text" id="kode" name="kode" value="{{ old('kode') }}" class="form-control" required maxlength="20" autofocus/>
-                        </div>
-                        <div class="form-group col-md-4 align-self-end" >
-                            <div class="custom-control custom-checkbox">
-                                <input type="checkbox" class="custom-control-input" id="epte" name="epte" {{ old('epte') == 't' ? 'checked' : '' }} />
-                                <label class="custom-control-label" for="epte">EPTE</label>
-                            </div>
-                        </div>
+                            <input type="text" id="kode" name="kode" value="{{ old('kode') }}" class="form-control" maxlength="20" autofocus/>
+                        </div> --}}
+                        
                     </div>
                     <div class="row">
                         <div class="form-group col-md-6">
                             <label class="form-label" for="nama">Nama</label>
-                            <input type="text" id="nama" name="nama" value="{{ old('nama') }}" class="form-control" required maxlength="30"/>
+                            <input type="text" id="nama" name="nama" value="{{ old('nama') }}" class="form-control text-uppercase" required maxlength="100" autofocus/>
                         </div>
-                        <div class="form-group col-md-6">
+                        <div class="form-group col-md-4">
                             <label class="form-label" for="inisial">Inisial</label>
                             <input type="text" id="inisial" name="inisial" value="{{ old('inisial') }}" class="form-control text-uppercase" required maxlength="3"/>
+                        </div>
+                        <div class="form-group col-md-2 align-self-end" >
+                            <div class="custom-control custom-checkbox">
+                                <input type="checkbox" class="custom-control-input" id="epte" name="epte" {{ old('epte') == 't' ? 'checked' : '' }} />
+                                <label class="custom-control-label" for="epte">EPTE</label>
+                            </div>
                         </div>
                     </div>
                     <div class="row">
@@ -483,6 +484,45 @@
         blocks: [2,3,3,1,3,3],
         uppercase: true
         });
+    }
+
+    function getCustAcronym(aString){
+        let initials= "";
+        let namaPerusahaan = ["CV","PT","PTE.","LTD.","CORP.","INC.","PT.","CV.","PTE","LTD","CORP","INC","PD","PD.","UD","UD."];        
+        let wordCount = aString.trim().split(' ').length;
+        if (wordCount == 1){
+            initials = aString.substring(0,3).toUpperCase();
+        }else if (wordCount > 1){ 
+            let aString1 = aString;
+            aString = aString.split(' ');
+            let dataExist = namaPerusahaan.indexOf(aString[wordCount-1].toUpperCase());
+            wordCount = dataExist != -1 ? wordCount-1 : wordCount;
+                        
+            let newString="";
+            for (let i=0 ;i < wordCount;i++){
+                newString+=aString[i].trim() +' ';
+            }   
+            aString1 = newString.trim();
+
+            if (aString1.trim().split(' ').length == 2){
+                aString1 = aString1+' '+aString1.trim().slice(-1);
+            }
+
+            if (aString1.trim().split(' ').length > 3){
+                aString1 = aString1.trim().split(' ').slice(0,3).join(' ');
+            }
+
+            initials = aString1.split(' ').reduce((result, currentWord) => 
+            result + currentWord.charAt(0).toUpperCase(), '');
+        }
+        
+        return initials;
+    }
+
+    document.getElementById("nama").addEventListener("input", acroFunction);
+    function acroFunction() {
+        let aString = document.getElementById('nama').value;
+        document.getElementById('inisial').value= getCustAcronym(aString);
     }
 
     $.ajaxSetup({

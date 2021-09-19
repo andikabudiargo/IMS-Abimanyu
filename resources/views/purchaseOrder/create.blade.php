@@ -116,7 +116,7 @@
                                     <td class="isian-satu" style="width: 20%">
                                         <label>Purchase Request</label>
                                     </td>
-                                    <td class="isian-satu" style="width: 25%">
+                                    <td class="">
                                         <label>Article Code</label>
                                     </td>
                                     <td class="isian" style="width: 5%">
@@ -130,6 +130,9 @@
                                     </td>
                                     <td class="isian" style="width: 10%">
                                         <label>Price</label>
+                                    </td>
+                                    <td class="text-center" style="width: 5%">
+                                        <label>-</label>
                                     </td>
                                     <td class="isian" style="width: 10%">
                                         <label>New Price</label>
@@ -209,6 +212,33 @@
         </div>
     </div>
 </section>
+<div class="modal fade text-left bisa-geser" id="modalListPrice" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4>List price</h4>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <h5><span class="semi-bold" id='modalArticle'></span></h5>
+                <div class="table-responsive">
+                    <table class="table" id='modalTableData'>
+                        <thead>
+                            <tr>
+                                <td>PO Number</td>
+                                <td>Date</td>
+                                <td>Price</td>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 @include('purchaseOrder.addArticle')
 @endsection
 @section('styles')
@@ -486,20 +516,21 @@
         
         objPrequest.change(function(e){        
             let objIndex = objPrequest.index(this);
-            let prCode = objPrequest.eq(objIndex).val();
+            let prNumber = objPrequest.eq(objIndex).val();
             let supp = $('#supplier').val();
-            changeSelectArticle('searchFromPr',objIndex,supp);
+            changeSelectArticle('searchFromPr',objIndex,supp,prNumber);
             splitArticle();
 		});
     }
 
-    function changeSelectArticle(dependent,objIndex,value) {
+    function changeSelectArticle(dependent,objIndex,value,prNumber) {
         let objArticle = $('#article_row select[name="article_id[]"]');
         $.ajax({
             url:"{{route('dynamic.dependent')}}",
             method:"POST",
             data:{
                 value:value,
+                prNumber:prNumber,
                 dependent:dependent
             },
             success:function(result){
@@ -534,14 +565,18 @@
         let objQty= $('#article_row input[name="qty_order[]"]');
         let objPrice= $('#article_row input[name="price[]"]');
         let objNewPrice= $('#article_row input[name="newPrice[]"]');
+        let objListPrice= $('#article_row a[name="listPrice[]"]');
         objArticle.change(function(e){        
+            // article_code.'|'group.'|'qty_stock.'|'qty.'|'uom1.'|'costprice.'"
             let objIndex = objArticle.index(this);
             let detail = objArticle.eq(objIndex).val();
+            let detailText = objArticle.eq(objIndex).select2('data')[0].text;
             let arrDetail = detail.split("|");
+            objListPrice.eq(objIndex).attr('onClick', 'listPrice('+arrDetail[0]+',"'+detailText+'");');
             objStock.eq(objIndex).val(humanizeNumber(arrDetail[2]||0));
-            objUom.eq(objIndex).text(arrDetail[3]);
-            objPrice.eq(objIndex).val(humanizeNumber(arrDetail[4]||0));
-            objNewPrice.eq(objIndex).val(humanizeNumber(arrDetail[4]||0));
+            objUom.eq(objIndex).text(arrDetail[4]);
+            objPrice.eq(objIndex).val(humanizeNumber(arrDetail[5]||0));
+            objNewPrice.eq(objIndex).val(humanizeNumber(arrDetail[5]||0));
             objArticle.eq(objIndex).select2('open');
             if (detail){
                 setTimeout(() => {
@@ -549,6 +584,34 @@
                 }, 5);
             }
 		});
+    }
+
+    function listPrice(article,desc){
+        $("#modalTableData tbody> tr").remove();
+        $.ajax({
+            dataType: 'json',
+            type:'GET',
+            url: "{{ route('purchaseOrder.price.list') }}",
+            data: { article:article },
+            success: function(data) {
+                if(data.length > 0 ){
+                    let html = '';
+                    for(let i=0;i<data.length;i++){
+                        html += '<tr>';
+                        html += '<td>'+data[i].po_number+'</td>';
+                        html += '<td>'+data[i].po_date+'</td>';
+                        html += '<td class="text-right">'+humanizeNumber(data[i].price)+'</td>';
+                        html += '</tr>';
+                    }
+                    $('#modalTableData tbody').append(html);
+                }                
+            },
+            error: function(data) {
+                swal.fire("Warning","Error data","warning");
+            }
+        });
+        $('#modalArticle').text(desc);
+        $('#modalListPrice').modal('show'); 
     }
 
     function hitungTotal(){
@@ -602,8 +665,6 @@
         $("#totalNetto").val(humanizeNumber((totalAmount+((parseInt(ppn)*totalAmount)/100))-((totalAmount*parseInt(persenDiscount))/100)));
 
     }
-
-   
 
     function tombolPanah(objname){
         // function kalo mau pindah filed dari atas ke bawah atau sebaliknya

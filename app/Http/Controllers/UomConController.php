@@ -16,6 +16,7 @@ class UomConController extends Controller
     public function index(Request $request)
     {
         $data['title'] = "UOM Coversion";
+        $data['uoms'] = DB::table('uom')->orderBy('name')->get();
         return view("uomCon.index",$data);
     }
 
@@ -31,7 +32,9 @@ class UomConController extends Controller
     {
         $username =  Auth::user()->username;
         $unitFrom = $request->input('unitFrom');
+        $unitFrom = explode("|",$unitFrom);
         $unitTo = $request->input('unitTo');
+        $unitTo = explode("|",$unitTo);
         $unitFactor = $request->input('unitFactor');
         $pesan = '';
         
@@ -53,8 +56,8 @@ class UomConController extends Controller
                 DB::table('uom_con')
                 ->updateOrInsert(
                     [
-                        'unit_from' => $unitFrom,
-                        'unit_to' => $unitTo
+                        'unit_from' => $unitFrom[0],
+                        'unit_to' => $unitTo[0]
                     ],
                     [
                         'unit_factor' => $unitFactor,
@@ -68,100 +71,42 @@ class UomConController extends Controller
                 DB::commit();
                 $alert  ="alert-success";
                 $message  = "Data is successfully saved";
-                \LogActivity::addToLog('Uom save ',"username: $username Unit From : $unitFrom Unit To : $unitTo");
+                \LogActivity::addToLog('Uom save ',"username: $username Unit From : $unitFrom[0] Unit To : $unitTo[0]");
                 return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);  
 
         } catch (Exception $e) {
             DB::rollBack();
             $alert  ="alert-warning";
             $message  = "Data is failed to save";
-            \LogActivity::addToLog('Dept save ',"username: $username Unit From : $unitFrom Unit To : $unitTo");
+            \LogActivity::addToLog('Dept save ',"username: $username Unit From : $unitFrom[0] Unit To : $unitTo[0]");
             return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);   
         }
     }
 
     public function edit(Request $request)
     {
-
         $id=$request->id;
-        $data['title'] = "Edit UOM";
-        $data['subtitle'] = "Edit UOM";
-        $data['uom'] = DB::table('uom')
-
-        ->where('id',$id)
+        $data['title'] = "Edit UOM Conversion";
+        $data['subtitle'] = "Edit UOM Conversion";
+        $data['uomCon'] = DB::table('uom_con')
+        ->leftJoin('uom','code','unit_from')
+        ->where('uom_con.id',$id)
         ->get()->first();
 
-        return view('uom.edit',$data);
+        $data['uoms'] = DB::table('uom')
+        ->where('uom_group',$data['uomCon']->uom_group)
+        ->orderBy('name')->get();
+
+        return view('uomCon.edit',$data);
         
-    }
-
-    public function update(Request $request)
-    {
-        $username =  Auth::user()->username;
-        $id = $request->id;
-        $kode = strtoupper($request->input('kode'));
-        $nama = $request->input('nama');
-        $weight = $request->input('weight') ? true : false;
-        $status = '1';
-        $pesan = '';
-        
-        $messages = [
-            'required' => 'The field is required.',
-            'unique' => 'The code has already been taken',
-            'iunique' => "The code $kode has already been taken",
-        ];
-        
-
-        $rule = [
-            'nama'=>'required'
-        ];
-
-        $this->validate($request,$rule,$messages);
-        
-        DB::beginTransaction();
-
-        try {
-                $row_affected=DB::table('uom')
-                ->where('id',$id)
-                ->update(
-                    [
-                        'name'=>$nama,
-                        'weight'=>$weight,
-                        'updated_by' => Auth::user()->username,
-                        'updated_at' => date('Y-m-d H:i:s')
-                    ]
-                );
-
-                DB::commit();
-
-                if($row_affected>0){
-                    $alert  ="alert-success";
-                    $message  = "Successfully updated";
-                    \LogActivity::addToLog('Uom update ',"username: $username Status $message");
-                    return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);  
-                }else{
-                    $alert  ="alert-warning";
-                    $message  = "Failed to update";
-                    \LogActivity::addToLog('Uom update ',"username: $username Status $message");
-                    return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);
-                }
-
-        } catch (Exception $e) {
-            DB::rollBack();
-            $alert  ="alert-warning";
-            $message  = "Failed to update";
-            \LogActivity::addToLog('Uom update ',"username: $username Status $message");
-            return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);
-        }
     }
 
     public function destroy(Request $request)
     {
-
         $username =  Auth::user()->username;
         $id = $request->id;
 
-        $row_affected = DB::table('uom')
+        $row_affected = DB::table('uom_con')
         ->where('id',$id)
         ->delete();
 
@@ -181,23 +126,23 @@ class UomConController extends Controller
 
     public function list(Request $request)
     {
-        $code = strtolower($request->code);
-        $name = strtolower($request->name);
-
-        $data=DB::table('uom')
-        ->where('code','ilike','%'.$code.'%')
-        ->where('name','ilike','%'.$name.'%')  // string to lower
-        ->orderBy('name')->get();
+        $unitFrom = strtolower($request->unitFrom);
+        $unitTo = strtolower($request->unitTo);
+        // ilike = string to lower
+        $data=DB::table('uom_con');
+        $unitFrom ? $data->where('unit_from','ilike','%'.$unitFrom.'%') :"";
+        $unitTo ? $data->where('unit_to','ilike','%'.$unitTo.'%') :"";  
+        $data->get();
 
         return Datatables::of($data)
         ->addColumn('action', function ($data) {
             $buttons = '<div class="d-inline-flex">
                             <a class="pr-1 dropdown-toggle hide-arrow text-primary" data-toggle="dropdown">
-                                <i data-feather="more-vertical"></i>
+                                <i data-feather="menu"></i>
                             </a>';
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
             if (Auth::user()->can('department-edit')) {
-            $buttons .=         '<a href="'. route('uom.edit', ['id'=>$data->id]) .'" class="dropdown-item">
+            $buttons .=         '<a href="'. route('uomCon.edit', ['id'=>$data->id]) .'" class="dropdown-item">
                                     <i data-feather="file-text"></i>
                                     Edit
                                 </a>';
@@ -208,7 +153,7 @@ class UomConController extends Controller
                                     class='dropdown-item'
                                     data-toggle='modal'
                                     data-target='#smallModal'
-                                    data-href='". route("uom.destroy", ["id"=>$data->id]) ."'>
+                                    data-href='". route("uomCon.destroy", ["id"=>$data->id]) ."'>
                                     <i data-feather='trash-2'></i>
                                     Delete
                                 </a>";
@@ -218,19 +163,7 @@ class UomConController extends Controller
 
             return $buttons;
         })
-        ->addColumn('group_id', function () {
-            return '';
-        })
-
-        ->addColumn('weight', function ($data) {
-            if ($data->weight == true){
-                $weightStatus = '<span class="badge badge-pill badge-light-primary">Yes</span>';
-            }else{
-                $weightStatus = '<span class="badge badge-pill badge-light-danger">No</span>';
-            }
-            return $weightStatus;
-        })
-        ->rawColumns(['action','weight'])
+        ->rawColumns(['action'])
         ->make(true);
     }
 

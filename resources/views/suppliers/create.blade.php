@@ -13,19 +13,20 @@
                 <div class="card-body">
                     <form id="frmAdd" name="frmAdd" action="{{ route('supplier.store') }}" method="post" autocomplete="off">
                         @csrf
-                        <div class="row">
+                        {{-- <div class="row">
                             <div class="col-4">
                                 <div class="form-group">
                                     <label for="kode">Kode</label>
                                     <input type="text" id="kode" name="kode" class="form-control" value="{{ old('kode') }}" required maxlength="20" autofocus />
                                 </div>
                             </div>
-                        </div>
+                        </div> --}}
                         <div class="row">
                             <div class="col-12">
                                 <div class="form-group">
                                     <label for="nama">Name</label>
                                     <input type="text" id="nama" name="nama" class="form-control" value="{{ old('nama') }}" required  maxlength="100"/>
+                                    <input type="hidden" id="inisial" name="inisial" class="form-control" value="{{ old('inisial') }}" />
                                 </div>
                             </div>
                         </div>
@@ -53,8 +54,8 @@
                         </div>
                         <div class="row">
                             <div class="form-group col-md-6">
-                                <label class="form-label" for="kontak">Kontak</label>
-                                <input type="text" id="kontak" name="kontak" class="form-control" value="{{ old('kontak') }}" maxlength="20" />
+                                <label class="form-label" for="kontak">Kontak*</label>
+                                <input type="text" id="kontak" name="kontak" class="form-control" value="{{ old('kontak') }}" maxlength="20" required />
                             </div>
                         </div>
                         <div class="row">
@@ -136,5 +137,44 @@
         $(".select2").val('').trigger('change');
         $("#frmAdd").validate().resetForm();
     });
+
+    function getCustAcronym(aString){
+        let initials= "";
+        let namaPerusahaan = ["CV","PT","PTE.","LTD.","CORP.","INC.","PT.","CV.","PTE","LTD","CORP","INC","PD","PD.","UD","UD."];        
+        let wordCount = aString.trim().split(' ').length;
+        if (wordCount == 1){
+            initials = aString.substring(0,3).toUpperCase();
+        }else if (wordCount > 1){ 
+            let aString1 = aString;
+            aString = aString.split(' ');
+            let dataExist = namaPerusahaan.indexOf(aString[wordCount-1].toUpperCase());
+            wordCount = dataExist != -1 ? wordCount-1 : wordCount;
+                        
+            let newString="";
+            for (let i=0 ;i < wordCount;i++){
+                newString+=aString[i].trim() +' ';
+            }   
+            aString1 = newString.trim();
+
+            if (aString1.trim().split(' ').length == 2){
+                aString1 = aString1+' '+aString1.trim().slice(-1);
+            }
+
+            if (aString1.trim().split(' ').length > 3){
+                aString1 = aString1.trim().split(' ').slice(0,3).join(' ');
+            }
+
+            initials = aString1.split(' ').reduce((result, currentWord) => 
+            result + currentWord.charAt(0).toUpperCase(), '');
+        }
+        
+        return initials;
+    }
+
+    document.getElementById("nama").addEventListener("input", acroFunction);
+    function acroFunction() {
+        let aString = document.getElementById('nama').value;
+        document.getElementById('inisial').value= getCustAcronym(aString);
+    }
 </script>
 @endsection

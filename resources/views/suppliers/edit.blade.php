@@ -53,8 +53,8 @@
                         </div>
                         <div class="row">
                             <div class="form-group col-md-6">
-                                <label class="form-label" for="kontak">Kontak</label>
-                                <input type="text" id="kontak" name="kontak" class="form-control" value="{{ old('kontak',$suppliers->nama_kontak) }}" maxlength="20" />
+                                <label class="form-label" for="kontak">Kontak*</label>
+                                <input type="text" id="kontak" name="kontak" class="form-control" value="{{ old('kontak',$suppliers->nama_kontak) }}" maxlength="20" required />
                             </div>
                         </div>
                         <div class="row">

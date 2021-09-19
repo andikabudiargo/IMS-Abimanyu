@@ -60,9 +60,6 @@
                         <table class="" style="width:98%;table-layout: fixed;">
                             <tbody>
                                 <tr>
-                                    <td class="isian-satu" style="width: 15%">
-                                        <label>Purchase Order</label>
-                                    </td>
                                     <td class="" style="width: 25%">
                                         <label>Article Code</label>
                                     </td>
@@ -86,9 +83,6 @@
                                 <table class="table-bordered" style="width: 98%;table-layout: fixed;">
                                     <tbody>
                                         <tr>
-                                            <td class="isian-satu" style="width: 15%">
-                                                <input type="text" class="form-control-plaintext" id = "purchase_order" name="purchase_order[]" value="{{ $item->po_number }}"  disabled/>
-                                            </td>
                                             <td class="" style="width: 25%">
                                                 <select class="select2 dynamicSelect sku-select-system" id="article_id{{ $key }}" name="article_id[]" data-dependent="article_id" disabled>
                                                     @foreach($articles as $val)

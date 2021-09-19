@@ -1,5 +1,5 @@
 <!-- Modal delete-->
-<div class="modal fade text-left draggable" id="smallModal" tabindex="-1" role="dialog" aria-hidden="true">
+<div class="modal fade text-left bisa-geser" id="smallModal" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered" role="document">
         <div class="modal-content">
             <div class="modal-header">

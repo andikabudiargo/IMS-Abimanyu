@@ -11,15 +11,15 @@
                     <h4 class="card-title">yield('title')</h4>
                 </div> --}}
                 <div class="card-body">
-                    <form id="frmAdd" name="frmAdd" action="{{ route('uomCon.store') }}" method="post" autocomplete="off">
+                    <form id="frmAdd" name="frmAdd" action="{{ route('uomCon.store',['id'=> $uomCon->id]) }}" method="post" autocomplete="off">
                         @csrf
                         <div class="row">
                             <div class="form-group col-md-6">
                                 <label class="form-label" for="dept">Unit From *</label>
-                                <select class="select2 form-control dynamicSelect" id="unitFrom" name="unitFrom" data-dependent="unitTo" required>
+                                <select class="select2 form-control disabled-el" id="unitFrom" name="unitFrom" data-dependent="unitTo" disabled>
                                     <option label=""></option>
                                     @foreach($uoms as $val)
-                                        <option value="{{$val->code}}|{{$val->uom_group}}" {{ $val->code == old("unitFrom") ? "selected" : ""}}>{{$val->code}} - {{$val->name}}</option>
+                                        <option value="{{$val->code}}|{{$val->uom_group}}" {{ $val->code == old("unitFrom",$uomCon->unit_from) ? "selected" : ""}}>{{$val->code}} - {{$val->name}}</option>
                                     @endforeach
                                 </select>
                             </div>
@@ -27,7 +27,10 @@
                         <div class="row">
                             <div class="form-group col-md-6">
                                 <label class="form-label" for="dept">Unit To *</label>
-                                <select class="select2 form-control" id="unitTo" name="unitTo" required>                                
+                                <select class="select2 form-control disabled-el" id="unitTo" name="unitTo" disabled>                                
+                                    @foreach($uoms as $val)
+                                        <option value="{{$val->code}}|{{$val->uom_group}}" {{ $val->code == old("unitFrom",$uomCon->unit_from) ? "selected" : ""}}>{{$val->code}} - {{$val->name}}</option>
+                                    @endforeach
                                 </select>
                             </div>
                         </div>
@@ -35,14 +38,16 @@
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label for="unitFactor">Unit Factor</label>
-                                    <input type="text" id="unitFactor" name="unitFactor" class="form-control angka" value="{{ old('unitFactor') }}"  required  maxlength="20"/>
+                                    <input type="text" id="unitFactor" name="unitFactor" class="form-control angka" value="{{ old('unitFactor',$uomCon->unit_factor) }}"  required  maxlength="20"/>
                                 </div>
                             </div>
                         </div>
                         <br>
                         <div class="row">
                             <div class="col-12">
-                                <button class="btn btn-outline-secondary" type="reset" id="cmdCancel" name="cmdCancel">Cancel</button>
+                                <a href="{{ route('uomCons.index') }}" class="btn btn-outline-secondary">
+                                    Cancel
+                                </a>
                                 <button class="btn btn-success" type="button" id="cmdSave" name="cmdSave">Save</button>
                             </div>
                         </div>
