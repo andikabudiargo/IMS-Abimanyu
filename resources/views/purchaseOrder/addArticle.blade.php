@@ -36,24 +36,24 @@
         <table class="table-bordered" style="width: 98%;table-layout: fixed;">
             <tbody>
                 <tr>
-                    <td class="isian-satu" style="width: 20%">
-                        <select class="dynamicSelect sku-select-system" id="pRequest" name="pRequest[]" data-dependent="pRequest">
+                    <td class="isian-satu" style="width: 15%">
+                        <select class="dynamicSelect form-control sku-select-system" id="pRequest" name="pRequest[]" data-dependent="pRequest">
                         </select>
                     </td>
                     <td class="" style="">
-                        <select class="dynamicSelect sku-select-system" id="article_id" name="article_id[]" data-dependent="article_id">
+                        <select class="dynamicSelect form-control sku-select-system" id="article_id" name="article_id[]" data-dependent="article_id">
                         </select>
-                    </td>
-                    <td class="isian disabled" style="width: 5%">
-                        <span class="" id = "uom" name="uom[]"></span>
                     </td>
                     <td class="isian disabled" style="width: 5%">
                         <input type="text" class="form-control-plaintext text-right" id = "qty_stock" name="qty_stock[]" disabled>
                     </td>
-                    <td class="isian" style="width: 5%">
+                    <td class="isian" style="width: 10%">
                         <input type="text" class="form-control-plaintext numeral-mask text-right" id = "qty_order" name="qty_order[]" maxlength="9" />
                     </td>
-                    <td class="isian disabled" style="width: 10%">
+                    <td class="isian disabled" style="width: 5%">
+                        <span class="" id = "uom" name="uom[]"></span>
+                    </td>
+                    <td class="isian disabled d-none" style="width: 10%">
                         <input type="text" class="form-control-plaintext numeral-mask text-right" id = "price" name="price[]"  maxlength="11" disabled>
                     </td>
                     <td class="text-center" style="width: 5%">
@@ -66,7 +66,7 @@
                         <input type="text" class="form-control-plaintext numeral-mask text-right" id = "newPrice" name="newPrice[]"  maxlength="11">
                     </td>
                     <td class="isian disabled text-right" style="width: 10%">
-                        <span id="totalLine" name="totalLine[]"></span>
+                        <span class="totalLine" id="totalLine" name="totalLine[]"></span>
                     </td>
                     <td class="isian text-center" style="width: 5%">
                         <a onmouseover="this.style.cursor='pointer'" onclick="$(this).parents('.tanda-baris').remove();hitungGrandTotal()">

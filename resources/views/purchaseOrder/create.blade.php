@@ -113,22 +113,22 @@
                         <table class="" style="width:98%;table-layout: fixed;">
                             <tbody>
                                 <tr>
-                                    <td class="isian-satu" style="width: 20%">
+                                    <td class="isian-satu" style="width: 15%">
                                         <label>Purchase Request</label>
                                     </td>
                                     <td class="">
                                         <label>Article Code</label>
                                     </td>
                                     <td class="isian" style="width: 5%">
-                                        <label>UOM</label>
-                                    </td>
-                                    <td class="isian" style="width: 5%">
                                         <label>Stock</label>
                                     </td>
-                                    <td class="isian" style="width: 5%">
+                                    <td class="isian" style="width: 10%">
                                         <label>QTY</label>
                                     </td>
-                                    <td class="isian" style="width: 10%">
+                                    <td class="isian" style="width: 5%">
+                                        <label>UOM</label>
+                                    </td>
+                                    <td class="isian d-none" style="width: 10%">
                                         <label>Price</label>
                                     </td>
                                     <td class="text-center" style="width: 5%">
@@ -279,6 +279,13 @@
     label.tanpa-padding{
         padding-top: 5px;
         padding-bottom: 0px;
+    }
+
+    .totalLine{
+        display: block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
 
 

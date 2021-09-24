@@ -102,7 +102,7 @@ class PurchaseOrderController extends Controller
     public function store(Request $request)
     {
         $username =  Auth::user()->username;
-        $articles = json_decode($request -> articles);
+        $articles = json_decode($request->articles);
         $orderDate = $request->orderDate;
         $deliveryDate = $request->deliveryDate;
         $currency = $request->currency;
@@ -233,29 +233,44 @@ class PurchaseOrderController extends Controller
     public function show(Request $request)
     {
         $id=$request->id;
-        $data['title'] = "Edit Purchase Order";
-        $data['subtitle'] = "Edit Purchase Order";
+        $data['title'] = "Detail Purchase Order";
+        $data['subtitle'] = "Detail Purchase Order";
 
         $data['header'] = DB::table('purchase_order_hdr')
-        ->where('id',$id)
+        ->leftJoin('purchase_request_det','purchase_order_hdr.po_number','purchase_request_det.po_number')
+        ->where('purchase_order_hdr.id',$id)
         ->get()->first();
+
+        $data['prHeader'] = DB::table('purchase_request_det') 
+        ->where('supp_code',$data['header']->supplier_id)
+        ->where('po_number','=',$data['header']->po_number)
+        ->orderBy('pr_number')
+        ->distinct('pr_number')
+        ->get();
+
+        $data['articles'] = DB::table('purchase_request_det') 
+            ->leftJoin('article','article.article_code','=','purchase_request_det'.'.article_code')
+            ->leftJoin('article_stock','article_stock.article_code','=','purchase_request_det'.'.article_code')
+            ->leftJoin('group_materials','group_materials.code','=','article.group_of_material')
+            ->where('supp_code',$data['header']->supplier_id)
+            ->where('po_number','=',$data['header']->po_number)
+            // ->where('pr_number','=',$data['header']->pr_number)
+            ->orderBy('article.article_desc')
+            ->distinct('article.article_desc')
+            ->select('purchase_request_det'.'.*','article.article_alternative_code','article.article_code as artikel_code','article.article_desc','article.costprice','article_stock.article_qty as qty_stock','purchase_request_det.uom as uom1','group_materials.name as group')
+            ->get();
 
         $data['detail'] = DB::table('purchase_order_det')
         ->leftJoin('article','article.article_code','=','purchase_order_det.article_code')
         ->leftJoin('article_stock','article_stock.article_code','=','purchase_order_det.article_code')
-        ->where('po_number',$data['header']->po_number)
-        ->select('purchase_order_det'.'.*','article_stock.article_qty as qty_stock', DB::raw('(SELECT name from group_materials where code = group_of_material) as group'))
+        ->leftJoin('purchase_request_det', function($join) {
+            $join->on('purchase_request_det.po_number','purchase_order_det.po_number')
+            ->on('purchase_request_det.article_code','purchase_order_det.article_code');
+        })
+        ->where('purchase_order_det.po_number',$data['header']->po_number)
+        ->select('purchase_order_det'.'.*','purchase_request_det.pr_number','article_stock.article_qty as qty_stock', DB::raw('(SELECT name from group_materials where code = group_of_material) as group'))
         ->orderBy('id')
         ->get();       
-
-        $data['articles']= DB::table('article') 
-        ->leftJoin('article_stock','article_stock.article_code','=','article.article_code')
-        ->leftJoin('group_materials','group_materials.code','=','article.group_of_material')
-        // ->where('third_party',$data['header']->customer_id)
-        ->where('article_type','CM')
-        ->orderBy('article_desc')
-        ->select('article'.'.*', 'article_stock.article_qty as qty','article.uom as uom1','group_materials.name as group')
-        ->get();   
 
         $data['supps'] = DB::table('third_party')
         ->where ('third_party_type','=','supp')
@@ -267,6 +282,7 @@ class PurchaseOrderController extends Controller
         $data['uoms'] = DB::table('uom')
         ->orderBy('name')
         ->get();
+
 
         return view("purchaseOrder.show",$data);
         
@@ -296,7 +312,7 @@ class PurchaseOrderController extends Controller
             ->leftJoin('group_materials','group_materials.code','=','article.group_of_material')
             ->where('supp_code',$data['header']->supplier_id)
             ->where('po_number','=',$data['header']->po_number)
-            ->where('pr_number','=',$data['header']->pr_number)
+            // ->where('pr_number','=',$data['header']->pr_number)
             ->orderBy('article.article_desc')
             ->distinct('article.article_desc')
             ->select('purchase_request_det'.'.*','article.article_alternative_code','article.article_code as artikel_code','article.article_desc','article.costprice','article_stock.article_qty as qty_stock','purchase_request_det.uom as uom1','group_materials.name as group')
@@ -305,8 +321,12 @@ class PurchaseOrderController extends Controller
         $data['detail'] = DB::table('purchase_order_det')
         ->leftJoin('article','article.article_code','=','purchase_order_det.article_code')
         ->leftJoin('article_stock','article_stock.article_code','=','purchase_order_det.article_code')
-        ->where('po_number',$data['header']->po_number)
-        ->select('purchase_order_det'.'.*','article_stock.article_qty as qty_stock', DB::raw('(SELECT name from group_materials where code = group_of_material) as group'))
+        ->leftJoin('purchase_request_det', function($join) {
+            $join->on('purchase_request_det.po_number','purchase_order_det.po_number')
+            ->on('purchase_request_det.article_code','purchase_order_det.article_code');
+        })
+        ->where('purchase_order_det.po_number',$data['header']->po_number)
+        ->select('purchase_order_det'.'.*','purchase_request_det.pr_number','article_stock.article_qty as qty_stock', DB::raw('(SELECT name from group_materials where code = group_of_material) as group'))
         ->orderBy('id')
         ->get();       
 
@@ -432,13 +452,14 @@ class PurchaseOrderController extends Controller
                         ->whereNotIn(DB::raw("CONCAT(po_number,article_code)"),$dataSet)
                         ->where('po_number',$poNumber)
                         ->delete();
-
+                                  
                     foreach ($articles as $val) {
                         DB::table('purchase_order_det')
                         ->updateOrInsert(
                             ['po_number' => $poNumber,'article_code' => $val->article_code],
                             [
                             'po_number' => $poNumber,
+                            'pr_number' => $val->pRequest,
                             'article_code' => $val->article_code,
                             'qty' => $val->qty,
                             'uom' => $val->uom,
@@ -450,8 +471,46 @@ class PurchaseOrderController extends Controller
                             'updated_at' => date('Y-m-d H:i:s')
                             ]
                         );
+
+                        DB::table('purchase_request_det')
+                        ->where('pr_number',$val->pRequest)
+                        ->where('article_code',$val->article_code)
+                        ->where('supp_code',$supplier)
+                        ->update(
+                            [
+                            'po_number' => $poNumber,
+                            'updated_by' => Auth::user()->username,
+                            'updated_at' => date('Y-m-d H:i:s')
+                            ]
+                        );
+
+                        DB::table('purchase_request_hdr')
+                        ->where('number',$val->pRequest)
+                        ->update(
+                            [
+                            'status' => 7,
+                            'updated_by' => Auth::user()->username,
+                            'updated_at' => date('Y-m-d H:i:s')
+                            ]
+                        );
                     }
                     
+                    //update purchase_request_det kalo ada article yang di hapus di PO, jadi kolom po_number di null kan
+                    DB::table('purchase_request_det')
+                    ->whereNotIn(DB::raw("CONCAT(pr_number,po_number,article_code)"), function($query) use ($poNumber) {
+                        $query->select(DB::raw("CONCAT(pr_number,po_number,article_code)"))
+                        ->from('purchase_order_det') 
+                        ->where('po_number',$poNumber);
+                    })
+                    ->where('po_number',$poNumber)
+                    ->update(
+                        [
+                            'po_number' => null,
+                            'updated_by' => Auth::user()->username,
+                            'updated_at' => date('Y-m-d H:i:s')
+                        ]
+                    );
+                                            
                     DB::commit();
                     $alert  ="alert-success";
                     $message  = "PO $poNumber is successfully updated";

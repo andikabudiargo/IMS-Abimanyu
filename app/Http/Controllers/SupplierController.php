@@ -23,6 +23,11 @@ class SupplierController extends Controller
     {
         $data['title'] = "Create Supplier";
         $data['subtitle'] = "Create New Supplier";
+
+        $data['cities'] = DB::table('regions')
+        ->where ('index','=',1)
+        ->orderBy('region_name')
+        ->get();
                 
         return view("suppliers.create",$data);
     }
@@ -69,6 +74,9 @@ class SupplierController extends Controller
         $kontak = $request->input('kontak');
         $email = $request->input('email');
         $termin = $request->input('termin');
+        $npwp = $request->input('npwp');
+        $alamatNpwp = $request->input('alamatNpwp');
+        $kotaNpwp = $request->input('kotaNpwp');
         $third_party_type='supp';
         $aktif = '1';
         $blacklist = '0';
@@ -109,6 +117,9 @@ class SupplierController extends Controller
                     'aktif'=> $aktif,
                     'blacklist'=> $blacklist,
                     'third_party_type'=> $third_party_type,
+                    'npwp'=> $npwp,
+                    'alamat_npwp'=> $alamatNpwp,
+                    'kota_npwp'=> $kotaNpwp,
                     'created_by' => Auth::user()->username,
                     'updated_by' => Auth::user()->username,
                     'created_at' => date('Y-m-d H:i:s'),
@@ -143,6 +154,11 @@ class SupplierController extends Controller
         ->where('id',$id)
         ->get()->first();
 
+        $data['cities'] = DB::table('regions')
+        ->where ('index','=',1)
+        ->orderBy('region_name')
+        ->get();
+
         $data['edit'] = 1;
 
         return view('suppliers.edit',$data);
@@ -162,6 +178,9 @@ class SupplierController extends Controller
         $kontak = $request->input('kontak');
         $email = $request->input('email');
         $termin = $request->input('termin');
+        $npwp = $request->input('npwp');
+        $alamatNpwp = $request->input('alamatNpwp');
+        $kotaNpwp = $request->input('kotaNpwp');
         $third_party_type='supp';
         $aktif = '1';
         $blacklist = '0';
@@ -205,6 +224,9 @@ class SupplierController extends Controller
                         'aktif'=> $aktif,
                         'blacklist'=> $blacklist,
                         'third_party_type'=> $third_party_type,
+                        'npwp'=> $npwp,
+                        'alamat_npwp'=> $alamatNpwp,
+                        'kota_npwp'=> $kotaNpwp,
                         'updated_by' => Auth::user()->username,
                         'updated_at' => date('Y-m-d H:i:s')
                     ]

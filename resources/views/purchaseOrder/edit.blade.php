@@ -98,8 +98,8 @@
                                             <a href="{{ route('purchaseOrders.index') }}" class="btn btn-warning">Cancel</a>
                                             <a href="{{ route('purchaseOrder.create') }}" class="btn btn-success">New</a>
                                             <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Update</button>
-                                            <button class="btn btn-primary" type="button" id="cmdValidate" name="cmdValidate">Validate</button>
-                                            <button class="btn btn-primary" type="button" id="cmdAuthorized" name="cmdAuthorized">Auhorized</button>
+                                            {{-- <button class="btn btn-primary" type="button" id="cmdValidate" name="cmdValidate">Validate</button>
+                                            <button class="btn btn-primary" type="button" id="cmdAuthorized" name="cmdAuthorized">Auhorized</button> --}}
                                         </div>
                                     </div>
                                 </div>
@@ -119,29 +119,29 @@
                         <table class="" style="width:98%;table-layout: fixed;">
                             <tbody>
                                 <tr>
-                                    <td class="isian-satu" style="width: 20%">
+                                    <td class="isian-satu" style="width: 15%">
                                         <label>Purchase Request</label>
                                     </td>
                                     <td class="">
                                         <label>Article Code</label>
                                     </td>
                                     <td class="isian" style="width: 5%">
-                                        <label>UOM</label>
-                                    </td>
-                                    <td class="isian" style="width: 5%">
                                         <label>Stock</label>
                                     </td>
-                                    <td class="isian" style="width: 5%">
+                                    <td class="isian" style="width: 10%">
                                         <label>QTY</label>
                                     </td>
-                                    <td class="isian" style="width: 10%">
+                                    <td class="isian" style="width: 5%">
+                                        <label>UOM</label>
+                                    </td>
+                                    <td class="isian d-none" style="width: 10%">
                                         <label>Price</label>
                                     </td>
                                     <td class="text-center" style="width: 5%">
                                         <label>-</label>
                                     </td>
                                     <td class="isian" style="width: 10%">
-                                        <label>New Price</label>
+                                        <label>Price</label>
                                     </td>
                                     <td class="isian" style="width: 10%">
                                         <label>Total</label>
@@ -153,41 +153,41 @@
                             </tbody>
                         </table>
                     </div>
-                    <div class="" id="article_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;">
+                    <div class="" id="article_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px">
                         <input type="text" id ="last_row_number" class="d-none" value="{{ count($detail) }}">
                         @foreach ($detail as $key =>$item)
                             <div id="new_row{{ $key }}" class="tanda-baris" >
                                 <table class="table-bordered" style="width: 98%;table-layout: fixed;">
                                     <tbody>
                                         <tr>
-                                            <td class="isian-satu" style="width: 20%">
-                                                <select class="select2 dynamicSelect sku-select-system" id="pRequest{{ $key }}" name="pRequest[]" data-dependent="pRequest">
+                                            <td class="isian-satu" style="width: 15%">
+                                                <select class="select2 form-control dynamicSelect sku-select-system" id="pRequest{{ $key }}" name="pRequest[]" data-dependent="pRequest">
                                                     @foreach($prHeader as $val)
-                                                        <option value="{{ $val->pr_number }}" >{{ $val->pr_number }}</option>
+                                                        <option value="{{ $val->pr_number }}" {{ $val->pr_number == $item->pr_number ? "selected" :"" }} >{{ $val->pr_number }}</option>
                                                     @endforeach
                                                 </select>
                                             </td>
                                             <td class="" style="">
-                                                <select class="select2 dynamicSelect sku-select-system" id="article_id{{ $key }}" name="article_id[]" data-dependent="article_id">
+                                                <select class="select2 form-control dynamicSelect sku-select-system" id="article_id{{ $key }}" name="article_id[]" data-dependent="article_id">
                                                     @foreach($articles as $val)
-                                                        <option value="{{ $val->article_code }}|{{ $val->group }}|{{ $val->qty_stock }}|{{ $val->qty }}|{{ $val->uom1 }}|{{ $val->costprice }}">{{ $val->article_alternative_code }} - {{ $val->article_desc }}</option>
+                                                        <option value="{{ $val->article_code }}|{{ $val->group }}|{{ $val->qty_stock }}|{{ $val->qty }}|{{ $val->uom1 }}|{{ $val->costprice }}" {{ $val->article_code == $item->article_code && $val->pr_number == $item->pr_number ? "selected" :"" }}>{{ $val->article_alternative_code }} - {{ $val->article_desc }}</option>
                                                     @endforeach
                                                 </select>
                                             </td>
                                             <td class="isian disabled" style="width: 5%">
-                                                <span class="" id = "uom" name="uom[]">{{ $item->uom }}</span>
-                                            </td>
-                                            <td class="isian disabled" style="width: 5%">
                                                 <input type="text" class="form-control-plaintext text-right" id = "qty_stock" name="qty_stock[]" value="{{ $item->qty_stock ==0 ? 0 :$item->qty_stock }}" disabled>
                                             </td>
-                                            <td class="isian" style="width: 5%">
+                                            <td class="isian" style="width: 10%">
                                                 <input type="text" class="form-control-plaintext numeral-mask text-right" id = "qty_order" name="qty_order[]" value="{{ $item->qty }}" maxlength="9" />
                                             </td>
-                                            <td class="isian disabled" style="width: 10%">
+                                            <td class="isian disabled" style="width: 5%">
+                                                <span class="" id = "uom" name="uom[]">{{ $item->uom }}</span>
+                                            </td>
+                                            <td class="isian disabled d-none" style="width: 10%">
                                                 <input type="text" class="form-control-plaintext numeral-mask text-right" id = "price" name="price[]" value="{{ $item->old_price }}"  maxlength="11">
                                             </td>
                                             <td class="text-center" style="width: 5%">
-                                                <a onmouseover="this.style.cursor='pointer'" id="listPrice" name="listPrice[]">
+                                                <a onmouseover="this.style.cursor='pointer'" id="listPrice" name="listPrice[]" onClick="listPrice({{ $item->article_code }},'{{ $item->article_code }}')">
                                                     <i data-feather="info" class="feather-24">
                                                     </i>
                                                 </a>
@@ -196,7 +196,7 @@
                                                 <input type="text" class="form-control-plaintext numeral-mask text-right" id = "newPrice" name="newPrice[]" value="{{ $item->price }}"  maxlength="11">
                                             </td>
                                             <td class="isian disabled text-right" style="width: 10%">
-                                                <span id="totalLine" name="totalLine[]">{{ number_format($item->qty * $item->price) }}</span>
+                                                <span class="totalLine" id="totalLine" name="totalLine[]">{{ number_format($item->qty * $item->price) }}</span>
                                             </td>
                                             <td class="isian text-center" style="width: 5%">
                                                 <a onmouseover="this.style.cursor='pointer'" onclick="$(this).parents('.tanda-baris').remove();hitungGrandTotal()">
@@ -341,11 +341,21 @@
         padding-bottom: 0px;
     }
 
+    .totalLine{
+        display: block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
 </style>
 @endsection
 @section('scripts')
 <script type="text/javascript">
-    let currentDate = todayDate('dd-mm-yyyy');    
+    let currentDate = todayDate('dd-mm-yyyy');  
+    $("input[type='text']").click(function () {
+        $(this).select();
+    });  
     $(document).ready(function(){           
         validateForm('frmAdd');
         $('#orderDate').val(currentDate);
@@ -355,7 +365,7 @@
         mask_thousand();
         splitArticle();
         isiListArticle();
-        hitungGrandTotal();
+        hitungTotal();
     });
 
     orderDate = $('#orderDate');
@@ -404,6 +414,7 @@
         let objPrice= $('input[name="price[]"]');
         let objNewPrice= $('input[name="newPrice[]"]');
         let objUom= $('span[name="uom[]"]'); 
+        let objpr= $('select[name="pRequest[]"]'); 
         let articles = []; 
         let flag=0; 
         let pesan="";
@@ -417,6 +428,7 @@
                 let qty=objQty.eq(i).val().replace(/[^0-9]/gi, '') || 0;
                 let newPrice=objNewPrice.eq(i).val().replace(/[^0-9]/gi, '') || 0;
                 let price=objPrice.eq(i).val().replace(/[^0-9]/gi, '') || 0;
+                let pRequest=objpr.eq(i).val();
                 let uom=objUom.eq(i).text();
                 let supp=$('#supplier').val();
                 let suppName = $('#supplier').select2('data')[0].text;
@@ -442,6 +454,7 @@
                             "uom":uom,
                             "price":price,
                             "newPrice":newPrice,
+                            "pRequest":pRequest
                         });
                     }
                 } 
@@ -480,7 +493,6 @@
                 type: "post",
                 url: "{{ route('purchaseOrder.update') }}",
                 data: {
-
                     articles:JSON.stringify(articles),
                     poNumber:poNumber,
                     orderDate:orderDate,
@@ -495,7 +507,6 @@
                     kurs:kurs,
                     note:note,
                     discount:persenDiscount
-
                 },
                 dataType: "json",
                 success: function(data) {

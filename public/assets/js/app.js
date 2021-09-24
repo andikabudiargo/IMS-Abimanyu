@@ -394,7 +394,18 @@
         $('.numeral-mask').toArray().forEach(function(field){
             new Cleave(field, {
                 numeral: true,
-                numeralThousandsGroupStyle: 'thousand'
+                numeralThousandsGroupStyle: 'thousand',
+                numeralDecimalScale: 0
+            });
+        });   
+    }
+
+    function mask_thousand_digit(digit){
+        $('.numeral-mask-digit').toArray().forEach(function(field){
+            new Cleave(field, {
+                numeral: true,
+                numeralThousandsGroupStyle: 'thousand',
+                numeralDecimalScale: digit
             });
         });   
     }

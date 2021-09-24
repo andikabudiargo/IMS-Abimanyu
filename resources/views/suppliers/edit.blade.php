@@ -134,5 +134,15 @@
         $("#frmAdd").submit(); // Submit the form
     });
 
+    npwp = $('.masking-npwp');
+    if (npwp.length) {
+        // 99.999.999.9-999.999       
+        new Cleave(npwp, {
+        delimiters: ['.','.','.','-','.'],
+        blocks: [2,3,3,1,3,3],
+        uppercase: true
+        });
+    }
+
 </script>
 @endsection

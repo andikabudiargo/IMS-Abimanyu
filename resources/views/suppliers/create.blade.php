@@ -75,6 +75,29 @@
                                 </div>
                             </div>
                         </div>
+                        <div class="row">
+                            <div class="form-group col-md-6">
+                                <label class="form-label" for="npwp">NPWP</label>
+                                <input type="text" id="npwp" name="npwp" value="{{ old('npwp') }}" class="form-control masking-npwp angka" />
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="form-group col-md-6">
+                                <label class="form-label" for="alamatNpwp">Alamat NPWP</label>
+                                <textarea type="text" id="alamatNpwp" name="alamatNpwp" class="form-control" rows="2" maxlength="100">{{ old('alamatNpwp') }}</textarea>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="form-group col-md-6">
+                                <label class="form-label" for="kotaNpwp">Kota</label>
+                                <select class="select2 w-100" id="kotaNpwp" name="kotaNpwp">
+                                    <option label=""></option>
+                                    @foreach($cities as $val)
+                                        <option value="{{$val->region_code}}">{{$val->region_name}}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
                         {{-- <div class="row">
                             <div class="form-group col-md-12">
                                 <label class="form-label" for="account">Account</label>
@@ -176,5 +199,17 @@
         let aString = document.getElementById('nama').value;
         document.getElementById('inisial').value= getCustAcronym(aString);
     }
+
+    npwp = $('.masking-npwp');
+    if (npwp.length) {
+        // 99.999.999.9-999.999       
+        new Cleave(npwp, {
+        delimiters: ['.','.','.','-','.'],
+        blocks: [2,3,3,1,3,3],
+        uppercase: true
+        });
+    }
+
+
 </script>
 @endsection

@@ -165,8 +165,11 @@
                 $('[data-toggle="tooltip"]').tooltip("hide");
             });
         });
-        
 
+        $("input[type='text']").click(function () {
+            $(this).select();
+        });
+        
     </script>
     <script src="{{asset('assets/js/app.js')}}"></script>
     @yield('scripts')

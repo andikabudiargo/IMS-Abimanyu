@@ -106,13 +106,13 @@
                                                 </select>
                                             </td>
                                             <td class="isian" style="width: 5%">
-                                                <input type="text" class="form-control-plaintext numeral-mask text-right" id = "qtyBom" name="qtyBom[]" value="{{ $item->qty }}" disabled />
+                                                <input type="text" class="form-control-plaintext numeral-mask-digit text-right" id = "qtyBom" name="qtyBom[]" value="{{ $item->qty }}" disabled />
                                             </td>
                                             <td class="isian disabled" style="width: 5%">
                                                 <span class="" id = "uom" name="uom[]">{{ $item->uom }}</span>
                                             </td>
                                             <td class="isian disabled" style="width: 10%">
-                                                <input type="text" class="form-control-plaintext numeral-mask text-right" id = "price" name="price[]" value="{{ $item->cost_price }}" disabled>
+                                                <input type="text" class="form-control-plaintext numeral-mask-digit text-right" id = "price" name="price[]" value="{{ $item->cost_price }}" disabled>
                                             </td>
                                             <td class="isian disabled" style="width: 10%">
                                                 <span class="" id = "type" name="type[]">{{ $item->uom }}</span>
@@ -181,7 +181,7 @@
         isiDetailHeader();
         tombolPanah('qtyBom');
         activate_angka();
-        mask_thousand();
+        mask_thousand_digit(3);
         splitArticle();
     });
 

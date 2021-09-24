@@ -320,7 +320,7 @@
         $('#remove_button').tooltip();
         tombolPanah('qtyBom');
         activate_angka();
-        mask_thousand();
+        mask_thousand_digit(3);
         splitArticle();
     };
 
