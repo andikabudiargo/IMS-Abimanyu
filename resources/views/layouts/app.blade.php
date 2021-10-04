@@ -77,6 +77,11 @@
 
         th, td { white-space: nowrap; }
 
+        .text-hitam {
+            color:black;
+        }
+        
+
     </style>
 
     @yield('styles')

@@ -156,9 +156,26 @@
             @endcan
           </ul>
         </li>
-        <li class=" {{ in_array(\Request::segment(1), ['boms','workingOrders']) ? 'active' : '' }} nav-item">
+        <li class=" {{ in_array(\Request::segment(1), ['receivings']) ? 'active' : '' }} nav-item">
           <a class="d-flex align-items-center" href="javascript:void(0);">
             <i data-feather='package'></i>
+            <span class="menu-title text-truncate" data-i18n="Form Elements">Receiving
+            </span>
+          </a>
+          <ul class="menu-content">
+            @can('receiving-index')
+            <li class="{{ \Request::segment(1) == 'receivings' ? 'active' : '' }}">
+              <a class="d-flex align-items-center" href="{{ route('receivings.index') }}">
+                <i data-feather="circle"></i>
+                <span class="menu-item text-truncate" data-i18n="Input">Receiving</span>
+              </a>
+            </li>
+            @endcan
+          </ul>
+        </li>
+        <li class=" {{ in_array(\Request::segment(1), ['boms','workingOrders']) ? 'active' : '' }} nav-item">
+          <a class="d-flex align-items-center" href="javascript:void(0);">
+            <i data-feather='tool'></i>
             <span class="menu-title text-truncate" data-i18n="Form Elements">Production
             </span>
           </a>
