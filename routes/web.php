@@ -171,6 +171,7 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('articles/delete',['as'=>'article.destroy','uses'=>'ArticleController@destroy']);
 	Route::get('articles/code/create',['as'=>'article.code.create','uses'=>'ArticleController@articleCodeCreate']);
 	Route::post('articles/get/supplier',['as'=>'get.supplier','uses'=>'ArticleController@getSupplier']);
+	Route::get('articles/movement',['as'=>'article.movement','uses'=>'ArticleController@movement']);
 
 	Route::get('articleTypes',['as'=>'articleTypes.index','uses'=>'ArticleTypeController@index','middleware' => ['permission:articleType-index']]);
 	Route::get('articleTypes/create',['as'=>'articleType.create','uses'=>'ArticleTypeController@create','middleware' => ['permission:articleType-create']]);
@@ -202,6 +203,7 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('purchaseOrders/code/create',['as'=>'purchaseOrder.code.create','uses'=>'PurchaseOrderController@articleCodeCreate']);
 	Route::get('purchaseOrders/print',['as'=>'purchaseOrder.print','uses'=>'PurchaseOrderController@print']);
 	Route::get('purchaseOrders/price/list',['as'=>'purchaseOrder.price.list','uses'=>'PurchaseOrderController@priceList']);
+	Route::get('purchaseOrders/revision',['as'=>'purchaseOrder.revision','uses'=>'PurchaseOrderController@revision','middleware' => ['permission:purchaseOrder-revision']]);
 
 	Route::get('receivings',['as'=>'receivings.index','uses'=>'ReceivingController@index','middleware' => ['permission:receiving-index']]);
 	Route::get('receivings/create',['as'=>'receiving.create','uses'=>'ReceivingController@create','middleware' => ['permission:receiving-create']]);
@@ -217,7 +219,23 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('receivings/delete',['as'=>'receiving.destroy','uses'=>'ReceivingController@destroy']);
 	Route::get('receivings/code/create',['as'=>'receiving.code.create','uses'=>'ReceivingController@articleCodeCreate']);
 	Route::get('receivings/print',['as'=>'receiving.print','uses'=>'ReceivingController@print']);
-	Route::get('receivings/price/list',['as'=>'receiving.price.list','uses'=>'ReceivingController@priceList']);
+	Route::post('receivings/posting',['as'=>'receiving.posting','uses'=>'ReceivingController@posting']);
+
+	Route::get('receivingsRm',['as'=>'receivingsRm.index','uses'=>'ReceivingRmController@index','middleware' => ['permission:receivingRm-index']]);
+	Route::get('receivingsRm/create',['as'=>'receivingRm.create','uses'=>'ReceivingRmController@create','middleware' => ['permission:receivingRm-create']]);
+	Route::get('receivingsRm/search',['as'=>'receivingRm.search','uses'=>'ReceivingRmController@search']);
+	Route::get('receivingsRm/list/so',['as'=>'receivingRm.list.so','uses'=>'ReceivingRmController@listSo']);
+	Route::get('receivingsRm/list/uom',['as'=>'receivingRm.list.uom','uses'=>'ReceivingRmController@listUom']);
+	Route::get('receivingsRm/so/det',['as'=>'receivingRm.so.det','uses'=>'ReceivingRmController@soDetail']);
+	Route::post('receivingsRm/store',['as'=>'receivingRm.store','uses'=>'ReceivingRmController@store']);
+	Route::get('receivingsRm/list',['as'=>'receivingRm.list','uses'=>'ReceivingRmController@list']);
+	Route::get('receivingsRm/show',['as'=>'receivingRm.show','uses'=>'ReceivingRmController@show']);
+	Route::get('receivingsRm/edit',['as'=>'receivingRm.edit','uses'=>'ReceivingRmController@edit','middleware' => ['permission:receivingRm-edit']]);
+	Route::post('receivingsRm/update',['as'=>'receivingRm.update','uses'=>'ReceivingRmController@update']);
+	Route::post('receivingsRm/delete',['as'=>'receivingRm.destroy','uses'=>'ReceivingRmController@destroy']);
+	Route::get('receivingsRm/code/create',['as'=>'receivingRm.code.create','uses'=>'ReceivingRmController@articleCodeCreate']);
+	Route::get('receivingsRm/print',['as'=>'receivingRm.print','uses'=>'ReceivingRmController@print']);
+	Route::post('receivingsRm/posting',['as'=>'receivingRm.posting','uses'=>'ReceivingRmController@posting']);
 
 	Route::get('purchaseRequests',['as'=>'purchaseRequests.index','uses'=>'PurchaseRequestController@index','middleware' => ['permission:purchaseRequest-index']]);
 	Route::get('purchaseRequests/create',['as'=>'purchaseRequest.create','uses'=>'PurchaseRequestController@create','middleware' => ['permission:purchaseRequest-create']]);

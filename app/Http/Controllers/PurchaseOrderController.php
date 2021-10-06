@@ -295,7 +295,7 @@ class PurchaseOrderController extends Controller
         $data['subtitle'] = "Edit Purchase Order";
 
         $data['header'] = DB::table('purchase_order_hdr')
-        ->leftJoin('purchase_request_det','purchase_order_hdr.po_number','purchase_request_det.po_number')
+        // ->leftJoin('purchase_request_det','purchase_order_hdr.po_number','purchase_request_det.po_number')
         ->where('purchase_order_hdr.id',$id)
         ->get()->first();
 
@@ -350,8 +350,76 @@ class PurchaseOrderController extends Controller
         ->orderBy('name')
         ->get();
 
+        // status:
+        // 1 = New
+        // 2 = Validated
+        // 3 = Authorized
+        // 4 = Received
+        // 5 = Canceled
+        // 6 = closed
+
+        $statusPo = ['New','Validated','Authorized','Received','Canceled','Closed','Revised'];
+        $data['statusPo'] = $statusPo[$data['header']->status-1];
+        
         return view("purchaseOrder.edit",$data);
         
+    }
+
+    public function revision(Request $request){
+        $id=$request->id;
+        $poNumber = $request->poNUmber;
+
+        $sql = "INSERT into purchase_order_hdr (
+            po_number,
+            supplier_id,
+            po_date,
+            delivery_date,
+            currency,
+            authorized_by,
+            prepared_by,
+            discount,
+            kurs,
+            pkp,
+            ppn,
+            pph22,
+            termin,
+            order_type,
+            status,
+            note,
+            created_by,
+            updated_by,
+            created_at,
+            updated_at)
+        select 
+            'PO-ASN/2021/IX/2-R1',
+            supplier_id,
+            po_date,
+            delivery_date,
+            currency,
+            authorized_by,
+            prepared_by,
+            discount,
+            kurs,
+            pkp,
+            ppn,
+            pph22,
+            termin,
+            order_type,
+            status,
+            note,
+            created_by,
+            updated_by,
+            created_at,
+            updated_at
+        from purchase_order_hdr where po_number = 'PO-ASN/2021/IX/2'":
+
+        $product = DB::table('purchase_order_hdr')
+        ->where('id',$id)->get();
+
+        $newProduct = $product->replicate();
+        $newProduct->po_number = $poNumber.'-R';
+        $newProduct->save();
+
     }
 
     public function update(Request $request)
@@ -627,11 +695,18 @@ class PurchaseOrderController extends Controller
                                     <i data-feather="file-text"></i>
                                     Edit
                                 </a>';
+            }
+            if (Auth::user()->can('purchaseOrder-revision')) {
+            $buttons .=         '<a href="'. route('purchaseOrder.revision', ['id'=>$data->id,'poNumber'=>$data->po_number]) .'" class="dropdown-item">
+                                    <i data-feather="copy"></i>
+                                    Revision
+                                </a>';
+            }
             $buttons .=         '<a href="'. route('purchaseOrder.print', ['id'=>$data->id]) .'" target="_blank" class="dropdown-item">
                                     <i data-feather="printer"></i>
                                     Print
                                 </a>';
-            }
+            
             $buttons .=         '<a href="'. route('purchaseOrder.show', ['id'=>$data->id]) .'" class="dropdown-item">
                                     <i data-feather="list"></i>
                                     Detail
@@ -656,7 +731,12 @@ class PurchaseOrderController extends Controller
         ->addColumn('group_id', function ($user) {
             return '';
         })
-        ->rawColumns(['action'])
+        ->addColumn('status', function ($data) {
+            $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary'];
+            $statusPo = ['New','Validated','Authorized','Received','Canceled','Closed','Revised'];
+            return "<div class='badge ".$badges[$data->status - 1]."'>".$statusPo[$data->status - 1]."</div>";
+        })
+        ->rawColumns(['action','status'])
         ->make(true);
     }
 

@@ -94,6 +94,40 @@
     </div>
 </section>
 
+<!-- Modal movement-->
+
+<div class="modal fade text-left bisa-geser" id="mdlmovement" tabindex="-1" role="dialog" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered" role="document">
+      <div class="modal-content">
+          <div class="modal-header">
+              <h5>Movement <span class="bold" id="mdlartikel"></span></h5>
+              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                  <span aria-hidden="true">&times;</span>
+              </button>
+          </div>
+          <div class="modal-body text-center">
+            <div class="table-responsive">
+              <table class="table table-striped" id="mdlmovetable">
+                <thead>
+                  <tr>
+                    <th style="width:5%">Kode</th>
+                    <th style="width:10%">Tanggal</th>
+                    <th style="width:10%">Type</th>
+                    <th style="width:10%">K.Trans</th>
+                    <th style="width:10%">Harga</th>
+                    <th>QTY -</th>
+                    <th>QTY +</th>
+                    <th>QTY</th>
+                    <th>Keterangan</th>
+                  </tr>
+                </thead>
+              </table>
+            </div>
+          </div>
+      </div>
+  </div>
+</div>
+
 @include('partials.delete-modal')
 
 @endsection
@@ -214,37 +248,37 @@
             }
           },
         ],
-        responsive: {
-          details: {
-            display: $.fn.dataTable.Responsive.display.modal({
-              header: function (row) {
-                var data = row.data();
-                return 'Details of ' + data['nama'];
-              }
-            }),
-            type: 'column',
-            renderer: function (api, rowIdx, columns) {
-              var data = $.map(columns, function (col, i) {
-                return col.title !== '' // ? Do not show row in modal popup if title is blank (for check box)
-                  ? '<tr data-dt-row="' +
-                      col.rowIndex +
-                      '" data-dt-column="' +
-                      col.columnIndex +
-                      '">' +
-                      '<td>' +
-                      col.title +
-                      ':' +
-                      '</td> ' +
-                      '<td>' +
-                      col.data +
-                      '</td>' +
-                      '</tr>'
-                  : '';
-              }).join('');
-              return data ? $('<table class="table"/>').append(data) : false;
-            }
-          }
-        },
+        // responsive: {
+        //   details: {
+        //     display: $.fn.dataTable.Responsive.display.modal({
+        //       header: function (row) {
+        //         var data = row.data();
+        //         return 'Details of ' + data['nama'];
+        //       }
+        //     }),
+        //     type: 'column',
+        //     renderer: function (api, rowIdx, columns) {
+        //       var data = $.map(columns, function (col, i) {
+        //         return col.title !== '' // ? Do not show row in modal popup if title is blank (for check box)
+        //           ? '<tr data-dt-row="' +
+        //               col.rowIndex +
+        //               '" data-dt-column="' +
+        //               col.columnIndex +
+        //               '">' +
+        //               '<td>' +
+        //               col.title +
+        //               ':' +
+        //               '</td> ' +
+        //               '<td>' +
+        //               col.data +
+        //               '</td>' +
+        //               '</tr>'
+        //           : '';
+        //       }).join('');
+        //       return data ? $('<table class="table"/>').append(data) : false;
+        //     }
+        //   }
+        // },
         language: {
           paginate: {
             // remove previous & next text from pagination
@@ -253,19 +287,19 @@
           }
         },
         columnDefs: [
-          {
-            // For Responsive
-            className: 'control',
-            orderable: false,
-            responsivePriority: 2,
-            targets: 0
-          },
-          {
-            responsivePriority: 1,
-            targets: 2
-          },
-          { width: '10%', targets: 1 },
-          { className: 'text-right','targets': [5] },
+          // {
+          //   // For Responsive
+          //   className: 'control',
+          //   orderable: false,
+          //   responsivePriority: 2,
+          //   targets: 0
+          // },
+          // {
+          //   responsivePriority: 1,
+          //   targets: 2
+          // },
+          { width: '10%', targets: 0 },
+          { className: 'text-right','targets': [4,5] },
         ],
         drawCallback: function( settings ) {
           feather.replace({
@@ -277,14 +311,14 @@
         bDestroy: true, //pakai ini supaya bisa di load berulang2
         // scrollX: true, //pakai ini supaya waktu responsive  bisa di scroll horizontal
         columns: [
-            { data: 'group_id',name:'group_id', title:'',orderable: false, searchable: false },
+            // { data: 'group_id',name:'group_id', title:'',orderable: false, searchable: false },
             { data: 'action', name: 'action',title:'action', orderable: false, searchable: false },
             { data: 'code', name: 'code',title:'Code' },
             { data: 'desc', name: 'desc',title:'Name' },
             { data: 'cust', name: 'cust',title:'Customer' },
             { data: 'costprice', name: 'costprice',title:'Price',render: $.fn.dataTable.render.number(',','.') },
+            { data: 'article_qty', name: 'article_qty',title:'Qty',render: $.fn.dataTable.render.number(',','.',3) },
             { data: 'uom', name: 'uom',title:'UOM' },
-            // { data: 'quality', name: 'quality',title:'Quality' },
             { data: 'group', name: 'group',title:'Group' },
             { data: 'note', name: 'note',title:'Note' }
 
@@ -293,6 +327,115 @@
     });
     //$('div.head-label').html('<h6 class="mb-0">Data Users</h6>');
     
+  }
+
+  function movement(artCode,artikelAlternativeCode,artDesc){
+
+    $('#mdlmovement').modal('show');
+    $('#mdlartikel').text('|'+artikelAlternativeCode+'-'+artDesc);
+
+    let dtdom ='<"d-flex justify-content-between align-items-center header-actions mx-1 row mt-75"' +
+        '<"col-lg-12 col-xl-6" l>' +
+        '<"col-lg-12 col-xl-6 pl-xl-75 pl-0"<"dt-action-buttons text-xl-right text-lg-left text-md-right text-left d-flex align-items-center justify-content-lg-end align-items-center flex-sm-nowrap flex-wrap mr-1"<"mr-1"f>B>>' +
+        '>t' +
+        '<"d-flex justify-content-between mx-2 row mb-1"' +
+        '<"col-sm-12 col-md-6"i>' +
+        '<"col-sm-12 col-md-6"p>' +
+        '>';
+    let arr_col_print =[2,3,4,5,6,7]; 
+    $(function(){
+      let oTable =$("#mdlmovetable").DataTable({
+        ajax:
+        {
+          url:'{{ route("article.movement")}}',
+          data:{
+            articleCode:artCode
+          },
+        },
+        processing: true,
+        serverSide: true,
+        buttons: true,
+        dom:dtdom,
+        lengthMenu: [
+          [ 10, 25, 50, -1 ],
+          [ '10', '25', '50', 'all' ]
+        ],
+        buttons: [
+          {
+            extend: 'collection',
+            className: 'btn btn-outline-secondary dropdown-toggle mr-2 mt-07',
+            text: feather.icons['share'].toSvg({ class: 'font-small-4 mr-50' }) + 'Export',
+            buttons: [
+              {
+                extend: 'print',
+                text: feather.icons['printer'].toSvg({ class: 'font-small-4 mr-50' }) + 'Print',
+                className: 'dropdown-item',
+                exportOptions: { columns: arr_col_print }
+              },
+              {
+                extend: 'csv',
+                text: feather.icons['file-text'].toSvg({ class: 'font-small-4 mr-50' }) + 'Csv',
+                className: 'dropdown-item',
+                exportOptions: { columns: arr_col_print }
+              },
+              {
+                extend: 'excel',
+                text: feather.icons['file'].toSvg({ class: 'font-small-4 mr-50' }) + 'Excel',
+                className: 'dropdown-item',
+                exportOptions: { columns: arr_col_print }
+              },
+              {
+                extend: 'pdf',
+                text: feather.icons['clipboard'].toSvg({ class: 'font-small-4 mr-50' }) + 'Pdf',
+                className: 'dropdown-item',
+                exportOptions: { columns: arr_col_print }
+              },
+              {
+                extend: 'copy',
+                text: feather.icons['copy'].toSvg({ class: 'font-small-4 mr-50' }) + 'Copy',
+                className: 'dropdown-item',
+                exportOptions: { columns: arr_col_print }
+              }
+            ],
+            init: function (api, node, config) {
+              $(node).removeClass('btn-secondary');
+              $(node).parent().removeClass('btn-group');
+              setTimeout(function () {
+                $(node).closest('.dt-buttons').removeClass('btn-group').addClass('d-inline-flex');
+              }, 50);
+            }
+          },
+        ],
+        language: {
+          paginate: {
+            // remove previous & next text from pagination
+            previous: '&nbsp;',
+            next: '&nbsp;'
+          }
+        },
+        columnDefs: [
+          { className: 'dt-right', 'targets': [ 4 ] },
+          { className: 'dt-right', 'targets': [ 5 ] },
+          { className: 'dt-right', 'targets': [ 6 ] },
+          { className: 'dt-right', 'targets': [ 7 ] }
+        ],
+        order: [[ 2, 'asc' ]],
+        bDestroy: true, //pakai ini supaya bisa di load berulang2
+        // scrollX: true, //pakai ini supaya waktu responsive  bisa di scroll horizontal
+        columns: [
+          { data: 'movement_code', name: 'movement_code' },
+          { data: 'movement_date', name: 'movement_date'},
+          { data: 'movement_type', name: 'movement_type'},
+          { data: 'movement_transnno', name: 'movement_transnno'},
+          { data: "movement_price", render: $.fn.dataTable.render.number( ',', '.', 0 ) },
+          { data: "movement_min", render: $.fn.dataTable.render.number( ',', '.', 3 ) },
+          { data: "movement_plus", render: $.fn.dataTable.render.number( ',', '.', 3 ) },
+          { data: "balanceqty", render: $.fn.dataTable.render.number( ',', '.', 3 ) },
+          { data: 'movement_desc', name: 'movement_desc'}
+        ],
+      });
+    });
+
   }
 
   $.ajaxSetup({

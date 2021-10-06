@@ -31,10 +31,10 @@
                 <input type="text" class="form-control text-uppercase" id="searchInv" name="searchInv" placeholder=""  />
               </div>
               <div class="form-group col-md-3"> 
-                <label class="form-label" for="searchSupplier">Supplier</label>
-                <select class="select2 form-control" id="searchSupplier" name="searchSupplier">
+                <label class="form-label" for="searchCustomer">Customer</label>
+                <select class="select2 form-control" id="searchCustomer" name="searchCustomer">
                     <option label=""></option>
-                    @foreach($supps as $val)
+                    @foreach($custs as $val)
                         <option value="{{$val->kode}}">{{$val->kode}} - {{$val->nama}}</option>
                     @endforeach
                 </select>
@@ -57,7 +57,7 @@
                 <div class="col-12"> 
                     <button type="button" class="btn btn-primary" id ="btnSearch" name="btnSearch">Search</button>
                     @can('receiving-create')
-                    <a href="{{ route('receiving.create') }}" class="btn btn-info"><i class="fa fa-plus"></i> Create</a>
+                    <a href="{{ route('receivingRm.create') }}" class="btn btn-info"><i class="fa fa-plus"></i> Create</a>
                     @endcan
                 </div>
             </div>
@@ -140,14 +140,14 @@
     let searchRec = $("#searchRec").val();
     let searchPo = $("#searchPo").val();
     let searchInv = $("#searchInv").val();
-    let searchSupplier = $("#searchSupplier").val(); 
+    let searchCustomer = $("#searchCustomer").val(); 
     let searchStatus = $("#searchStatus").val();
     let recDate = $("#recDate").val();
-    showList(searchRec,searchPo,searchInv,searchSupplier,searchStatus,recDate);
+    showList(searchRec,searchPo,searchInv,searchCustomer,searchStatus,recDate);
 
   });
 
-  function showList(searchRec,searchPo,searchInv,searchSupplier,searchStatus,recDate){
+  function showList(searchRec,searchPo,searchInv,searchCustomer,searchStatus,recDate){
     let dtdom ='<"d-flex justify-content-between align-items-center header-actions mx-1 row mt-75"' +
         '<"col-lg-12 col-xl-6" l>' +
         '<"col-lg-12 col-xl-6 pl-xl-75 pl-0"<"dt-action-buttons text-xl-right text-lg-left text-md-right text-left d-flex align-items-center justify-content-lg-end align-items-center flex-sm-nowrap flex-wrap mr-1"<"mr-1"f>B>>' +
@@ -161,12 +161,12 @@
       let oTable =$("#detailedTable").DataTable({
         ajax:
         {
-          url:'{{ route("receiving.list")}}',
+          url:'{{ route("receivingRm.list")}}',
           data:{
               searchRec:searchRec,
               searchPo:searchPo,
               searchInv:searchInv,
-              searchSupplier:searchSupplier,
+              searchCustomer:searchCustomer,
               searchStatus:searchStatus,
               recDate:recDate
           }

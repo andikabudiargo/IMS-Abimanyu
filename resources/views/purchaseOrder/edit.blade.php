@@ -8,7 +8,7 @@
         <div class="col-md-12">
             <div class="card">
                 <div class="card-header">
-                    <h4 class="card-title">Status: New</h4>
+                    <h4 class="card-title">Status: <span id="statusText">{{ $statusPo }}</span></h4>
                     <div class="heading-elements">
                         <ul class="list-inline mb-0">
                             <li><a data-action="collapse"><i data-feather="chevron-down"></i></a></li>
@@ -95,11 +95,19 @@
                                 <div class="col-12">
                                     <div class="row">
                                         <div class="col-12">
-                                            <a href="{{ route('purchaseOrders.index') }}" class="btn btn-warning">Cancel</a>
+                                            <a href="{{ route('purchaseOrders.index') }}" class="btn btn-warning">Back</a>
                                             <a href="{{ route('purchaseOrder.create') }}" class="btn btn-success">New</a>
-                                            <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Update</button>
-                                            {{-- <button class="btn btn-primary" type="button" id="cmdValidate" name="cmdValidate">Validate</button>
-                                            <button class="btn btn-primary" type="button" id="cmdAuthorized" name="cmdAuthorized">Auhorized</button> --}}
+                                            @if( $header->status == '1')
+                                                <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Update</button>
+                                                @can('purchaseOrder-validate')
+                                                    <button class="btn btn-primary" type="button" id="cmdValidate" name="cmdValidate">Validate</button>
+                                                @endcan
+                                            @endif
+                                            @if( $header->status == '2')
+                                                @can('purchaseOrder-authorize')
+                                                    <button class="btn btn-primary" type="button" id="cmdAuthorized" name="cmdAuthorized">Auhorized</button>
+                                                @endcan
+                                            @endif
                                         </div>
                                     </div>
                                 </div>

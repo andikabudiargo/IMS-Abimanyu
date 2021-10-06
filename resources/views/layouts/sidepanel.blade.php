@@ -156,7 +156,7 @@
             @endcan
           </ul>
         </li>
-        <li class=" {{ in_array(\Request::segment(1), ['receivings']) ? 'active' : '' }} nav-item">
+        <li class=" {{ in_array(\Request::segment(1), ['receivings','receivingsRm']) ? 'active' : '' }} nav-item">
           <a class="d-flex align-items-center" href="javascript:void(0);">
             <i data-feather='package'></i>
             <span class="menu-title text-truncate" data-i18n="Form Elements">Receiving
@@ -167,7 +167,15 @@
             <li class="{{ \Request::segment(1) == 'receivings' ? 'active' : '' }}">
               <a class="d-flex align-items-center" href="{{ route('receivings.index') }}">
                 <i data-feather="circle"></i>
-                <span class="menu-item text-truncate" data-i18n="Input">Receiving</span>
+                <span class="menu-item text-truncate" data-i18n="Input">Receiving PO</span>
+              </a>
+            </li>
+            @endcan
+            @can('receivingRm-index')
+            <li class="{{ \Request::segment(1) == 'receivingsRm' ? 'active' : '' }}">
+              <a class="d-flex align-items-center" href="{{ route('receivingsRm.index') }}">
+                <i data-feather="circle"></i>
+                <span class="menu-item text-truncate" data-i18n="Input">Receiving RM</span>
               </a>
             </li>
             @endcan

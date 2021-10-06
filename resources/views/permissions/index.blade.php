@@ -64,6 +64,14 @@
             </div>
             <br>
             <div id="form_other">
+              <div class="row">
+                <div class="col-10">
+                  <label>Other Name</label>
+                  <div class="form-group" required>
+                    <input type="text" id="otherName" name="otherName" class="form-control" maxlength="30" >
+                  </div>
+                </div>
+              </div>
               <div class="row" >
                 <div class="col-10">
                   <label>Display Name</label>
@@ -445,6 +453,7 @@
       e.preventDefault();
       var permission_id=$('#permission_id').val();
       var menu_name=$('#name').val();
+      var otherName=$('#otherName').val();
       var display_name=$('#display_name').val();
       var description=$('#description').val();
       var index,create,edit,list,adelete,other;
@@ -476,6 +485,7 @@
           url: "{{ route('store.permission') }}",
           data: { permission_id:permission_id,
                   name:menu_name,
+                  otherName:otherName,
                   display_name:display_name,
                   description:description,
                   index:index,

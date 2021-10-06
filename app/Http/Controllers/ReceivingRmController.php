@@ -13,14 +13,14 @@ use DB;
 use PDF;
 use AppHelpers;
 
-class ReceivingController extends Controller
+class ReceivingRmController extends Controller
 {
     public function index(Request $request)
     {
-        $data['title'] = "Receiving";
+        $data['title'] = "Receiving RM";
 
-        $data['supps'] = DB::table('third_party')
-        ->where ('third_party_type','=','supp')
+        $data['custs'] = DB::table('third_party')
+        ->where ('third_party_type','=','cust')
         ->orderBy('nama')
         ->get();
 
@@ -32,7 +32,7 @@ class ReceivingController extends Controller
 
         $data['status'] = ['1'=>'Draft','2'=>'Update','3'=>'Posting','4'=>'Cancel'];
             
-        return view("receiving.index",$data);
+        return view("receivingRm.index",$data);
     }
 
     public function getLastCode($key)
@@ -58,37 +58,37 @@ class ReceivingController extends Controller
 
     public function create(Request $request)
     {
-        $data['title'] = "Create Receiving";
-        $data['subtitle'] = "Create Receiving";
+        $data['title'] = "Create Receiving RM";
+        $data['subtitle'] = "Create Receiving RM";
         
         $data['supps'] = DB::table('third_party')
-        ->where ('third_party_type','=','supp')
+        ->where ('third_party_type','=','cust')
         ->orderBy('nama')
         ->get();
 
-        return view("receiving.create",$data);
+        return view("receivingRm.create",$data);
     }
 
-    public function poDetail(Request $request)
+    public function soDetail(Request $request)
     {
-        $po = $request->value;
+        $so = $request->value;
         $data = DB::select("SELECT 
                 a.*,
                 a.article_code,
                 article_alternative_code,
                 article_desc,uom_group, 
                 (COALESCE(a.qty,0)-COALESCE(b.qty,0)) as qty_order
-                from purchase_order_det a
+                from sales_order_det a
                 left join uom on uom.code=a.uom
                 left join article on article.article_code = a.article_code
                 left join 
-                    (select po, article_code,sum(qty) as qty,price from (
-                        select *,(select po_number from receiving_hdr where rec_number = a.rec_number) as po from receiving_det a where rec_number in (
+                    (select so, article_code,sum(qty) as qty,price from (
+                        select *,(select po_number from receiving_hdr where rec_number = a.rec_number) as so from receiving_det a where rec_number in (
                         select rec_number from receiving_hdr where status = '3')
                     ) z
-                group by po, article_code,price) b
-                on a.po_number = b.po and a.article_code = b.article_code
-                where po_number = '$po'");
+                group by so, article_code,price) b
+                on a.so_code = b.so and a.article_code = b.article_code
+                where so_code = '$so'");
 
         return response()->json($data);
     }
@@ -96,14 +96,14 @@ class ReceivingController extends Controller
     public function store(Request $request)
     {
         $username =  Auth::user()->username;
-        $invNumber = $request->invNumber;
-        $invDate = $request->invDate;
-        $poNumber = $request->poNumber;
-        $supplier = $request->supp;
+        $docNumber = $request->docNumber;
+        $docDate = $request->docDate;
+        $soNumber = $request->soNumber;
+        $customer = $request->supp;
         $recDate = $request->recDate;
         $note = $request->note;
         $articles = json_decode($request->articles);
-        $recType = "NORMAL";
+        $recType = "NORMALRM";
         $statusRec ="Draft";
         $status = '1';
         $authorizedBy = "";
@@ -117,23 +117,23 @@ class ReceivingController extends Controller
         $customMessages = [
             'required' => 'The field is required.',
             'unique' => 'The code has already been taken', 
-            'iunique' => "Invoice : $invNumber has already been taken on PO : $poNumber",
+            'iunique' => "Invoice : $docNumber has already been taken on PO : $soNumber",
         ];
         
-        Validator::extend('iunique', function ($attribute, $value, $parameters, $validator) use ($poNumber) {
+        Validator::extend('iunique', function ($attribute, $value, $parameters, $validator) use ($soNumber) {
             $query = DB::table($parameters[0]);
             $column = $query->getGrammar()->wrap($parameters[1]);
             $column2 = $query->getGrammar()->wrap($parameters[2]);
             return !$query->whereRaw("lower({$column}) = lower(?)", [$value])
-                          ->whereRaw("lower({$column2}) = lower(?)", [$poNumber])->count();
+                          ->whereRaw("lower({$column2}) = lower(?)", [$soNumber])->count();
         });
         
         $validation = Validator::make($request->all(),$messages = [
-            'invNumber'=>'required|iunique:receiving_hdr,inv_number,po_number',
+            'docNumber'=>'required|iunique:receiving_hdr,inv_number,po_number',
             'recDate'  => 'required',
-            'invDate'  => 'required',
-            'poNumber'  => 'required',
-            // 'supplier'  => 'required',
+            'docDate'  => 'required',
+            'soNumber'  => 'required',
+            // 'customer'  => 'required',
         ],$customMessages);
         
         $error_array = array();
@@ -152,10 +152,10 @@ class ReceivingController extends Controller
             try {
                     DB::table('receiving_hdr')->insert([
                         'rec_number' => $recNumber,
-                        'inv_number' => $invNumber,
-                        'inv_date' => $invDate,
-                        'po_number' => $poNumber,
-                        'supplier_id' => $supplier,
+                        'inv_number' => $docNumber,
+                        'inv_date' => $docDate,
+                        'po_number' => $soNumber,
+                        'supplier_id' => $customer,
                         'rec_date' => $recDate,
                         'authorized_by' => $authorizedBy,
                         'prepared_by' => Auth::user()->username,
@@ -175,8 +175,6 @@ class ReceivingController extends Controller
                             'article_code' => $val->article_code,
                             'qty' => $val->qty,
                             'uom_rec' => $val->uom,
-                            'qty_free' => $val->qty_free,
-                            'uom_free' => $val->uom_free,
                             'price' => $val->price,
                             'created_by' => Auth::user()->username,
                             'updated_by' => Auth::user()->username,
@@ -208,8 +206,8 @@ class ReceivingController extends Controller
     public function show(Request $request)
     {
         $id=$request->id;
-        $data['title'] = "Detil Receiving";
-        $data['subtitle'] = "Detil Receiving";
+        $data['title'] = "Detil Receiving RM";
+        $data['subtitle'] = "Detil Receiving RM";
 
         $data['header'] = DB::table('receiving_hdr')
         ->where('id',$id)
@@ -235,15 +233,15 @@ class ReceivingController extends Controller
         $statusRec = ['Draft','Update','Posting','Cancel'];
         $data['statusRec'] = $statusRec[$data['header']->status-1];
 
-        return view("receiving.show",$data);
+        return view("receivingRm.show",$data);
         
     }
 
     public function edit(Request $request)
     {
         $id=$request->id;
-        $data['title'] = "Edit Receiving";
-        $data['subtitle'] = "Edit Receiving";
+        $data['title'] = "Edit Receiving RM";
+        $data['subtitle'] = "Edit Receiving RM";
 
         $data['header'] = DB::table('receiving_hdr')
         ->where('id',$id)
@@ -269,7 +267,7 @@ class ReceivingController extends Controller
         $statusRec = ['Draft','Update','Posting','Cancel'];
         $data['statusRec'] = $statusRec[$data['header']->status-1];
 
-        return view("receiving.edit",$data);
+        return view("receivingRm.edit",$data);
         
     }
 
@@ -277,10 +275,10 @@ class ReceivingController extends Controller
     {
         $username =  Auth::user()->username;
         $recNumber = $request->recNumber;
-        $invNumber = $request->invNumber;
-        $invDate = $request->invDate;
-        $poNumber = $request->poNumber;
-        $supplier = $request->supp;
+        $docNumber = $request->docNumber;
+        $docDate = $request->docDate;
+        $soNumber = $request->soNumber;
+        $customer = $request->supp;
         $recDate = $request->recDate;
         $note = $request->note;
         $articles = json_decode($request->articles);
@@ -298,22 +296,22 @@ class ReceivingController extends Controller
         $customMessages = [
             'required' => 'The field is required.',
             'unique' => 'The code has already been taken', 
-            'iunique' => "Invoice : $invNumber has already been taken on PO : $poNumber",
+            'iunique' => "Invoice : $docNumber has already been taken on PO : $soNumber",
         ];
         
-        Validator::extend('iunique', function ($attribute, $value, $parameters, $validator) use ($poNumber) {
+        Validator::extend('iunique', function ($attribute, $value, $parameters, $validator) use ($soNumber) {
             $query = DB::table($parameters[0]);
             $column = $query->getGrammar()->wrap($parameters[1]);
             $column2 = $query->getGrammar()->wrap($parameters[2]);
             return !$query->whereRaw("lower({$column}) = lower(?)", [$value])
-                          ->whereRaw("lower({$column2}) = lower(?)", [$poNumber])->count();
+                          ->whereRaw("lower({$column2}) = lower(?)", [$soNumber])->count();
         });
         
         $validation = Validator::make($request->all(),$messages = [
-            // 'invNumber'=>'required|iunique:receiving_hdr,inv_number,po_number',
+            // 'docNumber'=>'required|iunique:receiving_hdr,inv_number,po_number',
             'recDate'  => 'required',
             'poNumber'  => 'required',
-            // 'supplier'  => 'required',
+            // 'customer'  => 'required',
         ],$customMessages);
                 
         $error_array = array();
@@ -332,10 +330,10 @@ class ReceivingController extends Controller
                     ->where('rec_number',$recNumber)
                     ->update(
                         [
-                            'inv_number' => $invNumber,
-                            'inv_date' => $invDate,
+                            'inv_number' => $docNumber,
+                            'inv_date' => $docDate,
                             'po_number' => $poNumber,
-                            'supplier_id' => $supplier,
+                            'supplier_id' => $customer,
                             'rec_date' => $recDate,
                             'authorized_by' => $authorizedBy,
                             'prepared_by' => Auth::user()->username,
@@ -371,8 +369,6 @@ class ReceivingController extends Controller
                                 'article_code' => $val->article_code,
                                 'qty' => $val->qty,
                                 'uom_rec' => $val->uom,
-                                'qty_free' => $val->qty_free,
-                                'uom_free' => $val->uom_free,
                                 'price' => $val->price,
                                 'updated_by' => Auth::user()->username,
                                 'updated_at' => date('Y-m-d H:i:s')
@@ -415,9 +411,9 @@ class ReceivingController extends Controller
         // Update stock kalo article nya udah ada
         $sqlUpdate = "UPDATE article_stock a set article_qty = COALESCE(a.article_qty,0)  + COALESCE(b.qty,0)
         from (
-        select art_code, (qty*factor_qty)+(qty_free*factor_free) as qty from 
+        select art_code, (qty*factor_qty) as qty from 
         (
-            select *,article.article_code as art_code,(select unit_factor from uom_con where unit_from = o.uom_rec and unit_to = article.uom) as factor_qty,(select unit_factor from uom_con where unit_from = o.uom_free and unit_to = article.uom) as factor_free  from (
+            select *,article.article_code as art_code,(select unit_factor from uom_con where unit_from = o.uom_rec and unit_to = article.uom) as factor_qty from (
             select * from receiving_det where rec_number in (
             select rec_number from receiving_hdr where rec_number = '$recNumber' and (status != '3' and status != '4'))) o
             left join article on article.article_code = o.article_code
@@ -427,16 +423,16 @@ class ReceivingController extends Controller
 
         //Insert ke stock kalo article nya belum ada
         $sqlInsert = "INSERT into article_stock (site_code,article_code,dept_code,location_number,article_qty,uom)
-        select 'HO',art_code,article_type,'00',(qty*factor_qty)+(qty_free*factor_free) as qty,uom from 
+        select 'HO',art_code,article_type,'00',(qty*factor_qty) as qty,uom from 
         (
-            select *,article.article_code as art_code,(select unit_factor from uom_con where unit_from = z.uom_rec and unit_to = article.uom) as factor_qty,(select unit_factor from uom_con where unit_from = z.uom_free and unit_to = article.uom) as factor_free  from (
+            select *,article.article_code as art_code,(select unit_factor from uom_con where unit_from = z.uom_rec and unit_to = article.uom) as factor_qty from (
             select * from receiving_det where rec_number in (
             select rec_number from receiving_hdr where rec_number = '$recNumber' and (status != '3' and status != '4'))) z
             left join article on article.article_code = z.article_code
             where article.article_code not in (select article_code from article_stock)
         ) y";
 
-        //Insert into table movement
+        //update table movement
         $sqlMovement = "INSERT into movement
         (movement_date,artikel_code,artikel_desc,movement_min,movement_plus,movement_price,movement_transnno,movement_type,movement_desc)
         select 
@@ -448,8 +444,8 @@ class ReceivingController extends Controller
         price,
         rec_number,
         'REC',
-        (select po_number from receiving_hdr where rec_number=a.rec_number) as po from receiving_det a where rec_number in (
-        select rec_number from receiving_hdr where rec_number = '$recNumber' and status = '3' and qty <> 0)";
+        (select po_number from receiving_hdr where rec_number=a.rec_number) as po from receiving_det a where rec_number in 
+        (select rec_number from receiving_hdr where rec_number = '$recNumber' and status = '3' and qty <> 0)";
     
         DB::select($sqlUpdate);
         $rowAffected = DB::select($sqlInsert);
@@ -498,7 +494,7 @@ class ReceivingController extends Controller
         ->get()->first();
 
         $recNumber = $poHdr->rec_number;
-        $invNumber = $poHdr->inv_number;
+        $docNumber = $poHdr->inv_number;
         $note = $poHdr->note;
 
         $rowAffected=DB::table('receiving_hdr')
@@ -609,17 +605,17 @@ class ReceivingController extends Controller
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
             if (($data->status != '3') && ($data->status != '4')){
                 if (Auth::user()->can('receiving-edit')) {
-                $buttons .=         '<a href="'. route('receiving.edit', ['id'=>$data->id]) .'" class="dropdown-item">
+                $buttons .=         '<a href="'. route('receivingRm.edit', ['id'=>$data->id]) .'" class="dropdown-item">
                                         <i data-feather="file-text"></i>
                                         Edit
                                     </a>';
-                $buttons .=         '<a href="'. route('receiving.print', ['id'=>$data->id]) .'" target="_blank" class="dropdown-item">
+                $buttons .=         '<a href="'. route('receivingRm.print', ['id'=>$data->id]) .'" target="_blank" class="dropdown-item">
                                         <i data-feather="printer"></i>
                                         Print
                                     </a>';
                 }
             }
-            $buttons .=         '<a href="'. route('receiving.show', ['id'=>$data->id]) .'" class="dropdown-item">
+            $buttons .=         '<a href="'. route('receivingRm.show', ['id'=>$data->id]) .'" class="dropdown-item">
                                     <i data-feather="list"></i>
                                     Detail
                                 </a>';
@@ -631,7 +627,7 @@ class ReceivingController extends Controller
                                         class='dropdown-item'
                                         data-toggle='modal'
                                         data-target='#smallModalCancel'
-                                        data-href='". route("receiving.destroy", ["id"=>$data->id]) ."'>
+                                        data-href='". route("receivingRm.destroy", ["id"=>$data->id]) ."'>
                                         <i data-feather='trash-2'></i>
                                         Cancel
                                     </a>";
@@ -702,26 +698,26 @@ class ReceivingController extends Controller
 
         view()->share($data);
 
-        $pdf = PDF::loadView('receiving.print');
+        $pdf = PDF::loadView('receivingRm.print');
         return $pdf->stream("PO_$poNumber.pdf");
 
     }
 
-    public function listPo(Request $request)
+    public function listSo(Request $request)
     {
         $supp= $request->value;      
         $output="";
 
-        $data= DB::table("purchase_order_hdr") 
-        ->where("supplier_id",$supp)
-        ->where("status","3")
-        ->orderBy("po_number")
-        ->select("po_number")
+        $data= DB::table("sales_order_hdr") 
+        ->where("customer_id",$supp)
+        // ->where("status","3")
+        ->orderBy("so_code")
+        ->select("so_code")
         ->get();          
 
         $output .='<option value=""></option>';            
         foreach ($data as $row){
-            $output .='<option value="'.$row->po_number.'">'.$row->po_number.'</option>';            
+            $output .='<option value="'.$row->so_code.'">'.$row->so_code.'</option>';            
         }        
         
         return $output;

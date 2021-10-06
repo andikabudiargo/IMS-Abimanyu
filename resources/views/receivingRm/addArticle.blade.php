@@ -40,20 +40,13 @@
                         <input type="text" class="form-control-plaintext text-hitam" id = "article_id" name="article_id[]" data-code="" data-uom=""  data-price="" disabled>
                     </td>
                     <td class="isian disabled" style="width: 5%">
-                        <input type="text" class="form-control-plaintext text-hitam numeral-mask-digit text-right" id = "qty_po" name="qty_po[]" disabled>
+                        <input type="text" class="form-control-plaintext text-hitam numeral-mask-digit text-right" id = "qty_so" name="qty_so[]" disabled>
                     </td>
                     <td class="isian" style="width: 5%">
                         <input type="text" class="form-control-plaintext text-hitam numeral-mask-digit text-right" id = "qty_rec" name="qty_rec[]" maxlength="9">
                     </td>
                     <td class="isian" style="width: 5%">
                         <select class="form-control text-hitam" id="uom" name="uom[]">
-                        </select>
-                    </td>
-                    <td class="isian" style="width: 5%">
-                        <input type="text" class="form-control-plaintext text-hitam numeral-mask-digit text-right" id = "qty_free" name="qty_free[]" maxlength="9" />
-                    </td>
-                    <td class="isian" style="width: 5%">
-                        <select class="form-control text-hitam" id="uomFree" name="uomFree[]">
                         </select>
                     </td>
                     <td class="isian disabled text-right" style="width: 5%">

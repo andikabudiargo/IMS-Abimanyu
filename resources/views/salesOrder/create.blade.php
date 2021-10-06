@@ -410,7 +410,7 @@
             cloneCount++;
             $("#article_row").find('#baru').attr('id', 'new_row'+ cloneCount);
             $("#new_row"+ cloneCount).find('#article_id').attr('id', 'article_id'+ cloneCount);
-            changeselect('article_id','article_id'+ cloneCount,cust[0],'FG');
+            changeselect('article_id','article_id'+ cloneCount,cust[0],'RM');
             $("#article_id"+cloneCount).select2();
             tombolPanah('qty_order');
             tombolPanah('price');
@@ -504,9 +504,7 @@
         $("#totalPPN").val(humanizeNumber((parseInt(ppn)*totalAmount)/100));
         $("#totalPPH").val(0);
         $("#totalNetto").val(humanizeNumber(totalAmount+((parseInt(ppn)*totalAmount)/100)));
-        
-        
-
+    
     }
 
     function changeselect(dependent,obj,value,type) {

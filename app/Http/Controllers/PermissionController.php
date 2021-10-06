@@ -41,6 +41,7 @@ class PermissionController extends Controller
 		$permission_id=$request['permission_id'];
 		$name=$request['name'];
 		$name_inner=ucfirst($request['name']);
+        $otherName=$request['otherName'];
 		$display_name=ucfirst($request['display_name']);
 		$description=ucfirst($request['description']);
 		$other=$request['other'];
@@ -120,7 +121,7 @@ class PermissionController extends Controller
 							DB::table('permissions')->insertGetId([
                                 'group_name'=>$name,
                                 'guard_name'=>$guard_name,
-								'name'=>$name,
+								'name'=>$otherName,
 								'display_name'=>$display_name,
 								'description'=>$description,
 								'created_at' => date('Y-m-d H:i:s'),

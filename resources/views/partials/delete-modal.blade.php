@@ -24,3 +24,29 @@
         </div>
     </div>
 </div>
+
+<div class="modal fade text-left bisa-geser" id="smallModalCancel" tabindex="-1" role="dialog" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" role="document">
+      <div class="modal-content">
+          <div class="modal-header">
+              <h4>Delete<span class="semi-bold"> @yield('title')</span></h4>
+              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                  <span aria-hidden="true">&times;</span>
+              </button>
+          </div>
+          <form id="modalConfirmationCancel" action="" method="post" >
+            @csrf
+            <div class="modal-body text-center">
+              <i data-feather='alert-circle' class='feather-72-red'></i>
+              <h1 class="text-center">
+                   Are you sure you want to cancel?
+              </h1>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+              <button type="submit" class="btn btn-danger">Yes, Cancel It</button>
+            </div>
+          </form>
+      </div>
+  </div>
+</div>

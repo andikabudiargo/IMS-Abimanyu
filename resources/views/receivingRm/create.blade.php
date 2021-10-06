@@ -32,8 +32,8 @@
                             </div>
                             <div class="row">
                                 <div class="form-group col-md-4">
-                                    <label class="form-label" for="supplier">Supplier*</label>
-                                    <select class="select2 form-control" id="supplier" name="supplier" required>
+                                    <label class="form-label" for="customer">Customer*</label>
+                                    <select class="select2 form-control" id="customer" name="customer" required>
                                         <option label=""></option>
                                         @foreach($supps as $val)
                                             <option value="{{$val->kode}}" >{{$val->kode}} - {{$val->nama}}</option>
@@ -41,17 +41,17 @@
                                     </select>
                                 </div>
                                 <div class="form-group col-md-3">
-                                    <label class="form-label" for="poNumber">PO Number*</label>
-                                    <select class="select2 form-control" id="poNumber" name="poNumber" required>
+                                    <label class="form-label" for="soNumber">SO Number*</label>
+                                    <select class="select2 form-control" id="soNumber" name="soNumber" required>
                                     </select>
                                 </div>
                                 <div class="form-group col-md-2">
-                                    <label for="invDate">Invoice Date*</label>
-                                    <input type="text" id="invDate" name="invDate" class="form-control" placeholder="DD-MM-YYYY" required />
+                                    <label for="docDate">Document Date*</label>
+                                    <input type="text" id="docDate" name="docDate" class="form-control" placeholder="DD-MM-YYYY" required />
                                 </div>                               
                                 <div class="form-group col-md-3">
-                                    <label for="invNumber">Invoice Number*</label>
-                                    <input type="text" id="invNumber" name="invNumber" class="form-control disabled-el" required/>
+                                    <label for="docNumber">Document Number*</label>
+                                    <input type="text" id="docNumber" name="docNumber" class="form-control disabled-el" required/>
                                 </div>
                             </div>
                             <div class="row">
@@ -89,16 +89,10 @@
                                         <label>Article Code</label>
                                     </td>
                                     <td class="isian" style="width: 5%">
-                                        <label>Qty PO</label>
+                                        <label>Qty SO</label>
                                     </td>
                                     <td class="isian" style="width: 5%">
                                         <label>Qty</label>
-                                    </td>
-                                    <td class="isian" style="width: 5%">
-                                        <label>UOM</label>
-                                    </td>
-                                    <td class="isian" style="width: 5%">
-                                        <label>Free Goods</label>
                                     </td>
                                     <td class="isian" style="width: 5%">
                                         <label>UOM</label>
@@ -132,12 +126,6 @@
                                 </div>
                             </div>
                             <div class="form-group row mb-03">
-                                <label for="totalQtyFree" class="col-sm-4 col-form-label titik-dua">Total Qty Free</label>
-                                <div class="col-sm-4">
-                                    <input type="text" class="form-control text-right font-weight-bold" id="totalQtyFree" disabled />
-                                </div>
-                            </div>
-                            <div class="form-group row mb-03">
                                 <label for="grandTotalQty" class="col-sm-4 col-form-label titik-dua">Grand Total Qty</label>
                                 <div class="col-sm-4">
                                     <input type="text" class="form-control text-right font-weight-bold" id="grandTotalQty" disabled />
@@ -150,7 +138,7 @@
         </div>
     </div>
 </section>
-@include('receiving.addArticle')
+@include('receivingRm.addArticle')
 @endsection
 @section('styles')
 <style>
@@ -238,9 +226,9 @@
         $('#cmdPosting').hide();
     });
 
-    invDate = $('#invDate');
-    if (invDate.length) {
-        invDate.flatpickr({
+    docDate = $('#docDate');
+    if (docDate.length) {
+        docDate.flatpickr({
             dateFormat: "d-m-Y",
             maxDate: "today"
         });
@@ -274,10 +262,7 @@
             $('.disabled-el').removeAttr('disabled');
             // ambil semua data article
             let objQty= $('input[name="qty_rec[]"]');
-            let objUom= $('select[name="uom[]"]');
-            let objQtyFree= $('input[name="qty_free[]"]');
-            let objUomFree= $('select[name="uomFree[]"]');
-            
+            let objUom= $('select[name="uom[]"]');            
             let articles = []; 
             let flag=0; 
             let pesan="";
@@ -293,15 +278,11 @@
                     let articleName=article[1];
                     let qty=objQty.eq(i).val().replace(/,/gi, '') || 0;
                     let qtyUom=objUom.eq(i).val() || articleUom;
-                    let qtyFree=objQtyFree.eq(i).val().replace(/,/gi, '') || 0;
-                    let qtyFreeUom=objUom.eq(i).val() || articleUom;
-                    
+                                        
                     articles.push({
                         "article_code":articleCode,
                         "qty":qty,
                         "uom":qtyUom,
-                        "qty_free":qtyFree,
-                        "uom_free":qtyFreeUom,
                         "price":articlePrice
                     });
                 }
@@ -313,20 +294,20 @@
             }
 
             if (flag==0){
-                let invNumber = $('#invNumber').val();
-                let invDate = $('#invDate').val();
-                let poNumber = $('#poNumber').val();
-                let supp = $('#supplier').val();
+                let docNumber = $('#docNumber').val();
+                let docDate = $('#docDate').val();
+                let soNumber = $('#soNumber').val();
+                let supp = $('#customer').val();
                 let recDate = $('#recDate').val();
                 let note = $('#note').val();
             
                 $.ajax({
                     type: "post",
-                    url: "{{ route('receiving.store') }}",
+                    url: "{{ route('receivingRm.store') }}",
                     data: {
-                        invNumber:invNumber,
-                        invDate:invDate,
-                        poNumber:poNumber,
+                        docNumber:docNumber,
+                        docDate:docDate,
+                        soNumber:soNumber,
                         supp:supp,
                         recDate:recDate,
                         note:note,
@@ -363,11 +344,11 @@
                             $('#cmdPosting').show();
                             $('#recNumber').attr('disabled','disabled');
                             $('#cmdSave').attr('disabled','disabled');
-                            $('#supplier').attr('disabled','disabled');
-                            $('#poNumber').attr('disabled','disabled');
-                            $('#invDate').attr('disabled','disabled');
+                            $('#customer').attr('disabled','disabled');
+                            $('#soNumber').attr('disabled','disabled');
+                            $('#docDate').attr('disabled','disabled');
                             $('#recDate').attr('disabled','disabled');
-                            $('#invNumber').attr('disabled','disabled');
+                            $('docNumber').attr('disabled','disabled');
 
                             objQty.attr('disabled','disabled');
                             objUom.attr('disabled','disabled');
@@ -428,11 +409,11 @@
                     $('#deleteButton').hide();
                     $('#cmdPosting').hide();
                     $('#recNumber').attr('disabled','disabled');
-                    $('#poNumber').attr('disabled','disabled');
-                    $('#supplier').attr('disabled','disabled');
-                    $('#invDate').attr('disabled','disabled');
+                    $('#soNumber').attr('disabled','disabled');
+                    $('#customer').attr('disabled','disabled');
+                    $('#docDate').attr('disabled','disabled');
                     $('#recDate').attr('disabled','disabled');
-                    $('#invNumber').attr('disabled','disabled');
+                    $('docNumber').attr('disabled','disabled');
                     objQty.attr('disabled','disabled');
                     objUom.attr('disabled','disabled');
                     objQtyFree.attr('disabled','disabled');
@@ -447,9 +428,9 @@
              
     });
 
-    function searchPo(obj,value) {
+    function searchSo(obj,value) {
       $.ajax({
-        url:"{{ route('receiving.list.po') }}",
+        url:"{{ route('receivingRm.list.so') }}",
         method:"GET",
         data:{
             value:value,
@@ -460,14 +441,14 @@
         },
         error: function (response) {
             //Error here
-            Swal.fire("Warning","Get list PO failed","warning");
+            Swal.fire("Warning","Get list SO failed","warning");
         }
       })
     }
 
-    $('#supplier').change(function(){
+    $('#customer').change(function(){
         let value= $(this).val();
-        searchPo('poNumber',value);
+        searchSo('soNumber',value);
     });
 
     let cloneCount=1;
@@ -480,22 +461,19 @@
         $('#article_id'+ cloneCount).attr('data-uom', uom);
         $('#article_id'+ cloneCount).attr('data-price', price);
         $('#article_id'+ cloneCount).val(articleCode +" - " + articleDesc);
-        $("#new_row"+ cloneCount).find('#qty_po').attr('id', 'qty_po'+ cloneCount);
-        $('#qty_po'+ cloneCount).val(qtyPo);
+        $("#new_row"+ cloneCount).find('#qty_so').attr('id', 'qty_so'+ cloneCount);
+        $('#qty_so'+ cloneCount).val(qtyPo);
         $("#new_row"+ cloneCount).find('#uom').attr('id', 'uom'+ cloneCount);
         listUom('uom'+ cloneCount,uomGroup,uom);
-        $("#new_row"+ cloneCount).find('#uomFree').attr('id', 'uomFree'+ cloneCount);
-        listUom('uomFree'+ cloneCount,uomGroup,uom);
         tombolPanah('qty_rec');
-        tombolPanah('qty_free');
         mask_thousand_digit(3);
         hitungTotal();
         
     }
 
-    function searchPoDet(value) {
+    function searchSoDet(value) {
         $.ajax({
-            url:"{{ route('receiving.po.det') }}",
+            url:"{{ route('receivingRm.so.det') }}",
             method:"GET",
             data:{
                 value:value,
@@ -521,19 +499,19 @@
                 
             },
             error: function (response) {
-                Swal.fire("Warning","Get detail PO failed","warning");
+                Swal.fire("Warning","Get detail SO failed","warning");
             }
         })
     }
 
-    $('#poNumber').change(function(){
+    $('#soNumber').change(function(){
         let value= $(this).val();
-        searchPoDet(value);
+        searchSoDet(value);
     })
 
     function listUom(obj,value,uom) {
       $.ajax({
-        url:"{{ route('receiving.list.uom') }}",
+        url:"{{ route('receivingRm.list.uom') }}",
         method:"GET",
         data:{
             value:value,
@@ -550,23 +528,20 @@
     
     function hitungTotal(){
         let objQtyRec= $('#article_row input[name="qty_rec[]"]');
-        let objQtyFree= $('#article_row input[name="qty_free[]"]');
         let objTotalQty= $('#article_row span[name="totalQty[]"]');
         
         objQtyRec.keyup(function() {
             let indexnya= objQtyRec.index(this);
-            let qtyRec = parseInt(objQtyRec.eq(indexnya).val().replace(/[^0-9]/gi, '') || 0); 
-            let qtyFree = parseInt(objQtyFree.eq(indexnya).val().replace(/[^0-9]/gi, '') || 0); 
-            let totalQty = qtyRec+qtyFree;
+            let qtyRec = parseInt(objQtyRec.eq(indexnya).val().replace(/,/gi, '') || 0); 
+            let totalQty = qtyRec;
             objTotalQty.eq(indexnya).text(humanizeNumber(totalQty));
             hitungGrandTotal();
         });    
 
         objQtyFree.keyup(function() {
             let indexnya= objQtyRec.index(this);
-            let qtyRec = parseInt(objQtyRec.eq(indexnya).val().replace(/[^0-9]/gi, '') || 0); 
-            let qtyFree = parseInt(objQtyFree.eq(indexnya).val().replace(/[^0-9]/gi, '') || 0); 
-            let totalQty = qtyRec+qtyFree;
+            let qtyRec = parseInt(objQtyRec.eq(indexnya).val().replace(/,/gi, '') || 0); 
+            let totalQty = qtyRec;
             objTotalQty.eq(indexnya).text(humanizeNumber(totalQty));
             hitungGrandTotal();
         });
@@ -576,21 +551,16 @@
     function hitungGrandTotal(){
         let objArticle = $('#article_row input[name="article_id[]"]');
         let objQtyRec= $('#article_row input[name="qty_rec[]"]');
-        let objQtyFree= $('#article_row input[name="qty_free[]"]');
         let totalQty= 0;
-        let totalQtyFree= 0;
 
         var arr = objQtyRec.map(function (i) {
             let qty = parseInt(objQtyRec.eq(i).val().replace(/[^0-9]/gi, '')) || 0;
-            let qtyFree = parseInt(objQtyFree.eq(i).val().replace(/[^0-9]/gi, '')) || 0;
             totalQty+= qty;
-            totalQtyFree+= qtyFree;
         }).get();
-        grandTotalQty=totalQty+totalQtyFree;
+        grandTotalQty=totalQty;
         
         $("#totalRow").val(objArticle.length);
         $("#totalQTY").val(humanizeNumber(totalQty));
-        $("#totalQtyFree").val(humanizeNumber(totalQtyFree));
         $("#grandTotalQty").val(humanizeNumber(grandTotalQty));
     }
 

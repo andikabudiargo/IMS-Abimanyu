@@ -92,7 +92,7 @@ class ArticleController extends Controller
 
             $artilceCode = DB::table('third_party')
             ->where('kode',$customer)
-            ->select(DB::raw("CONCAT('FG',inisial,'$newCode','|RM',inisial,'$newCode') AS new_code"))->value('new_code');
+            ->select(DB::raw("CONCAT('FG',inisial,'$newCode','~FG','|RM',inisial,'$newCode','~RM') AS new_code"))->value('new_code');
 
         }else{
             $lastCode = DB::table('article')
@@ -106,7 +106,7 @@ class ArticleController extends Controller
                 $newCode = str_pad(substr($lastCode->article_alternative_code,8)+1, 8, "0", STR_PAD_LEFT);
             }
 
-            $artilceCode = $leadingCode.$newCode;
+            $artilceCode = $leadingCode.$newCode."~".$leadingCode;
         }
         
         return  $artilceCode;
@@ -151,7 +151,7 @@ class ArticleController extends Controller
         $group = $request->input('group');
         $uom = $request->input('uom');
         $price = $request->input('price');
-        $price = str_replace(",","",$price);
+        $price = $price ? str_replace(",","",$price) : $price;
         $note = $request->input('note');
         $files = $request->input('files');
         $status = '1';
@@ -181,9 +181,10 @@ class ArticleController extends Controller
         try {
                 foreach($articles as $val){
                     $artCode = $this->getArticleCode();
+                    $articleDet =  explode("~",$val); 
                     DB::table('article')->insert([
                         'article_code' => $artCode,
-                        'article_alternative_code' => $val,
+                        'article_alternative_code' => $articleDet[0],
                         'article_desc' => $nama,
                         'group_of_material' => $group,
                         'third_party' => $cust,
@@ -191,7 +192,7 @@ class ArticleController extends Controller
                         'uom' => $uom,
                         'costprice' => $price,
                         'status' => $status,
-                        'article_type' => $type,
+                        'article_type' => $articleDet[1],
                         'created_by' => Auth::user()->username,
                         'updated_by' => Auth::user()->username,
                         'created_at' => date('Y-m-d H:i:s'),
@@ -439,16 +440,17 @@ class ArticleController extends Controller
 
         // $type == 'CM'? $type='supp' :  $type='cust';
         $data=DB::table('article');
-        $data->select('article.*','costprice','article_alternative_code as code','article_desc as desc','uom','quality','note','article.id','group_materials.name as group','third_party.nama as cust');
+        $data->select('article.*','costprice','article.article_code as art_code','article_alternative_code as code','article_desc as desc','article.uom','quality','note','article.id','group_materials.name as group','third_party.nama as cust','article_stock.article_qty');
         $data->leftJoin('group_materials', 'group_materials.code', '=', 'article.group_of_material');
         $data->leftJoin('third_party', 'third_party.kode', '=', 'article.third_party');
+        $data->leftJoin('article_stock', 'article_stock.article_code', '=', 'article.article_code');
         $code ? $data->where('article_alternative_code','ilike','%'.$code.'%') :'';
         $name ? $data->where('article_desc','ilike','%'.$name.'%') :'';
         $group ? $data->where('group_of_material','ilike','%'.$group.'%') :'';
         $cust ? $data->where('third_party','ilike','%'.$cust.'%') :'';
         $type ? $data->where('article_alternative_code','ilike',$type.'%') :'';      
         $data->orderBy('article_desc');
-        $data->get(['costprice','article_alternative_code as code','article_desc as desc','uom','quality','note','article.id','group_materials.name as group','third_party.nama as cust']);
+        $data->get(['costprice','article.article_code','article_alternative_code as code','article_desc as desc','article.uom','quality','note','article.id','group_materials.name as group','third_party.nama as cust','article_stock.article_qty']);
 
         return Datatables::of($data)
         ->addColumn('action', function ($data) {
@@ -457,7 +459,11 @@ class ArticleController extends Controller
                                 <i data-feather="menu"></i>
                             </a>';
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
-            
+        
+            $buttons .=         '<a href="javascript:;" onclick="movement(\''.$data->art_code.'\',\''.$data->code.'\',\''.$data->desc.'\')" class="dropdown-item">
+                                    <i data-feather="activity"></i>
+                                    Movement
+                                </a>';
             if (Auth::user()->can('article-edit')) {
             $buttons .=         '<a href="'. route('article.edit', ['id'=>$data->id]) .'" class="dropdown-item">
                                     <i data-feather="file-text"></i>
@@ -484,9 +490,9 @@ class ArticleController extends Controller
 
             return $buttons;
             })
-        ->addColumn('group_id', function ($user) {
-            return '';
-        })
+        // ->addColumn('group_id', function ($user) {
+        //     return '';
+        // })
         ->rawColumns(['action'])
         ->make(true);
     }
@@ -510,5 +516,19 @@ class ArticleController extends Controller
         }        
 
         return $output;
+    }
+
+    public function movement(Request $request){
+
+        $articleCode = $request->articleCode;
+        $sqlku=("SELECT movement_code,movement_date,artikel_code,artikel_desc,movement_price,movement_type,movement_transnno,movement_min,movement_plus,balanceqty, movement_desc
+                from (
+                select movement_code,artikel_code,artikel_desc,movement_price,movement_date,movement_desc, movement_type,movement_min,movement_plus,movement_transnno,sum(movement_plus) over (order by movement_code) - sum(movement_min) over (order by movement_code) as balanceqty,row_Number() over (order by movement_code) as rn
+                from movement
+                where artikel_code='$articleCode'
+                ) t
+                order by movement_code");
+        $data = DB::select($sqlku);
+        return Datatables::of($data)->make(true);
     }
 }
