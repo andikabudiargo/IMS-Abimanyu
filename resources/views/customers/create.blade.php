@@ -434,7 +434,7 @@
                         dependent:dependent
                     },
                     success:function(result){
-                        // console.log(dependent);
+                        // console.log(result);
                         $('#'+dependent).html(result);
                         $('#'+dependent).val('').trigger('change');
                     }

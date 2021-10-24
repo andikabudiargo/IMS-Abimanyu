@@ -97,17 +97,10 @@
                                         <div class="col-12">
                                             <a href="{{ route('purchaseOrders.index') }}" class="btn btn-warning">Back</a>
                                             <a href="{{ route('purchaseOrder.create') }}" class="btn btn-success">New</a>
-                                            @if( $header->status == '1')
+                                            @if( $header->status == '1' || $header->status == '2' || $header->status == '3' )
                                                 <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Update</button>
-                                                @can('purchaseOrder-validate')
-                                                    <button class="btn btn-primary" type="button" id="cmdValidate" name="cmdValidate">Validate</button>
-                                                @endcan
                                             @endif
-                                            @if( $header->status == '2')
-                                                @can('purchaseOrder-authorize')
-                                                    <button class="btn btn-primary" type="button" id="cmdAuthorized" name="cmdAuthorized">Auhorized</button>
-                                                @endcan
-                                            @endif
+                                          
                                         </div>
                                     </div>
                                 </div>
@@ -765,7 +758,7 @@
             }
         });
     }
-    
+   
     $.ajaxSetup({
         headers: {
             'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')

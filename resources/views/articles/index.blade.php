@@ -26,17 +26,26 @@
                     <div class="form-group col-md-4"> 
                       <label class="form-label" for="searchGroup">Group</label>
                       <select class="select2 form-control" id="searchGroup" name="searchGroup">
-                          <option label=""></option>
+                          <option value=""></option>
                           @foreach($groups as $val)
                               <option value="{{$val->code}}">{{$val->code}} - {{$val->name}}</option>
                           @endforeach
                       </select>
                     </div>
                     <div class="form-group col-md-4"> 
-                      <label class="form-label" for="searchCustomer">Customer/Supplier</label>
+                      <label class="form-label" for="searchCustomer">Customer</label>
                       <select class="select2 form-control" id="searchCustomer" name="searchCustomer">
-                          <option label=""></option>
+                          <option value=""></option>
                           @foreach($custs as $val)
+                              <option value="{{$val->kode}}">{{$val->kode}} - {{$val->nama}}</option>
+                          @endforeach
+                      </select>
+                    </div>
+                    <div class="form-group col-md-4"> 
+                      <label class="form-label" for="searchSupplier">Supplier</label>
+                      <select class="select2 form-control" id="searchSupplier" name="searchSupplier">
+                          <option label=""></option>
+                          @foreach($supps as $val)
                               <option value="{{$val->kode}}">{{$val->kode}} - {{$val->nama}}</option>
                           @endforeach
                       </select>
@@ -142,7 +151,6 @@
     $(document).on('click', '#deleteButton', function(event) {
         event.preventDefault();
         href = $(this).data('href');
-        console.log(href);
         $('#modalConfirmation').attr("action", href);
     });
   });
@@ -166,11 +174,12 @@
       let code = $("#seachCode").val();
       let group = $("#searchGroup").val();
       let cust = $("#searchCustomer").val();
+      let supp = $("#searchSupplier").val();
       let type = $("#searchType").val();
-      showList(name,code,group,cust,type);
+      showList(name,code,group,cust,supp,type);
   });
 
-  function showList(name,code,group,cust,type){
+  function showList(name,code,group,cust,supp,type){
     // let dtdom = '<"card-header border-bottom p-1"<"head-label">><"d-flex justify-content-between align-items-center mx-0 row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-4"f><"col-sm-12 col-md-2"<"dt-action-buttons text-right"B>>>t<"d-flex justify-content-between mx-0 row"<"col-sm-12 col-md-6"i><"col-sm-12 col-md-6"p>>';
     let dtdom ='<"d-flex justify-content-between align-items-center header-actions mx-1 row mt-75"' +
         '<"col-lg-12 col-xl-6" l>' +
@@ -180,7 +189,7 @@
         '<"col-sm-12 col-md-6"i>' +
         '<"col-sm-12 col-md-6"p>' +
         '>';
-    let arr_col_print =[2,3,4,5,6,7]; 
+    let arr_col_print =[1,2,3,4,5,6,7]; 
     $(function(){
       let oTable =$("#detailedTable").DataTable({
         ajax:
@@ -191,6 +200,7 @@
               code:code,
               group:group,
               cust:cust,
+              supp:supp,
               type:type
           }
         },
@@ -224,7 +234,10 @@
                 extend: 'excel',
                 text: feather.icons['file'].toSvg({ class: 'font-small-4 mr-50' }) + 'Excel',
                 className: 'dropdown-item',
-                exportOptions: { columns: arr_col_print }
+                exportOptions: { columns: arr_col_print },
+                action: newExportAction,
+                title:null,
+                filename:'articles'
               },
               {
                 extend: 'pdf',
@@ -248,37 +261,6 @@
             }
           },
         ],
-        // responsive: {
-        //   details: {
-        //     display: $.fn.dataTable.Responsive.display.modal({
-        //       header: function (row) {
-        //         var data = row.data();
-        //         return 'Details of ' + data['nama'];
-        //       }
-        //     }),
-        //     type: 'column',
-        //     renderer: function (api, rowIdx, columns) {
-        //       var data = $.map(columns, function (col, i) {
-        //         return col.title !== '' // ? Do not show row in modal popup if title is blank (for check box)
-        //           ? '<tr data-dt-row="' +
-        //               col.rowIndex +
-        //               '" data-dt-column="' +
-        //               col.columnIndex +
-        //               '">' +
-        //               '<td>' +
-        //               col.title +
-        //               ':' +
-        //               '</td> ' +
-        //               '<td>' +
-        //               col.data +
-        //               '</td>' +
-        //               '</tr>'
-        //           : '';
-        //       }).join('');
-        //       return data ? $('<table class="table"/>').append(data) : false;
-        //     }
-        //   }
-        // },
         language: {
           paginate: {
             // remove previous & next text from pagination
@@ -287,18 +269,7 @@
           }
         },
         columnDefs: [
-          // {
-          //   // For Responsive
-          //   className: 'control',
-          //   orderable: false,
-          //   responsivePriority: 2,
-          //   targets: 0
-          // },
-          // {
-          //   responsivePriority: 1,
-          //   targets: 2
-          // },
-          { width: '10%', targets: 0 },
+          { width: '5%', targets: 0 },
           { className: 'text-right','targets': [4,5] },
         ],
         drawCallback: function( settings ) {
@@ -311,17 +282,20 @@
         bDestroy: true, //pakai ini supaya bisa di load berulang2
         // scrollX: true, //pakai ini supaya waktu responsive  bisa di scroll horizontal
         columns: [
-            // { data: 'group_id',name:'group_id', title:'',orderable: false, searchable: false },
             { data: 'action', name: 'action',title:'action', orderable: false, searchable: false },
-            { data: 'code', name: 'code',title:'Code' },
-            { data: 'desc', name: 'desc',title:'Name' },
-            { data: 'cust', name: 'cust',title:'Customer' },
+            { data: 'code', name: 'article_alternative_code',title:'Code' },
+            { data: 'desc', name: 'article_desc',title:'Name' },
+            { data: 'cust', name: 'third_party.nama',title:'Customer' },
             { data: 'costprice', name: 'costprice',title:'Price',render: $.fn.dataTable.render.number(',','.') },
-            { data: 'article_qty', name: 'article_qty',title:'Qty',render: $.fn.dataTable.render.number(',','.',3) },
+            // { data: 'article_qty', name: 'article_qty',title:'Qty',render: $.fn.dataTable.render.number(',','.',3) },
+            { data: "article_qty", name: 'article_stock.article_qty',title:'Qty',
+              render: function (data, type, row) {
+                return data ? humanizeNumber(data*1) : 0;
+              }
+            },
             { data: 'uom', name: 'uom',title:'UOM' },
-            { data: 'group', name: 'group',title:'Group' },
+            { data: 'group', name: 'group_materials.name',title:'Group' },
             { data: 'note', name: 'note',title:'Note' }
-
         ],
       });
     });
@@ -435,8 +409,53 @@
         ],
       });
     });
-
   }
+
+    //export all data on datatables and all pages
+    var oldExportAction = function (self, e, dt, button, config) {
+        if (button[0].className.indexOf('buttons-excel') >= 0) {
+            if ($.fn.dataTable.ext.buttons.excelHtml5.available(dt, config)) {
+                $.fn.dataTable.ext.buttons.excelHtml5.action.call(self, e, dt, button, config);
+            }
+            else {
+                $.fn.dataTable.ext.buttons.excelFlash.action.call(self, e, dt, button, config);
+            }
+        } else if (button[0].className.indexOf('buttons-print') >= 0) {
+            $.fn.dataTable.ext.buttons.print.action(e, dt, button, config);
+        }
+    };
+
+    var newExportAction = function (e, dt, button, config) {
+        var self = this;
+        var oldStart = dt.settings()[0]._iDisplayStart;
+
+        dt.one('preXhr', function (e, s, data) {
+            // Just this once, load all data from the server...
+            data.start = 0;
+            data.length = 2147483647;
+
+            dt.one('preDraw', function (e, settings) {
+                // Call the original action function 
+                oldExportAction(self, e, dt, button, config);
+
+                dt.one('preXhr', function (e, s, data) {
+                    // DataTables thinks the first item displayed is index 0, but we're not drawing that.
+                    // Set the property to what it was before exporting.
+                    settings._iDisplayStart = oldStart;
+                    data.start = oldStart;
+                });
+
+                // Reload the grid with the original page. Otherwise, API functions like table.cell(this) don't work properly.
+                setTimeout(dt.ajax.reload, 0);
+
+                // Prevent rendering of the full data to the DOM
+                return false;
+            });
+        });
+
+        // Requery the server with the new one-time export settings
+        dt.ajax.reload();
+    };
 
   $.ajaxSetup({
     headers: {

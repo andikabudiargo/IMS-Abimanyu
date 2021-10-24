@@ -15,10 +15,6 @@
                                 <label for="kode">Article Code 1</label>
                                 <input type="text" id="kode" name="kode" class="form-control disabled-el"  value="{{ old('kode') }}" disabled />
                             </div>
-                            <div class="form-group col-md-6">
-                                <label for="kode2">Article Code 2</label>
-                                <input type="text" id="kode2" name="kode2" class="form-control disabled-el"  value="{{ old('kode2') }}" disabled />
-                            </div>
                         </div>
                         <div class="row">
                             <div class="form-group col-md-6">
@@ -42,8 +38,8 @@
                         </div>
                         <div class="row">
                             <div class="form-group col-md-12">
-                                <label class="form-label" for="cust" id="custLable">Customer*</label>
-                                <select class="select2 form-control" id="cust" name="cust" autofocus required>         
+                                <label class="form-label" for="cust" id="custLable">Customer/Supplier*</label>
+                                <select class="select2 form-control" id="cust" name="cust" autofocus required>
                                 </select>
                             </div>
                         </div>
@@ -51,14 +47,14 @@
                             <div class="col-12">
                                 <div class="form-group">
                                     <label for="nama">Description*</label>
-                                    <input type="text" id="nama" name="nama" class="form-control" value="{{ old('nama') }}"  required  maxlength="100"/>
+                                    <input type="text" id="nama" name="nama" class="form-control text-uppercase" value="{{ old('nama') }}"  required  maxlength="100"/>
                                 </div>
                             </div>
                         </div>
                         <div class="row">
                             <div class="form-group col-md-6">
                                 <label for="price">Price</label>
-                                <input type="text" id="price" name="price" class="form-control numeral-mask text-right" value="{{ old('price') }}" maxlength="10"/>
+                                <input type="text" id="price" name="price" class="form-control numeral-mask text-right" value="{{ old('price') }}" maxlength="12"/>
                             </div>
                             <div class="form-group col-md-6">
                                 <label class="form-label" for="uom">Smallest Unit*</label>
@@ -108,7 +104,6 @@
 </section>
 @endsection
 @section('styles')
-
 <style>
     textarea {
         resize: none;
@@ -200,7 +195,6 @@
 
     $('#articleType').on('change', function() {
         let type = $(this).val();
-        console.log(type);
         let obj = "cust";
         $.ajax({
             url:"{{route('get.supplier')}}",
@@ -210,7 +204,8 @@
                 dependent:obj
             },
             success:function(result){
-                type === 'FG' || type === 'RM' ?$('#custLable').text("Customer"):$('#custLable').text("Supplier");
+                type === 'FG' ? $('#custLable').text("Customer*"):"";
+                type != 'FG' && type != 'RM' ? $('#custLable').text("Supplier*"):type === 'RM'?$('#custLable').text("Customer/Supplier*"):"";
                 $('#'+obj).html(result);
                 $('#'+obj).val('').trigger('change');
             }

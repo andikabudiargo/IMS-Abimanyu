@@ -49,8 +49,8 @@
                                     <input type="text" id="invDate" name="invDate" class="form-control" placeholder="DD-MM-YYYY" value="{{ $header->inv_date }}" required />
                                 </div> 
                                 <div class="form-group col-md-3">
-                                    <label for="invNumber">Invoice Number</label>
-                                    <input type="text" id="invNumber" name="invNumber" class="form-control disabled-el" value="{{ $header->inv_number }}" required/>
+                                    <label for="docNumber">Invoice Number</label>
+                                    <input type="text" id="docNumber" name="docNumber" class="form-control disabled-el" value="{{ $header->inv_number }}" required/>
                                 </div>
                             </div>
                             <div class="row">
@@ -116,12 +116,6 @@
                                         <label>UOM</label>
                                     </td>
                                     <td class="isian" style="width: 5%">
-                                        <label>Free Goods</label>
-                                    </td>
-                                    <td class="isian" style="width: 5%">
-                                        <label>UOM</label>
-                                    </td>
-                                    <td class="isian" style="width: 5%">
                                         <label>Total Qty</label>
                                     </td>
                                 </tr>
@@ -145,13 +139,7 @@
                                                 <select class="form-control" id="uom" name="uom[]">
                                                 </select>
                                             </td>
-                                            <td class="isian" style="width: 5%">
-                                                <input type="text" class="form-control-plaintext numeral-mask-digit text-right" id = "qty_free" name="qty_free[]" maxlength="9" />
-                                            </td>
-                                            <td class="isian" style="width: 5%">
-                                                <select class="form-control" id="uomFree" name="uomFree[]">
-                                                </select>
-                                            </td>
+                                         
                                             <td class="isian disabled text-right" style="width: 5%">
                                                 <span class="text-hitam" id="totalQty" name="totalQty[]"></span>
                                             </td>
@@ -177,12 +165,6 @@
                                 <label for="totalQTY" class="col-sm-4 col-form-label titik-dua">Total Qty</label>
                                 <div class="col-sm-4">
                                     <input type="text" class="form-control text-right font-weight-bold" id="totalQTY" disabled />
-                                </div>
-                            </div>
-                            <div class="form-group row mb-03">
-                                <label for="totalQtyFree" class="col-sm-4 col-form-label titik-dua">Total Qty Free</label>
-                                <div class="col-sm-4">
-                                    <input type="text" class="form-control text-right font-weight-bold" id="totalQtyFree" disabled />
                                 </div>
                             </div>
                             <div class="form-group row mb-03">
@@ -299,10 +281,8 @@
             uom =  detail[i].uomQty;
             qty =  detail[i].qty;
             uomQty =  detail[i].uom_rec;
-            qtyFree =  detail[i].qty_free;
-            uomFree =  detail[i].uom_free;
             price =  detail[i].price;
-            add_new_row(article,articleCode,articleDesc,qtyPo,uomGroup,uom,qty,uomQty,qtyFree,uomFree,price);
+            add_new_row(article,articleCode,articleDesc,qtyPo,uomGroup,uom,qty,uomQty,price);
         }
             
     });
@@ -339,9 +319,7 @@
             // ambil semua data article
             let objQty= $('input[name="qty_rec[]"]');
             let objUom= $('select[name="uom[]"]');
-            let objQtyFree= $('input[name="qty_free[]"]');
-            let objUomFree= $('select[name="uomFree[]"]');
-            
+                        
             let articles = []; 
             let flag=0; 
             let pesan="";
@@ -355,18 +333,14 @@
                     let article=$this.val().split("|");
                     let plu=article[0];
                     let articleName=article[1];
-                    // let qty=objQty.eq(i).val().replace(/[^0-9]/gi, '') || 0;
+                    // let qty=objQty.eq(i).val().replace(/,/gi, '') || 0;
                     let qty=objQty.eq(i).val().replace(/,/gi, '') || 0;
                     let qtyUom=objUom.eq(i).val() || articleUom;
-                    let qtyFree=objQtyFree.eq(i).val().replace(/,/gi, '') || 0;
-                    let qtyFreeUom=objUom.eq(i).val() || articleUom;
                     
                     articles.push({
                         "article_code":articleCode,
                         "qty":qty,
                         "uom":qtyUom,
-                        "qty_free":qtyFree,
-                        "uom_free":qtyFreeUom,
                         "price":price,
                     });
                 }
@@ -379,7 +353,7 @@
 
             if (flag==0){
                 let recNumber = $('#recNumber').val();
-                let invNumber = $('#invNumber').val();
+                let docNumber = $('#docNumber').val();
                 let invDate = $('#invDate').val();
                 let poNumber = $('#poNumber').val();
                 let supp = $('#supplier').val();
@@ -388,10 +362,10 @@
             
                 $.ajax({
                     type: "post",
-                    url: "{{ route('receiving.update') }}",
+                    url: "{{ route('receivingRm.update') }}",
                     data: {
                         recNumber:recNumber,
-                        invNumber:invNumber,
+                        docNumber:docNumber,
                         invDate:invDate,
                         poNumber:poNumber,
                         supp:supp,
@@ -427,7 +401,9 @@
                             // $('#recNumber').val(data.recNumber);
                             // $('#cmdSave').hide();
                             $('#deleteButton').hide();
+                            $('#cmdSave').hide();
                             $('#cmdPosting').show();
+                            
                             $('#recNumber').attr('disabled','disabled');
                             $('#poNumber').attr('disabled','disabled');
                             $('#supplier').attr('disabled','disabled');
@@ -496,7 +472,7 @@
     });
     
     let cloneCount=1;
-    function add_new_row(article,articleCode,articleDesc,qtyPo,uomGroup,uom,qty,uomQty,qtyFree,uomFree,price) {
+    function add_new_row(article,articleCode,articleDesc,qtyPo,uomGroup,uom,qty,uomQty,price) {
         $("#article_row").append($("#new_row").clone().html());
         cloneCount++;
         $("#article_row").find('#baru').attr('id', 'new_row'+ cloneCount);
@@ -511,12 +487,7 @@
         $('#qty_rec'+ cloneCount).val(qty);
         $("#new_row"+ cloneCount).find('#uom').attr('id', 'uom'+ cloneCount);
         listUom('uom'+ cloneCount,uomGroup,uom,uomQty);
-        $("#new_row"+ cloneCount).find('#qty_free').attr('id', 'qty_free'+ cloneCount);
-        $('#qty_free'+ cloneCount).val(qtyFree);
-        $("#new_row"+ cloneCount).find('#uomFree').attr('id', 'uomFree'+ cloneCount);
-        listUom('uomFree'+ cloneCount,uomGroup,uom,uomFree);
         tombolPanah('qty_rec');
-        tombolPanah('qty_free');
         mask_thousand_digit(3);
         hitungTotal();
         hitungGrandTotalLoad();
@@ -541,71 +512,50 @@
 
     function hitungTotal(){
         let objQtyRec= $('#article_row input[name="qty_rec[]"]');
-        let objQtyFree= $('#article_row input[name="qty_free[]"]');
         let objTotalQty= $('#article_row span[name="totalQty[]"]');
         
         objQtyRec.keyup(function() {
             let indexnya= objQtyRec.index(this);
-            let qtyRec = parseInt(objQtyRec.eq(indexnya).val().replace(/[^0-9]/gi, '') || 0); 
-            let qtyFree = parseInt(objQtyFree.eq(indexnya).val().replace(/[^0-9]/gi, '') || 0); 
-            let totalQty = qtyRec+qtyFree;
+            let qtyRec = parseInt(objQtyRec.eq(indexnya).val().replace(/,/gi, '') || 0); 
+            let totalQty = qtyRec;
             objTotalQty.eq(indexnya).text(humanizeNumber(totalQty));
             hitungGrandTotal();
         });    
-
-        objQtyFree.keyup(function() {
-            let indexnya= objQtyRec.index(this);
-            let qtyRec = parseInt(objQtyRec.eq(indexnya).val().replace(/[^0-9]/gi, '') || 0); 
-            let qtyFree = parseInt(objQtyFree.eq(indexnya).val().replace(/[^0-9]/gi, '') || 0); 
-            let totalQty = qtyRec+qtyFree;
-            objTotalQty.eq(indexnya).text(humanizeNumber(totalQty));
-            hitungGrandTotal();
-        });
             
     }
 
     function hitungGrandTotal(){
         let objArticle = $('#article_row input[name="article_id[]"]');
         let objQtyRec= $('#article_row input[name="qty_rec[]"]');
-        let objQtyFree= $('#article_row input[name="qty_free[]"]');
         let totalQty= 0;
-        let totalQtyFree= 0;
 
         var arr = objQtyRec.map(function (i) {
-            let qty = parseInt(objQtyRec.eq(i).val().replace(/[^0-9]/gi, '')) || 0;
-            let qtyFree = parseInt(objQtyFree.eq(i).val().replace(/[^0-9]/gi, '')) || 0;
+            let qty = parseInt(objQtyRec.eq(i).val().replace(/,/gi, '')) || 0;
             totalQty+= qty;
-            totalQtyFree+= qtyFree;
         }).get();
-        grandTotalQty=totalQty+totalQtyFree;
+        grandTotalQty=totalQty;
         
         $("#totalRow").val(objArticle.length);
         $("#totalQTY").val(humanizeNumber(totalQty));
-        $("#totalQtyFree").val(humanizeNumber(totalQtyFree));
         $("#grandTotalQty").val(humanizeNumber(grandTotalQty));
     }
 
     function hitungGrandTotalLoad(){
         let objArticle = $('#article_row input[name="article_id[]"]');
         let objQtyRec= $('#article_row input[name="qty_rec[]"]');
-        let objQtyFree= $('#article_row input[name="qty_free[]"]');
         let objTotalQty= $('#article_row span[name="totalQty[]"]');
         
         let totalQty= 0;
-        let totalQtyFree= 0;
 
         var arr = objQtyRec.map(function (i) {
-            let qty = parseInt(objQtyRec.eq(i).val().replace(/[^0-9]/gi, '')) || 0;
-            let qtyFree = parseInt(objQtyFree.eq(i).val().replace(/[^0-9]/gi, '')) || 0;
+            let qty = parseInt(objQtyRec.eq(i).val().replace(/,/gi, '')) || 0;
             totalQty+= qty;
-            totalQtyFree+= qtyFree;
-            objTotalQty.eq(i).text(humanizeNumber(qty+qtyFree));
+            objTotalQty.eq(i).text(humanizeNumber(qty));
         }).get();
-        grandTotalQty=totalQty+totalQtyFree;
+        grandTotalQty=totalQty;
         
         $("#totalRow").val(objArticle.length);
         $("#totalQTY").val(humanizeNumber(totalQty));
-        $("#totalQtyFree").val(humanizeNumber(totalQtyFree));
         $("#grandTotalQty").val(humanizeNumber(grandTotalQty));
     }
 

@@ -153,6 +153,7 @@ class PurchaseOrderController extends Controller
             try {
                     DB::table('purchase_order_hdr')->insert([
                         'po_number' => $poNumber,
+                        'origin_po_number' => $poNumber,
                         'supplier_id' => $supplier,
                         'po_date' => $orderDate,
                         'delivery_date' =>$deliveryDate,
@@ -163,7 +164,7 @@ class PurchaseOrderController extends Controller
                         'status' => $status,
                         'note' =>  $note,
                         'authorized_by' => '',
-                        'prepared_by' =>  '',
+                        'validate_by' =>  '',
                         'discount' => $discount,
                         'pkp' => $tax,
                         'termin' =>$termin,
@@ -177,6 +178,7 @@ class PurchaseOrderController extends Controller
                     foreach ($articles as $val) {
                         $dataSet[] = [
                             'po_number' => $poNumber,
+                            'pr_number' => $val->pRequest,
                             'article_code' => $val->article_code,
                             'qty' => $val->qty,
                             'uom' => $val->uom,
@@ -237,81 +239,28 @@ class PurchaseOrderController extends Controller
         $data['subtitle'] = "Detail Purchase Order";
 
         $data['header'] = DB::table('purchase_order_hdr')
-        ->leftJoin('purchase_request_det','purchase_order_hdr.po_number','purchase_request_det.po_number')
-        ->where('purchase_order_hdr.id',$id)
-        ->get()->first();
-
-        $data['prHeader'] = DB::table('purchase_request_det') 
-        ->where('supp_code',$data['header']->supplier_id)
-        ->where('po_number','=',$data['header']->po_number)
-        ->orderBy('pr_number')
-        ->distinct('pr_number')
-        ->get();
-
-        $data['articles'] = DB::table('purchase_request_det') 
-            ->leftJoin('article','article.article_code','=','purchase_request_det'.'.article_code')
-            ->leftJoin('article_stock','article_stock.article_code','=','purchase_request_det'.'.article_code')
-            ->leftJoin('group_materials','group_materials.code','=','article.group_of_material')
-            ->where('supp_code',$data['header']->supplier_id)
-            ->where('po_number','=',$data['header']->po_number)
-            // ->where('pr_number','=',$data['header']->pr_number)
-            ->orderBy('article.article_desc')
-            ->distinct('article.article_desc')
-            ->select('purchase_request_det'.'.*','article.article_alternative_code','article.article_code as artikel_code','article.article_desc','article.costprice','article_stock.article_qty as qty_stock','purchase_request_det.uom as uom1','group_materials.name as group')
-            ->get();
-
-        $data['detail'] = DB::table('purchase_order_det')
-        ->leftJoin('article','article.article_code','=','purchase_order_det.article_code')
-        ->leftJoin('article_stock','article_stock.article_code','=','purchase_order_det.article_code')
-        ->leftJoin('purchase_request_det', function($join) {
-            $join->on('purchase_request_det.po_number','purchase_order_det.po_number')
-            ->on('purchase_request_det.article_code','purchase_order_det.article_code');
-        })
-        ->where('purchase_order_det.po_number',$data['header']->po_number)
-        ->select('purchase_order_det'.'.*','purchase_request_det.pr_number','article_stock.article_qty as qty_stock', DB::raw('(SELECT name from group_materials where code = group_of_material) as group'))
-        ->orderBy('id')
-        ->get();       
-
-        $data['supps'] = DB::table('third_party')
-        ->where ('third_party_type','=','supp')
-        ->orderBy('nama')
-        ->get();
-
-        $data['currency'] = ['IDR','USD'];
-
-        $data['uoms'] = DB::table('uom')
-        ->orderBy('name')
-        ->get();
-
-
-        return view("purchaseOrder.show",$data);
-        
-    }
-
-    public function edit(Request $request)
-    {
-        $id=$request->id;
-        $data['title'] = "Edit Purchase Order";
-        $data['subtitle'] = "Edit Purchase Order";
-
-        $data['header'] = DB::table('purchase_order_hdr')
         // ->leftJoin('purchase_request_det','purchase_order_hdr.po_number','purchase_request_det.po_number')
         ->where('purchase_order_hdr.id',$id)
         ->get()->first();
 
+        // $poNumber = explode("-",$data['header']->origin_po_number);
+        // $poNumber = $poNumber[0].'-'.$poNumber[1];
+
+        $poNumber = $data['header']->po_number;
+        
         $data['prHeader'] = DB::table('purchase_request_det') 
         ->where('supp_code',$data['header']->supplier_id)
-        ->where('po_number','=',$data['header']->po_number)
+        ->where('po_number','=',$poNumber)
         ->orderBy('pr_number')
         ->distinct('pr_number')
         ->get();
 
-        $data['articles'] = DB::table('purchase_request_det') 
+        $data['articles'] = DB::table('purchase_request_det')
             ->leftJoin('article','article.article_code','=','purchase_request_det'.'.article_code')
             ->leftJoin('article_stock','article_stock.article_code','=','purchase_request_det'.'.article_code')
             ->leftJoin('group_materials','group_materials.code','=','article.group_of_material')
             ->where('supp_code',$data['header']->supplier_id)
-            ->where('po_number','=',$data['header']->po_number)
+            ->where('po_number','=',$poNumber)
             // ->where('pr_number','=',$data['header']->pr_number)
             ->orderBy('article.article_desc')
             ->distinct('article.article_desc')
@@ -325,19 +274,10 @@ class PurchaseOrderController extends Controller
             $join->on('purchase_request_det.po_number','purchase_order_det.po_number')
             ->on('purchase_request_det.article_code','purchase_order_det.article_code');
         })
-        ->where('purchase_order_det.po_number',$data['header']->po_number)
+        ->where('purchase_order_det.po_number',$poNumber)
         ->select('purchase_order_det'.'.*','purchase_request_det.pr_number','article_stock.article_qty as qty_stock', DB::raw('(SELECT name from group_materials where code = group_of_material) as group'))
         ->orderBy('id')
         ->get();       
-
-        // $data['articles']= DB::table('article') 
-        // ->leftJoin('article_stock','article_stock.article_code','=','article.article_code')
-        // ->leftJoin('group_materials','group_materials.code','=','article.group_of_material')
-        // // ->where('third_party',$data['header']->customer_id)
-        // ->where('article_type','CM')
-        // ->orderBy('article_desc')
-        // ->select('article'.'.*', 'article_stock.article_qty as qty','article.uom as uom1','group_materials.name as group')
-        // ->get();   
 
         $data['supps'] = DB::table('third_party')
         ->where ('third_party_type','=','supp')
@@ -357,26 +297,111 @@ class PurchaseOrderController extends Controller
         // 4 = Received
         // 5 = Canceled
         // 6 = closed
+        // 7 = Revised
+
+        $statusPo = ['New','Validated','Authorized','Received','Canceled','Closed','Revised'];
+        $data['statusPo'] = $statusPo[$data['header']->status-1];
+
+        return view("purchaseOrder.show",$data);
+        
+    }
+
+    public function showEdit($key){
+        $id=$key;
+        $data['title'] = "Edit Purchase Order";
+        $data['subtitle'] = "Edit Purchase Order";
+
+        $data['header'] = DB::table('purchase_order_hdr')
+        // ->leftJoin('purchase_request_det','purchase_order_hdr.po_number','purchase_request_det.po_number')
+        ->where('purchase_order_hdr.id',$id)
+        ->get()->first();
+
+        // $poNumber = explode("-",$data['header']->origin_po_number);
+        // $poNumber = $poNumber[0].'-'.$poNumber[1];
+
+        $poNumber = $data['header']->po_number;
+        
+        $data['prHeader'] = DB::table('purchase_request_det') 
+        ->where('supp_code',$data['header']->supplier_id)
+        ->where('po_number','=',$poNumber)
+        ->orderBy('pr_number')
+        ->distinct('pr_number')
+        ->get();
+
+        $data['articles'] = DB::table('purchase_request_det')
+            ->leftJoin('article','article.article_code','=','purchase_request_det'.'.article_code')
+            ->leftJoin('article_stock','article_stock.article_code','=','purchase_request_det'.'.article_code')
+            ->leftJoin('group_materials','group_materials.code','=','article.group_of_material')
+            ->where('supp_code',$data['header']->supplier_id)
+            ->where('po_number','=',$poNumber)
+            // ->where('pr_number','=',$data['header']->pr_number)
+            ->orderBy('article.article_desc')
+            ->distinct('article.article_desc')
+            ->select('purchase_request_det'.'.*','article.article_alternative_code','article.article_code as artikel_code','article.article_desc','article.costprice','article_stock.article_qty as qty_stock','purchase_request_det.uom as uom1','group_materials.name as group')
+            ->get();
+
+        $data['detail'] = DB::table('purchase_order_det')
+        ->leftJoin('article','article.article_code','=','purchase_order_det.article_code')
+        ->leftJoin('article_stock','article_stock.article_code','=','purchase_order_det.article_code')
+        ->leftJoin('purchase_request_det', function($join) {
+            $join->on('purchase_request_det.po_number','purchase_order_det.po_number')
+            ->on('purchase_request_det.article_code','purchase_order_det.article_code');
+        })
+        ->where('purchase_order_det.po_number',$poNumber)
+        ->select('purchase_order_det'.'.*','purchase_order_det.pr_number','article_stock.article_qty as qty_stock', DB::raw('(SELECT name from group_materials where code = group_of_material) as group'))
+        ->orderBy('id')
+        ->get();       
+
+        $data['supps'] = DB::table('third_party')
+        ->where ('third_party_type','=','supp')
+        ->orderBy('nama')
+        ->get();
+
+        $data['currency'] = ['IDR','USD'];
+
+        $data['uoms'] = DB::table('uom')
+        ->orderBy('name')
+        ->get();
+
+        // status:
+        // 1 = New
+        // 2 = Validated
+        // 3 = Authorized
+        // 4 = Received
+        // 5 = Canceled
+        // 6 = closed
+        // 7 = Revised
 
         $statusPo = ['New','Validated','Authorized','Received','Canceled','Closed','Revised'];
         $data['statusPo'] = $statusPo[$data['header']->status-1];
         
         return view("purchaseOrder.edit",$data);
-        
+    }
+
+    public function edit(Request $request)
+    {
+        $id=$request->id;
+        return $this->showEdit($id);
     }
 
     public function revision(Request $request){
+        $username =  Auth::user()->username;
         $id=$request->id;
-        $poNumber = $request->poNUmber;
-
-        $sql = "INSERT into purchase_order_hdr (
+        $poOrigin = $request->poNumber;
+        $numRevision = $request->numRevision ? $request->numRevision +1 : 1 ;
+        $poNew = $poOrigin.'-R'.$numRevision;
+        
+        $sqlHdr = "INSERT into purchase_order_hdr 
+        (
             po_number,
+            origin_po_number,
             supplier_id,
             po_date,
             delivery_date,
             currency,
             authorized_by,
-            prepared_by,
+            authorized_at,
+            validate_by,
             discount,
             kurs,
             pkp,
@@ -385,41 +410,121 @@ class PurchaseOrderController extends Controller
             termin,
             order_type,
             status,
-            note,
-            created_by,
-            updated_by,
-            created_at,
-            updated_at)
-        select 
-            'PO-ASN/2021/IX/2-R1',
-            supplier_id,
-            po_date,
-            delivery_date,
-            currency,
-            authorized_by,
-            prepared_by,
-            discount,
-            kurs,
-            pkp,
-            ppn,
-            pph22,
-            termin,
-            order_type,
-            status,
+            num_revision,
+            revised_by,
+            revised_at,
             note,
             created_by,
             updated_by,
             created_at,
             updated_at
-        from purchase_order_hdr where po_number = 'PO-ASN/2021/IX/2'":
+        )
+        select 
+            '$poNew',
+            '$poOrigin',
+            supplier_id,
+            po_date,
+            delivery_date,
+            currency,
+            authorized_by,
+            authorized_at,
+            validate_by,
+            discount,
+            kurs,
+            pkp,
+            ppn,
+            pph22,
+            termin,
+            order_type,
+            '7',
+            $numRevision,
+            '$username',
+            '".date('Y-m-d H:i:s')."',
+            note,
+            '$username',
+            '$username',
+            '".date('Y-m-d H:i:s')."',
+            '".date('Y-m-d H:i:s')."'
+        from purchase_order_hdr where po_number = '$poOrigin'";
 
-        $product = DB::table('purchase_order_hdr')
-        ->where('id',$id)->get();
+        $sqlDet="INSERT into purchase_order_det
+        (
+            po_number,
+            pr_number,
+            article_code,
+            qty,
+            uom,
+            old_price,
+            price,
+            ppn,
+            pph22,
+            created_by,
+            updated_by,
+            created_at,
+            updated_at
+        )
+        select '$poNew',
+            pr_number,
+            article_code,
+            qty,
+            uom,
+            old_price,
+            price,
+            ppn,
+            pph22,
+            '$username',
+            '$username',
+            '".date('Y-m-d H:i:s')."',
+            '".date('Y-m-d H:i:s')."' 
+        from purchase_order_det where po_number = '$poOrigin'";
 
-        $newProduct = $product->replicate();
-        $newProduct->po_number = $poNumber.'-R';
-        $newProduct->save();
+        $rowAffected =  DB::select($sqlHdr);
+        if ($rowAffected){
+            DB::select($sqlDet);
 
+            // status:
+            // 1 = New
+            // 2 = Validated
+            // 3 = Authorized
+            // 4 = Received
+            // 5 = Canceled
+            // 6 = closed
+            // 7 = Revised
+
+            DB::table('purchase_order_hdr')
+            ->where('po_number',$poOrigin)
+            ->update(
+                [
+                    'num_revision' => $numRevision,
+                    'revised_by'=>Auth::user()->username,
+                    'revised_at'=> date('Y-m-d H:i:s'),
+                    'updated_by' => Auth::user()->username,
+                    'updated_at' => date('Y-m-d H:i:s')
+                ]
+            );
+
+            // DB::table('purchase_request_det')
+            // ->where('po_number',$poOrigin)
+            // ->update(
+            //     [
+            //         'po_number' => $poNew,
+            //         'updated_by' => Auth::user()->username,
+            //         'updated_at' => date('Y-m-d H:i:s')
+            //     ]
+            // );
+
+            // $idBaru = DB::table('purchase_order_hdr')->where('po_number',$poNew)->value('id');
+            $alert  ="alert-success";
+            $message  = "Revison PO: $poOrigin to $poNew is successfully saved";
+            \LogActivity::addToLog('SO save ',"username: $username Status $message");
+            return $this->showEdit($id);
+        }else{
+            $alert  ="alert-warning";
+            $message  = "Revison PO: $poOrigin to $poNew is successfully failed";
+            \LogActivity::addToLog('PO delete ',"username: $username Status $message");
+            return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);
+        }
+        
     }
 
     public function update(Request $request)
@@ -449,6 +554,7 @@ class PurchaseOrderController extends Controller
         // 4 = Received
         // 5 = Canceled
         // 6 = closed
+        // 7 = Revised
         
         $messages = [
             'required' => 'The field is required.',
@@ -497,7 +603,7 @@ class PurchaseOrderController extends Controller
                             'status' => $status,
                             'note' =>  $note,
                             'authorized_by' => '',
-                            'prepared_by' =>  '',
+                            'validate_by' =>  '',
                             'discount' => $discount,
                             'pkp' => $tax,
                             'termin' =>$termin,
@@ -520,6 +626,7 @@ class PurchaseOrderController extends Controller
                         ->whereNotIn(DB::raw("CONCAT(po_number,article_code)"),$dataSet)
                         ->where('po_number',$poNumber)
                         ->delete();
+
                                   
                     foreach ($articles as $val) {
                         DB::table('purchase_order_det')
@@ -539,7 +646,7 @@ class PurchaseOrderController extends Controller
                             'updated_at' => date('Y-m-d H:i:s')
                             ]
                         );
-
+                        
                         DB::table('purchase_request_det')
                         ->where('pr_number',$val->pRequest)
                         ->where('article_code',$val->article_code)
@@ -562,7 +669,7 @@ class PurchaseOrderController extends Controller
                             ]
                         );
                     }
-                    
+                   
                     //update purchase_request_det kalo ada article yang di hapus di PO, jadi kolom po_number di null kan
                     DB::table('purchase_request_det')
                     ->whereNotIn(DB::raw("CONCAT(pr_number,po_number,article_code)"), function($query) use ($poNumber) {
@@ -596,6 +703,94 @@ class PurchaseOrderController extends Controller
 
     }
 
+    public function otorisasi(Request $request)
+    {
+        // status:
+        // 1 = New
+        // 2 = Validated
+        // 3 = Authorized
+        // 4 = Received
+        // 5 = Canceled
+        // 6 = closed
+        // 7 = Revised
+
+        $username =  Auth::user()->username;
+        $poNumber = $request -> poNumber;
+        $statusPo = 'Authorized';
+        $status = '3';
+
+        DB::beginTransaction();
+        try {
+                $row_affected=DB::table('purchase_order_hdr')
+                ->where('po_number',$poNumber)
+                ->update(
+                    [
+                        'status' => $status,
+                        'authorized_by' => Auth::user()->username,
+                        'authorized_at' => date('Y-m-d H:i:s')
+                    ]
+                );
+
+                DB::commit();
+                $alert  ="alert-success";
+                $message  = "PO $poNumber is successfully Authorized";
+                \LogActivity::addToLog('PO update ',"username: $username Status $message");
+                return response()->json(array('statusPo' => $statusPo,'status' => 1, 'message' => $message,'alert'=>$alert,'poNumber'=>$poNumber));
+
+        } catch (Exception $e) {
+            DB::rollBack();
+            $alert  ="alert-warning";
+            $message  = "PO $poNumber is failed to Authorize";
+            \LogActivity::addToLog('PO update ',"username: $username Status $message");
+            return response()->json(array('statusPo' => $statusPo,'status' => 1, 'message' => $message,'alert'=>$alert,'poNumber'=>$poNumber));
+        }
+    }
+
+    public function validasi(Request $request)
+    {
+        // status:
+        // 1 = New
+        // 2 = Validated
+        // 3 = Authorized
+        // 4 = Received
+        // 5 = Canceled
+        // 6 = closed
+        // 7 = Revised
+
+        $username =  Auth::user()->username;
+        $poNumber = $request -> poNumber;
+        $statusPo = 'Validated';
+        $status = '2';
+
+        DB::beginTransaction();
+        try {
+                $row_affected=DB::table('purchase_order_hdr')
+                ->where('po_number',$poNumber)
+                ->update(
+                    [
+                        'status' => $status,
+                        'validate_by' => Auth::user()->username,
+                        'updated_by' => Auth::user()->username,
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]
+                );
+                
+                                        
+                DB::commit();
+                $alert  ="alert-success";
+                $message  = "PO $poNumber is successfully Validated";
+                \LogActivity::addToLog('PO update ',"username: $username Status $message");
+                return response()->json(array('statusPo' => $statusPo,'status' => 1, 'message' => $message,'alert'=>$alert,'poNumber'=>$poNumber));
+
+        } catch (Exception $e) {
+            DB::rollBack();
+            $alert  ="alert-warning";
+            $message  = "PO $poNumber is failed to Validate";
+            \LogActivity::addToLog('PO update ',"username: $username Status $message");
+            return response()->json(array('statusPo' => $statusPo,'status' => 1, 'message' => $message,'alert'=>$alert,'poNumber'=>$poNumber));
+        }
+    }
+
     public function destroy(Request $request)
     {
         $username =  Auth::user()->username;       
@@ -613,6 +808,39 @@ class PurchaseOrderController extends Controller
             $message  = "PO $po_number Failed to Delete";
             \LogActivity::addToLog('PO delete ',"username: $username Status $message");
             return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);
+        }
+
+    }
+
+    public function clear(Request $request)
+    {
+        //memutihkan PO supaya tidak bisa di pakai lagi
+        //status PO jadi closed
+        DB::beginTransaction();
+        try {
+                $row_affected=DB::table('purchase_order_hdr')
+                ->where('po_number',$poNumber)
+                ->update(
+                    [
+                        'status' => $status,
+                        'validate_by' => Auth::user()->username,
+                        'updated_by' => Auth::user()->username,
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]
+                );
+                
+                DB::commit();
+                $alert  ="alert-success";
+                $message  = "PO $poNumber is successfully Cleared";
+                \LogActivity::addToLog('PO update ',"username: $username Status $message");
+                return response()->json(array('statusPo' => $statusPo,'status' => 1, 'message' => $message,'alert'=>$alert,'poNumber'=>$poNumber));
+
+        } catch (Exception $e) {
+            DB::rollBack();
+            $alert  ="alert-warning";
+            $message  = "PO $poNumber is failed to Clear";
+            \LogActivity::addToLog('PO update ',"username: $username Status $message");
+            return response()->json(array('statusPo' => $statusPo,'status' => 1, 'message' => $message,'alert'=>$alert,'poNumber'=>$poNumber));
         }
 
     }
@@ -641,6 +869,7 @@ class PurchaseOrderController extends Controller
         // 4 = Received
         // 5 = Canceled
         // 6 = closed
+        // 7 = Revised
 
         $seachPo = strtolower($request->seachPo);
         $searchSupplier = $request->searchSupplier;
@@ -662,6 +891,10 @@ class PurchaseOrderController extends Controller
             $filter.="status = '$searchStatus' and ";            
         }
 
+        
+        $filter.="status <> '7' and ";            
+        
+
         if ($orderDate  != '' ){
             $date = explode("to",$orderDate);
             $date1=trim($date[0]);
@@ -674,12 +907,32 @@ class PurchaseOrderController extends Controller
             $filter=" where ".substr($filter,0,-4);
         }
 
-        $data=DB::select("SELECT *,delivery_date,(select concat(kode,'-',nama) from third_party where kode = supplier_id limit 1) as supp_name,(gross-discount)+ppn as netto from (
-            select b.status,b.id,a.po_number,supplier_id,po_date,delivery_date,pkp,termin,authorized_by,prepared_by,uom,sum(qty) as qty,sum(qty*price) as gross,sum(discount) as discount,sum(a.ppn) as ppn from purchase_order_det a
-            left join purchase_order_hdr b
-            on a.po_number = b.po_number 
-            $filter
-            group by b.id,a.po_number,supplier_id,po_date,delivery_date,pkp,termin,authorized_by,prepared_by,uom,b.status) as oki");
+        $data=DB::select("SELECT *,delivery_date,(select concat(kode,'-',nama) from third_party where kode = supplier_id limit 1) as supp_name,(gross-discount)+ppn as netto 
+            from (
+                select 
+                    b.created_by,
+                    b.status,b.id,
+                    a.po_number,
+                    supplier_id,
+                    po_date,
+                    delivery_date,
+                    pkp,
+                    termin,
+                    authorized_by,
+                    validate_by,
+                    uom,
+                    sum(qty) as qty,
+                    sum(qty*price) as gross,
+                    sum(discount) as discount,
+                    sum(a.ppn) as ppn,
+                    b.num_revision
+                from purchase_order_det a
+                left join purchase_order_hdr b
+                on a.po_number = b.po_number 
+                $filter
+                group by b.id,a.po_number,supplier_id,po_date,delivery_date,pkp,termin,authorized_by,validate_by,b.created_by,uom,b.status,b.num_revision
+            ) as oki
+            order by id");
         
         // $data=DB::table('purchase_order_hdr')->get();
 
@@ -690,18 +943,39 @@ class PurchaseOrderController extends Controller
                                 <i data-feather="menu"></i>
                             </a>';
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
-            if (Auth::user()->can('purchaseOrder-edit')) {
-            $buttons .=         '<a href="'. route('purchaseOrder.edit', ['id'=>$data->id]) .'" class="dropdown-item">
-                                    <i data-feather="file-text"></i>
-                                    Edit
-                                </a>';
+            if ( $data->status == '2' ){
+                if (Auth::user()->can('purchaseOrder-authorize')) {
+                $buttons .=         '<a href="'. route('purchaseOrder.show', ['id'=>$data->id]) .'" class="dropdown-item">
+                                        <i data-feather="file-text"></i>
+                                        Authorize
+                                    </a>';
+                }
             }
-            if (Auth::user()->can('purchaseOrder-revision')) {
-            $buttons .=         '<a href="'. route('purchaseOrder.revision', ['id'=>$data->id,'poNumber'=>$data->po_number]) .'" class="dropdown-item">
-                                    <i data-feather="copy"></i>
-                                    Revision
-                                </a>';
+            if ( $data->status == '1' ){
+                if (Auth::user()->can('purchaseOrder-validate')) {
+                $buttons .=         '<a href="'. route('purchaseOrder.show', ['id'=>$data->id]) .'" class="dropdown-item">
+                                        <i data-feather="file-text"></i>
+                                        Validate
+                                    </a>';
+                }
             }
+            if ( $data->status == '1' ){
+                if (Auth::user()->can('purchaseOrder-edit')) {
+                $buttons .=         '<a href="'. route('purchaseOrder.edit', ['id'=>$data->id]) .'" class="dropdown-item">
+                                        <i data-feather="file-text"></i>
+                                        Edit
+                                    </a>';
+                }
+            }
+            if (($data->status == '2') || ($data->status == '3') ){
+                if (Auth::user()->can('purchaseOrder-revision')) {
+                    $buttons .=         '<a href="'. route('purchaseOrder.revision', ['id'=>$data->id,'poNumber'=>$data->po_number,'numRevision'=>$data->num_revision]) .'" class="dropdown-item">
+                                            <i data-feather="copy"></i>
+                                            Revision
+                                        </a>';
+                }
+            }
+            
             $buttons .=         '<a href="'. route('purchaseOrder.print', ['id'=>$data->id]) .'" target="_blank" class="dropdown-item">
                                     <i data-feather="printer"></i>
                                     Print
@@ -711,17 +985,30 @@ class PurchaseOrderController extends Controller
                                     <i data-feather="list"></i>
                                     Detail
                                 </a>';
-                
+            if ( $data->status == '1' ){
+                if (Auth::user()->can('purchaseOrder-delete')) {
+                $buttons .=         "<a href='javascript:;'
+                                        id='deleteButton'
+                                        class='dropdown-item'
+                                        data-toggle='modal'
+                                        data-target='#smallModal'
+                                        data-href='". route("purchaseOrder.destroy", ["id"=>$data->id]) ."'>
+                                        <i data-feather='trash-2'></i>
+                                        Delete
+                                    </a>";
+                }
+            }
+
             if (Auth::user()->can('purchaseOrder-delete')) {
-            $buttons .=         "<a href='javascript:;'
-                                    id='deleteButton'
-                                    class='dropdown-item'
-                                    data-toggle='modal'
-                                    data-target='#smallModal'
-                                    data-href='". route("purchaseOrder.destroy", ["id"=>$data->id]) ."'>
-                                    <i data-feather='trash-2'></i>
-                                    Delete
-                                </a>";
+                $buttons .=         "<a href='javascript:;'
+                                        id='deleteButton'
+                                        class='dropdown-item'
+                                        data-toggle='modal'
+                                        data-target='#smallModal'
+                                        data-href='". route("purchaseOrder.destroy", ["id"=>$data->id]) ."'>
+                                        <i data-feather='x-circle'></i>
+                                        Clear
+                                    </a>";
             }
             $buttons .=     '</div>
                         </div>';
@@ -771,11 +1058,11 @@ class PurchaseOrderController extends Controller
         ->get();
 
         $data['totals']=DB::select("SELECT *,(gross-discount)+ppn as netto from (
-            select a.po_number,authorized_by,prepared_by,sum(qty) as qty,sum(qty*price) as gross,sum(discount) as discount,sum(a.ppn) as ppn from purchase_order_det a
+            select a.po_number,authorized_by,validate_by,sum(qty) as qty,sum(qty*price) as gross,sum(discount) as discount,sum(a.ppn) as ppn from purchase_order_det a
             left join purchase_order_hdr b
             on a.po_number = b.po_number 
             where a.po_number = '$poNumber'
-            group by a.po_number,authorized_by,prepared_by) as oki");
+            group by a.po_number,authorized_by,validate_by) as oki");
 
         $data['suppliers']=DB::table('third_party')
         ->where('kode',$poHdr -> supplier_id)

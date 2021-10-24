@@ -22,16 +22,16 @@ class ArticleController extends Controller
         ->orderBy('name')
         ->get();
 
-        // $data['custs'] = DB::table('third_party')
-        // ->where ('third_party_type','=','cust')
-        // ->orderBy('nama')
-        // ->get();
-
-
         $data['custs'] = DB::table('third_party')
+        ->where ('third_party_type','=','cust')
         ->orderBy('nama')
         ->get();
-        
+
+    
+        $data['supps'] = DB::table('third_party')
+        ->where ('third_party_type','=','supp')
+        ->orderBy('nama')
+        ->get();        
 
         $data['groups'] = DB::table('group_materials')
         ->where ('status','=',1)
@@ -51,11 +51,6 @@ class ArticleController extends Controller
         ->orderBy('name')
         ->get();
 
-        // $data['custs'] = DB::table('third_party')
-        // ->where ('third_party_type','=','cust')
-        // ->orderBy('nama')
-        // ->get();
-
         $data['groups'] = DB::table('group_materials')
         ->where ('status','=',1)
         ->orderBy('name')
@@ -69,45 +64,47 @@ class ArticleController extends Controller
     }
 
     public function articleCodeCreate($custCode,$leadCode){
-        /*
-        pembuatan article_alternative_code sesuai dengan aturan, kalo FG dan RM harus ada kode cabang nya
-        apabila type nya FG atau RM makan akan terbentuk sekaligus 2 article
-        eg. FGXXX0001
-        XXX= Initial dari customer
-        */
-
+        //membuat article code diaawali dengan leadCode yang isinya kode awal dari article
+        
         $customer = $custCode;
         $leadingCode = $leadCode;
     
-        if ($leadingCode == "FG" || $leadingCode == "RM"){
+        if ($leadingCode == "FG"){
+            /*
+            pembuatan article_alternative_code sesuai dengan aturan, kalo FG harus ada kode cabang nya
+            eg. FGXXX0001
+            XXX= Initial dari customer
+            */
+
             $lastCode = DB::table('article')
             ->where('third_party','=',$customer)
+            ->where('article_alternative_code','like',$leadingCode.'%')
             ->orderBy('article_alternative_code','DESC')->first();
 
             if (!$lastCode){
-                $newCode = '00001';
+                $newCode = '00001';                                                                                                                                                                                                                                                                                                                                     
             }else{
                 $newCode = str_pad(substr($lastCode->article_alternative_code,5)+1, 5, "0", STR_PAD_LEFT);
             }
 
             $artilceCode = DB::table('third_party')
             ->where('kode',$customer)
-            ->select(DB::raw("CONCAT('FG',inisial,'$newCode','~FG','|RM',inisial,'$newCode','~RM') AS new_code"))->value('new_code');
+            ->select(DB::raw("CONCAT('$leadingCode',inisial,'$newCode','~','$leadingCode') AS new_code"))->value('new_code');
 
         }else{
             $lastCode = DB::table('article')
-            ->where('article_alternative_code','not like','FG%')
-            ->orWhere('article_alternative_code','not like','RM%')
+            ->where('article_alternative_code','like',$leadingCode.'%')
             ->orderBy('article_alternative_code','DESC')->first();
 
             if (!$lastCode){
-                $newCode = '00000001';
+                $newCode = '0000001';
             }else{
-                $newCode = str_pad(substr($lastCode->article_alternative_code,8)+1, 8, "0", STR_PAD_LEFT);
+                $newCode = str_pad(substr($lastCode->article_alternative_code,7)+1, 7, "0", STR_PAD_LEFT);
             }
 
             $artilceCode = $leadingCode.$newCode."~".$leadingCode;
         }
+        
         
         return  $artilceCode;
     
@@ -147,7 +144,7 @@ class ArticleController extends Controller
         $username =  Auth::user()->username;
         $type = $request->input('articleType');
         $cust = $request->input('cust');
-        $nama = $request->input('nama');
+        $nama = strtoupper($request->input('nama'));
         $group = $request->input('group');
         $uom = $request->input('uom');
         $price = $request->input('price');
@@ -175,44 +172,43 @@ class ArticleController extends Controller
         $this->validate($request,$rule,$messages);
 
         $articleCode = $this->articleCodeCreate($cust,$type);
-        $articles = explode("|",$articleCode);      
-        
+                
         DB::beginTransaction();
         try {
-                foreach($articles as $val){
-                    $artCode = $this->getArticleCode();
-                    $articleDet =  explode("~",$val); 
-                    DB::table('article')->insert([
-                        'article_code' => $artCode,
-                        'article_alternative_code' => $articleDet[0],
-                        'article_desc' => $nama,
-                        'group_of_material' => $group,
-                        'third_party' => $cust,
-                        'note' => $note,
-                        'uom' => $uom,
-                        'costprice' => $price,
-                        'status' => $status,
-                        'article_type' => $articleDet[1],
-                        'created_by' => Auth::user()->username,
-                        'updated_by' => Auth::user()->username,
-                        'created_at' => date('Y-m-d H:i:s'),
-                        'updated_at' => date('Y-m-d H:i:s')
-                    ]); 
+               
+                $artCode = $this->getArticleCode();
+                $articleDet =  explode("~",$articleCode); 
+                DB::table('article')->insert([
+                    'article_code' => $artCode,
+                    'article_alternative_code' => $articleDet[0],
+                    'article_desc' => $nama,
+                    'group_of_material' => $group,
+                    'third_party' => $cust,
+                    'note' => $note,
+                    'uom' => $uom,
+                    'costprice' => $price,
+                    'status' => $status,
+                    'article_type' => $articleDet[1],
+                    'created_by' => Auth::user()->username,
+                    'updated_by' => Auth::user()->username,
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s')
+                ]); 
 
-                    if($files){
-                        foreach($files as $val){
-                            DB::table('images')->insert([
-                                'key' => $artCode,
-                                'name' => $nama,
-                                'path' => $val,
-                                'created_by' => Auth::user()->username,
-                                'updated_by' => Auth::user()->username,
-                                'created_at' => date('Y-m-d H:i:s'),
-                                'updated_at' => date('Y-m-d H:i:s')
-                            ]); 
-                        }
+                if($files){
+                    foreach($files as $val){
+                        DB::table('images')->insert([
+                            'key' => $artCode,
+                            'name' => $nama,
+                            'path' => $val,
+                            'created_by' => Auth::user()->username,
+                            'updated_by' => Auth::user()->username,
+                            'created_at' => date('Y-m-d H:i:s'),
+                            'updated_at' => date('Y-m-d H:i:s')
+                        ]); 
                     }
                 }
+               
 
                 DB::commit();
                 $alert  ="alert-success";
@@ -250,12 +246,11 @@ class ArticleController extends Controller
         ->orderBy('name')
         ->get();
 
-        $data['article']->article_type  == 'FG' || $data['article']->article_type  == 'RM'  ? $typeTP = 'cust' : $typeTP = 'supp';
-
-        $data['custs'] = DB::table('third_party')
-        ->where ('third_party_type','=',$typeTP)
-        ->orderBy('nama')
-        ->get();
+        $code = $data['article']->article_type;
+        $data['custs'] = DB::table('third_party')->where(function ($query) use ($code) {
+            $code == 'FG' ? $query->where('third_party_type','cust') : '';
+            $code != 'FG' && $code != 'RM' ? $query->where('third_party_type','supp') : '';
+        })->get();
 
         $data['groups'] = DB::table('group_materials')
         ->where ('status','=',1)
@@ -436,11 +431,12 @@ class ArticleController extends Controller
         $name = strtolower($request->name);
         $group = strtolower($request->group);
         $cust = strtolower($request->cust);
+        $supp = strtolower($request->supp);
         $type = strtolower($request->type);
 
         // $type == 'CM'? $type='supp' :  $type='cust';
         $data=DB::table('article');
-        $data->select('article.*','costprice','article.article_code as art_code','article_alternative_code as code','article_desc as desc','article.uom','quality','note','article.id','group_materials.name as group','third_party.nama as cust','article_stock.article_qty');
+        $data->select('article.*','costprice','article.article_code as art_code','article_alternative_code as code','article_desc as desc','article.uom','quality','note','article.id','group_materials.name as group','third_party.nama as cust','article_stock.article_qty as article_qty');
         $data->leftJoin('group_materials', 'group_materials.code', '=', 'article.group_of_material');
         $data->leftJoin('third_party', 'third_party.kode', '=', 'article.third_party');
         $data->leftJoin('article_stock', 'article_stock.article_code', '=', 'article.article_code');
@@ -448,9 +444,10 @@ class ArticleController extends Controller
         $name ? $data->where('article_desc','ilike','%'.$name.'%') :'';
         $group ? $data->where('group_of_material','ilike','%'.$group.'%') :'';
         $cust ? $data->where('third_party','ilike','%'.$cust.'%') :'';
+        $supp ? $data->where('third_party','ilike','%'.$supp.'%') :'';
         $type ? $data->where('article_alternative_code','ilike',$type.'%') :'';      
         $data->orderBy('article_desc');
-        $data->get(['costprice','article.article_code','article_alternative_code as code','article_desc as desc','article.uom','quality','note','article.id','group_materials.name as group','third_party.nama as cust','article_stock.article_qty']);
+        $data->get(['costprice','article.article_code','article_alternative_code as code','article_desc as desc','article.uom','quality','note','article.id','group_materials.name as group','third_party.nama as cust','article_stock.article_qty as article_qty']);
 
         return Datatables::of($data)
         ->addColumn('action', function ($data) {
@@ -501,12 +498,14 @@ class ArticleController extends Controller
     {
         $code = $request->type;
         $dependent=$request->dependent;
-        $code == 'FG' || $code == 'RM' ? $type = 'cust' : $type= 'supp';
-        
-        $data= DB::table('third_party') 
-        ->where('third_party_type',$type)
-        ->orderBy('nama')
-        ->get();            
+
+        $data = DB::table('third_party')->where(function ($query) use ($code) {
+            //kalo barang finish goods hanya punya nya customer, tapi kalo raw material yang punyanya bisa customer bisa supplier
+            // $code == 'FG' ? $query->where('third_party_type','cust') : $query->where('third_party_type','supp');  //tadinya ini
+            $code == 'FG' ? $query->where('third_party_type','cust') : '';
+            $code != 'FG' && $code != 'RM' ? $query->where('third_party_type','supp') : '';
+
+        })->get();
         
         $output='';
         $output .='<option value=""></option>';

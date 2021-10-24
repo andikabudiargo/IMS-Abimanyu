@@ -11,32 +11,25 @@ use App\Permission;
 use DataTables;
 use DB;
 
-class SupplierController extends Controller
+class SubContractController extends Controller
 {
     public function index(Request $request)
     {
-        $data['title'] = "Supplier";
-        return view("suppliers.index",$data);
+        $data['title'] = "Vendor";
+        return view("subContract.index",$data);
     }
 
     public function create(Request $request)
     {
-        $data['title'] = "Create Supplier";
-        $data['subtitle'] = "Create New Supplier";
-
-        $data['provinces'] = DB::table('regions')
-        ->where ('index','=',0)
-        ->get();
-
-        $data['accounts'] = DB::table('accounts')
-        ->get();
+        $data['title'] = "Create Vendor";
+        $data['subtitle'] = "Create New Vendor";
 
         $data['cities'] = DB::table('regions')
         ->where ('index','=',1)
         ->orderBy('region_name')
         ->get();
                 
-        return view("suppliers.create",$data);
+        return view("subContract.create",$data);
     }
 
     public function supplierCodeCreate($initial){
@@ -52,7 +45,7 @@ class SupplierController extends Controller
         */
          
         $lastCode = DB::table('third_party')
-        ->where('kode','like',$initial.'%SUPP')
+        ->where('kode','like',$initial.'%SUB')
         ->value('kode');
 
         if (!$lastCode){
@@ -62,7 +55,7 @@ class SupplierController extends Controller
             $newCode = str_pad($lastCode+1, 5, "0", STR_PAD_LEFT);
         }
 
-        $newCode = $initial.str_pad($newCode, 5, "0", STR_PAD_LEFT)."SUPP";
+        $newCode = $initial.str_pad($newCode, 5, "0", STR_PAD_LEFT)."SUB";
 
         return  $newCode;
     
@@ -84,7 +77,7 @@ class SupplierController extends Controller
         $npwp = $request->input('npwp');
         $alamatNpwp = $request->input('alamatNpwp');
         $kotaNpwp = $request->input('kotaNpwp');
-        $third_party_type='supp';
+        $third_party_type='sub';
         $aktif = '1';
         $blacklist = '0';
         $pkp = 'N';
@@ -146,16 +139,14 @@ class SupplierController extends Controller
             \LogActivity::addToLog('Supplier save ',"username: $username Status $message");
             return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);   
         }        
-        
-
-        
+          
     }
 
     public function edit(Request $request)
     {
         $id = $request->id;
-        $data['title'] = "Edit Supplier";
-        $data['subtitle'] = "Edit New Supplier";
+        $data['title'] = "Edit Vendor";
+        $data['subtitle'] = "Edit New Vendor";
 
         $data['suppliers'] = DB::table('third_party')
         ->where('id',$id)
@@ -168,7 +159,7 @@ class SupplierController extends Controller
 
         $data['edit'] = 1;
 
-        return view('suppliers.edit',$data);
+        return view('subContract.edit',$data);
         
     }
 
@@ -188,7 +179,7 @@ class SupplierController extends Controller
         $npwp = $request->input('npwp');
         $alamatNpwp = $request->input('alamatNpwp');
         $kotaNpwp = $request->input('kotaNpwp');
-        $third_party_type='supp';
+        $third_party_type='sub';
         $aktif = '1';
         $blacklist = '0';
         $pkp = 'N';
@@ -291,7 +282,7 @@ class SupplierController extends Controller
 
         //ilike = string to lower
         $data=DB::table('third_party');
-        $data->where('third_party_type','supp');
+        $data->where('third_party_type','sub');
         $code ? $data->where('kode','ilike','%'.$code.'%'):"";
         $name ? $data->where('nama','ilike','%'.$name.'%'):""; 
         $data->orderBy('nama')->get();

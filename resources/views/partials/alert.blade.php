@@ -7,7 +7,7 @@
     </button>
 </div>
 
-{{-- alert dari validari form --}}
+{{-- alert dari validasi form --}}
 <div class="alert alert-warning alert-dismissible collapse" role="alert" id="alert-message">
     <div class="alert-body">
     </div>
@@ -16,7 +16,7 @@
     </button>
 </div>
 
-{{-- alert dari validari respon simpan di session --}}
+{{-- alert dari validasi respon simpan di session --}}
 @if  ($alert = Session::get('alert'))
     <div class="alert {{ $alert }} alert-dismissible " role="alert" id="alert-message-alert">
         <div class="alert-body">

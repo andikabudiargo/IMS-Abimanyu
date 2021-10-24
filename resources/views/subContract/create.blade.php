@@ -40,40 +40,6 @@
                         </div>
                         <div class="row">
                             <div class="form-group col-md-4">
-                                <label class="form-label" for="provinsi">Provinsi</label>
-                                <select class="select2 w-100 dynamicSelect" id="provinsi" name="provinsi" data-dependent="kota">
-                                    <option label=""></option>
-                                    @foreach($provinces as $val)
-                                    <option value="{{$val->region_code}}" >{{$val->region_name}}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                            <div class="form-group col-md-4">
-                                <label class="form-label" for="kota">Kota</label>
-                                <select class="select2 w-100 dynamicSelect" id="kota" name="kota" data-dependent="kelurahan">
-                                </select>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="form-group col-md-4">
-                                <label class="form-label" for="kelurahan">Kelurahan</label>
-                                <select class="select2 w-100 dynamicSelect" id="kelurahan" name="kelurahan" data-dependent="kecamatan">
-                                </select>
-                            </div>
-                            <div class="form-group col-md-4">
-                                <label class="form-label" for="kecamatan">Kecamatan</label>
-                                <select class="select2 w-100" id="kecamatan" name="kecamatan">
-                                </select>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="form-group col-md-2">
-                                <label class="form-label" for="kodePos">Kodepos</label>
-                                <input type="text" id="kodePos" name="kodePos" value="{{ old('kodePos') }}" class="form-control disabled-el" disabled />
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="form-group col-md-4">
                                 <label class="form-label" for="telepon">Telepon</label>
                                 <input type="text" id="telepon" name="telepon" class="form-control angka" value="{{ old('telepon') }}" maxlength="20" />
                             </div>
@@ -132,7 +98,7 @@
                                 </select>
                             </div>
                         </div>
-                        <div class="row">
+                        {{-- <div class="row">
                             <div class="form-group col-md-12">
                                 <label class="form-label" for="account">Account</label>
                                 <select class="select2 w-100" id="account" name="account">
@@ -142,7 +108,7 @@
                                     @endforeach
                                 </select>
                             </div>
-                        </div>
+                        </div> --}}
                         <div class="row">
                             <div class="col-12">
                                 <button class="btn btn-outline-secondary" type="reset" id="cmdCancel" name="cmdCancel">Cancel</button>
@@ -231,7 +197,7 @@
     document.getElementById("nama").addEventListener("input", acroFunction);
     function acroFunction() {
         let aString = document.getElementById('nama').value;
-        document.getElementById('inisial').value= getCustAcronym(aString);
+        document.getElementById('inisial').value = getCustAcronym(aString);
     }
 
     npwp = $('.masking-npwp');

@@ -62,7 +62,7 @@
                             </div>
                             <div class="row">
                                 <div class="col-12">
-                                    <button class="btn btn-warning" type="reset" id="cmdCancel" name="cmdCancel">Cancel</button>
+                                    <button class="btn btn-warning" type="reset" id="cmdCancel" name="cmdCancel">Clear</button>
                                     <button class="btn btn-success" type="reset" id="cmdNew" name="cmdCancel">New</button>
                                     <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Save</button>
                                     @can('receiving-posting')

@@ -93,7 +93,7 @@
                             </div>
                             <div class="row">
                                 <div class="col-12">
-                                    <button class="btn btn-warning" type="reset" id="cmdCancel" name="cmdCancel">Cancel</button>
+                                    <a href="{{ route('purchaseOrders.index') }}" class="btn btn-warning">Back</a>
                                     <button class="btn btn-success" type="reset" id="cmdNew" name="cmdCancel">New</button>
                                     <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Save</button>
                                 </div>
@@ -573,15 +573,19 @@
         let objPrice= $('#article_row input[name="price[]"]');
         let objNewPrice= $('#article_row input[name="newPrice[]"]');
         let objListPrice= $('#article_row a[name="listPrice[]"]');
-        objArticle.change(function(e){        
+        let objTotal= $('#article_row span[name="totalLine[]"]');
+        objArticle.change(function(e){   
+            //     0            1           2         3       4        5
             // article_code.'|'group.'|'qty_stock.'|'qty.'|'uom1.'|'costprice.'"
             let objIndex = objArticle.index(this);
             let detail = objArticle.eq(objIndex).val();
+            console.log(detail);
             let detailText = objArticle.eq(objIndex).select2('data')[0].text;
             let arrDetail = detail.split("|");
             objListPrice.eq(objIndex).attr('onClick', 'listPrice('+arrDetail[0]+',"'+detailText+'");');
             objStock.eq(objIndex).val(humanizeNumber(arrDetail[2]||0));
             objUom.eq(objIndex).text(arrDetail[4]);
+            objQty.eq(objIndex).val(humanizeNumber(arrDetail[3]||0));
             objPrice.eq(objIndex).val(humanizeNumber(arrDetail[5]||0));
             objNewPrice.eq(objIndex).val(humanizeNumber(arrDetail[5]||0));
             objArticle.eq(objIndex).select2('open');
@@ -590,6 +594,9 @@
                     objQty.eq(objIndex).focus().select();
                 }, 5);
             }
+
+            objTotal.eq(objIndex).text(humanizeNumber((arrDetail[3]||0)*(arrDetail[5]||0)));
+
 		});
     }
 

@@ -214,37 +214,6 @@
             }
           },
         ],
-        // responsive: {
-        //   details: {
-        //     display: $.fn.dataTable.Responsive.display.modal({
-        //       header: function (row) {
-        //         var data = row.data();
-        //         return 'Details of ' + data['nama'];
-        //       }
-        //     }),
-        //     type: 'column',
-        //     renderer: function (api, rowIdx, columns) {
-        //       var data = $.map(columns, function (col, i) {
-        //         return col.title !== '' // ? Do not show row in modal popup if title is blank (for check box)
-        //           ? '<tr data-dt-row="' +
-        //               col.rowIndex +
-        //               '" data-dt-column="' +
-        //               col.columnIndex +
-        //               '">' +
-        //               '<td>' +
-        //               col.title +
-        //               ':' +
-        //               '</td> ' +
-        //               '<td>' +
-        //               col.data +
-        //               '</td>' +
-        //               '</tr>'
-        //           : '';
-        //       }).join('');
-        //       return data ? $('<table class="table"/>').append(data) : false;
-        //     }
-        //   }
-        // },
         language: {
           paginate: {
             // remove previous & next text from pagination
@@ -253,35 +222,8 @@
           }
         },
         columnDefs: [
-          // {
-          //   // For Responsive
-          //   className: 'control',
-          //   orderable: false,
-          //   responsivePriority: 2,
-          //   targets: 0
-          // },
-          // {
-          //   responsivePriority: 1,
-          //   targets: 10
-          // },
-          // {
-          //   responsivePriority: 3,
-          //   targets: 11
-          // },
-          // {
-          //   responsivePriority: 4,
-          //   targets: 12
-          // },
-          // {
-          //   responsivePriority: 5,
-          //   targets: 13
-          // },
-          // {
-          //   responsivePriority: 6,
-          //   targets: 14
-          // },
           { width: '10%', targets: 0 },
-          { className: 'text-right','targets': [ 9,10,11,12,13 ] },
+          { className: 'text-right','targets': [ 11,12,13,14,15 ] },
         ],
         drawCallback: function( settings ) {
           feather.replace({
@@ -296,10 +238,12 @@
             // { data: 'group_id',name:'group_id', title:'',orderable: false, searchable: false },
             { data: 'action', name: 'action',title:'action', orderable: false, searchable: false },
             { data: 'po_number', name: 'po_number',title:'PO Number' },
+            { data: 'num_revision', name: 'num_revision',title:'Revision' },
             { data: 'supp_name', name: 'supp_name',title:'Supplier' },
             { data: 'po_date', name: 'po_date',title:'PO Date' },
             { data: 'delivery_date', name: 'delivery_date',title:'Delivery Date' },
-            { data: 'prepared_by', name: 'prepared_by',title:'Prepared By' },
+            { data: 'created_by', name: 'created_by',title:'Created By' },
+            { data: 'validate_by', name: 'validate_by',title:'Prepared By' },
             { data: 'authorized_by', name: 'authorized_by',title:'Authorized By' },
             { data: 'pkp', name: 'pkp',title:'Tax' },
             { data: 'termin', name: 'termin',title:'Tax' },            

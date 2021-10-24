@@ -206,6 +206,47 @@
             @endcan
           </ul>
         </li>
+        <li class=" {{ in_array(\Request::segment(1), ['subContracts']) ? 'active' : '' }} nav-item">
+          <a class="d-flex align-items-center" href="javascript:void(0);">
+            <i data-feather='link-2'></i>
+            <span class="menu-title text-truncate" data-i18n="Form Elements">Subcontractor
+            </span>
+          </a>
+          <ul class="menu-content">
+            @can('subContract-index')
+            <li class="{{ \Request::segment(1) == 'subContracts' ? 'active' : '' }} " >
+              <a class="d-flex align-items-center" href="{{ route('subContracts.index') }}">
+                <i data-feather="circle"></i>
+                <span class="menu-item text-truncate" data-i18n="Input">Vendor</span>
+              </a>
+            </li>
+            @endcan
+            @can('subContract-index')
+            <li class="{{ \Request::segment(1) == 'subContracts1' ? 'active' : '' }} disabled" >
+              <a class="d-flex align-items-center" href="{{ route('subContracts.index') }}">
+                <i data-feather="circle"></i>
+                <span class="menu-item text-truncate" data-i18n="Input">PO</span>
+              </a>
+            </li>
+            @endcan
+            @can('subContract-index')
+            <li class="{{ \Request::segment(1) == 'subContracts1' ? 'active' : '' }} disabled" >
+              <a class="d-flex align-items-center" href="{{ route('subContracts.index') }}">
+                <i data-feather="circle"></i>
+                <span class="menu-item text-truncate" data-i18n="Input">Shipping</span>
+              </a>
+            </li>
+            @endcan
+            @can('subContract-index')
+            <li class="{{ \Request::segment(1) == 'subContracts1' ? 'active' : '' }} disabled" >
+              <a class="d-flex align-items-center" href="{{ route('subContracts.index') }}">
+                <i data-feather="circle"></i>
+                <span class="menu-item text-truncate" data-i18n="Input">Receiving</span>
+              </a>
+            </li>
+            @endcan
+          </ul>
+        </li>
         <li class=" {{ in_array(\Request::segment(1), ['wo']) ? 'active' : '' }} nav-item">
           <a class="d-flex align-items-center" href="javascript:void(0);">
             <i data-feather='truck'></i>
@@ -395,21 +436,29 @@
               @endcan
           </ul>
         </li> --}}
-        <li class=" {{ in_array(\Request::segment(1), ['setting','users','roles','permissions']) ? 'active' : '' }} nav-item">
+        <li class=" {{ in_array(\Request::segment(1), ['setting','users','roles','permissions','company']) ? 'active' : '' }} nav-item">
           <a class="d-flex align-items-center" href="javascript:void(0);">
             <i data-feather="settings"></i>
             <span class="menu-title text-truncate" data-i18n="Form Elements">Setting
             </span>
           </a>
           <ul class="menu-content">
+              @can('company-index')
+              <li class="{{ \Request::segment(1) == 'company' && \Request::segment(2) == '' ? 'active' : '' }}">
+                <a class="d-flex align-items-center" href="{{ route('company.index') }}">
+                  <i data-feather="circle"></i>
+                  <span class="menu-item text-truncate" data-i18n="Input">Company</span>
+                </a>
+              </li>
+              @endcan
               @can('user-index')
               <li class="{{ \Request::segment(1) == 'users' && \Request::segment(2) == '' ? 'active' : '' }}">
                 <a class="d-flex align-items-center" href="{{ route('users.index') }}">
                   <i data-feather="circle"></i>
                   <span class="menu-item text-truncate" data-i18n="Input">Users</span>
                 </a>
-              @endcan
               </li>
+              @endcan
               {{-- <li class="{{ \Request::segment(1) == 'menu' && \Request::segment(2) == '' ? 'active' : '' }}">
                 <a class="d-flex align-items-center" href="{{ route('show.menu') }}">
                   <i data-feather="circle"></i>

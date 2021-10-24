@@ -37,7 +37,7 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::delete('userdelete',['as'=>'users.delete','uses'=>'UserController@delete']);
 	Route::get('roles',['as'=>'roles.index','uses'=>'RoleController@index','middleware' => ['permission:role-list|role-create|role-edit|role-delete']]);
 	Route::get('roles/create',['as'=>'roles.create','uses'=>'RoleController@create','middleware' => ['permission:role-create']]);
-	Route::post('roles/create',['as'=>'roles.store','uses'=>'RoleController@store','middleware' => ['permission:role-create']]);
+	Route::post('roles/store',['as'=>'roles.store','uses'=>'RoleController@store','middleware' => ['permission:role-create']]);
 	Route::get('roles/{id}',['as'=>'roles.show','uses'=>'RoleController@show']);
 	Route::get('roles/{id}/edit',['as'=>'roles.edit','uses'=>'RoleController@edit','middleware' => ['permission:role-edit']]);
 	Route::post('roles/update',['as'=>'roles.update','uses'=>'RoleController@update','middleware' => ['permission:role-edit']]);
@@ -45,7 +45,9 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('roles/delete',['as'=>'roles.destroy','uses'=>'RoleController@destroy']);
 	Route::get('rolesList',['as'=>'roles.list','uses'=>'RoleController@listRole']);
 	Route::get('permissionListAll',['as'=>'permission.list.all','uses'=>'RoleController@listAllPermission']);
-	
+
+	Route::get('company',['as'=>'company.index','uses'=>'CompanyController@index']);
+	Route::post('company/store',['as'=>'company.store','uses'=>'CompanyController@store']);	
 
 	Route::get('show.menu',['as'=>'show.menu','uses'=>'MenuController@showmenu']);
 	Route::get('daftar.menu',['as'=>'daftar.menu','uses'=>'MenuController@daftarmenu']);
@@ -75,6 +77,15 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('suppliers/edit',['as'=>'supplier.edit','uses'=>'SupplierController@edit','middleware' => ['permission:supplier-edit']]);
 	Route::post('suppliers/update',['as'=>'supplier.update','uses'=>'SupplierController@update']);
 	Route::post('suppliers/delete',['as'=>'supplier.destroy','uses'=>'SupplierController@destroy']);
+
+	Route::get('subContracts',['as'=>'subContracts.index','uses'=>'SubContractController@index','middleware' => ['permission:subContract-index']]);
+	Route::get('subContracts/create',['as'=>'subContract.create','uses'=>'SubContractController@create','middleware' => ['permission:subContract-create']]);
+	Route::post('subContracts/store',['as'=>'subContract.store','uses'=>'SubContractController@store']);
+	Route::get('subContracts/list',['as'=>'subContract.list','uses'=>'SubContractController@list']);
+	Route::get('subContracts/show',['as'=>'subContract.show','uses'=>'SubContractController@show']);
+	Route::get('subContracts/edit',['as'=>'subContract.edit','uses'=>'SubContractController@edit','middleware' => ['permission:subContract-edit']]);
+	Route::post('subContracts/update',['as'=>'subContract.update','uses'=>'SubContractController@update']);
+	Route::post('subContracts/delete',['as'=>'subContract.destroy','uses'=>'SubContractController@destroy']);
 
 	Route::get('accounts',['as'=>'accounts.index','uses'=>'AccountController@index']);
 	Route::get('accounts/create',['as'=>'account.create','uses'=>'AccountController@create']);
@@ -200,10 +211,13 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('purchaseOrders/edit',['as'=>'purchaseOrder.edit','uses'=>'PurchaseOrderController@edit','middleware' => ['permission:purchaseOrder-edit']]);
 	Route::post('purchaseOrders/update',['as'=>'purchaseOrder.update','uses'=>'PurchaseOrderController@update']);
 	Route::post('purchaseOrders/delete',['as'=>'purchaseOrder.destroy','uses'=>'PurchaseOrderController@destroy']);
+	Route::post('purchaseOrders/clear',['as'=>'purchaseOrder.clear','uses'=>'PurchaseOrderController@clear']);
 	Route::get('purchaseOrders/code/create',['as'=>'purchaseOrder.code.create','uses'=>'PurchaseOrderController@articleCodeCreate']);
 	Route::get('purchaseOrders/print',['as'=>'purchaseOrder.print','uses'=>'PurchaseOrderController@print']);
 	Route::get('purchaseOrders/price/list',['as'=>'purchaseOrder.price.list','uses'=>'PurchaseOrderController@priceList']);
 	Route::get('purchaseOrders/revision',['as'=>'purchaseOrder.revision','uses'=>'PurchaseOrderController@revision','middleware' => ['permission:purchaseOrder-revision']]);
+	Route::get('purchaseOrders/validate',['as'=>'purchaseOrder.validate','uses'=>'PurchaseOrderController@validasi']);
+	Route::get('purchaseOrders/authorize',['as'=>'purchaseOrder.authorize','uses'=>'PurchaseOrderController@otorisasi']);
 
 	Route::get('receivings',['as'=>'receivings.index','uses'=>'ReceivingController@index','middleware' => ['permission:receiving-index']]);
 	Route::get('receivings/create',['as'=>'receiving.create','uses'=>'ReceivingController@create','middleware' => ['permission:receiving-create']]);

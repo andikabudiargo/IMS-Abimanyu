@@ -8,7 +8,7 @@
         <div class="col-md-12">
             <div class="card">
                 <div class="card-header">
-                    <h4 class="card-title">Status: Show</h4>
+                    <h4 class="card-title">Status: <span id="statusText">{{ $statusPo }}</h4>
                     <div class="heading-elements">
                         <ul class="list-inline mb-0">
                             <li><a data-action="collapse"><i data-feather="chevron-down"></i></a></li>
@@ -89,6 +89,25 @@
                                 <div class="form-group col-md-11">
                                     <label class="form-label" for="note">Notes</label>
                                     <textarea type="text" id="note" name="note" class="form-control" rows="1" disabled>{{ $header->note }} </textarea>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-12">
+                                    <div class="row">
+                                        <div class="col-12">
+                                            <a href="{{ route('purchaseOrders.index') }}" class="btn btn-warning">Back</a>
+                                            @if( $header->status == '1')
+                                                @can('purchaseOrder-validate')
+                                                    <button class="btn btn-primary" type="button" id="cmdValidate" name="cmdValidate">Validate</button>
+                                                @endcan
+                                            @endif
+                                            @if( $header->status == '2')
+                                                @can('purchaseOrder-authorize')
+                                                    <button class="btn btn-primary" type="button" id="cmdAuthorized" name="cmdAuthorized">Auhorize</button>
+                                                @endcan
+                                            @endif
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </form>
@@ -265,7 +284,7 @@
 @section('styles')
 <style>
 
-textarea {
+    textarea {
         resize: none;
     }
 
@@ -347,6 +366,94 @@ textarea {
         $("#totalNetto").val(humanizeNumber((totalAmount+((parseInt(ppn)*totalAmount)/100))-((totalAmount*parseInt(persenDiscount))/100)));
 
     }
+
+    $("#cmdValidate").click(function(){     
+        let poNumber = $('#poNumber').val();
+        console.log(poNumber);
+        $.ajax({
+            type: "get",
+            url: "{{ route('purchaseOrder.validate') }}",
+            data: {
+                poNumber:poNumber,
+            },
+            dataType: "json",
+            success: function(data) {
+                if (data.status == 0 ){
+                    let message="";
+                    for(let i = 0; i < data.message.length; i++) {
+                        message += "-"+data.message[i]+"<br>";                           
+                    }
+                    $("#alert-message-success").addClass(data.alert);
+                    $("#alert-message-success .alert-body").html(message);
+                    $("#alert-message-success").show();
+                    $("#alert-message-success").fadeTo(5000, 500).slideUp(500, function(){
+                        $("#alert-message-success").slideUp(500);
+                    });
+
+                }else{
+                    $("#alert-message-success").addClass(data.alert);
+                    $("#alert-message-success .alert-body").html(data.message);
+                    $("#alert-message-success").show();
+                    $("#alert-message-success").fadeTo(5000, 500).slideUp(500, function(){
+                        $("#alert-message-success").slideUp(500);
+                    });
+                    $('#statusText').text(data.statusPo)
+                    $('#cmdValidate').hide();
+                    $('#cmdAuthorized').hide();
+                    $('#cmdSave').hide();
+                    $('#poNumber').attr('disabled','disabled');
+                }
+            },
+            error: function(error) {
+                console.log(error);
+            }
+        });
+
+    });
+
+    $("#cmdAuthorized").click(function(){     
+        let poNumber = $('#poNumber').val();
+        $.ajax({
+            type: "get",
+            url: "{{ route('purchaseOrder.authorize') }}",
+            data: {
+                poNumber:poNumber,
+            },
+            dataType: "json",
+            success: function(data) {
+                if (data.status == 0 ){
+                    let message="";
+                    for(let i = 0; i < data.message.length; i++) {
+                        message += "-"+data.message[i]+"<br>";                           
+                    }
+                    $("#alert-message-success").addClass(data.alert);
+                    $("#alert-message-success .alert-body").html(message);
+                    $("#alert-message-success").show();
+                    $("#alert-message-success").fadeTo(5000, 500).slideUp(500, function(){
+                        $("#alert-message-success").slideUp(500);
+                    });
+
+                }else{
+                    $("#alert-message-success").addClass(data.alert);
+                    $("#alert-message-success .alert-body").html(data.message);
+                    $("#alert-message-success").show();
+                    $("#alert-message-success").fadeTo(5000, 500).slideUp(500, function(){
+                        $("#alert-message-success").slideUp(500);
+                    });
+                    $('#statusText').text(data.statusPo)
+                    $('#addNewRow').hide();
+                    $('#cmdAuthorized').hide();
+                    $('#cmdValidate').hide();
+                    $('#cmdSave').hide();
+                    $('#poNumber').attr('disabled','disabled');
+                }
+            },
+            error: function(error) {
+                console.log(error);
+            }
+        });
+
+    });
 
        
 </script>

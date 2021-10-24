@@ -81,7 +81,7 @@
                         </div>
                         <div class="form-group col-md-4 align-self-end" >
                             <div class="custom-control custom-checkbox">
-                                <input type="checkbox" class="custom-control-input" id="status" name="status"  {{ old('status',$article->status) == '0' ? 'checked' : '' }} />
+                                <input type="checkbox" class="custom-control-input" id="status" name="status"  {{ old('status',$article->status) == '1' ? 'checked' : '' }} />
                                 <label class="custom-control-label" for="status">Aktif</label>
                             </div>
                         </div>                        
@@ -154,7 +154,7 @@
             </button>
           </div>
           <div class="modal-body">
-            <div id="imgViewer" style="overflow-x: scroll;">
+            <div id="imgViewer" style="overflow-x: hidden;">
             </div>
           </div>
         </div>

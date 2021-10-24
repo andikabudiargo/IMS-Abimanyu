@@ -103,7 +103,7 @@ class ReceivingRmController extends Controller
         $recDate = $request->recDate;
         $note = $request->note;
         $articles = json_decode($request->articles);
-        $recType = "NORMALRM";
+        $recType = "RM";
         $statusRec ="Draft";
         $status = '1';
         $authorizedBy = "";
@@ -129,7 +129,7 @@ class ReceivingRmController extends Controller
         });
         
         $validation = Validator::make($request->all(),$messages = [
-            'docNumber'=>'required|iunique:receiving_hdr,inv_number,po_number',
+            'docNumber'=>'required|iunique:receiving_hdr,docNumber,po_number',
             'recDate'  => 'required',
             'docDate'  => 'required',
             'soNumber'  => 'required',
@@ -256,7 +256,7 @@ class ReceivingRmController extends Controller
         ->get();       
 
         $data['supps'] = DB::table('third_party')
-        ->where ('third_party_type','=','supp')
+        ->where ('third_party_type','=','cust')
         ->orderBy('nama')
         ->get();
 
@@ -282,7 +282,7 @@ class ReceivingRmController extends Controller
         $recDate = $request->recDate;
         $note = $request->note;
         $articles = json_decode($request->articles);
-        $recType = "NORMAL";
+        $recType = "RM";
         $statusRec ="Update";
         $status = '2';
         $authorizedBy = "";
@@ -332,7 +332,7 @@ class ReceivingRmController extends Controller
                         [
                             'inv_number' => $docNumber,
                             'inv_date' => $docDate,
-                            'po_number' => $poNumber,
+                            'po_number' => $docNumber,
                             'supplier_id' => $customer,
                             'rec_date' => $recDate,
                             'authorized_by' => $authorizedBy,
@@ -353,7 +353,7 @@ class ReceivingRmController extends Controller
                         
                     }
 
-                    //Delete kalo article tidak ada di po $poNumber dan article nya $val->article_code
+                    //Delete kalo article tidak ada di rece $recNumber dan article nya $val->article_code
                     //berdasarkan 2 kondisi
                     DB::table('receiving_det')
                         ->whereNotIn(DB::raw("CONCAT(rec_number,article_code)"),$dataSet)
@@ -403,7 +403,7 @@ class ReceivingRmController extends Controller
 
         $username =  Auth::user()->username;
         $recNumber = $request->recNumber;
-        $recType = "NORMAL";
+        $recType = "RM";
         $statusRec ="Posting";
         $status = '3';
         $authorizedBy = Auth::user()->username;
@@ -457,6 +457,7 @@ class ReceivingRmController extends Controller
                 [   
                     'status' => $status,
                     'authorized_by' => $authorizedBy,
+                    'authorized_at' => date('Y-m-d H:i:s'),
                     'updated_by' => Auth::user()->username,
                     'updated_at' => date('Y-m-d H:i:s')
                 ]
@@ -502,7 +503,7 @@ class ReceivingRmController extends Controller
         ->update(
             [   
                 'rec_number' => $recNumber."(C)",
-                'inv_number' => $invNumber."(C)",
+                'inv_number' => $docNumber."(C)",
                 'status' => $status,
                 'note' => $note." (Cancel)",
                 'updated_by' => Auth::user()->username,
@@ -551,6 +552,8 @@ class ReceivingRmController extends Controller
 
         $filter='';
         
+        $filter.="lower(a.rec_type) = 'rm' and ";
+
         if ($searchRec !='' ){
             $filter.="lower(a.rec_number) like '%$searchRec%' and ";
         }

@@ -208,8 +208,8 @@ class ReceivingController extends Controller
     public function show(Request $request)
     {
         $id=$request->id;
-        $data['title'] = "Detil Receiving";
-        $data['subtitle'] = "Detil Receiving";
+        $data['title'] = "Details Receiving";
+        $data['subtitle'] = "Details Receiving";
 
         $data['header'] = DB::table('receiving_hdr')
         ->where('id',$id)
@@ -461,6 +461,7 @@ class ReceivingController extends Controller
                 [   
                     'status' => $status,
                     'authorized_by' => $authorizedBy,
+                    'authorized_at' => date('Y-m-d H:i:s'),
                     'updated_by' => Auth::user()->username,
                     'updated_at' => date('Y-m-d H:i:s')
                 ]
@@ -555,6 +556,8 @@ class ReceivingController extends Controller
 
         $filter='';
         
+        $filter.="lower(a.rec_type) = 'normal' and ";
+
         if ($searchRec !='' ){
             $filter.="lower(a.rec_number) like '%$searchRec%' and ";
         }
