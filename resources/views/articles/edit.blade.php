@@ -22,7 +22,7 @@
                             <div class="form-group col-md-6">
                                 <label class="form-label" for="articleType">Article Type*</label>
                                 <select class="select2 form-control" id="articleType" name="articleType" disabled>
-                                    <option label=""></option>
+                                    <option value="">All</option>
                                     @foreach($types as $val)
                                         <option value="{{$val->code}}" {{ $val->code == old("articleType",$article->article_type) ? "selected" : ""}}>{{$val->code}} - {{$val->name}}</option>
                                     @endforeach
@@ -31,7 +31,7 @@
                             <div class="form-group col-md-6">
                                 <label class="form-label" for="group">Group of material</label>
                                 <select class="select2 form-control" id="group" name="group" required>
-                                    <option label=""></option>
+                                    <option value="">All</option>
                                     @foreach($groups as $val)
                                         <option value="{{$val->code}}" {{ $val->code == old("group",$article->group) ? "selected" : ""}}>{{$val->code}} - {{$val->name}}</option>
                                     @endforeach
@@ -64,7 +64,7 @@
                             <div class="form-group col-md-6">
                                 <label class="form-label" for="uom">Smallest unit *</label>
                                 <select class="select2 form-control" id="uom" name="uom" required>
-                                    <option label=""></option>
+                                    <option value="">All</option>
                                     @foreach($uoms as $val)
                                         <option value="{{$val->code}}" {{ $val->code == old("uom",$article->uom) ? "selected" : ""}} >{{$val->code}} - {{$val->name}}</option>
                                     @endforeach

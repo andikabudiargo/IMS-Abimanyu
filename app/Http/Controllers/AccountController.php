@@ -47,7 +47,7 @@ class AccountController extends Controller
         $username =  Auth::user()->username;
         $account = strtoupper($request->input('account'));
         $desc = $request->input('desc');
-        $openingBalance = preg_replace('/[^0-9.]+/', '', $request->input('openingBalance'));
+        $openingBalance = is_null($request->input('openingBalance')) ? 0 : preg_replace('/[^0-9.]+/', '', $request->input('openingBalance'));
         $group = $request->input('group');
         $type = $request->input('type');
         $dept = $request->input('dept');
@@ -94,17 +94,15 @@ class AccountController extends Controller
                 ]);
 
                 DB::commit();
-                $alert  ="alert-success";
-                $message  = "$account is successfully saved";
+                $message  = "Account $account is successfully saved";
                 \LogActivity::addToLog('Account save ',"username: $username Status $message");
-                return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);  
+                return redirect()->back()->with('success',$message);  
 
         } catch (Exception $e) {
             DB::rollBack();
-            $alert  ="alert-warning";
             $message  = "$account is failed to save";
             \LogActivity::addToLog('Account save ',"username: $username Status $message");
-            return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);   
+            return redirect()->back()->with('warning',$message);   
         }
     }
 

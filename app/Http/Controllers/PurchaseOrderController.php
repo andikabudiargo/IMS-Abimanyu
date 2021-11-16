@@ -77,33 +77,12 @@ class PurchaseOrderController extends Controller
         return view("purchaseOrder.create",$data);
     }
 
-    public function articleCodeCreate(Request $request){
-        $customer = $request->customer;
-        $leadingCode = 'FG';
-
-        $lastCode = DB::table('article')
-        ->where('third_party','=',$customer)
-        ->orderBy('article_alternative_code','DESC')->first();
-
-        if (!$lastCode){
-            $newCode = '00001';
-        }else{
-            $newCode = str_pad(substr($lastCode->article_alternative_code,5)+1, 5, "0", STR_PAD_LEFT);
-        }
-
-        $artilceCode = DB::table('third_party')
-        ->where('kode',$customer)
-        ->select(DB::raw("CONCAT('$leadingCode',inisial,'$newCode') AS new_code"))->value('new_code');
-
-        return Response()->json($artilceCode);
-    
-    }
-
     public function store(Request $request)
     {
         $username =  Auth::user()->username;
         $articles = json_decode($request->articles);
         $orderDate = $request->orderDate;
+        $poType = $request->poType; 
         $deliveryDate = $request->deliveryDate;
         $currency = $request->currency;
         $supplier = $request->supplier;
@@ -117,6 +96,7 @@ class PurchaseOrderController extends Controller
         $discount = $request->discount;
         $note = $request->note;
         $status = '1';
+        $poLeadCode = $poType=='std' ? 'PO' : 'POSUB'; 
 
         $messages = [
             'required' => 'The field is required.',
@@ -147,8 +127,8 @@ class PurchaseOrderController extends Controller
             $alert ="alert-danger";
             return response()->json(array('status' => 0, 'message' => $error_array,'alert' =>$alert));
         }else{
-            $hasilUpdate = AppHelpers::resetCode('PO');
-            $poNumber = $this->getLastCode('PO');
+            $hasilUpdate = AppHelpers::resetCode($poLeadCode);
+            $poNumber = $this->getLastCode($poLeadCode);
             DB::beginTransaction();
             try {
                     DB::table('purchase_order_hdr')->insert([
@@ -168,6 +148,7 @@ class PurchaseOrderController extends Controller
                         'discount' => $discount,
                         'pkp' => $tax,
                         'termin' =>$termin,
+                        'order_type' => $poType,
                         'created_by' => Auth::user()->username,
                         'updated_by' => Auth::user()->username,
                         'created_at' => date('Y-m-d H:i:s'),
@@ -193,7 +174,7 @@ class PurchaseOrderController extends Controller
                         DB::table('purchase_request_det')
                         ->where('pr_number',$val->pRequest)
                         ->where('article_code',$val->article_code)
-                        ->where('supp_code',$supplier)
+                        // ->where('supp_code',$supplier)
                         ->update(
                             [
                             'po_number' => $poNumber,
@@ -203,7 +184,7 @@ class PurchaseOrderController extends Controller
                         );
 
                         DB::table('purchase_request_hdr')
-                        ->where('number',$val->pRequest)
+                        ->where('pr_number',$val->pRequest)
                         ->update(
                             [
                             'status' => 7,
@@ -218,14 +199,14 @@ class PurchaseOrderController extends Controller
 
                     DB::commit();
                     $alert  ="alert-success";
-                    $message  = "SO $poNumber is successfully saved";
+                    $message  = "PO $poNumber is successfully saved";
                     \LogActivity::addToLog('SO save ',"username: $username Status $message");
                     return response()->json(array('status' => 1, 'message' => $message,'alert'=>$alert,'poNumber'=>$poNumber));
 
             } catch (Exception $e) {
                 DB::rollBack();
                 $alert  ="alert-warning";
-                $message  = "SO $poNumber is failed to save";
+                $message  = "PO $poNumber is failed to save";
                 \LogActivity::addToLog('SO save ',"username: $username Status $message");
                 return response()->json(array('status' => 1, 'message' => $message,'alert'=>$alert,'poNumber'=>$poNumber));
             }
@@ -249,7 +230,7 @@ class PurchaseOrderController extends Controller
         $poNumber = $data['header']->po_number;
         
         $data['prHeader'] = DB::table('purchase_request_det') 
-        ->where('supp_code',$data['header']->supplier_id)
+        // ->where('supp_code',$data['header']->supplier_id)
         ->where('po_number','=',$poNumber)
         ->orderBy('pr_number')
         ->distinct('pr_number')
@@ -259,7 +240,7 @@ class PurchaseOrderController extends Controller
             ->leftJoin('article','article.article_code','=','purchase_request_det'.'.article_code')
             ->leftJoin('article_stock','article_stock.article_code','=','purchase_request_det'.'.article_code')
             ->leftJoin('group_materials','group_materials.code','=','article.group_of_material')
-            ->where('supp_code',$data['header']->supplier_id)
+            // ->where('supp_code',$data['header']->supplier_id)
             ->where('po_number','=',$poNumber)
             // ->where('pr_number','=',$data['header']->pr_number)
             ->orderBy('article.article_desc')
@@ -322,7 +303,7 @@ class PurchaseOrderController extends Controller
         $poNumber = $data['header']->po_number;
         
         $data['prHeader'] = DB::table('purchase_request_det') 
-        ->where('supp_code',$data['header']->supplier_id)
+        // ->where('supp_code',$data['header']->supplier_id)
         ->where('po_number','=',$poNumber)
         ->orderBy('pr_number')
         ->distinct('pr_number')
@@ -332,7 +313,7 @@ class PurchaseOrderController extends Controller
             ->leftJoin('article','article.article_code','=','purchase_request_det'.'.article_code')
             ->leftJoin('article_stock','article_stock.article_code','=','purchase_request_det'.'.article_code')
             ->leftJoin('group_materials','group_materials.code','=','article.group_of_material')
-            ->where('supp_code',$data['header']->supplier_id)
+            // ->where('supp_code',$data['header']->supplier_id)
             ->where('po_number','=',$poNumber)
             // ->where('pr_number','=',$data['header']->pr_number)
             ->orderBy('article.article_desc')
@@ -531,6 +512,7 @@ class PurchaseOrderController extends Controller
     {
         $username =  Auth::user()->username;
         $poNumber = $request -> poNumber;
+        $poType = $request -> poType;
         $articles = json_decode($request -> articles);
         $orderDate = $request->orderDate;
         $deliveryDate = $request->deliveryDate;
@@ -607,6 +589,7 @@ class PurchaseOrderController extends Controller
                             'discount' => $discount,
                             'pkp' => $tax,
                             'termin' =>$termin,
+                            'order_type' => $poType,
                             'updated_by' => Auth::user()->username,
                             'updated_at' => date('Y-m-d H:i:s')
                         ]
@@ -660,7 +643,7 @@ class PurchaseOrderController extends Controller
                         );
 
                         DB::table('purchase_request_hdr')
-                        ->where('number',$val->pRequest)
+                        ->where('pr_number',$val->pRequest)
                         ->update(
                             [
                             'status' => 7,

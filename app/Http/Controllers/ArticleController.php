@@ -307,17 +307,16 @@ class ArticleController extends Controller
 
     public function update(Request $request)
     {
-
         $username =  Auth::user()->username;
         $id = $request->id;
         $artCode = $request->artCode;
         $type = $request->input('articleType');
         $cust = $request->input('cust');
-        $nama = $request->input('nama');
+        $nama = strtoupper($request->input('nama'));
         $group = $request->input('group');
         $uom = $request->input('uom');
         $price = $request->input('price');
-        $price = str_replace(",","",$price);
+        $price = $price ? str_replace(",","",$price) : $price;
         $note = $request->input('note');
         $files = $request->input('files');
         $fileDihapus = $request->input('fileDihapus');

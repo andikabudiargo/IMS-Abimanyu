@@ -29,7 +29,7 @@
                                 <div class="form-group col-md-5">
                                     <label class="form-label" for="articleCode">Article*</label>
                                     <select class="select2 form-control" id="articleCode" name="articleCode" disabled>
-                                        <option label=""></option>
+                                        <option value="">All</option>
                                         @foreach($articleHeader as $val)
                                             <option value="{{ $val->article_code }}|{{ $val->uom }}|{{ $val->cust_name }}|{{ $val->group }}|{{ $val->third_party }}|{{ $val->group_of_material }}" {{$val->article_code == $header->article_code ? "selected" : ""}}>{{ $val->article_alternative_code }} - {{ $val->article_desc }}</option>
                                         @endforeach

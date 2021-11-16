@@ -26,13 +26,20 @@
                                     <input type="text" id="prNumber" name="prNumber" class="form-control disabled-el"  disabled />
                                 </div>
                                 <div class="form-group col-md-2">
+                                    <label class="form-label" for="poType">PO Type*</label>
+                                    <select class="select2 form-control" id="poType" name="poType" required>
+                                        <option value="std">Standard</option>
+                                        <option value="sub">Subcontracting</option>
+                                    </select>
+                                </div>
+                                <div class="form-group col-md-2">
                                     <label for="orderDate">Order Date*</label>
                                     <input type="text" id="orderDate" name="orderDate" class="form-control" placeholder="DD-MM-YYYY" required />
                                 </div>
-                                <div class="form-group col-md-5">
+                                <div class="form-group col-md-3">
                                     <label class="form-label" for="dept">Department*</label>
                                     <select class="select2 form-control" id="dept" name="dept" required>
-                                        <option label=""></option>
+                                        <option value=""></option>
                                         @foreach($depts as $val)
                                             <option value="{{$val->code}}" >{{$val->code}} - {{$val->name}}</option>
                                         @endforeach
@@ -155,7 +162,6 @@
 @endsection
 @section('styles')
 <style>
-
     textarea {
         resize: none;
     }
@@ -203,7 +209,7 @@
         validateForm('frmAdd');
         $('#orderDate').val(currentDate);
     });
-
+    
     orderDate = $('#orderDate');
     if (orderDate.length) {
         orderDate.flatpickr({
@@ -229,7 +235,8 @@
         let objQty = $('input[name="qty_order[]"]');
         let objNote = $('input[name="note[]"]');
         let objUom = $('span[name="uom[]"]'); 
-        let dept = $('#dept').val(); 
+        let dept = $('#dept').val();
+        let poType = $('#poType').val();
         let articles = []; 
         let flag=0; 
         let pesan="";
@@ -242,7 +249,7 @@
                 let plu=article[0];
                 let supp=article[2];
                 let uom=article[1];
-                let qty=objQty.eq(i).val().replace(/[^0-9]/gi, '') || 0;
+                let qty=objQty.eq(i).val().replace(/,/gi, '') || 0;
                 let note=objNote.eq(i).val();
                             
                 //es6
@@ -298,6 +305,7 @@
                 data: {
                     articles:JSON.stringify(articles),
                     orderDate:orderDate,
+                    poType:poType,
                     dept:dept,
                     note:note,
                 },
@@ -344,11 +352,12 @@
 
     let cloneCount=1;
     function add_new_row() {
+        let poType = $('#poType').val();
         $("#article_row").append($("#new_row").clone().html());
         cloneCount++;
         $("#article_row").find('#baru').attr('id', 'new_row'+ cloneCount);
         $("#new_row"+ cloneCount).find('#article_id').attr('id', 'article_id'+ cloneCount);
-        changeselect('article_pr','article_id'+ cloneCount);
+        poType =='std' ? changeselect('article_pr','article_id'+ cloneCount) : changeselect('article_pr_sub','article_id'+ cloneCount);
         $("#article_id"+cloneCount).select2();
         $('#remove_button').tooltip();
         tombolPanah('qty_order');

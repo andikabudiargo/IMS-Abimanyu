@@ -96,6 +96,8 @@ class ReceivingController extends Controller
     public function store(Request $request)
     {
         $username =  Auth::user()->username;
+        $doNumber = $request->doNumber;
+        $doDate = $request->doDate;
         $invNumber = $request->invNumber;
         $invDate = $request->invDate;
         $poNumber = $request->poNumber;
@@ -129,11 +131,12 @@ class ReceivingController extends Controller
         });
         
         $validation = Validator::make($request->all(),$messages = [
-            'invNumber'=>'required|iunique:receiving_hdr,inv_number,po_number',
-            'recDate'  => 'required',
-            'invDate'  => 'required',
-            'poNumber'  => 'required',
-            // 'supplier'  => 'required',
+            // 'invNumber'=>'required|iunique:receiving_hdr,inv_number,po_number',
+            // 'invDate'  => 'required',
+            'doNumber'=>'required|iunique:receiving_hdr,do_number,po_number',
+            'doDate'  => 'required',
+            // 'recDate'  => 'required',
+            // 'poNumber'  => 'required',
         ],$customMessages);
         
         $error_array = array();
@@ -152,6 +155,8 @@ class ReceivingController extends Controller
             try {
                     DB::table('receiving_hdr')->insert([
                         'rec_number' => $recNumber,
+                        'do_number' => $doNumber,
+                        'do_date' => $doDate,
                         'inv_number' => $invNumber,
                         'inv_date' => $invDate,
                         'po_number' => $poNumber,
@@ -277,6 +282,8 @@ class ReceivingController extends Controller
     {
         $username =  Auth::user()->username;
         $recNumber = $request->recNumber;
+        $doNumber = $request->doNumber;
+        $doDate = $request->doDate;
         $invNumber = $request->invNumber;
         $invDate = $request->invDate;
         $poNumber = $request->poNumber;
@@ -331,7 +338,9 @@ class ReceivingController extends Controller
                     $row_affected=DB::table('receiving_hdr')
                     ->where('rec_number',$recNumber)
                     ->update(
-                        [
+                        [   
+                            'do_number' => $doNumber,
+                            'do_date' => $doDate,
                             'inv_number' => $invNumber,
                             'inv_date' => $invDate,
                             'po_number' => $poNumber,

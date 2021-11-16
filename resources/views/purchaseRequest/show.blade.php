@@ -26,13 +26,20 @@
                                     <input type="text" id="prNumber" name="prNumber" class="form-control disabled-el" value="{{ $header->number }}" disabled />
                                 </div>
                                 <div class="form-group col-md-2">
+                                    <label class="form-label" for="poType">PO Type*</label>
+                                    <select class="select2 form-control" id="poType" name="poType" disabled>
+                                        <option value="std" {{ $header->order_type == 'std' ? "selected" : ""}}>Standard</option>
+                                        <option value="sub" {{ $header->order_type == 'sub' ? "selected" : ""}}>Subcontracting</option>
+                                    </select>
+                                </div>
+                                <div class="form-group col-md-2">
                                     <label for="orderDate">Order Date*</label>
                                     <input type="text" id="orderDate" name="orderDate" class="form-control" placeholder="DD-MM-YYYY" value="{{ $header->date }}" disabled />
                                 </div>
-                                <div class="form-group col-md-5">
+                                <div class="form-group col-md-3">
                                     <label class="form-label" for="dept">Department*</label>
                                     <select class="select2 form-control" id="dept" name="dept" disabled>
-                                        <option label=""></option>
+                                        <option value="">All</option>
                                         @foreach($depts as $val)
                                             <option value="{{$val->code}}" {{$val->code == $header->dept ? "selected" : ""}}>{{$val->code}} - {{$val->name}}</option>
                                         @endforeach

@@ -80,6 +80,7 @@ Route::group( ['middleware' => ['auth']], function() {
 
 	Route::get('subContracts',['as'=>'subContracts.index','uses'=>'SubContractController@index','middleware' => ['permission:subContract-index']]);
 	Route::get('subContracts/create',['as'=>'subContract.create','uses'=>'SubContractController@create','middleware' => ['permission:subContract-create']]);
+	Route::get('subContracts/delivery',['as'=>'subContract.delivery','uses'=>'SubContractController@delivery','middleware' => ['permission:subContract-create']]);
 	Route::post('subContracts/store',['as'=>'subContract.store','uses'=>'SubContractController@store']);
 	Route::get('subContracts/list',['as'=>'subContract.list','uses'=>'SubContractController@list']);
 	Route::get('subContracts/show',['as'=>'subContract.show','uses'=>'SubContractController@show']);
@@ -262,7 +263,6 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('purchaseRequests/code/create',['as'=>'purchaseRequest.code.create','uses'=>'PurchaseRequestController@articleCodeCreate']);
 	Route::get('purchaseRequests/print',['as'=>'purchaseRequest.print','uses'=>'PurchaseRequestController@print']);
 
-
 	Route::get('boms',['as'=>'boms.index','uses'=>'BomController@index','middleware' => ['permission:bom-index']]);
 	Route::get('boms/create',['as'=>'bom.create','uses'=>'BomController@create','middleware' => ['permission:bom-create']]);
 	Route::post('boms/store',['as'=>'bom.store','uses'=>'BomController@store']);
@@ -273,7 +273,6 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('boms/delete',['as'=>'bom.destroy','uses'=>'BomController@destroy']);
 	Route::get('boms/code/create',['as'=>'bom.code.create','uses'=>'BomController@articleCodeCreate']);
 	Route::get('boms/print',['as'=>'bom.print','uses'=>'BomController@print']);
-
 
 	Route::get('workingOrders',['as'=>'workingOrders.index','uses'=>'workingOrderController@index','middleware' => ['permission:workingOrder-index']]);
 	Route::get('workingOrders/create',['as'=>'workingOrder.create','uses'=>'workingOrderController@create','middleware' => ['permission:workingOrder-create']]);
@@ -286,6 +285,18 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('workingOrders/delete',['as'=>'workingOrder.destroy','uses'=>'workingOrderController@destroy']);
 	Route::get('workingOrders/code/create',['as'=>'workingOrder.code.create','uses'=>'workingOrderController@articleCodeCreate']);
 	Route::get('workingOrders/print',['as'=>'workingOrder.print','uses'=>'workingOrderController@print']);
+
+	Route::get('workingOrderSheets',['as'=>'workingOrderSheets.index','uses'=>'workingOrderSheetController@index','middleware' => ['permission:workingOrder-index']]);
+	Route::get('workingOrderSheets/create',['as'=>'workingOrderSheet.create','uses'=>'workingOrderSheetController@create','middleware' => ['permission:workingOrder-create']]);
+	Route::post('workingOrderSheets/store',['as'=>'workingOrderSheet.store','uses'=>'workingOrderSheetController@store']);
+	Route::get('workingOrderSheets/list',['as'=>'workingOrderSheet.list','uses'=>'workingOrderSheetController@list']);
+	Route::get('workingOrderSheets/list/detail',['as'=>'workingOrderSheet.detail.list','uses'=>'workingOrderSheetController@listDetail']);
+	Route::get('workingOrderSheets/show',['as'=>'workingOrderSheet.show','uses'=>'workingOrderSheetController@show']);
+	Route::get('workingOrderSheets/edit',['as'=>'workingOrderSheet.edit','uses'=>'workingOrderSheetController@edit','middleware' => ['permission:workingOrder-edit']]);
+	Route::post('workingOrderSheets/update',['as'=>'workingOrderSheet.update','uses'=>'workingOrderSheetController@update']);
+	Route::post('workingOrderSheets/delete',['as'=>'workingOrderSheet.destroy','uses'=>'workingOrderSheetController@destroy']);
+	Route::get('workingOrderSheets/code/create',['as'=>'workingOrderSheet.code.create','uses'=>'workingOrderSheetController@articleCodeCreate']);
+	Route::get('workingOrderSheets/print',['as'=>'workingOrderSheet.print','uses'=>'workingOrderSheetController@print']);
 
 	Route::post('dynamic/dependent',['as'=>'dynamic.dependent','uses'=>'DependentController@dependentFetch']);
 

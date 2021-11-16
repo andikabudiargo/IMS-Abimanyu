@@ -34,7 +34,7 @@
                             <div class="form-group col-md-6">
                                 <label class="form-label" for="dept">Departemen</label>
                                 <select class="select2 w-100" id="dept" name="dept">
-                                    <option label=""></option>
+                                    <option value="">All</option>
                                     @foreach($depts as $val)
                                         <option value="{{$val->code}}" {{ $val->code == old("dept",$employee->department) ? "selected" : ""}} >{{$val->code}} - {{$val->name}}</option>
                                     @endforeach
@@ -45,7 +45,7 @@
                             <div class="form-group col-md-6">
                                 <label class="form-label" for="position">Jabatan</label>
                                 <select class="select2 w-100" id="position" name="position">
-                                    <option label=""></option>
+                                    <option value="">All</option>
                                     @foreach($positions as $val)
                                         <option value="{{$val->code}}" {{ $val->code == old("position",$employee->job_position) ? "selected" : ""}} >{{$val->code}} - {{$val->name}}</option>
                                     @endforeach

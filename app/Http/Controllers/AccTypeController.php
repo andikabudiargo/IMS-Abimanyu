@@ -188,16 +188,16 @@ class AccTypeController extends Controller
         $code = strtolower($request->code);
         $name = strtolower($request->name);
 
-        $data=DB::table('acc_types')
-        ->where('code','ilike','%'.$code.'%')
-        ->where('description','ilike','%'.$name.'%')  // string to lower
-        ->orderBy('name')->get();
+        $data=DB::table('acc_types');
+        $code ? $data->where('code','ilike','%'.$code.'%') : '';
+        $name ? $data->where('description','ilike','%'.$name.'%') : '';  // string to lower
+        $data->orderBy('name')->get();
 
         return Datatables::of($data)
         ->addColumn('action', function ($data) {
             $buttons = '<div class="d-inline-flex">
                             <a class="pr-1 dropdown-toggle hide-arrow text-primary" data-toggle="dropdown">
-                                <i data-feather="more-vertical"></i>
+                                <i data-feather="menu"></i>
                             </a>';
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
             if (Auth::user()->can('accType-edit')) {

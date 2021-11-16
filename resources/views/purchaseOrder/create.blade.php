@@ -26,6 +26,13 @@
                                     <input type="text" id="poNumber" name="poNumber" class="form-control disabled-el"  disabled />
                                 </div>
                                 <div class="form-group col-md-2">
+                                    <label class="form-label" for="poType">PO Type*</label>
+                                    <select class="select2 form-control" id="poType" name="poType" required>
+                                        <option value="std">Standard</option>
+                                        <option value="sub">Subcontracting</option>
+                                    </select>
+                                </div>
+                                <div class="form-group col-md-2">
                                     <label for="orderDate">Order Date*</label>
                                     <input type="text" id="orderDate" name="orderDate" class="form-control" placeholder="DD-MM-YYYY" required />
                                 </div>
@@ -33,15 +40,48 @@
                                     <label for="deliveryDate">Delivery Date</label>
                                     <input type="text" id="deliveryDate" name="deliveryDate" class="form-control" placeholder="DD-MM-YYYY" />
                                 </div>
-                               
-                                <div class="form-group col-md-2">
+                            </div>
+                            <div class="row">
+                                <div class="form-group col-md-5">
+                                    <label class="form-label" for="supplier">Supplier*</label>
+                                    <select class="select2 form-control" id="supplier" name="supplier" required>
+                                        <option value="">All</option>
+                                        @foreach($supps as $val)
+                                            <option value="{{$val->kode}}" >{{$val->kode}} - {{$val->nama}}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label" for="term">Term</label>
+                                    <div class="input-group">
+                                        <input type="text" class="form-control angka text-right" id = "term" name="term" value="0" maxlength="4" />
+                                        <div class="input-group-append">
+                                            <span class="input-group-text">Days</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">Tax*</label>
+                                    <div>
+                                        <div class="btn-group btn-group-toggle" data-toggle="buttons">
+                                            <label class="btn btn-outline-primary active">
+                                                <input type="radio" name="radio_options" id="radio_option1" checked /> PKP
+                                            </label>
+                                            <label class="btn btn-outline-primary">
+                                                <input type="radio" name="radio_options" id="radio_option2" /> Non PKP
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {{-- <div class="form-group col-md-2">
                                     <label for="tax">Tax*</label>
                                     <select class="select2 form-control" id="tax" name="tax" required>
                                         <option value="PKP">PKP</option>
                                         <option value="NONPKP">NON PKP</option>
                                     </select>
-                                </div>
-                                <div class="col-md-2">
+                                </div> --}}
+                                <div class="form-group col-md-2">
                                     <label class="form-label" for="ppn">PPN</label>
                                     <div class="input-group">
                                         <input type="text" class="form-control angka text-right" id = "ppn" name="ppn" value="10" maxlength="2" />
@@ -50,27 +90,7 @@
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                            <div class="row">
-                                <div class="form-group col-md-5">
-                                    <label class="form-label" for="supplier">Supplier*</label>
-                                    <select class="select2 form-control" id="supplier" name="supplier" required>
-                                        <option label=""></option>
-                                        @foreach($supps as $val)
-                                            <option value="{{$val->kode}}" >{{$val->kode}} - {{$val->nama}}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                                <div class="col-md-2">
-                                    <label class="form-label" for="term">TERM</label>
-                                    <div class="input-group">
-                                        <input type="text" class="form-control angka text-right" id = "term" name="term" value="0" maxlength="4" />
-                                        <div class="input-group-append">
-                                            <span class="input-group-text">DAYS</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="form-group col-md-2">
+                                <div class="form-group col-md-2 d-none">
                                     <label for="currency">Currency*</label>
                                     <select class="select2 form-control" id="currency" name="currency" required>
                                         @foreach($currency as $val)
@@ -78,7 +98,7 @@
                                         @endforeach
                                     </select>
                                 </div>
-                                <div class="col-md-2">
+                                <div class="form-group col-md-2 d-none" >
                                     <div class="form-group">
                                         <label for="kurs">Kurs</label>
                                         <input type="text" id="kurs" name="kurs" class="form-control angka" maxlength="6"  />
@@ -360,7 +380,7 @@
                 let article=$this.val().split("|");
                 let articleName=$this.select2('data')[0].text;
                 let plu=article[0];
-                let qty=objQty.eq(i).val().replace(/[^0-9]/gi, '') || 0;
+                let qty=objQty.eq(i).val().replace(/,/gi, '') || 0;
                 let newPrice=objNewPrice.eq(i).val().replace(/[^0-9]/gi, '') || 0;
                 let price=objPrice.eq(i).val().replace(/[^0-9]/gi, '') || 0;
                 let pRequest=objpr.eq(i).val();
@@ -410,6 +430,7 @@
         if (flag==0){
 
             let orderDate = $('#orderDate').val();
+            let poType = $('#poType').val();
             let deliveryDate = $('#deliveryDate').val();
             let currency = $('#currency').val();
             let supp = $('#supplier').val();
@@ -428,6 +449,7 @@
                 data: {
                     articles:JSON.stringify(articles),
                     orderDate:orderDate,
+                    poType:poType,
                     deliveryDate:deliveryDate,
                     currency:currency,                
                     supplier:supp,
@@ -484,13 +506,15 @@
     function add_new_row() {
         let supplier = $('#supplier');
         let supp = supplier.val();
+        let poType = $('#poType').val();
         if (supp){            
             $("#article_row").append($("#new_row").clone().html());
             cloneCount++;
             $("#article_row").find('#baru').attr('id', 'new_row'+ cloneCount);
             $("#new_row"+ cloneCount).find('#article_id').attr('id', 'article_id'+ cloneCount);
             $("#new_row"+ cloneCount).find('#pRequest').attr('id', 'pRequest'+ cloneCount);
-            changeselect('pRequest','pRequest'+ cloneCount,supp,'');
+            poType =='std' ? changeselect('pRequest','pRequest'+ cloneCount,supp,'') : changeselect('pRequest_sub','pRequest'+ cloneCount,supp,'');
+            // changeselect('pRequest','pRequest'+ cloneCount,supp,'');
             $("#article_id"+cloneCount).select2();
             $("#pRequest"+cloneCount).select2();
             $('#remove_button').tooltip();
@@ -502,6 +526,7 @@
             isiListArticle();
             hitungTotal();
             hitungGrandTotal();
+            $('[data-toggle="tooltip"]').tooltip();
         }else{
             Swal.fire({
                 title: 'Warning',
@@ -520,12 +545,12 @@
     function isiListArticle(){
         // split article with delimiter |
         let objPrequest = $('#article_row select[name="pRequest[]"]');
-        
         objPrequest.change(function(e){        
             let objIndex = objPrequest.index(this);
             let prNumber = objPrequest.eq(objIndex).val();
             let supp = $('#supplier').val();
-            changeSelectArticle('searchFromPr',objIndex,supp,prNumber);
+            let poType = $('#poType').val();
+            poType =='std' ? changeSelectArticle('searchFromPr',objIndex,supp,prNumber) : changeSelectArticle('searchFromPr_sub',objIndex,supp,prNumber);
             splitArticle();
 		});
     }
@@ -635,7 +660,7 @@
         
         objQty.keyup(function() {
             let indexnya= objQty.index(this);
-            let qty = objQty.eq(indexnya).val().replace(/[^0-9]/gi, '') || 0; 
+            let qty = objQty.eq(indexnya).val().replace(/,/gi, '') || 0; 
             let newPrice = objNewPrice.eq(indexnya).val().replace(/[^0-9]/gi, '') ||0;
             let total = qty*newPrice;
             objTotal.eq(indexnya).text(humanizeNumber(total));
@@ -644,7 +669,7 @@
 
         objNewPrice.keyup(function() {
             let indexnya= objNewPrice.index(this);
-            let qty = objQty.eq(indexnya).val().replace(/[^0-9]/gi, '') || 0; 
+            let qty = objQty.eq(indexnya).val().replace(/,/gi, '') || 0; 
             let newPrice = objNewPrice.eq(indexnya).val().replace(/[^0-9]/gi, '')||0;
             let total = qty*newPrice;
             objTotal.eq(indexnya).text(humanizeNumber(total));
@@ -663,7 +688,7 @@
         let totalAmount=0
 
         var arr = objQtyTiw.map(function (i) {
-            let qty = parseInt(objQTY.eq(i).val().replace(/[^0-9]/gi, '')) || 0;
+            let qty = parseInt(objQTY.eq(i).val().replace(/,/gi, '')) || 0;
             let newPrice = parseInt(objNewPrice.eq(i).val().replace(/[^0-9]/gi, '')) || 0;
             totalQty+= qty;
             totalAmount+= qty*newPrice;

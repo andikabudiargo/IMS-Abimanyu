@@ -20,7 +20,7 @@
                             <div class="form-group col-md-6">
                                 <label class="form-label" for="articleType">Article Type*</label>
                                 <select class="select2 form-control" id="articleType" name="articleType" autofocus required>
-                                    <option label=""></option>
+                                    <option value="">All</option>
                                     @foreach($types as $val)
                                         <option value="{{$val->code}}" {{ $val->code == old("articleType") ? "selected" : ""}}>{{$val->code}} - {{$val->name}}</option>
                                     @endforeach
@@ -29,7 +29,7 @@
                             <div class="form-group col-md-6">
                                 <label class="form-label" for="group">Group of material</label>
                                 <select class="select2 form-control" id="group" name="group">
-                                    <option label=""></option>
+                                    <option value="">All</option>
                                     @foreach($groups as $val)
                                         <option value="{{$val->code}}" {{ $val->code == old("group") ? "selected" : ""}}>{{$val->code}} - {{$val->name}}</option>
                                     @endforeach
@@ -59,7 +59,7 @@
                             <div class="form-group col-md-6">
                                 <label class="form-label" for="uom">Smallest Unit*</label>
                                 <select class="select2 form-control" id="uom" name="uom" required>
-                                    <option label=""></option>
+                                    <option value="">All</option>
                                     @foreach($uoms as $val)
                                         <option value="{{$val->code}}" {{ $val->code == old("uom") ? "selected" : ""}} >{{$val->code}} - {{$val->name}}</option>
                                     @endforeach

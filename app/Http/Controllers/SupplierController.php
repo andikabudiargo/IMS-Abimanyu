@@ -75,6 +75,11 @@ class SupplierController extends Controller
         $inisial = strtoupper($request->input('inisial'));
         $kode = $this->supplierCodeCreate($inisial);
         $alamat = $request->input('alamat');
+        $provinsi = $request->input('provinsi');
+        $kota = $request->input('kota');
+        $kelurahan = $request->input('kelurahan');
+        $kecamatan = $request->input('kecamatan');
+        $kodePos = $request->input('kodePos');
         $telepon = $request->input('telepon');
         $fax = $request->input('fax');
         $hp = $request->input('hp');
@@ -113,7 +118,13 @@ class SupplierController extends Controller
                 DB::table('third_party')->insert([
                     'kode'=> $kode,
                     'nama'=> $nama,
+                    'inisial'=> $inisial,
                     'alamat_tagih'=> $alamat,
+                    'provinsi'=> $provinsi,
+                    'kota'=>  $kota,
+                    'kelurahan'=> $kelurahan,
+                    'kecamatan'=> $kecamatan,                   
+                    'kode_pos'=> $kodePos,
                     'pkp'=> $pkp,
                     'telepon'=> $telepon,
                     'hp'=> $hp,
@@ -161,6 +172,13 @@ class SupplierController extends Controller
         ->where('id',$id)
         ->get()->first();
 
+        $data['provinces'] = DB::table('regions')
+        ->where ('index','=',0)
+        ->get();
+
+        $data['accounts'] = DB::table('accounts')
+        ->get();
+
         $data['cities'] = DB::table('regions')
         ->where ('index','=',1)
         ->orderBy('region_name')
@@ -172,13 +190,45 @@ class SupplierController extends Controller
         
     }
 
+    public function show(Request $request)
+    {
+        $id = $request->id;
+        $data['title'] = "Detail Supplier";
+        $data['subtitle'] = "Detail Supplier";
+
+        $data['suppliers'] = DB::table('third_party')
+        ->where('id',$id)
+        ->get()->first();
+
+        $data['provinces'] = DB::table('regions')
+        ->where ('index','=',0)
+        ->get();
+
+        $data['accounts'] = DB::table('accounts')
+        ->get();
+
+        $data['cities'] = DB::table('regions')
+        ->where ('index','=',1)
+        ->orderBy('region_name')
+        ->get();
+
+        return view('suppliers.show',$data);
+        
+    }
+
     public function update(Request $request)
     {
         $username = Auth::user()->username;
         $id = $request->id;
         $kode = $request->input('kode');
+        $inisial = strtoupper($request->input('inisial'));
         $nama = $request->input('nama');
         $alamat = $request->input('alamat');
+        $provinsi = $request->input('provinsi');
+        $kota = $request->input('kota');
+        $kelurahan = $request->input('kelurahan');
+        $kecamatan = $request->input('kecamatan');
+        $kodePos = $request->input('kodePos');
         $telepon = $request->input('telepon');
         $fax = $request->input('fax');
         $hp = $request->input('hp');
@@ -220,7 +270,13 @@ class SupplierController extends Controller
                     ->update(
                     [
                         'nama'=> $nama,
+                        'inisial'=> $inisial,
                         'alamat_tagih'=> $alamat,
+                        'provinsi'=> $provinsi,
+                        'kota'=>  $kota,
+                        'kelurahan'=> $kelurahan,
+                        'kecamatan'=> $kecamatan,                   
+                        'kode_pos'=> $kodePos,
                         'pkp'=> $pkp,
                         'telepon'=> $telepon,
                         'hp'=> $hp,
@@ -309,6 +365,10 @@ class SupplierController extends Controller
                                     Edit
                                 </a>';
             }
+            $buttons .=         '<a href="'. route('supplier.show', ['id'=>$data->id]) .'" class="dropdown-item">
+                                    <i data-feather="list"></i>
+                                    Detail
+                                </a>';
             if (Auth::user()->can('supplier-delete')) {
                 $buttons .=         "<a href='javascript:;'
                                         id='deleteButton'
@@ -325,9 +385,6 @@ class SupplierController extends Controller
 
             return $buttons;
             })
-        ->addColumn('group_id', function ($user) {
-            return '';
-        })
         ->addColumn('blacklist', function ($data) {
             if ($data->blacklist =='1') {
                 $blacklist = '<div class="custom-control custom-switch custom-control-inline">
@@ -344,11 +401,11 @@ class SupplierController extends Controller
         })
         ->addColumn('epte', function ($data) {
             if ($data->epte == true){
-                $weightStatus = '<span class="badge badge-pill badge-light-primary">Yes</span>';
+                $epte = '<span class="badge badge-pill badge-light-primary">Yes</span>';
             }else{
-                $weightStatus = '<span class="badge badge-pill badge-light-danger">No</span>';
+                $epte = '<span class="badge badge-pill badge-light-danger">No</span>';
             }
-            return $weightStatus;
+            return $epte;
         })
         ->rawColumns(['action','blacklist','epte'])
         ->make(true);

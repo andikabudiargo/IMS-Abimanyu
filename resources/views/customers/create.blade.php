@@ -161,7 +161,7 @@
                         <div class="form-group col-md-6">
                             <label class="form-label" for="sales">Sales</label>
                             <select class="select2 w-100" id="sales" name="sales">
-                                <option label=""></option>
+                                <option value="">All</option>
                                 @foreach($employees as $val)
                                     <option value="{{$val->employee_id}}" {{ $val->employee_id == old("sales") ? "selected" : ""}} >{{$val->employee_id}} | {{$val->name}}</option>
                                 @endforeach
@@ -172,7 +172,7 @@
                         <div class="form-group col-md-6">
                             <label class="form-label" for="areaKirim">Area kirim</label>
                             <select class="select2 w-100" id="areaKirim" name="areaKirim">
-                                <option label=""></option>
+                                <option value="">All</option>
                                 @foreach($cities as $val)
                                     <option value="{{$val->region_code}}" {{ $val->region_code == old("areaKirim") ? "selected" : ""}} >{{$val->region_name}}</option>
                                 @endforeach
@@ -183,7 +183,7 @@
                         <div class="form-group col-md-6">
                             <label class="form-label" for="account">Account</label>
                             <select class="select2 w-100" id="account" name="account">
-                                <option label=""></option>
+                                <option value="">All</option>
                                 @foreach($accounts as $val)
                                     <option value="{{$val->account}}" {{ $val->account == old("account") ? "selected" : ""}} >{{$val->account}} | {{$val->description}} </option>
                                 @endforeach
@@ -222,7 +222,7 @@
                         <div class="form-group col-md-6">
                             <label class="form-label" for="kotaNpwp">Kota</label>
                             <select class="select2 w-100" id="kotaNpwp" name="kotaNpwp">
-                                <option label=""></option>
+                                <option value="">All</option>
                                 @foreach($cities as $val)
                                     <option value="{{$val->region_code}}">{{$val->region_name}}</option>
                                 @endforeach
@@ -279,7 +279,7 @@
                         <div class="form-group col-md-4">
                             <label class="form-label" for="provinsi">Provinsi</label>
                             <select class="select2 w-100 dynamicSelect" id="provinsi" name="provinsi" data-dependent="kota">
-                                <option label=""></option>
+                                <option value="">All</option>
                                 @foreach($provinces as $val)
                                 <option value="{{$val->region_code}}" >{{$val->region_name}}</option>
                                 @endforeach

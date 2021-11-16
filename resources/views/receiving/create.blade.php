@@ -21,6 +21,16 @@
                             @csrf
                             {{-- <input type="text" id="article" name="article" hidden> --}}
                             <div class="row">
+                                <div class="form-group col-md-4">
+                                    <label class="form-label" for="recType">Receive type</label>
+                                    <select class="select2 form-control" id="recType" name="recType" required>
+                                        <option label="recPo">By PO</option>
+                                        <option label="recSo">By SO</option>
+                                        <option label="recFree">Free Input</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="row">
                                 <div class="form-group col-md-3">
                                     <label for="recNumber">Receiving Number</label> <small class="text-muted"> automatic</small>
                                     <input type="text" id="recNumber" name="recNumber" class="form-control text-hitam disabled-el"  disabled />
@@ -34,7 +44,7 @@
                                 <div class="form-group col-md-4">
                                     <label class="form-label" for="supplier">Supplier*</label>
                                     <select class="select2 form-control" id="supplier" name="supplier" required>
-                                        <option label=""></option>
+                                        <option value="">All</option>
                                         @foreach($supps as $val)
                                             <option value="{{$val->kode}}" >{{$val->kode}} - {{$val->nama}}</option>
                                         @endforeach
@@ -45,13 +55,23 @@
                                     <select class="select2 form-control" id="poNumber" name="poNumber" required>
                                     </select>
                                 </div>
+                            </div>
+                            <div class="row">
                                 <div class="form-group col-md-2">
-                                    <label for="invDate">Invoice Date*</label>
-                                    <input type="text" id="invDate" name="invDate" class="form-control" placeholder="DD-MM-YYYY" required />
+                                    <label for="doDate">DO Date*</label>
+                                    <input type="text" id="doDate" name="doDate" class="form-control" placeholder="DD-MM-YYYY" required />
                                 </div>                               
                                 <div class="form-group col-md-3">
+                                    <label for="doNumber">DO Number*</label>
+                                    <input type="text" id="doNumber" name="doNumber" class="form-control disabled-el" required/>
+                                </div>
+                                <div class="form-group col-md-2 d-none">
+                                    <label for="invDate">Invoice Date*</label>
+                                    <input type="text" id="invDate" name="invDate" class="form-control" placeholder="DD-MM-YYYY" />
+                                </div>                               
+                                <div class="form-group col-md-3 d-none">
                                     <label for="invNumber">Invoice Number*</label>
-                                    <input type="text" id="invNumber" name="invNumber" class="form-control disabled-el" required/>
+                                    <input type="text" id="invNumber" name="invNumber" class="form-control disabled-el" />
                                 </div>
                             </div>
                             <div class="row">
@@ -246,6 +266,14 @@
         });
     }
 
+    doDate = $('#doDate');
+    if (doDate.length) {
+        doDate.flatpickr({
+            dateFormat: "d-m-Y",
+            maxDate: "today"
+        });
+    }
+
     recDate = $('#recDate');
     if (recDate.length) {
         recDate.flatpickr({
@@ -313,8 +341,10 @@
             }
 
             if (flag==0){
-                let invNumber = $('#invNumber').val();
+                let invNumber = $('#invNumber').val()||0;
                 let invDate = $('#invDate').val();
+                let doNumber = $('#doNumber').val();
+                let doDate = $('#doDate').val();
                 let poNumber = $('#poNumber').val();
                 let supp = $('#supplier').val();
                 let recDate = $('#recDate').val();
@@ -326,6 +356,8 @@
                     data: {
                         invNumber:invNumber,
                         invDate:invDate,
+                        doNumber:doNumber,
+                        doDate:doDate,
                         poNumber:poNumber,
                         supp:supp,
                         recDate:recDate,
@@ -555,8 +587,8 @@
         
         objQtyRec.keyup(function() {
             let indexnya= objQtyRec.index(this);
-            let qtyRec = parseInt(objQtyRec.eq(indexnya).val().replace(/[^0-9]/gi, '') || 0); 
-            let qtyFree = parseInt(objQtyFree.eq(indexnya).val().replace(/[^0-9]/gi, '') || 0); 
+            let qtyRec = parseInt(objQtyRec.eq(indexnya).val().replace(/,/gi, '') || 0); 
+            let qtyFree = parseInt(objQtyFree.eq(indexnya).val().replace(/,/gi, '') || 0); 
             let totalQty = qtyRec+qtyFree;
             objTotalQty.eq(indexnya).text(humanizeNumber(totalQty));
             hitungGrandTotal();
@@ -564,8 +596,8 @@
 
         objQtyFree.keyup(function() {
             let indexnya= objQtyRec.index(this);
-            let qtyRec = parseInt(objQtyRec.eq(indexnya).val().replace(/[^0-9]/gi, '') || 0); 
-            let qtyFree = parseInt(objQtyFree.eq(indexnya).val().replace(/[^0-9]/gi, '') || 0); 
+            let qtyRec = parseInt(objQtyRec.eq(indexnya).val().replace(/,/gi, '') || 0); 
+            let qtyFree = parseInt(objQtyFree.eq(indexnya).val().replace(/,/gi, '') || 0); 
             let totalQty = qtyRec+qtyFree;
             objTotalQty.eq(indexnya).text(humanizeNumber(totalQty));
             hitungGrandTotal();
@@ -581,8 +613,8 @@
         let totalQtyFree= 0;
 
         var arr = objQtyRec.map(function (i) {
-            let qty = parseInt(objQtyRec.eq(i).val().replace(/[^0-9]/gi, '')) || 0;
-            let qtyFree = parseInt(objQtyFree.eq(i).val().replace(/[^0-9]/gi, '')) || 0;
+            let qty = parseInt(objQtyRec.eq(i).val().replace(/,/gi, '')) || 0;
+            let qtyFree = parseInt(objQtyFree.eq(i).val().replace(/,/gi, '')) || 0;
             totalQty+= qty;
             totalQtyFree+= qtyFree;
         }).get();

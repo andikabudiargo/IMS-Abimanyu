@@ -36,7 +36,7 @@
                             <div class="form-group col-md-6">
                                 <label class="form-label" for="group">Group</label>
                                 <select class="select2 w-100" id="group" name="group">
-                                    <option label=""></option>
+                                    <option value="">All</option>
                                     @foreach($groups as $val)
                                         <option value="{{$val->code}}">{{$val->code}} - {{$val->name}}</option>
                                     @endforeach
@@ -47,7 +47,7 @@
                             <div class="form-group col-md-6">
                                 <label class="form-label" for="type">Account Type</label>
                                 <select class="select2 w-100" id="type" name="type">
-                                    <option label=""></option>
+                                    <option value="">All</option>
                                     @foreach($types as $val)
                                         <option value="{{$val->code}}">{{$val->code}} - {{$val->name}}</option>
                                     @endforeach
@@ -58,7 +58,7 @@
                             <div class="form-group col-md-6">
                                 <label class="form-label" for="dept">Dept</label>
                                 <select class="select2 w-100" id="dept" name="dept">
-                                    <option label=""></option>
+                                    <option value="">All</option>
                                     @foreach($depts as $val)
                                         <option value="{{$val->code}}">{{$val->code}} - {{$val->name}}</option>
                                     @endforeach
@@ -69,7 +69,7 @@
                             <div class="form-group col-md-6">
                                 <label class="form-label" for="cashBank">Cash/Bank</label>
                                 <select class="select2 w-100" id="cashBank" name="cashBank">
-                                    <option label=""></option>
+                                    <option value="">All</option>
                                     <option label="cash">Cash</option>
                                     <option label="bank">Bank</option>
                                 </select>

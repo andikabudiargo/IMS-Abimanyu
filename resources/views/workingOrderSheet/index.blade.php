@@ -19,37 +19,24 @@
         <form class="needs-validation" novalidate>
             <div class="form-row">
               <div class="form-group col-md-3"> 
-                <label for="seachPo">PO Number</label>
-                <input type="text" class="form-control text-uppercase" id="seachPo" name="seachPo" placeholder=""  />
+                <label for="searchBom">WOS Number</label>
+                <input type="text" class="form-control text-uppercase" id="searchBom" name="searchBom" placeholder=""  />
               </div>
-              <div class="form-group col-md-3"> 
-                <label class="form-label" for="searchSupplier">Supplier</label>
-                <select class="select2 form-control" id="searchSupplier" name="searchSupplier">
-                  <option value="">All</option>
-                    @foreach($supps as $val)
-                        <option value="{{$val->kode}}">{{$val->kode}} - {{$val->nama}}</option>
-                    @endforeach
-                </select>
-              </div>
-              <div class="col-md-3 form-group">
-                <label for="orderDate">Date</label>
-                <input type="text" id="orderDate" name="orderDate" class="form-control flatpickr-range" placeholder="YYYY-MM-DD to YYYY-MM-DD" />
-              </div>
-              <div class="form-group col-md-2"> 
-                <label class="form-label" for="searchStatus">Order Status</label>
-                <select class="select2 form-control" id="searchStatus" name="searchStatus">
+              {{-- <div class="form-group col-md-5">
+                <label class="form-label" for="articleCode">Article*</label>
+                <select class="select2 form-control" id="articleCode" name="articleCode" required>
                     <option value="">All</option>
-                    @foreach($status as $index=>$val)
-                        <option value="{{ $index }}">{{ $index }} - {{ $val }}</option>
+                    @foreach($articles as $val)
+                        <option value="{{ $val->article_code }}" >{{ $val->article_alternative_code }} - {{ $val->article_desc }}</option>
                     @endforeach
                 </select>
-              </div>
+              </div> --}}
             </div>
             <div class="form-row">
                 <div class="col-12"> 
                     <button type="button" class="btn btn-primary" id ="btnSearch" name="btnSearch">Search</button>
-                    @can('purchaseOrder-create')
-                    <a href="{{ route('purchaseOrder.create') }}" class="btn btn-info"><i class="fa fa-plus"></i> Create</a>
+                    @can('bom-create')
+                    <a href="{{ route('workingOrderSheet.create') }}" class="btn btn-info"><i class="fa fa-plus"></i> Create</a>
                     @endcan
                 </div>
             </div>
@@ -129,15 +116,13 @@
   }
 
   $("#btnSearch").click(function(e){
-    let seachPo = $("#seachPo").val();
-    let searchSupplier = $("#searchSupplier").val(); 
-    let searchStatus = $("#searchStatus").val();
-    let orderDate = $("#orderDate").val();
-    showList(seachPo,searchSupplier,searchStatus,orderDate);
+    let searchBom = $("#searchBom").val();
+    let articleCode = $("#articleCode").val();
+    showList(searchBom,articleCode);
 
   });
 
-  function showList(seachPo,searchSupplier,searchStatus,orderDate){
+  function showList(searchBom,articleCode){
     // let dtdom = '<"card-header border-bottom p-1"<"head-label">><"d-flex justify-content-between align-items-center mx-0 row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-4"f><"col-sm-12 col-md-2"<"dt-action-buttons text-right"B>>>t<"d-flex justify-content-between mx-0 row"<"col-sm-12 col-md-6"i><"col-sm-12 col-md-6"p>>';
     let dtdom ='<"d-flex justify-content-between align-items-center header-actions mx-1 row mt-75"' +
         '<"col-lg-12 col-xl-6" l>' +
@@ -152,12 +137,10 @@
       let oTable =$("#detailedTable").DataTable({
         ajax:
         {
-          url:'{{ route("purchaseOrder.list")}}',
+          url:'{{ route("workingOrder.list")}}',
           data:{
-              seachPo:seachPo,
-              searchSupplier:searchSupplier,
-              searchStatus:searchStatus,
-              orderDate:orderDate
+              searchBom:searchBom,
+              articleCode:articleCode,
           }
         },
         processing: true,
@@ -214,6 +197,37 @@
             }
           },
         ],
+        responsive: {
+          details: {
+            display: $.fn.dataTable.Responsive.display.modal({
+              header: function (row) {
+                var data = row.data();
+                return 'Details of ' + data['nama'];
+              }
+            }),
+            type: 'column',
+            renderer: function (api, rowIdx, columns) {
+              var data = $.map(columns, function (col, i) {
+                return col.title !== '' // ? Do not show row in modal popup if title is blank (for check box)
+                  ? '<tr data-dt-row="' +
+                      col.rowIndex +
+                      '" data-dt-column="' +
+                      col.columnIndex +
+                      '">' +
+                      '<td>' +
+                      col.title +
+                      ':' +
+                      '</td> ' +
+                      '<td>' +
+                      col.data +
+                      '</td>' +
+                      '</tr>'
+                  : '';
+              }).join('');
+              return data ? $('<table class="table"/>').append(data) : false;
+            }
+          }
+        },
         language: {
           paginate: {
             // remove previous & next text from pagination
@@ -222,8 +236,26 @@
           }
         },
         columnDefs: [
-          { width: '10%', targets: 0 },
-          { className: 'text-right','targets': [ 11,12,13,14,15 ] },
+          {
+            // For Responsive
+            className: 'control',
+            orderable: false,
+            responsivePriority: 2,
+            targets: 0
+          },
+          {
+            responsivePriority: 1,
+            targets: 2
+          },
+          {
+            responsivePriority: 3,
+            targets: 3
+          },
+          {
+            responsivePriority: 4,
+            targets: 4
+          },
+          { width: '10%', targets: 1 },
         ],
         drawCallback: function( settings ) {
           feather.replace({
@@ -235,24 +267,14 @@
         bDestroy: true, //pakai ini supaya bisa di load berulang2
         // scrollX: true, //pakai ini supaya waktu responsive  bisa di scroll horizontal
         columns: [
-            // { data: 'group_id',name:'group_id', title:'',orderable: false, searchable: false },
+            { data: 'group_id',name:'group_id', title:'',orderable: false, searchable: false },
             { data: 'action', name: 'action',title:'action', orderable: false, searchable: false },
-            { data: 'po_number', name: 'po_number',title:'PO Number' },
-            { data: 'num_revision', name: 'num_revision',title:'Revision' },
-            { data: 'supp_name', name: 'supp_name',title:'Supplier' },
-            { data: 'po_date', name: 'po_date',title:'PO Date' },
-            { data: 'delivery_date', name: 'delivery_date',title:'Delivery Date' },
-            { data: 'created_by', name: 'created_by',title:'Created By' },
-            { data: 'validate_by', name: 'validate_by',title:'Prepared By' },
-            { data: 'authorized_by', name: 'authorized_by',title:'Authorized By' },
-            { data: 'pkp', name: 'pkp',title:'Tax' },
-            { data: 'termin', name: 'termin',title:'Tax' },            
-            { data: 'qty', name: 'qty',title:'QTY',render: $.fn.dataTable.render.number(',','.') },
-            { data: 'gross', name: 'gross',title:'Bruto',render: $.fn.dataTable.render.number(',','.')},
-            { data: 'discount', name: 'discount',title:'Discount',render: $.fn.dataTable.render.number(',','.')},
-            { data: 'ppn', name: 'ppn',title:'PPN',render: $.fn.dataTable.render.number(',','.')},
-            { data: 'netto', name: 'netto',title:'Netto',render: $.fn.dataTable.render.number(',','.')},
+            { data: 'bom_code', name: 'bom_code',title:'BOM Code' },
+            { data: 'customer', name: 'customer',title:'Customer' },
+            { data: 'article_code', name: 'article_code',title:'Article' },
+            { data: 'group_of_material', name: 'group_of_material',title:'Group' },
             { data: 'status', name: 'status',title:'Status' },
+            { data: 'note', name: 'note',title:'Note' },
         ],
       });
     });

@@ -1,6 +1,7 @@
 truncate table purchase_order_hdr;
 truncate table sales_order_det;
 truncate table receiving_hdr;
+truncate table receiving_det;
 truncate table log_activities;
 truncate table employees;
 --truncate table article_types;
@@ -28,4 +29,4 @@ truncate table movement;
 --truncate table group_materials;
 truncate table wo_hdr;
 truncate table wo_det;
-truncate table receiving_det;
+

@@ -389,7 +389,17 @@
         }
         }).settings.ignore = "";
     }
+
+    // function mask_time(){
+    //     $('.time-mask').toArray().forEach(function(field){
+    //         new Cleave(field, {
+    //             time: true,
+    //             timePattern: ['h', 'm', 's']
+    //         });
+    //     });   
+    // }
     
+    //masking menggunakan thousand separator
     function mask_thousand(){
         $('.numeral-mask').toArray().forEach(function(field){
             new Cleave(field, {
@@ -400,6 +410,7 @@
         });   
     }
 
+    //masking menggunakan thousand separator dengan digit di belakang koma
     function mask_thousand_digit(digit){
         $('.numeral-mask-digit').toArray().forEach(function(field){
             new Cleave(field, {
@@ -408,6 +419,15 @@
                 numeralDecimalScale: digit
             });
         });   
+    }
+
+    function mask_thousand_digit_by_id(id,digit){
+        console.log(digit);
+            new Cleave('#'+id, {
+            numeral: true,
+            numeralThousandsGroupStyle: 'thousand',
+            numeralDecimalScale: digit
+        });
     }
 
     function todayDate(formatnya){

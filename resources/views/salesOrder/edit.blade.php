@@ -28,9 +28,9 @@
                                 </div>
                             </div>
                             <div class="form-group col-md-3">
-                                <label for="salesman">Salesman</label>
+                                <label for="salesman">Salesperson*</label>
                                 <select class="select2 form-control" id="salesman" name="salesman" required>
-                                    <option label=""></option>
+                                    <option value="">All</option>
                                     @foreach($employees as $val)
                                     <option value="{{$val->employee_id}}" {{ $val->employee_id == $header->salesman_code ? "selected" : ""}}>{{$val->employee_id}} - {{$val->name}}</option>
                                     @endforeach
@@ -39,7 +39,7 @@
                             <div class="form-group col-md-2">
                                 <label for="type">Type</label>
                                 <select class="select2 form-control" id="type" name="type" required>
-                                    <option label=""></option>
+                                    <option value="">All</option>
                                     @foreach($types as $val)
                                     <option value="{{$val}}" {{ $val == $header->order_type ? "selected" : ""}}>{{$val}}</option>
                                     @endforeach
@@ -48,7 +48,7 @@
                             <div class="form-group col-md-2">
                                 <label for="currency">Currency</label>
                                 <select class="select2 form-control" id="currency" name="currency" required>
-                                    {{-- <option label=""></option> --}}
+                                    {{-- <option value="">All</option> --}}
                                     @foreach($currency as $val)
                                     <option value="{{$val}}" {{ $val == $header->currency ? "selected" : ""}}>{{$val}}</option>
                                     @endforeach
@@ -65,7 +65,7 @@
                             <div class="form-group col-md-5">
                                 <label class="form-label" for="cust">Customer</label>
                                 <select class="select2 form-control" id="cust" name="cust" required>
-                                    <option label=""></option>
+                                    <option value="">All</option>
                                     @foreach($custs as $val)
                                         <option value="{{$val->kode}}|{{$val->inisial}}" {{$val->kode == $header->customer_id ? "selected" : ""}}>{{$val->kode}} - {{$val->nama}}</option>
                                     @endforeach

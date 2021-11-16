@@ -57,7 +57,7 @@
                         <input type="text" class="form-control-plaintext numeral-mask text-right" id = "price" name="price[]"  maxlength="11" disabled>
                     </td>
                     <td class="text-center" style="width: 5%">
-                        <a onmouseover="this.style.cursor='pointer'" id="listPrice" name="listPrice[]">
+                        <a onmouseover="this.style.cursor='pointer'" id="listPrice" name="listPrice[]" data-toggle="tooltip" data-placement="right" title="List Price">
                             <i data-feather="info" class="feather-24">
                             </i>
                         </a>
@@ -69,7 +69,7 @@
                         <span class="totalLine" id="totalLine" name="totalLine[]"></span>
                     </td>
                     <td class="isian text-center" style="width: 5%">
-                        <a onmouseover="this.style.cursor='pointer'" onclick="$(this).parents('.tanda-baris').remove();hitungGrandTotal()">
+                        <a onmouseover="this.style.cursor='pointer'" onclick="$(this).parents('.tanda-baris').remove();hitungGrandTotal()" data-toggle="tooltip" data-placement="left" title="Delete row">
                             <i data-feather="trash-2" class="remove_button feather-24">
                             </i>
                         </a>

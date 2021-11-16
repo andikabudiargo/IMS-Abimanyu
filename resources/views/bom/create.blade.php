@@ -29,7 +29,7 @@
                                 <div class="form-group col-md-5">
                                     <label class="form-label" for="articleCode">Article*</label>
                                     <select class="select2 form-control" id="articleCode" name="articleCode" required>
-                                        <option label=""></option>
+                                        <option value=""></option>
                                         @foreach($articles as $val)
                                             <option value="{{ $val->article_code }}|{{ $val->uom }}|{{ $val->cust_name }}|{{ $val->group }}|{{ $val->third_party }}|{{ $val->group_of_material }}" >{{ $val->article_alternative_code }} - {{ $val->article_desc }}</option>
                                         @endforeach
@@ -49,7 +49,31 @@
                                 </div>
                             </div>
                             <div class="row">
-                                <div class="form-group col-md-12">
+                                <div class="form-group col-md-2">
+                                    <label for="tag">Tag</label>
+                                    <input type="text" id="tag" name="tag" class="form-control numeral-mask-digit" maxlength="5" />
+                                </div>
+                                <div class="form-group col-md-2">
+                                    <label for="passRate">Pass Rate</label>
+                                    <input type="text" id="passRate" name="passRate" class="form-control numeral-mask-digit" maxlength="5"/>
+                                </div>
+
+                                <div class="form-group col-md-2">
+                                    <label for="passThru">Pass trough</label>
+                                    <div class="input-group input-group-merge">
+                                        <input type="text" id="passThru" name="passThru" class="form-control numeral-mask-digit" maxlength="5"/>
+                                        <div class="input-group-append">
+                                            <span class="input-group-text">%</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="form-group col-md-2">
+                                    <label for="cycleTime">Cycle time buffing</label>
+                                    <input type="text" id="cycleTime" name="cycleTime" class="form-control numeral-mask-digit" maxlength="5"/>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="form-group col-md-8">
                                     <label class="form-label" for="note">Notes</label>
                                     <textarea type="text" id="note" name="note" class="form-control" rows="1" ></textarea>
                                 </div>
@@ -159,8 +183,10 @@
 @section('scripts')
 <script type="text/javascript">
     let currentDate = todayDate('dd-mm-yyyy');    
+    console.log(numberOfDecimalDigit);
     $(document).ready(function(){           
         validateForm('frmAdd');
+        mask_thousand_digit(2);
     });
         
     function reloadPage(){
@@ -315,12 +341,12 @@
         cloneCount++;
         $("#article_row").find('#baru').attr('id', 'new_row'+ cloneCount);
         $("#new_row"+ cloneCount).find('#article_id').attr('id', 'article_id'+ cloneCount);
+        $("#new_row"+ cloneCount).find('#qtyBom').attr('id', 'qtyBom'+ cloneCount);
         changeselect('article_bom','article_id'+ cloneCount);
         $("#article_id"+cloneCount).select2();
         $('#remove_button').tooltip();
         tombolPanah('qtyBom');
-        activate_angka();
-        mask_thousand_digit(3);
+        // mask_thousand();
         splitArticle();
     };
 
@@ -335,16 +361,32 @@
         objArticle.change(function(e){        
             let objIndex = objArticle.index(this);
             let detail = objArticle.eq(objIndex).val();
-            let arrDetail = detail.split("|");
-            objUom.eq(objIndex).text(arrDetail[1]);
-            objPrice.eq(objIndex).text(arrDetail[3]);
-            objType.eq(objIndex).text(arrDetail[4]);
+
             if (detail){
-                setTimeout(() => {
-                    objQty.eq(objIndex).focus().select();
-                }, 5);
+                let arrDetail = detail.split("|");
+                objUom.eq(objIndex).text(arrDetail[1]);
+                let id_qty = objQty.eq(objIndex).prop('id');
+                
+                if ( arrDetail[1] === 'PCS' ){
+                    console.log('PCS');
+                    $('#'+id_qty).val('');
+                    mask_thousand_digit_by_id(id_qty,0);
+                }else{
+                    console.log('NON PCS');          
+                    $('#'+id_qty).val('');
+                    mask_thousand_digit_by_id(id_qty,numberOfDecimalDigit);
+                }
+        
+                objPrice.eq(objIndex).text(arrDetail[3]);
+                objType.eq(objIndex).text(arrDetail[4]);
+                if (detail){
+                    setTimeout(() => {
+                        objQty.eq(objIndex).focus().select();
+                    }, 5);
+                }    
             }
-		});
+            
+        });
     }
 
     function changeselect(dependent,obj) {

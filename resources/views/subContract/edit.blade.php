@@ -78,7 +78,7 @@
                             <div class="form-group col-md-12">
                                 <label class="form-label" for="account">Account</label>
                                 <select class="select2 w-100" id="account" name="account">
-                                    <option label=""></option>
+                                    <option value="">All</option>
                                     @foreach($accounts as $val)
                                         <option value="{{$val->account}}" {{ $val->account == old("account") ? "selected" : ""}} >{{$val->account}} | {{$val->description}} </option>
                                     @endforeach

@@ -26,7 +26,7 @@
                     <div class="form-group col-md-4"> 
                       <label class="form-label" for="dept">Departemen</label>
                       <select class="select2 form-control" id="dept" name="dept">
-                          <option label=""></option>
+                          <option value="">All</option>
                           @foreach($depts as $val)
                               <option value="{{$val->code}}">{{$val->code}} - {{$val->name}}</option>
                           @endforeach
@@ -35,7 +35,7 @@
                     <div class="form-group col-md-4"> 
                       <label class="form-label" for="position">Jabatan</label>
                       <select class="select2 form-control" id="position" name="position">
-                          <option label=""></option>
+                          <option value="">All</option>
                           @foreach($positions as $val)
                               <option value="{{$val->code}}">{{$val->code}} - {{$val->name}}</option>
                           @endforeach

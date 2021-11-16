@@ -29,7 +29,7 @@
               <div class="form-group col-md-3"> 
                 <label class="form-label" for="searchCustomer">Customer</label>
                 <select class="select2 form-control" id="searchCustomer" name="searchCustomer">
-                    <option label=""></option>
+                    <option value="">All</option>
                     @foreach($custs as $val)
                         <option value="{{$val->kode}}">{{$val->kode}} - {{$val->nama}}</option>
                     @endforeach
@@ -38,7 +38,7 @@
               <div class="form-group col-md-3"> 
                 <label class="form-label" for="searchSalesman">Salesman</label>
                 <select class="select2 form-control" id="searchSalesman" name="searchSalesman">
-                    <option label=""></option>
+                    <option value="">All</option>
                     @foreach($employees as $val)
                         <option value="{{$val->employee_id}}">{{$val->employee_id}} - {{$val->name}}</option>
                     @endforeach
@@ -53,7 +53,7 @@
               <div class="form-group col-md-2"> 
                 <label class="form-label" for="searchType">Order Type</label>
                 <select class="select2 form-control" id="searchType" name="searchType">
-                    <option label=""></option>
+                    <option value="">All</option>
                     @foreach($types as $val)
                         <option value="{{$val}}">{{$val}}</option>
                     @endforeach
@@ -62,7 +62,7 @@
               <div class="form-group col-md-2"> 
                 <label class="form-label" for="searchStatus">Order Status</label>
                 <select class="select2 form-control" id="searchStatus" name="searchStatus">
-                    <option label=""></option>
+                    <option value="">All</option>
                     @foreach($status as $val)
                         <option value="{{$val}}">{{$val}}</option>
                     @endforeach

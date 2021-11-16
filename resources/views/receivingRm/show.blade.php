@@ -34,7 +34,7 @@
                                 <div class="form-group col-md-5">
                                     <label class="form-label" for="supplier">Supplier*</label>
                                     <select class="select2 form-control text-hitam" id="supplier" name="supplier" disabled>
-                                        <option label=""></option>
+                                        <option value="">All</option>
                                         @foreach($supps as $val)
                                             <option value="{{$val->kode}}" {{$val->kode == $header->supplier_id ? "selected" : ""}} >{{$val->kode}} - {{$val->nama}}</option>
                                         @endforeach

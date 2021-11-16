@@ -181,13 +181,21 @@
             @endcan
           </ul>
         </li>
-        <li class=" {{ in_array(\Request::segment(1), ['boms','workingOrders']) ? 'active' : '' }} nav-item">
+        <li class=" {{ in_array(\Request::segment(1), ['boms','workingOrders','workingOrderSheets']) ? 'active' : '' }} nav-item">
           <a class="d-flex align-items-center" href="javascript:void(0);">
             <i data-feather='tool'></i>
             <span class="menu-title text-truncate" data-i18n="Form Elements">Production
             </span>
           </a>
           <ul class="menu-content">
+            @can('workingOrder-index')
+            <li class="{{ \Request::segment(1) == 'workingOrderSheets' ? 'active' : '' }} " >
+              <a class="d-flex align-items-center" href="{{ route('workingOrderSheets.index') }}">
+                <i data-feather="circle"></i>
+                <span class="menu-item text-truncate" data-i18n="Input">Working Order Sheet</span>
+              </a>
+            </li>
+            @endcan
             @can('workingOrder-index')
             <li class="{{ \Request::segment(1) == 'workingOrders' ? 'active' : '' }} " >
               <a class="d-flex align-items-center" href="{{ route('workingOrders.index') }}">
@@ -209,18 +217,10 @@
         <li class=" {{ in_array(\Request::segment(1), ['subContracts']) ? 'active' : '' }} nav-item">
           <a class="d-flex align-items-center" href="javascript:void(0);">
             <i data-feather='link-2'></i>
-            <span class="menu-title text-truncate" data-i18n="Form Elements">Subcontractor
+            <span class="menu-title text-truncate" data-i18n="Form Elements">Subcontracting
             </span>
           </a>
           <ul class="menu-content">
-            @can('subContract-index')
-            <li class="{{ \Request::segment(1) == 'subContracts' ? 'active' : '' }} " >
-              <a class="d-flex align-items-center" href="{{ route('subContracts.index') }}">
-                <i data-feather="circle"></i>
-                <span class="menu-item text-truncate" data-i18n="Input">Vendor</span>
-              </a>
-            </li>
-            @endcan
             @can('subContract-index')
             <li class="{{ \Request::segment(1) == 'subContracts1' ? 'active' : '' }} disabled" >
               <a class="d-flex align-items-center" href="{{ route('subContracts.index') }}">
@@ -229,11 +229,11 @@
               </a>
             </li>
             @endcan
-            @can('subContract-index')
-            <li class="{{ \Request::segment(1) == 'subContracts1' ? 'active' : '' }} disabled" >
-              <a class="d-flex align-items-center" href="{{ route('subContracts.index') }}">
+            @can('subContract-create')
+            <li class="{{ \Request::segment(1) == 'subContracts' ? 'active' : '' }}" >
+              <a class="d-flex align-items-center" href="{{ route('subContract.delivery') }}">
                 <i data-feather="circle"></i>
-                <span class="menu-item text-truncate" data-i18n="Input">Shipping</span>
+                <span class="menu-item text-truncate" data-i18n="Input">Delivery</span>
               </a>
             </li>
             @endcan

@@ -26,10 +26,17 @@
                 <label for="requestDate">Date</label>
                 <input type="text" id="requestDate" name="requestDate" class="form-control flatpickr-range" placeholder="YYYY-MM-DD to YYYY-MM-DD" />
               </div>
+              <div class="form-group col-md-2">
+                <label class="form-label" for="poType">PO Type*</label>
+                <select class="select2 form-control" id="poType" name="poType" required>
+                    <option value="std">Standard</option>
+                    <option value="sub">Subcontracting</option>
+                </select>
+              </div>
               <div class="form-group col-md-2"> 
                 <label class="form-label" for="searchStatus">Request Status</label>
                 <select class="select2 form-control" id="searchStatus" name="searchStatus">
-                    <option label=""></option>
+                    <option value="">All</option>
                     @foreach($status as $index=>$val)
                         <option value="{{ $index }}">{{ $index }} - {{ $val }}</option>
                     @endforeach
@@ -121,13 +128,14 @@
 
   $("#btnSearch").click(function(e){
     let searchPr = $("#searchPr").val();
+    let poType = $("#poType").val();
     let searchStatus = $("#searchStatus").val();
     let requestDate = $("#requestDate").val();
     showList(searchPr,searchStatus,requestDate);
 
   });
 
-  function showList(searchPr,searchStatus,requestDate){
+  function showList(searchPr,poType,searchStatus,requestDate){
     // let dtdom = '<"card-header border-bottom p-1"<"head-label">><"d-flex justify-content-between align-items-center mx-0 row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-4"f><"col-sm-12 col-md-2"<"dt-action-buttons text-right"B>>>t<"d-flex justify-content-between mx-0 row"<"col-sm-12 col-md-6"i><"col-sm-12 col-md-6"p>>';
     let dtdom ='<"d-flex justify-content-between align-items-center header-actions mx-1 row mt-75"' +
         '<"col-lg-12 col-xl-6" l>' +
@@ -145,6 +153,7 @@
           url:'{{ route("purchaseRequest.list")}}',
           data:{
               searchPr:searchPr,
+              poType:poType,
               searchStatus:searchStatus,
               requestDate:requestDate
           }
@@ -275,7 +284,8 @@
         columns: [
             { data: 'group_id',name:'group_id', title:'',orderable: false, searchable: false },
             { data: 'action', name: 'action',title:'action', orderable: false, searchable: false },
-            { data: 'number', name: 'number',title:'PR Number' },
+            { data: 'pr_number', name: 'pr_number',title:'PR Number' },
+            { data: 'order_type', name: 'order_type',title:'PO Type' },
             { data: 'dept', name: 'dept',title:'Department' },
             { data: 'date', name: 'date',title:'PR Date' },
             { data: 'status', name: 'status',title:'Status' },

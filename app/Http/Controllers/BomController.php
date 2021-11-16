@@ -26,7 +26,6 @@ class BomController extends Controller
         ->select('article.*', 'third_party.nama as cust_name','group_materials.name as group')
         ->get();
        
-
         // status:
         // 1 = New
         // 2 = Validated
@@ -84,9 +83,13 @@ class BomController extends Controller
         $articles = json_decode($request -> articles);
         $articleCode = $request->articleCode;
         $customer = $request->customer;
-        $note = $request->note;
         $group = $request->group;
         $uom = $request->uom;
+        $tag = $request->tag;
+        $passRate = $request->passRate;
+        $passThru = $request->passThru;
+        $cycleTime = $request->cycleTime;
+        $note = $request->note;
 
         $status = '1';
         $print_seq = 0;
@@ -128,6 +131,10 @@ class BomController extends Controller
                         'uom' => $uom,
                         'group_of_material' => $group,
                         'status' => $status,
+                        'tag' => $tag,
+                        'pass_rate' => $passRate,
+                        'pass_thru' => $passThru,
+                        'cycle_time' => $cycleTime,
                         'note' => $note,
                         'created_by' => Auth::user()->username,
                         'updated_by' => Auth::user()->username,
@@ -243,9 +250,13 @@ class BomController extends Controller
         $articles = json_decode($request -> articles);
         $articleCode = $request->articleCode;
         $customer = $request->customer;
-        $note = $request->note;
         $group = $request->group;
         $uom = $request->uom;
+        $tag = $request->tag;
+        $passRate = $request->passRate;
+        $passThru = $request->passThru;
+        $cycleTime = $request->cycleTime;
+        $note = $request->note;
 
         $status = '1';
         $print_seq = 0;
@@ -289,6 +300,10 @@ class BomController extends Controller
                             'uom' => $uom,
                             'group_of_material' => $group,
                             'status' => $status,
+                            'tag' => $tag,
+                            'pass_rate' => $passRate,
+                            'pass_thru' => $passThru,
+                            'cycle_time' => $cycleTime,
                             'note' => $note,
                             'updated_by' => Auth::user()->username,
                             'updated_at' => date('Y-m-d H:i:s')

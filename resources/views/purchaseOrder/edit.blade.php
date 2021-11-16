@@ -26,6 +26,13 @@
                                     <input type="text" id="poNumber" name="poNumber" class="form-control disabled-el" value="{{ $header->po_number }}" disabled />
                                 </div>
                                 <div class="form-group col-md-2">
+                                    <label class="form-label" for="poType">PO Type*</label>
+                                    <select class="select2 form-control" id="poType" name="poType" disabled required>
+                                        <option value="std" {{ $header->order_type == 'std' ? "selected" : "" }}>Standard</option>
+                                        <option value="sub" {{ $header->order_type == 'sub' ? "selected" : "" }}>Subcontracting</option>
+                                    </select>
+                                </div>
+                                <div class="form-group col-md-2">
                                     <label for="orderDate">Order Date*</label>
                                     <input type="text" id="orderDate" name="orderDate" class="form-control" value="{{ $header->po_date }}" placeholder="DD-MM-YYYY"  required/>
                                 </div>
@@ -33,7 +40,26 @@
                                     <label for="deliveryDate">Delivery Date</label>
                                     <input type="text" id="deliveryDate" name="deliveryDate" class="form-control" value="{{ $header->delivery_date }}" placeholder="DD-MM-YYYY" />
                                 </div>
-                               
+                            </div>
+                            <div class="row">
+                                <div class="form-group col-md-5">
+                                    <label class="form-label" for="supplier">Supplier*</label>
+                                    <select class="select2 form-control" id="supplier" name="supplier" required>
+                                        <option value="">All</option>
+                                        @foreach($supps as $val)
+                                            <option value="{{$val->kode}}" {{$val->kode == $header->supplier_id ? "selected" : ""}} >{{$val->kode}} - {{$val->nama}}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label" for="term">TERM</label>
+                                    <div class="input-group">
+                                        <input type="text" class="form-control angka text-right" id = "term" name="term" value="{{ $header->termin }}" maxlength="4" />
+                                        <div class="input-group-append">
+                                            <span class="input-group-text">DAYS</span>
+                                        </div>
+                                    </div>
+                                </div>
                                 <div class="form-group col-md-2">
                                     <label for="tax">Tax*</label>
                                     <select class="select2 form-control" id="tax" name="tax" required>
@@ -50,27 +76,7 @@
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                            <div class="row">
-                                <div class="form-group col-md-5">
-                                    <label class="form-label" for="supplier">Supplier*</label>
-                                    <select class="select2 form-control" id="supplier" name="supplier" required>
-                                        <option label=""></option>
-                                        @foreach($supps as $val)
-                                            <option value="{{$val->kode}}" {{$val->kode == $header->supplier_id ? "selected" : ""}} >{{$val->kode}} - {{$val->nama}}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                                <div class="col-md-2">
-                                    <label class="form-label" for="term">TERM</label>
-                                    <div class="input-group">
-                                        <input type="text" class="form-control angka text-right" id = "term" name="term" value="{{ $header->termin }}" maxlength="4" />
-                                        <div class="input-group-append">
-                                            <span class="input-group-text">DAYS</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="form-group col-md-2">
+                                <div class="form-group col-md-2 d-none">
                                     <label for="currency">Currency*</label>
                                     <select class="select2 form-control" id="currency" name="currency" required>
                                         @foreach($currency as $val)
@@ -78,7 +84,7 @@
                                         @endforeach
                                     </select>
                                 </div>
-                                <div class="col-md-2">
+                                <div class="form-group col-md-2 d-none">
                                     <div class="form-group">
                                         <label for="kurs">Kurs</label>
                                         <input type="text" id="kurs" name="kurs" class="form-control angka" value="{{ $header->kurs }}" maxlength="6" />
@@ -367,6 +373,7 @@
         splitArticle();
         isiListArticle();
         hitungTotal();
+        $('.sku-select-system').select2();
     });
 
     orderDate = $('#orderDate');
@@ -426,7 +433,7 @@
                 let article=$this.val().split("|");
                 let articleName=$this.select2('data')[0].text;
                 let plu=article[0];
-                let qty=objQty.eq(i).val().replace(/[^0-9]/gi, '') || 0;
+                let qty=objQty.eq(i).val().replace(/,/gi, '') || 0;
                 let newPrice=objNewPrice.eq(i).val().replace(/[^0-9]/gi, '') || 0;
                 let price=objPrice.eq(i).val().replace(/[^0-9]/gi, '') || 0;
                 let pRequest=objpr.eq(i).val();
@@ -476,12 +483,11 @@
         if (flag==0){
 
             let orderDate = $('#orderDate').val();
-            let poNumber = $('#poNumber').val();
-            let currency = $('#currency').val();
-            let supps = $('#supplier').val();
-            let supp = supps;
-            let tax = $('#tax').val();
+            let poType = $('#poType').val();
             let deliveryDate = $('#deliveryDate').val();
+            let currency = $('#currency').val();
+            let supp = $('#supplier').val();
+            let tax = $('#tax').val();
             let term = $('#term').val()||0;
             let kurs = $('#kurs').val()||1;
             let ppn = $('#ppn').val().replace(/[^0-9]/gi, '') || 0;
@@ -489,6 +495,7 @@
             let totalPpn = $('#totalPPN').val().replace(/[^0-9]/gi, '') || 0;
             let note = $('#note').val();
             let persenDiscount = $('#persenDiscount').val() || 0;
+            let poNumber = $('#poNumber').val();
 
             $.ajax({
                 type: "post",
@@ -497,6 +504,7 @@
                     articles:JSON.stringify(articles),
                     poNumber:poNumber,
                     orderDate:orderDate,
+                    poType:poType,
                     deliveryDate:deliveryDate,
                     currency:currency,                
                     supplier:supp,
@@ -549,13 +557,14 @@
     function add_new_row() {    
         let supplier = $('#supplier');
         let supp = supplier.val();
+        let poType = $('#poType').val();
         if (supp){            
             $("#article_row").append($("#new_row").clone().html());
             cloneCount++;
             $("#article_row").find('#baru').attr('id', 'new_row'+ cloneCount);
             $("#new_row"+ cloneCount).find('#article_id').attr('id', 'article_id'+ cloneCount);
             $("#new_row"+ cloneCount).find('#pRequest').attr('id', 'pRequest'+ cloneCount);
-            changeselect('pRequest','pRequest'+ cloneCount,supp,'');
+            poType =='std' ? changeselect('pRequest','pRequest'+ cloneCount,supp,'') : changeselect('pRequest_sub','pRequest'+ cloneCount,supp,'');
             $("#article_id"+cloneCount).select2();
             $("#pRequest"+cloneCount).select2();
             $('#remove_button').tooltip();
@@ -646,7 +655,7 @@
         
         objQty.keyup(function() {
             let indexnya= objQty.index(this);
-            let qty = objQty.eq(indexnya).val().replace(/[^0-9]/gi, '') || 0; 
+            let qty = objQty.eq(indexnya).val().replace(/,/gi, '') || 0; 
             let newPrice = objNewPrice.eq(indexnya).val().replace(/[^0-9]/gi, '') ||0;
             let total = qty*newPrice;
             objTotal.eq(indexnya).text(humanizeNumber(total));
@@ -655,7 +664,7 @@
 
         objNewPrice.keyup(function() {
             let indexnya= objNewPrice.index(this);
-            let qty = objQty.eq(indexnya).val().replace(/[^0-9]/gi, '') || 0; 
+            let qty = objQty.eq(indexnya).val().replace(/,/gi, '') || 0; 
             let newPrice = objNewPrice.eq(indexnya).val().replace(/[^0-9]/gi, '')||0;
             let total = qty*newPrice;
             objTotal.eq(indexnya).text(humanizeNumber(total));
@@ -674,7 +683,7 @@
         let totalAmount=0
 
         var arr = objQtyTiw.map(function (i) {
-            let qty = parseInt(objQTY.eq(i).val().replace(/[^0-9]/gi, '')) || 0;
+            let qty = parseInt(objQTY.eq(i).val().replace(/,/gi, '')) || 0;
             let newPrice = parseInt(objNewPrice.eq(i).val().replace(/[^0-9]/gi, '')) || 0;
             totalQty+= qty;
             totalAmount+= qty*newPrice;
@@ -699,7 +708,8 @@
             let objIndex = objPrequest.index(this);
             let prNumber = objPrequest.eq(objIndex).val();
             let supp = $('#supplier').val();
-            changeSelectArticle('searchFromPr',objIndex,supp,prNumber);
+            let poType = $('#poType').val();
+            poType =='std' ? changeSelectArticle('searchFromPr',objIndex,supp,prNumber) : changeSelectArticle('searchFromPr_sub',objIndex,supp,prNumber);
             splitArticle();
 		});
     }

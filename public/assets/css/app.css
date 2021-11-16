@@ -139,3 +139,18 @@ Box untuk warning kalo session habis
   0% { transform: translate(0, 0); }
   100% { transform: translate(19px, 0); }
 }
+
+/* kalo udah di select jangan keluar lagi di list options */
+.select2-dropdown .select2-results__option[aria-selected=true] {
+  display: none;
+}
+
+.table-responsive {
+  overflow:auto;
+}
+
+th, td { white-space: nowrap; }
+
+.text-hitam {
+  color:black;
+}

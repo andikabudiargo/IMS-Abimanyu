@@ -26,6 +26,13 @@
                                     <input type="text" id="poNumber" name="poNumber" class="form-control disabled-el" value="{{ $header->po_number }}" disabled />
                                 </div>
                                 <div class="form-group col-md-2">
+                                    <label class="form-label" for="poType">PO Type*</label>
+                                    <select class="select2 form-control" id="poType" name="poType" required>
+                                        <option value="std" {{ $header->order_type == 'std' ? "selected" : "" }}>Standard</option>
+                                        <option value="sub" {{ $header->order_type == 'sub' ? "selected" : "" }}>Subcontracting</option>
+                                    </select>
+                                </div>
+                                <div class="form-group col-md-2">
                                     <label for="orderDate">Order Date*</label>
                                     <input type="text" id="orderDate" name="orderDate" class="form-control" value="{{ $header->po_date }}" placeholder="DD-MM-YYYY" disabled/>
                                 </div>
@@ -33,7 +40,26 @@
                                     <label for="deliveryDate">Delivery Date</label>
                                     <input type="text" id="deliveryDate" name="deliveryDate" class="form-control" value="{{ $header->delivery_date }}" placeholder="DD-MM-YYYY" disabled/>
                                 </div>
-                               
+                            </div>
+                            <div class="row">
+                                <div class="form-group col-md-5">
+                                    <label class="form-label" for="supplier">Supplier*</label>
+                                    <select class="select2 form-control" id="supplier" name="supplier" disabled>
+                                        <option value="">All</option>
+                                        @foreach($supps as $val)
+                                            <option value="{{$val->kode}}" {{$val->kode == $header->supplier_id ? "selected" : ""}} >{{$val->kode}} - {{$val->nama}}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label" for="term">TERM</label>
+                                    <div class="input-group">
+                                        <input type="text" class="form-control angka text-right" id = "term" name="term" value="{{ $header->termin }}" maxlength="4" disabled/>
+                                        <div class="input-group-append">
+                                            <span class="input-group-text">DAYS</span>
+                                        </div>
+                                    </div>
+                                </div>
                                 <div class="form-group col-md-2">
                                     <label for="tax">Tax*</label>
                                     <select class="select2 form-control" id="tax" name="tax" disabled>
@@ -50,27 +76,7 @@
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                            <div class="row">
-                                <div class="form-group col-md-5">
-                                    <label class="form-label" for="supplier">Supplier*</label>
-                                    <select class="select2 form-control" id="supplier" name="supplier" disabled>
-                                        <option label=""></option>
-                                        @foreach($supps as $val)
-                                            <option value="{{$val->kode}}" {{$val->kode == $header->supplier_id ? "selected" : ""}} >{{$val->kode}} - {{$val->nama}}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                                <div class="col-md-2">
-                                    <label class="form-label" for="term">TERM</label>
-                                    <div class="input-group">
-                                        <input type="text" class="form-control angka text-right" id = "term" name="term" value="{{ $header->termin }}" maxlength="4" disabled/>
-                                        <div class="input-group-append">
-                                            <span class="input-group-text">DAYS</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="form-group col-md-2">
+                                <div class="form-group col-md-2 d-none">
                                     <label for="currency">Currency*</label>
                                     <select class="select2 form-control" id="currency" name="currency" disabled>
                                         @foreach($currency as $val)
@@ -78,11 +84,9 @@
                                         @endforeach
                                     </select>
                                 </div>
-                                <div class="col-md-2">
-                                    <div class="form-group">
-                                        <label for="kurs">Kurs</label>
-                                        <input type="text" id="kurs" name="kurs" class="form-control angka" value="{{ $header->kurs }}" maxlength="6" disabled/>
-                                    </div>
+                                <div class="form-group col-md-2 d-none">
+                                    <label for="kurs">Kurs</label>
+                                    <input type="text" id="kurs" name="kurs" class="form-control angka" value="{{ $header->kurs }}" maxlength="6" disabled/>
                                 </div>
                             </div>
                             <div class="row">

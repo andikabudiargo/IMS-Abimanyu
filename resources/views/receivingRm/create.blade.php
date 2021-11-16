@@ -34,7 +34,7 @@
                                 <div class="form-group col-md-4">
                                     <label class="form-label" for="customer">Customer*</label>
                                     <select class="select2 form-control" id="customer" name="customer" required>
-                                        <option label=""></option>
+                                        <option value="">All</option>
                                         @foreach($supps as $val)
                                             <option value="{{$val->kode}}" >{{$val->kode}} - {{$val->nama}}</option>
                                         @endforeach

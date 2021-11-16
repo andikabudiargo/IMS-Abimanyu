@@ -19,6 +19,21 @@ class SubContractController extends Controller
         return view("subContract.index",$data);
     }
 
+
+    public function delivery(Request $request)
+    {
+        $data['title'] = "Delivery to subcont.";
+        $data['subtitle'] = "Delivery to subcont.";
+
+        $data['supps'] = DB::table('third_party')
+        ->where ('third_party_type','=','supp')
+        ->orderBy('nama')
+        ->get();
+
+        return view("subContract.delivery",$data);
+    }
+
+
     public function create(Request $request)
     {
         $data['title'] = "Create Vendor";

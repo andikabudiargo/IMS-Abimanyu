@@ -44,7 +44,7 @@
                     <div class="form-group col-md-4"> 
                       <label class="form-label" for="searchSupplier">Supplier</label>
                       <select class="select2 form-control" id="searchSupplier" name="searchSupplier">
-                          <option label=""></option>
+                          <option value="">All</option>
                           @foreach($supps as $val)
                               <option value="{{$val->kode}}">{{$val->kode}} - {{$val->nama}}</option>
                           @endforeach
@@ -53,7 +53,7 @@
                     <div class="form-group col-md-4"> 
                       <label class="form-label" for="searchType">Article Type</label>
                       <select class="select2 form-control" id="searchType" name="searchType">
-                          <option label=""></option>
+                          <option value="">All</option>
                           @foreach($types as $val)
                             <option value="{{$val->code}}" >{{$val->code}} - {{$val->name}}</option>
                           @endforeach

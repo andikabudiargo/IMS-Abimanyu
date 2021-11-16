@@ -21,48 +21,41 @@
                             @csrf
                             <input type="text" id="article" name="article" hidden>
                             <div class="row">
-                                <div class="form-group col-md-3">
-                                    <label for="prNumber">Request Number</label> <small class="text-muted"> automatic</small>
-                                    <input type="text" id="prNumber" name="prNumber" class="form-control disabled-el" value="{{ $header->pr_number }}" disabled />
+                                <div class="form-group col-md-4">
+                                    <label for="delvNumber">Delivery Number</label> <small class="text-muted"> automatic</small>
+                                    <input type="text" id="delvNumber" name="delvNumber" class="form-control disabled-el"  disabled />
                                 </div>
                                 <div class="form-group col-md-2">
-                                    <label class="form-label" for="poType">PO Type*</label>
-                                    <select class="select2 form-control" id="poType" name="poType" required>
-                                        <option value="std" {{ $header->order_type == 'std' ? "selected" : ""}}>Standard</option>
-                                        <option value="sub" {{ $header->order_type == 'sub' ? "selected" : ""}}>Subcontracting</option>
-                                    </select>
-                                </div>
-                                <div class="form-group col-md-2">
-                                    <label for="orderDate">Order Date*</label>
-                                    <input type="text" id="orderDate" name="orderDate" class="form-control" placeholder="DD-MM-YYYY" value="{{ $header->date }}"required />
-                                </div>
-                                <div class="form-group col-md-3">
-                                    <label class="form-label" for="dept">Department*</label>
-                                    <select class="select2 form-control" id="dept" name="dept" required>
-                                        <option value=""></option>
-                                        @foreach($depts as $val)
-                                            <option value="{{$val->code}}" {{$val->code == $header->dept ? "selected" : ""}}>{{$val->code}} - {{$val->name}}</option>
-                                        @endforeach
-                                    </select>
+                                    <label for="delvDate">Delivery Date*</label>
+                                    <input type="text" id="delvDate" name="delvDate" class="form-control" placeholder="DD-MM-YYYY" required />
                                 </div>
                             </div>
                             <div class="row">
-                                <div class="form-group col-md-10">
+                                <div class="form-group col-md-4">
+                                    <label class="form-label" for="supplier">Supplier*</label>
+                                    <select class="select2 form-control" id="supplier" name="supplier" required>
+                                        <option value="">All</option>
+                                        @foreach($supps as $val)
+                                            <option value="{{$val->kode}}" >{{$val->kode}} - {{$val->nama}}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="form-group col-md-3">
+                                    <label for="poNumber">PO Number</label>
+                                    <input type="text" id="poNumber" name="poNumber" class="form-control"/>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="form-group col-md-7">
                                     <label class="form-label" for="note">Notes</label>
-                                    <textarea type="text" id="note" name="note" class="form-control" rows="1" >{{ $header->note }}</textarea>
+                                    <textarea type="text" id="note" name="note" class="form-control" rows="1" ></textarea>
                                 </div>
                             </div>
                             <div class="row">
                                 <div class="col-12">
-                                    <div class="row">
-                                        <div class="col-12">
-                                            <a href="{{ route('purchaseRequests.index') }}" class="btn btn-warning">Cancel</a>
-                                            <a href="{{ route('purchaseRequest.create') }}" class="btn btn-success">New</a>
-                                            <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Update</button>
-                                            {{-- <button class="btn btn-primary" type="button" id="cmdValidate" name="cmdValidate">Validate</button>
-                                            <button class="btn btn-primary" type="button" id="cmdAuthorized" name="cmdAuthorized">Auhorized</button> --}}
-                                        </div>
-                                    </div>
+                                    <button class="btn btn-warning" type="reset" id="cmdCancel" name="cmdCancel">Cancel</button>
+                                    <button class="btn btn-success" type="reset" id="cmdNew" name="cmdCancel">New</button>
+                                    <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Save</button>
                                 </div>
                             </div>
                         </form>
@@ -70,12 +63,12 @@
                 </div>
             </div>
         </div>
-        <div class="col-12">
+        <div class="col-md-12">
             <div class="card">
                 <div class="card-header">
                     <h4 class="card-title">Article</h4>
                 </div>
-                <div class="card-body">
+                <div class="card-body" >
                     <div>
                         <table class="" style="width:98%;table-layout: fixed;">
                             <tbody>
@@ -98,58 +91,77 @@
                                 </tr>
                             </tbody>
                         </table>
-                    </div>
+                    </div>      
                     <div class="" id="article_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px">
-                        <input type="text" id ="last_row_number" class="d-none" value="{{ count($detail) }}">
-                        @foreach ($detail as $key =>$item)
-                            <div id="new_row{{ $key }}" class="tanda-baris" >
-                                <table class="table-bordered" style="width: 98%;table-layout: fixed;">
-                                    <tbody>
-                                        <tr>
-                                            <td class="isian-satu" style="width: 25%">
-                                                <select class="select2 form-control dynamicSelect sku-select-system" id="article_id{{ $key }}" name="article_id[]" data-dependent="article_id">
-                                                    @foreach($articles as $val)
-                                                        <option value="{{ $val->article_code }}|{{ $val->uom }}|{{ $val->third_party }}" {{$val->article_code == $item->article_code ? "selected" : ""}}>{{$val->article_code}} - {{$val->article_desc}}</option>
-                                                    @endforeach
-                                                </select>
-                                            </td>
-                                            <td class="isian" style="width: 5%">
-                                                <input type="text" class="form-control-plaintext numeral-mask text-right" id = "qty_order" name="qty_order[]" value="{{ $item->qty }}" maxlength="9" />
-                                            </td>
-                                            <td class="isian disabled" style="width: 5%">
-                                                <span class="" id = "uom" name="uom[]">{{ $item->uom }}</span>
-                                            </td>
-                                            <td class="isian" style="width: 10%">
-                                                <input type="text" class="form-control-plaintext" id = "note" name="note[]" value="{{ $item->note }}" maxlength="100">
-                                            </td>
-                                            <td class="isian text-center" style="width: 5%">
-                                                <a onmouseover="this.style.cursor='pointer'" onclick="$(this).parents('.tanda-baris').remove();">
-                                                    <i data-feather="trash-2" class="remove_button feather-24">
-                                                    </i>
-                                                </a>
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        @endforeach
+                        <input type="text" id ="last_row_number" class="d-none" value="0">
                     </div>
-                    <hr>
                     <div class="d-flex justify-content-between align-items-end mt-75 ml-75">
                         <button class="btn btn-primary btn-prev" type="button" id="addNewRow" onclick="add_new_row();">
                             <i data-feather="plus" class="align-middle mr-sm-25 mr-0"></i>
                             <span class="align-middle d-sm-inline-block d-none">Add Article</span>
                         </button>
                     </div>
+                    <div class="d-flex justify-content-between align-items-end mt-75">
+                        <div class="col-md-4">
+                            <div class="form-group row mb-03">
+                                <label for="totalRow" class="col-sm-4 col-form-label titik-dua">Row(s)</label>
+                                <div class="col-sm-3">
+                                    <input type="text" class="form-control text-right font-weight-bold" id="totalRow" />
+                                </div>
+                            </div>
+                            <div class="form-group row mb-03">
+                                <label for="totalQTY" class="col-sm-4 col-form-label titik-dua">Total QTY</label>
+                                <div class="col-sm-3">
+                                    <input type="text" class="form-control text-right font-weight-bold" id="totalQTY" disabled/>
+                                </div>
+                            </div>
+                        </div>
+                        {{-- <div class="col-md-5">
+                            <div class="form-group row mb-03">
+                                <label for="totalAmount" class="col-sm-3 col-form-label titik-dua">Bruto</label>
+                                <div class="col-sm-6">
+                                    <input type="text" class="form-control text-right font-weight-bold" id="totalAmount" disabled />
+                                </div>
+                            </div>
+                            <div class="form-group row mb-03">
+                                <label for="totalPPN" class="col-sm-3 col-form-label titik-dua">Discount </label>
+                                <div class="col-sm-2" style="padding-right: 0rem;">
+                                    <input type="text" class="form-control text-right font-weight-bold" id="persenDiscount" maxlength="2"/>
+                                </div>
+                                <div class="col-sm-4" style="padding-left: 0rem;">
+                                    <input type="text" class="form-control text-right font-weight-bold" id="totalDiscount" disabled/>
+                                </div>
+                            </div>
+                            <div class="form-group row mb-03">
+                                <label for="totalPPN" class="col-sm-3 col-form-label titik-dua">PPN <span id="nilaiPPN"></span> </label>
+                                <div class="col-sm-6">
+                                    <input type="text" class="form-control text-right font-weight-bold" id="totalPPN" disabled/>
+                                </div>
+                            </div>
+                            <div class="form-group row mb-03">
+                                <label for="totalPPH" class="col-sm-3 col-form-label titik-dua">PPH <span>22</span> </label>
+                                <div class="col-sm-6">
+                                    <input type="text" class="form-control text-right font-weight-bold" id="totalPPH" disabled/>
+                                </div>
+                            </div>
+                            <div class="form-group row mb-03">
+                                <label for="totalNetto" class="col-sm-3 col-form-label titik-dua">Netto</label>
+                                <div class="col-sm-6">
+                                    <input type="text" class="form-control text-right font-weight-bold" id="totalNetto" disabled/>
+                                </div>
+                            </div>
+                        </div> --}}
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </section>
-@include('purchaseRequest.addArticle')
+@include('subContract.addArticle')
 @endsection
 @section('styles')
 <style>
+
     textarea {
         resize: none;
     }
@@ -163,6 +175,7 @@
         position : absolute;
         right : 1px;
     }
+
     td.isian{
         padding-right:10px;
         padding-left:10px;
@@ -186,6 +199,7 @@
         padding-bottom: 0px;
     }
 
+
 </style>
 @endsection
 @section('scripts')
@@ -193,17 +207,13 @@
     let currentDate = todayDate('dd-mm-yyyy');    
     $(document).ready(function(){           
         validateForm('frmAdd');
-        $('#orderDate').val(currentDate);
-        tombolPanah('qty_order');
-        activate_angka();
-        mask_thousand();
-        splitArticle();
-        $('.sku-select-system').select2();
+        $('#delvDate').val(currentDate);
     });
+    
 
-    orderDate = $('#orderDate');
-    if (orderDate.length) {
-        orderDate.flatpickr({
+    delvDate = $('#delvDate');
+    if (delvDate.length) {
+        delvDate.flatpickr({
             dateFormat: "d-m-Y",
         });
     }
@@ -212,7 +222,11 @@
         window.location.reload();
     }
 
-    $("#cmdCancel,#cmdNew").click(function(){
+    $("#cmdCancel").click(function(){
+        reloadPage();
+    });
+
+    $("#cmdNew").click(function(){
         reloadPage();
     });
 
@@ -235,7 +249,7 @@
                 let plu=article[0];
                 let supp=article[2];
                 let uom=article[1];
-                let qty=objQty.eq(i).val().replace(/,/gi, '') || 0;
+                let qty=objQty.eq(i).val().replace(/[^0-9]/gi, '') || 0;
                 let note=objNote.eq(i).val();
                             
                 //es6
@@ -281,20 +295,18 @@
 
         if (flag==0){
 
-            let orderDate = $('#orderDate').val();
+            let delvDate = $('#delvDate').val();
             let dept = $('#dept').val();
             let note = $('#note').val();
-            let prNumber = $('#prNumber').val();
 
             $.ajax({
                 type: "post",
-                url: "{{ route('purchaseRequest.update') }}",
+                url: "{{ route('purchaseRequest.store') }}",
                 data: {
                     articles:JSON.stringify(articles),
-                    orderDate:orderDate,
+                    delvDate:delvDate,
                     dept:dept,
                     note:note,
-                    prNumber:prNumber
                 },
                 dataType: "json",
                 success: function(data) {
@@ -309,7 +321,7 @@
                         $("#alert-message-success").fadeTo(5000, 500).slideUp(500, function(){
                             $("#alert-message-success").slideUp(500);
                         });
-                        $('#prNumber').attr('disabled','disabled');
+                        $('#delvNumber').attr('disabled','disabled');
 
                     }else{
                         $("#alert-message-success").addClass(data.alert);
@@ -318,8 +330,11 @@
                         $("#alert-message-success").fadeTo(5000, 500).slideUp(500, function(){
                             $("#alert-message-success").slideUp(500);
                         });
-                        $('#prNumber').attr('disabled','disabled');
-                        // $('#addNewRow').attr('disabled','disabled');                        
+                        $('#delvNumber').attr('disabled','disabled');
+                        $('#cmdSave').attr('disabled','disabled');
+                        $('#addNewRow').attr('disabled','disabled');
+                        $('#delvNumber').val(data.delvNumber);
+                        
                     }
                     
                 },
@@ -333,19 +348,17 @@
         }
     
     });
-    
-    let cloneCount=$('#last_row_number').val();
+
+    let cloneCount=1;
     function add_new_row() {
-        let poType = $('#poType').val();
         $("#article_row").append($("#new_row").clone().html());
         cloneCount++;
         $("#article_row").find('#baru').attr('id', 'new_row'+ cloneCount);
         $("#new_row"+ cloneCount).find('#article_id').attr('id', 'article_id'+ cloneCount);
-        poType =='std' ? changeselect('article_pr','article_id'+ cloneCount) : changeselect('article_pr_sub','article_id'+ cloneCount);
+        changeselect('article_sub_rm','article_id'+ cloneCount);
         $("#article_id"+cloneCount).select2();
         $('#remove_button').tooltip();
         tombolPanah('qty_order');
-        tombolPanah('newPrice');
         activate_angka();
         mask_thousand();
         splitArticle();
@@ -403,7 +416,7 @@
             }
         });
     }
-    
+
     $.ajaxSetup({
         headers: {
             'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')

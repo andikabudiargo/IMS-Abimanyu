@@ -33,7 +33,7 @@
               <div class="form-group col-md-3"> 
                 <label class="form-label" for="searchCustomer">Customer</label>
                 <select class="select2 form-control" id="searchCustomer" name="searchCustomer">
-                    <option label=""></option>
+                    <option value="">All</option>
                     @foreach($custs as $val)
                         <option value="{{$val->kode}}">{{$val->kode}} - {{$val->nama}}</option>
                     @endforeach
@@ -46,7 +46,7 @@
               <div class="form-group col-md-2"> 
                 <label class="form-label" for="searchStatus">Rec Status</label>
                 <select class="select2 form-control" id="searchStatus" name="searchStatus">
-                    <option label=""></option>
+                    <option value="">All</option>
                     @foreach($status as $index=>$val)
                         <option value="{{ $index }}">{{ $index }} - {{ $val }}</option>
                     @endforeach

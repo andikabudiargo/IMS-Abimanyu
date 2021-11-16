@@ -5,7 +5,7 @@
         padding-right: 0.3rem;
     }
 
-    .jarak-antar-attr-qtyBom-order{
+    .jarak-antar-attr-qty-order{
         padding-left: 0.3rem;
         margin-bottom: 1.8rem;
         padding-right: 0.3rem;
@@ -32,7 +32,7 @@
 </style>
 {{-- table row untuk di clone--}}  
 <div id="new_row" name="new_row[]" class="d-none">
-    <div id="baru" class="tanda-baris barisDetail" >
+    <div id="baru" class="tanda-baris" >
         <table class="table-bordered" style="width: 98%;table-layout: fixed;">
             <tbody>
                 <tr>
@@ -41,16 +41,13 @@
                         </select>
                     </td>
                     <td class="isian" style="width: 5%">
-                        <input type="text" class="form-control-plaintext numeral-mask-digit text-right" id = "qtyBom" name="qtyBom[]" maxlength="10" />
+                        <input type="text" class="form-control-plaintext numeral-mask text-right" id = "qty_order" name="qty_order[]" maxlength="6" />
                     </td>
                     <td class="isian disabled" style="width: 5%">
                         <span class="" id = "uom" name="uom[]"></span>
                     </td>
-                    <td class="isian disabled" style="width: 10%">
-                        <input type="text" class="form-control-plaintext numeral-mask text-right" id = "price" name="price[]" disabled>
-                    </td>
-                    <td class="isian disabled" style="width: 10%">
-                        <span class="" id = "type" name="type[]"></span>
+                    <td class="isian" style="width: 10%">
+                        <input type="text" class="form-control-plaintext" id = "note" name="note[]"  maxlength="100">
                     </td>
                     <td class="isian text-center" style="width: 5%">
                         <a onmouseover="this.style.cursor='pointer'" onclick="$(this).parents('.tanda-baris').remove();">

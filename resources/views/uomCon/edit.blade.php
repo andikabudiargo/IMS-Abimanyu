@@ -17,7 +17,7 @@
                             <div class="form-group col-md-6">
                                 <label class="form-label" for="dept">Unit From *</label>
                                 <select class="select2 form-control disabled-el" id="unitFrom" name="unitFrom" data-dependent="unitTo" disabled>
-                                    <option label=""></option>
+                                    <option value="">All</option>
                                     @foreach($uoms as $val)
                                         <option value="{{$val->code}}|{{$val->uom_group}}" {{ $val->code == old("unitFrom",$uomCon->unit_from) ? "selected" : ""}}>{{$val->code}} - {{$val->name}}</option>
                                     @endforeach

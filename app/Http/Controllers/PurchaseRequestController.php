@@ -73,14 +73,15 @@ class PurchaseRequestController extends Controller
 
     public function store(Request $request)
     {
-        
         $username =  Auth::user()->username;
         $articles = json_decode($request -> articles);
         $orderDate = $request->orderDate;
+        $orderType = $request->poType;
         $dept = $request->dept;
         $note = $request->note;
         $status = '1';
         $print_seq = 0;
+        $poLeadCode = $orderType=='std' ? 'PR' : 'PRSUB'; 
 
         $messages = [
             'required' => 'The field is required.',
@@ -110,14 +111,15 @@ class PurchaseRequestController extends Controller
             $alert ="alert-danger";
             return response()->json(array('status' => 0, 'message' => $error_array,'alert' =>$alert));
         }else{
-            $hasilUpdate = AppHelpers::resetCode('PO');
-            $prNumber = $this->getLastCode('PR');
+            $hasilUpdate = AppHelpers::resetCode($poLeadCode);
+            $prNumber = $this->getLastCode($poLeadCode);
             DB::beginTransaction();
             try {
                     DB::table('purchase_request_hdr')->insert([
-                        'number' => $prNumber,
+                        'pr_number' => $prNumber,
                         'dept' => $dept,
                         'date' => $orderDate,
+                        'order_type' => $orderType,
                         'status' => $status,
                         'note' =>  $note,
                         'authorized_by' => '',
@@ -173,7 +175,7 @@ class PurchaseRequestController extends Controller
 
         $data['detail'] = DB::table('purchase_request_det')
         ->leftJoin('article','article.article_code','=','purchase_request_det.article_code')
-        ->where('pr_number',$data['header']->number)
+        ->where('pr_number',$data['header']->pr_number)
         ->orderBy('purchase_request_det.id')
         ->get();       
 
@@ -197,6 +199,7 @@ class PurchaseRequestController extends Controller
     public function edit(Request $request)
     {
         $id=$request->id;
+
         $data['title'] = "Edit Purchase Request";
         $data['subtitle'] = "Edit Purchase Request";
 
@@ -204,13 +207,18 @@ class PurchaseRequestController extends Controller
         ->where('id',$id)
         ->get()->first();
 
+        $orderType = $data['header']->order_type;
+
         $data['detail'] = DB::table('purchase_request_det')
-        ->where('pr_number',$data['header']->number)
+        ->where('pr_number',$data['header']->pr_number)
         ->orderBy('purchase_request_det.id')
         ->get();       
 
         $data['articles']= DB::table('article') 
-        ->whereNotIn('article_type',['FG','RM'])
+        // ->whereNotIn('article_type',['FG','RM'])
+        ->where(function($query) use ($orderType)  {
+            $orderType=='std' ? $query->whereNotIn('article_type',['FG']) : $query->whereIn('article_type',['FG']);
+         })
         ->orderBy('article_desc')
         ->get();   
 
@@ -231,6 +239,7 @@ class PurchaseRequestController extends Controller
         $username =  Auth::user()->username;
         $articles = json_decode($request -> articles);
         $prNumber = $request->prNumber;
+        $orderType = $request->poType;
         $orderDate = $request->orderDate;
         $dept = $request->dept;
         $note = $request->note;
@@ -277,12 +286,13 @@ class PurchaseRequestController extends Controller
             DB::beginTransaction();
             try {
                     $row_affected=DB::table('purchase_request_hdr')
-                    ->where('number',$prNumber)
+                    ->where('pr_number',$prNumber)
                     ->update(
                         [
                             'dept' => $dept,
                             'date' => $orderDate,
                             'status' => $status,
+                            'order_type' => $orderType,
                             'note' =>  $note,
                             'authorized_by' => '',
                             'prepared_by' =>  '',
@@ -344,7 +354,7 @@ class PurchaseRequestController extends Controller
     {
         $username =  Auth::user()->username;       
         $id = $request->id;
-        $po_number = DB::table('purchase_request_hdr')->where('id',$id)->where('status','1')->value('number');
+        $po_number = DB::table('purchase_request_hdr')->where('id',$id)->where('status','1')->value('pr_number');
         $rowAffected = DB::table('purchase_request_hdr')->where('id',$id)->delete();
         if($rowAffected>0){
             DB::table('purchase_request_det')->where('pr_number',$po_number)->delete();
@@ -373,13 +383,18 @@ class PurchaseRequestController extends Controller
         // 7 = po
 
         $seachPr = strtolower($request->seachPr);
+        $poType = strtolower($request->poType);
         $searchStatus = $request->searchStatus;
         $requestDate = $request->requestDate;
        
         $filter='';
+
+        if ($poType !='' ){
+            $filter.="lower(a.po_type) = '$poType' and ";
+        }
         
         if ($seachPr !='' ){
-            $filter.="lower(a.number) like '%$seachPr%' and ";
+            $filter.="lower(a.pr_number) like '%$seachPr%' and ";
         }
 
         if ($searchStatus  != '' ){
@@ -443,7 +458,19 @@ class PurchaseRequestController extends Controller
         ->addColumn('group_id', function ($user) {
             return '';
         })
-        ->rawColumns(['action'])
+        ->addColumn('status', function ($data) {
+            $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary'];
+            $statusPo = ['New','Validated','Authorized','Received','Canceled','Closed','PO'];
+            return "<div class='badge ".$badges[$data->status - 1]."'>".$statusPo[$data->status - 1]."</div>";
+        })
+        ->addColumn('order_type', function ($data) {
+            if ($data->order_type == 'std'){
+                return "<div class='badge badge-primary'>Standar</div>";
+            }else{
+                return "<div class='badge badge-info'>Subcontract</div>";
+            }
+        })
+        ->rawColumns(['action','order_type','status'])
         ->make(true);
     }
 

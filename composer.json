@@ -17,6 +17,7 @@
         "laravel/tinker": "^2.0",
         "laravel/ui": "^2.5",
         "spatie/laravel-permission": "^4.2",
+        "tymon/jwt-auth": "dev-develop",
         "yajra/laravel-datatables": "1.5"
     },
     "require-dev": {

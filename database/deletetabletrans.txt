@@ -1,0 +1,8 @@
+truncate table purchase_request_hdr;
+truncate table purchase_request_det;
+truncate table purchase_order_det;
+truncate table purchase_order_hdr;
+truncate table receiving_hdr;
+truncate table receiving_det;
+truncate table article_stock;
+truncate table movement;
