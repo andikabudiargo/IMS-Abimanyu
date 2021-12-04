@@ -175,24 +175,19 @@ class PurchaseOrderController extends Controller
                         ->where('pr_number',$val->pRequest)
                         ->where('article_code',$val->article_code)
                         // ->where('supp_code',$supplier)
-                        ->update(
-                            [
+                        ->update([
                             'po_number' => $poNumber,
                             'updated_by' => Auth::user()->username,
                             'updated_at' => date('Y-m-d H:i:s')
-                            ]
-                        );
+                        ]);
 
                         DB::table('purchase_request_hdr')
                         ->where('pr_number',$val->pRequest)
-                        ->update(
-                            [
+                        ->update([
                             'status' => 7,
                             'updated_by' => Auth::user()->username,
                             'updated_at' => date('Y-m-d H:i:s')
-                            ]
-                        );
-
+                        ]);
                     }
 
                     DB::table('purchase_order_det')->insert($dataSet);

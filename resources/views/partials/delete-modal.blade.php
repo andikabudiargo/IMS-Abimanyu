@@ -17,8 +17,8 @@
                 </h1>
               </div>
               <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                <button type="submit" class="btn btn-danger">Yes, Delete</button>
+                <button type="button" class="btn btn-outline-dark waves-effect" data-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-danger waves-effect">Yes, Delete</button>
               </div>
             </form>
         </div>
@@ -43,8 +43,8 @@
               </h1>
             </div>
             <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-              <button type="submit" class="btn btn-danger">Yes, Cancel It</button>
+              <button type="button" class="btn btn-outline-dark waves-effect" data-dismiss="modal">Cancel</button>
+              <button type="submit" class="btn btn-danger waves-effect">Yes, Cancel It</button>
             </div>
           </form>
       </div>

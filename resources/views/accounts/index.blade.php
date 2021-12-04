@@ -2,8 +2,6 @@
 @section('title', $title)
 @section('content')
 @include('layouts.breadcrumb')
-@include('partials.alert')
-
 <section id="accounts-index">
     <div class="row">
       <div class="col-12">
@@ -69,9 +67,7 @@
       </div>
     </div>
 </section>
-
 @include('partials.delete-modal')
-
 @endsection
 @section('styles')
 <style>
@@ -89,36 +85,18 @@
       });
     });
 
-    let showAlert = "{{ Session::get('alert') }}";
-
-    if ( showAlert ){
-      showList();
-      $("#alert-message-alert").fadeTo(5000, 500).slideUp(500, function(){
-        $("#alert-message-alert").slideUp(500);
-      });
-    }
-
      //refresh di cards
     $('a[data-action="reload"]').on('click', function () {
         showList();
     });
 
     $("#btnSearch").click(function(e){
-		    let nama =$("#searchAcc").val();
-        let code =$("#searchAccCode").val();
-        showList(nama,code);
+        showList($("#searchAcc").val(),$("#searchAccCode").val());
     });
 
     function showList(nama,code){
-        let dtdom ='<"d-flex justify-content-between align-items-center header-actions mx-1 row mt-75"' +
-            '<"col-lg-12 col-xl-6" l>' +
-            '<"col-lg-12 col-xl-6 pl-xl-75 pl-0"<"dt-action-buttons text-xl-right text-lg-left text-md-right text-left d-flex align-items-center justify-content-lg-end align-items-center flex-sm-nowrap flex-wrap mr-1"<"mr-1"f>B>>' +
-            '>t' +
-            '<"d-flex justify-content-between mx-2 row mb-1"' +
-            '<"col-sm-12 col-md-6"i>' +
-            '<"col-sm-12 col-md-6"p>' +
-            '>';
-        let arr_col_print =[2,3,4,5,6,7,8,9]; 
+        let dtdom ='<"d-flex justify-content-between align-items-center header-actions mx-1 row mt-75" <"col-lg-12 col-xl-6" l><"col-lg-12 col-xl-6 pl-xl-75 pl-0"<"dt-action-buttons text-xl-right text-lg-left text-md-right text-left d-flex align-items-center justify-content-lg-end align-items-center flex-sm-nowrap flex-wrap mr-1"<"mr-1"f>B>>>t<"d-flex justify-content-between mx-2 row mb-1"<"col-sm-12 col-md-6"i><"col-sm-12 col-md-6"p>>';
+        let arr_col_print =[1,2,3,4,5,6,7,8]; 
         $(function(){
         let oTable =$("#detailedTable").DataTable({
             ajax:
@@ -183,37 +161,6 @@
                 }
               },
             ],
-            responsive: {
-              details: {
-                display: $.fn.dataTable.Responsive.display.modal({
-                  header: function (row) {
-                    var data = row.data();
-                    return 'Details of ' + data['nama'];
-                  }
-                }),
-                type: 'column',
-                renderer: function (api, rowIdx, columns) {
-                  var data = $.map(columns, function (col, i) {
-                    return col.title !== '' // ? Do not show row in modal popup if title is blank (for check box)
-                      ? '<tr data-dt-row="' +
-                          col.rowIndex +
-                          '" data-dt-column="' +
-                          col.columnIndex +
-                          '">' +
-                          '<td>' +
-                          col.title +
-                          ':' +
-                          '</td> ' +
-                          '<td>' +
-                          col.data +
-                          '</td>' +
-                          '</tr>'
-                      : '';
-                  }).join('');
-                  return data ? $('<table class="table"/>').append(data) : false;
-                }
-              }
-            },
             language: {
               paginate: {
                 // remove previous & next text from pagination
@@ -222,24 +169,14 @@
               }
             },
             columnDefs: [
+             
+              { width: '5%', targets: 0 },
               {
-                // For Responsive
-                className: 'control',
-                orderable: false,
-                responsivePriority: 2,
-                targets: 0
-              },
-              {
-                responsivePriority: 1,
-                targets: 3
-              },
-              { width: '10%', targets: 1 },
-              {
-                  targets: 4,
+                  targets: 3,
                   className: 'dt-right'
               },
               {
-                  targets: [0,1],
+                  targets: [0],
                   className: 'dt-center'
               }
             ],
@@ -249,11 +186,10 @@
                     height: 14
               });
             },
-            order: [[ 2, 'asc' ]],
+            order: [[ 1, 'asc' ]],
             bDestroy: true, //pakai ini supaya bisa di load berulang2
             // scrollX: true, //pakai ini supaya waktu responsive  bisa di scroll horizontal
             columns: [
-                { data: 'group_id',name:'group_id', title:'',orderable: false, searchable: false },
                 { data: 'action', name: 'action',title:'action', orderable: false, searchable: false },
                 { data: 'account', name: 'account',title:'Account' },
                 { data: 'description', name: 'description',title:'Description' },

@@ -2,16 +2,15 @@
 @section('title', $title)
 @section('content')
 @include('layouts.breadcrumb')
-@include('partials.alert')
-<section id="add-index">
-    <div class="row">
+<section id="edit-form">
+    <div class="form-row">
         <div class="col-md-12">
             <div class="card">
                 <div class="card-header">
                     <div class="form-group row">
                         <label for="bomNumber" class="col-sm-4 col-form-label col-form-label-sm">BOM Number</label>
                         <div class="col-md-8">
-                            <input type="text" id="bomNumber" name="bomNumber" class="form-control form-control-sm disabled-el" value="{{ $header->bom_code }}" disabled />
+                            <input type="text" id="bomNumber" name="bomNumber" class="form-control form-control-sm" value="{{ $header->bom_code }}" disabled />
                         </div>
                     </div>                    
                     <div class="heading-elements">
@@ -25,39 +24,62 @@
                         <form id="frmAdd" name="frmAdd" autocomplete="off">
                             @csrf
                             <input type="text" id="article" name="article" hidden>
-                            <div class="row">
-                                <div class="form-group col-md-5">
+                            <div class="form-row">
+                                <div class="form-group col-md-6">
                                     <label class="form-label" for="articleCode">Article*</label>
                                     <select class="select2 form-control" id="articleCode" name="articleCode" disabled>
                                         <option value="">All</option>
                                         @foreach($articleHeader as $val)
-                                            <option value="{{ $val->article_code }}|{{ $val->uom }}|{{ $val->cust_name }}|{{ $val->group }}|{{ $val->third_party }}|{{ $val->group_of_material }}" {{$val->article_code == $header->article_code ? "selected" : ""}}>{{ $val->article_alternative_code }} - {{ $val->article_desc }}</option>
+                                            <option value="{{ $val->article_code }}|{{ $val->uom }}|{{ $val->cust_name }}|{{ $val->group }}|{{ $val->third_party }}|{{ $val->group_of_material }}" {{$val->article_code == old("articleCode",$header->article_code) ? "selected" : ""}}>{{ $val->article_alternative_code }} - {{ $val->article_desc }}</option>
                                         @endforeach
                                     </select>
                                 </div>
                                 <div class="form-group col-md-3">
                                     <label for="customer">Customer</label>
-                                    <input type="text" id="customer" name="customer" class="form-control disabled-el" disabled />
+                                    <input type="text" id="customer" name="customer" class="form-control" disabled />
                                 </div>
                                 <div class="form-group col-md-2">
                                     <label for="group">Group of material</label>
-                                    <input type="text" id="group" name="group" class="form-control disabled-el" disabled />
+                                    <input type="text" id="group" name="group" class="form-control" disabled />
+                                </div>
+                                <div class="form-group col-md-1">
+                                    <label for="uom">UOM</label>
+                                    <input type="text" id="uom" name="uom" class="form-control" disabled />
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group col-md-2">
+                                    <label for="tag">Tag</label>
+                                    <input type="text" id="tag" name="tag" value="{{ old('tag',$header->tag) }}" class="form-control numeral-mask-digit" maxlength="5" />
                                 </div>
                                 <div class="form-group col-md-2">
-                                    <label for="uom">UOM</label>
-                                    <input type="text" id="uom" name="uom" class="form-control disabled-el" disabled />
+                                    <label for="passRate">Pass Rate</label>
+                                    <input type="text" id="passRate" name="passRate" value="{{ old('passRate',$header->pass_rate) }}" class="form-control numeral-mask-digit" maxlength="5"/>
+                                </div>
+
+                                <div class="form-group col-md-2">
+                                    <label for="passThru">Pass trough</label>
+                                    <div class="input-group input-group-merge">
+                                        <input type="text" id="passThru" name="passThru" value="{{ old('passThru',$header->pass_thru) }}" class="form-control numeral-mask-digit" maxlength="5"/>
+                                        <div class="input-group-append">
+                                            <span class="input-group-text">%</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="form-group col-md-2">
+                                    <label for="cycleTime">Cycle time buffing</label>
+                                    <input type="text" id="cycleTime" name="cycleTime" value="{{ old('cycleTime',$header->cycle_time) }}" class="form-control numeral-mask-digit" maxlength="5"/>
                                 </div>
                             </div>
-                            <div class="row">
+                            <div class="form-row">
                                 <div class="form-group col-md-12">
                                     <label class="form-label" for="note">Notes</label>
-                                    <textarea type="text" id="note" name="note" class="form-control" rows="1" >{{ $header->note }}</textarea>
+                                    <textarea type="text" id="note" name="note" class="form-control" rows="1" >{{ old('note',$header->note) }}</textarea>
                                 </div>
                             </div>
-                            <div class="row">
+                            <div class="form-row">
                                 <div class="col-12">
                                     <a href="{{ route('boms.index') }}" class="btn btn-warning">Cancel</a>
-                                    {{-- <a href="{{ route('bom.create') }}" class="btn btn-success">New</a> --}}
                                     <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Save</button>
                                 </div>
                             </div>
@@ -86,9 +108,6 @@
                                         <label>UOM</label>
                                     </td>
                                     <td class="isian" style="width: 10%">
-                                        <label>Price</label>
-                                    </td>
-                                    <td class="isian" style="width: 10%">
                                         <label>Type</label>
                                     </td>
                                     <td class="isian text-center" style="width: 5%">
@@ -101,28 +120,25 @@
                     <div class="" id="article_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;">
                         <input type="text" id ="last_row_number" class="d-none" value="{{ count($detail) }}">
                         @foreach ($detail as $key =>$item)
-                            <div id="new_row{{ $key }}" class="tanda-baris" >
+                            <div id="new_row{{ $key }}" class="tanda-baris barisDetail" >
                                 <table class="table-bordered" style="width: 98%;table-layout: fixed;">
                                     <tbody>
                                         <tr>
                                             <td class="isian-satu" style="width: 25%">
-                                                <select class="select2 dynamicSelect sku-select-system" id="article_id{{ $key }}" name="article_id[]" data-dependent="article_id">
+                                                <select class="form-control sku-select-system" id="article_id{{ $key }}" name="article_id[]" >
                                                     @foreach($articles as $val)
-                                                        <option value="{{ $val->article_code }}|{{ $val->uom }}|{{ $val->costprice }}|{{ $val->article_type }}|{{ $val->type_name }}" {{$val->article_code == $item->article_code ? "selected" : ""}}>{{$val->article_code}} - {{$val->article_desc}}</option>
+                                                        <option value="{{ $val->article_code }}|{{ $val->uom }}|{{ $val->costprice }}|{{ $val->article_type }}|{{ $val->type_name }}" data-uom-group={{ $val->uom_group }} {{ $val->article_code == $item->article_code ? "selected" : "" }}>{{$val->article_code}} - {{$val->article_desc}}</option>
                                                     @endforeach
                                                 </select>
                                             </td>
                                             <td class="isian" style="width: 5%">
-                                                <input type="text" class="form-control-plaintext numeral-mask-digit text-right" id = "qtyBom" name="qtyBom[]" value="{{ $item->qty }}" maxlength="6" />
+                                                <input type="text" class="form-control-plaintext text-right tombol-panah" data-nama-el-kiri = "article_id" data-type-el-kiri = "select" data-uom-group={{ $item->uom_group }} id = "qtyBom{{ $key }}" name="qtyBom[]" value="{{ $item->uom_group =='PIECE' ? $item->qty*1 : $item->qty }}" maxlength="6" />
                                             </td>
                                             <td class="isian disabled" style="width: 5%">
                                                 <span class="" id = "uom" name="uom[]">{{ $item->uom }}</span>
                                             </td>
                                             <td class="isian disabled" style="width: 10%">
-                                                <input type="text" class="form-control-plaintext numeral-mask-digit text-right" id = "price" name="price[]" value="{{ $item->cost_price }}" disabled>
-                                            </td>
-                                            <td class="isian disabled" style="width: 10%">
-                                                <span class="" id = "type" name="type[]">{{ $item->uom }}</span>
+                                                <span class="" id = "type" name="type[]">{{ $item->type_name }}</span>
                                             </td>
                                             <td class="isian text-center" style="width: 5%">
                                                 <a onmouseover="this.style.cursor='pointer'" onclick="$(this).parents('.tanda-baris').remove();">
@@ -131,13 +147,11 @@
                                                 </a>
                                             </td>
                                         </tr>
-                                        
                                     </tbody>
                                 </table>
                             </div>
                         @endforeach
                     </div>
-                    <hr>
                     <div class="d-flex justify-content-between align-items-end mt-75 ml-75">
                         <button class="btn btn-primary btn-prev" type="button" id="addNewRow" onclick="add_new_row();">
                             <i data-feather="plus" class="align-middle mr-sm-25 mr-0"></i>
@@ -197,31 +211,34 @@
     let currentDate = todayDate('dd-mm-yyyy');    
     $(document).ready(function(){           
         validateForm('frmAdd');
-        $('#orderDate').val(currentDate);
+        mask_thousand_digit(2);
         isiDetailHeader();
-        tombolPanah('qtyBom');
-        activate_angka();
-        mask_thousand_digit(3);
+        // tombolPanah('qtyBom');
         splitArticle();
+        setMasking();
+        $('.sku-select-system').select2();
     });
-
-    orderDate = $('#orderDate');
-    if (orderDate.length) {
-        orderDate.flatpickr({
-            dateFormat: "d-m-Y",
-        });
-    }
-    
-    function reloadPage(){
-        window.location.reload();
-    }
 
     $("#cmdCancel,#cmdNew").click(function(){
-        reloadPage();
+        $('#bomNumber').val('');
+        window.location.reload();
     });
 
+    function setMasking(){
+        let objQtyBom = $("#article_row input[name='qtyBom[]']");
+        objQtyBom.map(function(i) {  
+            let $this=$(this);
+            let id_qty = objQtyBom.eq(i).attr('id');
+            uomGroup = $('#'+id_qty).data('uom-group'); 
+            if ( uomGroup === 'PIECE' ){
+                mask_thousand_digit_by_id(id_qty,0);
+            }else{
+                mask_thousand_digit_by_id(id_qty,numberOfDecimalDigit);
+            }
+        });
+    }
+
     $("#cmdSave").click(function(){     
-        $('.disabled-el').removeAttr('disabled');
         // ambil semua data article
         let bomNumber = $('#bomNumber').val();
         let objArticle = $("#article_row select[name='article_id[]']");
@@ -231,6 +248,12 @@
         let uom = articleCode1[1];
         let group = articleCode1[5];
         let customer  = articleCode1[4];
+
+        let tag = $('#tag').val().replace(/,/gi, '') || 0;
+        let passRate = $('#passRate').val().replace(/,/gi, '') || 0;
+        let passThru = $('#passThru').val().replace(/,/gi, '') || 0;
+        let cycleTime = $('#cycleTime').val().replace(/,/gi, '') || 0;
+        
         let note = $('#note').val();
         let articles = []; 
         let flag=0; 
@@ -243,10 +266,9 @@
                 let articleName=$this.select2('data')[0].text;
                 let plu=article[0];
                 let uom=article[1];
-                let price=article[2]||0;
                 let type=article[3];
-                let qty=objQty.eq(i).val().replace(/[^0-9]/gi, '') || 0;
-                            
+                let qty=objQty.eq(i).val().replace(/,/gi, '') || 0;
+
                 //es6
                 // let obj = ingredient.find(obj => obj.plu == plu);
 
@@ -266,7 +288,6 @@
                             "qty":qty,
                             "uom":uom,
                             "customer_code":customer,
-                            "price":price,
                             "type":type
                         });
                     }
@@ -290,7 +311,6 @@
 		}
 
         if (flag==0){
-
             $.ajax({
                 type: "post",
                 url: "{{ route('bom.update') }}",
@@ -301,7 +321,11 @@
                     note:note,
                     group:group,
                     uom:uom,
-                    bomNumber:bomNumber
+                    bomNumber:bomNumber,
+                    tag:tag,
+                    passRate:passRate,
+                    passThru:passThru,
+                    cycleTime:cycleTime
                 },
                 dataType: "json",
                 success: function(data) {
@@ -310,28 +334,10 @@
                         for(let i = 0; i < data.message.length; i++) {
                             message += "-"+data.message[i]+"<br>";                           
                         }
-                        $("#alert-message-success").addClass(data.alert);
-                        $("#alert-message-success .alert-body").html(message);
-                        $("#alert-message-success").show();
-                        $("#alert-message-success").fadeTo(5000, 500).slideUp(500, function(){
-                            $("#alert-message-success").slideUp(500);
-                        });
-                        $('#bomNumber').attr('disabled','disabled');
-
+                        show_msg("Update BOM", message, data.alert);
                     }else{
-                        $("#alert-message-success").addClass(data.alert);
-                        $("#alert-message-success .alert-body").html(data.message);
-                        $("#alert-message-success").show();
-                        $("#alert-message-success").fadeTo(5000, 500).slideUp(500, function(){
-                            $("#alert-message-success").slideUp(500);
-                        });
-                        $('#bomNumber').attr('disabled','disabled');
-                        // $('#cmdSave').attr('disabled','disabled');
-                        // $('#addNewRow').attr('disabled','disabled');
-                        $('#bomNumber').val(data.bomNumber);
-                        
+                        show_msg("Update BOM", data.message, data.alert);
                     }
-                    
                 },
                 error: function(error) {
                     console.log(error);
@@ -359,22 +365,19 @@
         $('#customer').val(detail[2]);
         $('#group').val(detail[3]);
     })
-
-    let cloneCount=$('#last_row_number').val();
+   
+    let cloneCount={{ count($detail)-1 }};
     function add_new_row() {
-        let customer = $('#customer');
-        let cust = customer.val();
         $("#article_row").append($("#new_row").clone().html());
         cloneCount++;
         $("#article_row").find('#baru').attr('id', 'new_row'+ cloneCount);
         $("#new_row"+ cloneCount).find('#article_id').attr('id', 'article_id'+ cloneCount);
         changeselect('article_bom','article_id'+ cloneCount);
+        $("#new_row"+ cloneCount).find('#qtyBom').attr('id', 'qtyBom'+ cloneCount);
         $("#article_id"+cloneCount).select2();
         $('#remove_button').tooltip();
-        tombolPanah('qtyBom');
-        activate_angka();
-        mask_thousand();
-        splitArticle();
+        // tombolPanah('qtyBom');
+        splitArticle('new');
     };
 
     function splitArticle(){
@@ -382,22 +385,32 @@
         let objArticle = $('#article_row select[name="article_id[]"]');
         let objUom= $('#article_row span[name="uom[]"]'); 
         let objType= $('#article_row span[name="type[]"]'); 
-        let objPrice= $('#article_row input[name="price[]"]'); 
-        let objQty = $('input[name="qtyBom[]"]');
-        
-        objArticle.change(function(e){        
+        let objQty = $('#article_row input[name="qtyBom[]"]');
+        objArticle.change(function(e){
             let objIndex = objArticle.index(this);
             let detail = objArticle.eq(objIndex).val();
-            let arrDetail = detail.split("|");
-            objUom.eq(objIndex).text(arrDetail[1]);
-            objPrice.eq(objIndex).text(arrDetail[3]);
-            objType.eq(objIndex).text(arrDetail[4]);
+            let uomGroup = objArticle.eq(objIndex).find(":selected").data("uom-group");
             if (detail){
-                setTimeout(() => {
-                    objQty.eq(objIndex).focus().select();
-                }, 5);
+                let arrDetail = detail.split("|");
+                objUom.eq(objIndex).text(arrDetail[1]);
+                let id_qty = objQty.eq(objIndex).prop('id');
+                
+                if ( uomGroup === 'PIECE' ){
+                    $('#'+id_qty).val('');
+                    mask_thousand_digit_by_id(id_qty,0);
+                }else{
+                    $('#'+id_qty).val('');
+                    mask_thousand_digit_by_id(id_qty,numberOfDecimalDigit);
+                }
+        
+                objType.eq(objIndex).text(arrDetail[4]);
+                if (detail){
+                    setTimeout(() => {
+                        objQty.eq(objIndex).focus().select();
+                    }, 5);
+                }    
             }
-		});
+        });
     }
 
     function changeselect(dependent,obj) {
@@ -412,27 +425,6 @@
             $('#'+obj).val('').trigger('change');
         }
       })
-    }
-
-    function tombolPanah(objname){
-        // function kalo mau pindah filed dari atas ke bawah atau sebaliknya
-        let obj = $('input[name="'+objname+'[]"]');
-        obj.keyup(function(e) {
-            indexnya= obj.index(this);
-            indexnya=parseInt(indexnya);
-            if (e.keyCode == 38) {
-                //panah atas
-                indexTarget = indexnya-1;
-                obj.eq(indexTarget).focus().select();
-                return false;
-            }
-            if (e.keyCode == 40) {
-                //panah bawah
-                indexTarget = indexnya+1;
-                obj.eq(indexTarget).focus().select();
-                return false;
-            }
-        });
     }
     
     $.ajaxSetup({

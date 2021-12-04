@@ -215,15 +215,17 @@ class AccountController extends Controller
         ->delete();
 
         if($row_affected>0){
-            $alert  ="alert-success";
+            $title ="Delete account";
+            $alert  ="success";
             $message  = "Successfully Deleted";
             \LogActivity::addToLog('Account delete ',"username: $username Status $message");
-            return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);  
+            return redirect()->back()->with(['title'=>$title,'alert'=>$alert,'message'=> $message]);  
         }else{
-            $alert  ="alert-warning";
+            $title ="Delete account";
+            $alert  ="warning";
             $message  = "Failed to Delete";
             \LogActivity::addToLog('Account delete ',"username: $username Status $message");
-            return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);
+            return redirect()->back()->with(['title'=>$title,'alert'=>$alert,'message'=> $message]);
         }
     }
 
@@ -245,7 +247,7 @@ class AccountController extends Controller
         ->addColumn('action', function ($data) {
             $buttons = '<div class="d-inline-flex">
                             <a class="pr-1 dropdown-toggle hide-arrow text-primary" data-toggle="dropdown">
-                                <i data-feather="more-vertical"></i>
+                                <i data-feather="menu"></i>
                             </a>';
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
             if (Auth::user()->can('account-edit')) {
@@ -270,9 +272,6 @@ class AccountController extends Controller
 
             return $buttons;
             })
-        ->addColumn('group_id', function ($user) {
-            return '';
-        })
         ->addColumn('blacklist', function ($data) {
             if ($data->status =='1') {
                 $status = '<div class="custom-control custom-switch custom-control-inline">

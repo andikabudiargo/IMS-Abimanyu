@@ -26,7 +26,7 @@
                     <div class="form-group col-md-4"> 
                       <label class="form-label" for="searchGroup">Group</label>
                       <select class="select2 form-control" id="searchGroup" name="searchGroup">
-                          <option value=""></option>
+                          <option value="">All</option>
                           @foreach($groups as $val)
                               <option value="{{$val->code}}">{{$val->code}} - {{$val->name}}</option>
                           @endforeach
@@ -35,7 +35,7 @@
                     <div class="form-group col-md-4"> 
                       <label class="form-label" for="searchCustomer">Customer</label>
                       <select class="select2 form-control" id="searchCustomer" name="searchCustomer">
-                          <option value=""></option>
+                          <option value="">All</option>
                           @foreach($custs as $val)
                               <option value="{{$val->kode}}">{{$val->kode}} - {{$val->nama}}</option>
                           @endforeach
@@ -166,7 +166,13 @@
 
   //refresh di cards
   $('a[data-action="reload"]').on('click', function () {
-      showList();
+      let name = $("#searchName").val();
+      let code = $("#seachCode").val();
+      let group = $("#searchGroup").val();
+      let cust = $("#searchCustomer").val();
+      let supp = $("#searchSupplier").val();
+      let type = $("#searchType").val();
+      showList(name,code,group,cust,supp,type);
   });
 
   $("#btnSearch").click(function(e){
@@ -180,15 +186,7 @@
   });
 
   function showList(name,code,group,cust,supp,type){
-    // let dtdom = '<"card-header border-bottom p-1"<"head-label">><"d-flex justify-content-between align-items-center mx-0 row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-4"f><"col-sm-12 col-md-2"<"dt-action-buttons text-right"B>>>t<"d-flex justify-content-between mx-0 row"<"col-sm-12 col-md-6"i><"col-sm-12 col-md-6"p>>';
-    let dtdom ='<"d-flex justify-content-between align-items-center header-actions mx-1 row mt-75"' +
-        '<"col-lg-12 col-xl-6" l>' +
-        '<"col-lg-12 col-xl-6 pl-xl-75 pl-0"<"dt-action-buttons text-xl-right text-lg-left text-md-right text-left d-flex align-items-center justify-content-lg-end align-items-center flex-sm-nowrap flex-wrap mr-1"<"mr-1"f>B>>' +
-        '>t' +
-        '<"d-flex justify-content-between mx-2 row mb-1"' +
-        '<"col-sm-12 col-md-6"i>' +
-        '<"col-sm-12 col-md-6"p>' +
-        '>';
+    let dtdom ='<"d-flex justify-content-between align-items-center header-actions mx-1 row mt-75" <"col-lg-12 col-xl-6" l><"col-lg-12 col-xl-6 pl-xl-75 pl-0"<"dt-action-buttons text-xl-right text-lg-left text-md-right text-left d-flex align-items-center justify-content-lg-end align-items-center flex-sm-nowrap flex-wrap mr-1"<"mr-1"f>B>>>t<"d-flex justify-content-between mx-2 row mb-1"<"col-sm-12 col-md-6"i><"col-sm-12 col-md-6"p>>';
     let arr_col_print =[1,2,3,4,5,6,7]; 
     $(function(){
       let oTable =$("#detailedTable").DataTable({
@@ -285,7 +283,7 @@
             { data: 'action', name: 'action',title:'action', orderable: false, searchable: false },
             { data: 'code', name: 'article_alternative_code',title:'Code' },
             { data: 'desc', name: 'article_desc',title:'Name' },
-            { data: 'cust', name: 'third_party.nama',title:'Customer' },
+            { data: 'cust', name: 'third_party.nama',title:'Custs/Supp' },
             { data: 'costprice', name: 'costprice',title:'Price',render: $.fn.dataTable.render.number(',','.') },
             // { data: 'article_qty', name: 'article_qty',title:'Qty',render: $.fn.dataTable.render.number(',','.',3) },
             { data: "article_qty", name: 'article_stock.article_qty',title:'Qty',

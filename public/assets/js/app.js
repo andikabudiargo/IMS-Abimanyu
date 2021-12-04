@@ -390,6 +390,22 @@
         }).settings.ignore = "";
     }
 
+    function validateFormToast(form){
+        // Validasi form, setiap save / submit akan di validasi dulu form nya sesuai dengan validasinya
+        // Alert menggunakan toasts
+        $("#"+form).validate({
+            invalidHandler: function(event, validator) {
+                let errors = validator.numberOfInvalids();
+                if (errors) {
+                    let message = errors == 1
+                        ? 'You missed 1 field. It has been highlighted'
+                        : 'You missed ' + errors + ' fields. They have been highlighted';
+                    show_msg('Validate Form', message, 'warning');
+                } 
+                }
+        }).settings.ignore = "";
+    }
+
     // function mask_time(){
     //     $('.time-mask').toArray().forEach(function(field){
     //         new Cleave(field, {
@@ -421,13 +437,32 @@
         });   
     }
 
+    /* 
+        aktifkan masking dengan thousand separator, dengan digit koma di belakangnya, bedasarkan id dari element nya
+        kalo sudah pernah pake masking sebkelumnya di destroy dulu supaya bisa dibikin masking yang baru
+        misalkan yang tadinya KG bisa pake koma tapi kalo udah jadi PCS ngk bisa pake koma, dan sebaliknya
+    */
     function mask_thousand_digit_by_id(id,digit){
-        console.log(digit);
-            new Cleave('#'+id, {
+            if (window['mask'+id] != null) {
+                window['mask'+id].destroy();
+                window['mask'+id] = null;
+            }
+            window['mask'+id] = new Cleave('#'+id, {
             numeral: true,
             numeralThousandsGroupStyle: 'thousand',
             numeralDecimalScale: digit
         });
+    }
+
+    //aktifkan masking dengan thousand separator, an nilainya satuan tanpa koma, denga class numeral-mask-satuan
+    function mask_thousand_satuan(){
+        $('.numeral-mask-satuan').toArray().forEach(function(field){
+            new Cleave(field, {
+                numeral: true,
+                numeralThousandsGroupStyle: 'thousand',
+                numeralDecimalScale: 0
+            });
+        });   
     }
 
     function todayDate(formatnya){
@@ -450,7 +485,124 @@
         return tanggal;
     }
 
-
+    // validasi untuk select2, supaya setelah validsi warna bacground nya berubah
     $(".select2").on('change', function() {
         $(this).valid();
     });
+
+    /*
+      Tombol panah atas bawah, untuk pindah antar field
+      Apabila ada di kolom terkahir dan di tekan tombol bawah maka akan menambah 1 baris lagi
+    */
+    $(document).on("keyup", '.tombol-panah', function(e) { 
+        let nama = $(this).attr('name');
+        let obj = $('input[name="'+nama+'"]');
+        let indexnya = obj.index(this);
+        let namaKiri = obj.data("nama-el-kiri");
+        let elKiri = obj.data("type-el-kiri");
+        let objKiri = $(elKiri+'[name="'+namaKiri+'[]"]');
+        let namaKanan = obj.data("nama-el-kanan");
+        let elKanan = obj.data("type-el-kanan");
+        let objKanan = $(elKanan+'[name="'+namaKanan+'[]"]');
+        let indexTarget;
+        let jumObj =  obj.length -1;
+        indexnya=parseInt(indexnya);
+        if (e.keyCode == 37) {
+            //panah kiri
+            elKiri == 'select' ? objKiri.eq(indexnya).select2('open') : objKiri.eq(indexnya).focus().select();
+            return false;
+        }
+
+        if (e.keyCode == 39) {
+            //panah kanan
+            elKanan == 'select' ? objKanan.eq(indexnya).select2('open') : obj.eq(indexnya).focus().select();
+            return false;
+        }
+
+        if (e.keyCode == 38) {
+            //panah atas
+            indexTarget = indexnya-1;
+            obj.eq(indexTarget).focus().select();
+            return false;
+        }
+        if (e.keyCode == 40) {
+            //panah bawah
+            indexTarget = indexnya+1;
+            if (indexTarget == jumObj){
+                add_new_row();    
+            }
+            obj.eq(indexTarget).focus().select();    
+            return false;
+        }
+    });
+
+    $(document).on("keyup", '.pindah-cell', function(e) { 
+        let nama = $(this).attr('name');
+        let obj = $('input[name="'+nama+'"]');
+        let indexnya = obj.index(this);
+        let namaKiri = obj.data("nama-el-kiri");
+        let maxcColumn= obj.data("max-coloumn");
+        let elKiri = obj.data("type-el-kiri");
+        let objKiri = $(elKiri+'[name="'+namaKiri+'[]"]');
+        let namaKanan = obj.data("nama-el-kanan");
+        let elKanan = obj.data("type-el-kanan");
+        let objKanan = $(elKanan+'[name="'+namaKanan+'[]"]');
+        let indexTarget;
+        let jumObj =  obj.length -1;
+        indexnya=parseInt(indexnya);
+        if (e.keyCode == 37) {
+            //panah kiri
+            // console.log("Panah Kiri");
+            indexTarget = indexnya-1;
+            obj.eq(indexTarget).focus().select();
+            return false;
+        }
+
+        if (e.keyCode == 39) {
+            //panah kanan
+            // console.log("Panah Kanan");
+            indexTarget = indexnya+1;
+            obj.eq(indexTarget).focus().select();    
+            return false;
+        }
+
+        if (e.keyCode == 38) {
+            //panah atas
+            // console.log("Panah Atas");
+            indexTarget = indexnya-maxcColumn;
+            obj.eq(indexTarget).focus().select()
+            return false;
+        }
+        if (e.keyCode == 40) {
+            //panah bawah
+            // console.log("Panah Bawah");
+            indexTarget = indexnya+maxcColumn;
+            obj.eq(indexTarget).focus().select();
+            return false;
+        }
+    });
+
+
+    // tombol panah atas bawah, untuk pindah antar field
+    function tombolPanah(objname){
+        // function kalo mau pindah filed dari atas ke bawah atau sebaliknya
+        let obj = $('input[name="'+objname+'[]"]');
+        let indexnya,indexTarget;
+        let jumObj =  obj.length;
+        obj.keyup(function(e) {
+            indexnya= obj.index(this);
+            indexnya=parseInt(indexnya);
+            if (e.keyCode == 38) {
+                //panah atas
+                indexTarget = indexnya-1;
+                obj.eq(indexTarget).focus().select();
+                return false;
+            }
+            if (e.keyCode == 40) {
+                //panah bawah
+                indexTarget = indexnya+1;
+                obj.eq(indexTarget).focus().select();
+                return false;
+            }
+        });
+      }

@@ -33,7 +33,6 @@ Route::group( ['middleware' => ['auth']], function() {
 
 	Route::post('file/upload', ['as'=>'file.upload.post','uses'=>'FileUploadController@fileUploadPost']);
 	
-
 	Route::delete('userdelete',['as'=>'users.delete','uses'=>'UserController@delete']);
 	Route::get('roles',['as'=>'roles.index','uses'=>'RoleController@index','middleware' => ['permission:role-list|role-create|role-edit|role-delete']]);
 	Route::get('roles/create',['as'=>'roles.create','uses'=>'RoleController@create','middleware' => ['permission:role-create']]);
@@ -273,6 +272,9 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('boms/delete',['as'=>'bom.destroy','uses'=>'BomController@destroy']);
 	Route::get('boms/code/create',['as'=>'bom.code.create','uses'=>'BomController@articleCodeCreate']);
 	Route::get('boms/print',['as'=>'bom.print','uses'=>'BomController@print']);
+
+	Route::get('deliveryPlan/create',['as'=>'deliveryPlan.create','uses'=>'DeliveryPlanController@create','middleware' => ['permission:workingOrder-create']]);
+	Route::get('deliveryPlan/generate',['as'=>'deliveryPlan.generate','uses'=>'DeliveryPlanController@generatePlan']);
 
 	Route::get('workingOrders',['as'=>'workingOrders.index','uses'=>'workingOrderController@index','middleware' => ['permission:workingOrder-index']]);
 	Route::get('workingOrders/create',['as'=>'workingOrder.create','uses'=>'workingOrderController@create','middleware' => ['permission:workingOrder-create']]);

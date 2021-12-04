@@ -39,6 +39,7 @@
     <link rel="stylesheet" type="text/css" href="{{ asset('app-assets/vendors/css/tables/datatable/responsive.bootstrap4.min.css') }}">
     <link rel="stylesheet" type="text/css" href="{{ asset('app-assets/vendors/css/tables/datatable/buttons.bootstrap4.min.css') }}">
     <link rel="stylesheet" type="text/css" href="{{ asset('app-assets/vendors/css/tables/datatable/rowGroup.bootstrap4.min.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ asset('app-assets/vendors/css/tables/datatable/fixedColumns.dataTables.min.css') }}">
     <link rel="stylesheet" type="text/css" href="{{ asset('app-assets/vendors/css/pickers/flatpickr/flatpickr.min.css') }}">
     <link rel="stylesheet" type="text/css" href="{{ asset('app-assets/vendors/css/extensions/toastr.min.css') }}">
 
@@ -111,6 +112,8 @@
     <script src="{{ asset('app-assets/vendors/js/tables/datatable/buttons.html5.min.js') }}"></script>
     <script src="{{ asset('app-assets/vendors/js/tables/datatable/buttons.print.min.js') }}"></script>
     <script src="{{ asset('app-assets/vendors/js/tables/datatable/dataTables.rowGroup.min.js') }}"></script>
+    <script src="{{ asset('app-assets/vendors/js/tables/datatable/dataTables.fixedColumns.min.js') }}"></script>
+    {{-- <script src="{{ asset('app-assets/vendors/js/tables/datatable/fnFakeRowspan.js') }}"></script> --}}
     <script src="{{ asset('app-assets/vendors/js/pickers/pickadate/picker.js') }}"></script>
     <script src="{{ asset('app-assets/vendors/js/pickers/pickadate/picker.date.js') }}"></script>
     <script src="{{ asset('app-assets/vendors/js/pickers/pickadate/picker.time.js') }}"></script>
@@ -174,6 +177,12 @@
     @if($message = Session::get('warning'))
         <script>
             show_msg('Warning', '{{$message}}', 'warning');
+        </script>
+    @endif
+
+    @if ($alert = Session::get('alert'))
+        <script>
+            show_msg( "{{ Session::get('title') }}","{{ Session::get('message') }}","{{ $alert }}" );
         </script>
     @endif
 

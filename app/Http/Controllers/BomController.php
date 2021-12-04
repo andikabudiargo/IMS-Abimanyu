@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Crypt;
 use Response;
 use App\Permission;
 use DataTables;
@@ -118,8 +119,9 @@ class BomController extends Controller
             foreach ($validation->messages()->getMessages() as $field_name => $messages){
                 $error_array[] = $messages;
             }
-            $alert ="alert-danger";
-            return response()->json(array('status' => 0, 'message' => $error_array,'alert' =>$alert));
+            $title="Save BOM";
+            $alert ="error";
+            return response()->json(array('status' => 0,'title' => $title, 'message' => $error_array,'alert' =>$alert));
         }else{
             $bomNumber = $this->getLastCode('BOM');
             DB::beginTransaction();
@@ -149,7 +151,7 @@ class BomController extends Controller
                             'article_code' => $val->article_code,
                             'qty' => $val->qty,
                             'uom' => $val->uom,
-                            'cost_price' => $val->price,
+                            // 'cost_price' => $val->price,
                             'article_type' => $val->type,
                             'customer_code' => $val->customer_code,
                             // 'note' => $val->note,
@@ -162,17 +164,19 @@ class BomController extends Controller
                     DB::table('bom_det')->insert($dataSet);
 
                     DB::commit();
-                    $alert  ="alert-success";
-                    $message  = "BOM $bomNumber is successfully saved";
-                    \LogActivity::addToLog('BOM save ',"username: $username Status $message");
-                    return response()->json(array('status' => 1, 'message' => $message,'alert'=>$alert,'bomNumber'=>$bomNumber));
+                    $title ='Save BOM';
+                    $alert  ="success";
+                    $message  = "$title $bomNumber is successfully saved";
+                    \LogActivity::addToLog($title,"username: $username Status $message");
+                    return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'bomNumber'=>$bomNumber));
 
             } catch (Exception $e) {
                 DB::rollBack();
-                $alert  ="alert-warning";
+                $title ='Save BOM';
+                $alert  ="warning";
                 $message  = "BOM $bomNumber is failed to save";
-                \LogActivity::addToLog('BOM save ',"username: $username Status $message");
-                return response()->json(array('status' => 1, 'message' => $message,'alert'=>$alert,'bomNumber'=>$bomNumber));
+                \LogActivity::addToLog($title,"username: $username Status $message");
+                return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'bomNumber'=>$bomNumber));
             }
         }
     }
@@ -212,7 +216,7 @@ class BomController extends Controller
 
     public function edit(Request $request)
     {
-        $id=$request->id;
+        $id=Crypt::decryptString($request->id);
         $data['title'] = "Edit Bill Of Material";
         $data['subtitle'] = "Edit Bill Of Material";
 
@@ -222,6 +226,9 @@ class BomController extends Controller
 
         $data['detail'] = DB::table('bom_det')
         ->where('bom_code',$data['header']->bom_code)
+        ->leftJoin('uom','uom.code','bom_det.uom')
+        ->leftJoin('article_types','article_types.code','=','bom_det.article_type')
+        ->select('bom_det.*', 'uom.uom_group as uom_group','article_types.name as type_name')
         ->orderBy('bom_det.id')
         ->get();       
 
@@ -234,10 +241,11 @@ class BomController extends Controller
 
         $data['articles'] = DB::table('article') 
         ->leftJoin('article_types','article_types.code','=','article.article_type')
-        ->whereNotIn('article_type',['FG','RM'])
+        ->leftJoin('uom','uom.code','article.uom')
+        // ->whereNotIn('article_type',['FG','RM'])
         ->orderBy('article_desc')
-        ->select('article.*', 'article_types.name as type_name')
-        ->get();;   
+        ->select('article.*','uom.uom_group as uom_group','article_types.name as type_name')
+        ->get();
 
         return view("bom.edit",$data);
         
@@ -334,7 +342,7 @@ class BomController extends Controller
                                 'article_code' => $val->article_code,
                                 'qty' => $val->qty,
                                 'uom' => $val->uom,
-                                'cost_price' => $val->price,
+                                // 'cost_price' => $val->price,
                                 'article_type' => $val->type,
                                 'customer_code' => $val->customer_code,
                                 // 'note' => $val->note,
@@ -345,14 +353,14 @@ class BomController extends Controller
                     }
                     
                     DB::commit();
-                    $alert  ="alert-success";
+                    $alert  ="success";
                     $message  = "BOM $bomNumber is successfully updated";
                     \LogActivity::addToLog('BOM update ',"username: $username Status $message");
                     return response()->json(array('status' => 1, 'message' => $message,'alert'=>$alert,'bomNumber'=>$bomNumber));
 
             } catch (Exception $e) {
                 DB::rollBack();
-                $alert  ="alert-warning";
+                $alert  ="warning";
                 $message  = "BOM $bomNumber is failed to updated";
                 \LogActivity::addToLog('BOM update ',"username: $username Status $message");
                 return response()->json(array('status' => 1, 'message' => $message,'alert'=>$alert,'bomNumber'=>$bomNumber));
@@ -394,26 +402,16 @@ class BomController extends Controller
 
         $searchBom = strtolower($request->searchBom);
         $articleCode = $request->articleCode;
+
+        $data = DB::table('bom_hdr')
+        ->leftJoin('article','article.article_code','bom_hdr.article_code')
+        ->where(function ($query) use ($searchBom,$articleCode) {
+            $searchBom ? $query->where('bom_code','ilike','%'.$searchBom.'%') : '';
+            $articleCode ? $query->where('article_code','ilike','%'.$articleCode.'%') : '';
+        })
+        ->orderBy('bom_code')
+        ->get(['bom_hdr.*',DB::raw("CONCAT(article.article_alternative_code,'-',article.article_desc) as article_des")]); 
        
-        $filter='';
-        
-        if ($searchBom !='' ){
-            $filter.="lower(a.bom_code) like '%$searchBom%' and ";
-        }
-
-        if ($articleCode !='' ){
-            $filter.="lower(a.article_code) like '%$articleCode%' and ";
-        }
-
-        
-        if ($filter !=''){
-            $filter=" where ".substr($filter,0,-4);
-        }
-
-        $data=DB::select("SELECT * from bom_hdr $filter");
-        
-        // $data=DB::table('bom_hdr')->get();
-
         return Datatables::of($data)
         ->addColumn('action', function ($data) {
             $buttons = '<div class="d-inline-flex">
@@ -422,7 +420,7 @@ class BomController extends Controller
                             </a>';
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
             if (Auth::user()->can('bom-edit')) {
-            $buttons .=         '<a href="'. route('bom.edit', ['id'=>$data->id]) .'" class="dropdown-item">
+            $buttons .=         '<a href="'. route('bom.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                     <i data-feather="file-text"></i>
                                     Edit
                                 </a>';

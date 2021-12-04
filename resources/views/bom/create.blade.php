@@ -2,16 +2,15 @@
 @section('title', $title)
 @section('content')
 @include('layouts.breadcrumb')
-@include('partials.alert')
 <section id="add-index">
-    <div class="row">
+    <div class="form-row">
         <div class="col-md-12">
             <div class="card">
                 <div class="card-header">
                     <div class="form-group row">
                         <label for="bomNumber" class="col-sm-4 col-form-label col-form-label-sm">BOM Number</label>
                         <div class="col-md-8">
-                            <input type="text" id="bomNumber" name="bomNumber" class="form-control form-control-sm disabled-el"  disabled />
+                            <input type="text" id="bomNumber" name="bomNumber" class="form-control form-control-sm disabled-el" disabled />
                         </div>
                     </div>                    
                     <div class="heading-elements">
@@ -25,19 +24,19 @@
                         <form id="frmAdd" name="frmAdd" autocomplete="off">
                             @csrf
                             <input type="text" id="article" name="article" hidden>
-                            <div class="row">
+                            <div class="form-row">
                                 <div class="form-group col-md-5">
                                     <label class="form-label" for="articleCode">Article*</label>
                                     <select class="select2 form-control" id="articleCode" name="articleCode" required>
                                         <option value=""></option>
                                         @foreach($articles as $val)
-                                            <option value="{{ $val->article_code }}|{{ $val->uom }}|{{ $val->cust_name }}|{{ $val->group }}|{{ $val->third_party }}|{{ $val->group_of_material }}" >{{ $val->article_alternative_code }} - {{ $val->article_desc }}</option>
+                                            <option value="{{ $val->article_code }}|{{ $val->uom }}|{{ $val->cust_name }}|{{ $val->group }}|{{ $val->third_party }}|{{ $val->group_of_material }}" {{ $val->article_code == old("articleCode") ? "selected" : ""}} >{{ $val->article_alternative_code }} - {{ $val->article_desc }}</option>
                                         @endforeach
                                     </select>
                                 </div>
                                 <div class="form-group col-md-3">
                                     <label for="customer">Customer</label>
-                                    <input type="text" id="customer" name="customer" class="form-control disabled-el"  disabled />
+                                    <input type="text" id="customer" name="customer" class="form-control disabled-el"  disabled required/>
                                 </div>
                                 <div class="form-group col-md-2">
                                     <label for="group">Group of material</label>
@@ -48,20 +47,19 @@
                                     <input type="text" id="uom" name="uom" class="form-control disabled-el"  disabled />
                                 </div>
                             </div>
-                            <div class="row">
+                            <div class="form-row">
                                 <div class="form-group col-md-2">
                                     <label for="tag">Tag</label>
-                                    <input type="text" id="tag" name="tag" class="form-control numeral-mask-digit" maxlength="5" />
+                                    <input type="text" id="tag" name="tag" value="{{ old('tag') }}" class="form-control numeral-mask-digit" maxlength="5" required/>
                                 </div>
                                 <div class="form-group col-md-2">
                                     <label for="passRate">Pass Rate</label>
-                                    <input type="text" id="passRate" name="passRate" class="form-control numeral-mask-digit" maxlength="5"/>
+                                    <input type="text" id="passRate" name="passRate" value="{{ old('passRate') }}" class="form-control numeral-mask-digit" maxlength="5" required/>
                                 </div>
-
                                 <div class="form-group col-md-2">
                                     <label for="passThru">Pass trough</label>
                                     <div class="input-group input-group-merge">
-                                        <input type="text" id="passThru" name="passThru" class="form-control numeral-mask-digit" maxlength="5"/>
+                                        <input type="text" id="passThru" name="passThru" value="{{ old('passThru') }}" class="form-control numeral-mask-digit" maxlength="5" required/>
                                         <div class="input-group-append">
                                             <span class="input-group-text">%</span>
                                         </div>
@@ -69,16 +67,16 @@
                                 </div>
                                 <div class="form-group col-md-2">
                                     <label for="cycleTime">Cycle time buffing</label>
-                                    <input type="text" id="cycleTime" name="cycleTime" class="form-control numeral-mask-digit" maxlength="5"/>
+                                    <input type="text" id="cycleTime" name="cycleTime" value="{{ old('cycleTime') }}" class="form-control numeral-mask-digit" maxlength="5" required/>
                                 </div>
                             </div>
-                            <div class="row">
+                            <div class="form-row">
                                 <div class="form-group col-md-8">
                                     <label class="form-label" for="note">Notes</label>
-                                    <textarea type="text" id="note" name="note" class="form-control" rows="1" ></textarea>
+                                    <textarea type="text" id="note" name="note" class="form-control" rows="1" >{{ old('note') }}</textarea>
                                 </div>
                             </div>
-                            <div class="row">
+                            <div class="form-row">
                                 <div class="col-12">
                                     <button class="btn btn-warning" type="reset" id="cmdCancel" name="cmdCancel">Cancel</button>
                                     <button class="btn btn-success" type="reset" id="cmdNew" name="cmdCancel">New</button>
@@ -108,9 +106,6 @@
                                     </td>
                                     <td class="isian" style="width: 5%">
                                         <label>UOM</label>
-                                    </td>
-                                    <td class="isian" style="width: 10%">
-                                        <label>Price</label>
                                     </td>
                                     <td class="isian" style="width: 10%">
                                         <label>Type</label>
@@ -177,152 +172,143 @@
         padding-bottom: 0px;
     }
 
-
 </style>
 @endsection
 @section('scripts')
 <script type="text/javascript">
-    let currentDate = todayDate('dd-mm-yyyy');    
-    console.log(numberOfDecimalDigit);
-    $(document).ready(function(){           
-        validateForm('frmAdd');
+    let currentDate = todayDate('dd-mm-yyyy');
+    $(document).ready(function(){     
+        validateFormToast("frmAdd");
         mask_thousand_digit(2);
     });
         
-    function reloadPage(){
+    $("#cmdCancel,#cmdNew").click(function(){
+        $('#bomNumber').val('');
         window.location.reload();
-    }
-
-    $("#cmdCancel").click(function(){
-        $('#bomNumber').val('');
-        reloadPage();
-    });
-
-    $("#cmdNew").click(function(){
-        $('#bomNumber').val('');
-        reloadPage();
     });
 
     $("#cmdSave").click(function(){     
-        $('.disabled-el').removeAttr('disabled');
-        // ambil semua data article
-        let objArticle = $("#article_row select[name='article_id[]']");
-        let objQty = $('input[name="qtyBom[]"]');
-        let articleCode1 = $('#articleCode').val().split("|");
-        articleCode = articleCode1[0];
-        let uom = articleCode1[1];
-        let group = articleCode1[5];
-        let customer  = articleCode1[4];
-        let note = $('#note').val();
-        let articles = []; 
-        let flag=0; 
-        let pesan="";
 
-        objArticle.map(function(i) {  
-		    let $this=$(this);
-            if ($this.val()){
-                let article=$this.val().split("|");
-                let articleName=$this.select2('data')[0].text;
-                let plu=article[0];
-                let uom=article[1];
-                let price=article[2]||0;
-                let type=article[3];
-                let qty=objQty.eq(i).val().replace(/[^0-9]/gi, '') || 0;
-                            
-                //es6
-                // let obj = ingredient.find(obj => obj.plu == plu);
+        if (!$("#frmAdd")[0].checkValidity()){
+            $("#frmAdd").submit();
+        }else{
 
-                //jquery
-                //cek apakah article ada yang double input ato ngk
-                let obj = $.grep(articles, function(obj){
-                    return obj.article_code === plu;
-                })[0];
-                
-                if(obj) {
-                    pesan +="Article "+articleName+" entered more than once !! <br>"; 
-                    flag=1;
-                } else {
-                    if ((plu!=='') && (qty> 0)){
-                        articles.push({
-                            "article_code":plu,
-                            "qty":qty,
-                            "uom":uom,
-                            "customer_code":customer,
-                            "price":price,
-                            "type":type
-                        });
-                    }
-                } 
-            
-                if (qty == 0){
-                    pesan +="QTY of items "+ articleName +" cannot be 0 <br>"; 
-                    flag=1;
-                }
-            }
-        });
+            $('.disabled-el').removeAttr('disabled');
+            // ambil semua data article
+            let objArticle = $("#article_row select[name='article_id[]']");
+            let objQty = $('input[name="qtyBom[]"]');
+            let articleCode1 = $('#articleCode').val().split("|");
+            articleCode = articleCode1[0];
+            let uom = articleCode1[1];
+            let group = articleCode1[5];
+            let customer  = articleCode1[4];
 
-        if (customer == ''){
-			pesan +="Customer must be filled in <br>"; 
-			flag=1;
-		}
+            let tag = $('#tag').val().replace(/,/gi, '') || 0;
+            let passRate = $('#passRate').val().replace(/,/gi, '') || 0;
+            let passThru = $('#passThru').val().replace(/,/gi, '') || 0;
+            let cycleTime = $('#cycleTime').val().replace(/,/gi, '') || 0;
 
-        if (articles.length == 0){
-			pesan +="Articles must be filled in completely <br>"; 
-			flag=1;
-		}
+            let note = $('#note').val();
+            let articles = []; 
+            let flag=0; 
+            let pesan="";
 
-        if (flag==0){
+            objArticle.map(function(i) {  
+                let $this=$(this);
+                if ($this.val()){
+                    let article=$this.val().split("|");
+                    let articleName=$this.select2('data')[0].text;
+                    let plu=article[0];
+                    let uom=article[1];
+                    let type=article[3];
+                    let qty=objQty.eq(i).val().replace(/[^0-9]/gi, '') || 0;
+                                
+                    //es6
+                    // let obj = ingredient.find(obj => obj.plu == plu);
 
-            $.ajax({
-                type: "post",
-                url: "{{ route('bom.store') }}",
-                data: {
-                    articles:JSON.stringify(articles),
-                    articleCode:articleCode,
-                    customer:customer,
-                    note:note,
-                    group:group,
-                    uom:uom,
-                },
-                dataType: "json",
-                success: function(data) {
-                    if (data.status == 0 ){
-                        let message="";
-                        for(let i = 0; i < data.message.length; i++) {
-                            message += "-"+data.message[i]+"<br>";                           
-                        }
-                        $("#alert-message-success").addClass(data.alert);
-                        $("#alert-message-success .alert-body").html(message);
-                        $("#alert-message-success").show();
-                        $("#alert-message-success").fadeTo(5000, 500).slideUp(500, function(){
-                            $("#alert-message-success").slideUp(500);
-                        });
-                        $('#bomNumber').attr('disabled','disabled');
-
-                    }else{
-                        $("#alert-message-success").addClass(data.alert);
-                        $("#alert-message-success .alert-body").html(data.message);
-                        $("#alert-message-success").show();
-                        $("#alert-message-success").fadeTo(5000, 500).slideUp(500, function(){
-                            $("#alert-message-success").slideUp(500);
-                        });
-                        $('#bomNumber').attr('disabled','disabled');
-                        $('#cmdSave').attr('disabled','disabled');
-                        $('#addNewRow').attr('disabled','disabled');
-                        $('#bomNumber').val(data.bomNumber);
-                        
-                    }
+                    //jquery
+                    //cek apakah article ada yang double input ato ngk
+                    let obj = $.grep(articles, function(obj){
+                        return obj.article_code === plu;
+                    })[0];
                     
-                },
-                error: function(error) {
-                    console.log(error);
+                    if(obj) {
+                        pesan +="Article "+articleName+" entered more than once !! <br>"; 
+                        flag=1;
+                    } else {
+                        if ((plu!=='') && (qty> 0)){
+                            articles.push({
+                                "article_code":plu,
+                                "qty":qty,
+                                "uom":uom,
+                                "customer_code":customer,
+                                "type":type
+                            });
+                        }
+                    } 
+                
+                    if (qty == 0){
+                        pesan +="QTY of items "+ articleName +" cannot be 0 <br>"; 
+                        flag=1;
+                    }
                 }
             });
 
-        }else{
-            Swal.fire('Warning..',pesan,'warning');
+            if (customer == ''){
+                pesan +="Customer must be filled in <br>"; 
+                flag=1;
+            }
+
+            if (articles.length == 0){
+                pesan +="Articles must be filled in completely <br>"; 
+                flag=1;
+            }
+            
+            if (flag==0){
+
+                $.ajax({
+                    type: "post",
+                    url: "{{ route('bom.store') }}",
+                    data: {
+                        articles:JSON.stringify(articles),
+                        articleCode:articleCode,
+                        customer:customer,
+                        note:note,
+                        group:group,
+                        uom:uom,
+                        tag:tag,
+                        passRate:passRate,
+                        passThru:passThru,
+                        cycleTime:cycleTime
+                    },
+                    dataType: "json",
+                    success: function(data) {
+                        if (data.status == 0 ){
+                            let message="";
+                            for(let i = 0; i < data.message.length; i++) {
+                                show_msg(data.title, data.message[i], data.alert);
+                            }
+                            $('#bomNumber').attr('disabled','disabled');
+
+                        }else{
+                            show_msg(data.title, data.message, data.alert)
+                            $('#bomNumber').attr('disabled','disabled');
+                            $('#cmdSave').attr('disabled','disabled');
+                            $('#addNewRow').attr('disabled','disabled');
+                            $('#bomNumber').val(data.bomNumber);
+                            
+                        }
+                        
+                    },
+                    error: function(error) {
+                        console.log(error);
+                    }
+                });
+
+            }else{
+                Swal.fire('Warning..',pesan,'warning');
+            }
         }
-    
     });
 
     $("#articleCode").change(function(){
@@ -335,8 +321,6 @@
 
     let cloneCount=1;
     function add_new_row() {
-        let customer = $('#customer');
-        let cust = customer.val();
         $("#article_row").append($("#new_row").clone().html());
         cloneCount++;
         $("#article_row").find('#baru').attr('id', 'new_row'+ cloneCount);
@@ -346,8 +330,7 @@
         $("#article_id"+cloneCount).select2();
         $('#remove_button').tooltip();
         tombolPanah('qtyBom');
-        // mask_thousand();
-        splitArticle();
+        splitArticle('new');
     };
 
     function splitArticle(){
@@ -355,38 +338,41 @@
         let objArticle = $('#article_row select[name="article_id[]"]');
         let objUom= $('#article_row span[name="uom[]"]'); 
         let objType= $('#article_row span[name="type[]"]'); 
-        let objPrice= $('#article_row input[name="price[]"]'); 
         let objQty = $('input[name="qtyBom[]"]');
         
         objArticle.change(function(e){        
             let objIndex = objArticle.index(this);
             let detail = objArticle.eq(objIndex).val();
+            let arrDetail = detail.split("|");
+            objUom.eq(objIndex).text(arrDetail[1]);
+            objType.eq(objIndex).text(arrDetail[4]);
+
+            if ( arrDetail[1] === 'PCS' ){
+                objQty.removeClass("numeral-mask-digit");
+                objQty.addClass("numeral-mask-satuan");
+                console.log('PCS');
+                // $('#'+id_qty).val('');
+                // mask_thousand_digit_by_id(id_qty,0);
+               
+                mask_thousand_satuan();
+            }else{
+                
+                objQty.removeClass("numeral-mask-satuan");
+                objQty.addClass("numeral-mask-digit");
+                console.log('NON PCS');
+
+                mask_thousand_digit(numberOfDecimalDigit);
+
+                // $('#'+id_qty).val('');
+                // mask_thousand_digit_by_id(id_qty,numberOfDecimalDigit);
+            }
 
             if (detail){
-                let arrDetail = detail.split("|");
-                objUom.eq(objIndex).text(arrDetail[1]);
-                let id_qty = objQty.eq(objIndex).prop('id');
-                
-                if ( arrDetail[1] === 'PCS' ){
-                    console.log('PCS');
-                    $('#'+id_qty).val('');
-                    mask_thousand_digit_by_id(id_qty,0);
-                }else{
-                    console.log('NON PCS');          
-                    $('#'+id_qty).val('');
-                    mask_thousand_digit_by_id(id_qty,numberOfDecimalDigit);
-                }
-        
-                objPrice.eq(objIndex).text(arrDetail[3]);
-                objType.eq(objIndex).text(arrDetail[4]);
-                if (detail){
-                    setTimeout(() => {
-                        objQty.eq(objIndex).focus().select();
-                    }, 5);
-                }    
+                setTimeout(() => {
+                    objQty.eq(objIndex).focus().select();
+                }, 5);
             }
-            
-        });
+		});
     }
 
     function changeselect(dependent,obj) {
@@ -402,28 +388,7 @@
         }
       })
     }
-
-    function tombolPanah(objname){
-        // function kalo mau pindah filed dari atas ke bawah atau sebaliknya
-        let obj = $('input[name="'+objname+'[]"]');
-        obj.keyup(function(e) {
-            indexnya= obj.index(this);
-            indexnya=parseInt(indexnya);
-            if (e.keyCode == 38) {
-                //panah atas
-                indexTarget = indexnya-1;
-                obj.eq(indexTarget).focus().select();
-                return false;
-            }
-            if (e.keyCode == 40) {
-                //panah bawah
-                indexTarget = indexnya+1;
-                obj.eq(indexTarget).focus().select();
-                return false;
-            }
-        });
-    }
-
+  
     $.ajaxSetup({
         headers: {
             'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')

@@ -187,12 +187,13 @@ class UomController extends Controller
         $code = strtolower($request->code);
         $name = strtolower($request->name);
 
-        $data=DB::table('uom');
-        $code ? $data->where('code','ilike','%'.$code.'%') : "";
-        $name ? $data->where('name','ilike','%'.$name.'%') : "";  // string to lower
-        $data->orderBy('name')->get();
+        $data = DB::table('uom')
+        ->where(function ($query) use ($code,$name) {
+            $code ? $query->where('code','ilike','%'.$code.'%') : '';
+            $name ? $query->where('name','ilike','%'.$name.'%') : '';
+        })->orderBy('name')->get(); 
 
-        return Datatables::of($data)
+        return DataTables::of($data)
         ->addColumn('action', function ($data) {
             $buttons = '<div class="d-inline-flex">
                             <a class="pr-1 dropdown-toggle hide-arrow text-primary" data-toggle="dropdown">
@@ -220,9 +221,6 @@ class UomController extends Controller
                         </div>';
 
             return $buttons;
-        })
-        ->addColumn('group_id', function () {
-            return '';
         })
         ->rawColumns(['action'])
         ->make(true);

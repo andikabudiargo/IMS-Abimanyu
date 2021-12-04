@@ -433,21 +433,19 @@ class ArticleController extends Controller
         $supp = strtolower($request->supp);
         $type = strtolower($request->type);
 
-        // $type == 'CM'? $type='supp' :  $type='cust';
-        $data=DB::table('article');
-        $data->select('article.*','costprice','article.article_code as art_code','article_alternative_code as code','article_desc as desc','article.uom','quality','note','article.id','group_materials.name as group','third_party.nama as cust','article_stock.article_qty as article_qty');
-        $data->leftJoin('group_materials', 'group_materials.code', '=', 'article.group_of_material');
-        $data->leftJoin('third_party', 'third_party.kode', '=', 'article.third_party');
-        $data->leftJoin('article_stock', 'article_stock.article_code', '=', 'article.article_code');
-        $code ? $data->where('article_alternative_code','ilike','%'.$code.'%') :'';
-        $name ? $data->where('article_desc','ilike','%'.$name.'%') :'';
-        $group ? $data->where('group_of_material','ilike','%'.$group.'%') :'';
-        $cust ? $data->where('third_party','ilike','%'.$cust.'%') :'';
-        $supp ? $data->where('third_party','ilike','%'.$supp.'%') :'';
-        $type ? $data->where('article_alternative_code','ilike',$type.'%') :'';      
-        $data->orderBy('article_desc');
-        $data->get(['costprice','article.article_code','article_alternative_code as code','article_desc as desc','article.uom','quality','note','article.id','group_materials.name as group','third_party.nama as cust','article_stock.article_qty as article_qty']);
-
+        $data=DB::table('article')
+        ->select('article.*','costprice','article.article_code as art_code','article_alternative_code as code','article_desc as desc','article.uom','quality','note','article.id','group_materials.name as group','third_party.nama as cust','article_stock.article_qty as article_qty')->leftJoin('group_materials', 'group_materials.code', '=', 'article.group_of_material')
+        ->leftJoin('third_party', 'third_party.kode', '=', 'article.third_party')
+        ->leftJoin('article_stock', 'article_stock.article_code', '=', 'article.article_code')
+        ->where(function ($query) use ($code,$name,$group,$cust,$supp,$type) {
+            $code ? $query->where('article_alternative_code','ilike','%'.$code.'%') :'';
+            $name ? $query->where('article_desc','ilike','%'.$name.'%') :'';
+            $group ? $query->where('group_of_material','ilike','%'.$group.'%') :'';
+            $cust ? $query->where('third_party','ilike','%'.$cust.'%') :'';
+            $supp ? $query->where('third_party','ilike','%'.$supp.'%') :'';
+            $type ? $query->where('article_alternative_code','ilike',$type.'%') :'';      
+        })->orderBy('article_desc')->get(['costprice','article.article_code','article_alternative_code as code','article_desc as desc','article.uom','quality','note','article.id','group_materials.name as group','third_party.nama as cust','article_stock.article_qty as article_qty']);
+        
         return Datatables::of($data)
         ->addColumn('action', function ($data) {
             $buttons = '<div class="d-inline-flex">
@@ -486,9 +484,6 @@ class ArticleController extends Controller
 
             return $buttons;
             })
-        // ->addColumn('group_id', function ($user) {
-        //     return '';
-        // })
         ->rawColumns(['action'])
         ->make(true);
     }
