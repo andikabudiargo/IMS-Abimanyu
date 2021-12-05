@@ -265,8 +265,9 @@
             dataType: "json",
             success: function(result) {
                 let tahun,hari,tanggal;
-                let maxColumn=result.kolom.length;
-                let totKolom = maxColumn+6;
+                let numberOfDate=result.kolom.length;
+                let numOfKolomHeader = 6;
+                let totKolom = numberOfDate+numOfKolomHeader;
                 for(let i =0;i<result.kolom.length;i++){
                     tahun=`<th class="" colspan="`+result.kolom[i].countday+1+`" >
                                 <label>`+result.kolom[i].dateyear+`</label>
@@ -279,7 +280,7 @@
                             </th>`;
                 }
 
-                $('#tblBaru > thead').append("<tr><th rowspan='3'>group</th><th rowspan='3'>No</th><th rowspan='3'>Code</th><th rowspan='3'>Name</th><th rowspan='3'>Col. Code</th><th rowspan='3'>Variant</th><th rowspan='3'>Remarks</th>"+tahun+"</tr>");
+                $('#tblBaru > thead').append("<tr><th rowspan='3'>No</th><th rowspan='3'>Code</th><th rowspan='3'>Name</th><th rowspan='3'>Col. Code</th><th rowspan='3'>Variant</th><th rowspan='3'>Remarks</th>"+tahun+"</tr>");
                 $('#tblBaru > thead').append("<tr>"+hari+"</tr>");
                 $('#tblBaru > thead').append("<tr>"+tanggal+"</tr>");
                 
@@ -290,17 +291,123 @@
                 let nomorCount=0;
                 let judulGroup="";
                 let rowGroup="";
-                for(let i=0;i<result.data.length;i++){
-                    
-                    
+                let totalPlan="";
+                let totalAct="";
+                let totalBalMin="";
+                let totalPlan1="";
+                let totalAct1="";
+                let totalBalMin1="";
+                let totalPlanDate="";
+                let totalActDate="";
+                let totalBalDate="";
+                let arrayPlan=[];
+                let arrayAct=[];
+                let arrayBal=[];
+                let finalArrayPlan=[];
+                let finalArrayAct=[];
+                let finalArrayBal=[];
+                for(let i =0;i<numberOfDate;i++){
+                    finalArrayPlan.push(0);
+                    finalArrayAct.push(0);
+                    finalArrayBal.push(0);
+                }
+                let jumlahData = result.data.length; 
+                for(let i=0;i < jumlahData;i++){                  
                     if (article != result.data[i].article_code){
-                        
                         if (article){
-                            console.log(article+"-"+judulGroup+"-"+result.data[i].group_of_material);
+                            // console.log(article+"-"+judulGroup+"-"+result.data[i].group_of_material);
                             if (judulGroup != judulGroup2){
-                                rowGroup = `<tr><td colspan="`+totKolom+`">`+result.data[i].group_of_material+`<td></tr>`;
+                                rowGroup = `<tr><td colspan="`+totKolom+`">`+result.data[i].group_of_material+`</td></tr>`;
                                 judulGroup = result.data[i].group_of_material;
+                                nomorCount = 0;
+                                
+                                if ( i!= numberOfDate ){
+                                    for(let i =0; i < finalArrayPlan.length ; i++){
+                                        totalPlanDate +=` <td class="" style="width: 10%">
+                                        <input type="text" class="form-control-plaintext text-color-blue text-right"
+                                            value="`+finalArrayPlan[i]+`" 
+                                            id="totalPlan`+i+`" name="totalPlan[]">
+                                        </td>`;
+                                    }
+                                    
+                                    for(let i =0; i < finalArrayAct.length ; i++){
+                                        totalActDate +=` <td class="" style="width: 10%">
+                                        <input type="text" class="form-control-plaintext text-color-blue text-right"
+                                            value="`+finalArrayAct[i]+`" 
+                                            id="totalAct`+i+`" name="totalAct[]">
+                                        </td>`;
+                                    }
+
+                                    for(let i =0; i < finalArrayBal.length ; i++){
+                                        totalBalDate +=` <td class="" style="width: 10%">
+                                        <input type="text" class="form-control-plaintext text-color-blue text-right"
+                                            value="`+finalArrayBal[i]+`" 
+                                            id="totalBal`+i+`" name="totalBal[]">
+                                        </td>`;
+                                    }
+                                
+                                    totalPlan = `<tr><td colspan="`+numOfKolomHeader+`">Total Plan</td>`+totalPlanDate+`</tr>`;
+                                    totalAct = `<tr><td colspan="`+numOfKolomHeader+`">Total Act</td>`+totalActDate+`</tr>`;
+                                    totalBalMin = `<tr><td colspan="`+numOfKolomHeader+`">Total Balance Minus</td>`+totalBalDate+`</tr>`;
+
+                                    finalArrayPlan =[];
+                                    finalArrayAct =[];
+                                    finalArrayBal =[];
+                                    for(let i =0;i<numberOfDate;i++){
+                                        finalArrayPlan.push(0);
+                                        finalArrayAct.push(0);
+                                        finalArrayBal.push(0);
+                                    }
+                                    totalPlanDate="";
+                                    totalActDate="";
+                                    totalBalDate="";
+                                }
+                                
                             }
+                  
+                            // console.log(arrayPlan.length);
+                            
+                            nomorCount++;
+                            //menjumlahkan 2 array
+                            
+                            finalArrayPlan = arrayPlan.map((a, i) => a + finalArrayPlan[i]);
+                            finalArrayAct = arrayAct.map((a, i) => a + finalArrayAct[i]);
+                            finalArrayBal = arrayBal.map((a, i) => a + finalArrayBal[i]);
+
+                            console.log(finalArrayAct);
+
+                            if ( i+numberOfDate == jumlahData){
+                                // console.log(finalArrayPlan.length);
+                                for(let i =0; i < finalArrayPlan.length ; i++){
+                                        totalPlanDate +=` <td class="" style="width: 10%">
+                                        <input type="text" class="form-control-plaintext text-color-blue text-right"
+                                            value="`+finalArrayPlan[i]+`" 
+                                            id="totalPlan`+i+`" name="totalPlan[]">
+                                        </td>`;
+                                    }
+                                    
+                                    for(let i =0; i < finalArrayAct.length ; i++){
+                                        totalActDate +=` <td class="" style="width: 10%">
+                                        <input type="text" class="form-control-plaintext text-color-blue text-right"
+                                            value="`+finalArrayAct[i]+`" 
+                                            id="totalAct`+i+`" name="totalAct[]">
+                                        </td>`;
+                                    }
+
+                                    for(let i =0; i < finalArrayBal.length ; i++){
+                                        totalBalDate +=` <td class="" style="width: 10%">
+                                        <input type="text" class="form-control-plaintext text-color-blue text-right"
+                                            value="`+finalArrayBal[i]+`" 
+                                            id="totalBal`+i+`" name="totalBal[]">
+                                        </td>`;
+                                    }
+                                
+                                    totalPlan1 = `<tr><td colspan="`+numOfKolomHeader+`">Total Plan</td>`+totalPlanDate+`</tr>`;
+                                    totalAct1 = `<tr><td colspan="`+numOfKolomHeader+`">Total Act</td>`+totalActDate+`</tr>`;
+                                    totalBalMin1 = `<tr><td colspan="`+numOfKolomHeader+`">Total Balance Minus</td>`+totalBalDate+`</tr>`;
+                            }
+
+                            // console.log(article+"-"+nomorCount);
                             nomor1=`<td class="" rowspan="3" style="width: 20%">
                                     <label>`+nomorCount+`</label>
                                  </td>`;
@@ -308,26 +415,29 @@
                             nomor=`<td class="d-none" style="width: 20%">
                                     <label>`+nomorCount+`</label>
                                 </td>`;
-                            dataRows= rowGroup+` <tr>`+group1+nomor1+artCode1+artName1+coloCode1+variant1+`
+                            dataRows= totalPlan+totalAct+totalBalMin+rowGroup+` <tr>`+nomor1+artCode1+artName1+coloCode1+variant1+`
                                             <td>Plan</td>`+plan+`
                                         </tr>
-                                        <tr>`+group+nomor+artCode+artName+coloCode+variant+`
+                                        <tr>`+nomor+artCode+artName+coloCode+variant+`
                                             <td>Act</td>`+act+`
                                         </tr>
-                                        <tr>`+group+nomor+artCode+artName+coloCode+variant+`
+                                        <tr>`+nomor+artCode+artName+coloCode+variant+`
                                             <td>Bal. Minus</td>`+balance+`
-                                        </tr>`;
+                                        </tr>`+totalPlan1+totalAct1+totalBalMin1;
                             $('#tblBaru > tbody').append(dataRows);
                         }
                         // console.log(result.data[i].article_code);
-                        kolom="";
-                        // artCode = "";
+                        kolom = "";
                         plan = "";
                         act = "";
                         balance = "";
-                        rowGroup="";
-                        // judulGroup="";
-                        nomorCount=0;
+                        rowGroup = "";
+                        totalPlan = "";
+                        totalAct = "";
+                        totalBalMin ="";
+                        arrayPlan=[];
+                        arrayAct=[];
+                        arrayBal=[];
                         article = result.data[i].article_code;
                         
                     }
@@ -335,7 +445,6 @@
                     if (article == result.data[i].article_code){
                         // artCode=result.data[i].article_code;
                         //supaya article bisa di rowspan, baris selanjut nya di hide
-
                         judulGroup2=result.data[i].group_of_material;
                         
                         artCode1=`<td class="" rowspan="3" style="width: 20%">
@@ -378,11 +487,15 @@
                                     <label>`+result.data[i].group_of_material+`</label>
                                 </td>`;
 
+                        arrayPlan.push(result.data[i].plan)
+                        arrayAct.push(result.data[i].act)
+                        arrayBal.push(result.data[i].balance)
+                        
                         plan+=` <td class="" style="width: 10%">
                                   <input type="text" class="form-control-plaintext pindah-cell input-name text-color-blue text-right" 
                                     data-tanggal="`+result.data[i].day+`" 
                                     data-article-id="`+result.data[i].article_code+`" 
-                                    data-max-coloumn= "`+maxColumn+`"
+                                    data-max-coloumn= "`+numberOfDate+`"
                                     value="`+result.data[i].plan+`" 
                                     id="plan`+i+`" name="plan[]">
                                 </td>`;
@@ -413,6 +526,7 @@
             }
         });
     });
+    
 
     // $("#cmdGenerate").click(function(){
     //     let kolom="";
@@ -425,7 +539,7 @@
     //         dataType: "json",
     //         success: function(result) {
     //             let tahun,hari,tanggal;
-    //             let maxColumn=result.kolom.length;
+    //             let numberOfDate=result.kolom.length;
     //             for(let i =0;i<result.kolom.length;i++){
     //                 tahun=`<th class="" colspan="`+result.kolom[i].countday+1+`" >
     //                             <label>`+result.kolom[i].dateyear+`</label>
@@ -526,7 +640,7 @@
     //                               <input type="text" class="form-control-plaintext pindah-cell input-name text-color-blue text-right" 
     //                                 data-tanggal="`+result.data[i].day+`" 
     //                                 data-article-id="`+result.data[i].article_code+`" 
-    //                                 data-max-coloumn= "`+maxColumn+`"
+    //                                 data-max-coloumn= "`+numberOfDate+`"
     //                                 value="`+result.data[i].plan+`" 
     //                                 id="plan`+i+`" name="plan[]">
     //                             </td>`;
