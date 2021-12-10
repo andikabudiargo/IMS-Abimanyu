@@ -4,6 +4,225 @@
 @include('layouts.breadcrumb')
 @include('partials.alert')
 <section id="add-index">
+
+     <!-- Modern Horizontal Wizard -->
+     <section class="modern-horizontal-wizard">
+        <div class="bs-stepper wizard-modern modern-wizard-example">
+            <div class="bs-stepper-header">
+                <div class="step" data-target="#account-details-modern">
+                    <button type="button" class="step-trigger">
+                        <span class="bs-stepper-box">
+                            <i data-feather="file-text" class="font-medium-3"></i>
+                        </span>
+                        <span class="bs-stepper-label">
+                            <span class="bs-stepper-title">Filter data</span>
+                            <span class="bs-stepper-subtitle">Filter data by Sales Order</span>
+                        </span>
+                    </button>
+                </div>
+                <div class="line">
+                    <i data-feather="chevron-right" class="font-medium-2"></i>
+                </div>
+                <div class="step" data-target="#personal-info-modern">
+                    <button type="button" class="step-trigger">
+                        <span class="bs-stepper-box">
+                            <i data-feather="user" class="font-medium-3"></i>
+                        </span>
+                        <span class="bs-stepper-label">
+                            <span class="bs-stepper-title">Personal Info</span>
+                            <span class="bs-stepper-subtitle">Add Personal Info</span>
+                        </span>
+                    </button>
+                </div>
+                <div class="line">
+                    <i data-feather="chevron-right" class="font-medium-2"></i>
+                </div>
+                <div class="step" data-target="#address-step-modern">
+                    <button type="button" class="step-trigger">
+                        <span class="bs-stepper-box">
+                            <i data-feather="map-pin" class="font-medium-3"></i>
+                        </span>
+                        <span class="bs-stepper-label">
+                            <span class="bs-stepper-title">Address</span>
+                            <span class="bs-stepper-subtitle">Add Address</span>
+                        </span>
+                    </button>
+                </div>
+                <div class="line">
+                    <i data-feather="chevron-right" class="font-medium-2"></i>
+                </div>
+                <div class="step" data-target="#social-links-modern">
+                    <button type="button" class="step-trigger">
+                        <span class="bs-stepper-box">
+                            <i data-feather="link" class="font-medium-3"></i>
+                        </span>
+                        <span class="bs-stepper-label">
+                            <span class="bs-stepper-title">Social Links</span>
+                            <span class="bs-stepper-subtitle">Add Social Links</span>
+                        </span>
+                    </button>
+                </div>
+            </div>
+            <div class="bs-stepper-content">
+                <div id="account-details-modern" class="content">
+                    <div class="content-header">
+                        <h5 class="mb-0">Account Details</h5>
+                        <small class="text-muted">Enter Your Account Details.</small>
+                    </div>
+                    <div class="row">
+                        <div class="form-group col-md-6">
+                            <label class="form-label" for="modern-username">Username</label>
+                            <input type="text" id="modern-username" class="form-control" placeholder="johndoe" />
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label class="form-label" for="modern-email">Email</label>
+                            <input type="email" id="modern-email" class="form-control" placeholder="john.doe@email.com" aria-label="john.doe" />
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="form-group form-password-toggle col-md-6">
+                            <label class="form-label" for="modern-password">Password</label>
+                            <input type="password" id="modern-password" class="form-control" placeholder="&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;" />
+                        </div>
+                        <div class="form-group form-password-toggle col-md-6">
+                            <label class="form-label" for="modern-confirm-password">Confirm Password</label>
+                            <input type="password" id="modern-confirm-password" class="form-control" placeholder="&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;" />
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <button class="btn btn-outline-secondary btn-prev" disabled>
+                            <i data-feather="arrow-left" class="align-middle mr-sm-25 mr-0"></i>
+                            <span class="align-middle d-sm-inline-block d-none">Previous</span>
+                        </button>
+                        <button class="btn btn-primary btn-next">
+                            <span class="align-middle d-sm-inline-block d-none">Next</span>
+                            <i data-feather="arrow-right" class="align-middle ml-sm-25 ml-0"></i>
+                        </button>
+                    </div>
+                </div>
+                <div id="personal-info-modern" class="content">
+                    <div class="content-header">
+                        <h5 class="mb-0">Personal Info</h5>
+                        <small>Enter Your Personal Info.</small>
+                    </div>
+                    <div class="row">
+                        <div class="form-group col-md-6">
+                            <label class="form-label" for="modern-first-name">First Name</label>
+                            <input type="text" id="modern-first-name" class="form-control" placeholder="John" />
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label class="form-label" for="modern-last-name">Last Name</label>
+                            <input type="text" id="modern-last-name" class="form-control" placeholder="Doe" />
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="form-group col-md-6">
+                            <label class="form-label" for="modern-country">Country</label>
+                            <select class="select2 w-100" id="modern-country">
+                                <option label=" "></option>
+                                <option>UK</option>
+                                <option>USA</option>
+                                <option>Spain</option>
+                                <option>France</option>
+                                <option>Italy</option>
+                                <option>Australia</option>
+                            </select>
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label class="form-label" for="modern-language">Language</label>
+                            <select class="select2 w-100" id="modern-language" multiple>
+                                <option>English</option>
+                                <option>French</option>
+                                <option>Spanish</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <button class="btn btn-primary btn-prev">
+                            <i data-feather="arrow-left" class="align-middle mr-sm-25 mr-0"></i>
+                            <span class="align-middle d-sm-inline-block d-none">Previous</span>
+                        </button>
+                        <button class="btn btn-primary btn-next">
+                            <span class="align-middle d-sm-inline-block d-none">Next</span>
+                            <i data-feather="arrow-right" class="align-middle ml-sm-25 ml-0"></i>
+                        </button>
+                    </div>
+                </div>
+                <div id="address-step-modern" class="content">
+                    <div class="content-header">
+                        <h5 class="mb-0">Address</h5>
+                        <small>Enter Your Address.</small>
+                    </div>
+                    <div class="row">
+                        <div class="form-group col-md-6">
+                            <label class="form-label" for="modern-address">Address</label>
+                            <input type="text" id="modern-address" class="form-control" placeholder="98  Borough bridge Road, Birmingham" />
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label class="form-label" for="modern-landmark">Landmark</label>
+                            <input type="text" id="modern-landmark" class="form-control" placeholder="Borough bridge" />
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="form-group col-md-6">
+                            <label class="form-label" for="pincode3">Pincode</label>
+                            <input type="text" id="pincode3" class="form-control" placeholder="658921" />
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label class="form-label" for="city3">City</label>
+                            <input type="text" id="city3" class="form-control" placeholder="Birmingham" />
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <button class="btn btn-primary btn-prev">
+                            <i data-feather="arrow-left" class="align-middle mr-sm-25 mr-0"></i>
+                            <span class="align-middle d-sm-inline-block d-none">Previous</span>
+                        </button>
+                        <button class="btn btn-primary btn-next">
+                            <span class="align-middle d-sm-inline-block d-none">Next</span>
+                            <i data-feather="arrow-right" class="align-middle ml-sm-25 ml-0"></i>
+                        </button>
+                    </div>
+                </div>
+                <div id="social-links-modern" class="content">
+                    <div class="content-header">
+                        <h5 class="mb-0">Social Links</h5>
+                        <small>Enter Your Social Links.</small>
+                    </div>
+                    <div class="row">
+                        <div class="form-group col-md-6">
+                            <label class="form-label" for="modern-twitter">Twitter</label>
+                            <input type="text" id="modern-twitter" class="form-control" placeholder="https://twitter.com/abc" />
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label class="form-label" for="modern-facebook">Facebook</label>
+                            <input type="text" id="modern-facebook" class="form-control" placeholder="https://facebook.com/abc" />
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="form-group col-md-6">
+                            <label class="form-label" for="modern-google">Google+</label>
+                            <input type="text" id="modern-google" class="form-control" placeholder="https://plus.google.com/abc" />
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label class="form-label" for="modern-linkedin">Linkedin</label>
+                            <input type="text" id="modern-linkedin" class="form-control" placeholder="https://linkedin.com/abc" />
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <button class="btn btn-primary btn-prev">
+                            <i data-feather="arrow-left" class="align-middle mr-sm-25 mr-0"></i>
+                            <span class="align-middle d-sm-inline-block d-none">Previous</span>
+                        </button>
+                        <button class="btn btn-success btn-submit">Submit</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    <!-- /Modern Horizontal Wizard -->
+
+
     <div class="row">
         <div class="col-md-12">
             <div class="card">
@@ -20,6 +239,12 @@
                         </ul>
                     </div>    
                 </div>
+
+                <div class="col-md-3 form-group">
+                    <label for="orderDate">Date</label>
+                    <input type="text" id="orderDate" name="orderDate" class="form-control flatpickr-range" placeholder="YYYY-MM-DD to YYYY-MM-DD" />
+                </div>
+
                 <div class="card-content collapse show">
                     <div class="card-body">
                         <form id="frmAdd" name="frmAdd" autocomplete="off">
@@ -74,18 +299,35 @@
                     <h4 class="card-title">Delivery plan list</h4>
                 </div>
                 <div class="card-body" >
-                    <div>
+                    <div class='row'>
                         <div class="col-sm-12">
-                            <div class="card-datatable table-responsive pt-0" id="dataDetail">
+                            <div class="table-scrollable table-wrap">
                                 <table id="tblBaru" class="table table-bordered display w-100 list-plan" >
                                     <thead class="thead-light">
                                     </thead>
                                     <tbody>
                                     </tbody>
-                                </table>         
+                                </table>
                             </div>
                         </div>
-                    </div>      
+                    </div>
+
+                    <br><br><br>
+                    
+                    <div class='row'>
+                        <h1>Summary by supplier</h1>
+                        <div class="col-sm-12">
+                            <div class="tblSumSupp-scrollable table-wrap">
+                                <table id="tblSumSupp" class="table table-bordered display w-100 list-plan" >
+                                    <thead class="thead-light">
+                                    </thead>
+                                    <tbody>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="" id="article_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px">
                         <input type="text" id ="last_row_number" class="d-none" value="0">
                     </div>
@@ -192,9 +434,9 @@
     table.list-plan td {
         /* padding: 0.72rem 1.5rem; */
         padding-top: 0rem;
-        padding-right: 1rem;
+        padding-right: 0rem;
         padding-bottom: 0rem;
-        padding-left: 1rem;
+        padding-left: 0rem;
         vertical-align: middle;
     }
 
@@ -209,7 +451,7 @@
 
     .input-name:focus {
         box-shadow:0 0 0 1px red;
-        /* background-color: red; */
+        background-color: #FEF5ED;
     }
     .text-color-blue{
         color:rgb(34, 110, 209);
@@ -219,19 +461,97 @@
         padding-right:5px;
     }
 
+    .header-group{
+        background-color:rgb(74, 77, 83);
+        color:white;
+        padding-top: 0.5rem !important;
+        padding-bottom: 0.5rem !important;
+    }
+
+    /* wrap kolom di table */
+    .table-wrap {
+        max-height: 500px;
+    }  
+
+    .kuning {
+        background-color:#F2F013;
+    }
+
+    .active-cell{
+        background-color:#fcfbf9;
+    }
+
+    .disabled-cell{
+        background-color:#F3F0D7;
+    }
 
 </style>
 @endsection
+
 @section('scripts')
+<script src="{{ asset('assets/js/freeze-table.js') }}"></script>
 <script type="text/javascript">
+
+var bsStepper = document.querySelectorAll('.bs-stepper'),modernWizard = document.querySelector('.modern-wizard-example');
+if (typeof bsStepper !== undefined && bsStepper !== null) {
+    for (var el = 0; el < bsStepper.length; ++el) {
+      bsStepper[el].addEventListener('show.bs-stepper', function (event) {
+        var index = event.detail.indexStep;
+        var numberOfSteps = $(event.target).find('.step').length - 1;
+        var line = $(event.target).find('.step');
+
+        // The first for loop is for increasing the steps,
+        // the second is for turning them off when going back
+        // and the third with the if statement because the last line
+        // can't seem to turn off when I press the first item. ¯\_(ツ)_/¯
+
+        for (var i = 0; i < index; i++) {
+          line[i].classList.add('crossed');
+
+          for (var j = index; j < numberOfSteps; j++) {
+            line[j].classList.remove('crossed');
+          }
+        }
+        if (event.detail.to == 0) {
+          for (var k = index; k < numberOfSteps; k++) {
+            line[k].classList.remove('crossed');
+          }
+          line[0].classList.remove('crossed');
+        }
+      });
+    }
+}
+
+if (typeof modernWizard !== undefined && modernWizard !== null) {
+    var modernStepper = new Stepper(modernWizard, {
+      linear: false
+    });
+    $(modernWizard)
+      .find('.btn-next')
+      .on('click', function () {
+        modernStepper.next();
+      });
+    $(modernWizard)
+      .find('.btn-prev')
+      .on('click', function () {
+        modernStepper.previous();
+      });
+
+    $(modernWizard)
+      .find('.btn-submit')
+      .on('click', function () {
+        alert('Submitted..!!');
+      });
+  }
+
+
     let currentDate = todayDate('dd-mm-yyyy');    
     $(document).ready(function(){           
         validateForm('frmAdd');
         $('#woDate').val(currentDate);
         
     });
-    
-        
+            
     function reloadPage(){
         window.location.reload();
     }
@@ -266,7 +586,7 @@
             success: function(result) {
                 let tahun,hari,tanggal;
                 let numberOfDate=result.kolom.length;
-                let numOfKolomHeader = 6;
+                let numOfKolomHeader = 3;
                 let totKolom = numberOfDate+numOfKolomHeader;
                 for(let i =0;i<result.kolom.length;i++){
                     tahun=`<th class="" colspan="`+result.kolom[i].countday+1+`" >
@@ -280,11 +600,26 @@
                             </th>`;
                 }
 
-                $('#tblBaru > thead').append("<tr><th rowspan='3'>No</th><th rowspan='3'>Code</th><th rowspan='3'>Name</th><th rowspan='3'>Col. Code</th><th rowspan='3'>Variant</th><th rowspan='3'>Remarks</th>"+tahun+"</tr>");
+                $('#tblBaru > thead').append(`<tr>
+                                    <th rowspan='3' class="">No</th>
+                                    <th rowspan='3' class="">Code</th>
+                                    <th rowspan='3' class="">Name</th>
+                                    <th rowspan='3' >Col. Code</th>
+                                    <th rowspan='3' >Variant</th>
+                                    <th rowspan='3' >Remarks</th>`+tahun+`</tr>`);
                 $('#tblBaru > thead').append("<tr>"+hari+"</tr>");
                 $('#tblBaru > thead').append("<tr>"+tanggal+"</tr>");
+
+
+                $('#tblSumSupp > thead').append(`<tr>
+                                                    <th rowspan='3' class="">Name</th>
+                                                    `+tahun+`
+                                                </tr>`);
+                $('#tblSumSupp > thead').append("<tr>"+hari+"</tr>");
+                $('#tblSumSupp > thead').append("<tr>"+tanggal+"</tr>");
                 
                 let article="";
+                let supplier="";
                 let articleKolom="";
                 let artCode,plan,act,balance,kolom;
                 let dataRows="";
@@ -317,38 +652,44 @@
                         if (article){
                             // console.log(article+"-"+judulGroup+"-"+result.data[i].group_of_material);
                             if (judulGroup != judulGroup2){
-                                rowGroup = `<tr><td colspan="`+totKolom+`">`+result.data[i].group_of_material+`</td></tr>`;
+                                rowGroup = `<tr>
+                                                <td class="header-group" colspan="3" >`+result.data[i].group_of_material+`</td>
+                                                <td class="header-group" colspan="`+totKolom+`"></td>
+                                            </tr>`;
                                 judulGroup = result.data[i].group_of_material;
+                                groupCode = result.data[i].group_code;
+                                tanggal = result.data[i].tanggal;
+                                supplier = result.data[i].supp_name;
                                 nomorCount = 0;
                                 
                                 if ( i!= numberOfDate ){
                                     for(let i =0; i < finalArrayPlan.length ; i++){
-                                        totalPlanDate +=` <td class="" style="width: 10%">
+                                        totalPlanDate +=` <td class="kuning" style="width: 10%">
                                         <input type="text" class="form-control-plaintext text-color-blue text-right"
                                             value="`+finalArrayPlan[i]+`" 
-                                            id="totalPlan`+i+`" name="totalPlan[]">
+                                            id="`+groupCode+'_'+tanggal+`" name="totalPlan[]" disabled>
                                         </td>`;
                                     }
                                     
                                     for(let i =0; i < finalArrayAct.length ; i++){
-                                        totalActDate +=` <td class="" style="width: 10%">
+                                        totalActDate +=` <td class="kuning" style="width: 10%">
                                         <input type="text" class="form-control-plaintext text-color-blue text-right"
                                             value="`+finalArrayAct[i]+`" 
-                                            id="totalAct`+i+`" name="totalAct[]">
+                                            id="totalAct`+i+`" name="totalAct[]" disabled>
                                         </td>`;
                                     }
 
                                     for(let i =0; i < finalArrayBal.length ; i++){
-                                        totalBalDate +=` <td class="" style="width: 10%">
+                                        totalBalDate +=` <td class="kuning" style="width: 10%">
                                         <input type="text" class="form-control-plaintext text-color-blue text-right"
                                             value="`+finalArrayBal[i]+`" 
-                                            id="totalBal`+i+`" name="totalBal[]">
+                                            id="totalBal`+i+`" name="totalBal[]" disabled>
                                         </td>`;
                                     }
                                 
-                                    totalPlan = `<tr><td colspan="`+numOfKolomHeader+`">Total Plan</td>`+totalPlanDate+`</tr>`;
-                                    totalAct = `<tr><td colspan="`+numOfKolomHeader+`">Total Act</td>`+totalActDate+`</tr>`;
-                                    totalBalMin = `<tr><td colspan="`+numOfKolomHeader+`">Total Balance Minus</td>`+totalBalDate+`</tr>`;
+                                    totalPlan = `<tr><td class="kuning" colspan="3">Total Plan    `+supplier+`</td><td class="kuning" colspan="3"></td>`+totalPlanDate+`</tr>`;
+                                    totalAct = `<tr><td class="kuning" colspan="3">Total Act</td><td class="kuning" colspan="3"></td>`+totalActDate+`</tr>`;
+                                    totalBalMin = `<tr><td class="kuning" colspan="3">Total Balance Minus</td><td class="kuning" colspan="3"></td>`+totalBalDate+`</tr>`;
 
                                     finalArrayPlan =[];
                                     finalArrayAct =[];
@@ -379,15 +720,15 @@
                             if ( i+numberOfDate == jumlahData){
                                 // console.log(finalArrayPlan.length);
                                 for(let i =0; i < finalArrayPlan.length ; i++){
-                                        totalPlanDate +=` <td class="" style="width: 10%">
+                                        totalPlanDate +=` <td class="kuning" style="width: 10%">
                                         <input type="text" class="form-control-plaintext text-color-blue text-right"
                                             value="`+finalArrayPlan[i]+`" 
-                                            id="totalPlan`+i+`" name="totalPlan[]">
+                                            id="`+groupCode+'_'+i+`" name="totalPlan[]">
                                         </td>`;
                                     }
                                     
                                     for(let i =0; i < finalArrayAct.length ; i++){
-                                        totalActDate +=` <td class="" style="width: 10%">
+                                        totalActDate +=` <td class="kuning" style="width: 10%">
                                         <input type="text" class="form-control-plaintext text-color-blue text-right"
                                             value="`+finalArrayAct[i]+`" 
                                             id="totalAct`+i+`" name="totalAct[]">
@@ -395,16 +736,16 @@
                                     }
 
                                     for(let i =0; i < finalArrayBal.length ; i++){
-                                        totalBalDate +=` <td class="" style="width: 10%">
+                                        totalBalDate +=` <td class="kuning" style="width: 10%">
                                         <input type="text" class="form-control-plaintext text-color-blue text-right"
                                             value="`+finalArrayBal[i]+`" 
                                             id="totalBal`+i+`" name="totalBal[]">
                                         </td>`;
                                     }
                                 
-                                    totalPlan1 = `<tr><td colspan="`+numOfKolomHeader+`">Total Plan</td>`+totalPlanDate+`</tr>`;
-                                    totalAct1 = `<tr><td colspan="`+numOfKolomHeader+`">Total Act</td>`+totalActDate+`</tr>`;
-                                    totalBalMin1 = `<tr><td colspan="`+numOfKolomHeader+`">Total Balance Minus</td>`+totalBalDate+`</tr>`;
+                                    totalPlan1 = `<tr><td class="kuning" colspan="3">Total Plan    `+supplier+`</td><td class="kuning" colspan="3"></td>`+totalPlanDate+`</tr>`;
+                                    totalAct1 = `<tr><td class="kuning" colspan="3">Total Act</td><td class="kuning" colspan="3"></td>`+totalActDate+`</tr>`;
+                                    totalBalMin1 = `<tr><td class="kuning" colspan="3">Total Balance Minus</td><td class="kuning" colspan="3"></td>`+totalBalDate+`</tr>`;
                             }
 
                             // console.log(article+"-"+nomorCount);
@@ -415,13 +756,14 @@
                             nomor=`<td class="d-none" style="width: 20%">
                                     <label>`+nomorCount+`</label>
                                 </td>`;
-                            dataRows= totalPlan+totalAct+totalBalMin+rowGroup+` <tr>`+nomor1+artCode1+artName1+coloCode1+variant1+`
+                            dataRows= totalPlan+totalAct+totalBalMin+rowGroup+` 
+                                        <tr>`+nomor1+artCode1+artName1+coloCode1+variant1+`
                                             <td>Plan</td>`+plan+`
                                         </tr>
-                                        <tr>`+nomor+artCode+artName+coloCode+variant+`
+                                        <tr>
                                             <td>Act</td>`+act+`
                                         </tr>
-                                        <tr>`+nomor+artCode+artName+coloCode+variant+`
+                                        <tr>
                                             <td>Bal. Minus</td>`+balance+`
                                         </tr>`+totalPlan1+totalAct1+totalBalMin1;
                             $('#tblBaru > tbody').append(dataRows);
@@ -446,6 +788,8 @@
                         // artCode=result.data[i].article_code;
                         //supaya article bisa di rowspan, baris selanjut nya di hide
                         judulGroup2=result.data[i].group_of_material;
+                        groupCode = result.data[i].group_code;
+                        tanggal = result.data[i].tanggal;
                         
                         artCode1=`<td class="" rowspan="3" style="width: 20%">
                                     <label>`+result.data[i].article_alternative_code+`</label>
@@ -463,7 +807,7 @@
                                     <label>`+result.data[i].article_desc+`</label>
                                 </td>`;
 
-                        coloCode1=`<td class="" rowspan="3" style="width: 20%">
+                        coloCode1=`<td rowspan="3" style="width: 20%">
                                     <label>`+result.data[i].color_code+`</label>
                                  </td>`;
 
@@ -491,8 +835,9 @@
                         arrayAct.push(result.data[i].act)
                         arrayBal.push(result.data[i].balance)
                         
-                        plan+=` <td class="" style="width: 10%">
-                                  <input type="text" class="form-control-plaintext pindah-cell input-name text-color-blue text-right" 
+                        plan+=` <td class="" style="width: 10%;pading:2px;">
+                                  <input type="text" class="form-control-plaintext pindah-cell input-name text-color-blue text-right active-cell" 
+                                    data-total-code = "`+groupCode+"_"+tanggal+`"
                                     data-tanggal="`+result.data[i].day+`" 
                                     data-article-id="`+result.data[i].article_code+`" 
                                     data-max-coloumn= "`+numberOfDate+`"
@@ -500,7 +845,7 @@
                                     id="plan`+i+`" name="plan[]">
                                 </td>`;
 
-                        act+=`<td class="" style="width: 10%">
+                        act+=`<td class="disabled-cell" style="width: 10%">
                                 <input type="text" class="form-control-plaintext pindah-cell input-name text-right" 
                                     data-tanggal="`+result.data[i].day+`" 
                                     data-article-id="`+result.data[i].article_code+`" 
@@ -508,7 +853,7 @@
                                     id="act`+i+`" name="act[]" disabled>
                               </td>`;
 
-                        balance+=`<td class="" style="width: 10%">
+                        balance+=`<td class="disabled-cell" style="width: 10%">
                                     <input type="text" class="form-control-plaintext pindah-cell input-name text-right" 
                                         data-tanggal="`+result.data[i].day+`" 
                                         data-article-id="`+result.data[i].article_code+`" 
@@ -520,6 +865,61 @@
 
                 }
 
+                let supplierName="";
+                let dataRowsSupp="";
+                let suppSumDate="";
+                let suppCode="";
+                let jumDataSupp = result.supp.length; 
+                for ( let i=0; i < jumDataSupp; i ++){
+                    if (supplierName != result.supp[i].supp_name){
+                        if (supplierName){
+                            dataRowsSupp = ` <tr>`+suppCode+suppSumDate+`</tr>`;
+                            $('#tblSumSupp > tbody').append(dataRowsSupp);
+                        }
+
+                        
+                        suppSumDate="";
+                        suppCode="";
+                        supplierName = result.supp[i].supp_name;
+                    }
+
+                    console.log(i+1+"-"+jumDataSupp)
+                    if ( i+1 == jumDataSupp){
+                        suppCode =`<td class="" style="width: 20%">
+                                    <label>`+result.supp[i].supp_name+`</label>
+                                </td>`;
+                        suppSumDate+=` <td class="" style="width: 10%">
+                                        <label>`+result.supp[i].plan+`</label>
+                                </td>`;
+                        dataRowsSupp = ` <tr>`+suppCode+suppSumDate+`</tr>`;
+                        $('#tblSumSupp > tbody').append(dataRowsSupp);
+                    }
+
+                    if (supplierName == result.supp[i].supp_name){
+                        
+                        console.log(supplierName);
+                        suppCode =`<td class="" style="width: 20%">
+                                    <label>`+result.supp[i].supp_name+`</label>
+                                </td>`;
+                        suppSumDate+=` <td class="" style="width: 10%">
+                                        <label>`+result.supp[i].plan+`</label>
+                                </td>`;
+
+                    }
+
+                }
+
+                $(".table-scrollable").freezeTable({
+                    'scrollable': true,
+                    'columnNum' : 3,
+                });
+
+                $(".tblSumSupp-scrollable").freezeTable({
+                    'scrollable': true
+                });
+
+                
+
             },
             error: function(error) {
                 console.log(error);
@@ -527,187 +927,6 @@
         });
     });
     
-
-    // $("#cmdGenerate").click(function(){
-    //     let kolom="";
-    //     let baris="";
-    //     $.ajax({
-    //         type: "get",
-    //         url: "{{ route('deliveryPlan.generate') }}",
-    //         data: {
-    //         },
-    //         dataType: "json",
-    //         success: function(result) {
-    //             let tahun,hari,tanggal;
-    //             let numberOfDate=result.kolom.length;
-    //             for(let i =0;i<result.kolom.length;i++){
-    //                 tahun=`<th class="" colspan="`+result.kolom[i].countday+1+`" >
-    //                             <label>`+result.kolom[i].dateyear+`</label>
-    //                         </th>`;
-    //                 hari+=`<th class="" >
-    //                             <label>`+result.kolom[i].dy+`</label>
-    //                         </th>`;
-    //                 tanggal+=`<th class="" >
-    //                             <label>`+result.kolom[i].datemon+`</label>
-    //                         </th>`;
-    //             }
-
-    //             $('#tblBaru > thead').append("<tr><th rowspan='3'>group</th><th rowspan='3'>No</th><th rowspan='3'>Code</th><th rowspan='3'>Name</th><th rowspan='3'>Col. Code</th><th rowspan='3'>Variant</th><th rowspan='3'>Remarks</th>"+tahun+"</tr>");
-    //             $('#tblBaru > thead').append("<tr>"+hari+"</tr>");
-    //             $('#tblBaru > thead').append("<tr>"+tanggal+"</tr>");
-                
-    //             let article="";
-    //             let articleKolom="";
-    //             let artCode,plan,act,balance,kolom;
-    //             let dataRows="";
-    //             let nomorCount=0;
-    //             for(let i=0;i<result.data.length;i++){
-    //                 if (article != result.data[i].article_code){
-    //                     if (article){
-    //                         nomor1=`<td class="" rowspan="3" style="width: 20%">
-    //                                 <label>`+nomorCount+`</label>
-    //                              </td>`;
-
-    //                         nomor=`<td class="d-none" style="width: 20%">
-    //                                 <label>`+nomorCount+`</label>
-    //                             </td>`;
-    //                         dataRows= ` <tr>`+group+nomor1+artCode1+artName1+coloCode1+variant1+`
-    //                                         <td>Plan</td>`+plan+`
-    //                                     </tr>
-    //                                     <tr>`+group+nomor+artCode+artName+coloCode+variant+`
-    //                                         <td>Act</td>`+act+`
-    //                                     </tr>
-    //                                     <tr>`+group+nomor+artCode+artName+coloCode+variant+`
-    //                                         <td>Bal. Minus</td>`+balance+`
-    //                                     </tr>`;
-    //                         $('#tblBaru > tbody').append(dataRows);
-    //                     }
-    //                     // console.log(result.data[i].article_code);
-    //                     kolom="";
-    //                     // artCode = "";
-    //                     plan = "";
-    //                     act = "";
-    //                     balance = "";
-    //                     nomorCount=0;
-    //                     article = result.data[i].article_code;
-    //                 }
-                    
-    //                 if (article == result.data[i].article_code){
-    //                     // artCode=result.data[i].article_code;
-    //                     //supaya article bisa di rowspan, baris selanjut nya di hide
-                        
-    //                     artCode1=`<td class="" rowspan="3" style="width: 20%">
-    //                                 <label>`+result.data[i].article_alternative_code+`</label>
-    //                              </td>`;
-
-    //                     artCode=`<td class="d-none" style="width: 20%">
-    //                                 <label>`+result.data[i].article_alternative_code+`</label>
-    //                             </td>`;
-    //                     //supaya article bisa di rowspan, baris selanjut nya di hide
-    //                     artName1=`<td class="" rowspan="3" style="width: 20%">
-    //                                 <label>`+result.data[i].article_desc+`</label>
-    //                              </td>`;
-
-    //                     artName=`<td class="d-none" style="width: 20%">
-    //                                 <label>`+result.data[i].article_desc+`</label>
-    //                             </td>`;
-
-    //                     coloCode1=`<td class="" rowspan="3" style="width: 20%">
-    //                                 <label>`+result.data[i].color_code+`</label>
-    //                              </td>`;
-
-    //                     coloCode=`<td class="d-none" style="width: 20%">
-    //                                 <label>`+result.data[i].color_code+`</label>
-    //                             </td>`;
-
-    //                     variant1=`<td class="" rowspan="3" style="width: 20%">
-    //                                 <label>`+result.data[i].variant+`</label>
-    //                              </td>`;
-
-    //                     variant=`<td class="d-none" style="width: 20%">
-    //                                 <label>`+result.data[i].variant+`</label>
-    //                             </td>`;
-
-    //                     // group1=`<td class="" rowspan="3" style="width: 20%">
-    //                     //             <label>`+result.data[i].group_of_material+`</label>
-    //                     //          </td>`;
-
-    //                     group=`<td class="d-none" style="width: 20%">
-    //                                 <label>`+result.data[i].group_of_material+`</label>
-    //                             </td>`;
-
-    //                     plan+=` <td class="" style="width: 10%">
-    //                               <input type="text" class="form-control-plaintext pindah-cell input-name text-color-blue text-right" 
-    //                                 data-tanggal="`+result.data[i].day+`" 
-    //                                 data-article-id="`+result.data[i].article_code+`" 
-    //                                 data-max-coloumn= "`+numberOfDate+`"
-    //                                 value="`+result.data[i].plan+`" 
-    //                                 id="plan`+i+`" name="plan[]">
-    //                             </td>`;
-
-    //                     act+=`<td class="" style="width: 10%">
-    //                             <input type="text" class="form-control-plaintext pindah-cell input-name text-right" 
-    //                                 data-tanggal="`+result.data[i].day+`" 
-    //                                 data-article-id="`+result.data[i].article_code+`" 
-    //                                 value="`+result.data[i].act+`" 
-    //                                 id="act`+i+`" name="act[]" disabled>
-    //                           </td>`;
-
-    //                     balance+=`<td class="" style="width: 10%">
-    //                                 <input type="text" class="form-control-plaintext pindah-cell input-name text-right" 
-    //                                     data-tanggal="`+result.data[i].day+`" 
-    //                                     data-article-id="`+result.data[i].article_code+`" 
-    //                                     value="`+result.data[i].balance+`" 
-    //                                     id="balance`+i+`" name="balance[]" disabled>
-    //                               </td>`;
-                        
-    //                 }
-
-    //             }
-
-    //             let groupColumn = 0;
-    //             let foot="";
-    //             let coloumn="";
-    //             let colNum=38;
-    //             $('#tblBaru').DataTable( {
-    //                 order: [[0, 'asc']],
-    //                 rowGroup: {
-    //                     // endRender: function ( rows, group ) {
-    //                     //     var avg = rows
-    //                     //         .data()
-    //                     //         .pluck(7)
-    //                     //         .reduce( function (a, b) {
-    //                     //             return a + b.replace(/[^\d]/g, '')*1;
-    //                     //         }, 0) ;
-    //                     //         // / rows.count()
-            
-    //                     //     return 'Total plan '+group+': '+
-    //                     //         $.fn.dataTable.render.number(',', '.', 0, '$').display( avg );
-    //                     // },
-    //                     dataSrc: groupColumn
-    //                 },
-    //                 scrollY:        "500px",
-    //                 scrollX:        true,
-    //                 scrollCollapse: true,
-    //                 paging:         false,
-    //                 fixedColumns:   {
-    //                     left: 3
-    //                 },
-    //                 columnDefs: [
-    //                 {
-    //                     targets: [ 0 ],
-    //                     visible: false,
-    //                     searchable: false
-    //                 },
-    //             ]
-    //             } );
-    //         },
-    //         error: function(error) {
-    //             console.log(error);
-    //         }
-    //     });
-    // });
-
     $("#prosesWO").click(function(){
         ambilData();
     });

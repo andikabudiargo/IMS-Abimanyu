@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Crypt;
 use Response;
 use App\Permission;
 use DataTables;
@@ -153,6 +154,10 @@ class ArticleController extends Controller
         $files = $request->input('files');
         $status = '1';
         $pesan = '';
+
+        $colorCode = $request->input('colorCode');
+        $variant = $request->input('variant');
+
         
         $messages = [
             'required' => 'The field is required.',
@@ -188,6 +193,8 @@ class ArticleController extends Controller
                     'uom' => $uom,
                     'costprice' => $price,
                     'status' => $status,
+                    'color_code' => $colorCode,
+                    'variant' => $variant,
                     'article_type' => $articleDet[1],
                     'created_by' => Auth::user()->username,
                     'updated_by' => Auth::user()->username,
@@ -229,13 +236,13 @@ class ArticleController extends Controller
     public function edit(Request $request)
     {
 
-        $id=$request->id;
+        $id=Crypt::decryptString($request->id);
         $data['title'] = "Edit Article";
         $data['subtitle'] = "Edit Article";
         
         $data['article'] = DB::table('article')
         ->where('id',$id)
-        ->get(['article_code','costprice','article_alternative_code as code','article_desc as desc','uom','quality','note','id','group_of_material as group','third_party as cust','quality','status','article_type','imgfile'])->first();
+        ->get(['article_code','costprice','article_alternative_code as code','article_desc as desc','uom','quality','note','id','group_of_material as group','third_party as cust','quality','status','article_type','imgfile','color_code','variant'])->first();
 
         $data['images'] = DB::table('images')
         ->where('key',$data['article']->article_code)
@@ -267,14 +274,13 @@ class ArticleController extends Controller
 
     public function show(Request $request)
     {
-
-        $id=$request->id;
+        $id=Crypt::decryptString($request->id);
         $data['title'] = "Edit Article";
         $data['subtitle'] = "Edit Article";
         
         $data['article'] = DB::table('article')
         ->where('id',$id)
-        ->get(['article_code','costprice','article_alternative_code as code','article_desc as desc','uom','quality','note','id','group_of_material as group','third_party as cust','quality','status','article_type','imgfile'])->first();
+        ->get(['article_code','costprice','article_alternative_code as code','article_desc as desc','uom','quality','note','id','group_of_material as group','third_party as cust','quality','status','article_type','imgfile','color_code','variant'])->first();
 
         $data['images'] = DB::table('images')
         ->where('key',$data['article']->article_code)
@@ -322,6 +328,9 @@ class ArticleController extends Controller
         $fileDihapus = $request->input('fileDihapus');
         $status = $request->input('status') ? '0' : '1';
         $pesan = '';
+
+        $colorCode = $request->input('colorCode');
+        $variant = $request->input('variant');
         
 
         // status : 1= aktif, 0= closing
@@ -354,6 +363,8 @@ class ArticleController extends Controller
                         'uom' => $uom,
                         'costprice' => $price,
                         'status' => $status,
+                        'color_code' => $colorCode,
+                        'variant' => $variant,
                         'updated_by' => Auth::user()->username,
                         'updated_at' => date('Y-m-d H:i:s')
                     ]
@@ -459,12 +470,12 @@ class ArticleController extends Controller
                                     Movement
                                 </a>';
             if (Auth::user()->can('article-edit')) {
-            $buttons .=         '<a href="'. route('article.edit', ['id'=>$data->id]) .'" class="dropdown-item">
+            $buttons .=         '<a href="'. route('article.edit',  ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                     <i data-feather="file-text"></i>
                                     Edit
                                 </a>';
             }
-            $buttons .=         '<a href="'. route('article.show', ['id'=>$data->id]) .'" class="dropdown-item">
+            $buttons .=         '<a href="'. route('article.show', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                     <i data-feather="list"></i>
                                     Detail
                                 </a>';

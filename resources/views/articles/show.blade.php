@@ -39,6 +39,20 @@
                             </div>         
                         </div>
                         <div class="row">
+                            <div class="col-6">
+                                <div class="form-group">
+                                    <label for="colorCode">Color Code</label>
+                                    <input type="text" id="colorCode" name="colorCode" class="form-control text-uppercase" value="{{ old("colorCode",$article->color_code) }}" maxlength="10" disabled/>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="form-group">
+                                    <label for="variant">Variant</label>
+                                    <input type="text" id="variant" name="variant" class="form-control text-uppercase" value="{{ old('variant',$article->variant) }}" maxlength="10" disabled/>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
                             <div class="form-group col-md-12">
                                 <label class="form-label" for="cust"> {{ $article->article_type == 'FG' || $article->article_type == 'RM' ? 'Customer' : 'Supplier'}}</label>
                                 <select class="select2 form-control" id="cust" name="cust" disabled>

@@ -37,6 +37,20 @@
                             </div>              
                         </div>
                         <div class="row">
+                            <div class="col-6">
+                                <div class="form-group">
+                                    <label for="colorCode">Color Code</label>
+                                    <input type="text" id="colorCode" name="colorCode" class="form-control text-uppercase" value="{{ old('colorCode') }}" maxlength="10"/>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="form-group">
+                                    <label for="variant">Variant</label>
+                                    <input type="text" id="variant" name="variant" class="form-control text-uppercase" value="{{ old('variant') }}" maxlength="10"/>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
                             <div class="form-group col-md-12">
                                 <label class="form-label" for="cust" id="custLable">Customer/Supplier*</label>
                                 <select class="select2 form-control" id="cust" name="cust" autofocus required>

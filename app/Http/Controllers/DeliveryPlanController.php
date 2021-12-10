@@ -70,7 +70,19 @@ class DeliveryPlanController extends Controller
         $startDate = '2021-06-01';
         $endDate = '2021-07-01';
 
-        $data=DB::select("SELECT a.article_code,article_alternative_code,article_desc,group_of_material,color_code,variant,day,plan,act,balance from 
+        $data=DB::select("SELECT a.article_code
+                                ,article_alternative_code
+                                ,article_desc,group_of_material as group_code
+                                ,(select name from group_materials where code = group_of_material) as group_of_material 
+                                ,color_code
+                                ,variant
+                                ,day
+                                ,to_char(day, 'dd') as tanggal
+                                ,plan
+                                ,act
+                                ,balance
+                                ,(select nama from third_party where kode = third_party) as supp_name 
+                        from 
                         (SELECT p.article_code,day::date,2 as plan,2 as act,0 as balance
                         FROM (select article_code from article where article_type ='FG') p cross join
                         generate_series(
@@ -96,7 +108,26 @@ class DeliveryPlanController extends Controller
                             , interval  '1 day') AS t(day)
                         ) as oki");
 
-        return Response()->json(['data'=> $data,'kolom'=>$kolomHeader]);
+        $sumOfSupp=DB::select("SELECT supp_name,day,sum(plan) as plan,sum(act) as act,sum(balance) as balance from (
+            SELECT a.article_code,article_alternative_code,article_desc,group_of_material as group_code,(select name from group_materials where code = group_of_material) as group_of_material ,color_code,variant,day,to_char(day, 'dd') as tanggal,plan,act,balance 
+            ,(select nama from third_party where kode = third_party) as supp_name
+            from 
+            (SELECT p.article_code,day::date,2 as plan,2 as act,0 as balance
+            FROM (select article_code from article where article_type ='FG') p cross join
+            generate_series(
+                timestamp '$startDate'
+                , timestamp '$endDate'
+                , INTERVAL '1 day') 
+            day left join
+            article dm
+            ON dm.article_code = p.article_code
+            ORDER BY p.article_code,day ASC) as oki
+            left join article a
+            on a.article_code = oki.article_code) as oki
+            group by supp_name,day
+            order by supp_name,day");
+
+        return Response()->json(['data'=> $data,'kolom'=>$kolomHeader,'supp' => $sumOfSupp]);
 
     }
 
