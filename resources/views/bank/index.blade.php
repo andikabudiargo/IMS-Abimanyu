@@ -4,7 +4,7 @@
 @include('layouts.breadcrumb')
 @include('partials.alert')
 
-<section id="articleTypes-index">
+<section id="accTypes-index">
     <div class="row">
       <div class="col-12">
         <div class="card">
@@ -15,24 +15,25 @@
           <div class="card-body">
             <form class="needs-validation" novalidate>
                 <div class="form-row">
-                    <div class="col-md-4"> 
-                        <div class="form-group">
-                        <label for="articleTypeCode">Kode</label>
-                        <input type="text" class="form-control text-uppercase" id="articleTypeCode" name="articleTypeCode" placeholder=""  />
-                        </div>
-                    </div>
-                    <div class="col-md-4"> 
+                  <div class="form-group col-md-4">
+                    <label class="form-label" for="bankType">Type</label>
+                    <select class="select2 form-control w-100" id="bankType" name="bankType" required>
+                        <option value="BCA" >BCA</option>
+                        <option value="NONBCA" >NON BCA</option>
+                    </select>
+                  </div>
+                  <div class="form-group col-md-4"> 
                     <div class="form-group">
-                        <label for="articleTypeName">Name</label>
-                        <input type="text" class="form-control text-uppercase" id="articleTypeName" name="articleTypeName" placeholder="" />
+                        <label for="bankName">Name</label>
+                        <input type="text" class="form-control text-uppercase" id="bankName" name="bankName" placeholder="" />
                     </div>
-                    </div>
+                  </div>
                 </div>
                 <div class="form-row">
                     <div class="col-12"> 
                         <button type="button" class="btn btn-primary" id ="btnSearch" name="btnSearch">Search</button>
-                        @can('articleType-create')
-                        <a href="{{ route('articleType.create') }}" class="btn btn-info"><i class="fa fa-plus"></i> Create</a>
+                        @can('bank-create')
+                        <a href="{{ route('bank.create') }}" class="btn btn-info"><i class="fa fa-plus"></i> Create</a>
                         @endcan
                     </div>
                 </div>
@@ -43,7 +44,7 @@
     </div>
 </section>
 
-<section id="table-articleTypes">
+<section id="table-banks">
     <div class="card">
       <div class="card-header">
         <h4 class="card-title"> @yield('title') List</h4>
@@ -88,7 +89,6 @@
         console.log(href);
         $('#modalConfirmation').attr("action", href);
     });
-    showList();
 
   });
 
@@ -108,8 +108,8 @@
   });
 
   $("#btnSearch").click(function(e){
-      let code =$("#articleTypeCode").val();
-      let nama =$("#articleTypeName").val();
+      let code =$("#bankType").val();
+      let nama =$("#bankName").val();
       showList(nama,code);
   });
 
@@ -123,11 +123,12 @@
         '<"col-sm-12 col-md-6"i>' +
         '<"col-sm-12 col-md-6"p>' +
         '>';
-    let arr_col_print =[2,3,4]; 
+    let arr_col_print =[1,2,3,4]; 
     $(function(){
       let oTable =$("#detailedTable").DataTable({
-        ajax:{
-          url:'{{ route("articleType.list")}}',
+        ajax:
+        {
+          url:'{{ route("bank.list")}}',
           data:{
               name:nama,
               code:code
@@ -195,7 +196,7 @@
           }
         },
         columnDefs: [
-          { width: '10%', targets: 0 }
+          { width: '10%', targets: 1 }
         ],
         drawCallback: function( settings ) {
           feather.replace({
@@ -203,14 +204,15 @@
                 height: 14
           });
         },
-        order: [[ 2, 'asc' ]],
+        order: [[ 1, 'asc' ]],
         bDestroy: true, //pakai ini supaya bisa di load berulang2
         // scrollX: true, //pakai ini supaya waktu responsive  bisa di scroll horizontal
         columns: [
             { data: 'action', name: 'action',title:'action', orderable: false, searchable: false },
-            { data: 'code', name: 'code',title:'Kode' },
-            { data: 'name', name: 'name',title:'Nama' },
-            { data: 'description', name: 'description',title:'Keterangan' }
+            { data: 'bank_type', name: 'bank_type',title:'Type' },
+            { data: 'bank_name', name: 'bank_name',title:'Name' },
+            { data: 'account_number', name: 'account_number',title:'Acc Number' },
+            { data: 'bank_branch', name: 'bank_branch',title:'Branch' }
         ],
       });
     });

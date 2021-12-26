@@ -66,69 +66,329 @@ class DeliveryPlanController extends Controller
     }
 
     public function generatePlan(Request $request)
-    {
-        $startDate = '2021-06-01';
-        $endDate = '2021-07-01';
+    {   
+        $articles = json_decode($request->articles);
+        $soDate = $request->soDate;
+        $articleNumber = $request->articleNumber;
+        $articleNumber = substr($articleNumber,0,-1);
+        $username = Auth::user()->username;
+        
+        if ($soDate){
+            $date = explode("to",$soDate);
+            $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+            $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
+            $fromDate1 = implode("-", array_reverse(explode("-", trim($date[0]))));
+            $toDate1 = implode("-", array_reverse(explode("-", trim($date[1]))));
+        }     
 
-        $data=DB::select("SELECT a.article_code
-                                ,article_alternative_code
-                                ,article_desc,group_of_material as group_code
-                                ,(select name from group_materials where code = group_of_material) as group_of_material 
-                                ,color_code
-                                ,variant
-                                ,day
-                                ,to_char(day, 'dd') as tanggal
-                                ,plan
-                                ,act
-                                ,balance
-                                ,(select nama from third_party where kode = third_party) as supp_name 
-                        from 
-                        (SELECT p.article_code,day::date,2 as plan,2 as act,0 as balance
-                        FROM (select article_code from article where article_type ='FG') p cross join
-                        generate_series(
-                            timestamp '$startDate'
-                            , timestamp '$endDate'
-                            , INTERVAL '1 day') 
-                        day left join
-                        article dm
-                        ON dm.article_code = p.article_code
-                        ORDER BY p.article_code,day ASC) as oki
-                        left join article a
-                        on a.article_code = oki.article_code");
+        // $fromDate = '2021-06-01';
+        // $toDate = '2021-07-01';
+
+        $randomNumber = rand();
+        $dataSet = [];
+        foreach ($articles as $val) {
+            $dataSet[] = [
+                'random_code' => $randomNumber,
+                'article_code' => $val->article_code,
+                'so_code' => $val->so_code,
+                'so_qty' => $val->so_qyt
+            ];
+        }
+
+        DB::table('del_plan_tmp')->insert($dataSet);
+
+        $planCode = "123456789";
+
+        DB::select("INSERT into del_plan_det
+        (del_plan_code,so_code,so_qty,article_code,article_alternative_code,article_desc,code,group_of_material,color_code,variant,day,tanggal,plan,act,balance,cust_code,cust_name,created_by,updated_by,created_at,updated_at)
+        SELECT 	'$planCode' as del_plan_code
+            ,so_code
+            ,so_qty
+            ,a.article_code
+            ,article_alternative_code
+            ,a.article_desc
+            ,group_of_material as group_code
+            ,(select name from group_materials where code = group_of_material) as group_of_material 
+            ,color_code
+            ,variant
+            ,day
+            ,to_char(day, 'dd') as tanggal
+            ,plan
+            ,act
+            ,balance
+            ,third_party as cust_code 
+            ,(select nama from third_party where kode = third_party) as cust_name 
+            ,'$username'
+            ,'$username'
+            ,now()
+            ,now()
+        from 
+        (SELECT p.article_code,so_code,so_qty,day::date,0 as plan,0 as act,0 as balance
+        FROM (select * from del_plan_tmp ) p cross join
+        generate_series(
+            timestamp '$fromDate'
+            , timestamp '$toDate'
+            , INTERVAL '1 day') 
+        day left join
+        article dm
+        ON dm.article_code = p.article_code
+        ) as oki
+        left join article a
+        on a.article_code = oki.article_code
+        where concat(a.article_code,to_char(day, 'dd')) not in (select concat(article_code,tanggal) from del_plan_det)
+        ORDER BY group_code,article_alternative_code,day ASC");
+
+        DB::table('del_plan_tmp')->where('random_code', $randomNumber)->delete();
 
         $kolomHeader=DB::select("SELECT day
                                         ,to_char(day, 'dy') as dy
                                         ,to_char(day, 'dd-Mon') as datemon
                                         ,to_char(day, 'YYYY') as dateyear 
-                                        ,('$endDate'::date -'$startDate'::date) as countday
+                                        ,('$toDate'::date -'$fromDate'::date) as countday
                                 from (SELECT t.day::date
-                        FROM  generate_series(
-                            timestamp '$startDate'
-                            , timestamp '$endDate'
-                            , interval  '1 day') AS t(day)
-                        ) as oki");
+                                FROM  generate_series(
+                                    timestamp '$fromDate'
+                                    , timestamp '$toDate'
+                                    , interval  '1 day') AS t(day)
+                                ) as oki");
 
-        $sumOfSupp=DB::select("SELECT supp_name,day,sum(plan) as plan,sum(act) as act,sum(balance) as balance from (
-            SELECT a.article_code,article_alternative_code,article_desc,group_of_material as group_code,(select name from group_materials where code = group_of_material) as group_of_material ,color_code,variant,day,to_char(day, 'dd') as tanggal,plan,act,balance 
-            ,(select nama from third_party where kode = third_party) as supp_name
-            from 
-            (SELECT p.article_code,day::date,2 as plan,2 as act,0 as balance
-            FROM (select article_code from article where article_type ='FG') p cross join
-            generate_series(
-                timestamp '$startDate'
-                , timestamp '$endDate'
-                , INTERVAL '1 day') 
-            day left join
-            article dm
-            ON dm.article_code = p.article_code
-            ORDER BY p.article_code,day ASC) as oki
-            left join article a
-            on a.article_code = oki.article_code) as oki
-            group by supp_name,day
-            order by supp_name,day");
+        $data=DB::table('del_plan_det')
+         ->whereBetween('day', [$fromDate1, $toDate1])
+         ->orderBy('code')
+         ->orderBy('article_alternative_code')
+         ->orderBy('day')
+         ->get();
+
+        $sumOfSupp=DB::select("SELECT cust_name,day,sum(plan) as plan,sum(act) as act,sum(balance) as balance 
+            from del_plan_det
+            where day between '$fromDate1' and '$toDate1'
+            group by cust_name,day
+            order by cust_name,day");
+
+        // $data=DB::select("SELECT a.article_code
+        //                         ,article_alternative_code
+        //                         ,article_desc,group_of_material as group_code
+        //                         ,(select name from group_materials where code = group_of_material) as group_of_material 
+        //                         ,color_code
+        //                         ,variant
+        //                         ,day
+        //                         ,to_char(day, 'dd') as tanggal
+        //                         ,plan
+        //                         ,act
+        //                         ,balance
+        //                         ,(select nama from third_party where kode = third_party) as supp_name 
+        //                 from 
+        //                 (SELECT p.article_code,day::date,1 as plan,2 as act,0 as balance
+        //                 FROM (select article_code from article where article_code in($articleNumber) ) p cross join
+        //                 -- FROM (select article_code from article where article_type ='FG' ) p cross join
+        //                 generate_series(
+        //                     timestamp '$fromDate'
+        //                     , timestamp '$toDate'
+        //                     , INTERVAL '1 day') 
+        //                 day left join
+        //                 article dm
+        //                 ON dm.article_code = p.article_code
+        //                 ) as oki
+        //                 left join article a
+        //                 on a.article_code = oki.article_code
+        //                 ORDER BY group_code,article_alternative_code,day ASC");
+
+        
+        // $sumOfSupp=DB::select("SELECT supp_name,day,sum(plan) as plan,sum(act) as act,sum(balance) as balance from (
+        //     SELECT a.article_code,article_alternative_code,article_desc,group_of_material as group_code,(select name from group_materials where code = group_of_material) as group_of_material ,color_code,variant,day,to_char(day, 'dd') as tanggal,plan,act,balance 
+        //     ,(select nama from third_party where kode = third_party) as supp_name
+        //     from 
+        //     (SELECT p.article_code,day::date,1 as plan,2 as act,0 as balance
+        //     FROM (select article_code from article where article_code in($articleNumber) ) p cross join
+        //     -- FROM (select article_code from article where article_type ='FG') p cross join
+        //     generate_series(
+        //         timestamp '$fromDate'
+        //         , timestamp '$toDate'
+        //         , INTERVAL '1 day') 
+        //     day left join
+        //     article dm
+        //     ON dm.article_code = p.article_code
+        //     ORDER BY p.article_code,day ASC) as oki
+        //     left join article a
+        //     on a.article_code = oki.article_code) as oki
+        //     group by supp_name,day
+        //     order by supp_name,day");
 
         return Response()->json(['data'=> $data,'kolom'=>$kolomHeader,'supp' => $sumOfSupp]);
 
+    }
+
+    public function reGeneratePlan(Request $request)
+    {   
+        $soDate = $request->soDate;
+
+        if ($soDate){
+            $date = explode("to",$soDate);
+            $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+            $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
+            $fromDate1 = implode("-", array_reverse(explode("-", trim($date[0]))));
+            $toDate1 = implode("-", array_reverse(explode("-", trim($date[1]))));
+        }     
+
+        $kolomHeader=DB::select("SELECT day
+                                        ,to_char(day, 'dy') as dy
+                                        ,to_char(day, 'dd-Mon') as datemon
+                                        ,to_char(day, 'YYYY') as dateyear 
+                                        ,('$toDate'::date -'$fromDate'::date) as countday
+                                from (SELECT t.day::date
+                                FROM  generate_series(
+                                    timestamp '$fromDate'
+                                    , timestamp '$toDate'
+                                    , interval  '1 day') AS t(day)
+                                ) as oki");
+
+         $data=DB::table('del_plan_det')
+         ->whereBetween('day', [$fromDate1, $toDate1])
+         ->orderBy('code')
+         ->orderBy('article_alternative_code')
+         ->orderBy('day')
+         ->get();
+
+         $sumOfSupp=DB::select("SELECT cust_name,day,sum(plan) as plan,sum(act) as act,sum(balance) as balance 
+            from del_plan_det
+            where day between '$fromDate1' and '$toDate1'
+            group by cust_name,day
+            order by cust_name,day");
+
+        return Response()->json(['data'=> $data,'kolom'=>$kolomHeader,'supp' => $sumOfSupp]);
+
+    }
+
+    public function listSo(Request $request)
+    {
+        $soDate = $request->soDate;
+        $fromDate = "";
+        $toDate = "";
+
+        if ($soDate){
+            $date = explode("to",$soDate);
+            // $fromDate = date(trim($date[0]));
+            // $toDate = date(trim($date[1]));
+            $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+            $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
+        }      
+
+        $data=DB::table('sales_order_hdr')
+        ->select('sales_order_hdr.*','third_party.nama as cust_name')
+        ->leftJoin('third_party', 'third_party.kode', '=', 'sales_order_hdr.customer_id')
+        ->whereBetween('sales_order_hdr.created_at', [$fromDate, $toDate])
+        ->get();
+
+        return Datatables::of($data)
+        ->addColumn('select_orders', static function ($result) {
+            return '<input type="checkbox" class="select-checkbox" name="soCheck[]" value="'.$result->so_code.'"/>';
+        })
+        ->rawColumns(['select_orders'])
+        ->make(true);
+    }
+
+    public function listArticle(Request $request)
+    {
+        $soNumber = $request->soNumber;
+        $soNumber = substr($soNumber,0,-1);     
+        $soNumber = explode(",",$soNumber);
+
+        $data=DB::table('sales_order_det')
+        ->leftJoin('article','article.article_code','=','sales_order_det.article_code')
+        ->select('sales_order_det'.'.*','article.article_alternative_code','article.article_desc',DB::raw("round(qty) as so_qty"))
+        ->whereIn('so_code',$soNumber)->get();
+
+        return Datatables::of($data)
+        ->addColumn('select_orders', static function ($result) {
+            return '<input type="checkbox" class="select-checkbox-article" 
+                    name="articleCheck[]" 
+                    data-so-number= "'.$result->so_code.'" 
+                    data-so-qty= "'.$result->so_qty.'" 
+                    value="'.$result->article_code.'"/>';
+        })
+        ->rawColumns(['select_orders'])
+        ->make(true);
+    }
+
+    public function update(Request $request)
+    {   
+        $articles = json_decode($request->articles);
+        $username = Auth::user()->username;
+        DB::beginTransaction();
+        try {
+
+            foreach ($articles as $val) {
+                DB::table('del_plan_det')
+                    ->where('article_code', $val->article_code)
+                    ->where('day', $val->date)
+                    ->update([
+                        'plan' => $val->plan,
+                        'updated_by' => $username,
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]);
+            }
+
+            DB::commit();
+                    $alert  ="alert-success";
+                    $message  = "Plan Delivery is successfully updated";
+                    \LogActivity::addToLog('Plan Delivery update ',"username: $username Status $message");
+                    return response()->json(array('status' => 1, 'message' => $message,'alert'=>$alert));
+
+        } catch (Exception $e) {
+            DB::rollBack();
+            $alert  ="alert-warning";
+            $message  = "Plan Delivery is failed to updated";
+            \LogActivity::addToLog('Plan Delivery update ',"username: $username Status $message");
+            return response()->json(array('status' => 0, 'message' => $message,'alert'=>$alert));
+        }
+
+    }
+
+    public function listDetail(Request $request)
+    {
+        $tanggal = $request -> tanggal;
+        $tanggal = implode("-", array_reverse(explode("-", $tanggal)));
+        $randomCode = rand();
+
+        if (!$tanggal){
+            DB::select("INSERT into wo_detail_temp
+            select $randomCode,article_code, sum(plan) as qty  from del_plan_det group by article_code");
+        }else{
+            DB::select("INSERT into wo_detail_temp
+            select $randomCode,article_code, sum(plan) as qty  from del_plan_det where day='$tanggal' group by article_code");
+        }
+        
+
+        $data=DB::select("SELECT article_alternative_code
+                                ,article_desc
+                                ,article.uom
+                                ,qty
+                                ,qty_proses
+                                ,qty_total 
+                                ,article.article_type
+                                ,(select name from article_types where code = article.article_type) as kelompok 
+                            from (
+                                select article_code,sum(oki.qty) as qty,sum(mari.qty) as qty_proses,sum(oki.qty*mari.qty) as qty_total 
+                                    from (
+                                            select * from bom_det where bom_code in (
+                                                select bom_code from bom_hdr 
+                                                left join wo_detail_temp on bom_hdr.article_code = wo_detail_temp.article_code
+                                                where bom_hdr.article_code in (select article_code from wo_detail_temp))) oki
+                                            left join(
+                                                select bom_code,qty from bom_hdr 
+                                                left join wo_detail_temp on bom_hdr.article_code = wo_detail_temp.article_code
+                                                where bom_hdr.article_code in (select article_code from wo_detail_temp)) mari
+                                            on oki.bom_code= mari.bom_code
+                                            group by article_code
+                                    ) so
+                            left join article on article.article_code = so.article_code");
+
+        DB::table('wo_detail_temp')
+        ->where('code',$randomCode)
+        ->delete();
+                        
+        return Datatables::of($data)
+        ->make(true);
     }
 
     // public function articleCodeCreate(Request $request){

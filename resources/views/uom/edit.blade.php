@@ -5,7 +5,7 @@
 @include('partials.alert')
 
 <section id="add-index">
-    <div class="row">
+    <div class="form-row">
         <div class="col-6">
             <div class="card">
                 {{-- <div class="card-header">
@@ -14,7 +14,7 @@
                 <div class="card-body">
                     <form id="frmAdd" name="frmAdd" action="{{ route('uom.update',['id'=> $uom->id]) }}" method="post" autocomplete="off">
                         @csrf
-                        <div class="row">
+                        <div class="form-row">
                             <div class="col-4">
                                 <div class="form-group">
                                     <label for="kode">Kode</label>
@@ -22,7 +22,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="row">
+                        <div class="form-row">
                             <div class="col-12">
                                 <div class="form-group">
                                     <label for="nama">Nama</label>
@@ -30,7 +30,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="row">
+                        <div class="form-row">
                             <div class="form-group col-md-12">
                                 <label class="form-label" for="uomType">Type</label>
                                 <select class="select2 form-control" id="uomType" name="uomType" required>
@@ -42,7 +42,7 @@
                             </div>
                         </div>
                         <br>
-                        <div class="row">
+                        <div class="form-row">
                             <div class="col-12">
                                 <a href="{{ route('uoms.index') }}" class="btn btn-outline-secondary">
                                     Cancel

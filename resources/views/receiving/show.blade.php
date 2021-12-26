@@ -4,7 +4,7 @@
 @include('layouts.breadcrumb')
 @include('partials.alert')
 <section id="add-index">
-    <div class="row">
+    <div class="form-row">
         <div class="col-md-12">
             <div class="card">
                 <div class="card-header">
@@ -20,7 +20,7 @@
                         <form id="frmAdd" name="frmAdd" autocomplete="off">
                             @csrf
                             {{-- <input type="text" id="article" name="article" hidden> --}}
-                            <div class="row">
+                            <div class="form-row">
                                 <div class="form-group col-md-3">
                                     <label for="recNumber">Receiving Number</label> <small class="text-muted"> automatic</small>
                                     <input type="text" id="recNumber" name="recNumber" class="form-control text-hitam disabled-el" value="{{ $header->rec_number }}"  disabled />
@@ -30,7 +30,7 @@
                                     <input type="text" id="recDate" name="recDate" class="form-control text-hitam" placeholder="DD-MM-YYYY" value="{{ $header->rec_date }}" disabled />
                                 </div>                               
                             </div>
-                            <div class="row">
+                            <div class="form-row">
                                 <div class="form-group col-md-5">
                                     <label class="form-label" for="supplier">Supplier*</label>
                                     <select class="select2 form-control text-hitam" id="supplier" name="supplier" disabled>
@@ -49,15 +49,15 @@
                                     <input type="text" id="invNumber" name="invNumber" class="form-control text-hitam disabled-el" value="{{ $header->inv_number }}" disabled />
                                 </div>
                             </div>
-                            <div class="row">
+                            <div class="form-row">
                                 <div class="form-group col-md-12">
                                     <label class="form-label" for="note">Notes</label>
                                     <textarea type="text" id="note" name="note" class="form-control text-hitam" rows="1" disabled>{{ $header->note }} </textarea>
                                 </div>
                             </div>
-                            <div class="row">
+                            <div class="form-row">
                                 <div class="col-12">
-                                    <div class="row">
+                                    <div class="form-row">
                                         <div class="col-12">
                                             <a href="{{ route('receivings.index') }}" class="btn btn-warning">Back</a>
                                             <a href="{{ route('receiving.create') }}" class="btn btn-success">New</a>

@@ -4,7 +4,7 @@
 @include('layouts.breadcrumb')
 @include('partials.alert')
 <section id="add-index">
-    <div class="row">
+    <div class="form-row">
         <div class="col-md-12">
             <div class="card">
                 {{-- <div class="card-header">
@@ -14,18 +14,14 @@
                     <form id="frmAdd" name="frmAdd" autocomplete="off">
                         @csrf
                         <input type="text" id="article" name="article" hidden>
-                        <div class="row">
-                            <div class="col-md-3">
-                                <div class="form-group">
-                                    <label for="orderNum">Order Number</label><small class="text-muted">  automatic</small>
-                                    <input type="text" id="orderNum" name="orderNum" class="form-control disabled-el" value="{{ $header->so_code }}"  disabled />
-                                </div>
+                        <div class="form-row">
+                            <div class="form-group col-md-3">
+                                <label for="orderNum">Order Number</label><small class="text-muted">  automatic</small>
+                                <input type="text" id="orderNum" name="orderNum" class="form-control disabled-el" value="{{ $header->so_code }}"  disabled />
                             </div>
-                            <div class="col-md-2">
-                                <div class="form-group">
-                                    <label for="orderDate">Order Date</label>
-                                    <input type="text" id="orderDate" name="orderDate" class="form-control flatpickr-basic" value="{{ $header->so_date }}" placeholder="DD-MM-YYYY" />
-                                </div>
+                            <div class="form-group col-md-2">
+                                <label for="orderDate">Order Date</label>
+                                <input type="text" id="orderDate" name="orderDate" class="form-control flatpickr-basic" value="{{ $header->so_date }}" placeholder="DD-MM-YYYY" />
                             </div>
                             <div class="form-group col-md-3">
                                 <label for="salesman">Salesperson*</label>
@@ -55,12 +51,10 @@
                                 </select>
                             </div>
                         </div>
-                        <div class="row">
-                            <div class="col-md-3">
-                                <div class="form-group">
-                                    <label for="poNumber">PO Number</label>
-                                    <input type="text" id="poNumber" name="poNumber" class="form-control text-uppercase" value="{{ $header->po_number }}" maxlength="40" autofocus required />
-                                </div>
+                        <div class="form-row">
+                            <div class="form-group col-md-3">
+                                <label for="poNumber">PO Number</label>
+                                <input type="text" id="poNumber" name="poNumber" class="form-control text-uppercase" value="{{ $header->po_number }}" maxlength="40" autofocus required />
                             </div>
                             <div class="form-group col-md-5">
                                 <label class="form-label" for="cust">Customer</label>
@@ -81,13 +75,13 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="row">
+                        <div class="form-row">
                             <div class="form-group col-md-10">
                                 <label class="form-label" for="note">Notes</label>
                                 <textarea type="text" id="note" name="note" class="form-control" rows="1" >{{ $header->note }}</textarea>
                             </div>
                         </div>
-                        <div class="row">
+                        <div class="form-row">
                             <div class="col-12">
                                 <a href="{{ route('salesOrders.index') }}" class="btn btn-warning">
                                     Cancel

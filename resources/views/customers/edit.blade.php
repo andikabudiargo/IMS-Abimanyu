@@ -43,7 +43,7 @@
                         <h5 class="mb-0">Detil customer</h5>
                         <small class="text-muted">Detil data customer</small>
                     </div>
-                    <div class="row">
+                    <div class="form-row">
                         <div class="form-group col-md-4">
                             <label class="form-label" for="kode">Kode</label>
                             <input type="text" id="kode" name="kode" value="{{ old('kode',$customers->kode) }}" class="form-control" required maxlength="20" disabled/>
@@ -55,7 +55,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="row">
+                    <div class="form-row">
                         <div class="form-group col-md-6">
                             <label class="form-label" for="nama">Nama</label>
                             <input type="text" id="nama" name="nama" value="{{ old('nama',$customers->nama) }}" class="form-control" required maxlength="30" autofocus/>
@@ -65,13 +65,13 @@
                             <input type="text" id="inisial" name="inisial" value="{{ old('inisial',$customers->inisial) }}" class="form-control text-uppercase" required maxlength="3"/>
                         </div>
                     </div>
-                    <div class="row">
+                    <div class="form-row">
                         <div class="form-group col-md-6">
                             <label class="form-label" for="alamatTagih">Alamat Tagih</label>
                             <textarea type="text" id="alamatTagih" name="alamatTagih" class="form-control" rows="2" maxlength="100">{{ old('alamatTagih',$customers->alamat_tagih) }}</textarea>
                         </div>
                     </div>
-                    <div class="row">
+                    <div class="form-row">
                         <div class="form-group col-md-6">
                             <label class="form-label" for="alamatKirim1">Alamat Kirim 1</label>
                             <textarea type="text" id="alamatKirim1" name="alamatKirim1" class="form-control" rows="2"  maxlength="100">{{ old('alamatKirim1',$customers->alamat_kirim_1) }}</textarea>
@@ -81,7 +81,7 @@
                             <textarea type="text" id="alamatKirim2" name="alamatKirim2" class="form-control" rows="2"  maxlength="100">{{ old('alamatKirim2',$customers->alamat_kirim_2) }}</textarea>
                         </div>
                     </div>
-                    <div class="row">
+                    <div class="form-row">
                         <div class="form-group col-md-3">
                             <label class="form-label" for="telepon">Telepon</label>
                             <input type="text" id="telepon" name="telepon" value="{{ old('telepon',$customers->telepon) }}" class="form-control angka" maxlength="20" />
@@ -95,20 +95,20 @@
                             <input type="text" id="hp" name="hp" value="{{ old('hp',$customers->hp) }}" class="form-control angka" maxlength="15"/>
                         </div>
                     </div>
-                    <div class="row">
+                    <div class="form-row">
                         <div class="form-group col-md-6">
                             <label class="form-label" for="kontak">Kontak</label>
                             <input type="text" id="kontak" name="kontak" value="{{ old('kontak',$customers->nama_kontak) }}" class="form-control" maxlength="20" />
                         </div>
                     </div>
-                    <div class="row">
+                    <div class="form-row">
                         <div class="form-group col-md-6">
                             <label class="form-label" for="email">Email</label>
                             <input type="email" id="email" name="email" value="{{ old('email',$customers->email) }}" class="form-control" maxlength="50" />
                         </div>
                     </div>
 
-                    <div class="row">
+                    <div class="form-row">
                         <div class="form-group col-md-3">
                             <label class="form-label" for="limitKredit">Limit kredit</label>
                             <input type="text" id="limitKredit" name="limitKredit" value="{{ old('limitKredit',$customers->limit_kredit) }}" class="form-control angka" maxlength="12" />
@@ -123,20 +123,20 @@
                             </div>
                         </div>
                     </div>
-                    <div class="row">
+                    <div class="form-row">
                         <div class="form-group col-md-6">
                             <label class="form-label" for="syaratBayar">Syarat bayar</label>
                             <input type="text" id="syaratBayar" name="syaratBayar" value="{{ old('syaratBayar',$customers->syarat_bayar) }}" class="form-control"  maxlength="100"/>
                         </div>
                     </div>
 
-                    <div class="row">
+                    <div class="form-row">
                         <div class="form-group col-md-6">
                             <label class="form-label" for="syaratKirim">Syarat kirim</label>
                             <input type="text" id="syaratKirim" name="syaratKirim" value="{{ old('syaratKirim',$customers->syarat_kirim) }}" class="form-control"  maxlength="100"/>
                         </div>
                     </div>
-                    <div class="row">
+                    <div class="form-row">
                         <div class="form-group col-md-2">
                             <label class="form-label" for="topBatas1">TOP Batas 1</label>
                             <div class="input-group input-group-merge">
@@ -156,7 +156,7 @@
                             </div>
                         </div>
                     </div>        
-                    <div class="row">
+                    <div class="form-row">
                         <div class="form-group col-md-6">
                             <label class="form-label" for="sales">Sales</label>
                             <select class="select2 w-100" id="sales" name="sales">
@@ -167,7 +167,7 @@
                             </select>
                         </div>
                     </div>
-                    <div class="row">
+                    <div class="form-row">
                         <div class="form-group col-md-6">
                             <label class="form-label" for="areaKirim">Area kirim</label>
                             <select class="select2 w-100" id="areaKirim" name="areaKirim">
@@ -178,7 +178,7 @@
                             </select>
                         </div>
                     </div>
-                    <div class="row">
+                    <div class="form-row">
                         <div class="form-group col-md-6">
                             <label class="form-label" for="account">Account</label>
                             <select class="select2 w-100" id="account" name="account">
@@ -205,19 +205,19 @@
                         <h5 class="mb-0">Data pajak</h5>
                         <small>Input detail untuk pajak</small>
                     </div>
-                    <div class="row">
+                    <div class="form-row">
                         <div class="form-group col-md-6">
                             <label class="form-label" for="npwp">NPWP</label>
                             <input type="text" id="npwp" name="npwp" value="{{ old('npwp',$customers->npwp) }}" class="form-control masking-npwp angka" />
                         </div>
                     </div>
-                    <div class="row">
+                    <div class="form-row">
                         <div class="form-group col-md-6">
                             <label class="form-label" for="alamatNpwp">Alamat NPWP</label>
                             <textarea type="text" id="alamatNpwp" name="alamatNpwp" class="form-control" rows="2" maxlength="100">{{ old('alamatNpwp',$customers->alamat_npwp) }}</textarea>
                         </div>
                     </div>
-                    <div class="row">
+                    <div class="form-row">
                         <div class="form-group col-md-6">
                             <label class="form-label" for="kotaNpwp">Kota</label>
                             <select class="select2 w-100" id="kotaNpwp" name="kotaNpwp">
@@ -228,7 +228,7 @@
                             </select>
                         </div>
                     </div>
-                    <div class="row">
+                    <div class="form-row">
                         <div class="form-group col-md-6">
                             <label class="form-label" for="nppkp">NPPKP</label>
                             <input type="text" id="nppkp" name="nppkp" value="{{ old('nppkp',$customers->nppkp) }}" class="form-control" maxlength="30"/>
@@ -250,13 +250,13 @@
                         <h5 class="mb-0">Efaktur</h5>
                         <small>Data Efaktur</small>
                     </div>
-                    <div class="row">
+                    <div class="form-row">
                         <div class="form-group col-md-8">
                             <label class="form-label" for="alamatEfaktur">Alamat Efaktur</label>
                             <textarea type="text" id="alamatEfaktur" name="alamatEfaktur" class="form-control" rows="2" maxlength="100">{{ old('alamatEfaktur',$customers->efaktur_alamat) }}</textarea>
                         </div>
                     </div>
-                    <div class="row">
+                    <div class="form-row">
                         <div class="form-group col-md-2">
                             <label class="form-label" for="blok">Blok</label>
                             <input type="text" id="blok" name="blok" value="{{ old('blok',$customers->efaktur_blok) }}" class="form-control"  maxlength="10"/>
@@ -274,7 +274,7 @@
                             <input type="text" id="rw" name="rw" value="{{ old('rw',$customers->efaktur_rw) }}" class="form-control angka"  maxlength="14" />
                         </div>
                     </div>
-                    <div class="row">
+                    <div class="form-row">
                         <div class="form-group col-md-4">
                             <label class="form-label" for="provinsi">Provinsi</label>
                             <select class="select2 w-100 dynamicSelect" id="provinsi" name="provinsi" data-dependent="kota">
@@ -290,7 +290,7 @@
                             </select>
                         </div>
                     </div>
-                    <div class="row">
+                    <div class="form-row">
                         <div class="form-group col-md-4">
                             <label class="form-label" for="kelurahan">Kelurahan</label>
                             <select class="select2 w-100 dynamicSelect" id="kelurahan" name="kelurahan" data-dependent="kecamatan">
@@ -302,21 +302,24 @@
                             </select>
                         </div>
                     </div>
-                    <div class="row">
+                    <div class="form-row">
                         <div class="form-group col-md-2">
                             <label class="form-label" for="kodePos">Kodepos</label>
                             <input type="text" id="kodePos" name="kodePos" value="{{ old('kodePos',$customers->efaktur_kode_pos) }}" class="form-control disabled-el" disabled />
                         </div>
                     </div>
+                    <div class="form-row">
+                        <div class="col-md-12">
+                            <button class="btn btn-outline-secondary" type="reset" id="cmdCancel" name="cmdCancel">Cancel</button>
+                            <button class="btn btn-success" type="button" id="cmdSave" name="cmdSave">Save</button>
+                        </div>
+                    </div>
+                    <br>
                     <div class="d-flex justify-content-between">
                         <button class="btn btn-primary btn-prev" type="button">
                             <i data-feather="arrow-left" class="align-middle mr-sm-25 mr-0"></i>
                             <span class="align-middle d-sm-inline-block d-none">Previous</span>
                         </button>
-                        <div>
-                            <button class="btn btn-outline-secondary" type="reset" id="cmdCancel" name="cmdCancel">Cancel</button>
-                            <button class="btn btn-success" type="button" id="cmdSave" name="cmdSave">Save</button>
-                        </div>
                     </div>
                 </div>
             </form>

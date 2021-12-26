@@ -20,20 +20,6 @@
             <div class="line">
                 <i data-feather="chevron-right" class="font-medium-2"></i>
             </div>
-            <div class="step" data-target="#listArticle">
-                <button type="button" class="step-trigger">
-                    <span class="bs-stepper-box">
-                        <i data-feather="user" class="font-medium-3"></i>
-                    </span>
-                    <span class="bs-stepper-label">
-                        <span class="bs-stepper-title">List article</span>
-                        <span class="bs-stepper-subtitle">Choose Article</span>
-                    </span>
-                </button>
-            </div>
-            <div class="line">
-                <i data-feather="chevron-right" class="font-medium-2"></i>
-            </div>
             <div class="step" data-target="#planDelivery">
                 <button type="button" class="step-trigger">
                     <span class="bs-stepper-box">
@@ -65,80 +51,64 @@
                 <div class="content-header">
                     <h5 class="mb-0">Filter data</h5>
                 </div>
-                <div class="row d-flex align-items-end">
-                    <div class="form-group col-md-4">
-                        <label for="soDate">SO Date</label>
-                        <input type="text" id="soDate" name="soDate" class="form-control flatpickr-range" placeholder="YYYY-MM-DD to YYYY-MM-DD" />
+                <div class="row">
+                    <div class="form-group col-md-6">
+                        <div class="form-group col-md-8">
+                            <label for="soDate">Date</label>
+                            <input type="text" id="soDate" name="soDate" class="form-control flatpickr-range" placeholder="YYYY-MM-DD to YYYY-MM-DD" />
+                        </div>
+                        <div class="form-group col-md-12">
+                            <button id="cmdSubmitFilter" class="btn btn-warning" type="reset"  name="cmdSubmitFilter">
+                                <span>Submit</span>
+                            </button>
+                            <button id="btnDetailArticle" class="btn btn-info" type="button">
+                                <span>Detail Article</span>
+                            </button>
+                        </div>
+                        <div class="form-group col-md-12">
+                            <div class="row" style="min-height:200px">
+                                <div class="col-sm-12">
+                                <div class="card-datatable table-responsive pt-0">
+                                    <table id="tblSoList" class="table w-100">
+                                    <thead class="thead-light">
+                                    </thead>
+                                    </table>
+                                </div>
+                                </div>
+                            </div>  
+                        </div>
                     </div>
-                    <div class="form-group col-md-4">
-                        <button id="cmdSubmitFilter" class="btn btn-warning" type="reset"  name="cmdSubmitFilter">
-                            <span>Submit</span>
-                        </button>
-                    </div>
-                    <div class="form-group col-md-12">
-                        <div class="row" style="min-height:200px">
-                            <div class="col-sm-12">
-                            <div class="card-datatable table-responsive pt-0">
-                                <table id="tblSoList" class="table w-100">
-                                <thead class="thead-light">
-                                </thead>
-                                </table>
-                            </div>
-                            </div>
-                        </div>  
+                    <div class="form-group col-md-6">
+                        <div class="form-group col-md-12">
+                            <div class="row">
+                                <div class="col-sm-12">
+                                <div class="card-datatable table-responsive pt-0">
+                                    <table id="tblArtList" class="table w-100">
+                                    <thead class="thead-light">
+                                    </thead>
+                                    </table>
+                                </div>
+                                </div>
+                            </div>  
+                        </div>
                     </div>
                 </div>
                 <div class="d-flex justify-content-end">
-                    <button class="btn btn-primary btn-next" id="btnDetailArticle">
-                        <span class="align-middle d-sm-inline-block d-none">Next</span>
-                        <i data-feather="arrow-right" class="align-middle ml-sm-25 ml-0"></i>
-                    </button>
-                </div>  
-            </div>
-            <div id="listArticle" class="content">
-                <div class="content-header">
-                    <h5 class="mb-0">List article</h5>
-                    <small></small>
-                </div>
-                <div class="row">
-                    <div class="form-group col-md-12">
-                        <div class="row">
-                            <div class="col-sm-12">
-                            <div class="card-datatable table-responsive pt-0">
-                                <table id="tblArtList" class="table w-100">
-                                <thead class="thead-light">
-                                </thead>
-                                </table>
-                            </div>
-                            </div>
-                        </div>  
-                    </div>
-                </div>
-                <div class="d-flex justify-content-between">
-                    <button class="btn btn-primary btn-prev">
-                        <i data-feather="arrow-left" class="align-middle mr-sm-25 mr-0"></i>
-                        <span class="align-middle d-sm-inline-block d-none">Previous</span>
-                    </button>
                     <button class="btn btn-primary btn-next" id="generateDelPlan">
                         <span class="align-middle d-sm-inline-block d-none">Next</span>
                         <i data-feather="arrow-right" class="align-middle ml-sm-25 ml-0"></i>
                     </button>
-                </div>
+                </div>  
             </div>
             <div id="planDelivery" class="content">
                 <div class="content-header">
                     <h5 class="mb-0">Plan Delivery</h5>
                     <small></small>
                 </div>
+                <button id="cmdGenerate" class="btn btn-info" type="button">
+                    <span>Generate Plan</span>
+                </button>
                 <div class="row">
-                    <div class="col-sm-12">
-                        <button id="cmdSavePlan" class="btn btn-info" type="button">
-                            <span>Save</span>
-                        </button>
-                    </div>
-                </div>
-                <br>
-                <div class="rpw">
                     <div class="col-sm-12">
                         <div class="table-scrollable" style="height: 500px;">
                             {{-- <table id="tblBaru" class="table table-bordered display w-100 list-plan" > --}}
@@ -164,13 +134,12 @@
                         </div>
                     </div>
                 </div>
-                <br>
-                <div class="row d-flex justify-content-between">
+                <div class="d-flex justify-content-between">
                     <button class="btn btn-primary btn-prev">
                         <i data-feather="arrow-left" class="align-middle mr-sm-25 mr-0"></i>
                         <span class="align-middle d-sm-inline-block d-none">Previous</span>
                     </button>
-                    <button class="btn btn-primary btn-next" id="prosesMrp">
+                    <button class="btn btn-primary btn-next">
                         <span class="align-middle d-sm-inline-block d-none">Next</span>
                         <i data-feather="arrow-right" class="align-middle ml-sm-25 ml-0"></i>
                     </button>
@@ -178,30 +147,13 @@
             </div>
             <div id="mrp" class="content">
                 <div class="content-header">
-                    <h5 class="mb-0">MRP List</h5>
-                    <small>Detail of material by BOM</small>
-                </div>
-                <div class="row d-flex align-items-end">
-                    <div class="form-group col-md-4">
-                        <label for="soDate">Pick a Date</label>
-                        <input type="text" id="planDate" name="planDate" class="form-control flatpickr-basic" placeholder="YYYY-MM-DD" />
-                    </div>
-                    <div class="form-group col-md-4">
-                        <button class="btn btn-primary" id="prosesMrpByDate">
-                            <span class="align-middle d-sm-inline-block d-none">Proses</span>
-                        </button>
-                    </div>
+                    <h5 class="mb-0">Address</h5>
+                    <small>Enter Your Address.</small>
                 </div>
                 <div class="row">
-                    <div class="col-sm-12">
-                      <div class="card-datatable table-responsive pt-0">
-                        <table id="detailedTable" class="table">
-                          <thead class="thead-light">
-                          </thead>
-                        </table>
-                      </div>
-                    </div>
-                </div>  
+                    
+                </div>
+                
                 <div class="d-flex justify-content-between">
                     <button class="btn btn-primary btn-prev">
                         <i data-feather="arrow-left" class="align-middle mr-sm-25 mr-0"></i>
@@ -336,8 +288,6 @@
 <script src="{{ asset('assets/js/freeze-table.js') }}"></script>
 <script type="text/javascript">
 
-    let maxDate,minDate;
-
     var bsStepper = document.querySelectorAll('.bs-stepper')
         ,tabDeliveryPlan = document.querySelector('.tab-delivery-plan');
     if (typeof bsStepper !== undefined && bsStepper !== null) {
@@ -398,8 +348,6 @@
         mode: 'range'
         });
     }
-
-    
 
     $("#cmdSubmitFilter").click(function(e){
 
@@ -583,25 +531,13 @@
     }
 
     $("#generateDelPlan").click(function(e){ 
-        let soDate = $("#soDate").val();
-        generateData(soDate)
-    });
-
-    function generateData(soDate){
         let articleNumber="";
-        let articles=[];
+        let soDate = $("#soDate").val();
         $('input[name="articleCheck[]"]').each(function () {
-            if (this.checked){
-                articleNumber += "'"+$(this).val() + "',"; 
-                articles.push({
-                    "article_code":$(this).val(),
-                    "so_code":$(this).data('so-number'),
-                    "so_qyt":$(this).data('so-qty')
-                });
-            }
+            if (this.checked)
+            articleNumber += "'"+$(this).val() + "',";
         }) 
-        console.log(JSON.stringify(articles));
-
+        console.log(articleNumber);
         let kolom="";
         let baris="";
 
@@ -614,7 +550,6 @@
             type: "get",
             url: "{{ route('deliveryPlan.generate') }}",
             data: {
-                articles:JSON.stringify(articles),
                 articleNumber:articleNumber,
                 soDate:soDate
             },
@@ -689,6 +624,35 @@
                 console.log("Total Baris:"+jumlahData);
                 for(let i=0;i < jumlahData;i++){
                      
+                    // i == 0 ? article = result.data[i].article_code:"";
+                    // i == 0 ? groupoki = result.data[i].group_of_material:"";
+                    // i == 0 ? console.log("Group : "+ result.data[i].group_of_material) : "";
+
+                    // if ( groupoki != result.data[i].group_of_material) {
+                    //     if ( groupoki == result.data[i].group_of_material) {
+                    //         groupoki = "";
+                    //     }
+                        
+                    //     if (groupoki){
+                    //         console.log("Cetak footer : "+ desc);
+                    //         console.log("Group : "+ result.data[i].group_of_material)
+                    //     }
+                    // }                   
+                    
+                    // if ( article != result.data[i].article_code ){
+                    //     console.log("Article : "+ result.data[i].article_desc);                            
+                    // }
+
+                    // if ( article = result.data[i].article_code ){   
+                    //     article = result.data[i].article_code;
+                    //     desc = result.data[i].article_desc;
+                    //     groupoki = result.data[i].group_of_material;
+                    // }
+
+                    // if(i == jumlahData-1){
+                    //     console.log("Cetak footer : "+ desc);
+                    // }
+
                     i == 0 ? article = result.data[i].article_code:"";
                     i == 0 ? groupoki = result.data[i].group_of_material:"";
                     i == 0 ? console.log("Group : "+ result.data[i].group_of_material) : "";
@@ -699,12 +663,14 @@
                                     </tr>`;
                         $('#tblBaru > tbody').append(rowGroup);
                     }
+
                     
-                    //kalo article berikut nya tidak sama makan akan di cetak data nya
+                    
                     if ( article != result.data[i].article_code ){
                         console.log("Article : "+ result.data[i].article_desc);
                         nomorCount++;
-                        //menjumlahkan 2 array                        
+                //         //menjumlahkan 2 array
+                        
                         finalArrayPlan = arrayPlan.map((a, i) => a + finalArrayPlan[i]);
                         finalArrayAct = arrayAct.map((a, i) => a + finalArrayAct[i]);
                         finalArrayBal = arrayBal.map((a, i) => a + finalArrayBal[i]);
@@ -735,6 +701,8 @@
                         arrayPlan=[];
                         arrayAct=[];
                         arrayBal=[];
+                        
+                        // article = result.data[i].article_code;
 
                     }
 
@@ -745,11 +713,10 @@
                         
                         if (groupoki){
                             console.log("Cetak footer : "+ desc);
-                            console.log("Group : "+ result.data[i].group_of_material);
-                            // console.log("supplier: "+ result.data[i].cust_name);
+                            console.log("Group : "+ result.data[i].group_of_material)
 
                             tanggal = result.data[i].tanggal;
-                            // supplier = result.data[i].cust_name;
+                            supplier = result.data[i].supp_name;
                             nomorCount = 0;
 
                             for(let a =0; a < finalArrayPlan.length ; a++){
@@ -776,9 +743,11 @@
                                 </td>`;
                             }
                         
-                            totalPlan = `<tr><td class="kuning" colspan="3">Total Plan&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp`+supplier+`</td><td class="kuning" colspan="3"></td>`+totalPlanDate+`</tr>`;
+                            totalPlan = `<tr><td class="kuning" colspan="3">Total Plan    `+supplier+`</td><td class="kuning" colspan="3"></td>`+totalPlanDate+`</tr>`;
                             totalAct = `<tr><td class="kuning" colspan="3">Total Act</td><td class="kuning" colspan="3"></td>`+totalActDate+`</tr>`;
                             totalBalMin = `<tr><td class="kuning" colspan="3">Total Balance Minus</td><td class="kuning" colspan="3"></td>`+totalBalDate+`</tr>`;
+
+                            
 
                             rowGroup = `<tr>`+totalPlan+totalAct+totalBalMin+` <td class="header-group" colspan="3" >`+result.data[i].group_of_material+`</td>
                                         <td class="header-group" colspan="`+totKolom+`"></td>
@@ -808,7 +777,7 @@
                         desc = result.data[i].article_desc;
                         groupoki = result.data[i].group_of_material;
                         tanggal = result.data[i].tanggal;
-                        supplier = result.data[i].cust_name;
+                        // supplier = result.data[i].supp_name;
 
                         artCode1=`<td class="" rowspan="3" style="width: 20%">
                                     <label>`+result.data[i].article_alternative_code+`</label>
@@ -862,12 +831,8 @@
                     if(i == jumlahData-1){
                         console.log("Cetak footer : "+ desc);
                         tanggal = result.data[i].tanggal;
-                        supplier = result.data[i].cust_name;
-                        
-
-                        finalArrayPlan = arrayPlan.map((a, i) => a + finalArrayPlan[i]);
-                        finalArrayAct = arrayAct.map((a, i) => a + finalArrayAct[i]);
-                        finalArrayBal = arrayBal.map((a, i) => a + finalArrayBal[i]);
+                        supplier = result.data[i].supp_name;
+                        nomorCount = 0;
 
                         for(let a =0; a < finalArrayPlan.length ; a++){
                             totalPlanDate +=` <td class="kuning" style="width: 10%">
@@ -893,7 +858,7 @@
                             </td>`;
                         }
                     
-                        totalPlan = `<tr><td class="kuning" colspan="3">Total Plan&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp`+supplier+`</td><td class="kuning" colspan="3"></td>`+totalPlanDate+`</tr>`;
+                        totalPlan = `<tr><td class="kuning" colspan="3">Total Plan    `+supplier+`</td><td class="kuning" colspan="3"></td>`+totalPlanDate+`</tr>`;
                         totalAct = `<tr><td class="kuning" colspan="3">Total Act</td><td class="kuning" colspan="3"></td>`+totalActDate+`</tr>`;
                         totalBalMin = `<tr><td class="kuning" colspan="3">Total Balance Minus</td><td class="kuning" colspan="3"></td>`+totalBalDate+`</tr>`;
 
@@ -910,417 +875,271 @@
                         totalPlanDate="";
                         totalActDate="";
                         totalBalDate="";
-                        nomorCount=nomorCount+1;
-                        nomor1=`<td class="" rowspan="3" style="width: 20%">
-                                <label>`+nomorCount+`</label>
-                                </td>`;
-
-                        dataRows= ` <tr>`
-                                        +nomor1+artCode1+artName1+coloCode1+variant1+`
-                                        <td>Plan</td>`+plan+`
-                                    </tr>
-                                    <tr>
-                                        <td>Act</td>`+act+`
-                                    </tr>
-                                    <tr>
-                                        <td>Bal. Minus</td>`+balance+`
-                                    </tr>`;
-                        $('#tblBaru > tbody').append(dataRows);
 
                         rowGroup = `<tr>`+totalPlan+totalAct+totalBalMin+`</tr>`;
                         $('#tblBaru > tbody').append(rowGroup);
                     }
-
-                }
-
-                //untuk summary per supplier
-                let supplierName="";
-                let dataRowsSupp="";
-                let suppSumDate="";
-                let suppCode="";
-                let jumDataSupp = result.supp.length; 
-                for ( let i=0; i < jumDataSupp; i ++){
-                    if (supplierName != result.supp[i].cust_name){
-                        if (supplierName){
-                            dataRowsSupp = ` <tr>`+suppCode+suppSumDate+`</tr>`;
-                            $('#tblSumSupp > tbody').append(dataRowsSupp);
-                        }
-
-                        
-                        suppSumDate="";
-                        suppCode="";
-                        supplierName = result.supp[i].cust_name;
-                    }
-
-                    // console.log(i+1+"-"+jumDataSupp)
-                    if ( i+1 == jumDataSupp){
-                        suppCode =`<td class="" style="width: 20%">
-                                    <label>`+result.supp[i].cust_name+`</label>
-                                </td>`;
-                        suppSumDate+=` <td class="" style="width: 10%">
-                                        <label>`+result.supp[i].plan+`</label>
-                                </td>`;
-                        dataRowsSupp = ` <tr>`+suppCode+suppSumDate+`</tr>`;
-                        $('#tblSumSupp > tbody').append(dataRowsSupp);
-                    }
-
-                    if (supplierName == result.supp[i].cust_name){
-                        
-                        // console.log(supplierName);
-                        suppCode =`<td class="" style="width: 20%">
-                                    <label>`+result.supp[i].cust_name+`</label>
-                                </td>`;
-                        suppSumDate+=` <td class="" style="width: 10%">
-                                        <label>`+result.supp[i].plan+`</label>
-                                </td>`;
-
-                    }
-
-                }
-
-                $(".table-scrollable").freezeTable({
-                    'scrollable': true,
-                    'columnNum' : 3,
-                });
-
-                $(".tblSumSupp-scrollable").freezeTable({
-                    'scrollable': true,
-                    'columnNum' : 1,
-                });
-
-            },
-            error: function(error) {
-                console.log(error);
-            }
-        });  
-    }
-
-    function reGenerateData(soDate){
-
-        $('#tblBaru thead >tr').remove();
-        $('#tblBaru tbody >tr').remove();
-        $('#tblSumSupp thead >tr').remove();
-        $('#tblSumSupp tbody >tr').remove();
-
-        $.ajax({
-            type: "get",
-            url: "{{ route('deliveryPlan.reGenerate') }}",
-            data: {
-                soDate:soDate
-            },
-            dataType: "json",
-            success: function(result) {
-                let tahun,hari,tanggal;
-                let numberOfDate=result.kolom.length;
-                let numOfKolomHeader = 3;
-                let totKolom = numberOfDate+numOfKolomHeader;
-                for(let i =0;i<result.kolom.length;i++){
-                    tahun=`<th class="" colspan="`+result.kolom[i].countday+1+`" >
-                                <label>`+result.kolom[i].dateyear+`</label>
-                            </th>`;
-                    hari+=`<th class="" >
-                                <label>`+result.kolom[i].dy+`</label>
-                            </th>`;
-                    tanggal+=`<th class="" >
-                                <label>`+result.kolom[i].datemon+`</label>
-                            </th>`;
-                }
-
-                $('#tblBaru > thead').append(`<tr>
-                                    <th rowspan='3' class="">No</th>
-                                    <th rowspan='3' class="">Code</th>
-                                    <th rowspan='3' class="">Name</th>
-                                    <th rowspan='3' >Col. Code</th>
-                                    <th rowspan='3' >Variant</th>
-                                    <th rowspan='3' >Remarks</th>`+tahun+`</tr>`);
-                $('#tblBaru > thead').append("<tr>"+hari+"</tr>");
-                $('#tblBaru > thead').append("<tr>"+tanggal+"</tr>");
-
-                $('#tblSumSupp > thead').append(`<tr>
-                                                    <th rowspan='3' class="">Name</th>
-                                                    `+tahun+`
-                                                </tr>`);
-                $('#tblSumSupp > thead').append("<tr>"+hari+"</tr>");
-                $('#tblSumSupp > thead').append("<tr>"+tanggal+"</tr>");
-                
-                let article="";
-                let supplier="";
-                let articleKolom="";
-                let artCode,plan,act,balance,kolom;
-                let dataRows="";
-                let nomorCount=0;
-                let judulGroup="";
-                let judulGroup2="";
-                let rowGroup="";
-                let totalPlan="";
-                let totalAct="";
-                let totalBalMin="";
-                let totalPlan1="";
-                let totalAct1="";
-                let totalBalMin1="";
-                let totalPlanDate="";
-                let totalActDate="";
-                let totalBalDate="";
-                let arrayPlan=[];
-                let arrayAct=[];
-                let arrayBal=[];
-                let finalArrayPlan=[];
-                let finalArrayAct=[];
-                let finalArrayBal=[];
-                let nomor1=0;
-                for(let i =0;i<numberOfDate;i++){
-                    finalArrayPlan.push(0);
-                    finalArrayAct.push(0);
-                    finalArrayBal.push(0);
-                }
-
-                let groupoki = "";
-                let jumlahData = result.data.length; 
-                console.log("Total Baris:"+jumlahData);
-                for(let i=0;i < jumlahData;i++){
-                     
-                    i == 0 ? article = result.data[i].article_code:"";
-                    i == 0 ? groupoki = result.data[i].group_of_material:"";
-                    i == 0 ? console.log("Group : "+ result.data[i].group_of_material) : "";
-
-                    if (i==0){
-                        rowGroup = `<tr> <td class="header-group" colspan="3" >`+result.data[i].group_of_material+`</td>
-                                        <td class="header-group" colspan="`+totKolom+`"></td>
-                                    </tr>`;
-                        $('#tblBaru > tbody').append(rowGroup);
-                    }
+               
                     
-                    //kalo article berikut nya tidak sama makan akan di cetak data nya
-                    if ( article != result.data[i].article_code ){
-                        console.log("Article : "+ result.data[i].article_desc);
-                        nomorCount++;
-                        //menjumlahkan 2 array                        
-                        finalArrayPlan = arrayPlan.map((a, i) => a + finalArrayPlan[i]);
-                        finalArrayAct = arrayAct.map((a, i) => a + finalArrayAct[i]);
-                        finalArrayBal = arrayBal.map((a, i) => a + finalArrayBal[i]);
+                    
 
-                        nomor1=`<td class="" rowspan="3" style="width: 20%">
-                                <label>`+nomorCount+`</label>
-                                </td>`;
 
-                        dataRows= ` <tr>`
-                                        +nomor1+artCode1+artName1+coloCode1+variant1+`
-                                        <td>Plan</td>`+plan+`
-                                    </tr>
-                                    <tr>
-                                        <td>Act</td>`+act+`
-                                    </tr>
-                                    <tr>
-                                        <td>Bal. Minus</td>`+balance+`
-                                    </tr>`;
-                        $('#tblBaru > tbody').append(dataRows);
-
-                        plan = "";
-                        act = "";
-                        balance = "";
-                        totalPlan = "";
-                        totalAct = "";
-                        totalBalMin ="";
-                        totalPlan = "";
-                        arrayPlan=[];
-                        arrayAct=[];
-                        arrayBal=[];
-
-                    }
-
-                    if ( groupoki != result.data[i].group_of_material) {
-                        if ( groupoki == result.data[i].group_of_material) {
-                            groupoki = "";
-                        }
-                        
-                        if (groupoki){
-                            console.log("Cetak footer : "+ desc);
-                            console.log("Group : "+ result.data[i].group_of_material);
-                            // console.log("supplier: "+ result.data[i].cust_name);
-
-                            tanggal = result.data[i].tanggal;
-                            // supplier = result.data[i].cust_name;
-                            nomorCount = 0;
-
-                            for(let a =0; a < finalArrayPlan.length ; a++){
-                                totalPlanDate +=` <td class="kuning" style="width: 10%">
-                                <input type="text" class="form-control-plaintext text-color-blue text-right"
-                                    value="`+finalArrayPlan[a]+`" 
-                                    id="`+groupoki+'_'+tanggal+`" name="totalPlan[]" disabled>
-                                </td>`;
-                            }
+                    // if (judulGroup != result.data[i].group_of_material){
+                    //     rowGroup = `<tr> <td class="header-group" colspan="3" >`+judulGroup+`</td>
+                    //                     <td class="header-group" colspan="`+totKolom+`"></td>
+                    //                 </tr>`;
+                    //     judulGroup = result.data[i].group_of_material;
+                    //     // console.log("cetak Judul:"+result.data[i].group_of_material);
+                    // }
+                   
+                    // if (article != result.data[i].article_code){     
+                    //     if (article){
+                    //         console.log("Cetak Article : "+ article_desc);                            
+                    //         if (judulGroup == judulGroup2){
+                    //             rowGroup ="";
+                    //         }
                             
-                            for(let b =0; b < finalArrayAct.length ; b++){
-                                totalActDate +=` <td class="kuning" style="width: 10%">
-                                <input type="text" class="form-control-plaintext text-color-blue text-right"
-                                    value="`+finalArrayAct[b]+`" 
-                                    id="totalAct`+b+`" name="totalAct[]" disabled>
-                                </td>`;
-                            }
+                    //         if (judulGroup != judulGroup2){
+                    //             groupCode = result.data[i].group_code;
+                    //             tanggal = result.data[i].tanggal;
+                    //             supplier = result.data[i].supp_name;
+                    //             nomorCount = 0;
 
-                            for(let c =0; c < finalArrayBal.length ; c++){
-                                totalBalDate +=` <td class="kuning" style="width: 10%">
-                                <input type="text" class="form-control-plaintext text-color-blue text-right"
-                                    value="`+finalArrayBal[c]+`" 
-                                    id="totalBal`+c+`" name="totalBal[]" disabled>
-                                </td>`;
-                            }
+                    //             if ( i != numberOfDate ){
+
+                    //                 for(let a =0; a < finalArrayPlan.length ; a++){
+                    //                     totalPlanDate +=` <td class="kuning" style="width: 10%">
+                    //                     <input type="text" class="form-control-plaintext text-color-blue text-right"
+                    //                         value="`+finalArrayPlan[a]+`" 
+                    //                         id="`+groupCode+'_'+tanggal+`" name="totalPlan[]" disabled>
+                    //                     </td>`;
+                    //                 }
+                                    
+                    //                 for(let b =0; b < finalArrayAct.length ; b++){
+                    //                     totalActDate +=` <td class="kuning" style="width: 10%">
+                    //                     <input type="text" class="form-control-plaintext text-color-blue text-right"
+                    //                         value="`+finalArrayAct[b]+`" 
+                    //                         id="totalAct`+b+`" name="totalAct[]" disabled>
+                    //                     </td>`;
+                    //                 }
+
+                    //                 for(let c =0; c < finalArrayBal.length ; c++){
+                    //                     totalBalDate +=` <td class="kuning" style="width: 10%">
+                    //                     <input type="text" class="form-control-plaintext text-color-blue text-right"
+                    //                         value="`+finalArrayBal[c]+`" 
+                    //                         id="totalBal`+c+`" name="totalBal[]" disabled>
+                    //                     </td>`;
+                    //                 }
+                                
+                    //                 totalPlan = `<tr><td class="kuning" colspan="3">Total Plan    `+supplier+`</td><td class="kuning" colspan="3"></td>`+totalPlanDate+`</tr>`;
+                    //                 totalAct = `<tr><td class="kuning" colspan="3">Total Act</td><td class="kuning" colspan="3"></td>`+totalActDate+`</tr>`;
+                    //                 totalBalMin = `<tr><td class="kuning" colspan="3">Total Balance Minus</td><td class="kuning" colspan="3"></td>`+totalBalDate+`</tr>`;
+
+                    //                 finalArrayPlan =[];
+                    //                 finalArrayAct =[];
+                    //                 finalArrayBal =[];
+
+                    //                 for(let i =0;i<numberOfDate;i++){
+                    //                     finalArrayPlan.push(0);
+                    //                     finalArrayAct.push(0);
+                    //                     finalArrayBal.push(0);
+                    //                 }
+
+                    //                 totalPlanDate="";
+                    //                 totalActDate="";
+                    //                 totalBalDate="";
+                    //             }
+                                
+                    //         }
+                  
+                    //         // console.log(arrayPlan.length);
+                    //         nomorCount++;
+                    //         //menjumlahkan 2 array
+                            
+                    //         finalArrayPlan = arrayPlan.map((a, i) => a + finalArrayPlan[i]);
+                    //         finalArrayAct = arrayAct.map((a, i) => a + finalArrayAct[i]);
+                    //         finalArrayBal = arrayBal.map((a, i) => a + finalArrayBal[i]);
+
+                    //         nomor1=`<td class="" rowspan="3" style="width: 20%">
+                    //                 <label>`+nomorCount+`</label>
+                    //              </td>`;
+
+                    //         dataRows= totalPlan+totalAct+totalBalMin+rowGroup+` 
+                    //                     <tr>`
+                    //                         +nomor1+artCode1+artName1+coloCode1+variant1+`
+                    //                         <td>Plan</td>`+plan+`
+                    //                     </tr>
+                    //                     <tr>
+                    //                         <td>Act</td>`+act+`
+                    //                     </tr>
+                    //                     <tr>
+                    //                         <td>Bal. Minus</td>`+balance+`
+                    //                     </tr>`;
+                    //         $('#tblBaru > tbody').append(dataRows);
+                    //     }
+                    //     // console.log(result.data[i].article_code);
+                    //     kolom = "";
+                    //     plan = "";
+                    //     act = "";
+                    //     balance = "";
+                    //     rowGroup = "";
+                    //     totalPlan = "";
+                    //     totalAct = "";
+                    //     totalBalMin ="";
+                    //     arrayPlan=[];
+                    //     arrayAct=[];
+                    //     arrayBal=[];
+                    //     article = result.data[i].article_code;
+                    //     article_desc = result.data[i].article_desc;
                         
-                            totalPlan = `<tr><td class="kuning" colspan="3">Total Plan&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp`+supplier+`</td><td class="kuning" colspan="3"></td>`+totalPlanDate+`</tr>`;
-                            totalAct = `<tr><td class="kuning" colspan="3">Total Act</td><td class="kuning" colspan="3"></td>`+totalActDate+`</tr>`;
-                            totalBalMin = `<tr><td class="kuning" colspan="3">Total Balance Minus</td><td class="kuning" colspan="3"></td>`+totalBalDate+`</tr>`;
-
-                            rowGroup = `<tr>`+totalPlan+totalAct+totalBalMin+` <td class="header-group" colspan="3" >`+result.data[i].group_of_material+`</td>
-                                        <td class="header-group" colspan="`+totKolom+`"></td>
-                                    </tr>`;
-                            $('#tblBaru > tbody').append(rowGroup);
-
-                            finalArrayPlan =[];
-                            finalArrayAct =[];
-                            finalArrayBal =[];
-
-                            for(let i =0;i<numberOfDate;i++){
-                                finalArrayPlan.push(0);
-                                finalArrayAct.push(0);
-                                finalArrayBal.push(0);
-                            }
-
-                            totalPlanDate="";
-                            totalActDate="";
-                            totalBalDate="";
-
-                        }
-                    }                   
-
-                    //kelompokan data by artiscle
-                    if ( article = result.data[i].article_code ){   
-                        article = result.data[i].article_code;
-                        desc = result.data[i].article_desc;
-                        groupoki = result.data[i].group_of_material;
-                        tanggal = result.data[i].tanggal;
-                        supplier = result.data[i].cust_name;
-
-                        artCode1=`<td class="" rowspan="3" style="width: 20%">
-                                    <label>`+result.data[i].article_alternative_code+`</label>
-                                 </td>`;
-
-                        artName1=`<td class="" rowspan="3" style="width: 20%">
-                                    <label>`+result.data[i].article_desc+`</label>
-                                 </td>`;
-
-                        coloCode1=`<td rowspan="3" style="width: 20%">
-                                    <label>`+result.data[i].color_code+`</label>
-                                 </td>`;
-
-                        variant1=`<td class="" rowspan="3" style="width: 20%">
-                                    <label>`+result.data[i].variant+`</label>
-                                 </td>`;
-
-                        arrayPlan.push(result.data[i].plan)
-                        arrayAct.push(result.data[i].act)
-                        arrayBal.push(result.data[i].balance)
                         
-                        plan+=` <td class="" style="width: 10%;pading:2px;">
-                                  <input type="text" class="form-control-plaintext pindah-cell input-name text-color-blue text-right active-cell" 
-                                    data-total-code = "`+groupoki+"_"+tanggal+`"
-                                    data-tanggal="`+result.data[i].day+`" 
-                                    data-article-id="`+result.data[i].article_code+`" 
-                                    data-max-coloumn= "`+numberOfDate+`"
-                                    value="`+result.data[i].plan+`" 
-                                    id="plan`+i+`" name="plan[]">
-                                </td>`;
-
-                        act+=`<td class="disabled-cell" style="width: 10%">
-                                <input type="text" class="form-control-plaintext pindah-cell input-name text-right" 
-                                    data-tanggal="`+result.data[i].day+`" 
-                                    data-article-id="`+result.data[i].article_code+`" 
-                                    value="`+result.data[i].act+`" 
-                                    id="act`+i+`" name="act[]" disabled>
-                              </td>`;
-
-                        balance+=`<td class="disabled-cell" style="width: 10%">
-                                    <input type="text" class="form-control-plaintext pindah-cell input-name text-right" 
-                                        data-tanggal="`+result.data[i].day+`" 
-                                        data-article-id="`+result.data[i].article_code+`" 
-                                        value="`+result.data[i].balance+`" 
-                                        id="balance`+i+`" name="balance[]" disabled>
-                                  </td>`;
-                        
-                    }
-
-                    //data terkhir
-                    if(i == jumlahData-1){
-                        console.log("Cetak footer : "+ desc);
-                        tanggal = result.data[i].tanggal;
-                        supplier = result.data[i].cust_name;
-                        
-
-                        finalArrayPlan = arrayPlan.map((a, i) => a + finalArrayPlan[i]);
-                        finalArrayAct = arrayAct.map((a, i) => a + finalArrayAct[i]);
-                        finalArrayBal = arrayBal.map((a, i) => a + finalArrayBal[i]);
-
-                        for(let a =0; a < finalArrayPlan.length ; a++){
-                            totalPlanDate +=` <td class="kuning" style="width: 10%">
-                            <input type="text" class="form-control-plaintext text-color-blue text-right"
-                                value="`+finalArrayPlan[a]+`" 
-                                id="`+groupoki+'_'+tanggal+`" name="totalPlan[]" disabled>
-                            </td>`;
-                        }
-                        
-                        for(let b =0; b < finalArrayAct.length ; b++){
-                            totalActDate +=` <td class="kuning" style="width: 10%">
-                            <input type="text" class="form-control-plaintext text-color-blue text-right"
-                                value="`+finalArrayAct[b]+`" 
-                                id="totalAct`+b+`" name="totalAct[]" disabled>
-                            </td>`;
-                        }
-
-                        for(let c =0; c < finalArrayBal.length ; c++){
-                            totalBalDate +=` <td class="kuning" style="width: 10%">
-                            <input type="text" class="form-control-plaintext text-color-blue text-right"
-                                value="`+finalArrayBal[c]+`" 
-                                id="totalBal`+c+`" name="totalBal[]" disabled>
-                            </td>`;
-                        }
+                    // }
                     
-                        totalPlan = `<tr><td class="kuning" colspan="3">Total Plan&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp`+supplier+`</td><td class="kuning" colspan="3"></td>`+totalPlanDate+`</tr>`;
-                        totalAct = `<tr><td class="kuning" colspan="3">Total Act</td><td class="kuning" colspan="3"></td>`+totalActDate+`</tr>`;
-                        totalBalMin = `<tr><td class="kuning" colspan="3">Total Balance Minus</td><td class="kuning" colspan="3"></td>`+totalBalDate+`</tr>`;
+                    // if (article == result.data[i].article_code){
+                        
+                    //     judulGroup2=result.data[i].group_of_material;
+                    //     groupCode = result.data[i].group_code;
+                    //     tanggal = result.data[i].tanggal;
+                        
+                    //     artCode1=`<td class="" rowspan="3" style="width: 20%">
+                    //                 <label>`+result.data[i].article_alternative_code+`</label>
+                    //              </td>`;
 
-                        finalArrayPlan =[];
-                        finalArrayAct =[];
-                        finalArrayBal =[];
+                    //     artCode=`<td class="d-none" style="width: 20%">
+                    //                 <label>`+result.data[i].article_alternative_code+`</label>
+                    //             </td>`;
+                    //     //supaya article bisa di rowspan, baris selanjut nya di hide
+                    //     artName1=`<td class="" rowspan="3" style="width: 20%">
+                    //                 <label>`+result.data[i].article_desc+`</label>
+                    //              </td>`;
 
-                        for(let i =0;i<numberOfDate;i++){
-                            finalArrayPlan.push(0);
-                            finalArrayAct.push(0);
-                            finalArrayBal.push(0);
-                        }
+                    //     artName=`<td class="d-none" style="width: 20%">
+                    //                 <label>`+result.data[i].article_desc+`</label>
+                    //             </td>`;
 
-                        totalPlanDate="";
-                        totalActDate="";
-                        totalBalDate="";
-                        nomorCount=nomorCount+1;
-                        nomor1=`<td class="" rowspan="3" style="width: 20%">
-                                <label>`+nomorCount+`</label>
-                                </td>`;
+                    //     coloCode1=`<td rowspan="3" style="width: 20%">
+                    //                 <label>`+result.data[i].color_code+`</label>
+                    //              </td>`;
 
-                        dataRows= ` <tr>`
-                                        +nomor1+artCode1+artName1+coloCode1+variant1+`
-                                        <td>Plan</td>`+plan+`
-                                    </tr>
-                                    <tr>
-                                        <td>Act</td>`+act+`
-                                    </tr>
-                                    <tr>
-                                        <td>Bal. Minus</td>`+balance+`
-                                    </tr>`;
-                        $('#tblBaru > tbody').append(dataRows);
+                    //     coloCode=`<td class="d-none" style="width: 20%">
+                    //                 <label>`+result.data[i].color_code+`</label>
+                    //             </td>`;
 
-                        rowGroup = `<tr>`+totalPlan+totalAct+totalBalMin+`</tr>`;
-                        $('#tblBaru > tbody').append(rowGroup);
-                    }
+                    //     variant1=`<td class="" rowspan="3" style="width: 20%">
+                    //                 <label>`+result.data[i].variant+`</label>
+                    //              </td>`;
 
+                    //     variant=`<td class="d-none" style="width: 20%">
+                    //                 <label>`+result.data[i].variant+`</label>
+                    //             </td>`;
+
+                    //     group1=`<td class="" rowspan="3" style="width: 20%">
+                    //                 <label>`+result.data[i].group_of_material+`</label>
+                    //              </td>`;
+
+                    //     group=`<td class="d-none" style="width: 20%">
+                    //                 <label>`+result.data[i].group_of_material+`</label>
+                    //             </td>`;
+
+                    //     arrayPlan.push(result.data[i].plan)
+                    //     arrayAct.push(result.data[i].act)
+                    //     arrayBal.push(result.data[i].balance)
+                        
+                    //     plan+=` <td class="" style="width: 10%;pading:2px;">
+                    //               <input type="text" class="form-control-plaintext pindah-cell input-name text-color-blue text-right active-cell" 
+                    //                 data-total-code = "`+groupCode+"_"+tanggal+`"
+                    //                 data-tanggal="`+result.data[i].day+`" 
+                    //                 data-article-id="`+result.data[i].article_code+`" 
+                    //                 data-max-coloumn= "`+numberOfDate+`"
+                    //                 value="`+result.data[i].plan+`" 
+                    //                 id="plan`+i+`" name="plan[]">
+                    //             </td>`;
+
+                    //     act+=`<td class="disabled-cell" style="width: 10%">
+                    //             <input type="text" class="form-control-plaintext pindah-cell input-name text-right" 
+                    //                 data-tanggal="`+result.data[i].day+`" 
+                    //                 data-article-id="`+result.data[i].article_code+`" 
+                    //                 value="`+result.data[i].act+`" 
+                    //                 id="act`+i+`" name="act[]" disabled>
+                    //           </td>`;
+
+                    //     balance+=`<td class="disabled-cell" style="width: 10%">
+                    //                 <input type="text" class="form-control-plaintext pindah-cell input-name text-right" 
+                    //                     data-tanggal="`+result.data[i].day+`" 
+                    //                     data-article-id="`+result.data[i].article_code+`" 
+                    //                     value="`+result.data[i].balance+`" 
+                    //                     id="balance`+i+`" name="balance[]" disabled>
+                    //               </td>`;
+                        
+                    // }
+
+                    // //kondisi kalo data sudah di akhir
+                    // jumlah= i+1;
+                    // // console.log("oki ganteng "+jumlah +"==" + jumlahData);
+                    // if ( jumlah == jumlahData ){
+                    //     // console.log("oki ganteng keluar");
+
+                    //     rowGroup = `<tr> <td class="header-group" colspan="3" >`+judulGroup2+`</td>
+                    //                     <td class="header-group" colspan="`+totKolom+`"></td>
+                    //                 </tr>`;
+
+                    //     if (judulGroup == judulGroup2){
+                    //         rowGroup ="";
+                    //     }
+
+                    //     finalArrayPlan = arrayPlan.map((a, i) => a + finalArrayPlan[i]);
+                    //     finalArrayAct = arrayAct.map((a, i) => a + finalArrayAct[i]);
+                    //     finalArrayBal = arrayBal.map((a, i) => a + finalArrayBal[i]);
+
+                    //     for(let i =0; i < finalArrayPlan.length ; i++){
+                    //         totalPlanDate +=` <td class="kuning" style="width: 10%">
+                    //         <input type="text" class="form-control-plaintext text-color-blue text-right"
+                    //             value="`+finalArrayPlan[i]+`" 
+                    //             id="`+groupCode+'_'+i+`" name="totalPlan[]">
+                    //         </td>`;
+                    //     }
+                        
+                    //     for(let i =0; i < finalArrayAct.length ; i++){
+                    //         totalActDate +=` <td class="kuning" style="width: 10%">
+                    //         <input type="text" class="form-control-plaintext text-color-blue text-right"
+                    //             value="`+finalArrayAct[i]+`" 
+                    //             id="totalAct`+i+`" name="totalAct[]">
+                    //         </td>`;
+                    //     }
+
+                    //     for(let i =0; i < finalArrayBal.length ; i++){
+                    //         totalBalDate +=` <td class="kuning" style="width: 10%">
+                    //         <input type="text" class="form-control-plaintext text-color-blue text-right"
+                    //             value="`+finalArrayBal[i]+`" 
+                    //             id="totalBal`+i+`" name="totalBal[]">
+                    //         </td>`;
+                    //     }
+                    
+                    //     totalPlan1 = `<tr><td class="kuning" colspan="3">Total Plan    `+supplier+`</td><td class="kuning" colspan="3"></td>`+totalPlanDate+`</tr>`;
+                    //     totalAct1 = `<tr><td class="kuning" colspan="3">Total Act</td><td class="kuning" colspan="3"></td>`+totalActDate+`</tr>`;
+                    //     totalBalMin1 = `<tr><td class="kuning" colspan="3">Total Balance Minus</td><td class="kuning" colspan="3"></td>`+totalBalDate+`</tr>`;
+
+                    //     nomorCount=nomorCount+1;
+                    //     nomor1=`<td class="" rowspan="3" style="width: 20%">
+                    //                 <label>`+nomorCount+`</label>
+                    //              </td>`;
+
+                    //     nomor=`<td class="d-none" style="width: 20%">
+                    //             <label>`+nomorCount+`</label>
+                    //         </td>`;
+                    //     dataRows= rowGroup +` <tr>`+nomor1+artCode1+artName1+coloCode1+variant1+`
+                    //                     <td>Plan</td>`+plan+`
+                    //                 </tr>
+                    //                 <tr>
+                    //                     <td>Act</td>`+act+`
+                    //                 </tr>
+                    //                 <tr>
+                    //                     <td>Bal. Minus</td>`+balance+`
+                    //                 </tr>`+totalPlan1+totalAct1+totalBalMin1+totalPlan+totalAct+totalBalMin;
+                    //     // console.log("Cetak:"+result.data[i].article_code+"-"+result.data[i].article_alternative_code);
+                    //     $('#tblBaru > tbody').append(dataRows);
+
+                    // }
                 }
 
                 //untuk summary per supplier
@@ -1330,21 +1149,22 @@
                 let suppCode="";
                 let jumDataSupp = result.supp.length; 
                 for ( let i=0; i < jumDataSupp; i ++){
-                    if (supplierName != result.supp[i].cust_name){
+                    if (supplierName != result.supp[i].supp_name){
                         if (supplierName){
                             dataRowsSupp = ` <tr>`+suppCode+suppSumDate+`</tr>`;
                             $('#tblSumSupp > tbody').append(dataRowsSupp);
                         }
 
+                        
                         suppSumDate="";
                         suppCode="";
-                        supplierName = result.supp[i].cust_name;
+                        supplierName = result.supp[i].supp_name;
                     }
 
                     // console.log(i+1+"-"+jumDataSupp)
                     if ( i+1 == jumDataSupp){
                         suppCode =`<td class="" style="width: 20%">
-                                    <label>`+result.supp[i].cust_name+`</label>
+                                    <label>`+result.supp[i].supp_name+`</label>
                                 </td>`;
                         suppSumDate+=` <td class="" style="width: 10%">
                                         <label>`+result.supp[i].plan+`</label>
@@ -1353,11 +1173,11 @@
                         $('#tblSumSupp > tbody').append(dataRowsSupp);
                     }
 
-                    if (supplierName == result.supp[i].cust_name){
+                    if (supplierName == result.supp[i].supp_name){
                         
                         // console.log(supplierName);
                         suppCode =`<td class="" style="width: 20%">
-                                    <label>`+result.supp[i].cust_name+`</label>
+                                    <label>`+result.supp[i].supp_name+`</label>
                                 </td>`;
                         suppSumDate+=` <td class="" style="width: 10%">
                                         <label>`+result.supp[i].plan+`</label>
@@ -1382,226 +1202,7 @@
                 console.log(error);
             }
         });  
-    }
-
-    $("#cmdSavePlan").click(function(){
-        updateData();
     });
-
-    function updateData(){
-        let plan,act,balance;
-        let articles=[];
-        let objPlan= $('#tblBaru input[name="plan[]"]');
-        let objAct= $('#tblBaru input[name="act[]"]');
-        let objBalance= $('#tblBaru input[name="balance[]"]');
-        objPlan.map(function(i) {  
-		    let $this=$(this);
-            // console.log($this);
-            if ($this.val()){
-                let date=$this.data('tanggal');
-                let articleCode=$this.data('article-id');
-                let plan=$this.val().replace(/,/gi, '') || 0;
-                let act=objAct.eq(i).val().replace(/,/gi, '') || 0;
-                let balance=objBalance.eq(i).val().replace(/,/gi, '') || 0;
-                articles.push({
-                    "article_code":articleCode,
-                    "date":date,
-                    "plan":plan,
-                    "act" :act,
-                    "balance" : balance
-                });
-            }
-        });
-        console.log(articles);
-        soDate = $("#soDate").val();
-        $.ajax({
-            type: "post",
-            url: "{{ route('deliveryPlan.update') }}",
-            data: {
-                articles:JSON.stringify(articles)
-            },
-            dataType: "json",
-            success: function(data) {
-                if (data.status == 0 ){
-                    let message="";
-                    for(let i = 0; i < data.message.length; i++) {
-                        message += "-"+data.message[i]+"<br>";                           
-                    }
-                    $("#alert-message-success").addClass(data.alert);
-                    $("#alert-message-success .alert-body").html(message);
-                    $("#alert-message-success").show();
-                    $("#alert-message-success").fadeTo(5000, 500).slideUp(500, function(){
-                        $("#alert-message-success").slideUp(500);
-                    });
-
-                }else{
-                    $("#alert-message-success").addClass(data.alert);
-                    $("#alert-message-success .alert-body").html(data.message);
-                    $("#alert-message-success").show();
-                    $("#alert-message-success").fadeTo(5000, 500).slideUp(500, function(){
-                        $("#alert-message-success").slideUp(500);
-                    });
-
-                    
-                    reGenerateData(soDate)
-                }
-                
-            },
-            error: function(error) {
-                console.log(error);
-            }
-        });
-    }
-
-    
-    $("#prosesMrpByDate").click(function(){
-        let planDate = $("#planDate").val();
-        showListMrp(planDate);
-    });
-
-    $("#prosesMrp").click(function(){
-        let soDate = $("#soDate").val();
-        tanggalKu= soDate.split(' to ');
-        minDate =tanggalKu[0];
-        maxDate =tanggalKu[1];
-
-        // minDate ='2021-10-01';
-        // maxDate ='2021-10-31';
-
-        dateLflatPickr = $('.flatpickr-basic');
-        if (dateLflatPickr.length) {
-            dateLflatPickr.flatpickr({
-                dateFormat: "d-m-Y",
-                minDate: minDate,
-                maxDate: maxDate
-            });
-        }
-
-        showListMrp();
-    });
-    
-    function showListMrp(tanggal){
-        let isidata = $('#detailedTable tr').length;
-        if (isidata >0){
-            let table= $('#detailedTable').DataTable();
-            table.destroy();
-            $('#detailedTable tbody > tr').remove();
-        }
-        
-        let dtdom ='<"d-flex justify-content-between align-items-center header-actions mx-1 row mt-75"' +
-            '<"col-lg-12 col-xl-6" l>' +
-            '<"col-lg-12 col-xl-6 pl-xl-75 pl-0"<"dt-action-buttons text-xl-right text-lg-left text-md-right text-left d-flex align-items-center justify-content-lg-end align-items-center flex-sm-nowrap flex-wrap mr-1"<"mr-1"f>B>>' +
-            '>t' +
-            '<"d-flex justify-content-between mx-2 row mb-1"' +
-            '<"col-sm-12 col-md-6"i>' +
-            '<"col-sm-12 col-md-6"p>' +
-            '>';
-        let arr_col_print =[2,3,4,5,6]; 
-        $(function(){
-            let oTable =$("#detailedTable").DataTable({
-                ajax:{
-                    url:'{{ route("deliveryPlan.detail.list")}}',
-                    data:{
-                        tanggal:tanggal,
-                    }
-                },
-                processing: true,
-                serverSide: true,
-                buttons: true,
-                dom:dtdom,
-                lengthMenu: [
-                [ 10, 25, 50, -1 ],
-                [ '10', '25', '50', 'all' ]
-                ],
-                buttons: [
-                {
-                    extend: 'collection',
-                    className: 'btn btn-outline-secondary dropdown-toggle mr-2 mt-07',
-                    text: feather.icons['share'].toSvg({ class: 'font-small-4 mr-50' }) + 'Export',
-                    buttons: [
-                    {
-                        extend: 'print',
-                        text: feather.icons['printer'].toSvg({ class: 'font-small-4 mr-50' }) + 'Print',
-                        className: 'dropdown-item',
-                        exportOptions: { columns: arr_col_print }
-                    },
-                    {
-                        extend: 'csv',
-                        text: feather.icons['file-text'].toSvg({ class: 'font-small-4 mr-50' }) + 'Csv',
-                        className: 'dropdown-item',
-                        exportOptions: { columns: arr_col_print }
-                    },
-                    {
-                        extend: 'excel',
-                        text: feather.icons['file'].toSvg({ class: 'font-small-4 mr-50' }) + 'Excel',
-                        className: 'dropdown-item',
-                        exportOptions: { columns: arr_col_print }
-                    },
-                    {
-                        extend: 'pdf',
-                        text: feather.icons['clipboard'].toSvg({ class: 'font-small-4 mr-50' }) + 'Pdf',
-                        className: 'dropdown-item',
-                        exportOptions: { columns: arr_col_print }
-                    },
-                    {
-                        extend: 'copy',
-                        text: feather.icons['copy'].toSvg({ class: 'font-small-4 mr-50' }) + 'Copy',
-                        className: 'dropdown-item',
-                        exportOptions: { columns: arr_col_print }
-                    }
-                    ],
-                    init: function (api, node, config) {
-                    $(node).removeClass('btn-secondary');
-                    $(node).parent().removeClass('btn-group');
-                    setTimeout(function () {
-                        $(node).closest('.dt-buttons').removeClass('btn-group').addClass('d-inline-flex');
-                    }, 50);
-                    }
-                },
-                ],
-                language: {
-                paginate: {
-                    // remove previous & next text from pagination
-                    previous: '&nbsp;',
-                    next: '&nbsp;'
-                }
-                },
-                columnDefs: [
-                    { width: '5%', targets: 0 },
-                    { className: 'text-right','targets': [ 4,5 ] },
-                    {
-                        "searchable": false,
-                        "orderable": false,
-                        "targets": 0
-                    }
-                ],
-                drawCallback: function( settings ) {
-                    feather.replace({
-                            width: 14,
-                            height: 14
-                    });
-                },
-                order: [[ 2, 'asc' ]],
-                bDestroy: true, //pakai ini supaya bisa di load berulang2
-                // scrollX: true, //pakai ini supaya waktu responsive  bisa di scroll horizontal
-                columns: [
-                    {
-                        data: 'id',title:"#",
-                        render: function (data, type, row, meta) {
-                            return meta.row + meta.settings._iDisplayStart + 1;
-                        }
-                    },
-                    { data: 'article_alternative_code', name: 'article_alternative_code',title:'Article Code' },
-                    { data: 'article_desc', name: 'article_desc',title:'Desc' },
-                    { data: 'uom', name: 'uom',title:'UOM' },
-                    { data: 'qty', name: 'qty',title:'Stock WH' },
-                    { data: 'qty_total', name: 'qty_total',title:'Consumption' ,render: $.fn.dataTable.render.number(',','.') },
-                    { data: 'kelompok', name: 'kelompok',title:'Article Type' ,render: $.fn.dataTable.render.number(',','.') },
-                ],
-            });
-        });
-        
-    }
     
 
 
@@ -1745,7 +1346,7 @@
     //                             judulGroup = result.data[i].group_of_material;
     //                             groupCode = result.data[i].group_code;
     //                             tanggal = result.data[i].tanggal;
-    //                             supplier = result.data[i].cust_name;
+    //                             supplier = result.data[i].supp_name;
     //                             nomorCount = 0;
                                 
     //                             if ( i!= numberOfDate ){
@@ -1957,7 +1558,7 @@
     //             let suppCode="";
     //             let jumDataSupp = result.supp.length; 
     //             for ( let i=0; i < jumDataSupp; i ++){
-    //                 if (supplierName != result.supp[i].cust_name){
+    //                 if (supplierName != result.supp[i].supp_name){
     //                     if (supplierName){
     //                         dataRowsSupp = ` <tr>`+suppCode+suppSumDate+`</tr>`;
     //                         $('#tblSumSupp > tbody').append(dataRowsSupp);
@@ -1966,13 +1567,13 @@
                         
     //                     suppSumDate="";
     //                     suppCode="";
-    //                     supplierName = result.supp[i].cust_name;
+    //                     supplierName = result.supp[i].supp_name;
     //                 }
 
     //                 console.log(i+1+"-"+jumDataSupp)
     //                 if ( i+1 == jumDataSupp){
     //                     suppCode =`<td class="" style="width: 20%">
-    //                                 <label>`+result.supp[i].cust_name+`</label>
+    //                                 <label>`+result.supp[i].supp_name+`</label>
     //                             </td>`;
     //                     suppSumDate+=` <td class="" style="width: 10%">
     //                                     <label>`+result.supp[i].plan+`</label>
@@ -1981,11 +1582,11 @@
     //                     $('#tblSumSupp > tbody').append(dataRowsSupp);
     //                 }
 
-    //                 if (supplierName == result.supp[i].cust_name){
+    //                 if (supplierName == result.supp[i].supp_name){
                         
     //                     console.log(supplierName);
     //                     suppCode =`<td class="" style="width: 20%">
-    //                                 <label>`+result.supp[i].cust_name+`</label>
+    //                                 <label>`+result.supp[i].supp_name+`</label>
     //                             </td>`;
     //                     suppSumDate+=` <td class="" style="width: 10%">
     //                                     <label>`+result.supp[i].plan+`</label>
@@ -2012,7 +1613,36 @@
     //     });
     // });
     
-    
+    $("#prosesWO").click(function(){
+        ambilData();
+    });
+
+    function ambilData(){
+        let plan,act,balance;
+        let articles=[];
+        let objPlan= $('#dataDetail input[name="plan[]"]');
+        let objAct= $('#dataDetail input[name="act[]"]');
+        let objBalance= $('#dataDetail input[name="balance[]"]');
+        objPlan.map(function(i) {  
+		    let $this=$(this);
+            // console.log($this);
+            if ($this.val()){
+                let date=$this.data('tanggal');
+                let articleCode=$this.data('article-id');
+                let plan=$this.val().replace(/,/gi, '') || 0;
+                let act=objAct.eq(i).val().replace(/,/gi, '') || 0;
+                let balance=objBalance.eq(i).val().replace(/,/gi, '') || 0;
+                articles.push({
+                    "article_code":articleCode,
+                    "date":date,
+                    "plan":plan,
+                    "act" :act,
+                    "balance" : balance
+                });
+            }
+        });
+        console.log(articles);
+    }
 
     // $("#cmdSave").click(function(){     
     //     $('.disabled-el').removeAttr('disabled');

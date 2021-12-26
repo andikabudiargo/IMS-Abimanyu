@@ -193,6 +193,16 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('articleTypes/update',['as'=>'articleType.update','uses'=>'ArticleTypeController@update']);
 	Route::post('articleTypes/delete',['as'=>'articleType.destroy','uses'=>'ArticleTypeController@destroy']);
 
+
+	Route::get('banks',['as'=>'banks.index','uses'=>'BankController@index','middleware' => ['permission:bank-index']]);
+	Route::get('banks/create',['as'=>'bank.create','uses'=>'BankController@create','middleware' => ['permission:bank-create']]);
+	Route::post('banks/store',['as'=>'bank.store','uses'=>'BankController@store']);
+	Route::get('banks/list',['as'=>'bank.list','uses'=>'BankController@list']);
+	Route::get('banks/show',['as'=>'bank.show','uses'=>'BankController@show']);
+	Route::get('banks/edit',['as'=>'bank.edit','uses'=>'BankController@edit','middleware' => ['permission:bank-edit']]);
+	Route::post('banks/update',['as'=>'bank.update','uses'=>'BankController@update']);
+	Route::post('banks/delete',['as'=>'bank.destroy','uses'=>'BankController@destroy']);
+
 	Route::get('salesOrders',['as'=>'salesOrders.index','uses'=>'SalesOrderController@index','middleware' => ['permission:salesOrder-index']]);
 	Route::get('salesOrders/create',['as'=>'salesOrder.create','uses'=>'SalesOrderController@create','middleware' => ['permission:salesOrder-create']]);
 	Route::post('salesOrders/store',['as'=>'salesOrder.store','uses'=>'SalesOrderController@store']);
@@ -235,6 +245,27 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('receivings/print',['as'=>'receiving.print','uses'=>'ReceivingController@print']);
 	Route::post('receivings/posting',['as'=>'receiving.posting','uses'=>'ReceivingController@posting']);
 
+
+	Route::get('aps',['as'=>'aps.index','uses'=>'AccountPayableController@index','middleware' => ['permission:ap-index']]);
+	Route::get('aps/create',['as'=>'ap.create','uses'=>'AccountPayableController@create','middleware' => ['permission:ap-create']]);
+	Route::get('ap/list/sj',['as'=>'ap.list.sj','uses'=>'AccountPayableController@listSj']);
+	Route::get('ap/list/po',['as'=>'ap.list.po','uses'=>'AccountPayableController@listPo']);
+	Route::get('ap/list/rec',['as'=>'ap.list.rec','uses'=>'AccountPayableController@listRec']);
+	Route::get('ap/detail/rec',['as'=>'ap.detail.rec','uses'=>'AccountPayableController@detailRec']);
+	// Route::get('receivings/search',['as'=>'ap.search','uses'=>'ReceivingController@search']);
+	// Route::get('receivings/list/po',['as'=>'ap.list.po','uses'=>'ReceivingController@listPo']);
+	// Route::get('receivings/list/uom',['as'=>'ap.list.uom','uses'=>'ReceivingController@listUom']);
+	// Route::get('receivings/po/det',['as'=>'ap.po.det','uses'=>'ReceivingController@poDetail']);
+	// Route::post('receivings/store',['as'=>'ap.store','uses'=>'ReceivingController@store']);
+	// Route::get('receivings/list',['as'=>'ap.list','uses'=>'ReceivingController@list']);
+	// Route::get('receivings/show',['as'=>'ap.show','uses'=>'ReceivingController@show']);
+	// Route::get('receivings/edit',['as'=>'ap.edit','uses'=>'ReceivingController@edit','middleware' => ['permission:ap-edit']]);
+	// Route::post('receivings/update',['as'=>'ap.update','uses'=>'ReceivingController@update']);
+	// Route::post('receivings/delete',['as'=>'ap.destroy','uses'=>'ReceivingController@destroy']);
+	// Route::get('receivings/code/create',['as'=>'ap.code.create','uses'=>'ReceivingController@articleCodeCreate']);
+	// Route::get('receivings/print',['as'=>'ap.print','uses'=>'ReceivingController@print']);
+	// Route::post('receivings/posting',['as'=>'ap.posting','uses'=>'ReceivingController@posting']);
+
 	Route::get('receivingsRm',['as'=>'receivingsRm.index','uses'=>'ReceivingRmController@index','middleware' => ['permission:receivingRm-index']]);
 	Route::get('receivingsRm/create',['as'=>'receivingRm.create','uses'=>'ReceivingRmController@create','middleware' => ['permission:receivingRm-create']]);
 	Route::get('receivingsRm/search',['as'=>'receivingRm.search','uses'=>'ReceivingRmController@search']);
@@ -275,6 +306,11 @@ Route::group( ['middleware' => ['auth']], function() {
 
 	Route::get('deliveryPlan/create',['as'=>'deliveryPlan.create','uses'=>'DeliveryPlanController@create','middleware' => ['permission:workingOrder-create']]);
 	Route::get('deliveryPlan/generate',['as'=>'deliveryPlan.generate','uses'=>'DeliveryPlanController@generatePlan']);
+	Route::get('deliveryPlan/reGenerate',['as'=>'deliveryPlan.reGenerate','uses'=>'DeliveryPlanController@reGeneratePlan']);
+	Route::get('deliveryPlan/listSo',['as'=>'deliveryPlan.listSo','uses'=>'DeliveryPlanController@listSo']);
+	Route::get('deliveryPlan/listArticle',['as'=>'deliveryPlan.listArticle','uses'=>'DeliveryPlanController@listArticle']);
+	Route::post('deliveryPlan/update',['as'=>'deliveryPlan.update','uses'=>'DeliveryPlanController@update']);
+	Route::get('deliveryPlan/list/detail',['as'=>'deliveryPlan.detail.list','uses'=>'DeliveryPlanController@listDetail']);
 
 	Route::get('workingOrders',['as'=>'workingOrders.index','uses'=>'workingOrderController@index','middleware' => ['permission:workingOrder-index']]);
 	Route::get('workingOrders/create',['as'=>'workingOrder.create','uses'=>'workingOrderController@create','middleware' => ['permission:workingOrder-create']]);
@@ -299,6 +335,22 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('workingOrderSheets/delete',['as'=>'workingOrderSheet.destroy','uses'=>'workingOrderSheetController@destroy']);
 	Route::get('workingOrderSheets/code/create',['as'=>'workingOrderSheet.code.create','uses'=>'workingOrderSheetController@articleCodeCreate']);
 	Route::get('workingOrderSheets/print',['as'=>'workingOrderSheet.print','uses'=>'workingOrderSheetController@print']);
+
+	Route::get('pettyCashs',['as'=>'pettyCashs.index','uses'=>'PettyCashController@index','middleware' => ['permission:pettyCash-index']]);
+	Route::get('pettyCashs/create',['as'=>'pettyCash.create','uses'=>'PettyCashController@create','middleware' => ['permission:pettyCash-create']]);
+	Route::post('pettyCashs/store',['as'=>'pettyCash.store','uses'=>'PettyCashController@store']);
+	Route::get('pettyCashs/list',['as'=>'pettyCash.list','uses'=>'PettyCashController@list']);
+	Route::get('pettyCashs/show',['as'=>'pettyCash.show','uses'=>'PettyCashController@show']);
+	Route::get('pettyCashs/edit',['as'=>'pettyCash.edit','uses'=>'PettyCashController@edit','middleware' => ['permission:pettyCash-edit']]);
+	Route::post('pettyCashs/update',['as'=>'pettyCash.update','uses'=>'PettyCashController@update']);
+	Route::post('pettyCashs/delete',['as'=>'pettyCash.destroy','uses'=>'PettyCashController@destroy']);
+	Route::post('pettyCashs/clear',['as'=>'pettyCash.clear','uses'=>'PettyCashController@clear']);
+	Route::get('pettyCashs/code/create',['as'=>'pettyCash.code.create','uses'=>'PettyCashController@articleCodeCreate']);
+	Route::get('pettyCashs/print',['as'=>'pettyCash.print','uses'=>'PettyCashController@print']);
+	Route::get('pettyCashs/price/list',['as'=>'pettyCash.price.list','uses'=>'PettyCashController@priceList']);
+	Route::get('pettyCashs/revision',['as'=>'pettyCash.revision','uses'=>'PettyCashController@revision','middleware' => ['permission:pettyCash-revision']]);
+	Route::get('pettyCashs/validate',['as'=>'pettyCash.validate','uses'=>'PettyCashController@validasi']);
+	Route::get('pettyCashs/authorize',['as'=>'pettyCash.authorize','uses'=>'PettyCashController@otorisasi']);
 
 	Route::post('dynamic/dependent',['as'=>'dynamic.dependent','uses'=>'DependentController@dependentFetch']);
 

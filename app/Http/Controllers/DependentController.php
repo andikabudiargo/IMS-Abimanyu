@@ -189,6 +189,15 @@ class DependentController extends Controller
                 $default='';
                 $defaulttxt='Choose Article';
                 break;
+            case 'account': 
+                $table='accounts';
+                $field ='';
+                $order ='account';
+                $value ='account';
+                $name  ='description';
+                $default='';
+                $defaulttxt='Choose Account';
+                break;
             break;
                 default:
                     $table='';
@@ -301,6 +310,10 @@ class DependentController extends Controller
             ->orderBy($order)
             ->distinct($order)
             ->get();
+        }elseif($dependent =='account'){
+            $data= DB::table($table) 
+            ->orderBy($order)
+            ->get();
         }else{
             $data= DB::table($table) 
             ->where($field,$code)
@@ -332,6 +345,8 @@ class DependentController extends Controller
                 $output .='<option value="'.$row->article_code.'|'.$row->group.'|'.$row->qty_stock.'|'.$row->qty.'|'.$row->uom1.'|'.$row->costprice.'">'.$row->article_alternative_code.' - '. $row->article_desc.'</option>';
             }elseif($dependent =='unitTo'){
                 $output .='<option value="'.$row->code.'|'.$row->uom_group.'">'.$row->code.' - '.$row->name.'</option>';
+            }elseif($dependent =='account'){
+                $output .='<option value="'.$row->account.'">'.$row->account.' - '.$row->description.'</option>';
             }else{
                 $output .='<option value="'.$row->$value.'">'.$row->$name.'</option>';
             }

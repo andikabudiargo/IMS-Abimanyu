@@ -22,75 +22,29 @@
                             <input type="text" id="article" name="article" hidden>
                             <div class="form-row">
                                 <div class="form-group col-md-3">
-                                    <label for="poNumber">Order Number</label> <small class="text-muted"> automatic</small>
-                                    <input type="text" id="poNumber" name="poNumber" class="form-control disabled-el"  disabled />
+                                    <label for="pcNumber">Petty Cash Code</label> <small class="text-muted"> automatic</small>
+                                    <input type="text" id="pcNumber" name="pcNumber" class="form-control disabled-el"  disabled />
+                                </div>
+                                <div class="form-group col-md-3">
+                                    <label for="vocherNumber">Voucher Number</label>
+                                    <input type="text" id="vocherNumber" name="vocherNumber" class="form-control" />
                                 </div>
                                 <div class="form-group col-md-2">
-                                    <label class="form-label" for="poType">PO Type*</label>
-                                    <select class="select2 form-control" id="poType" name="poType" required>
-                                        <option value="std">Standard</option>
-                                        <option value="sub">Subcontracting</option>
-                                    </select>
-                                </div>
-                                <div class="form-group col-md-2">
-                                    <label for="orderDate">Order Date*</label>
+                                    <label for="orderDate">Date*</label>
                                     <input type="text" id="orderDate" name="orderDate" class="form-control" placeholder="DD-MM-YYYY" required />
                                 </div>
                                 <div class="form-group col-md-2">
-                                    <label for="deliveryDate">Delivery Date</label>
-                                    <input type="text" id="deliveryDate" name="deliveryDate" class="form-control" placeholder="DD-MM-YYYY" />
+                                    <label class="form-label" for="periode">Period*</label>
+                                    <select class="select2 form-control" id="periode" name="periode" required>
+                                        <option value=""></option>
+                                        @for ($i = 1; $i <= 12; $i++)
+                                            <option value="{{ $i }}">{{ $i }}</option>
+                                        @endfor
+                                    </select>
                                 </div>
                             </div>
                             <div class="form-row">
-                                <div class="form-group col-md-5">
-                                    <label class="form-label" for="supplier">Supplier*</label>
-                                    <select class="select2 form-control" id="supplier" name="supplier" required>
-                                        <option value="">All</option>
-                                        @foreach($supps as $val)
-                                            <option value="{{$val->kode}}" >{{$val->kode}} - {{$val->nama}}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                                <div class="col-md-2">
-                                    <label class="form-label" for="term">Term</label>
-                                    <div class="input-group">
-                                        <input type="text" class="form-control angka text-right" id = "term" name="term" value="0" maxlength="4" />
-                                        <div class="input-group-append">
-                                            <span class="input-group-text">Days</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-md-2">
-                                    <label class="form-label">Tax*</label>
-                                    <div>
-                                        <div class="btn-group btn-group-toggle" data-toggle="buttons">
-                                            <label class="btn btn-outline-primary active">
-                                                <input type="radio" name="radio_options" id="radio_option1" checked /> PKP
-                                            </label>
-                                            <label class="btn btn-outline-primary">
-                                                <input type="radio" name="radio_options" id="radio_option2" /> Non PKP
-                                            </label>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {{-- <div class="form-group col-md-2">
-                                    <label for="tax">Tax*</label>
-                                    <select class="select2 form-control" id="tax" name="tax" required>
-                                        <option value="PKP">PKP</option>
-                                        <option value="NONPKP">NON PKP</option>
-                                    </select>
-                                </div> --}}
                                 <div class="form-group col-md-2">
-                                    <label class="form-label" for="ppn">PPN</label>
-                                    <div class="input-group">
-                                        <input type="text" class="form-control angka text-right" id = "ppn" name="ppn" value="10" maxlength="2" />
-                                        <div class="input-group-append">
-                                            <span class="input-group-text">%</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="form-group col-md-2 d-none">
                                     <label for="currency">Currency*</label>
                                     <select class="select2 form-control" id="currency" name="currency" required>
                                         @foreach($currency as $val)
@@ -98,7 +52,7 @@
                                         @endforeach
                                     </select>
                                 </div>
-                                <div class="form-group col-md-2 d-none" >
+                                <div class="form-group col-md-2">
                                     <div class="form-group">
                                         <label for="kurs">Kurs</label>
                                         <input type="text" id="kurs" name="kurs" class="form-control angka" maxlength="6"  />
@@ -113,7 +67,7 @@
                             </div>
                             <div class="form-row">
                                 <div class="col-12">
-                                    <a href="{{ route('purchaseOrders.index') }}" class="btn btn-warning">Back</a>
+                                    <a href="{{ route('pettyCashs.index') }}" class="btn btn-warning">Back</a>
                                     <button class="btn btn-success" type="reset" id="cmdNew" name="cmdCancel">New</button>
                                     <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Save</button>
                                 </div>
@@ -134,46 +88,34 @@
                             <tbody>
                                 <tr>
                                     <td class="isian-satu" style="width: 15%">
-                                        <label>Purchase Request</label>
+                                        <label>Description</label>
                                     </td>
                                     <td class="">
-                                        <label>Article Code</label>
+                                        <label>CG</label>
                                     </td>
                                     <td class="isian" style="width: 5%">
-                                        <label>Stock</label>
+                                        <label>Debit</label>
                                     </td>
                                     <td class="isian" style="width: 10%">
-                                        <label>QTY</label>
+                                        <label>Credit</label>
                                     </td>
                                     <td class="isian" style="width: 5%">
-                                        <label>UOM</label>
+                                        <label>Account</label>
                                     </td>
                                     <td class="isian d-none" style="width: 10%">
-                                        <label>Price</label>
-                                    </td>
-                                    <td class="text-center" style="width: 5%">
-                                        <label>-</label>
-                                    </td>
-                                    <td class="isian" style="width: 10%">
-                                        <label>New Price</label>
-                                    </td>
-                                    <td class="isian" style="width: 10%">
-                                        <label>Total</label>
-                                    </td>
-                                    <td class="isian text-center" style="width: 5%">
-                                        <label>-</label>
+                                        <label>Account name</label>
                                     </td>
                                 </tr>
                             </tbody>
                         </table>
                     </div>      
-                    <div class="" id="article_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px">
+                    <div class="" id="item_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px">
                         <input type="text" id ="last_row_number" class="d-none" value="0">
                     </div>
                     <div class="d-flex justify-content-between align-items-end mt-75 ml-75">
                         <button class="btn btn-primary btn-prev" type="button" id="addNewRow" onclick="add_new_row();">
                             <i data-feather="plus" class="align-middle mr-sm-25 mr-0"></i>
-                            <span class="align-middle d-sm-inline-block d-none">Add Article</span>
+                            <span class="align-middle d-sm-inline-block d-none">Add</span>
                         </button>
                     </div>
                     <div class="d-flex justify-content-between align-items-end mt-75">
@@ -259,7 +201,7 @@
         </div>
     </div>
 </div>
-@include('purchaseOrder.addArticle')
+@include('pettyCash.addArticle')
 @endsection
 @section('styles')
 <style>
@@ -319,6 +261,26 @@
         $('#orderDate').val(currentDate);
     });
 
+    function keyUp(obj){
+        $("#"+obj).keyup(function(){
+            alert($(this).val());
+            // $.ajax({
+            //     type: "POST",
+            //     url: "readCountry.php",
+            //     data:'keyword='+$(this).val(),
+            //     beforeSend: function(){
+            //         $("#search-box").css("background","#FFF url(LoaderIcon.gif) no-repeat 165px");
+            //     },
+            //     success: function(data){
+            //         $("#suggesstion-box").show();
+            //         $("#suggesstion-box").html(data);
+            //         $("#search-box").css("background","#FFF");
+            //     }
+            // });
+	    });
+    }
+    
+
     orderDate = $('#orderDate');
     if (orderDate.length) {
         orderDate.flatpickr({
@@ -334,22 +296,7 @@
         });
     }
     
-    $('#tax').on('change', function() {
-        let tax = $(this).val();
-        if (tax == 'PKP'){
-            $('#ppn').val(10);
-            $('#ppn').removeAttr('disabled');
-        }else{
-            $('#ppn').val(0);
-            $('#ppn').attr('disabled','disabled');
-            hitungGrandTotal();
-        }
-    })
-
-    $('#persenDiscount,#ppn').on('keyup', function() {
-        hitungGrandTotal();
-    })
-
+   
     function reloadPage(){
         window.location.reload();
     }
@@ -374,7 +321,7 @@
         let flag=0; 
         let pesan="";
 
-        $("#article_row select[name='article_id[]']").map(function(i) {  
+        $("#item_row select[name='pcDesc[]']").map(function(i) {  
 		    let $this=$(this);
             if ($this.val()){
                 let article=$this.val().split("|");
@@ -504,159 +451,42 @@
 
     let cloneCount=1;
     function add_new_row() {
-        let supplier = $('#supplier');
-        let supp = supplier.val();
-        let poType = $('#poType').val();
-        if (supp){            
-            $("#article_row").append($("#new_row").clone().html());
-            cloneCount++;
-            $("#article_row").find('#baru').attr('id', 'new_row'+ cloneCount);
-            $("#new_row"+ cloneCount).find('#article_id').attr('id', 'article_id'+ cloneCount);
-            $("#new_row"+ cloneCount).find('#pRequest').attr('id', 'pRequest'+ cloneCount);
-            poType =='std' ? changeselect('pRequest','pRequest'+ cloneCount,supp,'') : changeselect('pRequest_sub','pRequest'+ cloneCount,supp,'');
-            // changeselect('pRequest','pRequest'+ cloneCount,supp,'');
-            $("#article_id"+cloneCount).select2();
-            $("#pRequest"+cloneCount).select2();
-            $('#remove_button').tooltip();
-            tombolPanah('qty_order');
-            tombolPanah('newPrice');
-            activate_angka();
-            mask_thousand();
-            // splitArticle();
-            isiListArticle();
-            hitungTotal();
-            hitungGrandTotal();
-            $('[data-toggle="tooltip"]').tooltip();
-        }else{
-            Swal.fire({
-                title: 'Warning',
-                text: "Choose supplier",
-                icon: 'warning',
-                confirmButtonColor: '#3085d6',
-                confirmButtonText: 'OK'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    supplier.select2('open');
-                }
-            })
-        }
+        $("#item_row").append($("#new_row").clone().html());
+        cloneCount++;
+        $("#item_row").find('#baru').attr('id', 'new_row'+ cloneCount);
+        $("#new_row"+ cloneCount).find('#pcDesc').attr('id', 'pcDesc'+ cloneCount);
+        $("#new_row"+ cloneCount).find('#account').attr('id', 'account'+ cloneCount);
+        keyUp('pcDesc'+ cloneCount);
+        accList('account','account'+ cloneCount);
+        $("#account"+cloneCount).select2();
+        $('#remove_button').tooltip();
+        tombolPanah('pcCashIn');
+        tombolPanah('pcCashOut');
+        activate_angka();
+        mask_thousand();
+        hitungTotal();
+        hitungGrandTotal();
+        $('[data-toggle="tooltip"]').tooltip();
     };
 
-    function isiListArticle(){
-        // split article with delimiter |
-        let objPrequest = $('#article_row select[name="pRequest[]"]');
-        objPrequest.change(function(e){        
-            let objIndex = objPrequest.index(this);
-            let prNumber = objPrequest.eq(objIndex).val();
-            let supp = $('#supplier').val();
-            let poType = $('#poType').val();
-            poType =='std' ? changeSelectArticle('searchFromPr',objIndex,supp,prNumber) : changeSelectArticle('searchFromPr_sub',objIndex,supp,prNumber);
-            splitArticle();
-		});
-    }
-
-    function changeSelectArticle(dependent,objIndex,value,prNumber) {
-        let objArticle = $('#article_row select[name="article_id[]"]');
-        $.ajax({
-            url:"{{route('dynamic.dependent')}}",
-            method:"POST",
-            data:{
-                value:value,
-                prNumber:prNumber,
-                dependent:dependent
-            },
-            success:function(result){
-                objArticle.eq(objIndex).html(result);
-                objArticle.eq(objIndex).select2();
-                // objArticle.eq(objIndex).trigger('change');
-            }
-        })
-    }
-
-    function changeselect(dependent,obj,value,type) {
+    function accList(dependent,obj) {
       $.ajax({
         url:"{{route('dynamic.dependent')}}",
         method:"POST",
         data:{
-            value:value,
-            type:type,
             dependent:dependent
         },
         success:function(result){
             $('#'+obj).html(result);
-            // $('#'+obj).val('').trigger('change');
+            $('#'+obj).val('').trigger('change');
         }
       })
     }
 
-    function splitArticle(){
-        // split article with delimiter |
-        let objArticle = $('#article_row select[name="article_id[]"]');
-        let objStock= $('#article_row input[name="qty_stock[]"]');
-        let objUom= $('#article_row span[name="uom[]"]'); 
-        let objQty= $('#article_row input[name="qty_order[]"]');
-        let objPrice= $('#article_row input[name="price[]"]');
-        let objNewPrice= $('#article_row input[name="newPrice[]"]');
-        let objListPrice= $('#article_row a[name="listPrice[]"]');
-        let objTotal= $('#article_row span[name="totalLine[]"]');
-        objArticle.change(function(e){   
-            //     0            1           2         3       4        5
-            // article_code.'|'group.'|'qty_stock.'|'qty.'|'uom1.'|'costprice.'"
-            let objIndex = objArticle.index(this);
-            let detail = objArticle.eq(objIndex).val();
-            console.log(detail);
-            let detailText = objArticle.eq(objIndex).select2('data')[0].text;
-            let arrDetail = detail.split("|");
-            objListPrice.eq(objIndex).attr('onClick', 'listPrice('+arrDetail[0]+',"'+detailText+'");');
-            objStock.eq(objIndex).val(humanizeNumber(arrDetail[2]||0));
-            objUom.eq(objIndex).text(arrDetail[4]);
-            objQty.eq(objIndex).val(humanizeNumber(arrDetail[3]||0));
-            objPrice.eq(objIndex).val(humanizeNumber(arrDetail[5]||0));
-            objNewPrice.eq(objIndex).val(humanizeNumber(arrDetail[5]||0));
-            objArticle.eq(objIndex).select2('open');
-            if (detail){
-                setTimeout(() => {
-                    objQty.eq(objIndex).focus().select();
-                }, 5);
-            }
-
-            objTotal.eq(objIndex).text(humanizeNumber((arrDetail[3]||0)*(arrDetail[5]||0)));
-
-		});
-    }
-
-    function listPrice(article,desc){
-        $("#modalTableData tbody> tr").remove();
-        $.ajax({
-            dataType: 'json',
-            type:'GET',
-            url: "{{ route('purchaseOrder.price.list') }}",
-            data: { article:article },
-            success: function(data) {
-                if(data.length > 0 ){
-                    let html = '';
-                    for(let i=0;i<data.length;i++){
-                        html += '<tr>';
-                        html += '<td>'+data[i].po_number+'</td>';
-                        html += '<td>'+data[i].po_date+'</td>';
-                        html += '<td class="text-right">'+humanizeNumber(data[i].price)+'</td>';
-                        html += '</tr>';
-                    }
-                    $('#modalTableData tbody').append(html);
-                }                
-            },
-            error: function(data) {
-                swal.fire("Warning","Error data","warning");
-            }
-        });
-        $('#modalArticle').text(desc);
-        $('#modalListPrice').modal('show'); 
-    }
-
     function hitungTotal(){
-        let objQty= $('#article_row input[name="qty_order[]"]');
-        let objNewPrice= $('#article_row input[name="newPrice[]"]');
-        let objTotal= $('#article_row span[name="totalLine[]"]');
+        let objQty= $('#item_row input[name="qty_order[]"]');
+        let objNewPrice= $('#item_row input[name="newPrice[]"]');
+        let objTotal= $('#item_row span[name="totalLine[]"]');
         
         objQty.keyup(function() {
             let indexnya= objQty.index(this);
@@ -678,10 +508,10 @@
     }
 
     function hitungGrandTotal(){
-        let objArticle = $('#article_row select[name="article_id[]"]');
-        let objQtyTiw= $('#article_row input[name="qty_order[]"]');
-        let objQTY= $('#article_row input[name="qty_order[]"]');
-        let objNewPrice= $('#article_row input[name="newPrice[]"]');
+        let objArticle = $('#item_row select[name="pcDesc[]"]');
+        let objQtyTiw= $('#item_row input[name="qty_order[]"]');
+        let objQTY= $('#item_row input[name="qty_order[]"]');
+        let objNewPrice= $('#item_row input[name="newPrice[]"]');
         let persenDiscount = $('#persenDiscount').val() || 0;
         let ppn= $('#ppn').val();
         let totalQty= 0;

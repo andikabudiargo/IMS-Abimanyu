@@ -28,7 +28,9 @@ class SalesOrderController extends Controller
 
         $data['types'] = ['NEW','REPEAT'];
 
-        $data['status'] = ['NEW','PROCESS','SENT'];
+        // $data['status'] = ['NEW','PROCESS','SENT'];
+
+        $data['status'] = ['1'=>'NEW','2'=>'PROCESS','3'=>'SENT'];
 
             
         return view("salesOrder.index",$data);
@@ -457,45 +459,71 @@ class SalesOrderController extends Controller
         $searchType = $request->searchType;
         $searchStatus = $request->searchStatus;
         $orderDate = $request->orderDate;
+        $fromDate = "";
 
-        $filter='';
-        
-        if ($seachPo !='' ){
-            $filter.="lower(po_number) like '%$seachPo%' and ";
-        }
-
-        if ($searchOrder !='' ){
-            $filter.="lower(so_number) like '%$searchOrder%' and ";
-        }
-
-        if ($searchCustomer  != '' ){
-            $filter.="customer_id = '$searchCustomer' and ";            
-        }
-
-        if ($searchSalesman  != '' ){
-            $filter.="salesman_code = '$searchSalesman' and ";            
-        }
-
-        if ($searchType  != '' ){
-            $filter.="order_type = '$searchType' and ";            
-        }
-
-        if ($searchStatus  != '' ){
-            $filter.="status = '$searchStatus' and ";            
-        }
-
-        if ($orderDate  != '' ){
+        if ($orderDate){
             $date = explode("to",$orderDate);
-            $date1=trim($date[0]);
-            $date2=trim($date[1]);
-            $filter.= "to_date(so_date, 'DD/MM/YYYY')  BETWEEN to_date('$date1', 'DD/MM/YYYY') and to_date('$date2', 'DD/MM/YYYY') and ";
-        }
+            // $date1=trim($date[0]);
+            // $date2=trim($date[1]);
+            // $fromDate = date($date1);
+            // $toDate = date($date2);
+            $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+            $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
+        }      
 
-        if ($filter !=''){
-            $filter=" where ".substr($filter,0,-4);
-        }
+        $data=DB::table('sales_order_hdr')
+        ->select('sales_order_hdr.*','third_party.nama as cust_name')
+        ->leftJoin('third_party', 'third_party.kode', '=', 'sales_order_hdr.customer_id')
+        ->where(function ($query) use ($seachPo,$searchOrder,$searchCustomer,$searchSalesman,$searchType,$searchStatus,$fromDate) {
+            $seachPo ? $query->where('po_number','ilike','%'.$seachPo.'%') :'';
+            $searchOrder ? $query->where('so_code','ilike','%'.$searchOrder.'%') :'';
+            $searchCustomer ? $query->where('customer_id',$searchCustomer) :'';
+            $searchSalesman ? $query->where('salesman_code',$searchSalesman) :'';
+            $searchType ? $query->where('order_type',$searchType) :'';
+            $searchStatus ? $query->where('status',$searchStatus) :'';
+            $fromDate ? $query->whereBetween('sales_order_hdr.created_at', [$fromDate, $toDate]):'';
+        })->get();
 
-        $data = DB::select("SELECT * FROM sales_order_hdr $filter");
+        // $filter='';
+        
+        // if ($seachPo !='' ){
+        //     $filter.="lower(po_number) like '%$seachPo%' and ";
+        // }
+
+        // if ($searchOrder !='' ){
+        //     $filter.="lower(so_number) like '%$searchOrder%' and ";
+        // }
+
+        // if ($searchCustomer  != '' ){
+        //     $filter.="customer_id = '$searchCustomer' and ";            
+        // }
+
+        // if ($searchSalesman  != '' ){
+        //     $filter.="salesman_code = '$searchSalesman' and ";            
+        // }
+
+        // if ($searchType  != '' ){
+        //     $filter.="order_type = '$searchType' and ";            
+        // }
+
+        // if ($searchStatus  != '' ){
+        //     $filter.="status = '$searchStatus' and ";            
+        // }
+
+        // if ($orderDate  != '' ){
+        //     $date = explode("to",$orderDate);
+        //     $date1=trim($date[0]);
+        //     $date2=trim($date[1]);
+        //     $filter.= "to_date(so_date, 'DD/MM/YYYY') BETWEEN to_date('$date1', 'DD/MM/YYYY') and to_date('$date2', 'DD/MM/YYYY') and ";
+        // }
+
+        // if ($filter !=''){
+        //     $filter=" where ".substr($filter,0,-4);
+        // }
+
+        // $data = DB::select("SELECT * FROM sales_order_hdr $filter");
+
+
         
         // $data=DB::table('sales_order_hdr')->get();
 
@@ -538,4 +566,6 @@ class SalesOrderController extends Controller
         ->rawColumns(['action'])
         ->make(true);
     }
+
+   
 }

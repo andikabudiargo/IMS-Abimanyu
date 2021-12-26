@@ -4,7 +4,7 @@
 @include('layouts.breadcrumb')
 @include('partials.alert')
 <section id="add-index">
-    <div class="row">
+    <div class="form-row">
         <div class="col-6">
             <div class="card">
                 {{-- <div class="card-header">
@@ -13,7 +13,7 @@
                 <div class="card-body">
                     <form id="frmAdd" name="frmAdd" action="{{ route('uomCon.store') }}" method="post" autocomplete="off">
                         @csrf
-                        <div class="row">
+                        <div class="form-row">
                             <div class="form-group col-md-6">
                                 <label class="form-label" for="dept">Unit From *</label>
                                 <select class="select2 form-control dynamicSelect" id="unitFrom" name="unitFrom" data-dependent="unitTo" required>
@@ -24,14 +24,14 @@
                                 </select>
                             </div>
                         </div>
-                        <div class="row">
+                        <div class="form-row">
                             <div class="form-group col-md-6">
                                 <label class="form-label" for="dept">Unit To *</label>
                                 <select class="select2 form-control" id="unitTo" name="unitTo" required>                                
                                 </select>
                             </div>
                         </div>
-                        <div class="row">
+                        <div class="form-row">
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label for="unitFactor">Unit Factor *</label>
@@ -40,7 +40,7 @@
                             </div>
                         </div>
                         <br>
-                        <div class="row">
+                        <div class="form-row">
                             <div class="col-12">
                                 <button class="btn btn-outline-secondary" type="reset" id="cmdCancel" name="cmdCancel">Cancel</button>
                                 <button class="btn btn-success" type="button" id="cmdSave" name="cmdSave">Save</button>

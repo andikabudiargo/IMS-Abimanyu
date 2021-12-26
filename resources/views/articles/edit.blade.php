@@ -4,21 +4,21 @@
 @include('layouts.breadcrumb')
 @include('partials.alert')
 <section id="add-index">
-    <div class="row">
+    <div class="form-row">
         <div class="col-md-6">
             <div class="card">
                 <div class="card-body">
                     <form id="frmAdd" name="frmAdd" action="{{ route('article.update',['id'=> $article->id,'artCode' =>$article->article_code])}}" method="post" autocomplete="off">
                         @csrf
-                        <div class="row">
-                            <div class="col-4">
+                        <div class="form-row">
+                            <div class="col-md-4">
                                 <div class="form-group">
                                     <label for="kode">Article Code</label>
                                     <input type="text" id="kode" name="kode" class="form-control disabled-el" value="{{ old('kode',$article->code) }}" disabled />
                                 </div>
                             </div>
                         </div>
-                        <div class="row">
+                        <div class="form-row">
                             <div class="form-group col-md-6">
                                 <label class="form-label" for="articleType">Article Type*</label>
                                 <select class="select2 form-control" id="articleType" name="articleType" disabled>
@@ -38,7 +38,7 @@
                                 </select>
                             </div>         
                         </div>
-                        <div class="row">
+                        <div class="form-row">
                             <div class="col-6">
                                 <div class="form-group">
                                     <label for="colorCode">Color Code</label>
@@ -52,7 +52,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="row">
+                        <div class="form-row">
                             <div class="form-group col-md-12">
                                 <label class="form-label" for="cust"> {{ $article->article_type == 'FG' || $article->article_type == 'RM' ? 'Customer' : 'Supplier'}}</label>
                                 <select class="select2 form-control" id="cust" name="cust" disabled>
@@ -62,7 +62,7 @@
                                 </select>
                             </div>
                         </div>
-                        <div class="row">
+                        <div class="form-row">
                             <div class="col-12">
                                 <div class="form-group">
                                 <label for="nama">Description *</label>
@@ -70,7 +70,7 @@
                                 </div>
                             </div>
                         </div>                      
-                        <div class="row">
+                        <div class="form-row">
                             <div class="form-group col-md-6">
                                 <label for="price">Price</label>
                                 <input type="text" id="price" name="price" class="form-control numeral-mask text-right" value="{{ old('price',$article->costprice) }}"  maxlength="10"/>
@@ -85,7 +85,7 @@
                                 </select>
                             </div>
                         </div>
-                        <div class="row">
+                        <div class="form-row">
                             <div class="form-group col-md-12">
                                 <label class="form-label" for="note">Notes</label>
                                 <textarea type="text" id="note" name="note" class="form-control" rows="3" maxlength="100">{{ old('note',$article->note) }}</textarea>
@@ -100,7 +100,7 @@
                             </div>
                         </div>                        
                     </form>
-                    <div class="row">
+                    <div class="form-row">
                         <div class="col-md-12">
                             <div class="card">
                                 <div class="card-header">
@@ -116,7 +116,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="row">
+                    <div class="form-row">
                         <div class="col-12">
                             <a href="{{ route('articles.index') }}" class="btn btn-outline-secondary">
                                 Cancel

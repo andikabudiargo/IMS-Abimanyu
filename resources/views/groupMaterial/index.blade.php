@@ -88,6 +88,7 @@
         console.log(href);
         $('#modalConfirmation').attr("action", href);
     });
+    showList();
 
   });
 

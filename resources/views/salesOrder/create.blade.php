@@ -4,7 +4,7 @@
 @include('layouts.breadcrumb')
 @include('partials.alert')
 <section id="add-index">
-    <div class="row">
+    <div class="form-row">
         <div class="col-md-12">
             <div class="card">
                 <div class="card-header">
@@ -20,18 +20,14 @@
                         <form id="frmAdd" name="frmAdd" autocomplete="off">
                             @csrf
                             <input type="text" id="article" name="article" hidden>
-                            <div class="row">
-                                <div class="col-md-3">
-                                    <div class="form-group">
-                                        <label for="orderNum">Order Number</label><small class="text-muted">  automatic</small>
-                                        <input type="text" id="orderNum" name="orderNum" class="form-control disabled-el"  disabled />
-                                    </div>
+                            <div class="form-row">
+                                <div class="form-group col-md-3">
+                                    <label for="orderNum">Order Number</label><small class="text-muted">  automatic</small>
+                                    <input type="text" id="orderNum" name="orderNum" class="form-control disabled-el"  disabled />
                                 </div>
-                                <div class="col-md-2">
-                                    <div class="form-group">
-                                        <label for="orderDate">Order Date*</label>
-                                        <input type="text" id="orderDate" name="orderDate" class="form-control flatpickr-basic" placeholder="DD-MM-YYYY" required/>
-                                    </div>
+                                <div class="form-group col-md-2">
+                                    <label for="orderDate">Order Date*</label>
+                                    <input type="text" id="orderDate" name="orderDate" class="form-control flatpickr-basic" placeholder="DD-MM-YYYY" required/>
                                 </div>
                                 <div class="form-group col-md-3">
                                     <label for="salesman">Salesperson*</label>
@@ -61,12 +57,10 @@
                                     </select>
                                 </div>
                             </div>
-                            <div class="row">
-                                <div class="col-md-3">
-                                    <div class="form-group">
-                                        <label for="poNumber">PO Number*</label>
-                                        <input type="text" id="poNumber" name="poNumber" class="form-control text-uppercase" maxlength="40" autofocus required />
-                                    </div>
+                            <div class="form-row">
+                                <div class="form-group col-md-3">
+                                    <label for="poNumber">PO Number*</label>
+                                    <input type="text" id="poNumber" name="poNumber" class="form-control text-uppercase" maxlength="40" autofocus required />
                                 </div>
                                 <div class="form-group col-md-5">
                                     <label class="form-label" for="cust">Customer*</label>
@@ -87,13 +81,13 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="row">
+                            <div class="form-row">
                                 <div class="form-group col-md-10">
                                     <label class="form-label" for="note">Notes</label>
                                     <textarea type="text" id="note" name="note" class="form-control" rows="1" ></textarea>
                                 </div>
                             </div>
-                            <div class="row">
+                            <div class="form-row">
                                 <div class="col-12">
                                     <button class="btn btn-warning" type="reset" id="cmdCancel" name="cmdCancel">Cancel</button>
                                     <button class="btn btn-success" type="reset" id="cmdNew" name="cmdCancel">New</button>

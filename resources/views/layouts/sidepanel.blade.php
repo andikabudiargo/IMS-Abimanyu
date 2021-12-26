@@ -272,6 +272,87 @@
             @endcan
           </ul>
         </li>
+        <li class=" {{ in_array(\Request::segment(1), ['aps','banks','pettyCashs']) ? 'active' : '' }} nav-item">
+          <a class="d-flex align-items-center" href="javascript:void(0);">
+            <i data-feather="dollar-sign"></i>
+            <span class="menu-title text-truncate" data-i18n="Form Elements">Finance
+            </span>
+          </a>
+          <ul class="menu-content">
+            @can('finance-index')
+            <li class="{{ \Request::segment(1) == 'aps'  ? 'active' : '' }}">
+              <a class="d-flex align-items-center" href="{{ route('aps.index') }}">
+                <i data-feather="circle"></i>
+                <span class="menu-item text-truncate" data-i18n="Input">Account Payable</span>
+              </a>
+            </li>
+            @endcan
+            @can('finance-index')
+            <li class="{{ \Request::segment(1) == 'aps'  ? 'active' : '' }}">
+              <a class="d-flex align-items-center" href="{{ route('aps.index') }}">
+                <i data-feather="circle"></i>
+                <span class="menu-item text-truncate" data-i18n="Input">Invoice</span>
+              </a>
+            </li>
+            @endcan
+            @can('finance-index')
+            <li class="{{ \Request::segment(1) == 'aps'  ? 'active' : '' }}">
+              <a class="d-flex align-items-center" href="{{ route('aps.index') }}">
+                <i data-feather="circle"></i>
+                <span class="menu-item text-truncate" data-i18n="Input">Invoice Correction</span>
+              </a>
+            </li>
+            @endcan
+            @can('finance-index')
+            <li class="{{ \Request::segment(1) == 'accountPayable'  ? 'active' : '' }}">
+              <a class="d-flex align-items-center" href="{{ route('accTypes.index') }}">
+                <i data-feather="circle"></i>
+                <span class="menu-item text-truncate" data-i18n="Input">Proforma Invoice</span>
+              </a>
+            </li>
+            @endcan
+            @can('finance-index')
+            <li class="{{ \Request::segment(1) == 'accountPayable'  ? 'active' : '' }}">
+              <a class="d-flex align-items-center" href="{{ route('accTypes.index') }}">
+                <i data-feather="circle"></i>
+                <span class="menu-item text-truncate" data-i18n="Input">Tax</span>
+              </a>
+            </li>
+            @endcan
+            @can('finance-index')
+            <li class="{{ \Request::segment(1) == 'accountPayable'  ? 'active' : '' }}">
+              <a class="d-flex align-items-center" href="{{ route('accTypes.index') }}">
+                <i data-feather="circle"></i>
+                <span class="menu-item text-truncate" data-i18n="Input">Bank Disbursement</span>
+              </a>
+            </li>
+            @endcan
+            @can('finance-index')
+            <li class="{{ \Request::segment(1) == 'accountPayable'  ? 'active' : '' }}">
+              <a class="d-flex align-items-center" href="{{ route('accTypes.index') }}">
+                <i data-feather="circle"></i>
+                <span class="menu-item text-truncate" data-i18n="Input">Bank Receipt</span>
+              </a>
+            </li>
+            @endcan
+            @can('pettyCash-index')
+            <li class="{{ \Request::segment(1) == 'pettyCashs'  ? 'active' : '' }}">
+              <a class="d-flex align-items-center" href="{{ route('pettyCashs.index') }}">
+                <i data-feather="circle"></i>
+                <span class="menu-item text-truncate" data-i18n="Input">Petty Cash</span>
+              </a>
+            </li>
+            @endcan
+            @can('bank-index')
+            <li class="{{ \Request::segment(1) == 'banks'  ? 'active' : '' }}">
+              <a class="d-flex align-items-center" href="{{ route('banks.index') }}">
+                <i data-feather="circle"></i>
+                <span class="menu-item text-truncate" data-i18n="Input">Bank Master</span>
+              </a>
+            </li>
+            @endcan
+          </ul>
+        </li>
         <li class=" {{ in_array(\Request::segment(1), ['accounts','groups','accTypes']) ? 'active' : '' }} nav-item">
           <a class="d-flex align-items-center" href="javascript:void(0);">
             <i data-feather="book"></i>

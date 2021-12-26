@@ -4,7 +4,7 @@
 @include('layouts.breadcrumb')
 @include('partials.alert')
 <section id="add-index">
-    <div class="row">
+    <div class="form-row">
         <div class="col-6">
             <div class="card">
                 {{-- <div class="card-header">
@@ -13,7 +13,7 @@
                 <div class="card-body">
                     <form id="frmAdd" name="frmAdd" action="{{ route('supplier.store') }}" method="post" autocomplete="off">
                         @csrf
-                        {{-- <div class="row">
+                        {{-- <div class="form-row">
                             <div class="col-4">
                                 <div class="form-group">
                                     <label for="kode">Kode</label>
@@ -21,7 +21,7 @@
                                 </div>
                             </div>
                         </div> --}}
-                        <div class="row">
+                        <div class="form-row">
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label for="nama">Name</label>
@@ -34,7 +34,7 @@
                                 <input type="text" id="inisial" name="inisial" class="form-control text-uppercase" value="{{ old('inisial') }}" required maxlength="3"/>
                             </div>
                         </div>
-                        <div class="row">
+                        <div class="form-row">
                             <div class="col-12">
                                 <div class="form-group">
                                     <label for="alamat">Address</label>
@@ -42,7 +42,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="row">
+                        <div class="form-row">
                             <div class="form-group col-md-4">
                                 <label class="form-label" for="provinsi">Provinsi</label>
                                 <select class="select2 w-100 dynamicSelect" id="provinsi" name="provinsi" data-dependent="kota">
@@ -58,7 +58,7 @@
                                 </select>
                             </div>
                         </div>
-                        <div class="row">
+                        <div class="form-row">
                             <div class="form-group col-md-4">
                                 <label class="form-label" for="kelurahan">Kelurahan</label>
                                 <select class="select2 w-100 dynamicSelect" id="kelurahan" name="kelurahan" data-dependent="kecamatan">
@@ -74,7 +74,7 @@
                                 <input type="text" id="kodePos" name="kodePos" value="{{ old('kodePos') }}" class="form-control disabled-el" disabled />
                             </div>
                         </div>
-                        <div class="row">
+                        <div class="form-row">
                             <div class="form-group col-md-4">
                                 <label class="form-label" for="telepon">Telepon</label>
                                 <input type="text" id="telepon" name="telepon" class="form-control angka" value="{{ old('telepon') }}" maxlength="20" />
@@ -88,19 +88,19 @@
                                 <input type="text" id="hp" name="hp" class="form-control angka" value="{{ old('hp') }}" maxlength="15"/>
                             </div>
                         </div>
-                        <div class="row">
+                        <div class="form-row">
                             <div class="form-group col-md-6">
                                 <label class="form-label" for="kontak">Contact person*</label>
                                 <input type="text" id="kontak" name="kontak" class="form-control" value="{{ old('kontak') }}" maxlength="20" />
                             </div>
                         </div>
-                        <div class="row">
+                        <div class="form-row">
                             <div class="form-group col-md-6">
                                 <label class="form-label" for="email">Email</label>
                                 <input type="email" id="email" name="email" class="form-control" value="{{ old('email') }}" maxlength="50" />
                             </div>
                         </div>
-                        <div class="row">
+                        <div class="form-row">
                             <div class="form-group col-md-4">
                                 <label class="form-label" for="topBatas2">Term</label>
                                 <div class="input-group input-group-merge">
@@ -111,19 +111,19 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="row">
+                        <div class="form-row">
                             <div class="form-group col-md-6">
                                 <label class="form-label" for="npwp">NPWP</label>
                                 <input type="text" id="npwp" name="npwp" value="{{ old('npwp') }}" class="form-control masking-npwp angka" />
                             </div>
                         </div>
-                        <div class="row">
+                        <div class="form-row">
                             <div class="form-group col-md-6">
                                 <label class="form-label" for="alamatNpwp">Alamat NPWP</label>
                                 <textarea type="text" id="alamatNpwp" name="alamatNpwp" class="form-control" rows="2" maxlength="100">{{ old('alamatNpwp') }}</textarea>
                             </div>
                         </div>
-                        <div class="row">
+                        <div class="form-row">
                             <div class="form-group col-md-6">
                                 <label class="form-label" for="kotaNpwp">Kota</label>
                                 <select class="select2 w-100" id="kotaNpwp" name="kotaNpwp">
@@ -134,7 +134,7 @@
                                 </select>
                             </div>
                         </div>
-                        <div class="row">
+                        <div class="form-row">
                             <div class="form-group col-md-6">
                                 <label class="form-label" for="account">Account</label>
                                 <select class="select2 w-100" id="account" name="account">
@@ -145,7 +145,7 @@
                                 </select>
                             </div>
                         </div>
-                        <div class="row">
+                        <div class="form-row">
                             <div class="col-12">
                                 <button class="btn btn-outline-secondary" type="reset" id="cmdCancel" name="cmdCancel">Cancel</button>
                                 <button class="btn btn-success" type="button" id="cmdSave" name="cmdSave">Save</button>
