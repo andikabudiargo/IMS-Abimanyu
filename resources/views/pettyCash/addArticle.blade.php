@@ -37,11 +37,10 @@
             <tbody>
                 <tr>
                     <td class="isian" style="">
-                        <input type="text" class="form-control-plaintext search-box" id="pcDesc" name="pcDesc[]"  maxlength="100" />
-                        <div id="suggesstion-box"></div>
+                        <input type="text" class="form-control-plaintext" id="pcDesc" name="pcDesc[]"  maxlength="100" />
                     </td>
                     <td class="isian" style="width: 5%">
-                        <input type="text" class="form-control-plaintext" id = "pcCG" name="pcCG[]" maxlength="20" />
+                        <input type="text" class="form-control-plaintext" id = "pcCg" name="pcCg[]" maxlength="20" />
                     </td>
                     <td class="isian" style="width: 10%">
                         <input type="text" class="form-control-plaintext numeral-mask text-right" id = "pcCashIn" name="pcCashIn[]" maxlength="9" />
@@ -49,12 +48,9 @@
                     <td class="isian" style="width: 10%">
                         <input type="text" class="form-control-plaintext numeral-mask text-right" id = "pcCashOut" name="pcCashOut[]" maxlength="9" />
                     </td>
-                    <td class="" style="">
-                        <select class="dynamicSelect form-control sku-select-system" id="account" name="account[]" data-dependent="account">
+                    <td class="isian" style="">
+                        <select class="dynamicSelect form-control sku-select-system" id="account" name="account[]">
                         </select>
-                    </td>
-                    <td class="isian disabled d-none" style="width: 10%">
-                        <input type="text" class="form-control-plaintext numeral-mask text-right" id = "accountDesc" name="accountDesc[]" disabled>
                     </td>
                     <td class="isian text-center" style="width: 5%">
                         <a onmouseover="this.style.cursor='pointer'" onclick="$(this).parents('.tanda-baris').remove();hitungGrandTotal()" data-toggle="tooltip" data-placement="left" title="Delete row">

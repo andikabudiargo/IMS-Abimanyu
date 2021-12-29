@@ -176,7 +176,7 @@
 @endsection
 @section('scripts')
 <script type="text/javascript">
-    let currentDate = todayDate('dd-mm-yyyy');
+        
     $(document).ready(function(){     
         validateFormToast("frmAdd");
         mask_thousand_digit(2);

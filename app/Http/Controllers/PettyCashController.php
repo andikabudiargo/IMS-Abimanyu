@@ -53,9 +53,8 @@ class PettyCashController extends Controller
         $months = ['I', 'II', 'III','IV','V', 'VI', 'VII', 'VIII','IX','X','XI','XII'];
         $month = $months[date('n')-1];
         $year = date('Y');
-        $poNumber="$key-ASN/$year/$month/$newCode";
-        
-        return $poNumber;
+        $code="$key-ASN/$year/$month/$newCode";
+        return $code;
     }
 
     public function create(Request $request)
@@ -74,30 +73,28 @@ class PettyCashController extends Controller
         ->orderBy('name')
         ->get();
 
+        $data['pettyCash']= DB::table('pettycash_det') 
+        ->orderBy('description')
+        ->distinct('description')
+        ->pluck('description');
+
         return view("pettyCash.create",$data);
     }
 
     public function store(Request $request)
     {
         $username =  Auth::user()->username;
-        $articles = json_decode($request->articles);
-        $orderDate = $request->orderDate;
-        $poType = $request->poType; 
-        $deliveryDate = $request->deliveryDate;
+        $details = json_decode($request->details);
+        // $pcNumber = $request->pcNumber;
+        $voucherNumber = $request->voucherNumber;
+        $pcDate = $request->pcDate;
+        $period = $request->period;
         $currency = $request->currency;
-        $supplier = $request->supplier;
-        $tax = $request->tax;
-        $ppn = $request->ppn;
-        $termin = $request -> term;
-        $pph = 0;
-        $kurs = $request -> kurs;
-        $totalPpn = $request->totalPpn;
-        $totalPph = $request->totalPph;
-        $discount = $request->discount;
+        $kurs = $request->kurs;
         $note = $request->note;
         $status = '1';
-        $poLeadCode = $poType=='std' ? 'PO' : 'POSUB'; 
-
+        $pcLeadCode ='PC';
+        
         $messages = [
             'required' => 'The field is required.',
             'unique' => 'The code has already been taken', 
@@ -112,9 +109,8 @@ class PettyCashController extends Controller
 
         $validation = Validator::make($request->all(),$messages = [
             // 'poNumber'=>'required|unique:purchase_order_hdr,po_number',
-            'orderDate'  => 'required',
-            'currency'  => 'required',
-            'supplier'  => 'required',
+            // 'pcNumber'  => 'required',
+            'period'  => 'required'
         ]);
         
         $error_array = array();
@@ -127,28 +123,20 @@ class PettyCashController extends Controller
             $alert ="alert-danger";
             return response()->json(array('status' => 0, 'message' => $error_array,'alert' =>$alert));
         }else{
-            $hasilUpdate = AppHelpers::resetCode($poLeadCode);
-            $poNumber = $this->getLastCode($poLeadCode);
+            $hasilUpdate = AppHelpers::resetCode($pcLeadCode);
+            $pcNumber = $this->getLastCode($pcLeadCode);
             DB::beginTransaction();
             try {
-                    DB::table('purchase_order_hdr')->insert([
-                        'po_number' => $poNumber,
-                        'origin_po_number' => $poNumber,
-                        'supplier_id' => $supplier,
-                        'po_date' => $orderDate,
-                        'delivery_date' =>$deliveryDate,
+                    DB::table('pettycash_hdr')->insert([
+                        'pc_number' => $pcNumber,
+                        'voucher_number' => $voucherNumber,
+                        'pc_date' => $pcDate,
+                        'period' => $period,
+                        'year' => date('Y'),
                         'currency' => $currency,
                         'kurs' => $kurs,
-                        'ppn' => $ppn,
-                        'pph22' => $pph,
-                        'status' => $status,
-                        'note' =>  $note,
-                        'authorized_by' => '',
-                        'validate_by' =>  '',
-                        'discount' => $discount,
-                        'pkp' => $tax,
-                        'termin' =>$termin,
-                        'order_type' => $poType,
+                        // 'department' =>,
+                        'note' => $note,
                         'created_by' => Auth::user()->username,
                         'updated_by' => Auth::user()->username,
                         'created_at' => date('Y-m-d H:i:s'),
@@ -156,54 +144,36 @@ class PettyCashController extends Controller
                     ]);
 
                     $dataSet = [];
-                    foreach ($articles as $val) {
+                    foreach ($details as $val) {
                         $dataSet[] = [
-                            'po_number' => $poNumber,
-                            'pr_number' => $val->pRequest,
-                            'article_code' => $val->article_code,
-                            'qty' => $val->qty,
-                            'uom' => $val->uom,
-                            'old_price' => $val->price,
-                            'price' => $val->newPrice,
-                            'ppn' => $totalPpn,
-                            'pph22' => $totalPph,
+                            'pc_number' => $pcNumber,
+                            'description' => $val->description,
+                            'cg' => $val->cg ,
+                            'cash_in' => $val->cash_in,
+                            'cash_out' => $val->cash_out,
+                            'account' => $val->account,
                             'created_by' => Auth::user()->username,
+                            'updated_by' => Auth::user()->username,
                             'created_at' => date('Y-m-d H:i:s'),
+                            'updated_at' => date('Y-m-d H:i:s')
                         ];
-
-                        DB::table('purchase_request_det')
-                        ->where('pr_number',$val->pRequest)
-                        ->where('article_code',$val->article_code)
-                        // ->where('supp_code',$supplier)
-                        ->update([
-                            'po_number' => $poNumber,
-                            'updated_by' => Auth::user()->username,
-                            'updated_at' => date('Y-m-d H:i:s')
-                        ]);
-
-                        DB::table('purchase_request_hdr')
-                        ->where('pr_number',$val->pRequest)
-                        ->update([
-                            'status' => 7,
-                            'updated_by' => Auth::user()->username,
-                            'updated_at' => date('Y-m-d H:i:s')
-                        ]);
                     }
 
-                    DB::table('purchase_order_det')->insert($dataSet);
+                    DB::table('pettycash_det')->insert($dataSet);
 
                     DB::commit();
-                    $alert  ="alert-success";
-                    $message  = "PO $poNumber is successfully saved";
-                    \LogActivity::addToLog('SO save ',"username: $username Status $message");
-                    return response()->json(array('status' => 1, 'message' => $message,'alert'=>$alert,'poNumber'=>$poNumber));
-
+                    $title ='Save Petty Cash';
+                    $alert  ="success";
+                    $message  = "$title $pcNumber is successfully saved";
+                    \LogActivity::addToLog($title,"username: $username Status $message");
+                    return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'pcNumber'=>$pcNumber));
             } catch (Exception $e) {
                 DB::rollBack();
-                $alert  ="alert-warning";
-                $message  = "PO $poNumber is failed to save";
-                \LogActivity::addToLog('SO save ',"username: $username Status $message");
-                return response()->json(array('status' => 1, 'message' => $message,'alert'=>$alert,'poNumber'=>$poNumber));
+                $title ='Save Petty Cash';
+                $alert  ="warning";
+                $message  = "PC $pcNumber is failed to save";
+                \LogActivity::addToLog($title,"username: $username Status $message");
+                return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'pcNumber'=>$pcNumber));
             }
         }
     }
@@ -287,70 +257,17 @@ class PettyCashController extends Controller
         $data['title'] = "Edit Petty Cash";
         $data['subtitle'] = "Edit Petty Cash";
 
-        $data['header'] = DB::table('purchase_order_hdr')
-        // ->leftJoin('purchase_request_det','purchase_order_hdr.po_number','purchase_request_det.po_number')
-        ->where('purchase_order_hdr.id',$id)
+        $data['header'] = DB::table('pettycash_hdr')
+        ->where('id',$id)
         ->get()->first();
 
-        // $poNumber = explode("-",$data['header']->origin_po_number);
-        // $poNumber = $poNumber[0].'-'.$poNumber[1];
-
-        $poNumber = $data['header']->po_number;
+        $pcNumber = $data['header']->pc_number;
         
-        $data['prHeader'] = DB::table('purchase_request_det') 
-        // ->where('supp_code',$data['header']->supplier_id)
-        ->where('po_number','=',$poNumber)
-        ->orderBy('pr_number')
-        ->distinct('pr_number')
-        ->get();
-
-        $data['articles'] = DB::table('purchase_request_det')
-            ->leftJoin('article','article.article_code','=','purchase_request_det'.'.article_code')
-            ->leftJoin('article_stock','article_stock.article_code','=','purchase_request_det'.'.article_code')
-            ->leftJoin('group_materials','group_materials.code','=','article.group_of_material')
-            // ->where('supp_code',$data['header']->supplier_id)
-            ->where('po_number','=',$poNumber)
-            // ->where('pr_number','=',$data['header']->pr_number)
-            ->orderBy('article.article_desc')
-            ->distinct('article.article_desc')
-            ->select('purchase_request_det'.'.*','article.article_alternative_code','article.article_code as artikel_code','article.article_desc','article.costprice','article_stock.article_qty as qty_stock','purchase_request_det.uom as uom1','group_materials.name as group')
-            ->get();
-
-        $data['detail'] = DB::table('purchase_order_det')
-        ->leftJoin('article','article.article_code','=','purchase_order_det.article_code')
-        ->leftJoin('article_stock','article_stock.article_code','=','purchase_order_det.article_code')
-        ->leftJoin('purchase_request_det', function($join) {
-            $join->on('purchase_request_det.po_number','purchase_order_det.po_number')
-            ->on('purchase_request_det.article_code','purchase_order_det.article_code');
-        })
-        ->where('purchase_order_det.po_number',$poNumber)
-        ->select('purchase_order_det'.'.*','purchase_order_det.pr_number','article_stock.article_qty as qty_stock', DB::raw('(SELECT name from group_materials where code = group_of_material) as group'))
+        $data['detail'] = DB::table('pettycash_det')
+        ->where('pc_number',$pcNumber)
         ->orderBy('id')
         ->get();       
-
-        $data['supps'] = DB::table('third_party')
-        ->where ('third_party_type','=','supp')
-        ->orderBy('nama')
-        ->get();
-
-        $data['currency'] = ['IDR','USD'];
-
-        $data['uoms'] = DB::table('uom')
-        ->orderBy('name')
-        ->get();
-
-        // status:
-        // 1 = New
-        // 2 = Validated
-        // 3 = Authorized
-        // 4 = Received
-        // 5 = Canceled
-        // 6 = closed
-        // 7 = Revised
-
-        $statusPo = ['New','Validated','Authorized','Received','Canceled','Closed','Revised'];
-        $data['statusPo'] = $statusPo[$data['header']->status-1];
-        
+                
         return view("pettyCash.edit",$data);
     }
 
@@ -840,44 +757,22 @@ class PettyCashController extends Controller
 
     public function list(Request $request)
     {
-        // status:
-        // 1 = New
-        // 2 = Validated
-        // 3 = Authorized
-        // 4 = Received
-        // 5 = Canceled
-        // 6 = closed
-        // 7 = Revised
-
-        $seachPo = strtolower($request->seachPo);
-        $searchSupplier = $request->searchSupplier;
-        $searchStatus = $request->searchStatus;
-        $orderDate = $request->orderDate;
+    
+        $seachPc = strtolower($request->seachPc);
+        $pcDate = $request->pcDate;
        
 
         $filter='';
         
-        if ($seachPo !='' ){
-            $filter.="lower(a.po_number) like '%$seachPo%' and ";
-        }
-
-        if ($searchSupplier  != '' ){
-            $filter.="supplier_id = '$searchSupplier' and ";            
-        }
-
-        if ($searchStatus  != '' ){
-            $filter.="status = '$searchStatus' and ";            
-        }
-
+        if ($seachPc !='' ){
+            $filter.="lower(a.pc_number) like '%$seachPc%' and ";
+        }        
         
-        $filter.="status <> '7' and ";            
-        
-
-        if ($orderDate  != '' ){
-            $date = explode("to",$orderDate);
+        if ($pcDate  != '' ){
+            $date = explode("to",$pcDate);
             $date1=trim($date[0]);
             $date2=trim($date[1]);
-            $filter.= "to_date(po_date, 'DD/MM/YYYY')  BETWEEN to_date('$date1', 'DD/MM/YYYY') and to_date('$date2', 'DD/MM/YYYY') and ";
+            $filter.= "to_date(created_at, 'DD/MM/YYYY')  BETWEEN to_date('$date1', 'DD/MM/YYYY') and to_date('$date2', 'DD/MM/YYYY') and ";
         }
 
         
@@ -885,34 +780,11 @@ class PettyCashController extends Controller
             $filter=" where ".substr($filter,0,-4);
         }
 
-        $data=DB::select("SELECT *,delivery_date,(select concat(kode,'-',nama) from third_party where kode = supplier_id limit 1) as supp_name,(gross-discount)+ppn as netto 
-            from (
-                select 
-                    b.created_by,
-                    b.status,b.id,
-                    a.po_number,
-                    supplier_id,
-                    po_date,
-                    delivery_date,
-                    pkp,
-                    termin,
-                    authorized_by,
-                    validate_by,
-                    uom,
-                    sum(qty) as qty,
-                    sum(qty*price) as gross,
-                    sum(discount) as discount,
-                    sum(a.ppn) as ppn,
-                    b.num_revision
-                from purchase_order_det a
-                left join purchase_order_hdr b
-                on a.po_number = b.po_number 
-                $filter
-                group by b.id,a.po_number,supplier_id,po_date,delivery_date,pkp,termin,authorized_by,validate_by,b.created_by,uom,b.status,b.num_revision
-            ) as oki
-            order by id");
-        
-        // $data=DB::table('purchase_order_hdr')->get();
+        $data=DB::select("SELECT * ,
+        (select sum(cash_in) from pettycash_det where pc_number = a.pc_number) as cash_in,
+        (select sum(cash_out) from pettycash_det where pc_number = a.pc_number) as cash_out
+        from pettycash_hdr a
+        $filter");        
 
         return Datatables::of($data)
         ->addColumn('action', function ($data) {
@@ -921,39 +793,14 @@ class PettyCashController extends Controller
                                 <i data-feather="menu"></i>
                             </a>';
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
-            if ( $data->status == '2' ){
-                if (Auth::user()->can('pettyCash-authorize')) {
-                $buttons .=         '<a href="'. route('pettyCash.show', ['id'=>$data->id]) .'" class="dropdown-item">
-                                        <i data-feather="file-text"></i>
-                                        Authorize
-                                    </a>';
-                }
-            }
-            if ( $data->status == '1' ){
-                if (Auth::user()->can('pettyCash-validate')) {
-                $buttons .=         '<a href="'. route('pettyCash.show', ['id'=>$data->id]) .'" class="dropdown-item">
-                                        <i data-feather="file-text"></i>
-                                        Validate
-                                    </a>';
-                }
-            }
-            if ( $data->status == '1' ){
-                if (Auth::user()->can('pettyCash-edit')) {
-                $buttons .=         '<a href="'. route('pettyCash.edit', ['id'=>$data->id]) .'" class="dropdown-item">
-                                        <i data-feather="file-text"></i>
-                                        Edit
-                                    </a>';
-                }
-            }
-            if (($data->status == '2') || ($data->status == '3') ){
-                if (Auth::user()->can('pettyCash-revision')) {
-                    $buttons .=         '<a href="'. route('pettyCash.revision', ['id'=>$data->id,'poNumber'=>$data->po_number,'numRevision'=>$data->num_revision]) .'" class="dropdown-item">
-                                            <i data-feather="copy"></i>
-                                            Revision
-                                        </a>';
-                }
-            }
             
+            if (Auth::user()->can('pettyCash-edit')) {
+                $buttons .=         '<a href="'. route('pettyCash.edit', ['id'=>$data->id]) .'" class="dropdown-item">
+                                    <i data-feather="file-text"></i>
+                                    Edit
+                                </a>';
+            }
+                        
             $buttons .=         '<a href="'. route('pettyCash.print', ['id'=>$data->id]) .'" target="_blank" class="dropdown-item">
                                     <i data-feather="printer"></i>
                                     Print
@@ -963,45 +810,25 @@ class PettyCashController extends Controller
                                     <i data-feather="list"></i>
                                     Detail
                                 </a>';
-            if ( $data->status == '1' ){
-                if (Auth::user()->can('pettyCash-delete')) {
-                $buttons .=         "<a href='javascript:;'
-                                        id='deleteButton'
-                                        class='dropdown-item'
-                                        data-toggle='modal'
-                                        data-target='#smallModal'
-                                        data-href='". route("pettyCash.destroy", ["id"=>$data->id]) ."'>
-                                        <i data-feather='trash-2'></i>
-                                        Delete
-                                    </a>";
-                }
-            }
-
+            
             if (Auth::user()->can('pettyCash-delete')) {
                 $buttons .=         "<a href='javascript:;'
-                                        id='deleteButton'
-                                        class='dropdown-item'
-                                        data-toggle='modal'
-                                        data-target='#smallModal'
-                                        data-href='". route("pettyCash.destroy", ["id"=>$data->id]) ."'>
-                                        <i data-feather='x-circle'></i>
-                                        Clear
-                                    </a>";
+                                    id='deleteButton'
+                                    class='dropdown-item'
+                                    data-toggle='modal'
+                                    data-target='#smallModal'
+                                    data-href='". route("pettyCash.destroy", ["id"=>$data->id]) ."'>
+                                    <i data-feather='trash-2'></i>
+                                    Delete
+                                </a>";
             }
+
             $buttons .=     '</div>
                         </div>';
 
             return $buttons;
-            })
-        ->addColumn('group_id', function ($user) {
-            return '';
         })
-        ->addColumn('status', function ($data) {
-            $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary'];
-            $statusPo = ['New','Validated','Authorized','Received','Canceled','Closed','Revised'];
-            return "<div class='badge ".$badges[$data->status - 1]."'>".$statusPo[$data->status - 1]."</div>";
-        })
-        ->rawColumns(['action','status'])
+        ->rawColumns(['action'])
         ->make(true);
     }
 
@@ -1062,18 +889,4 @@ class PettyCashController extends Controller
 
     }
 
-    public function searchPcDesc(Request $request)
-    {
-        $code= $request->value;
-        $type= $request->type;
-        $data= DB::table($table) 
-        ->orderBy($order)
-        ->get();
-        $output .="<ul id='pc-list'>";
-        foreach ($data as $row){
-            $output .='<li onClick="selectPc('.$row->$value.')"><'.$row->$value.'></li>';
-        }
-        $output .='</ul>';
-        return $output;
-    }
 }

@@ -2,7 +2,6 @@
 @section('title', $title)
 @section('content')
 @include('layouts.breadcrumb')
-@include('partials.alert')
 <section id="add-index">
     <div class="form-row">
         <div class="col-md-12">
@@ -26,16 +25,16 @@
                                     <input type="text" id="pcNumber" name="pcNumber" class="form-control disabled-el"  disabled />
                                 </div>
                                 <div class="form-group col-md-3">
-                                    <label for="vocherNumber">Voucher Number</label>
-                                    <input type="text" id="vocherNumber" name="vocherNumber" class="form-control" />
+                                    <label for="voucherNumber">Voucher Number</label>
+                                    <input type="text" id="voucherNumber" name="voucherNumber" class="form-control" />
                                 </div>
                                 <div class="form-group col-md-2">
-                                    <label for="orderDate">Date*</label>
-                                    <input type="text" id="orderDate" name="orderDate" class="form-control" placeholder="DD-MM-YYYY" required />
+                                    <label for="pcDate">Date*</label>
+                                    <input type="text" id="pcDate" name="pcDate" class="form-control" placeholder="DD-MM-YYYY" required />
                                 </div>
                                 <div class="form-group col-md-2">
-                                    <label class="form-label" for="periode">Period*</label>
-                                    <select class="select2 form-control" id="periode" name="periode" required>
+                                    <label class="form-label" for="period">Period*</label>
+                                    <select class="select2 form-control" id="period" name="period" required>
                                         <option value=""></option>
                                         @for ($i = 1; $i <= 12; $i++)
                                             <option value="{{ $i }}">{{ $i }}</option>
@@ -80,30 +79,30 @@
         <div class="col-md-12">
             <div class="card">
                 <div class="card-header">
-                    <h4 class="card-title">Article</h4>
+                    <h4 class="card-title">Detail data</h4>
                 </div>
                 <div class="card-body" >
                     <div>
                         <table class="" style="width:98%;table-layout: fixed;">
                             <tbody>
                                 <tr>
-                                    <td class="isian-satu" style="width: 15%">
+                                    <td class="isian" style="">
                                         <label>Description</label>
                                     </td>
-                                    <td class="">
+                                    <td class="isian" style="width: 5%">
                                         <label>CG</label>
                                     </td>
-                                    <td class="isian" style="width: 5%">
+                                    <td class="isian" style="width: 10%">
                                         <label>Debit</label>
                                     </td>
                                     <td class="isian" style="width: 10%">
                                         <label>Credit</label>
                                     </td>
-                                    <td class="isian" style="width: 5%">
+                                    <td class="isian" style="">
                                         <label>Account</label>
                                     </td>
-                                    <td class="isian d-none" style="width: 10%">
-                                        <label>Account name</label>
+                                    <td class="isian" style="width: 5%">
+                                        <label>-</label>
                                     </td>
                                 </tr>
                             </tbody>
@@ -112,98 +111,44 @@
                     <div class="" id="item_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px">
                         <input type="text" id ="last_row_number" class="d-none" value="0">
                     </div>
+                    <table class="" style="width: 98%;table-layout: fixed;">
+                        <tbody>
+                            <tr>
+                                <td class="isian" style="">
+                                    <label>Total</label>
+                                </td>
+                                <td class="isian" style="width: 5%">
+                                    
+                                </td>
+                                <td class="isian" style="width: 10%">
+                                    <input type="text" class="form-control-plaintext numeral-mask text-right" id="pcTotalCashIn" disabled />
+                                </td>
+                                <td class="isian" style="width: 10%">
+                                    <input type="text" class="form-control-plaintext numeral-mask text-right" id= "pcTotalCashOut" disabled />
+                                </td>
+                                <td class="isian" style="">
+                                </td>
+                                <td class="isian text-center" style="width: 5%">
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
                     <div class="d-flex justify-content-between align-items-end mt-75 ml-75">
                         <button class="btn btn-primary btn-prev" type="button" id="addNewRow" onclick="add_new_row();">
                             <i data-feather="plus" class="align-middle mr-sm-25 mr-0"></i>
                             <span class="align-middle d-sm-inline-block d-none">Add</span>
                         </button>
                     </div>
-                    <div class="d-flex justify-content-between align-items-end mt-75">
-                        <div class="col-md-4">
-                            <div class="form-group row mb-03">
-                                <label for="totalRow" class="col-sm-4 col-form-label titik-dua">Row(s)</label>
-                                <div class="col-sm-3">
-                                    <input type="text" class="form-control text-right font-weight-bold" id="totalRow" />
-                                </div>
-                            </div>
-                            <div class="form-group row mb-03">
-                                <label for="totalQTY" class="col-sm-4 col-form-label titik-dua">Total QTY</label>
-                                <div class="col-sm-3">
-                                    <input type="text" class="form-control text-right font-weight-bold" id="totalQTY" disabled/>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-5">
-                            <div class="form-group row mb-03">
-                                <label for="totalAmount" class="col-sm-3 col-form-label titik-dua">Bruto</label>
-                                <div class="col-sm-6">
-                                    <input type="text" class="form-control text-right font-weight-bold" id="totalAmount" disabled />
-                                </div>
-                            </div>
-                            <div class="form-group row mb-03">
-                                <label for="totalPPN" class="col-sm-3 col-form-label titik-dua">Discount </label>
-                                <div class="col-sm-2" style="padding-right: 0rem;">
-                                    <input type="text" class="form-control text-right font-weight-bold" id="persenDiscount" maxlength="2"/>
-                                </div>
-                                <div class="col-sm-4" style="padding-left: 0rem;">
-                                    <input type="text" class="form-control text-right font-weight-bold" id="totalDiscount" disabled/>
-                                </div>
-                            </div>
-                            <div class="form-group row mb-03">
-                                <label for="totalPPN" class="col-sm-3 col-form-label titik-dua">PPN <span id="nilaiPPN"></span> </label>
-                                <div class="col-sm-6">
-                                    <input type="text" class="form-control text-right font-weight-bold" id="totalPPN" disabled/>
-                                </div>
-                            </div>
-                            <div class="form-group row mb-03">
-                                <label for="totalPPH" class="col-sm-3 col-form-label titik-dua">PPH <span>22</span> </label>
-                                <div class="col-sm-6">
-                                    <input type="text" class="form-control text-right font-weight-bold" id="totalPPH" disabled/>
-                                </div>
-                            </div>
-                            <div class="form-group row mb-03">
-                                <label for="totalNetto" class="col-sm-3 col-form-label titik-dua">Netto</label>
-                                <div class="col-sm-6">
-                                    <input type="text" class="form-control text-right font-weight-bold" id="totalNetto" disabled/>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>
     </div>
 </section>
-<div class="modal fade text-left bisa-geser" id="modalListPrice" tabindex="-1" role="dialog" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h4>List price</h4>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body">
-                <h5><span class="semi-bold" id='modalArticle'></span></h5>
-                <div class="table-responsive">
-                    <table class="table" id='modalTableData'>
-                        <thead>
-                            <tr>
-                                <td>PO Number</td>
-                                <td>Date</td>
-                                <td>Price</td>
-                            </tr>
-                        </thead>
-                        <tbody></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+
 @include('pettyCash.addArticle')
 @endsection
 @section('styles')
+<link rel="stylesheet" type="text/css" href="{{ asset('assets/css/jquery-ui.css') }}">
 <style>
 
     textarea {
@@ -254,49 +199,30 @@
 </style>
 @endsection
 @section('scripts')
+<script src="{{ asset('assets/js/ui.1.13.0.jquery-ui.js') }}"></script>
 <script type="text/javascript">
-    let currentDate = todayDate('dd-mm-yyyy');    
+    let currentDate = todayDate('dd-mm-yyyy');     
+    var availableTags ="{{ $pettyCash }}";
+    availableTags=availableTags.replace(/[[\]]/g,'');
+    availableTags=availableTags.replace(/&quot;/g,'').split(",");
+        
     $(document).ready(function(){           
         validateForm('frmAdd');
         $('#orderDate').val(currentDate);
+        add_new_row();
+        add_new_row();
+        add_new_row();
+        add_new_row();
+        add_new_row();
     });
-
-    function keyUp(obj){
-        $("#"+obj).keyup(function(){
-            alert($(this).val());
-            // $.ajax({
-            //     type: "POST",
-            //     url: "readCountry.php",
-            //     data:'keyword='+$(this).val(),
-            //     beforeSend: function(){
-            //         $("#search-box").css("background","#FFF url(LoaderIcon.gif) no-repeat 165px");
-            //     },
-            //     success: function(data){
-            //         $("#suggesstion-box").show();
-            //         $("#suggesstion-box").html(data);
-            //         $("#search-box").css("background","#FFF");
-            //     }
-            // });
-	    });
-    }
     
-
-    orderDate = $('#orderDate');
-    if (orderDate.length) {
-        orderDate.flatpickr({
+    pcDate = $('#pcDate');
+    if (pcDate.length) {
+        pcDate.flatpickr({
             dateFormat: "d-m-Y",
         });
     }
-
-    deliveryDate = $('#deliveryDate');
-    if (deliveryDate.length) {
-        deliveryDate.flatpickr({
-            dateFormat: "d-m-Y",
-            minDate: currentDate
-        });
-    }
     
-   
     function reloadPage(){
         window.location.reload();
     }
@@ -312,131 +238,90 @@
     $("#cmdSave").click(function(){     
         $('.disabled-el').removeAttr('disabled');
         // ambil semua data article
-        let objQty= $('input[name="qty_order[]"]');
-        let objPrice= $('input[name="price[]"]');
-        let objNewPrice= $('input[name="newPrice[]"]');
-        let objUom= $('span[name="uom[]"]'); 
-        let objpr= $('select[name="pRequest[]"]'); 
-        let articles = []; 
+        let objPcDesc= $('#item_row input[name="pcDesc[]"]');
+        let objPcCg= $('#item_row input[name="pcCg[]"]');
+        let objPcCashIn= $('#item_row input[name="pcCashIn[]"]');
+        let objPcCashOut= $('#item_row input[name="pcCashOut[]"]');
+        let objAccount= $('#item_row select[name="account[]"]');
+        let details = []; 
         let flag=0; 
         let pesan="";
 
-        $("#item_row select[name='pcDesc[]']").map(function(i) {  
+        objPcDesc.map(function(i) {  
 		    let $this=$(this);
             if ($this.val()){
-                let article=$this.val().split("|");
-                let articleName=$this.select2('data')[0].text;
-                let plu=article[0];
-                let qty=objQty.eq(i).val().replace(/,/gi, '') || 0;
-                let newPrice=objNewPrice.eq(i).val().replace(/[^0-9]/gi, '') || 0;
-                let price=objPrice.eq(i).val().replace(/[^0-9]/gi, '') || 0;
-                let pRequest=objpr.eq(i).val();
-                let uom=objUom.eq(i).text();
-                let supp=$('#supplier').val();
-                let suppName = $('#supplier').select2('data')[0].text;
-                let supplier=supp;
-            
-                //es6
-                // let obj = ingredient.find(obj => obj.plu == plu);
+                let sDesc=$this.val();
+                let sCg=objPcCg.eq(i).val();
+                let sCashIn=objPcCashIn.eq(i).val().replace(/,/gi, '') || 0;
+                let sCashOut=objPcCashOut.eq(i).val().replace(/,/gi, '') || 0;
+                let sAccount=objAccount.eq(i).val();
 
                 //jquery
                 //cek apakah article ada yang double input ato ngk
-                let obj = $.grep(articles, function(obj){
-                    return obj.article_code === plu;
+                let obj = $.grep(details, function(obj){
+                    return obj.description === sDesc;
                 })[0];
                 
                 if(obj) {
-                    pesan +="Article "+articleName+" entered more than once !! <br>"; 
+                    pesan +="Description "+sDesc+" entered more than once !! <br>"; 
                     flag=1;
                 } else {
-                    if ((plu!=='') && (qty> 0)){
-                        articles.push({
-                            "article_code":plu,
-                            "qty":qty,
-                            "uom":uom,
-                            "price":price,
-                            "newPrice":newPrice,
-                            "pRequest":pRequest
+                    if ((sDesc!=='') && ((sCashIn + sCashOut) > 0)){
+                        details.push({
+                            "description":sDesc,
+                            "cg":sCg,
+                            "cash_in":sCashIn,
+                            "cash_out":sCashOut,
+                            "account":sAccount
                         });
                     }
-                } 
-            
-                if (qty == 0){
-                    pesan +="QTY of items "+ articleName +" cannot be 0 <br>"; 
-                    flag=1;
-                }
-            
+                }             
             }
         });
 
-        if (articles.length == 0){
-			pesan +="Articles must be filled in completely <br>"; 
+        if (details.length == 0){
+			pesan +="Detail must be filled Out completely <br>"; 
 			flag=1;
-		}
+        }
 
-        if (flag==0){
+        if (flag == 0){
 
-            let orderDate = $('#orderDate').val();
-            let poType = $('#poType').val();
-            let deliveryDate = $('#deliveryDate').val();
+            // let pcNumber = $('#pcNumber').val();
+            let voucherNumber = $('#voucherNumber').val();
+            let pcDate = $('#pcDate').val();
+            let period = $('#period').val();
             let currency = $('#currency').val();
-            let supp = $('#supplier').val();
-            let tax = $('#tax').val();
-            let term = $('#term').val() || 0;
             let kurs = $('#kurs').val() || 1;
-            let ppn = $('#ppn').val().replace(/[^0-9]/gi, '') || 0;
-            let totalPph = $('#totalPPH').val().replace(/[^0-9]/gi, '') || 0;
-            let totalPpn = $('#totalPPN').val().replace(/[^0-9]/gi, '') || 0;
             let note = $('#note').val();
-            let persenDiscount = $('#persenDiscount').val() || 0;
 
             $.ajax({
                 type: "post",
-                url: "{{ route('purchaseOrder.store') }}",
+                url: "{{ route('pettyCash.store') }}",
                 data: {
-                    articles:JSON.stringify(articles),
-                    orderDate:orderDate,
-                    poType:poType,
-                    deliveryDate:deliveryDate,
-                    currency:currency,                
-                    supplier:supp,
-                    tax:tax,
-                    ppn:ppn,
-                    term:term,
-                    totalPph:totalPph,
-                    totalPpn:totalPpn,
+                    details:JSON.stringify(details),
+                    // pcNumber:pcNumber,
+                    voucherNumber:voucherNumber,
+                    pcDate:pcDate,
+                    period:period,
+                    currency:currency,
                     kurs:kurs,
-                    note:note,
-                    discount:persenDiscount
+                    note:note
                 },
                 dataType: "json",
                 success: function(data) {
                     if (data.status == 0 ){
                         let message="";
                         for(let i = 0; i < data.message.length; i++) {
-                            message += "-"+data.message[i]+"<br>";                           
-                        }
-                        $("#alert-message-success").addClass(data.alert);
-                        $("#alert-message-success .alert-body").html(message);
-                        $("#alert-message-success").show();
-                        $("#alert-message-success").fadeTo(5000, 500).slideUp(500, function(){
-                            $("#alert-message-success").slideUp(500);
-                        });
-                        $('#poNumber').attr('disabled','disabled');
-
+                            show_msg(data.title, data.message[i], data.alert);
+                        }                        
+                        $('#pcNumber').attr('disabled','disabled');
                     }else{
-                        $("#alert-message-success").addClass(data.alert);
-                        $("#alert-message-success .alert-body").html(data.message);
-                        $("#alert-message-success").show();
-                        $("#alert-message-success").fadeTo(5000, 500).slideUp(500, function(){
-                            $("#alert-message-success").slideUp(500);
-                        });
-                        $('#poNumber').attr('disabled','disabled');
+                        show_msg(data.title, data.message, data.alert);
+                        $('#pcNumber').val(data.pcNumber);
+                        $('#pcNumber').attr('disabled','disabled');
                         $('#cmdSave').attr('disabled','disabled');
                         $('#addNewRow').attr('disabled','disabled');
-                        
                     }
-                    
                 },
                 error: function(error) {
                     console.log(error);
@@ -456,7 +341,6 @@
         $("#item_row").find('#baru').attr('id', 'new_row'+ cloneCount);
         $("#new_row"+ cloneCount).find('#pcDesc').attr('id', 'pcDesc'+ cloneCount);
         $("#new_row"+ cloneCount).find('#account').attr('id', 'account'+ cloneCount);
-        keyUp('pcDesc'+ cloneCount);
         accList('account','account'+ cloneCount);
         $("#account"+cloneCount).select2();
         $('#remove_button').tooltip();
@@ -467,6 +351,11 @@
         hitungTotal();
         hitungGrandTotal();
         $('[data-toggle="tooltip"]').tooltip();
+
+        $("#pcDesc"+ cloneCount).autocomplete({
+            source: availableTags
+        });
+
     };
 
     function accList(dependent,obj) {
@@ -484,54 +373,44 @@
     }
 
     function hitungTotal(){
-        let objQty= $('#item_row input[name="qty_order[]"]');
-        let objNewPrice= $('#item_row input[name="newPrice[]"]');
-        let objTotal= $('#item_row span[name="totalLine[]"]');
-        
-        objQty.keyup(function() {
-            let indexnya= objQty.index(this);
-            let qty = objQty.eq(indexnya).val().replace(/,/gi, '') || 0; 
-            let newPrice = objNewPrice.eq(indexnya).val().replace(/[^0-9]/gi, '') ||0;
-            let total = qty*newPrice;
-            objTotal.eq(indexnya).text(humanizeNumber(total));
+        let objPcCashIn= $('#item_row input[name="pcCashIn[]"]');
+        let objPcCashOut= $('#item_row input[name="pcCashOut[]"]');
+
+        objPcCashIn.keyup(function() {
+            if (objPcCashOut.val()){
+                objPcCashIn.val('');
+            }
             hitungGrandTotal();
         });    
 
-        objNewPrice.keyup(function() {
-            let indexnya= objNewPrice.index(this);
-            let qty = objQty.eq(indexnya).val().replace(/,/gi, '') || 0; 
-            let newPrice = objNewPrice.eq(indexnya).val().replace(/[^0-9]/gi, '')||0;
-            let total = qty*newPrice;
-            objTotal.eq(indexnya).text(humanizeNumber(total));
+        objPcCashOut.keyup(function() {
+            if (objPcCashIn.val()){
+                objPcCashOut.val('');
+            }
             hitungGrandTotal();
         });    
     }
 
     function hitungGrandTotal(){
-        let objArticle = $('#item_row select[name="pcDesc[]"]');
-        let objQtyTiw= $('#item_row input[name="qty_order[]"]');
-        let objQTY= $('#item_row input[name="qty_order[]"]');
-        let objNewPrice= $('#item_row input[name="newPrice[]"]');
-        let persenDiscount = $('#persenDiscount').val() || 0;
-        let ppn= $('#ppn').val();
-        let totalQty= 0;
-        let totalAmount=0
+        let objPcCashIn= $('#item_row input[name="pcCashIn[]"]');
+        let objTotalPcCashIn= $('#pcTotalCashIn');
+        let objPcCashOut= $('#item_row input[name="pcCashOut[]"]');
+        let objTotalPcCashOut= $('#pcTotalCashOut');
+        let totalCashIn=0;
+        let totalCashOut=0;
 
-        var arr = objQtyTiw.map(function (i) {
-            let qty = parseInt(objQTY.eq(i).val().replace(/,/gi, '')) || 0;
-            let newPrice = parseInt(objNewPrice.eq(i).val().replace(/[^0-9]/gi, '')) || 0;
-            totalQty+= qty;
-            totalAmount+= qty*newPrice;
+        var arr = objPcCashIn.map(function (i) {
+            let cashIn = parseInt(objPcCashIn.eq(i).val().replace(/,/gi, '')) || 0;
+            totalCashIn+= cashIn;
         }).get();
-        
-        $("#totalRow").val(objArticle.length);
-        $("#nilaiPPN").text(ppn+"%");
-        $("#totalQTY").val(humanizeNumber(totalQty));
-        $("#totalAmount").val(humanizeNumber(totalAmount));
-        $("#totalDiscount").val(humanizeNumber((totalAmount*parseInt(persenDiscount))/100));
-        $("#totalPPN").val(humanizeNumber((parseInt(ppn)*totalAmount)/100));
-        $("#totalPPH").val(0);
-        $("#totalNetto").val(humanizeNumber((totalAmount+((parseInt(ppn)*totalAmount)/100))-((totalAmount*parseInt(persenDiscount))/100)));
+
+        var arr = objPcCashOut.map(function (i) {
+            let cashOut = parseInt(objPcCashOut.eq(i).val().replace(/,/gi, '')) || 0;
+            totalCashOut+= cashOut;
+        }).get();
+
+        objTotalPcCashIn.val(humanizeNumber(totalCashIn));
+        objTotalPcCashOut.val(humanizeNumber(totalCashOut));
 
     }
 

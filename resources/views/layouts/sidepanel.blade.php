@@ -279,14 +279,14 @@
             </span>
           </a>
           <ul class="menu-content">
-            @can('finance-index')
+            {{-- @can('finance-index')
             <li class="{{ \Request::segment(1) == 'aps'  ? 'active' : '' }}">
               <a class="d-flex align-items-center" href="{{ route('aps.index') }}">
                 <i data-feather="circle"></i>
                 <span class="menu-item text-truncate" data-i18n="Input">Account Payable</span>
               </a>
             </li>
-            @endcan
+            @endcan --}}
             @can('finance-index')
             <li class="{{ \Request::segment(1) == 'aps'  ? 'active' : '' }}">
               <a class="d-flex align-items-center" href="{{ route('aps.index') }}">
@@ -295,14 +295,14 @@
               </a>
             </li>
             @endcan
-            @can('finance-index')
+            {{-- @can('finance-index')
             <li class="{{ \Request::segment(1) == 'aps'  ? 'active' : '' }}">
               <a class="d-flex align-items-center" href="{{ route('aps.index') }}">
                 <i data-feather="circle"></i>
                 <span class="menu-item text-truncate" data-i18n="Input">Invoice Correction</span>
               </a>
             </li>
-            @endcan
+            @endcan --}}
             @can('finance-index')
             <li class="{{ \Request::segment(1) == 'accountPayable'  ? 'active' : '' }}">
               <a class="d-flex align-items-center" href="{{ route('accTypes.index') }}">

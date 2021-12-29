@@ -19,30 +19,12 @@
         <form class="needs-validation" novalidate>
             <div class="form-row">
               <div class="form-group col-md-3"> 
-                <label for="seachPo">PO Number</label>
-                <input type="text" class="form-control text-uppercase" id="seachPo" name="seachPo" placeholder=""  />
-              </div>
-              <div class="form-group col-md-3"> 
-                <label class="form-label" for="searchSupplier">Supplier</label>
-                <select class="select2 form-control" id="searchSupplier" name="searchSupplier">
-                  <option value="">All</option>
-                    @foreach($supps as $val)
-                        <option value="{{$val->kode}}">{{$val->kode}} - {{$val->nama}}</option>
-                    @endforeach
-                </select>
+                <label for="seachPc">PC Number</label>
+                <input type="text" class="form-control text-uppercase" id="seachPc" name="seachPc" placeholder=""  />
               </div>
               <div class="col-md-3 form-group">
-                <label for="orderDate">Date</label>
-                <input type="text" id="orderDate" name="orderDate" class="form-control flatpickr-range" placeholder="YYYY-MM-DD to YYYY-MM-DD" />
-              </div>
-              <div class="form-group col-md-2"> 
-                <label class="form-label" for="searchStatus">Order Status</label>
-                <select class="select2 form-control" id="searchStatus" name="searchStatus">
-                    <option value="">All</option>
-                    @foreach($status as $index=>$val)
-                        <option value="{{ $index }}">{{ $index }} - {{ $val }}</option>
-                    @endforeach
-                </select>
+                <label for="pcDate">Date</label>
+                <input type="text" id="pcDate" name="pcDate" class="form-control flatpickr-range" placeholder="YYYY-MM-DD to YYYY-MM-DD" />
               </div>
             </div>
             <div class="form-row">
@@ -129,15 +111,13 @@
   }
 
   $("#btnSearch").click(function(e){
-    let seachPo = $("#seachPo").val();
-    let searchSupplier = $("#searchSupplier").val(); 
-    let searchStatus = $("#searchStatus").val();
-    let orderDate = $("#orderDate").val();
-    showList(seachPo,searchSupplier,searchStatus,orderDate);
+    let seachPc = $("#seachPc").val();
+    let pcDate = $("#pcDate").val();
+    showList(seachPc,pcDate);
 
   });
 
-  function showList(seachPo,searchSupplier,searchStatus,orderDate){
+  function showList(seachPc,pcDate){
     // let dtdom = '<"card-header border-bottom p-1"<"head-label">><"d-flex justify-content-between align-items-center mx-0 row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-4"f><"col-sm-12 col-md-2"<"dt-action-buttons text-right"B>>>t<"d-flex justify-content-between mx-0 row"<"col-sm-12 col-md-6"i><"col-sm-12 col-md-6"p>>';
     let dtdom ='<"d-flex justify-content-between align-items-center header-actions mx-1 row mt-75"' +
         '<"col-lg-12 col-xl-6" l>' +
@@ -147,17 +127,15 @@
         '<"col-sm-12 col-md-6"i>' +
         '<"col-sm-12 col-md-6"p>' +
         '>';
-    let arr_col_print =[2,3,4,5,6]; 
+    let arr_col_print =[1,2,3,4,5,6,7,8]; 
     $(function(){
       let oTable =$("#detailedTable").DataTable({
         ajax:
         {
           url:'{{ route("pettyCash.list")}}',
           data:{
-              seachPo:seachPo,
-              searchSupplier:searchSupplier,
-              searchStatus:searchStatus,
-              orderDate:orderDate
+              seachPc:seachPc,
+              pcDate:pcDate
           }
         },
         processing: true,
@@ -223,7 +201,7 @@
         },
         columnDefs: [
           { width: '10%', targets: 0 },
-          { className: 'text-right','targets': [ 11,12,13,14,15 ] },
+          { className: 'text-right','targets': [ 6,7 ] },
         ],
         drawCallback: function( settings ) {
           feather.replace({
@@ -231,28 +209,19 @@
                 height: 14
           });
         },
-        order: [[ 2, 'asc' ]],
+        order: [[ 1, 'asc' ]],
         bDestroy: true, //pakai ini supaya bisa di load berulang2
         // scrollX: true, //pakai ini supaya waktu responsive  bisa di scroll horizontal
         columns: [
-            // { data: 'group_id',name:'group_id', title:'',orderable: false, searchable: false },
             { data: 'action', name: 'action',title:'action', orderable: false, searchable: false },
-            { data: 'po_number', name: 'po_number',title:'PO Number' },
-            { data: 'num_revision', name: 'num_revision',title:'Revision' },
-            { data: 'supp_name', name: 'supp_name',title:'Supplier' },
-            { data: 'po_date', name: 'po_date',title:'PO Date' },
-            { data: 'delivery_date', name: 'delivery_date',title:'Delivery Date' },
-            { data: 'created_by', name: 'created_by',title:'Created By' },
-            { data: 'validate_by', name: 'validate_by',title:'Prepared By' },
-            { data: 'authorized_by', name: 'authorized_by',title:'Authorized By' },
-            { data: 'pkp', name: 'pkp',title:'Tax' },
-            { data: 'termin', name: 'termin',title:'Tax' },            
-            { data: 'qty', name: 'qty',title:'QTY',render: $.fn.dataTable.render.number(',','.') },
-            { data: 'gross', name: 'gross',title:'Bruto',render: $.fn.dataTable.render.number(',','.')},
-            { data: 'discount', name: 'discount',title:'Discount',render: $.fn.dataTable.render.number(',','.')},
-            { data: 'ppn', name: 'ppn',title:'PPN',render: $.fn.dataTable.render.number(',','.')},
-            { data: 'netto', name: 'netto',title:'Netto',render: $.fn.dataTable.render.number(',','.')},
-            { data: 'status', name: 'status',title:'Status' },
+            { data: 'pc_number', name: 'pc_number',title:'PC Number' },
+            { data: 'voucher_number', name: 'voucher_number',title:'Voucher Number' },
+            { data: 'pc_date', name: 'pc_date',title:'PC Date' },
+            { data: 'period', name: 'period',title:'Period' },
+            { data: 'currency', name: 'currency',title:'Currency' },
+            { data: 'cash_in', name: 'cash_in',title:'Cash In',render: $.fn.dataTable.render.number(',','.')},
+            { data: 'cash_out', name: 'cash_out',title:'Cash Out',render: $.fn.dataTable.render.number(',','.')},
+            { data: 'created_at', name: 'created_at',title:'Created At' }
         ],
       });
     });

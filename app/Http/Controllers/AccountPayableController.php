@@ -145,6 +145,10 @@ class AccountPayableController extends Controller
                             a.*
                             ,b.nama
                             ,(select round(sum(qty*price)) as total_po from purchase_order_det where po_number= a.po_number) as total_po 
+                            ,(select sum(qty*price) from receiving_det where rec_number = a.rec_number) as basis_amount
+                            ,(select ppn from purchase_order_hdr where po_number =a.po_number) as vat
+                            ,to_char(to_date(rec_date,'dd-mm-yyyy')+(select termin from purchase_order_hdr where po_number = a.po_number),'dd-mm-yyyy') as due_date
+                            ,((select sum(qty*price) from receiving_det where po_number = a.po_number) - (select sum(qty*price) from purchase_order_det where po_number = a.po_number)) as po_balance
                             from receiving_hdr a
                             left join third_party b on b.kode = a.supplier_id
                             where po_number = '$poNumber'");
