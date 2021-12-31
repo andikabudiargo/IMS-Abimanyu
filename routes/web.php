@@ -252,11 +252,12 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('ap/list/po',['as'=>'ap.list.po','uses'=>'AccountPayableController@listPo']);
 	Route::get('ap/list/rec',['as'=>'ap.list.rec','uses'=>'AccountPayableController@listRec']);
 	Route::get('ap/detail/rec',['as'=>'ap.detail.rec','uses'=>'AccountPayableController@detailRec']);
+	Route::post('ap/store',['as'=>'ap.store','uses'=>'AccountPayableController@store']);
 	// Route::get('receivings/search',['as'=>'ap.search','uses'=>'ReceivingController@search']);
 	// Route::get('receivings/list/po',['as'=>'ap.list.po','uses'=>'ReceivingController@listPo']);
 	// Route::get('receivings/list/uom',['as'=>'ap.list.uom','uses'=>'ReceivingController@listUom']);
 	// Route::get('receivings/po/det',['as'=>'ap.po.det','uses'=>'ReceivingController@poDetail']);
-	// Route::post('receivings/store',['as'=>'ap.store','uses'=>'ReceivingController@store']);
+	
 	// Route::get('receivings/list',['as'=>'ap.list','uses'=>'ReceivingController@list']);
 	// Route::get('receivings/show',['as'=>'ap.show','uses'=>'ReceivingController@show']);
 	// Route::get('receivings/edit',['as'=>'ap.edit','uses'=>'ReceivingController@edit','middleware' => ['permission:ap-edit']]);

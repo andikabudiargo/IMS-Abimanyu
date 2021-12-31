@@ -71,9 +71,12 @@ class AccountPayableController extends Controller
         $data['accounts'] = DB::table('accounts')
         ->get();
 
+        $data['invoiceNumber']="";
+
         return view("accountPayable.create",$data);
     }
 
+ 
     public function listSj(Request $request)
     {
         $supp= $request->value;      
@@ -145,8 +148,11 @@ class AccountPayableController extends Controller
                             a.*
                             ,b.nama
                             ,(select round(sum(qty*price)) as total_po from purchase_order_det where po_number= a.po_number) as total_po 
-                            ,(select sum(qty*price) from receiving_det where rec_number = a.rec_number) as basis_amount
+                            ,round((select sum(qty*price) from receiving_det where rec_number = a.rec_number)) as basis_amount
                             ,(select ppn from purchase_order_hdr where po_number =a.po_number) as vat
+                            ,(select pkp from purchase_order_hdr where po_number =a.po_number) as pkp
+                            ,(select currency from purchase_order_hdr where po_number =a.po_number) as currency
+                            ,(select kurs from purchase_order_hdr where po_number =a.po_number) as kurs
                             ,to_char(to_date(rec_date,'dd-mm-yyyy')+(select termin from purchase_order_hdr where po_number = a.po_number),'dd-mm-yyyy') as due_date
                             ,((select sum(qty*price) from receiving_det where po_number = a.po_number) - (select sum(qty*price) from purchase_order_det where po_number = a.po_number)) as po_balance
                             from receiving_hdr a
@@ -182,19 +188,25 @@ class AccountPayableController extends Controller
     public function store(Request $request)
     {
         $username =  Auth::user()->username;
-        $doNumber = $request->doNumber;
-        $doDate = $request->doDate;
-        $invNumber = $request->invNumber;
-        $invDate = $request->invDate;
-        $poNumber = $request->poNumber;
-        $supplier = $request->supp;
-        $recDate = $request->recDate;
-        $note = $request->note;
-        $articles = json_decode($request->articles);
-        $recType = "NORMAL";
-        $statusRec ="Draft";
+        $suppCode = $request->input('suppCode');
+        $poNumber = $request->input('poNumberDet');
+        $recNumber = $request->input('recNumber');
+        $recDate = $request->input('recDate');
+        $dueDate = $request->input('dueDate');
+        $currency = $request->input('currency');
+        $rate = is_null($request->input('rate')) ? 0 : preg_replace('/[^0-9.]+/', '', $request->input('rate'));
+        $invoiceNumber= $request->input('invoiceNumber');
+        $invoiceDate= $request->input('invoiceDate');
+        $taxInvoiceNumber= $request->input('taxInvoiceNumber');
+        $basisAmount = is_null($request->input('basisAmount')) ? 0 : preg_replace('/[^0-9.]+/', '', $request->input('basisAmount'));
+        $vat = is_null($request->input('vat')) ? 0 : preg_replace('/[^0-9.]+/', '', $request->input('vat'));
+        $pph23= is_null($request->input('pph23')) ? 0 : preg_replace('/[^0-9.]+/', '', $request->input('pph23'));
+        $pph23Type= is_null($request->input('pph23'))? "":$request->input('pph23Type');
+        $otherDeduct = is_null($request->input('otherDeduct')) ? 0 : preg_replace('/[^0-9.]+/', '', $request->input('otherDeduct'));
+        $account= $request->input('account');
         $status = '1';
         $authorizedBy = "";
+        $note="";
 
         // status
         // 1. Draft
@@ -202,10 +214,10 @@ class AccountPayableController extends Controller
         // 3. Posting
         // 4. Cancel
         
-        $customMessages = [
+        $messages = [
             'required' => 'The field is required.',
             'unique' => 'The code has already been taken', 
-            'iunique' => "Invoice : $invNumber has already been taken on PO : $poNumber",
+            'iunique' => "Invoice : $recNumber has already exist",
         ];
         
         Validator::extend('iunique', function ($attribute, $value, $parameters, $validator) use ($poNumber) {
@@ -215,85 +227,62 @@ class AccountPayableController extends Controller
             return !$query->whereRaw("lower({$column}) = lower(?)", [$value])
                           ->whereRaw("lower({$column2}) = lower(?)", [$poNumber])->count();
         });
-        
-        $validation = Validator::make($request->all(),$messages = [
-            // 'invNumber'=>'required|iunique:receiving_hdr,inv_number,po_number',
-            // 'invDate'  => 'required',
-            'doNumber'=>'required|iunique:receiving_hdr,do_number,po_number',
-            'doDate'  => 'required',
-            // 'recDate'  => 'required',
-            // 'poNumber'  => 'required',
-        ],$customMessages);
-        
-        $error_array = array();
-        $success_output = '';
-        // return $validation;
-        if ($validation->fails()){
-            foreach ($validation->messages()->getMessages() as $field_name => $messages){
-                $error_array[] = $messages;
-            }
-            $alert ="alert-danger";
-            return response()->json(array('status' => 0, 'message' => $error_array,'alert' =>$alert));
-        }else{
-            $hasilUpdate = AppHelpers::resetCode('REC');
-            $recNumber = $this->getLastCode('REC');
-            DB::beginTransaction();
-            try {
-                    DB::table('receiving_hdr')->insert([
-                        'rec_number' => $recNumber,
-                        'do_number' => $doNumber,
-                        'do_date' => $doDate,
-                        'inv_number' => $invNumber,
-                        'inv_date' => $invDate,
-                        'po_number' => $poNumber,
-                        'supplier_id' => $supplier,
-                        'rec_date' => $recDate,
-                        'authorized_by' => $authorizedBy,
-                        'prepared_by' => Auth::user()->username,
-                        'rec_type' => $recType,
-                        'status' => $status,
-                        'note' => $note,
-                        'created_by' => Auth::user()->username,
-                        'updated_by' => Auth::user()->username,
-                        'created_at' => date('Y-m-d H:i:s'),
-                        'updated_at' => date('Y-m-d H:i:s')
-                    ]);
 
-                    $dataSet = [];
-                    foreach ($articles as $val) {
-                        $dataSet[] = [
-                            'rec_number' => $recNumber,
-                            'article_code' => $val->article_code,
-                            'qty' => $val->qty,
-                            'uom_rec' => $val->uom,
-                            'qty_free' => $val->qty_free,
-                            'uom_free' => $val->uom_free,
-                            'price' => $val->price,
-                            'created_by' => Auth::user()->username,
-                            'updated_by' => Auth::user()->username,
-                            'created_at' => date('Y-m-d H:i:s'),
-                            'updated_at' => date('Y-m-d H:i:s')
-                        ];
-                    }
+        $rule = [
+            'poNumberDet'  => 'required',
+            'recNumber'=>'required|iunique:ap_invoice,inv_number,po_number',
+            // 'doDate'  => 'required',
+        ];
 
-                    DB::table('receiving_det')->insert($dataSet);
+        $this->validate($request,$rule,$messages);
 
-                    DB::commit();
-                    $alert  ="alert-success";
-                    $message  = "Rec $recNumber is successfully saved";
-                    $statusRec  = $statusRec;
-                    \LogActivity::addToLog('Rec save ',"username: $username Status $message");
-                    return response()->json(array('statusRec' => $statusRec, 'status' => 1, 'message' => $message,'alert'=>$alert,'recNumber'=>$recNumber));
+        $hasilUpdate = AppHelpers::resetCode('INV');
+        $invoiceNumber = $this->getLastCode('INV');
+        DB::beginTransaction();
+        try {
+                DB::table('ap_invoice')->insert([
+                    'inv_number' => $invoiceNumber,
+                    'tax_inv_number' => $taxInvoiceNumber,
+                    'old_inv_number' => $invoiceNumber,
+                    'inv_date' => $invoiceDate,
+                    'rec_number' => $recNumber,
+                    'po_number' => $poNumber,
+                    'supplier_id' => $suppCode,
+                    'rec_date' => $recDate,
+                    'due_date' => $dueDate,
+                    'currency' => $currency,
+                    'kurs' => $rate,
+                    'basis_amount' => $basisAmount,
+                    'vat' => $vat,
+                    'pph23' => $pph23,
+                    'pph23_type' => $pph23Type,
+                    'other_deduction' => $otherDeduct,
+                    'account' => $account,
+                    'prepared_by' => Auth::user()->username,
+                    'status' => $status,
+                    'note' => $note,
+                    'created_by' => Auth::user()->username,
+                    'updated_by' => Auth::user()->username,
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s')
+                ]);
 
-            } catch (Exception $e) {
-                DB::rollBack();
-                $alert  ="alert-warning";
-                $message  = "Rec $recNumber is failed to save";
-                $statusRec = 'FAILED';
-                \LogActivity::addToLog('Rec save ',"username: $username Status $message");
-                return response()->json(array('statusRec' => $statusRec,'status' => 1, 'message' => $message,'alert'=>$alert,'recNumber'=>$recNumber));
-            }
+                DB::commit();
+                $title ='Save Invoice';
+                $alert  ="success";
+                $message  = "$title $invoiceNumber is successfully saved";
+                \LogActivity::addToLog($title,"username: $username Status $message");
+                return redirect()->back()->with(array('title' => $title, 'message' => $message,'alert'=>$alert,'invoiceNumber'=>$invoiceNumber));
+
+        } catch (Exception $e) {
+            DB::rollBack();
+            $title ='Save Invoice';
+            $alert  ="warning";
+            $message  = "*Invoice $invoiceNumber is failed to save";
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return redirect()->back()->with(array('title' => $title, 'message' => $message,'alert'=>$alert,'invoiceNumber'=>$invoiceNumber));
         }
+        
     }
 
     public function show(Request $request)

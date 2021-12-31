@@ -16,12 +16,12 @@
                 </div>
                 <div class="card-content collapse show">
                     <div class="card-body">
-                        <form id="frmAdd" name="frmAdd" autocomplete="off">
+                        <form id="frmAdd" name="frmAdd" action="{{ route('ap.store') }}" method="post" autocomplete="off">
                             @csrf
                             <div class="form-row">
                                 <div class="form-group col-md-3">
                                     <label for="apNumber">Invoice Number</label> <small class="text-muted"> automatic</small>
-                                    <input type="text" id="apNumber" name="apNumber" class="form-control text-hitam disabled-el"  disabled />
+                                    <input type="text" id="apNumber" name="apNumber" class="form-control text-hitam disabled-el" value="{{ old('apNumber',Session::get('invoiceNumber')) }}" disabled />
                                 </div>
                             </div>
                             <div class="form-row">
@@ -53,60 +53,71 @@
                             <div class="form-row">                                    
                                 <div class="form-group col-md-6">
                                     <label for="suppCode">Supplier</label>
-                                    <input type="text" id="suppCode" name="suppCode" class="form-control" />
+                                    <input type="text" id="suppCode" name="suppCode" class="form-control disabled-el" value="{{ old('suppCode') }}" disabled required />
                                 </div>
                                 <div class="form-group col-md-6">
                                     <label for="poNumberDet">PO Number</label>
-                                    <input type="text" id="poNumberDet" name="poNumberDet" class="form-control"/>
+                                    <input type="text" id="poNumberDet" name="poNumberDet" class="form-control disabled-el" value="{{ old('poNumberDet') }}" disabled required/>
                                 </div>       
                             </div>
                             <div class="form-row">
                                 <div class="form-group col-md-3">
                                     <label for="recDate">Receive Date</label>
-                                    <input type="text" id="recDate" name="recDate" class="form-control disabled-el" placeholder="DD-MM-YYYY" disabled/>
+                                    <input type="text" id="recDate" name="recDate" class="form-control disabled-el" value="{{ old('recDate') }}" placeholder="DD-MM-YYYY" disabled/>
                                 </div>
                                 <div class="form-group col-md-3">
                                     <label for="dueDate">Due Date</label>
-                                    <input type="text" id="dueDate" name="dueDate" class="form-control disabled-el" placeholder="DD-MM-YYYY" disabled/>
+                                    <input type="text" id="dueDate" name="dueDate" class="form-control disabled-el" value="{{ old('dueDate') }}" placeholder="DD-MM-YYYY" disabled/>
                                 </div>       
                             </div>
-                                    
                             <div class="form-row">
                                 <div class="form-group col-md-3">
                                     <label for="totalPO">Total PO</label>
-                                    <input type="text" id="totalPO" name="totalPO" class="form-control numeral-mask text-right disabled-el" disabled/>
+                                    <input type="text" id="totalPO" name="totalPO" class="form-control numeral-mask text-right disabled-el" value="{{ old('totalPO') }}" disabled/>
                                 </div>
                                 <div class="form-group col-md-3">
                                     <label for="balance">Balance</label>
-                                    <input type="text" id="balance" name="balance" class="form-control numeral-mask text-right disabled-el" disabled/>
+                                    <input type="text" id="balance" name="balance" class="form-control numeral-mask text-right disabled-el" value="{{ old('balance') }}" disabled/>
                                 </div>
                             </div>
                             <div class="form-row">
+                                <div class="form-group col-md-2">
+                                    <label for="currency">Currency*</label>
+                                    <select class="select2 form-control" id="currency" name="currency">
+                                        @foreach($currency as $val)
+                                        <option value="{{$val}}" {{ old('currency') == $val ? 'selected' : '' }} >{{$val}}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="form-group col-md-3">
+                                    <label for="rate">Rate</label>
+                                    <input type="text" id="rate" name="rate" class="form-control numeral-mask text-right"/>
+                                </div>  
+                            </div>                         
+                            <div class="form-row">
                                 <div class="form-group col-md-3">
                                     <label for="invoiceNumber">Invoice Number</label>
-                                    <input type="text" id="invoiceNumber" name="invoiceNumber" class="form-control" />
+                                    <input type="text" id="invoiceNumber" name="invoiceNumber" class="form-control" value="{{ old('invoiceNumber') }}" required/>
                                 </div>
                                 <div class="form-group col-md-3">
                                     <label for="invoiceDate">Invoice Date</label>
-                                    <input type="text" id="invoiceDate" name="invoiceDate" class="form-control" placeholder="DD-MM-YYYY" />
+                                    <input type="text" id="invoiceDate" name="invoiceDate" class="form-control" value="{{ old('invoiceDate') }}" placeholder="DD-MM-YYYY" required/>
                                 </div> 
                             </div>
                             <div class="form-row">
                                 <div class="form-group col-md-6">
                                     <label for="taxInvoiceNumber">Tax Invoice Number</label>
-                                    <input type="text" id="taxInvoiceNumber" name="taxInvoiceNumber" class="form-control" />
+                                    <input type="text" id="taxInvoiceNumber" name="taxInvoiceNumber" class="form-control" value="{{ old('taxInvoiceNumber') }}" />
                                 </div>
                             </div>
                             <div class="form-row">
-                                <div class="form-group col-md-6">
+                                <div class="form-group col-md-3">
                                     <label for="basisAmount">Basis Amount</label>
-                                    <input type="text" id="basisAmount" name="basisAmount" class="form-control numeral-mask text-right" />
+                                    <input type="text" id="basisAmount" name="basisAmount" class="form-control numeral-mask text-right" value="{{ old('basisAmount') }}" required/>
                                 </div>
-                            </div>
-                            <div class="form-row">
-                                <div class="form-group col-md-6">
+                                <div class="form-group col-md-3">
                                     <label for="vat">VAT</label>
-                                    <input type="text" id="vat" name="vat" class="form-control numeral-mask text-right" />
+                                    <input type="text" id="vat" name="vat" class="form-control numeral-mask text-right" value="{{ old('vat') }}" />
                                 </div>
                             </div>
                             <div class="form-row">
@@ -116,69 +127,57 @@
                                         <label class="custom-control-label" for="pph23Check">PPH23</label>
                                     </div>
                                 </div>
-                                
                             </div>
-                            <div class="form-row d-none d-flex align-items-end" id="tipePPH23">
-                                <div class="form-group col-md-3">
-                                    <label for="pph23">PPH 23</label>
-                                    <input type="text" id="pph23" name="pph23" class="form-control numeral-mask text-right" />
-                                </div>
-                                <div class="col-md-3">
-                                    <div class="btn-group btn-group-toggle" data-toggle="buttons">
-                                        <label class="btn btn-outline-primary active">
-                                            <input type="radio" name="radio_options" id="sewa" checked /> Sewa
-                                        </label>
-                                        <label class="btn btn-outline-primary">
-                                            <input type="radio" name="radio_options" id="jasa" /> Jasa
-                                        </label>
+                            <div class="d-none " id="tipePPH23">
+                                <div class="form-row d-flex align-items-end">
+                                    <div class="form-group col-md-3">
+                                        <label for="pph23">PPH 23</label>
+                                        <input type="text" id="pph23" name="pph23" class="form-control numeral-mask text-right" value="{{ old('pph23') }}" />
+                                    </div>
+                                    <div class="form-group col-md-3">
+                                        <div class="btn-group btn-group-toggle" data-toggle="buttons">
+                                            <label class="btn btn-outline-primary active">
+                                                <input type="radio" name="pph23Type" id="sewa" value="sewa" {{ old('pph23Type') == 'sewa' ? 'checked' : '' }}  /> Sewa
+                                            </label>
+                                            <label class="btn btn-outline-primary">
+                                                <input type="radio" name="pph23Type" id="jasa" value="jasa" {{ old('pph23Type') == 'jasa' ? 'checked' : '' }} /> Jasa
+                                            </label>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                             <div class="form-row">
-                                <div class="form-group col-md-6">
+                                <div class="form-group col-md-3">
                                     <label for="otherDeduct">Other Deductions</label>
-                                    <input type="text" id="otherDeduct" name="otherDeduct" class="form-control numeral-mask text-right" />
+                                    <input type="text" id="otherDeduct" name="otherDeduct" class="form-control numeral-mask text-right" value="{{ old('otherDeduct') }}" />
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group col-md-3">
+                                    <label for="grandTotal">Total</label>
+                                    <input type="text" id="grandTotal" name="grandTotal" class="form-control numeral-mask text-right" value="{{ old('grandTotal') }}" />
                                 </div>
                             </div>
                             <div class="form-row">
                                 <div class="form-group col-md-6">
-                                    <label for="grandTotal">Total</label>
-                                    <input type="text" id="grandTotal" name="grandTotal" class="form-control numeral-mask text-right" />
+                                    <label class="form-label" for="account">COA</label>
+                                    <select class="select2 w-100" id="account" name="account">
+                                        <option value="">Choose option</option>
+                                        @foreach($accounts as $val)
+                                            <option value="{{ $val->account }}" {{ old('account') == $val->account ? 'selected' : '' }}>{{ $val->account}} - {{ $val->description }}</option>
+                                        @endforeach
+                                    </select>
                                 </div>
                             </div>
+                            <br>
                             <div class="form-row">
-                                <div class="col-12">
+                                <div class="col-md-12">
                                     <button class="btn btn-warning" type="reset" id="cmdCancel" name="cmdCancel">Cancel</button>
                                     <button class="btn btn-success" type="reset" id="cmdNew" name="cmdCancel">New</button>
                                     <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Save</button>
                                     @can('receiving-posting')
                                         <button class="btn btn-primary" type="button" id="cmdPosting" name="cmdPosting">Posting</button>
                                     @endcan
-                                </div>
-                            </div>
-                            <div class="form-row">
-                                <div class="form-group col-md-2">
-                                    <label for="currency">Currency*</label>
-                                    <select class="select2 form-control" id="currency" name="currency" required>
-                                        @foreach($currency as $val)
-                                        <option value="{{$val}}">{{$val}}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                                <div class="form-group col-md-4">
-                                    <label for="rate">Rate</label>
-                                    <input type="text" id="rate" name="rate" class="form-control"/>
-                                </div>  
-                            </div>                         
-                            <div class="form-row">
-                                <div class="form-group col-md-6">
-                                    <label class="form-label" for="group">COA</label>
-                                    <select class="select2 w-100" id="group" name="group">
-                                        <option value="">All</option>
-                                        @foreach($accounts as $val)
-                                            <option value="{{ $val->account }}">{{ $val->account}} - {{ $val->description }}</option>
-                                        @endforeach
-                                    </select>
                                 </div>
                             </div>
                         </form>
@@ -246,10 +245,22 @@
     // show_msg(data.title, data.message[i], data.alert);
     $(document).ready(function(){
         validateFormToast("frmAdd");
+
+        let errors = "{{ $errors }}";
+        errors=errors.replace(/&quot;/g,'').split(",");
+        if (errors.length>1){
+            alert = "warning";
+            title = "Validasi Form";
+            $.each(errors, function(key, value) {
+                show_msg(title, value, alert);
+            });
+        }
+                
         $('#statusText').text('New');
         $('#invoiceDate').val(currentDate);
         $('#cmdSave').show();
         $('#cmdPosting').hide();
+        mask_thousand();
     });
 
     $("#pph23Check").change(function() {
@@ -260,14 +271,19 @@
         }
     });
 
-    $("#basisAmount,#vat,#pph23,#otherDeduct").keyup(function(){
+    hitungTotal = () => {
         let ba = parseInt($('#basisAmount').val().replace(/,/gi, '')) || 0;
         let vat = parseInt($('#vat').val().replace(/,/gi, '')) || 0;
         let pph23 = parseInt($('#pph23').val().replace(/,/gi, '')) || 0;
         let od = parseInt($('#otherDeduct').val().replace(/,/gi, '')) || 0;
-        let total = (ba+vat+pph23)-od;
+        let total = ba? (ba+vat+pph23)-od : '';
         console.log(total);
-        $('#grandTotal').val(humanizeNumber(total));
+        $('#grandTotal').val(total);
+        mask_thousand();
+    }
+
+    $("#basisAmount,#vat,#pph23,#otherDeduct").keyup(function(){
+        hitungTotal();
     })
     
     invoiceDate = $('#invoiceDate');
@@ -382,23 +398,28 @@
                     $('#dueDate').val(result[0].due_date);
                     $('#recDate').val(result[0].rec_date);
                     $('#balance').val(result[0].po_balance);
+                    $('#currency').val(result[0].currency).trigger('change');
+                    $('#rate').val(result[0].kurs);
                     
-
-                    let ba = parseInt($('#basisAmount').val().replace(/,/gi, '')) || 0;
-                    let vat = parseInt($('#vat').val().replace(/,/gi, '')) || 0;
-                    let pph23 = parseInt($('#pph23').val().replace(/,/gi, '')) || 0;
-                    let od = parseInt($('#otherDeduct').val().replace(/,/gi, '')) || 0;
-                    let total = (ba+vat+pph23)-od;
-
-                    $('#grandTotal').val(humanizeNumber(total));
-
-                    mask_thousand();
+                    hitungTotal();
+                    
+                    
                 },
                 error: function (response) {
                     //Error here
                     Swal.fire("Warning","Get list SJ failed","warning");
                 }
             })
+        }
+    });
+
+    $("#cmdSave").click(function(){     
+        if (!$("#frmAdd")[0].checkValidity()){
+            $('.disabled-el').removeAttr('disabled');
+            $("#frmAdd").submit();
+        }else{
+            $('.disabled-el').removeAttr('disabled');
+            $("#frmAdd").submit();
         }
     });
         
