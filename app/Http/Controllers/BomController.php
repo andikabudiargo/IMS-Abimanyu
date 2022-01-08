@@ -363,7 +363,7 @@ class BomController extends Controller
                 $alert  ="warning";
                 $message  = "BOM $bomNumber is failed to updated";
                 \LogActivity::addToLog('BOM update ',"username: $username Status $message");
-                return response()->json(array('status' => 1, 'message' => $message,'alert'=>$alert,'bomNumber'=>$bomNumber));
+                return response()->json(array('status' => 0, 'message' => $message,'alert'=>$alert,'bomNumber'=>$bomNumber));
             }
         }
     }

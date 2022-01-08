@@ -248,11 +248,19 @@ Route::group( ['middleware' => ['auth']], function() {
 
 	Route::get('aps',['as'=>'aps.index','uses'=>'AccountPayableController@index','middleware' => ['permission:ap-index']]);
 	Route::get('aps/create',['as'=>'ap.create','uses'=>'AccountPayableController@create','middleware' => ['permission:ap-create']]);
-	Route::get('ap/list/sj',['as'=>'ap.list.sj','uses'=>'AccountPayableController@listSj']);
-	Route::get('ap/list/po',['as'=>'ap.list.po','uses'=>'AccountPayableController@listPo']);
-	Route::get('ap/list/rec',['as'=>'ap.list.rec','uses'=>'AccountPayableController@listRec']);
-	Route::get('ap/detail/rec',['as'=>'ap.detail.rec','uses'=>'AccountPayableController@detailRec']);
-	Route::post('ap/store',['as'=>'ap.store','uses'=>'AccountPayableController@store']);
+	Route::get('aps/list/sj',['as'=>'ap.list.sj','uses'=>'AccountPayableController@listSj']);
+	Route::get('aps/list/po',['as'=>'ap.list.po','uses'=>'AccountPayableController@listPo']);
+	Route::get('aps/list/rec',['as'=>'ap.list.rec','uses'=>'AccountPayableController@listRec']);
+	Route::get('aps/detail/rec',['as'=>'ap.detail.rec','uses'=>'AccountPayableController@detailRec']);
+	Route::post('aps/store',['as'=>'ap.store','uses'=>'AccountPayableController@store']);
+	Route::get('aps/show',['as'=>'ap.show','uses'=>'AccountPayableController@show']);
+	Route::get('aps/edit',['as'=>'ap.edit','uses'=>'AccountPayableController@edit','middleware' => ['permission:ap-edit']]);
+	Route::get('aps/list',['as'=>'ap.list','uses'=>'AccountPayableController@list']);
+	Route::post('aps/delete',['as'=>'ap.destroy','uses'=>'AccountPayableController@destroy']);
+	Route::post('aps/update',['as'=>'ap.update','uses'=>'AccountPayableController@update']);
+	Route::post('aps/posting',['as'=>'ap.posting','uses'=>'AccountPayableController@posting']);
+	Route::get('aps/revision',['as'=>'ap.revision','uses'=>'AccountPayableController@revision']);
+
 	// Route::get('receivings/search',['as'=>'ap.search','uses'=>'ReceivingController@search']);
 	// Route::get('receivings/list/po',['as'=>'ap.list.po','uses'=>'ReceivingController@listPo']);
 	// Route::get('receivings/list/uom',['as'=>'ap.list.uom','uses'=>'ReceivingController@listUom']);

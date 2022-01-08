@@ -6,6 +6,8 @@ use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Crypt;
+use Session;
 use Response;
 use App\Permission;
 use DataTables;
@@ -56,27 +58,6 @@ class AccountPayableController extends Controller
         return $poNumber;
     }
 
-    public function create(Request $request)
-    {
-        $data['title'] = "Create Invoice";
-        $data['subtitle'] = "Create Invoice";
-        
-        $data['supps'] = DB::table('third_party')
-        ->where ('third_party_type','=','supp')
-        ->orderBy('nama')
-        ->get();
-
-        $data['currency'] = ['IDR','USD'];
-
-        $data['accounts'] = DB::table('accounts')
-        ->get();
-
-        $data['invoiceNumber']="";
-
-        return view("accountPayable.create",$data);
-    }
-
- 
     public function listSj(Request $request)
     {
         $supp= $request->value;      
@@ -185,10 +166,27 @@ class AccountPayableController extends Controller
         return response()->json($data);
     }
 
+    public function create(Request $request)
+    {
+        $data['title'] = "Create Invoice";
+        $data['subtitle'] = "Create Invoice";
+        
+        $data['supps'] = DB::table('third_party')
+        ->where ('third_party_type','=','supp')
+        ->orderBy('nama')
+        ->get();
+
+        $data['currency'] = ['IDR','USD'];
+        $data['status'] = 'New';
+        $data['accounts'] = DB::table('accounts')->get();
+
+        return view("accountPayable.create",$data);
+    }
+
     public function store(Request $request)
     {
         $username =  Auth::user()->username;
-        $suppCode = $request->input('suppCode');
+        $suppCode = $request->input('supplier');
         $poNumber = $request->input('poNumberDet');
         $recNumber = $request->input('recNumber');
         $recDate = $request->input('recDate');
@@ -213,11 +211,12 @@ class AccountPayableController extends Controller
         // 2. Update
         // 3. Posting
         // 4. Cancel
+        // 5. Paid
         
         $messages = [
             'required' => 'The field is required.',
             'unique' => 'The code has already been taken', 
-            'iunique' => "Invoice : $recNumber has already exist",
+            'iunique' => "Invoice Number : $invoiceNumber on PO: $poNumber has already exist",
         ];
         
         Validator::extend('iunique', function ($attribute, $value, $parameters, $validator) use ($poNumber) {
@@ -230,20 +229,21 @@ class AccountPayableController extends Controller
 
         $rule = [
             'poNumberDet'  => 'required',
-            'recNumber'=>'required|iunique:ap_invoice,inv_number,po_number',
+            'invoiceNumber'=>'required|iunique:ap_invoice,inv_number,po_number',
             // 'doDate'  => 'required',
         ];
 
         $this->validate($request,$rule,$messages);
 
-        $hasilUpdate = AppHelpers::resetCode('INV');
-        $invoiceNumber = $this->getLastCode('INV');
+        $hasilUpdate = AppHelpers::resetCode('AP');
+        $apNumber = $this->getLastCode('AP');
         DB::beginTransaction();
         try {
                 DB::table('ap_invoice')->insert([
+                    'ap_number' => $apNumber,
                     'inv_number' => $invoiceNumber,
                     'tax_inv_number' => $taxInvoiceNumber,
-                    'old_inv_number' => $invoiceNumber,
+                    'old_ap_number' => $apNumber,
                     'inv_date' => $invoiceDate,
                     'rec_number' => $recNumber,
                     'po_number' => $poNumber,
@@ -268,19 +268,41 @@ class AccountPayableController extends Controller
                 ]);
 
                 DB::commit();
+
                 $title ='Save Invoice';
                 $alert  ="success";
-                $message  = "$title $invoiceNumber is successfully saved";
+                $message  = "$title $apNumber is successfully saved";
+
+                $data['details'] = DB::table('ap_invoice')
+                ->where('ap_number',$apNumber)
+                ->get()->first();
+                
+                $data['supps'] = DB::table('third_party')
+                ->where ('third_party_type','=','supp')
+                ->orderBy('nama')
+                ->get();
+
+                $data['currency'] = ['IDR','USD'];
+
+                $data['accounts'] = DB::table('accounts')
+                ->get();
+
+                $data['status'] = 'Saved';
+
+                $data['title'] = $title;
+                $data['message'] = $message;
+                $data['alert'] = $alert;
+
                 \LogActivity::addToLog($title,"username: $username Status $message");
-                return redirect()->back()->with(array('title' => $title, 'message' => $message,'alert'=>$alert,'invoiceNumber'=>$invoiceNumber));
+                return redirect()->back()->with($data);
 
         } catch (Exception $e) {
             DB::rollBack();
             $title ='Save Invoice';
             $alert  ="warning";
-            $message  = "*Invoice $invoiceNumber is failed to save";
+            $message  = "*Invoice $apNumber is failed to save";
             \LogActivity::addToLog($title,"username: $username Status $message");
-            return redirect()->back()->with(array('title' => $title, 'message' => $message,'alert'=>$alert,'invoiceNumber'=>$invoiceNumber));
+            return redirect()->back()->with(array('title' => $title, 'message' => $message,'alert'=>$alert,'apNumber'=>$apNumber));
         }
         
     }
@@ -321,163 +343,143 @@ class AccountPayableController extends Controller
 
     public function edit(Request $request)
     {
-        $id=$request->id;
-        $data['title'] = "Edit Receiving";
-        $data['subtitle'] = "Edit Receiving";
+        $id=Crypt::decryptString($request->id);
+        $data['title'] = "Edit Invoice";
+        $data['subtitle'] = "Edit Invoice";
 
-        $data['header'] = DB::table('receiving_hdr')
+        $data['details'] = DB::table('ap_invoice')
         ->where('id',$id)
         ->get()->first();
-
-        $data['detail'] = DB::table('receiving_det')
-        ->leftJoin('article','article.article_code','=','receiving_det.article_code')
-        ->leftJoin('uom','receiving_det.uom_rec','uom.code')
-        ->where('receiving_det.rec_number',$data['header']->rec_number)
-        ->orderBy('receiving_det.id')
-        // ->select('receiving_det.article_code')
-        ->get();       
 
         $data['supps'] = DB::table('third_party')
         ->where ('third_party_type','=','supp')
         ->orderBy('nama')
         ->get();
 
-        $data['uoms'] = DB::table('uom')
-        ->orderBy('name')
-        ->get();
+        $statusRec = ['Draft','Updated','Posted','Cancel','Paid'];
+                
+        $data['statusEdit'] = $statusRec[$data['details']->status -1];
 
-        $statusRec = ['Draft','Update','Posting','Cancel'];
-        $data['statusRec'] = $statusRec[$data['header']->status-1];
+        $data['currency'] = ['IDR','USD'];
+        $data['status'] = 'New';
+        $data['accounts'] = DB::table('accounts')->get();
 
-        return view("receiving.edit",$data);
+        return view("accountPayable.edit",$data);
         
     }
 
     public function update(Request $request)
     {
         $username =  Auth::user()->username;
-        $recNumber = $request->recNumber;
-        $doNumber = $request->doNumber;
-        $doDate = $request->doDate;
-        $invNumber = $request->invNumber;
-        $invDate = $request->invDate;
-        $poNumber = $request->poNumber;
-        $supplier = $request->supp;
-        $recDate = $request->recDate;
-        $note = $request->note;
-        $articles = json_decode($request->articles);
-        $recType = "NORMAL";
-        $statusRec ="Update";
+        $apNumber = $request->input('apNumber');
+        $suppCode = $request->input('supplier');
+        $poNumber = $request->input('poNumberDet');
+        $recNumber = $request->input('recNumber');
+        $recDate = $request->input('recDate');
+        $dueDate = $request->input('dueDate');
+        $currency = $request->input('currency');
+        $rate = is_null($request->input('rate')) ? 0 : preg_replace('/[^0-9.]+/', '', $request->input('rate'));
+        $invoiceNumber= $request->input('invoiceNumber');
+        $invoiceDate= $request->input('invoiceDate');
+        $taxInvoiceNumber= $request->input('taxInvoiceNumber');
+        $basisAmount = is_null($request->input('basisAmount')) ? 0 : preg_replace('/[^0-9.]+/', '', $request->input('basisAmount'));
+        $vat = is_null($request->input('vat')) ? 0 : preg_replace('/[^0-9.]+/', '', $request->input('vat'));
+        $pph23= is_null($request->input('pph23')) ? 0 : preg_replace('/[^0-9.]+/', '', $request->input('pph23'));
+        $pph23Type= is_null($request->input('pph23'))? "":$request->input('pph23Type');
+        $otherDeduct = is_null($request->input('otherDeduct')) ? 0 : preg_replace('/[^0-9.]+/', '', $request->input('otherDeduct'));
+        $account= $request->input('account');
         $status = '2';
         $authorizedBy = "";
-
+        $note="";
+    
         // status
         // 1. Draft
         // 2. Update
         // 3. Posting
         // 4. Cancel
+        // 5. Paid
 
-        $customMessages = [
+        $messages = [
             'required' => 'The field is required.',
             'unique' => 'The code has already been taken', 
-            'iunique' => "Invoice : $invNumber has already been taken on PO : $poNumber",
         ];
         
-        Validator::extend('iunique', function ($attribute, $value, $parameters, $validator) use ($poNumber) {
-            $query = DB::table($parameters[0]);
-            $column = $query->getGrammar()->wrap($parameters[1]);
-            $column2 = $query->getGrammar()->wrap($parameters[2]);
-            return !$query->whereRaw("lower({$column}) = lower(?)", [$value])
-                          ->whereRaw("lower({$column2}) = lower(?)", [$poNumber])->count();
-        });
+        $rule = [
+            'poNumberDet'  => 'required',
+            'invoiceNumber' => 'required'
+        ];
         
-        $validation = Validator::make($request->all(),$messages = [
-            // 'invNumber'=>'required|iunique:receiving_hdr,inv_number,po_number',
-            'recDate'  => 'required',
-            'poNumber'  => 'required',
-            // 'supplier'  => 'required',
-        ],$customMessages);
+        $this->validate($request,$rule,$messages);
+        
+        DB::beginTransaction();
+        try {
+                $row_affected=DB::table('ap_invoice')
+                ->where('ap_number',$apNumber)
+                ->update(
+                    [   
+                        'inv_number' => $invoiceNumber,
+                        'tax_inv_number' => $taxInvoiceNumber,
+                        'inv_date' => $invoiceDate,
+                        'rec_number' => $recNumber,
+                        'po_number' => $poNumber,
+                        'supplier_id' => $suppCode,
+                        'rec_date' => $recDate,
+                        'due_date' => $dueDate,
+                        'currency' => $currency,
+                        'kurs' => $rate,
+                        'basis_amount' => $basisAmount,
+                        'vat' => $vat,
+                        'pph23' => $pph23,
+                        'pph23_type' => $pph23Type,
+                        'other_deduction' => $otherDeduct,
+                        'account' => $account,
+                        'prepared_by' => Auth::user()->username,
+                        'status' => $status,
+                        'note' => $note,
+                        'updated_by' => Auth::user()->username,
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]
+                );
+                                                                            
+                DB::commit();
+
+                $title ='Edit Invoice';
+                $alert  ="success";
+                $message  = "$title $apNumber is successfully update";
+
+                $data['details'] = DB::table('ap_invoice')
+                ->where('ap_number',$apNumber)
+                ->get()->first();
                 
-        $error_array = array();
-        $success_output = '';
-        // return $validation;
-        if ($validation->fails()){
-            foreach ($validation->messages()->getMessages() as $field_name => $messages){
-                $error_array[] = $messages;
-            }
-            $alert ="alert-danger";
-            return response()->json(array('status' => 0, 'message' => $error_array,'alert' =>$alert));
-        }else{
-            DB::beginTransaction();
-            try {
-                    $row_affected=DB::table('receiving_hdr')
-                    ->where('rec_number',$recNumber)
-                    ->update(
-                        [   
-                            'do_number' => $doNumber,
-                            'do_date' => $doDate,
-                            'inv_number' => $invNumber,
-                            'inv_date' => $invDate,
-                            'po_number' => $poNumber,
-                            'supplier_id' => $supplier,
-                            'rec_date' => $recDate,
-                            'authorized_by' => $authorizedBy,
-                            'prepared_by' => Auth::user()->username,
-                            'rec_type' => $recType,
-                            'status' => $status,
-                            'note' => $note,
-                            'updated_by' => Auth::user()->username,
-                            'updated_at' => date('Y-m-d H:i:s')
-                        ]
-                    );
+                $data['supps'] = DB::table('third_party')
+                ->where ('third_party_type','=','supp')
+                ->orderBy('nama')
+                ->get();
 
-                    $dataset=[];
-                    foreach ($articles as $val) {
-                        $dataSet[] = [
-                            $recNumber.$val->article_code
-                        ];
-                        
-                    }
+                $data['currency'] = ['IDR','USD'];
 
-                    //Delete kalo article tidak ada di po $poNumber dan article nya $val->article_code
-                    //berdasarkan 2 kondisi
-                    DB::table('receiving_det')
-                        ->whereNotIn(DB::raw("CONCAT(rec_number,article_code)"),$dataSet)
-                        ->where('rec_number',$recNumber)
-                        ->delete();
-                                  
-                    foreach ($articles as $val) {
-                        DB::table('receiving_det')
-                        ->updateOrInsert(
-                            ['rec_number' => $recNumber,'article_code' => $val->article_code],
-                            [
-                                'rec_number' => $recNumber,
-                                'article_code' => $val->article_code,
-                                'qty' => $val->qty,
-                                'uom_rec' => $val->uom,
-                                'qty_free' => $val->qty_free,
-                                'uom_free' => $val->uom_free,
-                                'price' => $val->price,
-                                'updated_by' => Auth::user()->username,
-                                'updated_at' => date('Y-m-d H:i:s')
-                            ]
-                        );
-                    }
-                                                                
-                    DB::commit();
-                    $alert  ="alert-success";
-                    $message  = "Rec $recNumber is successfully updated";
-                    \LogActivity::addToLog('Rec update ',"username: $username Status $message");
-                    return response()->json(array('statusRec' => $statusRec,'status' => 1, 'message' => $message,'alert'=>$alert,'recNumber'=>$recNumber));
+                $data['accounts'] = DB::table('accounts')
+                ->get();
 
-            } catch (Exception $e) {
-                DB::rollBack();
-                $alert  ="alert-warning";
-                $message  = "Rec $recNumber is failed to updated";
-                \LogActivity::addToLog('Rec update ',"username: $username Status $message");
-                return response()->json(array('statusRec' => $statusRec,'status' => 1, 'message' => $message,'alert'=>$alert,'recNumber'=>$recNumber));
-            }
+                $statusRec = ['Draft','Update','Posted','Cancel','Paid'];
+                $data['statusEdit'] = $statusRec[$data['details']->status -1];
+
+                $data['title'] = $title;
+                $data['message'] = $message;
+                $data['alert'] = $alert;
+
+                \LogActivity::addToLog($title,"username: $username Status $message");
+                return redirect()->back()->with($data);
+
+        } catch (Exception $e) {
+            DB::rollBack();
+            $title ='Update Invoice';
+            $alert  ="warning";
+            $message  = "*Invoice $apNumber is failed to update";
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return redirect()->back()->with(array('title' => $title, 'message' => $message,'alert'=>$alert,'apNumber'=>$apNumber));
         }
+        
 
     }
 
@@ -485,62 +487,22 @@ class AccountPayableController extends Controller
     {
         // status
         // 1. Draft
-        // 2. Update
-        // 3. Posting
-        // 4. Cancel
+        // 2. Updated
+        // 3. Posted
+        // 4. Canceled
+        // 5. Paid
+        // 6. Revised
 
         $username =  Auth::user()->username;
-        $recNumber = $request->recNumber;
+        $apNumber = $request->apNumber;
         $recType = "NORMAL";
-        $statusRec ="Posting";
+        $statusAp ="Posted";
         $status = '3';
         $authorizedBy = Auth::user()->username;
-
-        // Update stock kalo article nya udah ada
-        $sqlUpdate = "UPDATE article_stock a set article_qty = COALESCE(a.article_qty,0)  + COALESCE(b.qty,0)
-        from (
-        select art_code, (qty*factor_qty)+(qty_free*factor_free) as qty from 
-        (
-            select *,article.article_code as art_code,(select unit_factor from uom_con where unit_from = o.uom_rec and unit_to = article.uom) as factor_qty,(select unit_factor from uom_con where unit_from = o.uom_free and unit_to = article.uom) as factor_free  from (
-            select * from receiving_det where rec_number in (
-            select rec_number from receiving_hdr where rec_number = '$recNumber' and (status != '3' and status != '4'))) o
-            left join article on article.article_code = o.article_code
-        ) c
-        ) b
-        where a.article_code=b.art_code";
-
-        //Insert ke stock kalo article nya belum ada
-        $sqlInsert = "INSERT into article_stock (site_code,article_code,dept_code,location_number,article_qty,uom)
-        select 'HO',art_code,article_type,'00',(qty*factor_qty)+(qty_free*factor_free) as qty,uom from 
-        (
-            select *,article.article_code as art_code,(select unit_factor from uom_con where unit_from = z.uom_rec and unit_to = article.uom) as factor_qty,(select unit_factor from uom_con where unit_from = z.uom_free and unit_to = article.uom) as factor_free  from (
-            select * from receiving_det where rec_number in (
-            select rec_number from receiving_hdr where rec_number = '$recNumber' and (status != '3' and status != '4'))) z
-            left join article on article.article_code = z.article_code
-            where article.article_code not in (select article_code from article_stock)
-        ) y";
-
-        //Insert into table movement
-        $sqlMovement = "INSERT into movement
-        (movement_date,artikel_code,artikel_desc,movement_min,movement_plus,movement_price,movement_transnno,movement_type,movement_desc)
-        select 
-        now()::timestamp::date,
-        article_code,
-        (select concat(article_alternative_code,'-',article_desc) from article where article_code = a.article_code) as article_desc,
-        0,
-        qty,
-        price,
-        rec_number,
-        'REC',
-        (select po_number from receiving_hdr where rec_number=a.rec_number) as po from receiving_det a where rec_number in (
-        select rec_number from receiving_hdr where rec_number = '$recNumber' and status = '3' and qty <> 0)";
-    
-        DB::select($sqlUpdate);
-        $rowAffected = DB::select($sqlInsert);
         
-        if ($rowAffected > 0){
-            DB::table('receiving_hdr')
-            ->where('rec_number',$recNumber)
+        
+        $rowAffected = DB::table('ap_invoice')
+            ->where('ap_number',$apNumber)
             ->update(
                 [   
                     'status' => $status,
@@ -551,28 +513,162 @@ class AccountPayableController extends Controller
                 ]
             );
 
-            DB::select($sqlMovement);
-
+        if ($rowAffected){
             DB::commit();
-            $alert  ="alert-success";
-            $message  = "Posting Rec $recNumber Successfully Posting";
-            \LogActivity::addToLog('Posting Rec ',"username: $username Status $message");
-            return response()->json(array('statusRec' => $statusRec,'status' => 1, 'message' => $message,'alert'=>$alert,'recNumber'=>$recNumber));
+            $title ='Posting input invoice';
+            $alert  ="success";
+            $message  = "Posting $apNumber is successfully updated";
+            \LogActivity::addToLog('AP Invoice update ',"username: $username Status $message");
+            return response()->json(array('status' => 1, 'message' => $message,'alert'=>$alert,'apNumber'=>$apNumber,'statusAp'=>$statusAp));
         }else{
-            $alert  ="alert-warning";
-            $message  = "Posting Rec $recNumber Failed to Posting";
-            \LogActivity::addToLog('Posting Rec ',"username: $username Status $message");
-            return response()->json(array('statusRec' => $statusRec,'status' => 1, 'message' => $message,'alert'=>$alert,'recNumber'=>$recNumber));
+            DB::rollBack();
+            $title ='Posting input invoice';
+            $alert  ="warning";
+            $message  = "Posting $apNumber is failed to updated";
+            \LogActivity::addToLog('Posting AP ',"username: $username Status $message");
+            return response()->json(array('status' => 0, 'message' => $message,'alert'=>$alert,'apNumber'=>$apNumber));            
         }
+    }
+
+    public function revision(Request $request){
+        $username =  Auth::user()->username;
+        $id=$request->id;
+        $apOrigin = $request->apNumber;
+        $numRevision = $request->numRevision ? $request->numRevision +1 : 1 ;
+        $apNew = $apOrigin.'-R'.$numRevision;
+        
+        $sqlAp = "INSERT into ap_invoice
+        (
+            ap_number,
+            old_ap_number,
+            inv_number,
+            proforma_inv_number,
+            tax_inv_number,
+            inv_date,
+            rec_number,
+            po_number,
+            supplier_id,
+            rec_date,
+            due_date,
+            currency,
+            kurs,
+            basis_amount,
+            vat,
+            pph23,
+            pph23_type,
+            other_deduction,
+            account,
+            authorized_by,
+            authorized_at,
+            prepared_by,
+            rec_type,
+            status,
+            note,
+            num_revision,
+            revised_by,
+            revised_at,
+            updated_by,
+            updated_at
+        )
+        select 
+            '$apNew',
+            '$apOrigin',
+            inv_number,
+            proforma_inv_number,
+            tax_inv_number,
+            inv_date,
+            rec_number,
+            po_number,
+            supplier_id,
+            rec_date,
+            due_date,
+            currency,
+            kurs,
+            basis_amount,
+            vat,
+            pph23,
+            pph23_type,
+            other_deduction,
+            account,
+            authorized_by,
+            authorized_at,
+            prepared_by,
+            rec_type,
+            '6',
+            note,
+            $numRevision,
+            '$username',
+            '".date('Y-m-d H:i:s')."',
+            '$username',
+            '".date('Y-m-d H:i:s')."'
+        from ap_invoice where ap_number = '$apOrigin'";
+
+        $rowAffected =  DB::select($sqlAp);
+
+        // if ($rowAffected){
+
+            // status:
+            // status
+            // 1. Draft
+            // 2. Updated
+            // 3. Posted
+            // 4. Canceled
+            // 5. Paid
+            // 6. Revised
+
+            DB::table('ap_invoice')
+            ->where('ap_number',$apOrigin)
+            ->update(
+                [
+                    'num_revision' => $numRevision,
+                    'status' => '1',
+                    'revised_by'=>Auth::user()->username,
+                    'revised_at'=> date('Y-m-d H:i:s'),
+                    'updated_by' => Auth::user()->username,
+                    'updated_at' => date('Y-m-d H:i:s')
+                ]
+            );
+
+            $data['details'] = DB::table('ap_invoice')
+            ->where('ap_number',$apOrigin)
+            ->get()->first();
+
+            $data['supps'] = DB::table('third_party')
+            ->where ('third_party_type','=','supp')
+            ->orderBy('nama')
+            ->get();
+
+            $statusRec = ['Draft','Updated','Posted','Cancel','Paid'];
+                    
+            $data['statusEdit'] = $statusRec[$data['details']->status -1];
+
+            $data['currency'] = ['IDR','USD'];
+            $data['status'] = 'New';
+            $data['accounts'] = DB::table('accounts')->get();
+
+            return view("accountPayable.edit",$data);
+
+        // }else{
+
+        //     DB::rollBack();
+        //     $title ='Revision invoice';
+        //     $alert  ="warning";
+        //     $message  = "Revision $apOrigin is failed to updated";
+        //     \LogActivity::addToLog('AP Revision',"username: $username Status $message");
+        //     return redirect()->back()->with(array('title' => $title, 'message' => $message,'alert'=>$alert,'apNumber'=>$apOrigin));
+        // }
+        
     }
 
     public function destroy(Request $request)
     {
-        // status
+         // status
         // 1. Draft
-        // 2. Update
-        // 3. Posting
-        // 4. Cancel
+        // 2. Updated
+        // 3. Posted
+        // 4. Canceled
+        // 5. Paid
+        // 6. Revised
 
         $username =  Auth::user()->username;       
         $id = $request->id;
@@ -624,11 +720,14 @@ class AccountPayableController extends Controller
 
     public function list(Request $request)
     {
-        // status:
+     
+        // status
         // 1. Draft
-        // 2. Update
-        // 3. Posting
-        // 4. Cancel
+        // 2. Updated
+        // 3. Posted
+        // 4. Canceled
+        // 5. Paid
+        // 6. Revised
 
         $searchRec = strtolower($request->searchRec);
         $searchPo = strtolower($request->searchPo);
@@ -640,8 +739,8 @@ class AccountPayableController extends Controller
 
         $filter='';
         
-        $filter.="lower(a.rec_type) = 'normal' and ";
-
+        $filter.="status <> '6' ";
+        
         if ($searchRec !='' ){
             $filter.="lower(a.rec_number) like '%$searchRec%' and ";
         }
@@ -658,34 +757,26 @@ class AccountPayableController extends Controller
             $filter.="supplier_id = '$searchSupplier' and ";            
         }
 
-        if ($searchStatus  != '' ){
-            $filter.="status = '$searchStatus' and ";            
-        }
+        // if ($searchStatus  != '' ){
+        //     $filter.="status = '$searchStatus' and ";            
+        // }
 
         if ($recDate  != '' ){
             $date = explode("to",$recDate);
             $date1=trim($date[0]);
             $date2=trim($date[1]);
-            $filter.= "to_date(rec_date, 'DD/MM/YYYY')  BETWEEN to_date('$date1', 'DD/MM/YYYY') and to_date('$date2', 'DD/MM/YYYY') and ";
+            $filter.= "to_date(inv_date, 'DD/MM/YYYY')  BETWEEN to_date('$date1', 'DD/MM/YYYY') and to_date('$date2', 'DD/MM/YYYY') and ";
         }
-
         
         if ($filter !=''){
             $filter=" where ".substr($filter,0,-4);
         }
 
-        $data = DB::select("SELECT id,inv_number,rec_number,rec_date,po_number,inv_date,
-        (select concat(kode,'-',nama) from third_party where kode = supplier_id limit 1) as supp_name ,prepared_by,authorized_by,status
-        from receiving_hdr a $filter");
-
-        // $data=DB::select("SELECT *,delivery_date,(select concat(kode,'-',nama) from third_party where kode = supplier_id limit 1) as supp_name,(gross-discount)+ppn as netto from (
-        //     select b.status,b.id,a.po_number,supplier_id,po_date,delivery_date,pkp,termin,authorized_by,prepared_by,uom,sum(qty) as qty,sum(qty*price) as gross,sum(discount) as discount,sum(a.ppn) as ppn from purchase_order_det a
-        //     left join purchase_order_hdr b
-        //     on a.po_number = b.po_number 
-        //     $filter
-        //     group by b.id,a.po_number,supplier_id,po_date,delivery_date,pkp,termin,authorized_by,prepared_by,uom,b.status) as oki");
         
-        // $data=DB::table('purchase_order_hdr')->get();
+
+        $data = DB::select("SELECT *,
+        (select concat(kode,'-',nama) from third_party where kode = supplier_id limit 1) as supp_name
+        from ap_invoice a $filter");
 
         return Datatables::of($data)
         ->addColumn('action', function ($data) {
@@ -695,30 +786,36 @@ class AccountPayableController extends Controller
                             </a>';
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
             if (($data->status != '3') && ($data->status != '4')){
-                if (Auth::user()->can('receiving-edit')) {
-                $buttons .=         '<a href="'. route('receiving.edit', ['id'=>$data->id]) .'" class="dropdown-item">
+                if (Auth::user()->can('ap-edit')) {
+                $buttons .=         '<a href="'. route('ap.edit',['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                         <i data-feather="file-text"></i>
                                         Edit
                                     </a>';
-                $buttons .=         '<a href="'. route('receiving.print', ['id'=>$data->id]) .'" target="_blank" class="dropdown-item">
-                                        <i data-feather="printer"></i>
-                                        Print
-                                    </a>';
                 }
             }
-            $buttons .=         '<a href="'. route('receiving.show', ['id'=>$data->id]) .'" class="dropdown-item">
+
+            $buttons .=         '<a href="'. route('ap.show', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                     <i data-feather="list"></i>
                                     Detail
                                 </a>';
+                                
+            if ( $data->status == '3' ){
+                if (Auth::user()->can('ap-revision')) {
+                    $buttons .= '<a href="'. route('ap.revision', ['id'=>$data->id,'apNumber'=>$data->ap_number,'numRevision'=>$data->num_revision]) .'" class="dropdown-item">
+                                    <i data-feather="copy"></i>
+                                       Revision
+                                </a>';
+                }
+            }
                 
-            if (($data->status != '3') && ($data->status != '4')){
+            if (($data->status == '1')){
                 if (Auth::user()->can('receiving-delete')) {
                 $buttons .=         "<a href='javascript:;'
                                         id='deleteButton'
                                         class='dropdown-item'
                                         data-toggle='modal'
                                         data-target='#smallModalCancel'
-                                        data-href='". route("receiving.destroy", ["id"=>$data->id]) ."'>
+                                        data-href='". route("ap.destroy", ["id"=>Crypt::encryptString($data->id)]) ."'>
                                         <i data-feather='trash-2'></i>
                                         Cancel
                                     </a>";
@@ -730,7 +827,7 @@ class AccountPayableController extends Controller
             return $buttons;
             })
         ->addColumn('status', function ($data) {
-            $statusRec = ['Draft','Update','Posting','Cancel'];
+            $statusRec = ['Draft','Updated','Posted','Canceled','Paid','Revised'];
             return $statusRec[$data->status - 1];
         })
         ->rawColumns(['action','status'])
@@ -793,26 +890,6 @@ class AccountPayableController extends Controller
         return $pdf->stream("PO_$poNumber.pdf");
 
     }
-
-    // public function listPo(Request $request)
-    // {
-    //     $supp= $request->value;      
-    //     $output="";
-
-    //     $data= DB::table("purchase_order_hdr") 
-    //     ->where("supplier_id",$supp)
-    //     ->where("status","3")
-    //     ->orderBy("po_number")
-    //     ->select("po_number")
-    //     ->get();          
-
-    //     $output .='<option value=""></option>';            
-    //     foreach ($data as $row){
-    //         $output .='<option value="'.$row->po_number.'">'.$row->po_number.'</option>';            
-    //     }        
-        
-    //     return $output;
-    // }
 
     public function listUom(Request $request)
     {

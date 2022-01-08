@@ -148,20 +148,13 @@
   });
 
   function showList(searchRec,searchPo,searchInv,searchSupplier,searchStatus,recDate){
-    let dtdom ='<"d-flex justify-content-between align-items-center header-actions mx-1 row mt-75"' +
-        '<"col-lg-12 col-xl-6" l>' +
-        '<"col-lg-12 col-xl-6 pl-xl-75 pl-0"<"dt-action-buttons text-xl-right text-lg-left text-md-right text-left d-flex align-items-center justify-content-lg-end align-items-center flex-sm-nowrap flex-wrap mr-1"<"mr-1"f>B>>' +
-        '>t' +
-        '<"d-flex justify-content-between mx-2 row mb-1"' +
-        '<"col-sm-12 col-md-6"i>' +
-        '<"col-sm-12 col-md-6"p>' +
-        '>';
-    let arr_col_print =[2,3,4,5,6]; 
+    let dtdom ='<"d-flex justify-content-between align-items-center header-actions mx-1 row mt-75"<"col-lg-12 col-xl-6" l><"col-lg-12 col-xl-6 pl-xl-75 pl-0"<"dt-action-buttons text-xl-right text-lg-left text-md-right text-left d-flex align-items-center justify-content-lg-end align-items-center flex-sm-nowrap flex-wrap mr-1"<"mr-1"f>B>>>t<"d-flex justify-content-between mx-2 row mb-1"<"col-sm-12 col-md-6"i><"col-sm-12 col-md-6"p>>';
+    let arr_col_print =[2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17]; 
     $(function(){
       let oTable =$("#detailedTable").DataTable({
         ajax:
         {
-          url:'{{ route("receiving.list")}}',
+          url:'{{ route("ap.list")}}',
           data:{
               searchRec:searchRec,
               searchPo:searchPo,
@@ -246,12 +239,21 @@
         // scrollX: true, //pakai ini supaya waktu responsive  bisa di scroll horizontal
         columns: [
             { data: 'action', name: 'action',title:'action', orderable: false, searchable: false },
+            { data: 'ap_number', name: 'ap_number',title:'AP Number' },
+            { data: 'inv_number', name: 'inv_number',title:'Invoice Number' },
+            { data: 'proforma_inv_number', name: 'proforma_inv_number',title:'Proforma' },
+            { data: 'tax_inv_number', name: 'tax_inv_number',title:'Tax Number' },
+            { data: 'tax_inv_number', name: 'tax_inv_number',title:'Tax Number' },
+            { data: 'inv_date', name: 'inv_date',title:'Inv Date' },
+            { data: 'supplier_id', name: 'supplier_id',title:'Supplier' },
+            // { data: 'supp_name', name: 'supp_name',title:'Supplier' },
+            { data: 'po_number', name: 'po_number',title:'PO Number' },
             { data: 'rec_number', name: 'rec_number',title:'Rec Number' },
             { data: 'rec_date', name: 'rec_date',title:'Rec Date' },
-            { data: 'inv_number', name: 'inv_number',title:'Invoice Number' },
-            { data: 'inv_date', name: 'inv_date',title:'Inv Date' },
-            { data: 'po_number', name: 'po_number',title:'PO Number' },
-            { data: 'supp_name', name: 'supp_name',title:'Supplier' },
+            { data: 'basis_amount', name: 'basis_amount',title:'Basis Amount' },
+            { data: 'vat', name: 'vat',title:'VAT' },
+            { data: 'pph23', name: 'pph23',title:'PPH23' },
+            { data: 'other_deduction', name: 'other_deduction',title:'Other Deduction' },
             { data: 'prepared_by', name: 'prepared_by',title:'Prepared By' },
             { data: 'authorized_by', name: 'authorized_by',title:'Authorized By' },
             { data: 'status', name: 'status',title:'Status' },
