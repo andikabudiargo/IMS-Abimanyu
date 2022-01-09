@@ -94,9 +94,7 @@
     </div>
   </div>
 </section>
-
 @include('partials.delete-modal')
-
 @endsection
 @section('styles')
 <style>
@@ -149,7 +147,7 @@
 
   function showList(searchRec,searchPo,searchInv,searchSupplier,searchStatus,recDate){
     let dtdom ='<"d-flex justify-content-between align-items-center header-actions mx-1 row mt-75"<"col-lg-12 col-xl-6" l><"col-lg-12 col-xl-6 pl-xl-75 pl-0"<"dt-action-buttons text-xl-right text-lg-left text-md-right text-left d-flex align-items-center justify-content-lg-end align-items-center flex-sm-nowrap flex-wrap mr-1"<"mr-1"f>B>>>t<"d-flex justify-content-between mx-2 row mb-1"<"col-sm-12 col-md-6"i><"col-sm-12 col-md-6"p>>';
-    let arr_col_print =[2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17]; 
+    let arr_col_print =[2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18]; 
     $(function(){
       let oTable =$("#detailedTable").DataTable({
         ajax:
@@ -240,6 +238,7 @@
         columns: [
             { data: 'action', name: 'action',title:'action', orderable: false, searchable: false },
             { data: 'ap_number', name: 'ap_number',title:'AP Number' },
+            { data: 'num_revision', name: 'num_revision',title:'Rev.' },
             { data: 'inv_number', name: 'inv_number',title:'Invoice Number' },
             { data: 'proforma_inv_number', name: 'proforma_inv_number',title:'Proforma' },
             { data: 'tax_inv_number', name: 'tax_inv_number',title:'Tax Number' },

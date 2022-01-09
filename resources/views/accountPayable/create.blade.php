@@ -430,8 +430,7 @@
                     show_msg(data.title, data.message, data.alert);
                     $('#apNumber').attr('disabled','disabled');
                     $('#cmdSave').show();
-                    $('#cmdPosting').hide();
-
+                    // $('#cmdPosting').hide();
                 }else{
                     show_msg(data.title, data.message, data.alert);
                     $('#statusText').text(data.statusAp);

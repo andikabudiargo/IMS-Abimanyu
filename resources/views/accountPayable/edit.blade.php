@@ -2,181 +2,365 @@
 @section('title', $title)
 @section('content')
 @include('layouts.breadcrumb')
-<section id="add-index">
-    <div class="row">
-        <div class="col-md-12">
+<section id="basic-tabs-components">
+    <div class="row match-height">
+        <div class="col-xl-12 col-lg-12">
             <div class="card">
                 <div class="card-header">
-                    <h4 class="card-title">Status: <span id="statusText">{{ $statusEdit }}</span></h4>
-                    <div class="heading-elements">
-                        <ul class="list-inline mb-0">
-                            <li><a data-action="collapse"><i data-feather="chevron-down"></i></a></li>
-                        </ul>
-                    </div>    
                 </div>
-                <div class="card-content collapse show">
-                    <div class="card-body">
-                        <form id="frmAdd" name="frmAdd" action="{{ route('ap.update') }}" method="post" autocomplete="off">
-                            @csrf
-                            <div class="form-row">
-                                <div class="form-group col-md-3">
-                                    <label for="apNumber">AP Number</label> <small class="text-muted"> automatic</small>
-                                    <input type="text" id="apNumber" name="apNumber" class="form-control text-hitam disabled-el" value="{{ old('apNumber', $details->ap_number) }}" disabled />
+                <div class="card-body">
+                    <ul class="nav nav-tabs" role="tablist">
+                        <li class="nav-item">
+                            <a class="nav-link active" id="main-tab" data-toggle="tab" href="#main" aria-controls="main" role="tab" aria-selected="true">Main</a>
+                        </li>
+                        @foreach($sub_details as $key =>$sub_detail )
+                            <li class="nav-item">
+                                <a class="nav-link" id="profile-tab" data-toggle="tab" href="#rev{{ $key+1 }}" aria-controls="revisi{{ $key+1 }}" role="tab" aria-selected="false">Revision {{ $key+1 }}</a>
+                            </li>
+                        @endforeach
+                    </ul>
+                    <div class="tab-content">
+                        <div class="tab-pane active" id="main" aria-labelledby="main-tab" role="tabpanel">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Status: <span id="statusText">{{ $statusEdit }}</span></h4>
+                                    <div class="heading-elements">
+                                        <ul class="list-inline mb-0">
+                                            <li><a data-action="collapse"><i data-feather="chevron-down"></i></a></li>
+                                        </ul>
+                                    </div>    
                                 </div>
-                            </div>
-                            <div class="form-row">
-                                <div class="form-group col-md-6">
-                                    <label class="form-label" for="supplier">Supplier</label>
-                                    <select class="select2 form-control" id="supplier" name="supplier">
-                                        <option value="">All</option>
-                                        @foreach($supps as $val)
-                                            <option value="{{ $val->kode }}" {{ old('supplier',$details ? $details->supplier_id:"") == $val->kode ? 'selected' : '' }} >{{$val->kode}} - {{$val->nama}}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                                <div class="form-group col-md-3">
-                                    <label class="form-label" for="poNumber">PO Number</label>
-                                    <select class="select2 form-control" id="poNumber" name="poNumber">
-                                    </select>
-                                </div>
-                                <div class="form-group col-md-3">
-                                    <label class="form-label" for="recNumber">Rec.Number / LPB</label>
-                                    <select class="select2 form-control" id="recNumber" name="recNumber">
-                                    </select>
-                                </div>
-                            </div>
-                            <h4>Detail invoice</h4>
-                            <div class="form-row">                                    
-                                <div class="form-group col-md-6">
-                                    <label for="suppCode">Supplier</label>
-                                    <input type="text" id="suppCode" name="suppCode" class="form-control disabled-el" value="{{ old('suppCode',$details ? $details->supplier_id :"") }}" disabled required />
-                                </div>
-                                <div class="form-group col-md-6">
-                                    <label for="poNumberDet">PO Number</label>
-                                    <input type="text" id="poNumberDet" name="poNumberDet" class="form-control disabled-el" value="{{ old('poNumberDet',$details ? $details->po_number : "") }}" disabled required/>
-                                </div>       
-                            </div>
-                            <div class="form-row">
-                                <div class="form-group col-md-3">
-                                    <label for="recDate">Receive Date</label>
-                                    <input type="text" id="recDate" name="recDate" class="form-control disabled-el" value="{{ old('recDate') }}" placeholder="DD-MM-YYYY" disabled/>
-                                </div>
-                                <div class="form-group col-md-3">
-                                    <label for="dueDate">Due Date</label>
-                                    <input type="text" id="dueDate" name="dueDate" class="form-control disabled-el" value="{{ old('dueDate') }}" placeholder="DD-MM-YYYY" disabled/>
-                                </div>       
-                            </div>
-                            <div class="form-row">
-                                <div class="form-group col-md-3">
-                                    <label for="totalPO">Total PO</label>
-                                    <input type="text" id="totalPO" name="totalPO" class="form-control numeral-mask text-right disabled-el" value="{{ old('totalPO') }}" disabled/>
-                                </div>
-                                <div class="form-group col-md-3">
-                                    <label for="balance">Balance</label>
-                                    <input type="text" id="balance" name="balance" class="form-control numeral-mask text-right disabled-el" value="{{ old('balance') }}" disabled/>
-                                </div>
-                            </div>
-                            <div class="form-row">
-                                <div class="form-group col-md-2">
-                                    <label for="currency">Currency*</label>
-                                    <select class="select2 form-control" id="currency" name="currency">
-                                        @foreach($currency as $val)
-                                        <option value="{{$val}}" {{ old('currency',$details ? $details->currency : "" ) == $val ? 'selected' : '' }} >{{$val}}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                                <div class="form-group col-md-3">
-                                    <label for="rate">Rate</label>
-                                    <input type="text" id="rate" name="rate" class="form-control numeral-mask text-right"/>
-                                </div>  
-                            </div>                         
-                            <div class="form-row">
-                                <div class="form-group col-md-3">
-                                    <label for="invoiceNumber">Invoice Number</label>
-                                    <input type="text" id="invoiceNumber" name="invoiceNumber" class="form-control" value="{{ old('invoiceNumber',$details ? $details->inv_number :"") }}" required/>
-                                </div>
-                                <div class="form-group col-md-3">
-                                    <label for="invoiceDate">Invoice Date</label>
-                                    <input type="text" id="invoiceDate" name="invoiceDate" class="form-control" value="{{ old('invoiceDate',$details ? $details->inv_date :"") }}" placeholder="DD-MM-YYYY" required/>
-                                </div> 
-                            </div>
-                            <div class="form-row">
-                                <div class="form-group col-md-6">
-                                    <label for="taxInvoiceNumber">Tax Invoice Number</label>
-                                    <input type="text" id="taxInvoiceNumber" name="taxInvoiceNumber" class="form-control" value="{{ old('taxInvoiceNumber',$details ? $details->tax_inv_number : "") }}" />
-                                </div>
-                            </div>
-                            <div class="form-row">
-                                <div class="form-group col-md-3">
-                                    <label for="basisAmount">Basis Amount</label>
-                                    <input type="text" id="basisAmount" name="basisAmount" class="form-control numeral-mask text-right" value="{{ old('basisAmount',$details ? $details->basis_amount : "") }}" required/>
-                                </div>
-                                <div class="form-group col-md-3">
-                                    <label for="vat">VAT</label>
-                                    <input type="text" id="vat" name="vat" class="form-control numeral-mask text-right" value="{{ old('vat',$details ? $details->vat : "") }}" />
-                                </div>
-                            </div>
-                            <div class="form-row">
-                                <div class="form-group col-md-3">
-                                    <div class="custom-control custom-checkbox">
-                                        <input type="checkbox" class="custom-control-input" id="pph23Check" name="pph23Check" {{ old('pph23Check') == 't' ? 'checked' : '' }} />
-                                        <label class="custom-control-label" for="pph23Check">PPH23</label>
+                                <div class="card-content collapse show">
+                                    <div class="card-body">
+                                        <form id="frmAdd" name="frmAdd" action="{{ route('ap.update') }}" method="post" autocomplete="off">
+                                            @csrf
+                                            <div class="form-row">
+                                                <div class="form-group col-md-3">
+                                                    <label for="apNumber">AP Number</label> <small class="text-muted"> automatic</small>
+                                                    <input type="text" id="apNumber" name="apNumber" class="form-control text-hitam disabled-el" value="{{ old('apNumber', $details->ap_number) }}" disabled />
+                                                </div>
+                                            </div>
+                                            <div class="form-row">
+                                                <div class="form-group col-md-6">
+                                                    <label class="form-label" for="supplier">Supplier</label>
+                                                    <select class="select2 form-control text-hitam disabled-el" id="supplier" name="supplier" disabled>
+                                                        <option value="">All</option>
+                                                        @foreach($supps as $val)
+                                                            <option value="{{ $val->kode }}" {{ old('supplier',$details ? $details->supplier_id:"") == $val->kode ? 'selected' : '' }} >{{$val->kode}} - {{$val->nama}}</option>
+                                                        @endforeach
+                                                    </select>
+                                                </div>
+                                                <div class="form-group col-md-3">
+                                                    <label class="form-label" for="poNumber">PO Number</label>
+                                                    <select class="select2 form-control text-hitam disabled-el" id="poNumber" name="poNumber" disabled>
+                                                    </select>
+                                                </div>
+                                                <div class="form-group col-md-3">
+                                                    <label class="form-label" for="recNumber">Rec.Number / LPB</label>
+                                                    <select class="select2 form-control text-hitam disabled-el" id="recNumber" name="recNumber" disabled>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <h4>Detail invoice</h4>
+                                            <div class="form-row">                                    
+                                                <div class="form-group col-md-6">
+                                                    <label for="suppCode">Supplier</label>
+                                                    <input type="text" id="suppCode" name="suppCode" class="form-control text-hitam disabled-el" value="{{ old('suppCode',$details ? $details->supplier_id :"") }}" disabled required />
+                                                </div>
+                                                <div class="form-group col-md-3">
+                                                    <label for="poNumberDet">PO Number</label>
+                                                    <input type="text" id="poNumberDet" name="poNumberDet" class="form-control text-hitam disabled-el" value="{{ old('poNumberDet',$details ? $details->po_number : "") }}" disabled required/>
+                                                </div>       
+                                            </div>
+                                            <div class="form-row">
+                                                <div class="form-group col-md-3">
+                                                    <label for="recDate">Receive Date</label>
+                                                    <input type="text" id="recDate" name="recDate" class="form-control text-hitam disabled-el" value="{{ old('recDate',$details ? $details->rec_date : "") }}" placeholder="DD-MM-YYYY" disabled/>
+                                                </div>
+                                                <div class="form-group col-md-3">
+                                                    <label for="dueDate">Due Date</label>
+                                                    <input type="text" id="dueDate" name="dueDate" class="form-control text-hitam disabled-el" value="{{ old('dueDate',$details ? $details->due_date : "") }}" placeholder="DD-MM-YYYY" disabled/>
+                                                </div>       
+                                            </div>
+                                            <div class="form-row">
+                                                <div class="form-group col-md-3">
+                                                    <label for="totalPO">Total PO</label>
+                                                    <input type="text" id="totalPO" name="totalPO" class="form-control numeral-mask text-right text-hitam disabled-el" value="{{ old('totalPO') }}" disabled/>
+                                                </div>
+                                                <div class="form-group col-md-3">
+                                                    <label for="balance">Balance</label>
+                                                    <input type="text" id="balance" name="balance" class="form-control numeral-mask text-right text-hitam disabled-el" value="{{ old('balance') }}" disabled/>
+                                                </div>
+                                            </div>
+                                            <div class="form-row">
+                                                <div class="form-group col-md-2">
+                                                    <label for="currency">Currency*</label>
+                                                    <select class="select2 form-control" id="currency" name="currency">
+                                                        @foreach($currency as $val)
+                                                        <option value="{{$val}}" {{ old('currency',$details ? $details->currency : "" ) == $val ? 'selected' : '' }} >{{$val}}</option>
+                                                        @endforeach
+                                                    </select>
+                                                </div>
+                                                <div class="form-group col-md-3">
+                                                    <label for="rate">Rate</label>
+                                                    <input type="text" id="rate" name="rate" class="form-control numeral-mask text-right"/>
+                                                </div>  
+                                            </div>                         
+                                            <div class="form-row">
+                                                <div class="form-group col-md-3">
+                                                    <label for="invoiceNumber">Invoice Number</label>
+                                                    <input type="text" id="invoiceNumber" name="invoiceNumber" class="form-control" value="{{ old('invoiceNumber',$details ? $details->inv_number :"") }}" required/>
+                                                </div>
+                                                <div class="form-group col-md-3">
+                                                    <label for="invoiceDate">Invoice Date</label>
+                                                    <input type="text" id="invoiceDate" name="invoiceDate" class="form-control" value="{{ old('invoiceDate',$details ? $details->inv_date :"") }}" placeholder="DD-MM-YYYY" required/>
+                                                </div> 
+                                            </div>
+                                            <div class="form-row">
+                                                <div class="form-group col-md-6">
+                                                    <label for="taxInvoiceNumber">Tax Invoice Number</label>
+                                                    <input type="text" id="taxInvoiceNumber" name="taxInvoiceNumber" class="form-control" value="{{ old('taxInvoiceNumber',$details ? $details->tax_inv_number : "") }}" />
+                                                </div>
+                                            </div>
+                                            <div class="form-row">
+                                                <div class="form-group col-md-3">
+                                                    <label for="basisAmount">Basis Amount</label>
+                                                    <input type="text" id="basisAmount" name="basisAmount" class="form-control numeral-mask text-right" value="{{ old('basisAmount',$details ? $details->basis_amount : "") }}" required/>
+                                                </div>
+                                                <div class="form-group col-md-3">
+                                                    <label for="vat">VAT</label>
+                                                    <input type="text" id="vat" name="vat" class="form-control numeral-mask text-right" value="{{ old('vat',$details ? $details->vat : "") }}" />
+                                                </div>
+                                            </div>
+                                            <div class="form-row">
+                                                <div class="form-group col-md-3">
+                                                    <div class="custom-control custom-checkbox">
+                                                        <input type="checkbox" class="custom-control-input" id="pph23Check" name="pph23Check" {{ $details->pph23 ? 'checked' : '' }} />
+                                                        <label class="custom-control-label" for="pph23Check">PPH23</label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="{{ $details->pph23 ? '' : 'd-none'  }}" id="tipePPH23">
+                                                <div class="form-row d-flex align-items-end">
+                                                    <div class="form-group col-md-3">
+                                                        <label for="pph23">PPH23</label>
+                                                        <input type="text" id="pph23" name="pph23" class="form-control numeral-mask text-right" value="{{ old('pph23',$details ? $details->pph23 : "") }}" />
+                                                    </div>
+                                                    <div class="form-group col-md-3">
+                                                        <div class="btn-group btn-group-toggle" data-toggle="buttons">
+                                                            <label class="btn btn-outline-primary active">
+                                                                <input type="radio" name="pph23Type" id="sewa" value="sewa" {{ old('pph23Type',$details->pph23_type) == 'sewa' ? 'checked' : '' }}  /> Sewa
+                                                            </label>
+                                                            <label class="btn btn-outline-primary">
+                                                                <input type="radio" name="pph23Type" id="jasa" value="jasa" {{ old('pph23Type',$details->pph23_type) == 'jasa' ? 'checked' : '' }} /> Jasa
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="form-row">
+                                                <div class="form-group col-md-3">
+                                                    <label for="otherDeduct">Other Deductions</label>
+                                                    <input type="text" id="otherDeduct" name="otherDeduct" class="form-control numeral-mask text-right" value="{{ old('otherDeduct',$details ? $details->other_deduction : "") }}" />
+                                                </div>
+                                            </div>
+                                            <div class="form-row">
+                                                <div class="form-group col-md-3">
+                                                    <label for="grandTotal">Total</label>
+                                                    <input type="text" id="grandTotal" name="grandTotal" class="form-control numeral-mask text-right" value="{{ old('grandTotal') }}" />
+                                                </div>
+                                            </div>
+                                            <div class="form-row">
+                                                <div class="form-group col-md-6">
+                                                    <label class="form-label" for="account">COA</label>
+                                                    <select class="select2 w-100" id="account" name="account">
+                                                        <option value="">Choose option</option>
+                                                        @foreach($accounts as $val)
+                                                            <option value="{{ $val->account }}" {{ old('account',$details ? $details->account : "") == $val->account ? 'selected' : '' }}>{{ $val->account}} - {{ $val->description }}</option>
+                                                        @endforeach
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <br>
+                                            <div class="form-row">
+                                                <div class="col-md-12">
+                                                    <button class="btn btn-warning" type="reset" id="cmdCancel" name="cmdCancel">Cancel</button>
+                                                    <button class="btn btn-success" type="reset" id="cmdNew" name="cmdCancel">New</button>
+                                                    
+                                                    @if($details->status == '1' || $details->status =='2' )
+                                                        <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Update</button>
+                                                        @can('ap-posting')
+                                                            <button class="btn btn-primary" type="button" id="cmdPosting" name="cmdPosting">Posting</button>
+                                                        @endcan
+                                                    @endif
+                                                </div>
+                                            </div>
+                                        </form>
                                     </div>
                                 </div>
                             </div>
-                            <div class="d-none " id="tipePPH23">
-                                <div class="form-row d-flex align-items-end">
-                                    <div class="form-group col-md-3">
-                                        <label for="pph23">PPH 23</label>
-                                        <input type="text" id="pph23" name="pph23" class="form-control numeral-mask text-right" value="{{ old('pph23',$details ? $details->pph23 : "") }}" />
+                        </div>
+                        @foreach($sub_details as $key =>$sub_detail )
+                            <div class="tab-pane" id="rev{{ $key+1 }}" aria-labelledby="revison{{ $key+1 }}-tab" role="tabpanel">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h4 class="card-title">Status: <span>Revision {{ $key+1 }}</span></h4>
+                                        <div class="heading-elements">
+                                            <ul class="list-inline mb-0">
+                                                <li><a data-action="collapse"><i data-feather="chevron-down"></i></a></li>
+                                            </ul>
+                                        </div>    
                                     </div>
-                                    <div class="form-group col-md-3">
-                                        <div class="btn-group btn-group-toggle" data-toggle="buttons">
-                                            <label class="btn btn-outline-primary active">
-                                                <input type="radio" name="pph23Type" id="sewa" value="sewa" {{ old('pph23Type') == 'sewa' ? 'checked' : '' }}  /> Sewa
-                                            </label>
-                                            <label class="btn btn-outline-primary">
-                                                <input type="radio" name="pph23Type" id="jasa" value="jasa" {{ old('pph23Type') == 'jasa' ? 'checked' : '' }} /> Jasa
-                                            </label>
+                                    <div class="card-content collapse show">
+                                        <div class="card-body">
+                                            <form autocomplete="off">
+                                                @csrf
+                                                <div class="form-row">
+                                                    <div class="form-group col-md-3">
+                                                        <label>AP Number</label> <small class="text-muted"> automatic</small>
+                                                        <input type="text" class="form-control text-hitam" value="{{ $sub_detail->ap_number }}" disabled />
+                                                    </div>
+                                                </div>
+                                                <div class="form-row">
+                                                    <div class="form-group col-md-6">
+                                                        <label class="form-label">Supplier</label>
+                                                        <input type="text" class="form-control text-hitam" value="{{ $sub_detail->supplier_id }} - {{ $sub_detail->nama }}" disabled />
+                                                    </div>
+                                                    <div class="form-group col-md-3">
+                                                        <label class="form-label">PO Number</label>
+                                                        <input type="text" class="form-control text-hitam" value="{{ $sub_detail->po_number }}" disabled />
+                                                    </div>
+                                                    <div class="form-group col-md-3">
+                                                        <label class="form-label">Rec.Number / LPB</label>
+                                                        <input type="text" class="form-control text-hitam" value="{{ $sub_detail->rec_number }}" disabled />
+                                                    </div>
+                                                </div>
+                                                <h4>Detail invoice</h4>
+                                                <div class="form-row">                                    
+                                                    <div class="form-group col-md-6">
+                                                        <label>Supplier</label>
+                                                        <input type="text" class="form-control text-hitam" value="{{ $sub_detail->supplier_id }} - {{ $sub_detail->nama }}" disabled />
+                                                    </div>
+                                                    <div class="form-group col-md-3">
+                                                        <label>PO Number</label>
+                                                        <input type="text" class="form-control text-hitam" value="{{ $sub_detail->po_number }}" disabled />
+                                                    </div>       
+                                                </div>
+                                                <div class="form-row">
+                                                    <div class="form-group col-md-3">
+                                                        <label>Receive Date</label>
+                                                        <input type="text" class="form-control text-hitam" value="{{ $sub_detail->rec_date }}" placeholder="DD-MM-YYYY" disabled/>
+                                                    </div>
+                                                    <div class="form-group col-md-3">
+                                                        <label>Due Date</label>
+                                                        <input type="text" class="form-control text-hitam" value="{{ $sub_detail->due_date }}" placeholder="DD-MM-YYYY" disabled/>
+                                                    </div>       
+                                                </div>
+                                                <div class="form-row">
+                                                    <div class="form-group col-md-3">
+                                                        <label>Total PO</label>
+                                                        <input type="text" class="form-control numeral-mask text-right text-hitam" value="{{ $sub_detail->due_date }}" disabled/>
+                                                    </div>
+                                                    <div class="form-group col-md-3">
+                                                        <label>Balance</label>
+                                                        <input type="text" class="form-control numeral-mask text-right text-hitam" value="{{ $sub_detail->due_date }}" disabled/>
+                                                    </div>
+                                                </div>
+                                                <div class="form-row">
+                                                    <div class="form-group col-md-2">
+                                                        <label>Currency*</label>
+                                                        <input type="text" class="form-control text-hitam" value="{{ $sub_detail->currency }}" disabled />
+                                                    </div>
+                                                    <div class="form-group col-md-3">
+                                                        <label>Rate</label>
+                                                        <input type="text" class="form-control numeral-mask text-right  text-hitam" value="{{ $sub_detail->kurs }}" disabled/>
+                                                    </div>  
+                                                </div>                         
+                                                <div class="form-row">
+                                                    <div class="form-group col-md-3">
+                                                        <label>Invoice Number</label>
+                                                        <input type="text" class="form-control text-hitam" value="{{ $sub_detail->inv_number }}" disabled/>
+                                                    </div>
+                                                    <div class="form-group col-md-3">
+                                                        <label>Invoice Date</label>
+                                                        <input type="text" class="form-control text-hitam" value="{{ $sub_detail->inv_date }}" placeholder="DD-MM-YYYY" disabled/>
+                                                    </div> 
+                                                </div>
+                                                <div class="form-row">
+                                                    <div class="form-group col-md-6">
+                                                        <label>Tax Invoice Number</label>
+                                                        <input type="text" class="form-control text-hitam" value="{{ $sub_detail->tax_inv_number }}" disabled />
+                                                    </div>
+                                                </div>
+                                                <div class="form-row">
+                                                    <div class="form-group col-md-3">
+                                                        <label>Basis Amount</label>
+                                                        <input type="text" class="form-control numeral-mask text-right text-hitam" value="{{ $sub_detail->basis_amount }}" disabled/>
+                                                    </div>
+                                                    <div class="form-group col-md-3">
+                                                        <label>VAT</label>
+                                                        <input type="text" class="form-control numeral-mask text-right text-hitam" value="{{ $sub_detail->vat }}" disabled />
+                                                    </div>
+                                                </div>
+                                                <div class="form-row">
+                                                    <div class="form-group col-md-3">
+                                                        <div class="custom-control custom-checkbox">
+                                                            <input type="checkbox" class="custom-control-input" {{ $sub_detail->pph23 ? 'checked' : '' }} disabled />
+                                                            <label class="custom-control-label">PPH23</label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div class="{{ $sub_detail->pph23 ? '' : 'd-none'  }}">
+                                                    <div class="form-row d-flex align-items-end">
+                                                        <div class="form-group col-md-3">
+                                                            <label>PPH 23</label>
+                                                            <input type="text" class="form-control numeral-mask text-right text-hitam" value="{{ $sub_detail->pph23 }}" disabled />
+                                                        </div>
+                                                        <div class="form-group col-md-3">
+                                                            <div class="btn-group btn-group-toggle" data-toggle="buttons">
+                                                                <label class="btn btn-outline-primary active">
+                                                                    <input type="radio" value="sewa" {{ $sub_detail->pph23_type == 'sewa' ? 'checked' : '' }} disabled /> Sewa
+                                                                </label>
+                                                                <label class="btn btn-outline-primary">
+                                                                    <input type="radio" value="jasa" {{ $sub_detail->pph23_type == 'jasa' ? 'checked' : '' }} disabled/> Jasa
+                                                                </label>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div class="form-row">
+                                                    <div class="form-group col-md-3">
+                                                        <label>Other Deductions</label>
+                                                        <input type="text" class="form-control numeral-mask text-right text-hitam" value="{{ $sub_detail->other_deduction }}" disabled/>
+                                                    </div>
+                                                </div>
+                                                <div class="form-row">
+                                                    <div class="form-group col-md-3">
+                                                        <label>Total</label>
+                                                        <input type="text" class="form-control numeral-mask text-right text-hitam" value="{{ ($sub_detail->basis_amount+$sub_detail->vat+$sub_detail->pph23) - $sub_detail->other_deduction }}" disabled/>
+                                                    </div>
+                                                </div>
+                                                <div class="form-row">
+                                                    <div class="form-group col-md-6">
+                                                        <label class="form-label" for="account">COA</label>
+                                                        <select class="select2 w-100" disabled>
+                                                            <option value="">Choose option</option>
+                                                            @foreach($accounts as $val)
+                                                                <option value="{{ $val->account }}" {{ $sub_detail->account == $val->account ? 'selected' : '' }}>{{ $val->account}} - {{ $val->description }}</option>
+                                                            @endforeach
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <br>
+                                                
+                                            </form>
                                         </div>
                                     </div>
-                                </div>
+                                </div> 
                             </div>
-                            <div class="form-row">
-                                <div class="form-group col-md-3">
-                                    <label for="otherDeduct">Other Deductions</label>
-                                    <input type="text" id="otherDeduct" name="otherDeduct" class="form-control numeral-mask text-right" value="{{ old('otherDeduct',$details ? $details->other_deduction : "") }}" />
-                                </div>
-                            </div>
-                            <div class="form-row">
-                                <div class="form-group col-md-3">
-                                    <label for="grandTotal">Total</label>
-                                    <input type="text" id="grandTotal" name="grandTotal" class="form-control numeral-mask text-right" value="{{ old('grandTotal') }}" />
-                                </div>
-                            </div>
-                            <div class="form-row">
-                                <div class="form-group col-md-6">
-                                    <label class="form-label" for="account">COA</label>
-                                    <select class="select2 w-100" id="account" name="account">
-                                        <option value="">Choose option</option>
-                                        @foreach($accounts as $val)
-                                            <option value="{{ $val->account }}" {{ old('account',$details ? $details->account : "") == $val->account ? 'selected' : '' }}>{{ $val->account}} - {{ $val->description }}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                            </div>
-                            <br>
-                            <div class="form-row">
-                                <div class="col-md-12">
-                                    <button class="btn btn-warning" type="reset" id="cmdCancel" name="cmdCancel">Cancel</button>
-                                    <button class="btn btn-success" type="reset" id="cmdNew" name="cmdCancel">New</button>
-                                    <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Save</button>
-                                    @can('ap-posting')
-                                        <button class="btn btn-primary" type="button" id="cmdPosting" name="cmdPosting">Posting</button>
-                                    @endcan
-                                </div>
-                            </div>
-                        </form>
+                        @endforeach
                     </div>
                 </div>
             </div>
@@ -252,21 +436,21 @@
         });
     }
 
-    recDate = $('#recDate');
-    if (recDate.length) {
-        recDate.flatpickr({
-            dateFormat: "d-m-Y",
-            maxDate: "today"
-        });
-    }
+    // recDate = $('#recDate');
+    // if (recDate.length) {
+    //     recDate.flatpickr({
+    //         dateFormat: "d-m-Y",
+    //         maxDate: "today"
+    //     });
+    // }
 
-    dueDate = $('#dueDate');
-    if (dueDate.length) {
-        dueDate.flatpickr({
-            dateFormat: "d-m-Y",
-            maxDate: "today"
-        });
-    }
+    // dueDate = $('#dueDate');
+    // if (dueDate.length) {
+    //     dueDate.flatpickr({
+    //         dateFormat: "d-m-Y",
+    //         maxDate: "today"
+    //     });
+    // }
     
     function reloadPage(){
         window.location.reload();
@@ -339,8 +523,8 @@
                     $('#totalPO').val(result[0].total_po);
                     $('#basisAmount').val(result[0].basis_amount);
                     $('#vat').val(result[0].basis_amount*(result[0].vat/100));
-                    $('#dueDate').val(result[0].due_date);
-                    $('#recDate').val(result[0].rec_date);
+                    // $('#dueDate').val(result[0].due_date);
+                    // $('#recDate').val(result[0].rec_date);
                     $('#balance').val(result[0].po_balance);
                     if (status != 'Saved'){
                         $('#currency').val(result[0].currency).trigger('change');
@@ -380,12 +564,12 @@
                     show_msg(data.title, data.message, data.alert);
                     $('#apNumber').attr('disabled','disabled');
                     $('#cmdSave').show();
-                    $('#cmdPosting').hide();
-
                 }else{
                     show_msg(data.title, data.message, data.alert);
                     $('#statusText').text(data.statusAp);
-                    $('#apNumber').attr('disabled','disabled');                    
+                    $('#apNumber').attr('disabled','disabled');
+                    $('#cmdPosting').hide();
+                    $('#cmdSave').hide();
                 }
             },
             error: function(error) {

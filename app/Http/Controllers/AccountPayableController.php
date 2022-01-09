@@ -31,6 +31,7 @@ class AccountPayableController extends Controller
         // 2. Update
         // 3. Posting
         // 4. Cancel
+        // 5. Paid
 
         $data['status'] = ['1'=>'Draft','2'=>'Update','3'=>'Posting','4'=>'Cancel'];
             
@@ -198,10 +199,11 @@ class AccountPayableController extends Controller
         $taxInvoiceNumber= $request->input('taxInvoiceNumber');
         $basisAmount = is_null($request->input('basisAmount')) ? 0 : preg_replace('/[^0-9.]+/', '', $request->input('basisAmount'));
         $vat = is_null($request->input('vat')) ? 0 : preg_replace('/[^0-9.]+/', '', $request->input('vat'));
-        $pph23= is_null($request->input('pph23')) ? 0 : preg_replace('/[^0-9.]+/', '', $request->input('pph23'));
-        $pph23Type= is_null($request->input('pph23'))? "":$request->input('pph23Type');
         $otherDeduct = is_null($request->input('otherDeduct')) ? 0 : preg_replace('/[^0-9.]+/', '', $request->input('otherDeduct'));
         $account= $request->input('account');
+        $pph23 = $request->input('pph23Check') == 'on'? is_null($request->input('pph23')) ? 0 : preg_replace('/[^0-9.]+/', '', $request->input('pph23')) : 0;
+        $pph23Type= $request->input('pph23Check') == 'on'? is_null($request->input('pph23'))? "":$request->input('pph23Type') : '';
+        
         $status = '1';
         $authorizedBy = "";
         $note="";
@@ -351,6 +353,13 @@ class AccountPayableController extends Controller
         ->where('id',$id)
         ->get()->first();
 
+        $data['sub_details'] = DB::table('ap_invoice')
+        ->leftJoin('third_party', 'third_party.kode', '=', 'ap_invoice.supplier_id')
+        ->where('old_ap_number',$data['details']->ap_number)
+        ->where('status','6')
+        ->select('ap_invoice.*','nama')
+        ->get();
+
         $data['supps'] = DB::table('third_party')
         ->where ('third_party_type','=','supp')
         ->orderBy('nama')
@@ -384,8 +393,8 @@ class AccountPayableController extends Controller
         $taxInvoiceNumber= $request->input('taxInvoiceNumber');
         $basisAmount = is_null($request->input('basisAmount')) ? 0 : preg_replace('/[^0-9.]+/', '', $request->input('basisAmount'));
         $vat = is_null($request->input('vat')) ? 0 : preg_replace('/[^0-9.]+/', '', $request->input('vat'));
-        $pph23= is_null($request->input('pph23')) ? 0 : preg_replace('/[^0-9.]+/', '', $request->input('pph23'));
-        $pph23Type= is_null($request->input('pph23'))? "":$request->input('pph23Type');
+        $pph23 = $request->input('pph23Check') == 'on'? is_null($request->input('pph23')) ? 0 : preg_replace('/[^0-9.]+/', '', $request->input('pph23')) : 0;
+        $pph23Type= $request->input('pph23Check') == 'on'? is_null($request->input('pph23'))? "":$request->input('pph23Type') : '';
         $otherDeduct = is_null($request->input('otherDeduct')) ? 0 : preg_replace('/[^0-9.]+/', '', $request->input('otherDeduct'));
         $account= $request->input('account');
         $status = '2';
@@ -536,6 +545,9 @@ class AccountPayableController extends Controller
         $apOrigin = $request->apNumber;
         $numRevision = $request->numRevision ? $request->numRevision +1 : 1 ;
         $apNew = $apOrigin.'-R'.$numRevision;
+
+        $data['title'] = "Edit Invoice";
+        $data['subtitle'] = "Edit Invoice";
         
         $sqlAp = "INSERT into ap_invoice
         (
@@ -605,58 +617,55 @@ class AccountPayableController extends Controller
 
         $rowAffected =  DB::select($sqlAp);
 
-        // if ($rowAffected){
+        // status:
+        // status
+        // 1. Draft
+        // 2. Updated
+        // 3. Posted
+        // 4. Canceled
+        // 5. Paid
+        // 6. Revised
 
-            // status:
-            // status
-            // 1. Draft
-            // 2. Updated
-            // 3. Posted
-            // 4. Canceled
-            // 5. Paid
-            // 6. Revised
+        DB::table('ap_invoice')
+        ->where('ap_number',$apOrigin)
+        ->update(
+            [
+                'num_revision' => $numRevision,
+                'status' => '1',
+                'revised_by'=>Auth::user()->username,
+                'revised_at'=> date('Y-m-d H:i:s'),
+                'updated_by' => Auth::user()->username,
+                'updated_at' => date('Y-m-d H:i:s')
+            ]
+        );
 
-            DB::table('ap_invoice')
-            ->where('ap_number',$apOrigin)
-            ->update(
-                [
-                    'num_revision' => $numRevision,
-                    'status' => '1',
-                    'revised_by'=>Auth::user()->username,
-                    'revised_at'=> date('Y-m-d H:i:s'),
-                    'updated_by' => Auth::user()->username,
-                    'updated_at' => date('Y-m-d H:i:s')
-                ]
-            );
+        // $data['details'] = DB::table('ap_invoice')
+        // ->where('ap_number',$apOrigin)
+        // ->get()->first();
 
-            $data['details'] = DB::table('ap_invoice')
-            ->where('ap_number',$apOrigin)
-            ->get()->first();
+        // $data['sub_details'] = DB::table('ap_invoice')
+        // ->leftJoin('third_party', 'third_party.kode', '=', 'ap_invoice.supplier_id')
+        // ->where('old_ap_number',$data['details']->ap_number)
+        // ->where('status','6')
+        // ->select('ap_invoice.*','nama')
+        // ->get();
 
-            $data['supps'] = DB::table('third_party')
-            ->where ('third_party_type','=','supp')
-            ->orderBy('nama')
-            ->get();
+        // $data['supps'] = DB::table('third_party')
+        // ->where ('third_party_type','=','supp')
+        // ->orderBy('nama')
+        // ->get();
 
-            $statusRec = ['Draft','Updated','Posted','Cancel','Paid'];
-                    
-            $data['statusEdit'] = $statusRec[$data['details']->status -1];
+        // $statusRec = ['Draft','Updated','Posted','Cancel','Paid'];
+                
+        // $data['statusEdit'] = $statusRec[$data['details']->status -1];
 
-            $data['currency'] = ['IDR','USD'];
-            $data['status'] = 'New';
-            $data['accounts'] = DB::table('accounts')->get();
+        // $data['currency'] = ['IDR','USD'];
+        // $data['status'] = 'New';
+        // $data['accounts'] = DB::table('accounts')->get();
 
-            return view("accountPayable.edit",$data);
+        return redirect()->route('ap.edit', ['id' =>Crypt::encryptString($id)]);
 
-        // }else{
-
-        //     DB::rollBack();
-        //     $title ='Revision invoice';
-        //     $alert  ="warning";
-        //     $message  = "Revision $apOrigin is failed to updated";
-        //     \LogActivity::addToLog('AP Revision',"username: $username Status $message");
-        //     return redirect()->back()->with(array('title' => $title, 'message' => $message,'alert'=>$alert,'apNumber'=>$apOrigin));
-        // }
+        // return view("accountPayable.edit",$data);
         
     }
 
@@ -739,7 +748,7 @@ class AccountPayableController extends Controller
 
         $filter='';
         
-        $filter.="status <> '6' ";
+        // $filter.="status <> 6 ";
         
         if ($searchRec !='' ){
             $filter.="lower(a.rec_number) like '%$searchRec%' and ";
@@ -757,9 +766,9 @@ class AccountPayableController extends Controller
             $filter.="supplier_id = '$searchSupplier' and ";            
         }
 
-        // if ($searchStatus  != '' ){
-        //     $filter.="status = '$searchStatus' and ";            
-        // }
+        if ($searchStatus  != '' ){
+            $filter.="status = '$searchStatus' and ";            
+        }
 
         if ($recDate  != '' ){
             $date = explode("to",$recDate);
@@ -768,15 +777,13 @@ class AccountPayableController extends Controller
             $filter.= "to_date(inv_date, 'DD/MM/YYYY')  BETWEEN to_date('$date1', 'DD/MM/YYYY') and to_date('$date2', 'DD/MM/YYYY') and ";
         }
         
-        if ($filter !=''){
-            $filter=" where ".substr($filter,0,-4);
-        }
-
-        
+        // if ($filter !=''){
+        //     $filter=" where ".substr($filter,0,-4);
+        // }
 
         $data = DB::select("SELECT *,
         (select concat(kode,'-',nama) from third_party where kode = supplier_id limit 1) as supp_name
-        from ap_invoice a $filter");
+        from ap_invoice a where $filter status != '6' ");
 
         return Datatables::of($data)
         ->addColumn('action', function ($data) {
