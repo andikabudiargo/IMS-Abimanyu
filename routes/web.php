@@ -260,6 +260,7 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('aps/update',['as'=>'ap.update','uses'=>'AccountPayableController@update']);
 	Route::post('aps/posting',['as'=>'ap.posting','uses'=>'AccountPayableController@posting']);
 	Route::get('aps/revision',['as'=>'ap.revision','uses'=>'AccountPayableController@revision']);
+	Route::get('aps/show',['as'=>'ap.show','uses'=>'AccountPayableController@show']);
 
 	// Route::get('receivings/search',['as'=>'ap.search','uses'=>'ReceivingController@search']);
 	// Route::get('receivings/list/po',['as'=>'ap.list.po','uses'=>'ReceivingController@listPo']);
@@ -274,6 +275,37 @@ Route::group( ['middleware' => ['auth']], function() {
 	// Route::get('receivings/code/create',['as'=>'ap.code.create','uses'=>'ReceivingController@articleCodeCreate']);
 	// Route::get('receivings/print',['as'=>'ap.print','uses'=>'ReceivingController@print']);
 	// Route::post('receivings/posting',['as'=>'ap.posting','uses'=>'ReceivingController@posting']);
+
+
+	Route::get('proforma',['as'=>'apProforma.index','uses'=>'AccountPayableProformaController@index','middleware' => ['permission:ap-proforma-index']]);
+	Route::get('proforma/create',['as'=>'apProforma.create','uses'=>'AccountPayableProformaController@create','middleware' => ['permission:ap-proforma-create']]);
+	Route::get('proforma/list/po',['as'=>'apProforma.list.po','uses'=>'AccountPayableProformaController@listPo']);
+	Route::get('proforma/detail/rec',['as'=>'apProforma.po.detail','uses'=>'AccountPayableProformaController@poDetail']);
+	Route::post('proforma/store',['as'=>'apProforma.store','uses'=>'AccountPayableProformaController@store']);
+	Route::get('proforma/show',['as'=>'apProforma.show','uses'=>'AccountPayableProformaController@show']);
+	Route::get('proforma/edit',['as'=>'apProforma.edit','uses'=>'AccountPayableProformaController@edit','middleware' => ['permission:ap-proforma-edit']]);
+	Route::get('proforma/list',['as'=>'apProforma.list','uses'=>'AccountPayableProformaController@list']);
+	Route::post('proforma/delete',['as'=>'apProforma.destroy','uses'=>'AccountPayableProformaController@destroy']);
+	Route::post('proforma/update',['as'=>'apProforma.update','uses'=>'AccountPayableProformaController@update']);
+	Route::post('proforma/posting',['as'=>'apProforma.posting','uses'=>'AccountPayableProformaController@posting']);
+	Route::get('proforma/revision',['as'=>'apProforma.revision','uses'=>'AccountPayableProformaController@revision']);
+	Route::get('proforma/show',['as'=>'apProforma.show','uses'=>'AccountPayableProformaController@show']);
+
+
+
+	Route::get('disbursement',['as'=>'disbursement.index','uses'=>'BankDisbursementController@index','middleware' => ['permission:disbursement-index']]);
+	Route::get('disbursement/create',['as'=>'disbursement.create','uses'=>'BankDisbursementController@create','middleware' => ['permission:disbursement-create']]);
+	Route::get('disbursement/list/invoice',['as'=>'disbursement.list.invoice','uses'=>'BankDisbursementController@listInvoice']);
+	Route::get('disbursement/detail/rec',['as'=>'disbursement.po.detail','uses'=>'BankDisbursementController@poDetail']);
+	Route::post('disbursement/store',['as'=>'disbursement.store','uses'=>'BankDisbursementController@store']);
+	Route::get('disbursement/show',['as'=>'disbursement.show','uses'=>'BankDisbursementController@show']);
+	Route::get('disbursement/edit',['as'=>'disbursement.edit','uses'=>'BankDisbursementController@edit','middleware' => ['permission:disbursement-edit']]);
+	Route::get('disbursement/list',['as'=>'disbursement.list','uses'=>'BankDisbursementController@list']);
+	Route::post('disbursement/delete',['as'=>'disbursement.destroy','uses'=>'BankDisbursementController@destroy']);
+	Route::post('disbursement/update',['as'=>'disbursement.update','uses'=>'BankDisbursementController@update']);
+	Route::post('disbursement/posting',['as'=>'disbursement.posting','uses'=>'BankDisbursementController@posting']);
+	Route::get('disbursement/revision',['as'=>'disbursement.revision','uses'=>'BankDisbursementController@revision']);
+	Route::get('disbursement/show',['as'=>'disbursement.show','uses'=>'BankDisbursementController@show']);
 
 	Route::get('receivingsRm',['as'=>'receivingsRm.index','uses'=>'ReceivingRmController@index','middleware' => ['permission:receivingRm-index']]);
 	Route::get('receivingsRm/create',['as'=>'receivingRm.create','uses'=>'ReceivingRmController@create','middleware' => ['permission:receivingRm-create']]);

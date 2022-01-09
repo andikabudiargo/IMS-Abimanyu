@@ -272,7 +272,7 @@
             @endcan
           </ul>
         </li>
-        <li class=" {{ in_array(\Request::segment(1), ['aps','banks','pettyCashs']) ? 'active' : '' }} nav-item">
+        <li class=" {{ in_array(\Request::segment(1), ['aps','banks','pettyCashs','proforma']) ? 'active' : '' }} nav-item">
           <a class="d-flex align-items-center" href="javascript:void(0);">
             <i data-feather="dollar-sign"></i>
             <span class="menu-title text-truncate" data-i18n="Form Elements">Finance
@@ -287,7 +287,7 @@
               </a>
             </li>
             @endcan --}}
-            @can('finance-index')
+            @can('ap-index')
             <li class="{{ \Request::segment(1) == 'aps'  ? 'active' : '' }}">
               <a class="d-flex align-items-center" href="{{ route('aps.index') }}">
                 <i data-feather="circle"></i>
@@ -303,9 +303,9 @@
               </a>
             </li>
             @endcan --}}
-            @can('finance-index')
-            <li class="{{ \Request::segment(1) == 'accountPayable'  ? 'active' : '' }}">
-              <a class="d-flex align-items-center" href="{{ route('accTypes.index') }}">
+            @can('ap-proforma-index')
+            <li class="{{ \Request::segment(1) == 'proforma'  ? 'active' : '' }}">
+              <a class="d-flex align-items-center" href="{{ route('apProforma.index') }}">
                 <i data-feather="circle"></i>
                 <span class="menu-item text-truncate" data-i18n="Input">Proforma Invoice</span>
               </a>
@@ -320,8 +320,8 @@
             </li>
             @endcan
             @can('finance-index')
-            <li class="{{ \Request::segment(1) == 'accountPayable'  ? 'active' : '' }}">
-              <a class="d-flex align-items-center" href="{{ route('accTypes.index') }}">
+            <li class="{{ \Request::segment(1) == 'disbursement'  ? 'active' : '' }}">
+              <a class="d-flex align-items-center" href="{{ route('disbursement.create') }}">
                 <i data-feather="circle"></i>
                 <span class="menu-item text-truncate" data-i18n="Input">Bank Disbursement</span>
               </a>

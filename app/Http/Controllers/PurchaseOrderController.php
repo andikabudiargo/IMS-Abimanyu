@@ -165,7 +165,7 @@ class PurchaseOrderController extends Controller
                             'uom' => $val->uom,
                             'old_price' => $val->price,
                             'price' => $val->newPrice,
-                            'ppn' => $totalPpn,
+                            'ppn' => ($val->qty*$val->newPrice)*0.1,
                             'pph22' => $totalPph,
                             'created_by' => Auth::user()->username,
                             'created_at' => date('Y-m-d H:i:s'),

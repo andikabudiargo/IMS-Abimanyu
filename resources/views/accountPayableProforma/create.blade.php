@@ -16,13 +16,17 @@
                 </div>
                 <div class="card-content collapse show">
                     <div class="card-body">
-                        <form id="frmAdd" name="frmAdd" action="{{ route('ap.store') }}" method="post" autocomplete="off">
+                        <form id="frmAdd" name="frmAdd" action="{{ route('apProforma.store') }}" method="post" autocomplete="off">
                             @csrf
                             <div class="form-row">
                                 <div class="form-group col-md-3">
-                                    <label for="apNumber">AP Number</label> <small class="text-muted"> automatic</small>
-                                    <input type="text" id="apNumber" name="apNumber" class="form-control text-hitam disabled-el" value="{{ old('apNumber', Session::get('details') ? Session::get('details')->ap_number :"") }}" disabled />
+                                    <label for="piNumber">Proforma Number</label> <small class="text-muted"> automatic</small>
+                                    <input type="text" id="piNumber" name="piNumber" class="form-control text-hitam disabled-el" value="{{ old('piNumber', Session::get('details') ? Session::get('details')->pi_number :"") }}" disabled />
                                 </div>
+                                <div class="form-group col-md-3">
+                                    <label for="invoiceDate">Proforma Invoice Date</label>
+                                    <input type="text" id="invoiceDate" name="invoiceDate" class="form-control" value="{{ old('invoiceDate',Session::get('details') ? Session::get('details')->inv_date :'') }}" placeholder="DD-MM-YYYY" required/>
+                                </div> 
                             </div>
                             <div class="form-row">
                                 <div class="form-group col-md-6">
@@ -34,22 +38,18 @@
                                         @endforeach
                                     </select>
                                 </div>
-                                <div class="form-group col-md-3">
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group col-md-6">
                                     <label class="form-label" for="poNumber">PO Number</label>
                                     <select class="select2 form-control" id="poNumber" name="poNumber">
                                     </select>
                                 </div>
-                                <div class="form-group col-md-3">
-                                    <label class="form-label" for="recNumber">Rec.Number / LPB</label>
-                                    <select class="select2 form-control" id="recNumber" name="recNumber">
-                                    </select>
-                                </div>
                             </div>
-                            <h4>Detail invoice</h4>
-                            <div class="form-row">                                    
+                            <div class="form-row d-none">                                    
                                 <div class="form-group col-md-6">
                                     <label for="suppCode">Supplier</label>
-                                    <input type="text" id="suppCode" name="suppCode" class="form-control disabled-el" value="{{ old('suppCode') }}" disabled required />
+                                    <input type="text" id="suppCode" name="suppCode" class="form-control disabled-el" value="{{ old('suppCode') }}" disabled />
                                 </div>
                                 <div class="form-group col-md-6">
                                     <label for="poNumberDet">PO Number</label>
@@ -58,24 +58,22 @@
                             </div>
                             <div class="form-row">
                                 <div class="form-group col-md-3">
-                                    <label for="recDate">Receive Date</label>
-                                    <input type="text" id="recDate" name="recDate" class="form-control disabled-el" value="{{ old('recDate') }}" placeholder="DD-MM-YYYY" disabled/>
-                                </div>
-                                <div class="form-group col-md-3">
-                                    <label for="dueDate">Due Date</label>
-                                    <input type="text" id="dueDate" name="dueDate" class="form-control disabled-el" value="{{ old('dueDate') }}" placeholder="DD-MM-YYYY" disabled/>
-                                </div>       
-                            </div>
-                            <div class="form-row">
-                                <div class="form-group col-md-3">
                                     <label for="totalPO">Total PO</label>
                                     <input type="text" id="totalPO" name="totalPO" class="form-control numeral-mask text-right disabled-el" value="{{ old('totalPO') }}" disabled/>
                                 </div>
+                            </div>
+                            {{-- <div class="form-row">
                                 <div class="form-group col-md-3">
-                                    <label for="balance">Balance</label>
-                                    <input type="text" id="balance" name="balance" class="form-control numeral-mask text-right disabled-el" value="{{ old('balance') }}" disabled/>
+                                    <label for="invoiceNumber">Proforma Invoice Number</label>
+                                    <input type="text" id="invoiceNumber" name="invoiceNumber" class="form-control" value="{{ old('invoiceNumber',Session::get('details') ? Session::get('details')->inv_number :'') }}" required/>
                                 </div>
                             </div>
+                            <div class="form-row">
+                                <div class="form-group col-md-3">
+                                    <label for="invoiceDate">Proforma Invoice Date</label>
+                                    <input type="text" id="invoiceDate" name="invoiceDate" class="form-control" value="{{ old('invoiceDate',Session::get('details') ? Session::get('details')->inv_date :'') }}" placeholder="DD-MM-YYYY" required/>
+                                </div> 
+                            </div> --}}
                             <div class="form-row">
                                 <div class="form-group col-md-2">
                                     <label for="currency">Currency*</label>
@@ -90,22 +88,6 @@
                                     <input type="text" id="rate" name="rate" value="{{ old('rate',Session::get('details') ? Session::get('details')->kurs :'') }}" class="form-control numeral-mask text-right"/>
                                 </div>  
                             </div>                         
-                            <div class="form-row">
-                                <div class="form-group col-md-3">
-                                    <label for="invoiceNumber">Invoice Number</label>
-                                    <input type="text" id="invoiceNumber" name="invoiceNumber" class="form-control" value="{{ old('invoiceNumber',Session::get('details') ? Session::get('details')->inv_number :'') }}" required/>
-                                </div>
-                                <div class="form-group col-md-3">
-                                    <label for="invoiceDate">Invoice Date</label>
-                                    <input type="text" id="invoiceDate" name="invoiceDate" class="form-control" value="{{ old('invoiceDate',Session::get('details') ? Session::get('details')->inv_date :'') }}" placeholder="DD-MM-YYYY" required/>
-                                </div> 
-                            </div>
-                            <div class="form-row">
-                                <div class="form-group col-md-3">
-                                    <label for="taxInvoiceNumber">Tax Invoice Number</label>
-                                    <input type="text" id="taxInvoiceNumber" name="taxInvoiceNumber" class="form-control" value="{{ old('taxInvoiceNumber',Session::get('details') ? Session::get('details')->tax_inv_number : '') }}" />
-                                </div>
-                            </div>
                             <div class="form-row">
                                 <div class="form-group col-md-3">
                                     <label for="basisAmount">Basis Amount</label>
@@ -357,61 +339,32 @@
     });
 
     $('#poNumber').change(function(){
-        let value = $(this).val();
-        let poDate = $(this).find(":selected").data("po-date");
-        let obj = 'recNumber';
-        $('#poDate').val(poDate);
-        $.ajax({
-            url:"{{ route('ap.list.rec') }}",
-            method:"GET",
-            data:{
-                value:value,
-            },
-            success:function(result){
-                $('#'+obj).html(result);
-                recAda ? $('#'+obj).val(recAda).trigger('change'):$('#'+obj).val('').trigger('change');
-            },
-            error: function (response) {
-                //Error here
-                Swal.fire("Warning","Get list Rec failed","warning");
-            }
-        })
-    });
-  
-    $('#recNumber').change(function(){
-        let poNumber= $('#poNumber').val();
-        let recNumber = $(this).val();
-        if(recNumber && poNumber){
+        let poNumber = $(this).val();
+        if(poNumber){
             $.ajax({
-                url:"{{ route('ap.detail.rec') }}",
+                url:"{{ route('apProforma.po.detail') }}",
                 method:"GET",
                 data:{
                     poNumber:poNumber,
                 },
                 success:function(result){
-                    $('#poNumberDet').val(result[0].po_number);
-                    $('#suppCode').val(result[0].nama);
-
+                    $('#poNumberDet').val(poNumber);
                     $('#totalPO').val(result[0].total_po);
-                    $('#basisAmount').val(result[0].basis_amount);
-                    $('#vat').val(result[0].basis_amount*(result[0].vat/100));
-                    $('#dueDate').val(result[0].due_date);
-                    $('#recDate').val(result[0].rec_date);
-                    $('#balance').val(result[0].po_balance);
-                    if (status != 'Saved'){
-                        $('#currency').val(result[0].currency).trigger('change');
-                        $('#rate').val(result[0].kurs);
-                    }
+                    $('#basisAmount').val(result[0].total_po);
+                    $('#vat').val(result[0].ppn);
+                    $('#currency').val(result[0].currency).trigger('change');
+                    $('#rate').val(result[0].kurs);
                     hitungTotal();
+                    $('#basisAmount').focus();
                 },
                 error: function (response) {
-                    //Error here
-                    Swal.fire("Warning","Get list SJ failed","warning");
+                    Swal.fire("Warning","Get po detail failed","warning");
                 }
             })
         }
     });
-
+  
+    
     $("#cmdSave").click(function(){     
         if (!$("#frmAdd")[0].checkValidity()){
             $('.disabled-el').removeAttr('disabled');
@@ -424,24 +377,24 @@
 
 
     $("#cmdPosting").click(function(){        
-        let apNumber = $('#apNumber').val();            
+        let piNumber = $('#piNumber').val();            
         $.ajax({
             type: "post",
-            url: "{{ route('ap.posting') }}",
+            url: "{{ route('apProforma.posting') }}",
             data: {
-                apNumber:apNumber
+                piNumber:piNumber
             },
             dataType: "json",
             success: function(data) {
                 if (data.status == 0 ){
                     show_msg(data.title, data.message, data.alert);
-                    $('#apNumber').attr('disabled','disabled');
+                    $('#piNumber').attr('disabled','disabled');
                     $('#cmdSave').show();
                     // $('#cmdPosting').hide();
                 }else{
                     show_msg(data.title, data.message, data.alert);
                     $('#statusText').text(data.statusAp);
-                    $('#apNumber').attr('disabled','disabled');                    
+                    $('#piNumber').attr('disabled','disabled');                    
                     $('#cmdPosting').hide();
                 }
             },

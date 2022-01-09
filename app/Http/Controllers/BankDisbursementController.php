@@ -15,11 +15,11 @@ use DB;
 use PDF;
 use AppHelpers;
 
-class AccountPayableController extends Controller
+class BankDisbursementController extends Controller
 {
     public function index(Request $request)
     {
-        $data['title'] = "List invoice";
+        $data['title'] = "List Proforma Invoice";
         
         $data['supps'] = DB::table('third_party')
         ->where ('third_party_type','=','supp')
@@ -35,7 +35,7 @@ class AccountPayableController extends Controller
 
         $data['status'] = ['1'=>'Draft','2'=>'Updated','3'=>'Posted','4'=>'Canceled','5'=>'Paid'];
             
-        return view("AccountPayable.index",$data);
+        return view("AccountPayableProforma.index",$data);
     }
 
     public function getLastCode($key)
@@ -59,134 +59,85 @@ class AccountPayableController extends Controller
         return $poNumber;
     }
 
-    public function listSj(Request $request)
-    {
-        $supp= $request->value;      
+    public function listInvoice(Request $request)
+    {   
+        $invDate = $request->invDate;
+        $dueDate = $request->dueDate;
+        $supplier = $request->supplier;
+        $invFromDate = "";
+        $invToDate = "";
+        $dueFromDate = "";
+        $dueToDate = "";
+
+        // status
+        // 1. Draft
+        // 2. Update
+        // 3. Posting
+        // 4. Cancel
+        // 5. Paid
+
         $output="";
 
-        $data= DB::table("receiving_hdr") 
-        ->where("supplier_id",$supp)
-        ->where("status","3")
-        ->orderBy("do_number")
-        ->select("do_number","do_date")
-        ->get();          
-
-        $output .='<option value=""></option>';            
-        foreach ($data as $row){
-            $output .='<option data-do-date="'.$row->do_date.'" value="'.$row->do_number.'">'.$row->do_number.'</option>';            
-        }        
+        if ($invDate){
+            $date = explode("to",$invDate);
+            $invFromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+            $invToDate = implode("/", array_reverse(explode("-", trim($date[1]))));
+        }
         
-        return $output;
-    }
+        if ($dueDate){
+            $date = explode("to",$dueDate);
+            $dueFromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+            $dueToDate = implode("/", array_reverse(explode("-", trim($date[1]))));
+        }  
 
-    public function listPo(Request $request)
-    {
-        $supp= $request->value;      
-        $output="";
-
-        $data= DB::table("purchase_order_hdr") 
-        ->where("supplier_id",$supp)
-        ->whereIn('po_number', function($query) use ($supp) {
-            $query->select('po_number')
-            ->from('receiving_hdr') 
-            ->where('supplier_id',$supp);
+        $data=DB::table('ap_invoice')
+        ->select('ap_invoice.*',DB::raw('(basis_amount + vat + pph23)-other_deduction as total'))
+        ->where(function ($query) use ($supplier,$invFromDate,$invToDate,$dueFromDate,$dueToDate) {
+            $supplier ? $query->where('supplier_id',$supplier) : '';
+            $invFromDate ? $query->whereBetween(DB::raw("to_date(inv_date,'DD-MM-YYYY')"), [$invFromDate, $invToDate]) : '';
+            $dueFromDate ? $query->whereBetween(DB::raw("to_date(due_date,'DD-MM-YYYY')"), [$dueFromDate, $dueToDate]) : '';
         })
-        ->where("status","3")
-        ->orderBy("po_number")
-        ->select("po_number","po_date")
-        ->get();          
+        ->where('status','3')        
+        ->get();
 
-        $output .='<option value=""></option>';            
-        foreach ($data as $row){
-            $output .='<option data-po-date="'.$row->po_date.'" value="'.$row->po_number.'">'.$row->po_number.'</option>';            
-        }        
-        
-        return $output;
-    }
-
-    public function listRec(Request $request)
-    {
-        $poNumber= $request->value;      
-        $output="";
-
-        $data= DB::table("receiving_hdr") 
-        ->where("po_number",$poNumber)
-        ->where("status","3")
-        // ->whereNotIn(DB::raw("rec_number"), function($query) use ($poNumber) {
-        //     $query->select(DB::raw("rec_number"))
-        //     ->from('ap_invoice') 
-        //     ->where('po_number',$poNumber);
-        // })
-        ->orderBy("rec_number")
-        ->select("rec_number","do_date")
-        ->get();          
-
-        $output .='<option value=""></option>';            
-        foreach ($data as $row){
-            $output .='<option data-do-date="'.$row->do_date.'" value="'.$row->rec_number.'">'.$row->rec_number.'</option>';            
-        }        
-        
-        return $output;
-    }
-
-    public function detailRec(Request $request){
-        $poNumber = $request->poNumber;
-        $data = DB::select("SELECT 
-                            a.*
-                            ,b.nama
-                            ,(select round(sum(qty*price)) as total_po from purchase_order_det where po_number= a.po_number) as total_po 
-                            ,round((select sum(qty*price) from receiving_det where rec_number = a.rec_number)) as basis_amount
-                            ,(select ppn from purchase_order_hdr where po_number =a.po_number) as vat
-                            ,(select pkp from purchase_order_hdr where po_number =a.po_number) as pkp
-                            ,(select currency from purchase_order_hdr where po_number =a.po_number) as currency
-                            ,(select kurs from purchase_order_hdr where po_number =a.po_number) as kurs
-                            ,to_char(to_date(rec_date,'dd-mm-yyyy')+(select termin from purchase_order_hdr where po_number = a.po_number),'dd-mm-yyyy') as due_date
-                            ,((select sum(qty*price) from receiving_det where po_number = a.po_number) - (select sum(qty*price) from purchase_order_det where po_number = a.po_number)) as po_balance
-                            from receiving_hdr a
-                            left join third_party b on b.kode = a.supplier_id
-                            where po_number = '$poNumber'");
-         return response()->json($data);
+        return Datatables::of($data)
+        ->addColumn('select_orders', static function ($result) {
+            return '<input type="checkbox" class="select-checkbox" name="apCheck[]" value="'.$result->ap_number.'"/>';
+        })
+        ->rawColumns(['select_orders'])
+        ->make(true);
     }
 
     public function poDetail(Request $request)
     {
-        $po = $request->value;
-        $data = DB::select("SELECT 
-                a.*,
-                a.article_code,
-                article_alternative_code,
-                article_desc,uom_group, 
-                (COALESCE(a.qty,0)-COALESCE(b.qty,0)) as qty_order
-                from purchase_order_det a
-                left join uom on uom.code=a.uom
-                left join article on article.article_code = a.article_code
-                left join 
-                    (select po, article_code,sum(qty) as qty,price from (
-                        select *,(select po_number from receiving_hdr where rec_number = a.rec_number) as po from receiving_det a where rec_number in (
-                        select rec_number from receiving_hdr where status = '3')
-                    ) z
-                group by po, article_code,price) b
-                on a.po_number = b.po and a.article_code = b.article_code
-                where po_number = '$po'");
-
+        $po = $request->poNumber;
+        $data = DB::select("SELECT *,
+                        (select currency from purchase_order_hdr where po_number = a.po_number) as currency ,
+                        (select kurs from purchase_order_hdr where po_number = a.po_number) as kurs
+                        from 
+                        (SELECT po_number,
+                        round(sum(qty*price)) as total_po,
+                        sum(ppn) as ppn
+                        from purchase_order_det 
+                        where po_number = '$po'
+                        group by po_number) a");
         return response()->json($data);
     }
 
     public function create(Request $request)
     {
-        $data['title'] = "Create Invoice";
-        $data['subtitle'] = "Create Invoice";
+        $data['title'] = "Bank disbursement";
+        $data['subtitle'] = "Bank disbursement";
         
         $data['supps'] = DB::table('third_party')
         ->where ('third_party_type','=','supp')
         ->orderBy('nama')
         ->get();
 
-        $data['currency'] = ['IDR','USD'];
         $data['status'] = 'New';
         $data['accounts'] = DB::table('accounts')->get();
 
-        return view("accountPayable.create",$data);
+        return view("bankDisbursement.create",$data);
     }
 
     public function store(Request $request)
@@ -194,14 +145,10 @@ class AccountPayableController extends Controller
         $username =  Auth::user()->username;
         $suppCode = $request->input('supplier');
         $poNumber = $request->input('poNumberDet');
-        $recNumber = $request->input('recNumber');
-        $recDate = $request->input('recDate');
-        $dueDate = $request->input('dueDate');
         $currency = $request->input('currency');
         $rate = is_null($request->input('rate')) ? 0 : preg_replace('/[^0-9.]+/', '', $request->input('rate'));
         $invoiceNumber= $request->input('invoiceNumber');
         $invoiceDate= $request->input('invoiceDate');
-        $taxInvoiceNumber= $request->input('taxInvoiceNumber');
         $basisAmount = is_null($request->input('basisAmount')) ? 0 : preg_replace('/[^0-9.]+/', '', $request->input('basisAmount'));
         $vat = is_null($request->input('vat')) ? 0 : preg_replace('/[^0-9.]+/', '', $request->input('vat'));
         $otherDeduct = is_null($request->input('otherDeduct')) ? 0 : preg_replace('/[^0-9.]+/', '', $request->input('otherDeduct'));
@@ -236,27 +183,23 @@ class AccountPayableController extends Controller
 
         $rule = [
             'poNumberDet'  => 'required',
-            'invoiceNumber'=>'required|iunique:ap_invoice,inv_number,po_number',
+            'invoiceNumber'=>'required|iunique:ap_pro_invoice,inv_number,po_number',
             // 'doDate'  => 'required',
         ];
 
         $this->validate($request,$rule,$messages);
 
-        $hasilUpdate = AppHelpers::resetCode('AP');
-        $apNumber = $this->getLastCode('AP');
+        $hasilUpdate = AppHelpers::resetCode('PRO');
+        $piNumber = $this->getLastCode('PRO');
         DB::beginTransaction();
         try {
-                DB::table('ap_invoice')->insert([
-                    'ap_number' => $apNumber,
+                DB::table('ap_pro_invoice')->insert([
+                    'pi_number' => $piNumber,
                     'inv_number' => $invoiceNumber,
-                    'tax_inv_number' => $taxInvoiceNumber,
-                    'old_ap_number' => $apNumber,
+                    'old_pi_number' => $piNumber,
                     'inv_date' => $invoiceDate,
-                    'rec_number' => $recNumber,
                     'po_number' => $poNumber,
                     'supplier_id' => $suppCode,
-                    'rec_date' => $recDate,
-                    'due_date' => $dueDate,
                     'currency' => $currency,
                     'kurs' => $rate,
                     'basis_amount' => $basisAmount,
@@ -276,12 +219,12 @@ class AccountPayableController extends Controller
 
                 DB::commit();
 
-                $title ='Save Invoice';
+                $title ='Save Proforma Invoice';
                 $alert  ="success";
-                $message  = "$title $apNumber is successfully saved";
+                $message  = "$title $piNumber is successfully saved";
 
-                $data['details'] = DB::table('ap_invoice')
-                ->where('ap_number',$apNumber)
+                $data['details'] = DB::table('ap_pro_invoice')
+                ->where('pi_number',$piNumber)
                 ->get()->first();
                 
                 $data['supps'] = DB::table('third_party')
@@ -307,27 +250,28 @@ class AccountPayableController extends Controller
             DB::rollBack();
             $title ='Save Invoice';
             $alert  ="warning";
-            $message  = "*Invoice $apNumber is failed to save";
+            $message  = "*Invoice $piNumber is failed to save";
             \LogActivity::addToLog($title,"username: $username Status $message");
-            return redirect()->back()->with(array('title' => $title, 'message' => $message,'alert'=>$alert,'apNumber'=>$apNumber));
+            return redirect()->back()->with(array('title' => $title, 'message' => $message,'alert'=>$alert,'piNumber'=>$piNumber));
         }
         
     }
 
     public function show(Request $request)
     {
-        $apNumber=Crypt::decryptString($request->apNumber);
-        $data['title'] = "Detail Invoice";
-        $data['subtitle'] = "Detail Invoice";
+        $piNumber=Crypt::decryptString($request->piNumber);
+        $data['title'] = "Detail Proforma Invoice";
+        $data['subtitle'] = "Detail Proforma Invoice";
 
-        $data['details'] = DB::table('ap_invoice')
-        ->where('ap_number',$apNumber)
+        $data['details'] = DB::table('ap_pro_invoice')
+        ->where('pi_number',$piNumber)
+        ->select('ap_pro_invoice.*',DB::raw('(basis_amount + vat + pph23)-other_deduction as total'))
         ->get()->first();
 
-        $data['sub_details'] = DB::table('ap_invoice')
-        ->leftJoin('third_party', 'third_party.kode', '=', 'ap_invoice.supplier_id')
-        ->where('old_ap_number',$apNumber)
-        ->select('ap_invoice.*','nama')
+        $data['sub_details'] = DB::table('ap_pro_invoice')
+        ->leftJoin('third_party', 'third_party.kode', '=', 'ap_pro_invoice.supplier_id')
+        ->where('old_pi_number',$piNumber)
+        ->select('ap_pro_invoice.*','nama',DB::raw('(basis_amount + vat + pph23)-other_deduction as total'))
         ->orderBy('id')
         ->get();
 
@@ -337,25 +281,26 @@ class AccountPayableController extends Controller
 
         $data['accounts'] = DB::table('accounts')->get();
 
-        return view("accountPayable.show",$data);
+        return view("accountPayableProforma.show",$data);
         
     }
 
     public function edit(Request $request)
     {
         $id=Crypt::decryptString($request->id);
-        $data['title'] = "Edit Invoice";
-        $data['subtitle'] = "Edit Invoice";
+        $data['title'] = "Edit Proforma Invoice";
+        $data['subtitle'] = "Edit Proforma Invoice";
 
-        $data['details'] = DB::table('ap_invoice')
+        $data['details'] = DB::table('ap_pro_invoice')
         ->where('id',$id)
+        ->select('ap_pro_invoice.*',DB::raw('(basis_amount + vat + pph23)-other_deduction as total'))
         ->get()->first();
 
-        $data['sub_details'] = DB::table('ap_invoice')
-        ->leftJoin('third_party', 'third_party.kode', '=', 'ap_invoice.supplier_id')
-        ->where('old_ap_number',$data['details']->ap_number)
+        $data['sub_details'] = DB::table('ap_pro_invoice')
+        ->leftJoin('third_party', 'third_party.kode', '=', 'ap_pro_invoice.supplier_id')
+        ->where('old_pi_number',$data['details']->pi_number)
         ->where('status','6')
-        ->select('ap_invoice.*','nama')
+        ->select('ap_pro_invoice.*','nama',DB::raw('(basis_amount + vat + pph23)-other_deduction as total'))
         ->orderBy('id')
         ->get();
 
@@ -372,24 +317,20 @@ class AccountPayableController extends Controller
         $data['status'] = 'New';
         $data['accounts'] = DB::table('accounts')->get();
 
-        return view("accountPayable.edit",$data);
+        return view("accountPayableProforma.edit",$data);
         
     }
 
     public function update(Request $request)
     {
         $username =  Auth::user()->username;
-        $apNumber = $request->input('apNumber');
+        $piNumber = $request->input('piNumber');
         $suppCode = $request->input('supplier');
         $poNumber = $request->input('poNumberDet');
-        $recNumber = $request->input('recNumber');
-        $recDate = $request->input('recDate');
-        $dueDate = $request->input('dueDate');
         $currency = $request->input('currency');
         $rate = is_null($request->input('rate')) ? 0 : preg_replace('/[^0-9.]+/', '', $request->input('rate'));
-        $invoiceNumber= $request->input('invoiceNumber');
+        // $invoiceNumber= $request->input('invoiceNumber');
         $invoiceDate= $request->input('invoiceDate');
-        $taxInvoiceNumber= $request->input('taxInvoiceNumber');
         $basisAmount = is_null($request->input('basisAmount')) ? 0 : preg_replace('/[^0-9.]+/', '', $request->input('basisAmount'));
         $vat = is_null($request->input('vat')) ? 0 : preg_replace('/[^0-9.]+/', '', $request->input('vat'));
         $pph23 = $request->input('pph23Check') == 'on'? is_null($request->input('pph23')) ? 0 : preg_replace('/[^0-9.]+/', '', $request->input('pph23')) : 0;
@@ -414,25 +355,21 @@ class AccountPayableController extends Controller
         
         $rule = [
             'poNumberDet'  => 'required',
-            'invoiceNumber' => 'required'
+            // 'invoiceNumber' => 'required'
         ];
         
         $this->validate($request,$rule,$messages);
         
         DB::beginTransaction();
         try {
-                $row_affected=DB::table('ap_invoice')
-                ->where('ap_number',$apNumber)
+                $row_affected=DB::table('ap_pro_invoice')
+                ->where('pi_number',$piNumber)
                 ->update(
                     [   
-                        'inv_number' => $invoiceNumber,
-                        'tax_inv_number' => $taxInvoiceNumber,
+                        // 'inv_number' => $invoiceNumber,
                         'inv_date' => $invoiceDate,
-                        'rec_number' => $recNumber,
                         'po_number' => $poNumber,
                         'supplier_id' => $suppCode,
-                        'rec_date' => $recDate,
-                        'due_date' => $dueDate,
                         'currency' => $currency,
                         'kurs' => $rate,
                         'basis_amount' => $basisAmount,
@@ -451,12 +388,13 @@ class AccountPayableController extends Controller
                                                                             
                 DB::commit();
 
-                $title ='Edit Invoice';
+                $title ='Edit Proforma Invoice';
                 $alert  ="success";
-                $message  = "$title $apNumber is successfully update";
+                $message  = "$title $piNumber is successfully update";
 
-                $data['details'] = DB::table('ap_invoice')
-                ->where('ap_number',$apNumber)
+                $data['details'] = DB::table('ap_pro_invoice')
+                ->where('pi_number',$piNumber)
+                ->select('ap_pro_invoice.*',DB::raw('(basis_amount + vat + pph23)-other_deduction as total'))
                 ->get()->first();
                 
                 $data['supps'] = DB::table('third_party')
@@ -481,11 +419,11 @@ class AccountPayableController extends Controller
 
         } catch (Exception $e) {
             DB::rollBack();
-            $title ='Update Invoice';
+            $title ='Update Proforma Invoice';
             $alert  ="warning";
-            $message  = "*Invoice $apNumber is failed to update";
+            $message  = "$title $piNumber is failed to update";
             \LogActivity::addToLog($title,"username: $username Status $message");
-            return redirect()->back()->with(array('title' => $title, 'message' => $message,'alert'=>$alert,'apNumber'=>$apNumber));
+            return redirect()->back()->with(array('title' => $title, 'message' => $message,'alert'=>$alert,'piNumber'=>$piNumber));
         }
         
 
@@ -502,15 +440,15 @@ class AccountPayableController extends Controller
         // 6. Revised
 
         $username =  Auth::user()->username;
-        $apNumber = $request->apNumber;
+        $piNumber = $request->piNumber;
         $recType = "NORMAL";
         $statusAp ="Posted";
         $status = '3';
         $authorizedBy = Auth::user()->username;
         
         
-        $rowAffected = DB::table('ap_invoice')
-            ->where('ap_number',$apNumber)
+        $rowAffected = DB::table('ap_pro_invoice')
+            ->where('pi_number',$piNumber)
             ->update(
                 [   
                     'status' => $status,
@@ -523,44 +461,39 @@ class AccountPayableController extends Controller
 
         if ($rowAffected){
             DB::commit();
-            $title ='Posting input invoice';
+            $title ='Posting Proforma invoice';
             $alert  ="success";
-            $message  = "Posting $apNumber is successfully updated";
-            \LogActivity::addToLog('AP Invoice update ',"username: $username Status $message");
-            return response()->json(array('status' => 1, 'message' => $message,'alert'=>$alert,'apNumber'=>$apNumber,'statusAp'=>$statusAp));
+            $message  = "$title $piNumber is successfully updated";
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return response()->json(array('status' => 1, 'message' => $message,'alert'=>$alert,'piNumber'=>$piNumber,'statusAp'=>$statusAp));
         }else{
             DB::rollBack();
-            $title ='Posting input invoice';
+            $title ='Posting Proforma invoice';
             $alert  ="warning";
-            $message  = "Posting $apNumber is failed to updated";
-            \LogActivity::addToLog('Posting AP ',"username: $username Status $message");
-            return response()->json(array('status' => 0, 'message' => $message,'alert'=>$alert,'apNumber'=>$apNumber));            
+            $message  = "$title $piNumber is failed to updated";
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return response()->json(array('status' => 0, 'message' => $message,'alert'=>$alert,'piNumber'=>$piNumber));            
         }
     }
 
     public function revision(Request $request){
         $username =  Auth::user()->username;
         $id=$request->id;
-        $apOrigin = $request->apNumber;
+        $piOrigin = $request->piNumber;
         $numRevision = $request->numRevision ? $request->numRevision +1 : 1 ;
-        $apNew = $apOrigin.'-R'.$numRevision;
+        $piNew = $piOrigin.'-R'.$numRevision;
 
         $data['title'] = "Edit Invoice";
         $data['subtitle'] = "Edit Invoice";
         
-        $sqlAp = "INSERT into ap_invoice
+        $sqlAp = "INSERT into ap_pro_invoice
         (
-            ap_number,
-            old_ap_number,
+            pi_number,
+            old_pi_number,
             inv_number,
-            proforma_inv_number,
-            tax_inv_number,
             inv_date,
-            rec_number,
             po_number,
             supplier_id,
-            rec_date,
-            due_date,
             currency,
             kurs,
             basis_amount,
@@ -582,17 +515,12 @@ class AccountPayableController extends Controller
             updated_at
         )
         select 
-            '$apNew',
-            '$apOrigin',
+            '$piNew',
+            '$piOrigin',
             inv_number,
-            proforma_inv_number,
-            tax_inv_number,
             inv_date,
-            rec_number,
             po_number,
             supplier_id,
-            rec_date,
-            due_date,
             currency,
             kurs,
             basis_amount,
@@ -612,7 +540,7 @@ class AccountPayableController extends Controller
             '".date('Y-m-d H:i:s')."',
             '$username',
             '".date('Y-m-d H:i:s')."'
-        from ap_invoice where ap_number = '$apOrigin'";
+        from ap_pro_invoice where pi_number = '$piOrigin'";
 
         $rowAffected =  DB::select($sqlAp);
 
@@ -625,8 +553,8 @@ class AccountPayableController extends Controller
         // 5. Paid
         // 6. Revised
 
-        DB::table('ap_invoice')
-        ->where('ap_number',$apOrigin)
+        DB::table('ap_pro_invoice')
+        ->where('pi_number',$piOrigin)
         ->update(
             [
                 'num_revision' => $numRevision,
@@ -638,7 +566,7 @@ class AccountPayableController extends Controller
             ]
         );
         
-        return redirect()->route('ap.edit', ['id' =>Crypt::encryptString($id)]);
+        return redirect()->route('apProforma.edit', ['id' =>Crypt::encryptString($id)]);
         
     }
 
@@ -656,19 +584,19 @@ class AccountPayableController extends Controller
         $id=Crypt::decryptString($request->id);
         $status = "4";
 
-        $data= DB::table('ap_invoice')
+        $data= DB::table('ap_pro_invoice')
         ->where('id',$id)
         ->get()->first();
 
-        $apNumber = $data->ap_number;
+        $piNumber = $data->pi_number;
         $invNumber = $data->inv_number;
         $note = $data->note;
 
-        $rowAffected=DB::table('ap_invoice')
-        ->where('ap_number',$apNumber)
+        $rowAffected=DB::table('ap_pro_invoice')
+        ->where('pi_number',$piNumber)
         ->update(
             [   
-                'inv_number' => $invNumber."(C)",
+                'pi_number' => $piNumber."(C)",
                 'status' => $status,
                 'note' => $note." (Cancel)",
                 'updated_by' => Auth::user()->username,
@@ -678,19 +606,19 @@ class AccountPayableController extends Controller
 
         if ($rowAffected){
             DB::commit();
-            $title ='Cancel input invoice';
+            $title ='Cancel Proforma invoice';
             $alert  ="success";
-            $message  = "$apNumber is successfully cancel";
-            \LogActivity::addToLog('AP Invoice update ',"username: $username Status $message");
-            return redirect()->back()->with(array('status' => 1, 'message' => $message,'alert'=>$alert,'apNumber'=>$apNumber));
+            $message  = "$piNumber is successfully cancel";
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return redirect()->back()->with(array('status' => 1, 'message' => $message,'alert'=>$alert,'piNumber'=>$piNumber));
 
         }else{
             DB::rollBack();
-            $title ='Cancelinput invoice';
+            $title ='Cancel Proforma invoice';
             $alert  ="warning";
-            $message  = "$apNumber is failed to cancel";
-            \LogActivity::addToLog('Posting AP ',"username: $username Status $message");
-            return response()->back()->with(array('status' => 0, 'message' => $message,'alert'=>$alert,'apNumber'=>$apNumber));
+            $message  = "$piNumber is failed to cancel";
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return response()->back()->with(array('status' => 0, 'message' => $message,'alert'=>$alert,'piNumber'=>$piNumber));
 
         }
 
@@ -707,22 +635,17 @@ class AccountPayableController extends Controller
         // 5. Paid
         // 6. Revised
 
-        $searchRec = strtolower($request->searchRec);
         $searchPo = strtolower($request->searchPo);
         $searchInv = strtolower($request->searchInv);
         $searchSupplier = $request->searchSupplier;
         $searchStatus = $request->searchStatus;
-        $recDate = $request->recDate;
+        $invDate = $request->invDate;
        
 
         $filter='';
         
         // $filter.="status <> 6 ";
         
-        if ($searchRec !='' ){
-            $filter.="lower(a.rec_number) like '%$searchRec%' and ";
-        }
-
         if ($searchPo !='' ){
             $filter.="lower(a.po_number) like '%$searchPo%' and ";
         }
@@ -739,8 +662,8 @@ class AccountPayableController extends Controller
             $filter.="status = '$searchStatus' and ";            
         }
 
-        if ($recDate  != '' ){
-            $date = explode("to",$recDate);
+        if ($invDate  != '' ){
+            $date = explode("to",$invDate);
             $date1=trim($date[0]);
             $date2=trim($date[1]);
             $filter.= "to_date(inv_date, 'DD/MM/YYYY')  BETWEEN to_date('$date1', 'DD/MM/YYYY') and to_date('$date2', 'DD/MM/YYYY') and ";
@@ -753,7 +676,7 @@ class AccountPayableController extends Controller
         $data = DB::select("SELECT *,
         (select concat(kode,'-',nama) from third_party where kode = supplier_id limit 1) as supp_name,
         (basis_amount+vat+pph23)-other_deduction as total
-        from ap_invoice a where $filter status != '6' ");
+        from ap_pro_invoice a where $filter status != '6' ");
 
         return Datatables::of($data)
         ->addColumn('action', function ($data) {
@@ -764,21 +687,21 @@ class AccountPayableController extends Controller
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
             if (($data->status != '3') && ($data->status != '4')){
                 if (Auth::user()->can('ap-edit')) {
-                $buttons .=         '<a href="'. route('ap.edit',['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+                $buttons .=         '<a href="'. route('apProforma.edit',['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                         <i data-feather="file-text"></i>
                                         Edit
                                     </a>';
                 }
             }
 
-            $buttons .=         '<a href="'. route('ap.show', ['apNumber'=>Crypt::encryptString($data->ap_number)]) .'" class="dropdown-item">
+            $buttons .=         '<a href="'. route('apProforma.show', ['piNumber'=>Crypt::encryptString($data->pi_number)]) .'" class="dropdown-item">
                                     <i data-feather="list"></i>
                                     Detail
                                 </a>';
                                 
             if ( $data->status == '3' ){
                 if (Auth::user()->can('ap-revision')) {
-                    $buttons .= '<a href="'. route('ap.revision', ['id'=>$data->id,'apNumber'=>$data->ap_number,'numRevision'=>$data->num_revision]) .'" class="dropdown-item">
+                    $buttons .= '<a href="'. route('apProforma.revision', ['id'=>$data->id,'piNumber'=>$data->pi_number,'numRevision'=>$data->num_revision]) .'" class="dropdown-item">
                                     <i data-feather="copy"></i>
                                        Revision
                                 </a>';
@@ -792,7 +715,7 @@ class AccountPayableController extends Controller
                                         class='dropdown-item'
                                         data-toggle='modal'
                                         data-target='#smallModalCancel'
-                                        data-href='". route("ap.destroy", ["id"=>Crypt::encryptString($data->id)]) ."'>
+                                        data-href='". route("apProforma.destroy", ["id"=>Crypt::encryptString($data->id)]) ."'>
                                         <i data-feather='trash-2'></i>
                                         Cancel
                                     </a>";
@@ -810,80 +733,5 @@ class AccountPayableController extends Controller
         ->rawColumns(['action','status'])
         ->make(true);
     }
-
-    public function print(Request $request)
-    {
-        $id = $request -> id;
-
-        $data['companies']= array(
-            "nama"=> "PT ABIMANYU SEKAR NUSANTARA",
-            "alamat"=> "KP. KARANG MULYA RT 014 RW 005 DESA CIKOPO",
-            "kota" => "KEC. BUNGURSARI KAB. PURWAKARTA JAWA BARAT",
-            "tlp" =>  ""
-        );
-        
-        $data['suppliers']=array(
-            'nama'=>'PT ABIMANYU SEKAR NUSANTARA',
-            'alamat'=>'KP. KARANG MULYA RT 014 RW 005 DESA CIKOPO',
-            'kota' =>'KEC. BUNGURSARI KAB. PURWAKARTA JAWA BARAT',
-            'tlp' => ''
-        );
-        
-        $poHdr=DB::table('purchase_order_hdr')
-        ->where('id',$id)
-        ->first();
-
-        $poNumber=$poHdr -> po_number;
-       
-
-        $data['details']=DB::table('purchase_order_det')
-        ->leftJoin('article','article.article_code','purchase_order_det.article_code')
-        ->where('po_number',$poNumber)
-        ->get();
-
-        $data['totals']=DB::select("SELECT *,(gross-discount)+ppn as netto from (
-            select a.po_number,authorized_by,prepared_by,sum(qty) as qty,sum(qty*price) as gross,sum(discount) as discount,sum(a.ppn) as ppn from purchase_order_det a
-            left join purchase_order_hdr b
-            on a.po_number = b.po_number 
-            where a.po_number = '$poNumber'
-            group by a.po_number,authorized_by,prepared_by) as oki");
-
-        $data['suppliers']=DB::table('third_party')
-        ->where('kode',$poHdr -> supplier_id)
-        ->get();
-
-        $data['keterangan']=$poHdr -> note;
-        $data['poNumber'] =$poNumber;
-        $data['poDate'] =$poHdr -> po_date;
-        $data['poTerm'] =$poHdr -> termin;
-        $data['poDelDate'] =$poHdr -> delivery_date;
-        
-        $data['status'] ='1';
-        $data['no'] =1;
-
-        view()->share($data);
-
-        $pdf = PDF::loadView('receiving.print');
-        return $pdf->stream("PO_$poNumber.pdf");
-
-    }
-
-    public function listUom(Request $request)
-    {
-        $uomGroup = $request->value;      
-        $output="";
-
-        $data= DB::table("uom") 
-        ->where("uom_group",$uomGroup)
-        ->orderBy("code")
-        ->select("code","name")
-        ->get();          
-
-        $output .='<option value=""></option>';            
-        foreach ($data as $row){
-            $output .='<option value="'.$row->code.'">'.$row->code.'</option>';            
-        }        
-        
-        return $output;
-    }
+    
 }
