@@ -20,9 +20,12 @@ DB_PASSWORD=root123
 DB_PORT=5432
 
 php artisan key:generate
-php artisan config:cache
-php artisan route:cache
-php artisan view:cache
+
+php artisan cache:clear
+php artisan route:clear
+php artisan config:clear
+php artisan view:clear
+
 php artisan migrate
 php artisan db:seed
 user: admin
@@ -33,3 +36,9 @@ pssword: admin
 ##### sudah dilengkapi dengan:
 - Auth menggunakan spatie
 - Activity log
+
+clear chace untuk browser
+Route::get('/clear-cache', function() {
+    Artisan::call('cache:clear');
+    return "Cache is cleared";
+});

@@ -385,7 +385,7 @@
             </li>
             @endcan
             @can('jobPosition-index')
-            <li class="{{ \Request::segment(1) == 'jobPositions'  ? 'active' : '' }} disabled">
+            <li class="{{ \Request::segment(1) == 'jobPositionsjjj'  ? 'active' : '' }} disabled">
               <a class="d-flex align-items-center" href="{{ route('jobPositions.index') }}">
                 <i data-feather="circle"></i>
                 <span class="menu-item text-truncate" data-i18n="Input">Reports</span>

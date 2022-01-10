@@ -308,7 +308,6 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('disbursement/revision',['as'=>'disbursement.revision','uses'=>'BankDisbursementController@revision']);
 	Route::get('disbursement/show',['as'=>'disbursement.show','uses'=>'BankDisbursementController@show']);
 
-
 	Route::get('receivingsRm',['as'=>'receivingsRm.index','uses'=>'ReceivingRmController@index','middleware' => ['permission:receivingRm-index']]);
 	Route::get('receivingsRm/create',['as'=>'receivingRm.create','uses'=>'ReceivingRmController@create','middleware' => ['permission:receivingRm-create']]);
 	Route::get('receivingsRm/search',['as'=>'receivingRm.search','uses'=>'ReceivingRmController@search']);
@@ -401,6 +400,11 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('showLogLists', ['as'=>'show.log.lists','uses'=>'LogActivityController@showLogLists']);
 	Route::get('logActivity',['as'=>'log.activity','uses'=>'LogActivityController@index']);
 
+	// clear chace untuk browser
+	Route::get('/clear-cache', function() {
+		Artisan::call('cache:clear');
+		return "Cache is cleared";
+	});
 	
 	//kalo routing nya tidak di temukan maka keluar error 404
 	Route::any('{all}', function(){
