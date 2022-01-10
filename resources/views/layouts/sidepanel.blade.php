@@ -272,7 +272,7 @@
             @endcan
           </ul>
         </li>
-        <li class=" {{ in_array(\Request::segment(1), ['aps','banks','pettyCashs','proforma']) ? 'active' : '' }} nav-item">
+        <li class=" {{ in_array(\Request::segment(1), ['aps','banks','pettyCash','proforma']) ? 'active' : '' }} nav-item">
           <a class="d-flex align-items-center" href="javascript:void(0);">
             <i data-feather="dollar-sign"></i>
             <span class="menu-title text-truncate" data-i18n="Form Elements">Finance
@@ -312,7 +312,7 @@
             </li>
             @endcan
             @can('finance-index')
-            <li class="{{ \Request::segment(1) == 'accountPayable'  ? 'active' : '' }}">
+            <li class="{{ \Request::segment(1) == 'accountPayable'  ? 'active' : '' }} disabled">
               <a class="d-flex align-items-center" href="{{ route('accTypes.index') }}">
                 <i data-feather="circle"></i>
                 <span class="menu-item text-truncate" data-i18n="Input">Tax</span>
@@ -328,7 +328,7 @@
             </li>
             @endcan
             @can('finance-index')
-            <li class="{{ \Request::segment(1) == 'accountPayable'  ? 'active' : '' }}">
+            <li class="{{ \Request::segment(1) == 'accountPayable'  ? 'active' : '' }} disabled">
               <a class="d-flex align-items-center" href="{{ route('accTypes.index') }}">
                 <i data-feather="circle"></i>
                 <span class="menu-item text-truncate" data-i18n="Input">Bank Receipt</span>
