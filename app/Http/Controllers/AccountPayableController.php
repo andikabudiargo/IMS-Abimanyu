@@ -35,7 +35,7 @@ class AccountPayableController extends Controller
 
         $data['status'] = ['1'=>'Draft','2'=>'Updated','3'=>'Posted','4'=>'Canceled','5'=>'Paid'];
             
-        return view("AccountPayable.index",$data);
+        return view("accountPayable.index",$data);
     }
 
     public function getLastCode($key)
