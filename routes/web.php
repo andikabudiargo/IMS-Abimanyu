@@ -296,6 +296,7 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('disbursement',['as'=>'disbursement.index','uses'=>'BankDisbursementController@index','middleware' => ['permission:disbursement-index']]);
 	Route::get('disbursement/create',['as'=>'disbursement.create','uses'=>'BankDisbursementController@create','middleware' => ['permission:disbursement-create']]);
 	Route::get('disbursement/list/invoice',['as'=>'disbursement.list.invoice','uses'=>'BankDisbursementController@listInvoice']);
+	Route::get('disbursement/list/selected',['as'=>'disbursement.list.selected','uses'=>'BankDisbursementController@listSelected']);
 	Route::get('disbursement/detail/rec',['as'=>'disbursement.po.detail','uses'=>'BankDisbursementController@poDetail']);
 	Route::post('disbursement/store',['as'=>'disbursement.store','uses'=>'BankDisbursementController@store']);
 	Route::get('disbursement/show',['as'=>'disbursement.show','uses'=>'BankDisbursementController@show']);
@@ -306,6 +307,7 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('disbursement/posting',['as'=>'disbursement.posting','uses'=>'BankDisbursementController@posting']);
 	Route::get('disbursement/revision',['as'=>'disbursement.revision','uses'=>'BankDisbursementController@revision']);
 	Route::get('disbursement/show',['as'=>'disbursement.show','uses'=>'BankDisbursementController@show']);
+
 
 	Route::get('receivingsRm',['as'=>'receivingsRm.index','uses'=>'ReceivingRmController@index','middleware' => ['permission:receivingRm-index']]);
 	Route::get('receivingsRm/create',['as'=>'receivingRm.create','uses'=>'ReceivingRmController@create','middleware' => ['permission:receivingRm-create']]);

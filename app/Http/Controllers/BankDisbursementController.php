@@ -108,6 +108,25 @@ class BankDisbursementController extends Controller
         ->make(true);
     }
 
+    public function listSelected(Request $request)
+    {   
+        $apNumber = $request->apNumber;
+        $apNumber = substr($apNumber,0,-1);     
+        $apNumber = explode(",",$apNumber);
+
+        $data=DB::table('ap_invoice')
+        ->leftJoin('third_party','third_party.kode','ap_invoice.supplier_id')
+        ->select('ap_invoice.*','third_party.nama',DB::raw('(basis_amount + vat + pph23)-other_deduction as total'))
+        ->whereIn('ap_number',$apNumber)
+        ->get();
+
+        return response()->json($data);
+
+        // return Datatables::of($data)
+        // ->make(true);
+    }
+
+    
     public function poDetail(Request $request)
     {
         $po = $request->poNumber;

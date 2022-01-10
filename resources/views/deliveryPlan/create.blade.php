@@ -400,7 +400,6 @@
     }
 
     
-
     $("#cmdSubmitFilter").click(function(e){
 
         let isidata = $('#tblSoList tr').length;
@@ -600,7 +599,7 @@
                 });
             }
         }) 
-        console.log(JSON.stringify(articles));
+        // console.log(JSON.stringify(articles));
 
         let kolom="";
         let baris="";
@@ -1453,7 +1452,6 @@
         });
     }
 
-    
     $("#prosesMrpByDate").click(function(){
         let planDate = $("#planDate").val();
         showListMrp(planDate);

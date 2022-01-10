@@ -76,7 +76,7 @@
                     </div>
                 </form> 
                 <div class="d-flex justify-content-end">
-                    <button class="btn btn-primary btn-next" id="btnDetailPayment">
+                    <button class="btn btn-primary btn-next" id="btnSelectedAp">
                         <span class="align-middle d-sm-inline-block d-none">Next</span>
                         <i data-feather="arrow-right" class="align-middle ml-sm-25 ml-0"></i>
                     </button>
@@ -94,21 +94,27 @@
                             <input type="text" id="paymentDate" name="paymentDate" class="form-control" placeholder="DD-MM-YYYY" required/>
                         </div> 
                     </div>
-                </form>
-                <div class="row">
-                    <div class="form-group col-md-12">
-                        <div class="row">
-                            <div class="col-sm-12">
-                            <div class="card-datatable table-responsive pt-0">
-                                <table id="tblApList" class="table w-100">
-                                <thead class="thead-light">
-                                </thead>
-                                </table>
-                            </div>
-                            </div>
-                        </div>  
+                    <div class="row">
+                        <div class="form-group col-md-12">
+                            <div class="row">
+                                <div class="col-sm-12">
+                                <div class="card-datatable table-responsive pt-0">
+                                    <table id="tblApList" class="table" style="width: 100%">
+                                    <thead class="thead-light"></thead>
+                                    <tbody></tbody>
+                                    </table>
+                                </div>
+                                </div>
+                            </div>  
+                        </div>
                     </div>
-                </div>
+                    <div class="form-row">
+                        <div class="col-md-12"> 
+                            <button type="button" class="btn btn-primary" id ="cmdSave" name="cmdSave">Save</button>
+                        </div>
+                    </div>
+                </form>
+                <br>
                 <div class="d-flex justify-content-between">
                     <button class="btn btn-primary btn-prev">
                         <i data-feather="arrow-left" class="align-middle mr-sm-25 mr-0"></i>
@@ -324,6 +330,18 @@
                     { data: 'pph23', name: 'pph23',title:'PPH23',render: $.fn.dataTable.render.number(',','.') },
                     { data: 'other_deduction', name: 'other_deduction',title:'Other Deduction',render: $.fn.dataTable.render.number(',','.') },
                     { data: 'total', name: 'total',title:'Total',render: $.fn.dataTable.render.number(',','.') },
+                    { title: 'BCA',
+                        data: null,
+                        defaultContent: '<input type="checkbox" name="chkbx2" value="col1">',
+                        className: 'checks col1'
+                    },
+                    {
+                        title: 'Option',
+                        data: null,
+                        defaultContent:
+                            '<button class="btn-delete type="button">Delete</button>',
+                        targets: -1,
+                    },
 
                 ],
             });
@@ -332,95 +350,195 @@
 
     });
 
-    $("#btnDetailPayment").click(function(e){        
+    $("#btnSelectedAp").click(function(e){
         let apNumber = "";
         $('input[name="apCheck[]"]').each(function () {
             if (this.checked)
             apNumber += $(this).val() + ',';
         });
-        detaiPayment(apNumber);
-    });
 
-    function detaiPayment(apNumber) {
-        let isidata = $('#tblAptList tr').length;
-        if (isidata >0){
-            let table= $('#tblAptList').DataTable();
-            table.destroy();
-            $('#tblAptList tbody > tr').remove();
-            let celli="";
-            $("#tblAptList thead > tr").remove();
-        }
-        $(function(){
-            let aTable =$("#tblAptList").DataTable({
-                ajax: {
-                    url:'{{ route("deliveryPlan.listArticle")}}',
-                    data: {
-                        apNumber:apNumber
+        $('#tblApList thead >tr').remove();
+        $('#tblApList tbody >tr').remove();
+
+        $.ajax({
+            type: "get",
+            url: "{{ route('disbursement.list.selected') }}",
+            data: {
+                apNumber:apNumber
+            },
+            dataType: "json",
+            success: function(result) {
+                $('#tblApList > thead').append(`<tr>
+                                    <th style="width: 30%">Supplier</th>
+                                    <th>Inv. Number</th>
+                                    <th>Inv. Date</th>
+                                    <th>Rec. Date</th>
+                                    <th>Due Date</th>
+                                    <th class="text-center">Bank BCA</th>
+                                    <th class="text-right">Total</th>
+                                    <th class="text-center" style="width: 5%">-</th>
+                                    </tr>`);
+
+                let jumlahData = result.length; 
+                console.log("Total Baris:"+jumlahData);
+                let cell = "";
+                for(let i=0;i < jumlahData;i++){
+                    cell +=`<tr class="tanda-baris">
+                            <td style="width: 30%">
+                                <input type="text" class="form-control-plaintext"
+                                    value="`+result[i].supplier_id+'-'+result[i].nama+`" 
+                                    id="supplier"`+i+` name="supplier[]">
+                            </td>
+                            <td>
+                                <input type="text" class="form-control-plaintext"
+                                    value="`+result[i].inv_number+`" 
+                                    id="invNumber"`+i+` name="invNumber[]">
+                            </td>
+                            <td>
+                                <input type="text" class="form-control-plaintext"
+                                    value="`+result[i].inv_date+`" 
+                                    id="invDate"`+i+` name="invDate[]">
+                            </td>
+                            <td>
+                                <input type="text" class="form-control-plaintext"
+                                    value="`+result[i].rec_date+`" 
+                                    id="recDate"`+i+` name="recDate[]">
+                            </td>
+                            <td>
+                                <input type="text" class="form-control-plaintext"
+                                    value="`+result[i].due_date+`" 
+                                    id="dueDate"`+i+` name="dueDate[]">
+                            </td>
+                            <td class="text-center">
+                                <input type="checkbox" class="" id="bca"`+i+` name="bca[]" value="bca" />
+                            </td>
+                            <td>
+                                <input type="text" class="form-control-plaintext numeral-mask text-right"
+                                    value="`+result[i].total+`" 
+                                    id="total"`+i+` name="total[]">
+                            </td>
+                            <td class="text-center" style="width: 5%">
+                                <a onmouseover="this.style.cursor='pointer'" onclick="$(this).parents('.tanda-baris').remove();hitungTotal()" data-toggle="tooltip" data-placement="left" title="Delete row">
+                                    <i data-feather="trash-2" class="remove_button feather-24">
+                                    </i>
+                                </a>
+                            </td>
+                            </tr>`;
+                            console.log(cell);
+                    $('#tblApList > tbody').append(cell);
+                    cell = "";
+                    if (feather) {
+                        feather.replace({
+                            width: 14,
+                            height: 14
+                        });
                     }
-                },
-                processing: true,
-                serverSide: true,
-                buttons: true,
-                dom: '<"d-flex w-100"<l><"#mydiv.d-flex ml-auto text-right"f>>tips',
-                lengthMenu: [
-                [ 10, 25, 50, -1 ],
-                [ '10', '25', '50', 'all' ]
-                ],
-                language: {
-                paginate: {
-                    // remove previous & next text from pagination
-                    previous: '&nbsp;',
-                    next: '&nbsp;'
+                    mask_thousand();
                 }
-                },
-                columnDefs: [
-                    { width: '10%', targets: 0 },
-                    { className: 'text-right','targets': [ 4 ] },
-                ],
-                drawCallback: function( settings ) {
-                feather.replace({
-                        width: 14,
-                        height: 14
-                });
-                },
-                order: [[ 0, 'asc' ]],
-                bDestroy: true, //pakai ini supaya bisa di load berulang2
-                // scrollX: true, //pakai ini supaya waktu responsive  bisa di scroll horizontal
-                select: {
-                    style: 'multi',
-                    selector: 'td:first-child'
-                },
-                initComplete: function(settings, json) {
-                    let api = new $.fn.dataTable.Api(settings);
-                    let header = api.column(0).header();
-                    $(header).html('<input id="selectAllArticle" name="selectAllArticle" value="1" type="checkbox">');
-                    $("#selectAllArticle").on( "click", function(e) {
-                        if ($(this).is( ":checked" )) {
-                            $(".select-checkbox-article").each(function() {
-                                this.checked=true;
-                            });
-                            // aTable.rows(  ).select();        
-                        } else {
-                            $(".select-checkbox-article").each(function() {
-                                this.checked=false;
-                            });
-                            // aTable.rows(  ).deselect(); 
-                        }
-                    });
-                },
-                columns: [
-                    { data: 'select_orders', name: 'select_orders',title: 'Check', searchable: false, orderable: false },
-                    { data: 'supplier_id', name: 'supplier_id',title:'Supplier' },
-                    { data: 'inv_number', name: 'inv_number',title:'Invoice Number' },
-                    { data: 'inv_date', name: 'inv_date',title:'Invoice Date' },
-                    { data: 'rec_date', name: 'rec_date',title:'Receipt Date' },
-                    { data: 'due_date', name: 'due_date',title:'Due Date' },
-                    { data: 'total', name: 'total',title:'Total',render: $.fn.dataTable.render.number(',','.') },
-                ],
-            });
+            },
+            error: function(error) {
+                console.log(error);
+            }
         });
 
-    }
+    });
+
+    // $("#btnSelectedAp").click(function(e){        
+    //     let apNumber = "";
+    //     $('input[name="apCheck[]"]').each(function () {
+    //         if (this.checked)
+    //         apNumber += $(this).val() + ',';
+    //     });
+    
+    //     let isidata = $('#tblApList tr').length;
+    //     if (isidata >0){
+    //         let table= $('#tblAptList').DataTable();
+    //         table.destroy();
+    //         $('#tblAptList tbody > tr').remove();
+    //         let celli="";
+    //         $("#tblAptList thead > tr").remove();
+    //     }
+        
+    //     let aTable =$("#tblApList").DataTable({
+    //         ajax: {
+    //             url:'{{ route("disbursement.list.selected")}}',
+    //             data: {
+    //                 apNumber:apNumber
+    //             }
+    //         },
+    //         processing: true,
+    //         serverSide: true,
+    //         buttons: true,
+    //         dom: '<"d-flex w-100"<l><"#mydiv.d-flex ml-auto text-right"f>>tips',
+    //         lengthMenu: [
+    //         [ 10, 25, 50, -1 ],
+    //         [ '10', '25', '50', 'all' ]
+    //         ],
+    //         language: {
+    //         paginate: {
+    //             // remove previous & next text from pagination
+    //             previous: '&nbsp;',
+    //             next: '&nbsp;'
+    //         }
+    //         },
+    //         columnDefs: [
+    //             { width: '10%', targets: 0 },
+    //             { className: 'text-right','targets': [ 4 ] },
+    //         ],
+    //         drawCallback: function( settings ) {
+    //         feather.replace({
+    //                 width: 14,
+    //                 height: 14
+    //         });
+    //         },
+    //         order: [[ 0, 'asc' ]],
+    //         bDestroy: true, //pakai ini supaya bisa di load berulang2
+    //         // scrollX: true, //pakai ini supaya waktu responsive  bisa di scroll horizontal
+    //         select: {
+    //             style: 'multi',
+    //             selector: 'td:first-child'
+    //         },
+    //         columns: [
+    //             { data: 'supplier_id', name: 'supplier_id',title:'Supplier' },
+    //             { data: 'inv_number', name: 'inv_number',title:'Invoice Number' },
+    //             { data: 'inv_date', name: 'inv_date',title:'Invoice Date' },
+    //             { data: 'rec_date', name: 'rec_date',title:'Receipt Date' },
+    //             { data: 'due_date', name: 'due_date',title:'Due Date' },
+    //             { title: 'BCA',
+    //                 data: null,
+    //                 defaultContent: '<input type="checkbox" name="chkbx2" value="col1">',
+    //                 className: 'checks col1'
+    //             },
+    //             { data: 'total', nam
+    //             e: 'total',title:'Total',render: $.fn.dataTable.render.number(',','.') },
+    //             {
+    //                 title: 'Option',
+    //                 data: null,
+    //                 defaultContent:
+    //                     '<button class="btn-delete remove" type="button">Delete</button>',
+    //                 targets: -1,
+    //             },
+
+    //         ],
+    //     });
+
+    //     $('#tblApList').on("click", ".remove", function(){
+    //         var td = $(this).closest("tr"); 
+    //         if (td.hasClass("child")) {td.prev('.parent').remove();}
+    //         td.remove();
+    //     });
+
+    // });
+
+    $('#cmdSave').click(function(e){
+
+        $('#tblApList tbody').on( 'click', 'tr', function () {
+            console.log( table.row( this ).data() );
+        } );
+
+        // let oki = $('#tblApList').DataTable().rows().data().toArray();
+        // console.log(oki);
+    });
    
     hitungTotal = () => {
         let ba = parseInt($('#basisAmount').val().replace(/,/gi, '')) || 0;
@@ -449,7 +567,6 @@
         reloadPage();
     });
   
-
     $("#cmdPosting").click(function(){        
         let piNumber = $('#piNumber').val();            
         $.ajax({
