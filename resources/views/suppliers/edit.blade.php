@@ -5,7 +5,7 @@
 @include('partials.alert')
 <section id="add-index">
     <div class="form-row">
-        <div class="col-6">
+        <div class="col-md-6">
             <div class="card">
                 {{-- <div class="card-header">
                     <h4 class="card-title">Suppliers</h4>
@@ -14,7 +14,7 @@
                     <form id="frmAdd" name="frmAdd" action="{{ route('supplier.update',['id'=> $suppliers->id]) }}"  method="post" autocomplete="off">
                         @csrf
                         <div class="form-row">
-                            <div class="col-4">
+                            <div class="col-md-4">
                                 <div class="form-group">
                                     <label for="kode">Code</label>
                                     <input type="text" id="kode" name="kode" class="form-control disabled-el" value="{{ old('kode',$suppliers->kode) }}" required maxlength="20" autofocus disabled/>
@@ -26,7 +26,7 @@
                             </div>
                         </div>
                         <div class="form-row">
-                            <div class="col-12">
+                            <div class="col-md-12">
                                 <div class="form-group">
                                     <label for="nama">Name</label>
                                     <input type="text" id="nama" name="nama" class="form-control" value="{{ old('nama',$suppliers->nama) }}" required  maxlength="100"/>
@@ -34,7 +34,7 @@
                             </div>
                         </div>
                         <div class="form-row">
-                            <div class="col-12">
+                            <div class="col-md-12">
                                 <div class="form-group">
                                     <label for="alamat">Address</label>
                                     <textarea type="text" id="alamat" name="alamat" class="form-control" rows="2" maxlength="100">{{ old('alamat',$suppliers->alamat_tagih) }}</textarea>
@@ -42,7 +42,7 @@
                             </div>
                         </div>
                         <div class="form-row">
-                            <div class="form-group col-md-4">
+                            <div class="form-group col-md-6">
                                 <label class="form-label" for="provinsi">Provinsi</label>
                                 <select class="select2 w-100 dynamicSelect" id="provinsi" name="provinsi" data-dependent="kota">
                                     <option value="">All</option>
@@ -51,24 +51,26 @@
                                     @endforeach
                                 </select>
                             </div>
-                            <div class="form-group col-md-4">
+                            <div class="form-group col-md-6">
                                 <label class="form-label" for="kota">Kota</label>
                                 <select class="select2 w-100 dynamicSelect" id="kota" name="kota" data-dependent="kelurahan">
                                 </select>
                             </div>
                         </div>
                         <div class="form-row">
-                            <div class="form-group col-md-4">
+                            <div class="form-group col-md-6">
                                 <label class="form-label" for="kelurahan">Kelurahan</label>
                                 <select class="select2 w-100 dynamicSelect" id="kelurahan" name="kelurahan" data-dependent="kecamatan">
                                 </select>
                             </div>
-                            <div class="form-group col-md-4">
+                            <div class="form-group col-md-6">
                                 <label class="form-label" for="kecamatan">Kecamatan</label>
                                 <select class="select2 w-100" id="kecamatan" name="kecamatan">
                                 </select>
                             </div>
-                            <div class="form-group col-md-2">
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group col-md-4">
                                 <label class="form-label" for="kodePos">Kodepos</label>
                                 <input type="text" id="kodePos" name="kodePos" value="{{ old('kodePos',$suppliers->kode_pos) }}" class="form-control disabled-el" disabled />
                             </div>
@@ -117,13 +119,13 @@
                             </div>
                         </div>
                         <div class="form-row">
-                            <div class="form-group col-md-6">
+                            <div class="form-group col-md-12">
                                 <label class="form-label" for="alamatNpwp">Alamat NPWP</label>
                                 <textarea type="text" id="alamatNpwp" name="alamatNpwp" class="form-control" rows="2" maxlength="100">{{ old('alamatNpwp',$suppliers->alamat_npwp) }}</textarea>
                             </div>
                         </div>
                         <div class="form-row">
-                            <div class="form-group col-md-6">
+                            <div class="form-group col-md-12">
                                 <label class="form-label" for="kotaNpwp">Kota</label>
                                 <select class="select2 w-100" id="kotaNpwp" name="kotaNpwp">
                                     <option value="">All</option>
@@ -134,7 +136,7 @@
                             </div>
                         </div>
                         <div class="form-row">
-                            <div class="form-group col-md-6">
+                            <div class="form-group col-md-12">
                                 <label class="form-label" for="account">Account</label>
                                 <select class="select2 w-100" id="account" name="account">
                                     <option value="">All</option>
@@ -142,6 +144,14 @@
                                         <option value="{{$val->account}}" {{ $val->account == old('account',$suppliers->account) ? "selected" : ""}} >{{$val->account}} | {{$val->description}} </option>
                                     @endforeach
                                 </select>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group col-md-6 align-self-end" >
+                                <div class="custom-control custom-checkbox">
+                                    <input type="checkbox" class="custom-control-input" id="bankBca" name="bankBca" {{ old('bankBca',$suppliers->bank_bca) == 'yes' ? 'checked' : '' }} />
+                                    <label class="custom-control-label" for="bankBca">BANK BCA</label>
+                                </div>
                             </div>
                         </div>
                         <div class="form-row">

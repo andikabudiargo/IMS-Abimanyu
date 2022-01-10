@@ -532,9 +532,74 @@
 
     $('#cmdSave').click(function(e){
 
-        $('#tblApList tbody').on( 'click', 'tr', function () {
-            console.log( table.row( this ).data() );
-        } );
+        let plan,act,balance;
+        let articles=[];
+        let objPlan= $('#tblBaru input[name="plan[]"]');
+        let objAct= $('#tblBaru input[name="act[]"]');
+        let objBalance= $('#tblBaru input[name="balance[]"]');
+        objPlan.map(function(i) {  
+		    let $this=$(this);
+            // console.log($this);
+            if ($this.val()){
+                let date=$this.data('tanggal');
+                let articleCode=$this.data('article-id');
+                let plan=$this.val().replace(/,/gi, '') || 0;
+                let act=objAct.eq(i).val().replace(/,/gi, '') || 0;
+                let balance=objBalance.eq(i).val().replace(/,/gi, '') || 0;
+                articles.push({
+                    "article_code":articleCode,
+                    "date":date,
+                    "plan":plan,
+                    "act" :act,
+                    "balance" : balance
+                });
+            }
+        });
+        console.log(articles);
+        soDate = $("#soDate").val();
+        $.ajax({
+            type: "post",
+            url: "{{ route('deliveryPlan.update') }}",
+            data: {
+                articles:JSON.stringify(articles)
+            },
+            dataType: "json",
+            success: function(data) {
+                if (data.status == 0 ){
+                    let message="";
+                    for(let i = 0; i < data.message.length; i++) {
+                        message += "-"+data.message[i]+"<br>";                           
+                    }
+                    $("#alert-message-success").addClass(data.alert);
+                    $("#alert-message-success .alert-body").html(message);
+                    $("#alert-message-success").show();
+                    $("#alert-message-success").fadeTo(5000, 500).slideUp(500, function(){
+                        $("#alert-message-success").slideUp(500);
+                    });
+
+                }else{
+                    $("#alert-message-success").addClass(data.alert);
+                    $("#alert-message-success .alert-body").html(data.message);
+                    $("#alert-message-success").show();
+                    $("#alert-message-success").fadeTo(5000, 500).slideUp(500, function(){
+                        $("#alert-message-success").slideUp(500);
+                    });
+
+                    
+                    reGenerateData(soDate)
+                }
+                
+            },
+            error: function(error) {
+                console.log(error);
+            }
+        });
+
+
+
+        // $('#tblApList tbody').on( 'click', 'tr', function () {
+        //     console.log( table.row( this ).data() );
+        // } );
 
         // let oki = $('#tblApList').DataTable().rows().data().toArray();
         // console.log(oki);

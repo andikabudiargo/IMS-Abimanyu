@@ -197,7 +197,7 @@
             </li>
             @endcan
             @can('workingOrder-index')
-            <li class="{{ \Request::segment(1) == 'workingOrderSheets' ? 'active' : '' }} " >
+            <li class="{{ \Request::segment(1) == 'workingOrderSheets' ? 'active' : '' }}" >
               <a class="d-flex align-items-center" href="{{ route('workingOrderSheets.index') }}">
                 <i data-feather="circle"></i>
                 <span class="menu-item text-truncate" data-i18n="Input">Working Order Sheet</span>
@@ -205,7 +205,7 @@
             </li>
             @endcan
             @can('workingOrder-index')
-            <li class="{{ \Request::segment(1) == 'workingOrders' ? 'active' : '' }} " >
+            <li class="{{ \Request::segment(1) == 'workingOrders' ? 'active' : '' }}" >
               <a class="d-flex align-items-center" href="{{ route('workingOrders.index') }}">
                 <i data-feather="circle"></i>
                 <span class="menu-item text-truncate" data-i18n="Input">Working Order</span>

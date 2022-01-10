@@ -89,6 +89,7 @@ class SupplierController extends Controller
         $npwp = $request->input('npwp');
         $alamatNpwp = $request->input('alamatNpwp');
         $kotaNpwp = $request->input('kotaNpwp');
+        $bankBca = $request->input('bankBca') ? 'yes' : 'no';
         $third_party_type='supp';
         $aktif = '1';
         $blacklist = '0';
@@ -138,6 +139,7 @@ class SupplierController extends Controller
                     'npwp'=> $npwp,
                     'alamat_npwp'=> $alamatNpwp,
                     'kota_npwp'=> $kotaNpwp,
+                    'bank_bca' => $bankBca,
                     'created_by' => Auth::user()->username,
                     'updated_by' => Auth::user()->username,
                     'created_at' => date('Y-m-d H:i:s'),
@@ -239,6 +241,7 @@ class SupplierController extends Controller
         $alamatNpwp = $request->input('alamatNpwp');
         $kotaNpwp = $request->input('kotaNpwp');
         $third_party_type='supp';
+        $bankBca = $request->input('bankBca') ? 'yes' : 'no';
         $aktif = '1';
         $blacklist = '0';
         $pkp = 'N';
@@ -290,6 +293,7 @@ class SupplierController extends Controller
                         'npwp'=> $npwp,
                         'alamat_npwp'=> $alamatNpwp,
                         'kota_npwp'=> $kotaNpwp,
+                        'bank_bca' => $bankBca,
                         'updated_by' => Auth::user()->username,
                         'updated_at' => date('Y-m-d H:i:s')
                     ]

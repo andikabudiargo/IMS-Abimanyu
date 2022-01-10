@@ -4,8 +4,8 @@
 @include('layouts.breadcrumb')
 @include('partials.alert')
 <section id="add-index">
-    <div class="row">
-        <div class="col-6">
+    <div class="form-row">
+        <div class="col-md-6">
             <div class="card">
                 {{-- <div class="card-header">
                     <h4 class="card-title">Suppliers</h4>
@@ -13,8 +13,8 @@
                 <div class="card-body">
                     <form id="frmAdd" name="frmAdd" action="{{ route('supplier.update',['id'=> $suppliers->id]) }}"  method="post" autocomplete="off">
                         @csrf
-                        <div class="row">
-                            <div class="col-4">
+                        <div class="form-row">
+                            <div class="col-md-4">
                                 <div class="form-group">
                                     <label for="kode">Code</label>
                                     <input type="text" id="kode" name="kode" class="form-control disabled-el" value="{{ old('kode',$suppliers->kode) }}" required maxlength="20" autofocus disabled />
@@ -25,24 +25,24 @@
                                 <input type="text" id="inisial" name="inisial" class="form-control text-uppercase" value="{{ old('inisial',$suppliers->inisial) }}" required maxlength="3" disabled />
                             </div>
                         </div>
-                        <div class="row">
-                            <div class="col-12">
+                        <div class="form-row">
+                            <div class="col-md-12">
                                 <div class="form-group">
                                     <label for="nama">Name</label>
                                     <input type="text" id="nama" name="nama" class="form-control" value="{{ old('nama',$suppliers->nama) }}" required  maxlength="100" disabled/>
                                 </div>
                             </div>
                         </div>
-                        <div class="row">
-                            <div class="col-12">
+                        <div class="form-row">
+                            <div class="col-md-12">
                                 <div class="form-group">
                                     <label for="alamat">Address</label>
                                     <textarea type="text" id="alamat" name="alamat" class="form-control" rows="2" maxlength="100" disabled>{{ old('alamat',$suppliers->alamat_tagih) }}</textarea>
                                 </div>
                             </div>
                         </div>
-                        <div class="row">
-                            <div class="form-group col-md-4">
+                        <div class="form-row">
+                            <div class="form-group col-md-6">
                                 <label class="form-label" for="provinsi">Provinsi</label>
                                 <select class="select2 w-100 dynamicSelect" id="provinsi" name="provinsi" data-dependent="kota" disabled>
                                     <option value="">All</option>
@@ -51,29 +51,31 @@
                                     @endforeach
                                 </select>
                             </div>
-                            <div class="form-group col-md-4">
+                            <div class="form-group col-md-6">
                                 <label class="form-label" for="kota">Kota</label>
                                 <select class="select2 w-100 dynamicSelect" id="kota" name="kota" data-dependent="kelurahan" disabled>
                                 </select>
                             </div>
                         </div>
-                        <div class="row">
-                            <div class="form-group col-md-4">
+                        <div class="form-row">
+                            <div class="form-group col-md-6">
                                 <label class="form-label" for="kelurahan">Kelurahan</label>
                                 <select class="select2 w-100 dynamicSelect" id="kelurahan" name="kelurahan" data-dependent="kecamatan" disabled>
                                 </select>
                             </div>
-                            <div class="form-group col-md-4">
+                            <div class="form-group col-md-6">
                                 <label class="form-label" for="kecamatan">Kecamatan</label>
                                 <select class="select2 w-100" id="kecamatan" name="kecamatan" disabled>
                                 </select>
                             </div>
+                        </div>
+                        <div class="form-row">
                             <div class="form-group col-md-2">
                                 <label class="form-label" for="kodePos">Kodepos</label>
                                 <input type="text" id="kodePos" name="kodePos" value="{{ old('kodePos',$suppliers->kode_pos) }}" class="form-control disabled-el" disabled />
                             </div>
                         </div>
-                        <div class="row">
+                        <div class="form-row">
                             <div class="form-group col-md-4">
                                 <label class="form-label" for="telepon">Telepon</label>
                                 <input type="text" id="telepon" name="telepon" class="form-control angka" value="{{ old('telepon',$suppliers->telepon) }}" maxlength="20" disabled />
@@ -87,19 +89,19 @@
                                 <input type="text" id="hp" name="hp" class="form-control angka" value="{{ old('hp',$suppliers->hp) }}" maxlength="15" disabled />
                             </div>
                         </div>
-                        <div class="row">
+                        <div class="form-row">
                             <div class="form-group col-md-6">
                                 <label class="form-label" for="kontak">Contact person*</label>
                                 <input type="text" id="kontak" name="kontak" class="form-control" value="{{ old('kontak',$suppliers->nama_kontak) }}" maxlength="20" required disabled />
                             </div>
                         </div>
-                        <div class="row">
+                        <div class="form-row">
                             <div class="form-group col-md-6">
                                 <label class="form-label" for="email">Email</label>
                                 <input type="email" id="email" name="email" class="form-control" value="{{ old('email',$suppliers->email) }}" maxlength="50" disabled />
                             </div>
                         </div>
-                        <div class="row">
+                        <div class="form-row">
                             <div class="form-group col-md-4">
                                 <label class="form-label" for="topBatas2">Term</label>
                                 <div class="input-group input-group-merge">
@@ -110,20 +112,20 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="row">
+                        <div class="form-row">
                             <div class="form-group col-md-6">
                                 <label class="form-label" for="npwp">NPWP</label>
                                 <input type="text" id="npwp" name="npwp" value="{{ old('npwp',$suppliers->npwp) }}" class="form-control masking-npwp" disabled/>
                             </div>
                         </div>
-                        <div class="row">
-                            <div class="form-group col-md-6">
+                        <div class="form-row">
+                            <div class="form-group col-md-12">
                                 <label class="form-label" for="alamatNpwp">Alamat NPWP</label>
                                 <textarea type="text" id="alamatNpwp" name="alamatNpwp" class="form-control" rows="2" maxlength="100" disabled>{{ old('alamatNpwp',$suppliers->alamat_npwp) }}</textarea>
                             </div>
                         </div>
-                        <div class="row">
-                            <div class="form-group col-md-6">
+                        <div class="form-row">
+                            <div class="form-group col-md-12">
                                 <label class="form-label" for="kotaNpwp">Kota</label>
                                 <select class="select2 w-100" id="kotaNpwp" name="kotaNpwp" disabled>
                                     <option value="">All</option>
@@ -133,8 +135,8 @@
                                 </select>
                             </div>
                         </div>
-                        <div class="row">
-                            <div class="form-group col-md-6">
+                        <div class="form-row">
+                            <div class="form-group col-md-12">
                                 <label class="form-label" for="account">Account</label>
                                 <select class="select2 w-100" id="account" name="account" disabled>
                                     <option value="">All</option>
@@ -144,7 +146,15 @@
                                 </select>
                             </div>
                         </div>
-                        <div class="row">
+                        <div class="form-row">
+                            <div class="form-group col-md-6 align-self-end" >
+                                <div class="custom-control custom-checkbox">
+                                    <input type="checkbox" class="custom-control-input" id="bankBca" name="bankBca" {{ old('bankBca',$suppliers->bank_bca) == 'yes' ? 'checked' : '' }} />
+                                    <label class="custom-control-label" for="bankBca">BANK BCA</label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-row">
                             <div class="col-12">
                                 <a href="{{ route('suppliers.index') }}" class="btn btn-primary">
                                     Back

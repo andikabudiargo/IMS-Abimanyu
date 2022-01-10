@@ -35,7 +35,7 @@ class AccountPayableProformaController extends Controller
 
         $data['status'] = ['1'=>'Draft','2'=>'Updated','3'=>'Posted','4'=>'Canceled','5'=>'Paid'];
             
-        return view("AccountPayableProforma.index",$data);
+        return view("accountPayableProforma.index",$data);
     }
 
     public function getLastCode($key)

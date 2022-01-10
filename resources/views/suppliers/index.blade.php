@@ -116,7 +116,7 @@
             '<"col-sm-12 col-md-6"i>' +
             '<"col-sm-12 col-md-6"p>' +
             '>';
-        let arr_col_print =[1,2,3,4,5,6,7,8,9]; 
+        let arr_col_print =[1,2,3,4,5,6,7]; 
         $(function(){
         let oTable =$("#detailedTable").DataTable({
             ajax:
