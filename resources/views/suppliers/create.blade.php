@@ -35,7 +35,7 @@
                             </div>
                         </div>
                         <div class="form-row">
-                            <div class="col-12">
+                            <div class="col-md-12">
                                 <div class="form-group">
                                     <label for="alamat">Address</label>
                                     <textarea type="text" id="alamat" name="alamat" class="form-control" rows="2" value="{{ old('alamat') }}" maxlength="100"></textarea>
@@ -45,7 +45,7 @@
                         <div class="form-row">
                             <div class="form-group col-md-6">
                                 <label class="form-label" for="provinsi">Provinsi</label>
-                                <select class="select2 w-100 dynamicSelect" id="provinsi" name="provinsi" data-dependent="kota">
+                                <select class="select2 form-control dynamicSelect" id="provinsi" name="provinsi" data-dependent="kota">
                                     <option value="">All</option>
                                     @foreach($provinces as $val)
                                     <option value="{{$val->region_code}}" >{{$val->region_name}}</option>
@@ -54,19 +54,19 @@
                             </div>
                             <div class="form-group col-md-6">
                                 <label class="form-label" for="kota">Kota</label>
-                                <select class="select2 w-100 dynamicSelect" id="kota" name="kota" data-dependent="kelurahan">
+                                <select class="select2 form-control dynamicSelect" id="kota" name="kota" data-dependent="kelurahan">
                                 </select>
                             </div>
                         </div>
                         <div class="form-row">
                             <div class="form-group col-md-6">
                                 <label class="form-label" for="kelurahan">Kelurahan</label>
-                                <select class="select2 w-100 dynamicSelect" id="kelurahan" name="kelurahan" data-dependent="kecamatan">
+                                <select class="select2 form-control dynamicSelect" id="kelurahan" name="kelurahan" data-dependent="kecamatan">
                                 </select>
                             </div>
                             <div class="form-group col-md-6">
                                 <label class="form-label" for="kecamatan">Kecamatan</label>
-                                <select class="select2 w-100" id="kecamatan" name="kecamatan">
+                                <select class="select2 form-control" id="kecamatan" name="kecamatan">
                                 </select>
                             </div>
                         </div>
@@ -92,7 +92,7 @@
                         </div>
                         <div class="form-row">
                             <div class="form-group col-md-6">
-                                <label class="form-label" for="kontak">Contact person*</label>
+                                <label class="form-label" for="kontak">Contact person</label>
                                 <input type="text" id="kontak" name="kontak" class="form-control" value="{{ old('kontak') }}" maxlength="20" />
                             </div>
                         </div>
@@ -128,7 +128,7 @@
                         <div class="form-row">
                             <div class="form-group col-md-12">
                                 <label class="form-label" for="kotaNpwp">Kota</label>
-                                <select class="select2 w-100" id="kotaNpwp" name="kotaNpwp">
+                                <select class="select2 form-control" id="kotaNpwp" name="kotaNpwp">
                                     <option value="">All</option>
                                     @foreach($cities as $val)
                                         <option value="{{$val->region_code}}">{{$val->region_name}}</option>
@@ -139,7 +139,7 @@
                         <div class="form-row">
                             <div class="form-group col-md-12">
                                 <label class="form-label" for="account">Account</label>
-                                <select class="select2 w-100" id="account" name="account">
+                                <select class="select2 form-control" id="account" name="account">
                                     <option value="">All</option>
                                     @foreach($accounts as $val)
                                         <option value="{{$val->account}}" {{ $val->account == old("account") ? "selected" : ""}} >{{$val->account}} | {{$val->description}} </option>
@@ -147,14 +147,46 @@
                                 </select>
                             </div>
                         </div>
-                        <div class="form-row">
+                        <div class="row">
+                            <div class="form-group col-md-4">
+                                <label class="form-label" for="bankType">Type</label>
+                                <select class="select2 form-control w-100" id="bankType" name="bankType" required>
+                                    <option value="NONBCA" {{ old('bankType') == "NONBCA" ? "selected" : "" }}>NON BCA</option>
+                                    <option value="BCA" {{ old('bankType') == "BCA" ? "selected" : "" }}>BCA</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="form-group col-md-6">
+                                <select class="select2 form-control" id="bankName" name="bankName">
+                                    <label for="bankName">Bank name</label>
+                                    <option value="">Choose bank</option>
+                                    @foreach($banks as $val)
+                                        <option value="{{ $val->bank_name }}" {{ $val->bank_name == old("bankName") ? "selected" : ""}} >{{ $val->bank_name }} </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="form-group col-md-6">
+                                <label for="accNumber">Acount Number</label>
+                                <input type="text" id="accNumber" name="accNumber" class="form-control text-uppercase" value="{{ old('accNumber') }}" maxlength="100" />
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="form-group col-md-6">
+                                <label for="branch">Branch</label>
+                                <input type="text" id="branch" name="branch" class="form-control" value="{{ old('branch') }}"  maxlength="100" />
+                            </div>
+                        </div>
+                        {{-- <div class="form-row">
                             <div class="form-group col-md-6 align-self-end" >
                                 <div class="custom-control custom-checkbox">
                                     <input type="checkbox" class="custom-control-input" id="bankBca" name="bankBca" {{ old('bankBca') == 'yes' ? 'checked' : '' }} />
                                     <label class="custom-control-label" for="bankBca">BANK BCA</label>
                                 </div>
                             </div>
-                        </div>
+                        </div> --}}
                         <div class="form-row">
                             <div class="col-12">
                                 <button class="btn btn-outline-secondary" type="reset" id="cmdCancel" name="cmdCancel">Cancel</button>
@@ -301,6 +333,10 @@
         let val = $(this).find(':selected').text().split(",");
         val.length > 0 ? $('#kodePos').val(val[1]) :'';
     })
+
+    $('#bankType').change(function(e) {
+        $(this).val()=='BCA' ? $('#bankName').val('BANK CENTRAL ASIA Tbk').trigger('change')  : $('#bankName').val('').trigger('change');
+    });
 
     $.ajaxSetup({
         headers: {

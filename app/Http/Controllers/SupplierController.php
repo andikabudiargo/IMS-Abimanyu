@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Crypt;
 use Response;
 use App\Permission;
 use DataTables;
@@ -29,6 +30,10 @@ class SupplierController extends Controller
         ->get();
 
         $data['accounts'] = DB::table('accounts')
+        ->get();
+
+        $data['banks'] = DB::table('banks')
+        ->orderBy('bank_name')
         ->get();
 
         $data['cities'] = DB::table('regions')
@@ -89,7 +94,11 @@ class SupplierController extends Controller
         $npwp = $request->input('npwp');
         $alamatNpwp = $request->input('alamatNpwp');
         $kotaNpwp = $request->input('kotaNpwp');
-        $bankBca = $request->input('bankBca') ? 'yes' : 'no';
+        $bankType = $request->input('bankType');
+        $bankName = $request->input('bankName');
+        $accNumber = $request->input('accNumber');
+        $branch = $request->input('branch');
+        // $bankBca = $request->input('bankBca') ? 'yes' : 'no';
         $third_party_type='supp';
         $aktif = '1';
         $blacklist = '0';
@@ -139,7 +148,11 @@ class SupplierController extends Controller
                     'npwp'=> $npwp,
                     'alamat_npwp'=> $alamatNpwp,
                     'kota_npwp'=> $kotaNpwp,
-                    'bank_bca' => $bankBca,
+                    // 'bank_bca' => $bankBca,
+                    'bank_type' => $bankType,
+                    'bank_name' => $bankName,
+                    'account_number' => $accNumber,
+                    'bank_branch' => $branch,
                     'created_by' => Auth::user()->username,
                     'updated_by' => Auth::user()->username,
                     'created_at' => date('Y-m-d H:i:s'),
@@ -166,7 +179,7 @@ class SupplierController extends Controller
 
     public function edit(Request $request)
     {
-        $id = $request->id;
+        $id=Crypt::decryptString($request->id);
         $data['title'] = "Edit Supplier";
         $data['subtitle'] = "Edit New Supplier";
 
@@ -179,6 +192,10 @@ class SupplierController extends Controller
         ->get();
 
         $data['accounts'] = DB::table('accounts')
+        ->get();
+
+        $data['banks'] = DB::table('banks')
+        ->orderBy('bank_name')
         ->get();
 
         $data['cities'] = DB::table('regions')
@@ -194,7 +211,7 @@ class SupplierController extends Controller
 
     public function show(Request $request)
     {
-        $id = $request->id;
+        $id=Crypt::decryptString($request->id);
         $data['title'] = "Detail Supplier";
         $data['subtitle'] = "Detail Supplier";
 
@@ -209,6 +226,10 @@ class SupplierController extends Controller
         $data['accounts'] = DB::table('accounts')
         ->get();
 
+        $data['banks'] = DB::table('banks')
+        ->orderBy('bank_name')
+        ->get();
+
         $data['cities'] = DB::table('regions')
         ->where ('index','=',1)
         ->orderBy('region_name')
@@ -221,7 +242,7 @@ class SupplierController extends Controller
     public function update(Request $request)
     {
         $username = Auth::user()->username;
-        $id = $request->id;
+        $id=Crypt::decryptString($request->id);
         $kode = $request->input('kode');
         $inisial = strtoupper($request->input('inisial'));
         $nama = $request->input('nama');
@@ -241,7 +262,11 @@ class SupplierController extends Controller
         $alamatNpwp = $request->input('alamatNpwp');
         $kotaNpwp = $request->input('kotaNpwp');
         $third_party_type='supp';
-        $bankBca = $request->input('bankBca') ? 'yes' : 'no';
+        $bankType = $request->input('bankType');
+        $bankName = $request->input('bankName');
+        $accNumber = $request->input('accNumber');
+        $branch = $request->input('branch');
+        // $bankBca = $request->input('bankBca') ? 'yes' : 'no';
         $aktif = '1';
         $blacklist = '0';
         $pkp = 'N';
@@ -293,7 +318,11 @@ class SupplierController extends Controller
                         'npwp'=> $npwp,
                         'alamat_npwp'=> $alamatNpwp,
                         'kota_npwp'=> $kotaNpwp,
-                        'bank_bca' => $bankBca,
+                        // 'bank_bca' => $bankBca,
+                        'bank_type' => $bankType,
+                        'bank_name' => $bankName,
+                        'account_number' => $accNumber,
+                        'bank_branch' => $branch,
                         'updated_by' => Auth::user()->username,
                         'updated_at' => date('Y-m-d H:i:s')
                     ]
@@ -325,7 +354,7 @@ class SupplierController extends Controller
     public function destroy(Request $request)
     {
         $username =  Auth::user()->username;
-        $id = $request->id;
+        $id=Crypt::decryptString($request->id);
 
         $row_affected = DB::table('third_party')
         ->where('id',$id)
@@ -364,12 +393,12 @@ class SupplierController extends Controller
                             </a>';
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
             if (Auth::user()->can('supplier-edit')) {
-            $buttons .=         '<a href="'. route('supplier.edit', ['id'=>$data->id]) .'" class="dropdown-item">
+            $buttons .=         '<a href="'. route('supplier.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                     <i data-feather="file-text"></i>
                                     Edit
                                 </a>';
             }
-            $buttons .=         '<a href="'. route('supplier.show', ['id'=>$data->id]) .'" class="dropdown-item">
+            $buttons .=         '<a href="'. route('supplier.show', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                     <i data-feather="list"></i>
                                     Detail
                                 </a>';
@@ -379,7 +408,7 @@ class SupplierController extends Controller
                                         class='dropdown-item'
                                         data-toggle='modal'
                                         data-target='#smallModal'
-                                        data-href='". route("supplier.destroy", ["id"=>$data->id]) ."'>
+                                        data-href='". route("supplier.destroy", ['id'=>Crypt::encryptString($data->id)]) ."'>
                                         <i data-feather='trash-2'></i>
                                         Delete
                                     </a>";

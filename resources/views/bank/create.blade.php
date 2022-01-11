@@ -5,7 +5,7 @@
 @include('partials.alert')
 
 <section id="add-bank">
-    <div class="row">
+    <div class="form-row">
         <div class="col-6">
             <div class="card">
                 {{-- <div class="card-header">
@@ -14,7 +14,7 @@
                 <div class="card-body">
                     <form id="frmAdd" name="frmAdd" action="{{ route('bank.store') }}" method="post" autocomplete="off">
                         @csrf
-                        <div class="row">
+                        <div class="form-row">
                             <div class="form-group col-md-4">
                                 <label class="form-label" for="bankType">Type</label>
                                 <select class="select2 form-control w-100" id="bankType" name="bankType" required>
@@ -23,25 +23,25 @@
                                 </select>
                             </div>
                         </div>
-                        <div class="row">
+                        <div class="form-row">
                             <div class="form-group col-md-6">
                                 <label for="bankName">Name</label>
                                 <input type="text" id="bankName" name="bankName" class="form-control"  value="{{ old('bankName') }}" maxlength="100"  required />
                             </div>
                         </div>
-                        <div class="row">
+                        <div class="form-row">
                             <div class="form-group col-md-6">
                                 <label for="accNumber">Acount Number</label>
                                 <input type="text" id="accNumber" name="accNumber" class="form-control text-uppercase" value="{{ old('accNumber') }}" maxlength="100" required/>
                             </div>
                         </div>
-                        <div class="row">
+                        <div class="form-row">
                             <div class="form-group col-md-6">
                                 <label for="branch">Branch</label>
                                 <input type="text" id="branch" name="branch" class="form-control" value="{{ old('branch') }}"  maxlength="100" required/>
                             </div>
                         </div>
-                        <div class="row">
+                        <div class="form-row">
                             <div class="col-md-12">
                                 <button class="btn btn-outline-secondary" type="reset" id="cmdCancel" name="cmdCancel">Cancel</button>
                                 <button class="btn btn-success" type="button" id="cmdSave" name="cmdSave">Save</button>

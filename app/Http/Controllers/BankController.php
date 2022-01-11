@@ -50,7 +50,7 @@ class BankController extends Controller
         });
 
         $rule = [
-            'accNumber'=>'required|iunique:banks,account_number',
+            'accNumber'=>'required|iunique:supplier_banks,account_number',
             'bankName'=>'required',
             'branch'=>'required'
         ];
@@ -59,7 +59,7 @@ class BankController extends Controller
 
         DB::beginTransaction();
         try {
-                DB::table('banks')->insert([
+                DB::table('supplier_banks')->insert([
                     'bank_type'=>$type,
                     'bank_name'=>$name,
                     'bank_branch'=>$branch,
@@ -93,7 +93,7 @@ class BankController extends Controller
         $id=$request->id;
         $data['title'] = "Edit Bank";
         $data['subtitle'] = "Edit Bank";
-        $data['banks'] = DB::table('banks')
+        $data['supplier_banks'] = DB::table('supplier_banks')
         ->where('id',$id)
         ->get()->first();
 
@@ -129,7 +129,7 @@ class BankController extends Controller
         DB::beginTransaction();
 
         try {
-                $row_affected=DB::table('banks')
+                $row_affected=DB::table('supplier_banks')
                 ->where('id',$id)
                 ->update(
                     [
@@ -171,7 +171,7 @@ class BankController extends Controller
         $username =  Auth::user()->username;
         $id = $request->id;
 
-        $row_affected = DB::table('banks')
+        $row_affected = DB::table('supplier_banks')
         ->where('id',$id)
         ->delete();
 
@@ -195,7 +195,7 @@ class BankController extends Controller
         $name = strtolower($request->name);
 
         //ilike = string to lower
-        $data=DB::table('banks')
+        $data=DB::table('supplier_banks')
         ->where(function ($query) use ($type,$name) {
             $type ? $query->where('bank_type','ilike','%'.$type.'%') :'';
             $name ? $query->where('bank_name','ilike','%'.$name.'%') :'';
