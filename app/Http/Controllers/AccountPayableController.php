@@ -136,15 +136,16 @@ class AccountPayableController extends Controller
                             ,b.nama
                             ,(select round(sum(qty*price)) as total_po from purchase_order_det where po_number= a.po_number) as total_po 
                             ,round((select sum(qty*price) from receiving_det where rec_number = a.rec_number)) as basis_amount
-                            ,(select ppn from purchase_order_hdr where po_number =a.po_number) as vat
-                            ,(select pkp from purchase_order_hdr where po_number =a.po_number) as pkp
-                            ,(select currency from purchase_order_hdr where po_number =a.po_number) as currency
-                            ,(select kurs from purchase_order_hdr where po_number =a.po_number) as kurs
-                            ,to_char(to_date(rec_date,'dd-mm-yyyy')+(select termin from purchase_order_hdr where po_number = a.po_number),'dd-mm-yyyy') as due_date
-                            ,((select sum(qty*price) from receiving_det where po_number = a.po_number) - (select sum(qty*price) from purchase_order_det where po_number = a.po_number)) as po_balance
+                            ,c.ppn as vat
+                            ,c.pkp as pkp
+                            ,c.currency as currency
+                            ,c.kurs  as kurs
+                            ,to_char(to_date(rec_date,'dd-mm-yyyy')+c.termin,'dd-mm-yyyy') as due_date
+                            ,(select sum(qty*price) from purchase_order_det where po_number = a.po_number)-(select sum(basis_amount) from ap_invoice where po_number = a.po_number) as po_balance
                             from receiving_hdr a
                             left join third_party b on b.kode = a.supplier_id
-                            where po_number = '$poNumber'");
+                            left join purchase_order_hdr c on c.po_number = a.po_number
+                            where a.po_number = '$poNumber'");
          return response()->json($data);
     }
 
@@ -184,7 +185,14 @@ class AccountPayableController extends Controller
 
         $data['currency'] = ['IDR','USD'];
         $data['status'] = 'New';
-        $data['accounts'] = DB::table('accounts')->get();
+
+        $data['accountBa'] = DB::table('accounts')
+        ->whereIn('type_code',['11','12','14','15','42','44','46','48'])
+        ->get();
+
+        $data['accounts'] = DB::table('accounts')
+        ->whereIn('type_code',['21','22','23','24'])
+        ->get();
 
         return view("accountPayable.create",$data);
     }
@@ -194,6 +202,7 @@ class AccountPayableController extends Controller
         $username =  Auth::user()->username;
         $suppCode = $request->input('supplier');
         $poNumber = $request->input('poNumberDet');
+        $profInvoice = $request->input('profInvoice');
         $recNumber = $request->input('recNumber');
         $recDate = $request->input('recDate');
         $dueDate = $request->input('dueDate');
@@ -201,8 +210,9 @@ class AccountPayableController extends Controller
         $rate = is_null($request->input('rate')) ? 0 : preg_replace('/[^0-9.]+/', '', $request->input('rate'));
         $invoiceNumber= $request->input('invoiceNumber');
         $invoiceDate= $request->input('invoiceDate');
-        $taxInvoiceNumber= $request->input('taxInvoiceNumber');
+        $taxInvoiceNumber = $request->input('taxInvoiceNumber');
         $basisAmount = is_null($request->input('basisAmount')) ? 0 : preg_replace('/[^0-9.]+/', '', $request->input('basisAmount'));
+        $accountBasisA = $request->input('accountBasisA');
         $vat = is_null($request->input('vat')) ? 0 : preg_replace('/[^0-9.]+/', '', $request->input('vat'));
         $otherDeduct = is_null($request->input('otherDeduct')) ? 0 : preg_replace('/[^0-9.]+/', '', $request->input('otherDeduct'));
         $account= $request->input('account');
@@ -250,6 +260,7 @@ class AccountPayableController extends Controller
                     'ap_number' => $apNumber,
                     'inv_number' => $invoiceNumber,
                     'tax_inv_number' => $taxInvoiceNumber,
+                    'proforma_inv_number' => $profInvoice,
                     'old_ap_number' => $apNumber,
                     'inv_date' => $invoiceDate,
                     'rec_number' => $recNumber,
@@ -260,6 +271,7 @@ class AccountPayableController extends Controller
                     'currency' => $currency,
                     'kurs' => $rate,
                     'basis_amount' => $basisAmount,
+                    'account_ba'=> $accountBasisA,
                     'vat' => $vat,
                     'pph23' => $pph23,
                     'pph23_type' => $pph23Type,
@@ -335,7 +347,13 @@ class AccountPayableController extends Controller
                 
         $data['statusEdit'] = $statusEdit[$data['details']->status -1];
 
-        $data['accounts'] = DB::table('accounts')->get();
+        $data['accountBa'] = DB::table('accounts')
+        ->whereIn('type_code',['11','12','14','15','42','44','46','48'])
+        ->get();
+
+        $data['accounts'] = DB::table('accounts')
+        ->whereIn('type_code',['21','22','23','24'])
+        ->get();
 
         return view("accountPayable.show",$data);
         
@@ -370,7 +388,14 @@ class AccountPayableController extends Controller
 
         $data['currency'] = ['IDR','USD'];
         $data['status'] = 'New';
-        $data['accounts'] = DB::table('accounts')->get();
+        
+        $data['accountBa'] = DB::table('accounts')
+        ->whereIn('type_code',['11','12','14','15','42','44','46','48'])
+        ->get();
+
+        $data['accounts'] = DB::table('accounts')
+        ->whereIn('type_code',['21','22','23','24'])
+        ->get();
 
         return view("accountPayable.edit",$data);
         
@@ -391,6 +416,7 @@ class AccountPayableController extends Controller
         $invoiceDate= $request->input('invoiceDate');
         $taxInvoiceNumber= $request->input('taxInvoiceNumber');
         $basisAmount = is_null($request->input('basisAmount')) ? 0 : preg_replace('/[^0-9.]+/', '', $request->input('basisAmount'));
+        $accountBasisA = $request->input('accountBasisA');
         $vat = is_null($request->input('vat')) ? 0 : preg_replace('/[^0-9.]+/', '', $request->input('vat'));
         $pph23 = $request->input('pph23Check') == 'on'? is_null($request->input('pph23')) ? 0 : preg_replace('/[^0-9.]+/', '', $request->input('pph23')) : 0;
         $pph23Type= $request->input('pph23Check') == 'on'? is_null($request->input('pph23'))? "":$request->input('pph23Type') : '';
@@ -427,6 +453,7 @@ class AccountPayableController extends Controller
                     [   
                         'inv_number' => $invoiceNumber,
                         'tax_inv_number' => $taxInvoiceNumber,
+                        'proforma_inv_number' => $profInvoice,
                         'inv_date' => $invoiceDate,
                         'rec_number' => $recNumber,
                         'po_number' => $poNumber,
@@ -436,6 +463,7 @@ class AccountPayableController extends Controller
                         'currency' => $currency,
                         'kurs' => $rate,
                         'basis_amount' => $basisAmount,
+                        'account_ba'=> $accountBasisA,
                         'vat' => $vat,
                         'pph23' => $pph23,
                         'pph23_type' => $pph23Type,
@@ -451,7 +479,7 @@ class AccountPayableController extends Controller
                                                                             
                 DB::commit();
 
-                $title ='Edit Invoice';
+                $title ='Update AP Invoice';
                 $alert  ="success";
                 $message  = "$title $apNumber is successfully update";
 
@@ -481,7 +509,7 @@ class AccountPayableController extends Controller
 
         } catch (Exception $e) {
             DB::rollBack();
-            $title ='Update Invoice';
+            $title ='Update AP Invoice';
             $alert  ="warning";
             $message  = "*Invoice $apNumber is failed to update";
             \LogActivity::addToLog($title,"username: $username Status $message");

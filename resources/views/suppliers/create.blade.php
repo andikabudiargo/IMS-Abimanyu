@@ -162,7 +162,7 @@
                                     <label for="bankName">Bank name</label>
                                     <option value="">Choose bank</option>
                                     @foreach($banks as $val)
-                                        <option value="{{ $val->bank_name }}" {{ $val->bank_name == old("bankName") ? "selected" : ""}} >{{ $val->bank_name }} </option>
+                                        <option value="{{ $val->bank_name }}" {{ $val->bank_name == old("bankName") ? "selected" : ""}} required >{{ $val->bank_name }} </option>
                                     @endforeach
                                 </select>
                             </div>
@@ -170,13 +170,13 @@
                         <div class="row">
                             <div class="form-group col-md-6">
                                 <label for="accNumber">Acount Number</label>
-                                <input type="text" id="accNumber" name="accNumber" class="form-control text-uppercase" value="{{ old('accNumber') }}" maxlength="100" />
+                                <input type="text" id="accNumber" name="accNumber" class="form-control text-uppercase" value="{{ old('accNumber') }}" maxlength="100" required/>
                             </div>
                         </div>
                         <div class="row">
                             <div class="form-group col-md-6">
                                 <label for="branch">Branch</label>
-                                <input type="text" id="branch" name="branch" class="form-control" value="{{ old('branch') }}"  maxlength="100" />
+                                <input type="text" id="branch" name="branch" class="form-control" value="{{ old('branch') }}"  maxlength="100" required/>
                             </div>
                         </div>
                         {{-- <div class="form-row">

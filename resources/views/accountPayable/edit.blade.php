@@ -39,6 +39,10 @@
                                                     <label for="apNumber">AP Number</label> <small class="text-muted"> automatic</small>
                                                     <input type="text" id="apNumber" name="apNumber" class="form-control text-hitam disabled-el" value="{{ old('apNumber', $details->ap_number) }}" disabled />
                                                 </div>
+                                                <div class="form-group col-md-3">
+                                                    <label for="profInvoice">Prof Invoice</label>
+                                                    <input type="text" id="profInvoice" name="profInvoice" class="form-control text-hitam disabled-el" value="{{ old('profInvoice', Session::get('details') ? Session::get('details')->proforma_inv_number :"") }}" disabled />
+                                                </div>
                                             </div>
                                             <div class="form-row">
                                                 <div class="form-group col-md-6">
@@ -50,6 +54,8 @@
                                                         @endforeach
                                                     </select>
                                                 </div>
+                                            </div>
+                                            <div class="form-row">
                                                 <div class="form-group col-md-3">
                                                     <label class="form-label" for="poNumber">PO Number</label>
                                                     <select class="select2 form-control text-hitam disabled-el" id="poNumber" name="poNumber" disabled>
@@ -61,25 +67,16 @@
                                                     </select>
                                                 </div>
                                             </div>
-                                            <h4>Detail invoice</h4>
+                                            <hr>
+                                            {{-- <h4>Detail invoice</h4> --}}
                                             <div class="form-row">                                    
-                                                <div class="form-group col-md-6">
+                                                <div class="form-group col-md-6 d-none">
                                                     <label for="suppCode">Supplier</label>
                                                     <input type="text" id="suppCode" name="suppCode" class="form-control text-hitam disabled-el" value="{{ old('suppCode',$details ? $details->supplier_id :"") }}" disabled required />
                                                 </div>
-                                                <div class="form-group col-md-3">
+                                                <div class="form-group col-md-3 d-none">
                                                     <label for="poNumberDet">PO Number</label>
                                                     <input type="text" id="poNumberDet" name="poNumberDet" class="form-control text-hitam disabled-el" value="{{ old('poNumberDet',$details ? $details->po_number : "") }}" disabled required/>
-                                                </div>       
-                                            </div>
-                                            <div class="form-row">
-                                                <div class="form-group col-md-3">
-                                                    <label for="recDate">Receive Date</label>
-                                                    <input type="text" id="recDate" name="recDate" class="form-control text-hitam disabled-el" value="{{ old('recDate',$details ? $details->rec_date : "") }}" placeholder="DD-MM-YYYY" disabled/>
-                                                </div>
-                                                <div class="form-group col-md-3">
-                                                    <label for="dueDate">Due Date</label>
-                                                    <input type="text" id="dueDate" name="dueDate" class="form-control text-hitam disabled-el" value="{{ old('dueDate',$details ? $details->due_date : "") }}" placeholder="DD-MM-YYYY" disabled/>
                                                 </div>       
                                             </div>
                                             <div class="form-row">
@@ -91,6 +88,14 @@
                                                     <label for="balance">Balance</label>
                                                     <input type="text" id="balance" name="balance" class="form-control numeral-mask text-right text-hitam disabled-el" value="{{ old('balance') }}" disabled/>
                                                 </div>
+                                                <div class="form-group col-md-3">
+                                                    <label for="recDate">Receive Date</label>
+                                                    <input type="text" id="recDate" name="recDate" class="form-control text-hitam disabled-el" value="{{ old('recDate',$details ? $details->rec_date : "") }}" placeholder="DD-MM-YYYY" disabled/>
+                                                </div>
+                                                <div class="form-group col-md-3">
+                                                    <label for="dueDate">Due Date</label>
+                                                    <input type="text" id="dueDate" name="dueDate" class="form-control text-hitam disabled-el" value="{{ old('dueDate',$details ? $details->due_date : "") }}" placeholder="DD-MM-YYYY" disabled/>
+                                                </div>       
                                             </div>
                                             <div class="form-row">
                                                 <div class="form-group col-md-2">
@@ -101,33 +106,46 @@
                                                         @endforeach
                                                     </select>
                                                 </div>
-                                                <div class="form-group col-md-3">
+                                                <div class="form-group col-md-2">
                                                     <label for="rate">Rate</label>
                                                     <input type="text" id="rate" name="rate" class="form-control numeral-mask text-right"/>
                                                 </div>  
                                             </div>                         
                                             <div class="form-row">
-                                                <div class="form-group col-md-3">
+                                                <div class="form-group col-md-2">
                                                     <label for="invoiceNumber">Invoice Number</label>
                                                     <input type="text" id="invoiceNumber" name="invoiceNumber" class="form-control" value="{{ old('invoiceNumber',$details ? $details->inv_number :"") }}" required/>
                                                 </div>
-                                                <div class="form-group col-md-3">
+                                                <div class="form-group col-md-2">
                                                     <label for="invoiceDate">Invoice Date</label>
                                                     <input type="text" id="invoiceDate" name="invoiceDate" class="form-control" value="{{ old('invoiceDate',$details ? $details->inv_date :"") }}" placeholder="DD-MM-YYYY" required/>
                                                 </div> 
                                             </div>
                                             <div class="form-row">
-                                                <div class="form-group col-md-6">
+                                                <div class="form-group col-md-2">
                                                     <label for="taxInvoiceNumber">Tax Invoice Number</label>
                                                     <input type="text" id="taxInvoiceNumber" name="taxInvoiceNumber" class="form-control" value="{{ old('taxInvoiceNumber',$details ? $details->tax_inv_number : "") }}" />
                                                 </div>
                                             </div>
                                             <div class="form-row">
-                                                <div class="form-group col-md-3">
+                                                <div class="form-group col-md-2">
                                                     <label for="basisAmount">Basis Amount</label>
                                                     <input type="text" id="basisAmount" name="basisAmount" class="form-control numeral-mask text-right" value="{{ old('basisAmount',$details ? $details->basis_amount : "") }}" required/>
                                                 </div>
-                                                <div class="form-group col-md-3">
+                                                <div class="form-row">
+                                                    <div class="form-group col-md-3">
+                                                        <label class="form-label" for="accountBasisA">COA</label>
+                                                        <select class="select2 form-control w-100" id="accountBasisA" name="accountBasisA">
+                                                            <option value="">Choose option</option>
+                                                            @foreach($accountBa as $val)
+                                                                <option value="{{ $val->account }}" {{ old('account',$details ? $details->account_ba : "") == $val->account ? 'selected' : '' }}>{{ $val->account}} - {{ $val->description }}</option>
+                                                            @endforeach
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="form-row">
+                                                <div class="form-group col-md-2">
                                                     <label for="vat">VAT</label>
                                                     <input type="text" id="vat" name="vat" class="form-control numeral-mask text-right" value="{{ old('vat',$details ? $details->vat : "") }}" />
                                                 </div>
@@ -161,19 +179,19 @@
                                                 </div>
                                             </div>
                                             <div class="form-row">
-                                                <div class="form-group col-md-3">
+                                                <div class="form-group col-md-2">
                                                     <label for="otherDeduct">Other Deductions</label>
                                                     <input type="text" id="otherDeduct" name="otherDeduct" class="form-control numeral-mask text-right" value="{{ old('otherDeduct',$details ? $details->other_deduction : "") }}" />
                                                 </div>
                                             </div>
                                             <div class="form-row">
-                                                <div class="form-group col-md-3">
+                                                <div class="form-group col-md-2">
                                                     <label for="grandTotal">Total</label>
-                                                    <input type="text" id="grandTotal" name="grandTotal" class="form-control numeral-mask text-right" value="{{ old('grandTotal', ($details->basis_amount+$details->vat+$details->pph23) - $details->other_deduction ) }}" />
+                                                    <input type="text" id="grandTotal" name="grandTotal" class="form-control numeral-mask text-right" value="{{ old('grandTotal', ($details->basis_amount+$details->vat)-($details->pph23 + $details->other_deduction )) }}" />
                                                 </div>
                                             </div>
                                             <div class="form-row">
-                                                <div class="form-group col-md-6">
+                                                <div class="form-group col-md-3">
                                                     <label class="form-label" for="account">COA</label>
                                                     <select class="select2 w-100" id="account" name="account">
                                                         <option value="">Choose option</option>
@@ -188,7 +206,6 @@
                                                 <div class="col-md-12">
                                                     <button class="btn btn-warning" type="reset" id="cmdCancel" name="cmdCancel">Cancel</button>
                                                     <button class="btn btn-success" type="reset" id="cmdNew" name="cmdCancel">New</button>
-                                                    
                                                     @if($details->status == '1' || $details->status =='2' )
                                                         <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Update</button>
                                                         @can('ap-posting')
@@ -384,15 +401,12 @@
 
     $(document).ready(function(){
         validateFormToast("frmAdd");
-
         let errors = "{{ $errors }}";
         errors=errors.replace(/[{[\]}]/g,'');
         errors=errors.replace(/&quot;/g,'').split(",");
-        alert = "warning";
-        title = "Validasi Form";
         $.each(errors, function(key, value) {
             if (value)
-            show_msg(title, value, alert);
+            show_msg("Validasi Form", value, "warning");
         });
 
         let supplierAda = "{{ $details->supplier_id }}";
@@ -403,12 +417,8 @@
             $('#supplier').val(supplierAda).trigger('change');
             $('#recNumber').val(recAda).trigger('change');
         }
-
         mask_thousand();
-
     });
-
-    mask_thousand();
 
     $("#pph23Check").change(function() {
         if(this.checked) {

@@ -62,18 +62,6 @@
                                     <input type="text" id="totalPO" name="totalPO" class="form-control numeral-mask text-right disabled-el" value="{{ old('totalPO') }}" disabled/>
                                 </div>
                             </div>
-                            {{-- <div class="form-row">
-                                <div class="form-group col-md-3">
-                                    <label for="invoiceNumber">Proforma Invoice Number</label>
-                                    <input type="text" id="invoiceNumber" name="invoiceNumber" class="form-control" value="{{ old('invoiceNumber',Session::get('details') ? Session::get('details')->inv_number :'') }}" required/>
-                                </div>
-                            </div>
-                            <div class="form-row">
-                                <div class="form-group col-md-3">
-                                    <label for="invoiceDate">Proforma Invoice Date</label>
-                                    <input type="text" id="invoiceDate" name="invoiceDate" class="form-control" value="{{ old('invoiceDate',Session::get('details') ? Session::get('details')->inv_date :'') }}" placeholder="DD-MM-YYYY" required/>
-                                </div> 
-                            </div> --}}
                             <div class="form-row">
                                 <div class="form-group col-md-2">
                                     <label for="currency">Currency*</label>
@@ -227,28 +215,23 @@
 <script type="text/javascript">
     let currentDate = todayDate('dd-mm-yyyy');
     let poAda;
-    let recAda
     let status ="{{ Session::get('status') ? Session::get('status'): '' }}";
     // show_msg(data.title, data.message[i], data.alert);
     $(document).ready(function(){
         validateFormToast("frmAdd");
-
         let errors = "{{ $errors }}";
         errors=errors.replace(/[{[\]}]/g,'');
         errors=errors.replace(/&quot;/g,'').split(",");
-        alert = "warning";
-        title = "Validasi Form";
         $.each(errors, function(key, value) {
             if (value)
-            show_msg(title, value, alert);
+            show_msg("Validasi Form", value, "warning");
         });
 
         let supplierAda = "{{ Session::get('details') ? Session::get('details')->supplier_id :"" }}";
         poAda = "{{ Session::get('details') ? Session::get('details')->po_number :"" }}";
-        recAda = "{{ Session::get('details') ? Session::get('details')->rec_number :"" }}";
+        
         if(supplierAda){
             $('#supplier').val(supplierAda).trigger('change');
-            $('#recNumber').val(recAda).trigger('change');
         }
 
         $('#invoiceDate').val(currentDate);
@@ -290,22 +273,6 @@
         });
     }
 
-    recDate = $('#recDate');
-    if (recDate.length) {
-        recDate.flatpickr({
-            dateFormat: "d-m-Y",
-            maxDate: "today"
-        });
-    }
-
-    dueDate = $('#dueDate');
-    if (dueDate.length) {
-        dueDate.flatpickr({
-            dateFormat: "d-m-Y",
-            maxDate: "today"
-        });
-    }
-    
     function reloadPage(){
         window.location.reload();
     }
@@ -364,7 +331,6 @@
         }
     });
   
-    
     $("#cmdSave").click(function(){     
         if (!$("#frmAdd")[0].checkValidity()){
             $('.disabled-el').removeAttr('disabled');
@@ -374,7 +340,6 @@
             $("#frmAdd").submit();
         }
     });
-
 
     $("#cmdPosting").click(function(){        
         let piNumber = $('#piNumber').val();            

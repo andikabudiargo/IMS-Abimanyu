@@ -17,7 +17,7 @@
       <div class="card-body">
         <form class="needs-validation" novalidate>
             <div class="form-row">
-              <div class="form-group col-md-3"> 
+              <div class="form-group col-md-3 d-none"> 
                 <label for="searchRec">Rec Number</label>
                 <input type="text" class="form-control text-uppercase" id="searchRec" name="searchRec" placeholder=""  />
               </div>

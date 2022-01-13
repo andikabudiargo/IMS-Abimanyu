@@ -23,59 +23,66 @@
                                     <label for="apNumber">AP Number</label> <small class="text-muted"> automatic</small>
                                     <input type="text" id="apNumber" name="apNumber" class="form-control text-hitam disabled-el" value="{{ old('apNumber', Session::get('details') ? Session::get('details')->ap_number :"") }}" disabled />
                                 </div>
+                                <div class="form-group col-md-3">
+                                    <label for="profInvoice">Prof Invoice</label>
+                                    <input type="text" id="profInvoice" name="profInvoice" class="form-control text-hitam disabled-el" value="{{ old('profInvoice', Session::get('details') ? Session::get('details')->proforma_inv_number :"") }}" disabled />
+                                </div>
                             </div>
                             <div class="form-row">
                                 <div class="form-group col-md-6">
-                                    <label class="form-label" for="supplier">Supplier</label>
-                                    <select class="select2 form-control" id="supplier" name="supplier">
+                                    <label class="form-label" for="supplier">Supplier*</label>
+                                    <select class="select2 form-control" id="supplier" name="supplier" required>
                                         <option value="">All</option>
                                         @foreach($supps as $val)
                                             <option value="{{ $val->kode }}" {{ old('supplier',Session::get('details') ? Session::get('details')->supplier_id :"") == $val->kode ? 'selected' : '' }} >{{$val->kode}} - {{$val->nama}}</option>
                                         @endforeach
                                     </select>
                                 </div>
+                            </div>
+                            <div class="form-row">
                                 <div class="form-group col-md-3">
-                                    <label class="form-label" for="poNumber">PO Number</label>
-                                    <select class="select2 form-control" id="poNumber" name="poNumber">
+                                    <label class="form-label" for="poNumber">PO Number*</label>
+                                    <select class="select2 form-control" id="poNumber" name="poNumber" required>
                                     </select>
                                 </div>
+                            
                                 <div class="form-group col-md-3">
-                                    <label class="form-label" for="recNumber">Rec.Number / LPB</label>
-                                    <select class="select2 form-control" id="recNumber" name="recNumber">
+                                    <label class="form-label" for="recNumber">Rec.Number/LPB*</label>
+                                    <select class="select2 form-control" id="recNumber" name="recNumber" required>
                                     </select>
                                 </div>
                             </div>
-                            <h4>Detail invoice</h4>
+                            <hr>
+                            {{-- <h4>Detail invoice</h4> --}}
                             <div class="form-row">                                    
-                                <div class="form-group col-md-6">
+                                <div class="form-group col-md-6 d-none">
                                     <label for="suppCode">Supplier</label>
                                     <input type="text" id="suppCode" name="suppCode" class="form-control disabled-el" value="{{ old('suppCode') }}" disabled required />
                                 </div>
-                                <div class="form-group col-md-6">
+                                <div class="form-group col-md-6 d-none">
                                     <label for="poNumberDet">PO Number</label>
                                     <input type="text" id="poNumberDet" name="poNumberDet" class="form-control disabled-el" value="{{ old('poNumberDet') }}" disabled required/>
                                 </div>       
                             </div>
                             <div class="form-row">
-                                <div class="form-group col-md-3">
-                                    <label for="recDate">Receive Date</label>
-                                    <input type="text" id="recDate" name="recDate" class="form-control disabled-el" value="{{ old('recDate') }}" placeholder="DD-MM-YYYY" disabled/>
+                                <div class="form-group col-md-2">
+                                    <label for="totalPO">Total PO</label>
+                                    <input type="text" id="totalPO" name="totalPO" class="form-control numeral-mask text-right text-hitam disabled-el" value="{{ old('totalPO') }}" disabled/>
                                 </div>
-                                <div class="form-group col-md-3">
+                                <div class="form-group col-md-2">
+                                    <label for="balance">Balance</label>
+                                    <input type="text" id="balance" name="balance" class="form-control numeral-mask text-right text-hitam disabled-el" value="{{ old('balance') }}" disabled/>
+                                </div>
+                                <div class="form-group col-md-2">
+                                    <label for="recDate">Receive Date</label>
+                                    <input type="text" id="recDate" name="recDate" class="form-control text-hitam disabled-el" value="{{ old('recDate') }}" placeholder="DD-MM-YYYY" disabled/>
+                                </div>
+                                <div class="form-group col-md-2">
                                     <label for="dueDate">Due Date</label>
-                                    <input type="text" id="dueDate" name="dueDate" class="form-control disabled-el" value="{{ old('dueDate') }}" placeholder="DD-MM-YYYY" disabled/>
+                                    <input type="text" id="dueDate" name="dueDate" class="form-control text-hitam disabled-el" value="{{ old('dueDate') }}" placeholder="DD-MM-YYYY" disabled/>
                                 </div>       
                             </div>
-                            <div class="form-row">
-                                <div class="form-group col-md-3">
-                                    <label for="totalPO">Total PO</label>
-                                    <input type="text" id="totalPO" name="totalPO" class="form-control numeral-mask text-right disabled-el" value="{{ old('totalPO') }}" disabled/>
-                                </div>
-                                <div class="form-group col-md-3">
-                                    <label for="balance">Balance</label>
-                                    <input type="text" id="balance" name="balance" class="form-control numeral-mask text-right disabled-el" value="{{ old('balance') }}" disabled/>
-                                </div>
-                            </div>
+                            <hr>
                             <div class="form-row">
                                 <div class="form-group col-md-2">
                                     <label for="currency">Currency*</label>
@@ -85,33 +92,44 @@
                                         @endforeach
                                     </select>
                                 </div>
-                                <div class="form-group col-md-3">
+                                <div class="form-group col-md-2">
                                     <label for="rate">Rate</label>
                                     <input type="text" id="rate" name="rate" value="{{ old('rate',Session::get('details') ? Session::get('details')->kurs :'') }}" class="form-control numeral-mask text-right"/>
                                 </div>  
                             </div>                         
                             <div class="form-row">
-                                <div class="form-group col-md-3">
-                                    <label for="invoiceNumber">Invoice Number</label>
+                                <div class="form-group col-md-2">
+                                    <label for="invoiceNumber">Invoice Number*</label>
                                     <input type="text" id="invoiceNumber" name="invoiceNumber" class="form-control" value="{{ old('invoiceNumber',Session::get('details') ? Session::get('details')->inv_number :'') }}" required/>
                                 </div>
-                                <div class="form-group col-md-3">
-                                    <label for="invoiceDate">Invoice Date</label>
+                                <div class="form-group col-md-2">
+                                    <label for="invoiceDate">Invoice Date*</label>
                                     <input type="text" id="invoiceDate" name="invoiceDate" class="form-control" value="{{ old('invoiceDate',Session::get('details') ? Session::get('details')->inv_date :'') }}" placeholder="DD-MM-YYYY" required/>
                                 </div> 
                             </div>
                             <div class="form-row">
-                                <div class="form-group col-md-3">
+                                <div class="form-group col-md-2">
                                     <label for="taxInvoiceNumber">Tax Invoice Number</label>
                                     <input type="text" id="taxInvoiceNumber" name="taxInvoiceNumber" class="form-control" value="{{ old('taxInvoiceNumber',Session::get('details') ? Session::get('details')->tax_inv_number : '') }}" />
                                 </div>
                             </div>
                             <div class="form-row">
-                                <div class="form-group col-md-3">
-                                    <label for="basisAmount">Basis Amount</label>
+                                <div class="form-group col-md-2">
+                                    <label for="basisAmount">Basis Amount*</label>
                                     <input type="text" id="basisAmount" name="basisAmount" class="form-control numeral-mask text-right" value="{{ old('basisAmount',Session::get('details') ? Session::get('details')->basis_amount : '') }}" required/>
                                 </div>
                                 <div class="form-group col-md-3">
+                                    <label class="form-label" for="accountBasisA">COA*</label>
+                                    <select class="select2 form-control w-100" id="accountBasisA" name="accountBasisA" required>
+                                        <option value="">Choose option</option>
+                                        @foreach($accountBa as $val)
+                                            <option value="{{ $val->account }}" {{ old('account',Session::get('details') ? Session::get('details')->account_ba : '') == $val->account ? 'selected' : '' }}>{{ $val->account}} - {{ $val->description }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group col-md-2">
                                     <label for="vat">VAT</label>
                                     <input type="text" id="vat" name="vat" class="form-control numeral-mask text-right" value="{{ old('vat',Session::get('details') ? Session::get('details')->vat : '') }}" />
                                 </div>
@@ -145,21 +163,19 @@
                                 </div>
                             </div>
                             <div class="form-row">
-                                <div class="form-group col-md-3">
+                                <div class="form-group col-md-2">
                                     <label for="otherDeduct">Other Deductions</label>
                                     <input type="text" id="otherDeduct" name="otherDeduct" class="form-control numeral-mask text-right" value="{{ old('otherDeduct',Session::get('details') ? Session::get('details')->other_deduction : '') }}" />
                                 </div>
                             </div>
                             <div class="form-row">
-                                <div class="form-group col-md-3">
-                                    <label for="grandTotal">Total</label>
-                                    <input type="text" id="grandTotal" name="grandTotal" class="form-control numeral-mask text-right" value="{{ old('grandTotal') }}" />
+                                <div class="form-group col-md-2">
+                                    <label for="grandTotal">Total*</label>
+                                    <input type="text" id="grandTotal" name="grandTotal" class="form-control numeral-mask text-right" value="{{ old('grandTotal') }}" required/>
                                 </div>
-                            </div>
-                            <div class="form-row">
-                                <div class="form-group col-md-6">
-                                    <label class="form-label" for="account">COA</label>
-                                    <select class="select2 form-control w-100" id="account" name="account">
+                                <div class="form-group col-md-3">
+                                    <label class="form-label" for="account">COA*</label>
+                                    <select class="select2 form-control w-100" id="account" name="account" required>
                                         <option value="">Choose option</option>
                                         @foreach($accounts as $val)
                                             <option value="{{ $val->account }}" {{ old('account',Session::get('details') ? Session::get('details')->account : '') == $val->account ? 'selected' : '' }}>{{ $val->account}} - {{ $val->description }}</option>
@@ -167,6 +183,7 @@
                                     </select>
                                 </div>
                             </div>
+                            
                             <br>
                             <div class="form-row">
                                 <div class="col-md-12">
@@ -250,15 +267,12 @@
     // show_msg(data.title, data.message[i], data.alert);
     $(document).ready(function(){
         validateFormToast("frmAdd");
-
         let errors = "{{ $errors }}";
         errors=errors.replace(/[{[\]}]/g,'');
         errors=errors.replace(/&quot;/g,'').split(",");
-        alert = "warning";
-        title = "Validasi Form";
         $.each(errors, function(key, value) {
             if (value)
-            show_msg(title, value, alert);
+            show_msg("Validasi Form", value, "warning");
         });
 
         let supplierAda = "{{ Session::get('details') ? Session::get('details')->supplier_id :"" }}";
@@ -291,8 +305,7 @@
         let vat = parseInt($('#vat').val().replace(/,/gi, '')) || 0;
         let pph23 = parseInt($('#pph23').val().replace(/,/gi, '')) || 0;
         let od = parseInt($('#otherDeduct').val().replace(/,/gi, '')) || 0;
-        let total = ba? (ba+vat+pph23)-od : '';
-        console.log(total);
+        let total = ba? (ba+vat)-(pph23+od) : '';
         $('#grandTotal').val(total);
         mask_thousand();
     }
@@ -308,22 +321,6 @@
         });
     }
 
-    recDate = $('#recDate');
-    if (recDate.length) {
-        recDate.flatpickr({
-            dateFormat: "d-m-Y",
-            maxDate: "today"
-        });
-    }
-
-    dueDate = $('#dueDate');
-    if (dueDate.length) {
-        dueDate.flatpickr({
-            dateFormat: "d-m-Y",
-            maxDate: "today"
-        });
-    }
-    
     function reloadPage(){
         window.location.reload();
     }
@@ -336,9 +333,31 @@
         reloadPage();
     });
 
+    kosongkanData = () =>{
+        $('#poNumberDet').val("");
+        $('#suppCode').val("");
+        $('#totalPO').val("");
+        $('#basisAmount').val("");
+        $('#vat').val("");
+        $('#dueDate').val("");
+        $('#recDate').val("");
+        $('#balance').val("");
+        $('#currency').val("IDR").trigger("change");
+        $('#rate').val("");
+        $('#invoiceNumber').val();
+        $('#invoiceDate').val(currentDate);
+        $('#taxInvoiceNumber').val("");
+        $('#accountBa').val("").trigger("change");
+        $('#account').val("").trigger("change");
+        $('#otherDeduct').val("");
+        $('#pph23Check').prop('checked', false);
+        hitungTotal();
+    }
+
     $('#supplier').change(function(){
         let value= $(this).val();
         let obj = 'poNumber';
+        kosongkanData();
         $.ajax({
             url:"{{ route('ap.list.po') }}",
             method:"GET",
@@ -403,10 +422,11 @@
                         $('#rate').val(result[0].kurs);
                     }
                     hitungTotal();
+                    $('#invoiceNumber').focus();
                 },
                 error: function (response) {
                     //Error here
-                    Swal.fire("Warning","Get list SJ failed","warning");
+                    Swal.fire("Warning","Get list data failed","warning");
                 }
             })
         }
@@ -414,7 +434,7 @@
 
     $("#cmdSave").click(function(){     
         if (!$("#frmAdd")[0].checkValidity()){
-            $('.disabled-el').removeAttr('disabled');
+            // $('.disabled-el').removeAttr('disabled');
             $("#frmAdd").submit();
         }else{
             $('.disabled-el').removeAttr('disabled');

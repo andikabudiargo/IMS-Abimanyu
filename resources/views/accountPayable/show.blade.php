@@ -113,6 +113,20 @@
                                                         <label>Basis Amount</label>
                                                         <input type="text" class="form-control numeral-mask text-right text-hitam" value="{{ $sub_detail->basis_amount }}" disabled/>
                                                     </div>
+                                                </div>
+                                                    <div class="form-row">
+                                                        <div class="form-group col-md-6">
+                                                            <label class="form-label" for="accountBasisA">COA</label>
+                                                            <select class="select2 form-control w-100" id="accountBasisA" name="accountBasisA">
+                                                                <option value="">Choose option</option>
+                                                                @foreach($accountBa as $val)
+                                                                    <option value="{{ $val->account_ba }}" {{ $sub_detail->account == $val->account_ba ? 'selected' : '' }}>{{ $val->account_ba }} - {{ $val->description }}</option>
+                                                                @endforeach
+                                                            </select>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="form-row">
                                                     <div class="form-group col-md-3">
                                                         <label>VAT</label>
                                                         <input type="text" class="form-control numeral-mask text-right text-hitam" value="{{ $sub_detail->vat }}" disabled />
@@ -196,8 +210,7 @@
     $(document).ready(function(){
         mask_thousand();
     });
-   
-        
+           
     $.ajaxSetup({
         headers: {
             'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
