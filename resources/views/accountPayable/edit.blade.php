@@ -484,6 +484,30 @@
         reloadPage();
     });
 
+    kosongkanData = () =>{
+        $('#poNumberDet').val("");
+        $('#suppCode').val("");
+        $('#totalPO').val("");
+        $('#basisAmount').val("");
+        $('#vat').val("");
+        $('#dueDate').val("");
+        $('#recDate').val("");
+        $('#balance').val("");
+        $('#currency').val("IDR").trigger("change");
+        $('#rate').val("");
+        $('#invoiceNumber').val();
+        $('#invoiceDate').val(currentDate);
+        $('#taxInvoiceNumber').val("");
+        $('#accountBa').val("").trigger("change");
+        $('#account').val("").trigger("change");
+        $('#otherDeduct').val("");
+        $('#pph23Check').prop('checked', false);
+        $("#pph23").val(0);
+        $("#sewa").prop("checked", true);
+        $("#tipePPH23").toggleClass("d-none");
+        hitungTotal();
+    }
+
     $('#supplier').change(function(){
         let value= $(this).val();
         let obj = 'poNumber';
@@ -508,6 +532,7 @@
         let value = $(this).val();
         let poDate = $(this).find(":selected").data("po-date");
         let obj = 'recNumber';
+        kosongkanData();
         $('#poDate').val(poDate);
         $.ajax({
             url:"{{ route('ap.list.rec') }}",

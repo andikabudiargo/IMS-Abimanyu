@@ -285,9 +285,33 @@
         reloadPage();
     });
 
+    kosongkanData = () =>{
+
+        $('#piNumber').val("");
+        $('#invoiceDate').val("");
+        $('#supplier').val("").trigger("change");
+        $('#poNumber').val("");
+        $('#suppCode').val("");
+        $('#poNumberDet').val("");
+        $('#totalPO').val("");
+        $('#currency').val("");
+        $('#rate').val("");
+        $('#basisAmount').val("");
+        $('#pph23Check').prop('checked', false);
+        $("#pph23").val(0);
+        $("#sewa").prop("checked", true);
+        $("#tipePPH23").toggleClass("d-none");
+        $('#otherDeduct').val("");
+        $('#grandTotal').val("");
+        $('#account').val("").trigger("change");
+        
+        hitungTotal();
+    }
+
     $('#supplier').change(function(){
         let value= $(this).val();
         let obj = 'poNumber';
+        kosongkanData();
         $.ajax({
             url:"{{ route('ap.list.po') }}",
             method:"GET",

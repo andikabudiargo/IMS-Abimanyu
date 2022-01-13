@@ -120,7 +120,7 @@
                                                             <select class="select2 form-control w-100" id="accountBasisA" name="accountBasisA">
                                                                 <option value="">Choose option</option>
                                                                 @foreach($accountBa as $val)
-                                                                    <option value="{{ $val->account_ba }}" {{ $sub_detail->account == $val->account_ba ? 'selected' : '' }}>{{ $val->account_ba }} - {{ $val->description }}</option>
+                                                                    <option value="{{ $val->account }}" {{ $sub_detail->account_ba == $val->account ? 'selected' : '' }}>{{ $val->account }} - {{ $val->description }}</option>
                                                                 @endforeach
                                                             </select>
                                                         </div>
