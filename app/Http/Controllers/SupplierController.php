@@ -285,7 +285,7 @@ class SupplierController extends Controller
 
         $rule = [
             'nama'=>'required',
-            'kontak'=>'required',
+            // 'kontak'=>'required',
         ];
 
         $this->validate($request,$rule,$messages);

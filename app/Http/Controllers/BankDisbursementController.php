@@ -90,15 +90,48 @@ class BankDisbursementController extends Controller
             $dueToDate = implode("/", array_reverse(explode("-", trim($date[1]))));
         }  
 
-        $data=DB::table('ap_invoice')
-        ->select('ap_invoice.*',DB::raw('(basis_amount + vat + pph23)-other_deduction as total'))
+        $data1=DB::table('ap_invoice')
+        ->leftJoin('third_party','third_party.kode','ap_invoice.supplier_id')
+        ->select('ap_number',
+                 'inv_number',
+                 'inv_date',
+                 'rec_date',
+                 'due_date',
+                 'basis_amount',
+                 'vat',
+                 'pph23',
+                 'other_deduction',
+                  DB::raw('(basis_amount + vat)- (pph23+other_deduction) as total'),
+                  DB::raw("concat(third_party.kode,'-',third_party.nama) as supplier"))
         ->where(function ($query) use ($supplier,$invFromDate,$invToDate,$dueFromDate,$dueToDate) {
             $supplier ? $query->where('supplier_id',$supplier) : '';
             $invFromDate ? $query->whereBetween(DB::raw("to_date(inv_date,'DD-MM-YYYY')"), [$invFromDate, $invToDate]) : '';
             $dueFromDate ? $query->whereBetween(DB::raw("to_date(due_date,'DD-MM-YYYY')"), [$dueFromDate, $dueToDate]) : '';
         })
-        ->where('status','3')        
-        ->get();
+        ->where('status','3');
+
+        $data2=DB::table('ap_pro_invoice')
+        ->leftJoin('third_party','third_party.kode','ap_pro_invoice.supplier_id')
+        ->select('pi_number',
+                 'inv_number',
+                 'inv_date',
+                 'rec_date',
+                 'due_date',
+                 'basis_amount',
+                 'vat',
+                 'pph23',
+                 'other_deduction',
+                  DB::raw('(basis_amount + vat)- (pph23+other_deduction) as total'),
+                  DB::raw("concat(third_party.kode,'-',third_party.nama) as supplier"))
+        ->where(function ($query) use ($supplier,$invFromDate,$invToDate,$dueFromDate,$dueToDate) {
+            $supplier ? $query->where('supplier_id',$supplier) : '';
+            $invFromDate ? $query->whereBetween(DB::raw("to_date(inv_date,'DD-MM-YYYY')"), [$invFromDate, $invToDate]) : '';
+            $dueFromDate ? $query->whereBetween(DB::raw("to_date(due_date,'DD-MM-YYYY')"), [$dueFromDate, $dueToDate]) : '';
+        })
+        ->where('status','3');
+        
+        
+        $data = $data1->union($data2)->get();
 
         return Datatables::of($data)
         ->addColumn('select_orders', static function ($result) {
@@ -116,7 +149,7 @@ class BankDisbursementController extends Controller
 
         $data=DB::table('ap_invoice')
         ->leftJoin('third_party','third_party.kode','ap_invoice.supplier_id')
-        ->select('ap_invoice.*','third_party.nama',DB::raw('(basis_amount + vat + pph23)-other_deduction as total'))
+        ->select('ap_invoice.*','third_party.nama',DB::raw('(basis_amount + vat)- (pph23+other_deduction) as total'),'third_party.bank_type')
         ->whereIn('ap_number',$apNumber)
         ->get();
 

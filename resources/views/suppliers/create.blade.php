@@ -24,12 +24,12 @@
                         <div class="form-row">
                             <div class="col-md-6">
                                 <div class="form-group">
-                                    <label for="nama">Name</label>
+                                    <label for="nama">Name*</label>
                                     <input type="text" id="nama" name="nama" class="form-control text-uppercase" value="{{ old('nama') }}" required  maxlength="100"/>
                                 </div>
                             </div>
                             <div class="form-group col-md-2">
-                                <label class="form-label" for="inisial">Initial</label>
+                                <label class="form-label" for="inisial">Initial*</label>
                                 {{-- <input type="hidden" id="inisial" name="inisial" class="form-control" value="{{ old('inisial') }}" /> --}}
                                 <input type="text" id="inisial" name="inisial" class="form-control text-uppercase" value="{{ old('inisial') }}" required maxlength="3"/>
                             </div>
@@ -149,8 +149,9 @@
                         </div>
                         <div class="row">
                             <div class="form-group col-md-4">
-                                <label class="form-label" for="bankType">Type</label>
+                                <label class="form-label" for="bankType">Type*</label>
                                 <select class="select2 form-control w-100" id="bankType" name="bankType" required>
+                                    <option value="">Choose bank type</option>
                                     <option value="NONBCA" {{ old('bankType') == "NONBCA" ? "selected" : "" }}>NON BCA</option>
                                     <option value="BCA" {{ old('bankType') == "BCA" ? "selected" : "" }}>BCA</option>
                                 </select>
@@ -159,7 +160,7 @@
                         <div class="row">
                             <div class="form-group col-md-6">
                                 <select class="select2 form-control" id="bankName" name="bankName">
-                                    <label for="bankName">Bank name</label>
+                                    <label for="bankName">Bank name*</label>
                                     <option value="">Choose bank</option>
                                     @foreach($banks as $val)
                                         <option value="{{ $val->bank_name }}" {{ $val->bank_name == old("bankName") ? "selected" : ""}} required >{{ $val->bank_name }} </option>
@@ -169,13 +170,13 @@
                         </div>
                         <div class="row">
                             <div class="form-group col-md-6">
-                                <label for="accNumber">Acount Number</label>
+                                <label for="accNumber">Acount Number*</label>
                                 <input type="text" id="accNumber" name="accNumber" class="form-control text-uppercase" value="{{ old('accNumber') }}" maxlength="100" required/>
                             </div>
                         </div>
                         <div class="row">
                             <div class="form-group col-md-6">
-                                <label for="branch">Branch</label>
+                                <label for="branch">Branch*</label>
                                 <input type="text" id="branch" name="branch" class="form-control" value="{{ old('branch') }}"  maxlength="100" required/>
                             </div>
                         </div>

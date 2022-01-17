@@ -37,97 +37,100 @@
                                                         <label>AP Number</label> <small class="text-muted"> automatic</small>
                                                         <input type="text" class="form-control text-hitam" value="{{ $sub_detail->ap_number }}" disabled />
                                                     </div>
+                                                    <div class="form-group col-md-3">
+                                                        <label for="profInvoice">Prof Invoice</label>
+                                                        <input type="text" id="profInvoice" name="profInvoice" class="form-control text-hitam disabled-el" value="{{ $sub_detail->proforma_inv_number }}" disabled />
+                                                    </div>
                                                 </div>
                                                 <div class="form-row">
                                                     <div class="form-group col-md-6">
                                                         <label class="form-label">Supplier</label>
                                                         <input type="text" class="form-control text-hitam" value="{{ $sub_detail->supplier_id }} - {{ $sub_detail->nama }}" disabled />
                                                     </div>
+                                                </div>
+                                                <div class="form-row">
                                                     <div class="form-group col-md-3">
                                                         <label class="form-label">PO Number</label>
                                                         <input type="text" class="form-control text-hitam" value="{{ $sub_detail->po_number }}" disabled />
                                                     </div>
                                                     <div class="form-group col-md-3">
-                                                        <label class="form-label">Rec.Number / LPB</label>
+                                                        <label class="form-label">Rec.Number/LPB</label>
                                                         <input type="text" class="form-control text-hitam" value="{{ $sub_detail->rec_number }}" disabled />
                                                     </div>
                                                 </div>
+                                                <hr>
                                                 <div class="form-row">                                    
-                                                    <div class="form-group col-md-6">
+                                                    <div class="form-group col-md-6 d-none">
                                                         <label>Supplier</label>
                                                         <input type="text" class="form-control text-hitam" value="{{ $sub_detail->supplier_id }} - {{ $sub_detail->nama }}" disabled />
                                                     </div>
-                                                    <div class="form-group col-md-3">
+                                                    <div class="form-group col-md-3 d-none">
                                                         <label>PO Number</label>
                                                         <input type="text" class="form-control text-hitam" value="{{ $sub_detail->po_number }}" disabled />
                                                     </div>       
                                                 </div>
                                                 <div class="form-row">
-                                                    <div class="form-group col-md-3">
+                                                    <div class="form-group col-md-2">
+                                                        <label>Total PO</label>
+                                                        <input type="text" class="form-control numeral-mask text-right text-hitam" value="{{ $sub_detail->due_date }}" disabled/>
+                                                    </div>
+                                                    <div class="form-group col-md-2">
+                                                        <label>Balance</label>
+                                                        <input type="text" class="form-control numeral-mask text-right text-hitam" value="{{ $sub_detail->due_date }}" disabled/>
+                                                    </div>
+                                                    <div class="form-group col-md-2">
                                                         <label>Receive Date</label>
                                                         <input type="text" class="form-control text-hitam" value="{{ $sub_detail->rec_date }}" placeholder="DD-MM-YYYY" disabled/>
                                                     </div>
-                                                    <div class="form-group col-md-3">
+                                                    <div class="form-group col-md-2">
                                                         <label>Due Date</label>
                                                         <input type="text" class="form-control text-hitam" value="{{ $sub_detail->due_date }}" placeholder="DD-MM-YYYY" disabled/>
                                                     </div>       
                                                 </div>
-                                                <div class="form-row">
-                                                    <div class="form-group col-md-3">
-                                                        <label>Total PO</label>
-                                                        <input type="text" class="form-control numeral-mask text-right text-hitam" value="{{ $sub_detail->due_date }}" disabled/>
-                                                    </div>
-                                                    <div class="form-group col-md-3">
-                                                        <label>Balance</label>
-                                                        <input type="text" class="form-control numeral-mask text-right text-hitam" value="{{ $sub_detail->due_date }}" disabled/>
-                                                    </div>
-                                                </div>
+                                                <hr>
                                                 <div class="form-row">
                                                     <div class="form-group col-md-2">
                                                         <label>Currency*</label>
                                                         <input type="text" class="form-control text-hitam" value="{{ $sub_detail->currency }}" disabled />
                                                     </div>
-                                                    <div class="form-group col-md-3">
+                                                    <div class="form-group col-md-2">
                                                         <label>Rate</label>
                                                         <input type="text" class="form-control numeral-mask text-right  text-hitam" value="{{ $sub_detail->kurs }}" disabled/>
                                                     </div>  
                                                 </div>                         
                                                 <div class="form-row">
-                                                    <div class="form-group col-md-3">
+                                                    <div class="form-group col-md-2">
                                                         <label>Invoice Number</label>
                                                         <input type="text" class="form-control text-hitam" value="{{ $sub_detail->inv_number }}" disabled/>
                                                     </div>
-                                                    <div class="form-group col-md-3">
+                                                    <div class="form-group col-md-2">
                                                         <label>Invoice Date</label>
                                                         <input type="text" class="form-control text-hitam" value="{{ $sub_detail->inv_date }}" placeholder="DD-MM-YYYY" disabled/>
                                                     </div> 
                                                 </div>
                                                 <div class="form-row">
-                                                    <div class="form-group col-md-6">
+                                                    <div class="form-group col-md-2">
                                                         <label>Tax Invoice Number</label>
                                                         <input type="text" class="form-control text-hitam" value="{{ $sub_detail->tax_inv_number }}" disabled />
                                                     </div>
                                                 </div>
                                                 <div class="form-row">
-                                                    <div class="form-group col-md-3">
+                                                    <div class="form-group col-md-2">
                                                         <label>Basis Amount</label>
                                                         <input type="text" class="form-control numeral-mask text-right text-hitam" value="{{ $sub_detail->basis_amount }}" disabled/>
                                                     </div>
-                                                </div>
-                                                    <div class="form-row">
-                                                        <div class="form-group col-md-6">
-                                                            <label class="form-label" for="accountBasisA">COA</label>
-                                                            <select class="select2 form-control w-100" id="accountBasisA" name="accountBasisA">
-                                                                <option value="">Choose option</option>
-                                                                @foreach($accountBa as $val)
-                                                                    <option value="{{ $val->account }}" {{ $sub_detail->account_ba == $val->account ? 'selected' : '' }}>{{ $val->account }} - {{ $val->description }}</option>
-                                                                @endforeach
-                                                            </select>
-                                                        </div>
+                                                    <div class="form-group col-md-3">
+                                                        <label class="form-label" for="accountBasisA">COA</label>
+                                                        <select class="select2 form-control w-100" id="accountBasisA" name="accountBasisA" disabled>
+                                                            <option value="">Choose option</option>
+                                                            @foreach($accountBa as $val)
+                                                                <option value="{{ $val->account }}" {{ $sub_detail->account_ba == $val->account ? 'selected' : '' }}>{{ $val->account }} - {{ $val->description }}</option>
+                                                            @endforeach
+                                                        </select>
                                                     </div>
                                                 </div>
                                                 <div class="form-row">
-                                                    <div class="form-group col-md-3">
+                                                    <div class="form-group col-md-2">
                                                         <label>VAT</label>
                                                         <input type="text" class="form-control numeral-mask text-right text-hitam" value="{{ $sub_detail->vat }}" disabled />
                                                     </div>
@@ -161,21 +164,20 @@
                                                         </div>
                                                     </div>
                                                 </div>
-                                                
                                                 <div class="form-row">
-                                                    <div class="form-group col-md-3">
+                                                    <div class="form-group col-md-2">
                                                         <label>Other Deductions</label>
                                                         <input type="text" class="form-control numeral-mask text-right text-hitam" value="{{ $sub_detail->other_deduction }}" disabled/>
                                                     </div>
                                                 </div>
                                                 <div class="form-row">
-                                                    <div class="form-group col-md-3">
+                                                    <div class="form-group col-md-2">
                                                         <label>Total</label>
                                                         <input type="text" class="form-control numeral-mask text-right text-hitam" value="{{ ($sub_detail->basis_amount+$sub_detail->vat+$sub_detail->pph23) - $sub_detail->other_deduction }}" disabled/>
                                                     </div>
                                                 </div>
                                                 <div class="form-row">
-                                                    <div class="form-group col-md-6">
+                                                    <div class="form-group col-md-3">
                                                         <label class="form-label" for="account">COA</label>
                                                         <select class="select2 w-100" disabled>
                                                             <option value="">Choose option</option>
@@ -185,8 +187,12 @@
                                                         </select>
                                                     </div>
                                                 </div>
-                                                <br>
-                                                
+                                                <div class="form-row">
+                                                    <div class="form-group col-md-5">
+                                                        <label class="form-label" for="note">Notes</label>
+                                                        <textarea type="text" id="note" name="note" class="form-control" rows="1" >{{ $sub_detail->note }}</textarea>
+                                                    </div>
+                                                </div>
                                             </form>
                                         </div>
                                     </div>

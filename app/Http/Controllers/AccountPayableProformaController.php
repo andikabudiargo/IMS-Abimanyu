@@ -160,7 +160,7 @@ class AccountPayableProformaController extends Controller
 
         $rule = [
             'poNumberDet'  => 'required',
-            'invoiceNumber'=>'required|iunique:ap_pro_invoice,inv_number,po_number',
+            // 'invoiceNumber'=>'required|iunique:ap_pro_invoice,inv_number,po_number',
             // 'doDate'  => 'required',
         ];
 

@@ -23,15 +23,15 @@
                                     <label for="piNumber">Proforma Number</label> <small class="text-muted"> automatic</small>
                                     <input type="text" id="piNumber" name="piNumber" class="form-control text-hitam disabled-el" value="{{ old('piNumber', Session::get('details') ? Session::get('details')->pi_number :"") }}" disabled />
                                 </div>
-                                <div class="form-group col-md-3">
-                                    <label for="invoiceDate">Proforma Invoice Date</label>
-                                    <input type="text" id="invoiceDate" name="invoiceDate" class="form-control" value="{{ old('invoiceDate',Session::get('details') ? Session::get('details')->inv_date :'') }}" placeholder="DD-MM-YYYY" required/>
-                                </div> 
+                                {{-- <div class="form-group col-md-3">
+                                    <label for="invoiceDate">Proforma Invoice Date*</label>
+                                    <input type="text" id="invoiceDate" name="invoiceDate" class="form-control" value="{{ old('invoiceDate',Session::get('details') ? Session::get('details')->inv_date :'') }}" placeholder="DD-MM-YYYY" required disabled/>
+                                </div>  --}}
                             </div>
                             <div class="form-row">
                                 <div class="form-group col-md-6">
-                                    <label class="form-label" for="supplier">Supplier</label>
-                                    <select class="select2 form-control" id="supplier" name="supplier">
+                                    <label class="form-label" for="supplier">Supplier*</label>
+                                    <select class="select2 form-control" id="supplier" name="supplier" required>
                                         <option value="">All</option>
                                         @foreach($supps as $val)
                                             <option value="{{ $val->kode }}" {{ old('supplier',Session::get('details') ? Session::get('details')->supplier_id :"") == $val->kode ? 'selected' : '' }} >{{$val->kode}} - {{$val->nama}}</option>
@@ -41,11 +41,12 @@
                             </div>
                             <div class="form-row">
                                 <div class="form-group col-md-6">
-                                    <label class="form-label" for="poNumber">PO Number</label>
-                                    <select class="select2 form-control" id="poNumber" name="poNumber">
+                                    <label class="form-label" for="poNumber">PO Number*</label>
+                                    <select class="select2 form-control" id="poNumber" name="poNumber" required>
                                     </select>
                                 </div>
                             </div>
+                            <hr>
                             <div class="form-row d-none">                                    
                                 <div class="form-group col-md-6">
                                     <label for="suppCode">Supplier</label>
@@ -64,24 +65,34 @@
                             </div>
                             <div class="form-row">
                                 <div class="form-group col-md-2">
-                                    <label for="currency">Currency*</label>
+                                    <label for="currency">Currency</label>
                                     <select class="select2 form-control" id="currency" name="currency">
                                         @foreach($currency as $val)
                                         <option value="{{$val}}" {{ old('currency',Session::get('details') ? Session::get('details')->currency : '' ) == $val ? 'selected' : '' }} >{{$val}}</option>
                                         @endforeach
                                     </select>
                                 </div>
-                                <div class="form-group col-md-3">
+                                <div class="form-group col-md-2">
                                     <label for="rate">Rate</label>
                                     <input type="text" id="rate" name="rate" value="{{ old('rate',Session::get('details') ? Session::get('details')->kurs :'') }}" class="form-control numeral-mask text-right"/>
                                 </div>  
-                            </div>                         
+                            </div>
                             <div class="form-row">
-                                <div class="form-group col-md-3">
-                                    <label for="basisAmount">Basis Amount</label>
+                                <div class="form-group col-md-2">
+                                    <label for="invoiceNumber">Invoice Number</label>
+                                    <input type="text" id="invoiceNumber" name="invoiceNumber" class="form-control" value="{{ old('invoiceNumber',Session::get('details') ? Session::get('details')->inv_number :'') }}" required/>
+                                </div>
+                                <div class="form-group col-md-2">
+                                    <label for="invoiceDate">Invoice Date</label>
+                                    <input type="text" id="invoiceDate" name="invoiceDate" class="form-control" value="{{ old('invoiceDate',Session::get('details') ? Session::get('details')->inv_date :'') }}" placeholder="DD-MM-YYYY" required/>
+                                </div> 
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group col-md-2">
+                                    <label for="basisAmount">Basis Amount*</label>
                                     <input type="text" id="basisAmount" name="basisAmount" class="form-control numeral-mask text-right" value="{{ old('basisAmount',Session::get('details') ? Session::get('details')->basis_amount : '') }}" required/>
                                 </div>
-                                <div class="form-group col-md-3">
+                                <div class="form-group col-md-2">
                                     <label for="vat">VAT</label>
                                     <input type="text" id="vat" name="vat" class="form-control numeral-mask text-right" value="{{ old('vat',Session::get('details') ? Session::get('details')->vat : '') }}" />
                                 </div>
@@ -96,7 +107,7 @@
                             </div>
                             <div class="{{ Session::get('details') ? Session::get('details')->pph23 ? '' : 'd-none' :'d-none' }} " id="tipePPH23">
                                 <div class="form-row d-flex align-items-end">
-                                    <div class="form-group col-md-3">
+                                    <div class="form-group col-md-2">
                                         <label for="pph23">PPH 23</label>
                                         <input type="text" id="pph23" name="pph23" class="form-control numeral-mask text-right" value="{{ old('pph23',Session::get('details') ? Session::get('details')->pph23 : '') }}" />
                                     </div>
@@ -115,21 +126,19 @@
                                 </div>
                             </div>
                             <div class="form-row">
-                                <div class="form-group col-md-3">
+                                <div class="form-group col-md-2">
                                     <label for="otherDeduct">Other Deductions</label>
                                     <input type="text" id="otherDeduct" name="otherDeduct" class="form-control numeral-mask text-right" value="{{ old('otherDeduct',Session::get('details') ? Session::get('details')->other_deduction : '') }}" />
                                 </div>
                             </div>
                             <div class="form-row">
-                                <div class="form-group col-md-3">
-                                    <label for="grandTotal">Total</label>
-                                    <input type="text" id="grandTotal" name="grandTotal" class="form-control numeral-mask text-right" value="{{ old('grandTotal') }}" />
+                                <div class="form-group col-md-2">
+                                    <label for="grandTotal">Total*</label>
+                                    <input type="text" id="grandTotal" name="grandTotal" class="form-control numeral-mask text-right" value="{{ old('grandTotal') }}" required />
                                 </div>
-                            </div>
-                            <div class="form-row">
-                                <div class="form-group col-md-6">
+                                <div class="form-group col-md-3">
                                     <label class="form-label" for="account">COA</label>
-                                    <select class="select2 form-control w-100" id="account" name="account">
+                                    <select class="select2 form-control w-100" id="account" name="account" reguired>
                                         <option value="">Choose option</option>
                                         @foreach($accounts as $val)
                                             <option value="{{ $val->account }}" {{ old('account',Session::get('details') ? Session::get('details')->account : '') == $val->account ? 'selected' : '' }}>{{ $val->account}} - {{ $val->description }}</option>
@@ -229,12 +238,14 @@
 
         let supplierAda = "{{ Session::get('details') ? Session::get('details')->supplier_id :"" }}";
         poAda = "{{ Session::get('details') ? Session::get('details')->po_number :"" }}";
-        
         if(supplierAda){
             $('#supplier').val(supplierAda).trigger('change');
         }
 
-        $('#invoiceDate').val(currentDate);
+        if(!supplierAda){
+            $('#invoiceDate').val(currentDate);
+        }
+        
         mask_thousand();
     });
 
@@ -286,11 +297,10 @@
     });
 
     kosongkanData = () =>{
-
-        $('#piNumber').val("");
+        // $('#piNumber').val("");
         $('#invoiceDate').val("");
-        $('#supplier').val("").trigger("change");
-        $('#poNumber').val("");
+        $('#invNumber').val("");
+        $('#poNumber').val("").trigger("change");
         $('#suppCode').val("");
         $('#poNumberDet').val("");
         $('#totalPO').val("");
@@ -300,18 +310,19 @@
         $('#pph23Check').prop('checked', false);
         $("#pph23").val(0);
         $("#sewa").prop("checked", true);
-        $("#tipePPH23").toggleClass("d-none");
+        // $("#tipePPH23").toggleClass("d-none");
         $('#otherDeduct').val("");
         $('#grandTotal').val("");
         $('#account').val("").trigger("change");
-        
         hitungTotal();
     }
 
     $('#supplier').change(function(){
         let value= $(this).val();
         let obj = 'poNumber';
-        kosongkanData();
+        if (status !='Saved'){
+            kosongkanData();
+        }
         $.ajax({
             url:"{{ route('ap.list.po') }}",
             method:"GET",
@@ -320,6 +331,7 @@
             },
             success:function(result){
                 $('#'+obj).html(result);
+                console.log(poAda);
                 poAda ? $('#'+obj).val(poAda).trigger('change'):$('#'+obj).val('').trigger('change');
             },
             error: function (response) {

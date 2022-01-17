@@ -245,7 +245,6 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('receivings/print',['as'=>'receiving.print','uses'=>'ReceivingController@print']);
 	Route::post('receivings/posting',['as'=>'receiving.posting','uses'=>'ReceivingController@posting']);
 
-
 	Route::get('aps',['as'=>'aps.index','uses'=>'AccountPayableController@index','middleware' => ['permission:ap-index']]);
 	Route::get('aps/create',['as'=>'ap.create','uses'=>'AccountPayableController@create','middleware' => ['permission:ap-create']]);
 	Route::get('aps/list/sj',['as'=>'ap.list.sj','uses'=>'AccountPayableController@listSj']);
@@ -290,8 +289,6 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('proforma/posting',['as'=>'apProforma.posting','uses'=>'AccountPayableProformaController@posting']);
 	Route::get('proforma/revision',['as'=>'apProforma.revision','uses'=>'AccountPayableProformaController@revision']);
 	Route::get('proforma/show',['as'=>'apProforma.show','uses'=>'AccountPayableProformaController@show']);
-
-
 
 	Route::get('disbursement',['as'=>'disbursement.index','uses'=>'BankDisbursementController@index','middleware' => ['permission:disbursement-index']]);
 	Route::get('disbursement/create',['as'=>'disbursement.create','uses'=>'BankDisbursementController@create','middleware' => ['permission:disbursement-create']]);

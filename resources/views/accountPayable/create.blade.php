@@ -45,7 +45,6 @@
                                     <select class="select2 form-control" id="poNumber" name="poNumber" required>
                                     </select>
                                 </div>
-                            
                                 <div class="form-group col-md-3">
                                     <label class="form-label" for="recNumber">Rec.Number/LPB*</label>
                                     <select class="select2 form-control" id="recNumber" name="recNumber" required>
@@ -183,7 +182,12 @@
                                     </select>
                                 </div>
                             </div>
-                            
+                            <div class="form-row">
+                                <div class="form-group col-md-5">
+                                    <label class="form-label" for="note">Notes</label>
+                                    <textarea type="text" id="note" name="note" class="form-control" rows="1" >{{ old('note',Session::get('details') ? Session::get('details')->note : '') }}</textarea>
+                                </div>
+                            </div>
                             <br>
                             <div class="form-row">
                                 <div class="col-md-12">
@@ -335,6 +339,7 @@
 
     kosongkanData = () =>{
         $('#poNumberDet').val("");
+        $('#profInvoice').val("");
         $('#suppCode').val("");
         $('#totalPO').val("");
         $('#basisAmount').val("");
@@ -351,6 +356,9 @@
         $('#account').val("").trigger("change");
         $('#otherDeduct').val("");
         $('#pph23Check').prop('checked', false);
+        $("#pph23").val(0);
+        $("#sewa").prop("checked", true);
+        $("#tipePPH23").toggleClass("d-none");
         hitungTotal();
     }
 
@@ -410,7 +418,7 @@
                 success:function(result){
                     $('#poNumberDet').val(result[0].po_number);
                     $('#suppCode').val(result[0].nama);
-
+                    $('#profInvoice').val(result[0].pro_inv_num);
                     $('#totalPO').val(result[0].total_po);
                     $('#basisAmount').val(result[0].basis_amount);
                     $('#vat').val(result[0].basis_amount*(result[0].vat/100));
@@ -441,7 +449,6 @@
             $("#frmAdd").submit();
         }
     });
-
 
     $("#cmdPosting").click(function(){        
         let apNumber = $('#apNumber').val();            

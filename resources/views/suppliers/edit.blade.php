@@ -16,19 +16,19 @@
                         <div class="form-row">
                             <div class="col-md-4">
                                 <div class="form-group">
-                                    <label for="kode">Code</label>
+                                    <label for="kode">Code*</label>
                                     <input type="text" id="kode" name="kode" class="form-control disabled-el" value="{{ old('kode',$suppliers->kode) }}" required maxlength="20" autofocus disabled/>
                                 </div>
                             </div>
                             <div class="form-group col-md-2">
-                                <label class="form-label" for="inisial">Initial</label>
+                                <label class="form-label" for="inisial">Initial*</label>
                                 <input type="text" id="inisial" name="inisial" class="form-control text-uppercase" value="{{ old('inisial',$suppliers->inisial) }}" required maxlength="3"/>
                             </div>
                         </div>
                         <div class="form-row">
                             <div class="col-md-12">
                                 <div class="form-group">
-                                    <label for="nama">Name</label>
+                                    <label for="nama">Name*</label>
                                     <input type="text" id="nama" name="nama" class="form-control" value="{{ old('nama',$suppliers->nama) }}" required  maxlength="100"/>
                                 </div>
                             </div>
@@ -148,8 +148,9 @@
                         </div>
                         <div class="form-row">
                             <div class="form-group col-md-4">
-                                <label class="form-label" for="bankType">Type</label>
+                                <label class="form-label" for="bankType">Type*</label>
                                 <select class="select2 form-control" id="bankType" name="bankType" required>
+                                    <option value="">Choose bank type</option>
                                     <option value="BCA" {{ old('bankType',$suppliers->bank_type) == "BCA" ? "selected" : "" }}>BCA</option>
                                     <option value="NONBCA" {{ old('bankType',$suppliers->bank_type) == "NONBCA" ? "selected" : "" }}>NON BCA</option>
                                 </select>
@@ -157,7 +158,7 @@
                         </div>
                         <div class="form-row">
                             <div class="form-group col-md-6">
-                                <label for="bankName">Name</label>
+                                <label for="bankName">Name*</label>
                                 <select class="select2 form-control" id="bankName" name="bankName">
                                     <option value="">Choose bank</option>
                                     <label for="bankName">Bank name</label>
@@ -169,13 +170,13 @@
                         </div>
                         <div class="form-row">
                             <div class="form-group col-md-6">
-                                <label for="accNumber">Acount Number</label>
+                                <label for="accNumber">Acount Number*</label>
                                 <input type="text" id="accNumber" name="accNumber" class="form-control text-uppercase" value="{{ old('accNumber',$suppliers->account_number) }}" maxlength="100" required/>
                             </div>
                         </div>
                         <div class="form-row">
                             <div class="form-group col-md-6">
-                                <label for="branch">Branch</label>
+                                <label for="branch">Branch*</label>
                                 <input type="text" id="branch" name="branch" class="form-control" value="{{ old('branch',$suppliers->bank_branch) }}"  maxlength="100" required/>
                             </div>
                         </div>

@@ -142,6 +142,7 @@ class AccountPayableController extends Controller
                             ,c.kurs  as kurs
                             ,to_char(to_date(rec_date,'dd-mm-yyyy')+c.termin,'dd-mm-yyyy') as due_date
                             ,(select sum(qty*price) from purchase_order_det where po_number = a.po_number)-(select sum(basis_amount) from ap_invoice where po_number = a.po_number) as po_balance
+                            ,(select pi_number from ap_pro_invoice where po_number = a.po_number and status = '5') as pro_inv_num
                             from receiving_hdr a
                             left join third_party b on b.kode = a.supplier_id
                             left join purchase_order_hdr c on c.po_number = a.po_number
@@ -218,10 +219,11 @@ class AccountPayableController extends Controller
         $account= $request->input('account');
         $pph23 = $request->input('pph23Check') == 'on'? is_null($request->input('pph23')) ? 0 : preg_replace('/[^0-9.]+/', '', $request->input('pph23')) : 0;
         $pph23Type= $request->input('pph23Check') == 'on'? is_null($request->input('pph23'))? "":$request->input('pph23Type') : '';
+        $note=$request->input('note');
         
         $status = '1';
         $authorizedBy = "";
-        $note="";
+        
 
         // status
         // 1. Draft
@@ -397,6 +399,8 @@ class AccountPayableController extends Controller
         ->whereIn('type_code',['21','22','23','24'])
         ->get();
 
+        $data['statusRevision'] = '';
+        
         return view("accountPayable.edit",$data);
         
     }
@@ -407,6 +411,7 @@ class AccountPayableController extends Controller
         $apNumber = $request->input('apNumber');
         $suppCode = $request->input('supplier');
         $poNumber = $request->input('poNumberDet');
+        $profInvoice = $request->input('profInvoice');
         $recNumber = $request->input('recNumber');
         $recDate = $request->input('recDate');
         $dueDate = $request->input('dueDate');
@@ -422,10 +427,10 @@ class AccountPayableController extends Controller
         $pph23Type= $request->input('pph23Check') == 'on'? is_null($request->input('pph23'))? "":$request->input('pph23Type') : '';
         $otherDeduct = is_null($request->input('otherDeduct')) ? 0 : preg_replace('/[^0-9.]+/', '', $request->input('otherDeduct'));
         $account= $request->input('account');
+        $note=$request->input('note');
         $status = '2';
         $authorizedBy = "";
-        $note="";
-    
+        
         // status
         // 1. Draft
         // 2. Update
@@ -573,8 +578,8 @@ class AccountPayableController extends Controller
         $numRevision = $request->numRevision ? $request->numRevision +1 : 1 ;
         $apNew = $apOrigin.'-R'.$numRevision;
 
-        $data['title'] = "Edit Invoice";
-        $data['subtitle'] = "Edit Invoice";
+        $data['title'] = "Revision Invoice";
+        $data['subtitle'] = "Revision Invoice";
         
         $sqlAp = "INSERT into ap_invoice
         (
@@ -698,7 +703,7 @@ class AccountPayableController extends Controller
             [   
                 'inv_number' => $invNumber."(C)",
                 'status' => $status,
-                'note' => $note." (Cancel)",
+                'note' => $note,
                 'updated_by' => Auth::user()->username,
                 'updated_at' => date('Y-m-d H:i:s')
             ]
@@ -780,7 +785,7 @@ class AccountPayableController extends Controller
 
         $data = DB::select("SELECT *,
         (select concat(kode,'-',nama) from third_party where kode = supplier_id limit 1) as supp_name,
-        (basis_amount+vat+pph23)-other_deduction as total
+        (basis_amount+vat)-(pph23+other_deduction) as total
         from ap_invoice a where $filter status != '6' ");
 
         return Datatables::of($data)
@@ -806,7 +811,7 @@ class AccountPayableController extends Controller
                                 
             if ( $data->status == '3' ){
                 if (Auth::user()->can('ap-revision')) {
-                    $buttons .= '<a href="'. route('ap.revision', ['id'=>$data->id,'apNumber'=>$data->ap_number,'numRevision'=>$data->num_revision]) .'" class="dropdown-item">
+                    $buttons .= '<a href="'. route('ap.revision', ['id'=>$data->id,'apNumber'=>$data->ap_number,'numRevision'=>$data->num_revision,'statusRevision'=>'revision']) .'" class="dropdown-item">
                                     <i data-feather="copy"></i>
                                        Revision
                                 </a>';
