@@ -77,7 +77,7 @@
                     </div>
                 </form> 
                 <div class="d-flex justify-content-end">
-                    <button class="btn btn-primary btn-next" id="btnSelectedAp">
+                    <button class="btn btn-success btn-next" id="btnSelectedAp">
                         <span class="align-middle d-sm-inline-block d-none">Next</span>
                         <i data-feather="arrow-right" class="align-middle ml-sm-25 ml-0"></i>
                     </button>
@@ -146,18 +146,18 @@
                     <div class="form-row">
                         <div class="col-md-12"> 
                             <button type="button" class="btn btn-primary" id ="cmdSave" name="cmdSave">Save</button>
-                            <button type="button" class="btn btn-primary" id ="cmdSave" name="cmdApprove">Approve</button>
-                            <button type="button" class="btn btn-primary" id ="cmdSave" name="cmdPrint">Print</button>
+                            <button type="button" class="btn btn-primary" id ="cmdApprove" name="cmdApprove">Approve</button>
+                            <button type="button" class="btn btn-primary" id ="cmdPrint" name="cmdPrint">Print</button>
                         </div>
                     </div>
                 </form>
                 <br>
-                <div class="d-flex justify-content-between">
-                    <button class="btn btn-primary btn-prev">
+                {{-- <div class="d-flex justify-content-between">
+                    <button class="btn btn-success btn-prev">
                         <i data-feather="arrow-left" class="align-middle mr-sm-25 mr-0"></i>
                         <span class="align-middle d-sm-inline-block d-none">Previous</span>
                     </button>
-                </div>
+                </div> --}}
             </div>       
         </div>
     </div>
@@ -216,51 +216,31 @@
 <script type="text/javascript">
     let currentDate = todayDate('dd-mm-yyyy');
 
-    var bsStepper = document.querySelectorAll('.bs-stepper')
-        ,tabDisbursement = document.querySelector('.tab-disbursement');
-    if (typeof bsStepper !== undefined && bsStepper !== null) {
-        for (var el = 0; el < bsStepper.length; ++el) {
-        bsStepper[el].addEventListener('show.bs-stepper', function (event) {
-            var index = event.detail.indexStep;
-            var numberOfSteps = $(event.target).find('.step').length - 1;
-            var line = $(event.target).find('.step');
-
-            for (var i = 0; i < index; i++) {
-            line[i].classList.add('crossed');
-
-            for (var j = index; j < numberOfSteps; j++) {
-                line[j].classList.remove('crossed');
-            }
-            }
-            if (event.detail.to == 0) {
-            for (var k = index; k < numberOfSteps; k++) {
-                line[k].classList.remove('crossed');
-            }
-            line[0].classList.remove('crossed');
-            }
-        });
-        }
-    }
-
+    var bsStepper = document.querySelectorAll('.bs-stepper'),tabDisbursement = document.querySelector('.tab-disbursement');
     if (typeof tabDisbursement !== undefined && tabDisbursement !== null) {
-        var modernStepper = new Stepper(tabDisbursement, {
-            linear: false
-        });
+        var numberedStepper = new Stepper(tabDisbursement);
         $(tabDisbursement)
         .find('.btn-next')
-        .on('click', function () {
-            modernStepper.next();
+        .each(function () {
+            $(this).on('click', function (e) {
+                numberedStepper.next();
+                btnSelectedAp();
+            });
         });
+
         $(tabDisbursement)
         .find('.btn-prev')
         .on('click', function () {
-            modernStepper.previous();
+            numberedStepper.previous();
         });
 
     }
 
     $(document).ready(function(){
         $('#paymentDate').val(currentDate);
+        $('#cmdApprove').hide();
+        $('#cmdPrint').hide();
+        
     });
 
     rangePickr = $('.flatpickr-range');
@@ -374,12 +354,14 @@
 
     });
 
-    $("#btnSelectedAp").click(function(e){
+    btnSelectedAp = () => {
         let apNumber = "";
         $('input[name="apCheck[]"]').each(function () {
             if (this.checked)
             apNumber += $(this).val() + ',';
         });
+
+        console.log(apNumber);
 
         $('#tblApList thead >tr').remove();
         $('#tblApList tbody >tr').remove();
@@ -412,8 +394,10 @@
                                     </tr>`);
 
                 let jumlahData = result.length; 
-                let cell = "";
+                let cell,recDate,dueDate = "";
                 for(let i=0;i < jumlahData;i++){
+                    recDate = result[i].rec_date ? result[i].rec_date : '' ;
+                    dueDate = result[i].rec_date ? result[i].rec_date : '';
                     cell +=`<tr class="tanda-baris">
                             <td>
                                 `+result[i].supplier_id+'-'+result[i].nama+`
@@ -421,6 +405,7 @@
                             <td>
                                 `+result[i].ap_number+`
                                 <input type="text" value="`+result[i].ap_number+`" id="apNumber"`+i+` name="apNumber[]" hidden>
+                                <input type="text" value="`+result[i].type+`" id="apType"`+i+` name="apType[]" hidden>
                             </td>
                             <td>
                                 `+result[i].inv_number+`
@@ -428,15 +413,19 @@
                             </td>
                             <td>
                                 `+result[i].inv_date+`
+                                <input type="text" value="`+result[i].inv_date+`" id="invDate"`+i+` name="invDate[]" hidden>
                             </td>
                             <td>
-                                `+result[i].rec_date+`
+                                `+recDate+`
+                                <input type="text" value="`+recDate+`" id="recDate"`+i+` name="recDate[]" hidden>
                             </td>
-                            <td>
-                                `+result[i].due_date+`
+                            <td> 
+                                `+dueDate+`
+                                <input type="text" value="`+dueDate+`" id="dueDate"`+i+` name="dueDate[]" hidden>
                             </td>
                             <td>
                                 `+result[i].bank_type+`
+                                <input type="text" value="`+result[i].bank_type+`" id="bankType"`+i+` name="bankType[]" hidden>
                             </td>
                             <td class="text-right">
                                 `+humanizeNumber(result[i].total)+`
@@ -464,82 +453,99 @@
                 console.log(error);
             }
         });
-
-    });
+    };
   
     $('#cmdSave').click(function(e){
+        let apNumber,invNumber,total;
+        let details=[];
+        // let detailAp=[];
+        // let detailProf=[];
+        let objApNumber= $('#tblApList input[name="apNumber[]"]');
+        let objApType= $('#tblApList input[name="apType[]"]');
+        let objInvNumber= $('#tblApList input[name="invNumber[]"]');
+        // let objTotal= $('#tblApList input[name="total[]"]');
+        // let objinvDate= $('#tblApList input[name="invDate[]"]');
+        // let objrecDate= $('#tblApList input[name="recDate[]"]');
+        // let objdueDate= $('#tblApList input[name="dueDate[]"]');
+        // let objbankType= $('#tblApList input[name="bankType[]"]');
+        // let objtotal= $('#tblApList input[name="total[]"]');
 
-        let plan,act,balance;
-        let articles=[];
-        let objPlan= $('#tblBaru input[name="plan[]"]');
-        let objAct= $('#tblBaru input[name="act[]"]');
-        let objBalance= $('#tblBaru input[name="balance[]"]');
-        objPlan.map(function(i) {  
+        objApNumber.map(function(i) {  
 		    let $this=$(this);
-            // console.log($this);
             if ($this.val()){
-                let date=$this.data('tanggal');
-                let articleCode=$this.data('article-id');
-                let plan=$this.val().replace(/,/gi, '') || 0;
-                let act=objAct.eq(i).val().replace(/,/gi, '') || 0;
-                let balance=objBalance.eq(i).val().replace(/,/gi, '') || 0;
-                articles.push({
-                    "article_code":articleCode,
-                    "date":date,
-                    "plan":plan,
-                    "act" :act,
-                    "balance" : balance
+                let apNumber=$this.val().replace(/,/gi, '') || 0;
+                let invNumber=objInvNumber.eq(i).val().replace(/,/gi, '') || 0;
+                // let total=objTotal.eq(i).val().replace(/,/gi, '') || 0;
+                let apType=objApType.eq(i).val();
+
+                details.push({
+                    "ap_number":apNumber,
+                    "type" : apType,
+                    "inv_number":invNumber
                 });
+
+                // if (apType == 'ap'){
+                //     detailAp.push({
+                //         "ap_number":articleCode,
+                //         "type" : apType,
+                //         "inv_number":invNumber,
+                //         "total":total
+                //     });
+                // }
+                
+                // if (apType == 'pi'){
+                //     detailProf.push({
+                //         "pi_number":articleCode,
+                //         "type" : apType,
+                //         "inv_number":invNumber,
+                //         "total":total,
+                //     });
+                // }
             }
         });
-        console.log(articles);
-        soDate = $("#soDate").val();
+        let paymentDate = $("#paymentDate").val();
+        let subTotal = parseInt($('#subTotal').val().replace(/,/gi, '')) || 0;
+        let admin = parseInt($("#admin").val().replace(/,/gi, '')) || 0;
+        let others = parseInt($("#others").val().replace(/,/gi, '')) || 0;
+        let discount = parseInt($("#discount").val().replace(/,/gi, '')) || 0;
         $.ajax({
             type: "post",
-            url: "{{ route('deliveryPlan.update') }}",
+            url: "{{ route('disbursement.store') }}",
             data: {
-                articles:JSON.stringify(articles)
+                details:JSON.stringify(details),
+                // detailAp:JSON.stringify(detailAp),
+                // detailProf:JSON.stringify(detailProf),
+                paymentDate:paymentDate,
+                subTotal:subTotal,
+                admin:admin,
+                others:others,
+                discount:discount,
+
             },
             dataType: "json",
             success: function(data) {
                 if (data.status == 0 ){
                     let message="";
                     for(let i = 0; i < data.message.length; i++) {
-                        message += "-"+data.message[i]+"<br>";                           
+                        show_msg(data.title, data.message[i], data.alert);
                     }
-                    $("#alert-message-success").addClass(data.alert);
-                    $("#alert-message-success .alert-body").html(message);
-                    $("#alert-message-success").show();
-                    $("#alert-message-success").fadeTo(5000, 500).slideUp(500, function(){
-                        $("#alert-message-success").slideUp(500);
-                    });
+                    $('#paymentCode').attr('disabled','disabled');
 
                 }else{
-                    $("#alert-message-success").addClass(data.alert);
-                    $("#alert-message-success .alert-body").html(data.message);
-                    $("#alert-message-success").show();
-                    $("#alert-message-success").fadeTo(5000, 500).slideUp(500, function(){
-                        $("#alert-message-success").slideUp(500);
-                    });
-
-                    
-                    reGenerateData(soDate)
+                    show_msg(data.title, data.message, data.alert)
+                    $('#paymentCode').attr('disabled','disabled');
+                    $('#cmdSave').hide();
+                    $('#cmdApprove').show();
+                    $('#cmdPrint').hide();
+                    $('#paymentCode').val(data.disNumber);
                 }
-                
+
             },
             error: function(error) {
                 console.log(error);
             }
         });
 
-
-
-        // $('#tblApList tbody').on( 'click', 'tr', function () {
-        //     console.log( table.row( this ).data() );
-        // } );
-
-        // let oki = $('#tblApList').DataTable().rows().data().toArray();
-        // console.log(oki);
     });
 
     hitungTotal = () => {
@@ -580,26 +586,28 @@
         reloadPage();
     });
   
-    $("#cmdPosting").click(function(){        
-        let piNumber = $('#piNumber').val();            
+    $("#cmdApprove").click(function(){        
+        let paymentCode = $('#paymentCode').val();            
         $.ajax({
             type: "post",
-            url: "{{ route('apProforma.posting') }}",
+            url: "{{ route('disbursement.approve') }}",
             data: {
-                piNumber:piNumber
+                paymentCode:paymentCode
             },
             dataType: "json",
             success: function(data) {
                 if (data.status == 0 ){
                     show_msg(data.title, data.message, data.alert);
-                    $('#piNumber').attr('disabled','disabled');
-                    $('#cmdSave').show();
-                    // $('#cmdPosting').hide();
+                    $('#paymentCode').attr('disabled','disabled');
+                    $('#cmdSave').hide();
+                    $('#cmdApprove').show(); 
                 }else{
                     show_msg(data.title, data.message, data.alert);
                     $('#statusText').text(data.statusAp);
-                    $('#piNumber').attr('disabled','disabled');                    
-                    $('#cmdPosting').hide();
+                    $('#paymentCode').attr('disabled','disabled');  
+                    $('#cmdApprove').hide();                  
+                    $('#cmdSave').hide();
+                    $('#cmdPrint').show();
                 }
             },
             error: function(error) {

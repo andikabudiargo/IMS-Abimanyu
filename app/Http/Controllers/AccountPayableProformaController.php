@@ -662,7 +662,7 @@ class AccountPayableProformaController extends Controller
                                 <i data-feather="menu"></i>
                             </a>';
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
-            if (($data->status != '3') && ($data->status != '4')){
+            if (($data->status != '3') && ($data->status != '4')  && ($data->status != '5') ){
                 if (Auth::user()->can('ap-edit')) {
                 $buttons .=         '<a href="'. route('apProforma.edit',['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                         <i data-feather="file-text"></i>

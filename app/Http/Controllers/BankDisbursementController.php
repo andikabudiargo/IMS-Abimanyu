@@ -31,11 +31,10 @@ class BankDisbursementController extends Controller
         // 2. Updated
         // 3. Posted
         // 4. Canceled
-        // 5. Paid
 
-        $data['status'] = ['1'=>'Draft','2'=>'Updated','3'=>'Posted','4'=>'Canceled','5'=>'Paid'];
+        $data['status'] = ['1'=>'Draft','2'=>'Updated','3'=>'Posted','4'=>'Canceled'];
             
-        return view("AccountPayableProforma.index",$data);
+        return view("bankDisbursement.index",$data);
     }
 
     public function getLastCode($key)
@@ -54,9 +53,9 @@ class BankDisbursementController extends Controller
         $months = ['I', 'II', 'III','IV','V', 'VI', 'VII', 'VIII','IX','X','XI','XII'];
         $month = $months[date('n')-1];
         $year = date('Y');
-        $poNumber="$key-ASN/$year/$month/$newCode";
+        $newNumber="$key-DISB/$year/$month/$newCode";
         
-        return $poNumber;
+        return $newNumber;
     }
 
     public function listInvoice(Request $request)
@@ -147,10 +146,20 @@ class BankDisbursementController extends Controller
         $apNumber = substr($apNumber,0,-1);     
         $apNumber = explode(",",$apNumber);
 
-        $data=DB::table('ap_invoice')
+        $data1=DB::table('ap_invoice')
         ->leftJoin('third_party','third_party.kode','ap_invoice.supplier_id')
-        ->select('ap_invoice.*','third_party.nama',DB::raw('(basis_amount + vat)- (pph23+other_deduction) as total'),'third_party.bank_type')
-        ->whereIn('ap_number',$apNumber)
+        ->select('ap_number','inv_number','inv_date','rec_date','due_date','supplier_id','third_party.nama',DB::raw('(basis_amount + vat)- (pph23+other_deduction) as total'),'third_party.bank_type',DB::raw("'ap' as type"))
+        ->whereIn('ap_number',$apNumber);
+
+
+        $data2=DB::table('ap_pro_invoice')
+        ->leftJoin('third_party','third_party.kode','ap_pro_invoice.supplier_id')
+        ->select('pi_number','inv_number','inv_date','rec_date','due_date','supplier_id','third_party.nama',DB::raw('(basis_amount + vat)- (pph23+other_deduction) as total'),'third_party.bank_type',DB::raw("'pi' as type"))
+        ->whereIn('pi_number',$apNumber);
+        
+        $data = $data1->union($data2)
+        ->orderBy('supplier_id','asc')
+        ->orderBy('ap_number','asc')
         ->get();
 
         return response()->json($data);
@@ -159,7 +168,6 @@ class BankDisbursementController extends Controller
         // ->make(true);
     }
 
-    
     public function poDetail(Request $request)
     {
         $po = $request->poNumber;
@@ -195,72 +203,62 @@ class BankDisbursementController extends Controller
     public function store(Request $request)
     {
         $username =  Auth::user()->username;
-        $suppCode = $request->input('supplier');
-        $poNumber = $request->input('poNumberDet');
-        $currency = $request->input('currency');
-        $rate = is_null($request->input('rate')) ? 0 : preg_replace('/[^0-9.]+/', '', $request->input('rate'));
-        $invoiceNumber= $request->input('invoiceNumber');
-        $invoiceDate= $request->input('invoiceDate');
-        $basisAmount = is_null($request->input('basisAmount')) ? 0 : preg_replace('/[^0-9.]+/', '', $request->input('basisAmount'));
-        $vat = is_null($request->input('vat')) ? 0 : preg_replace('/[^0-9.]+/', '', $request->input('vat'));
-        $otherDeduct = is_null($request->input('otherDeduct')) ? 0 : preg_replace('/[^0-9.]+/', '', $request->input('otherDeduct'));
-        $account= $request->input('account');
-        $pph23 = $request->input('pph23Check') == 'on'? is_null($request->input('pph23')) ? 0 : preg_replace('/[^0-9.]+/', '', $request->input('pph23')) : 0;
-        $pph23Type= $request->input('pph23Check') == 'on'? is_null($request->input('pph23'))? "":$request->input('pph23Type') : '';
-        
+        $details = json_decode($request->details);
+        // $detailAp = json_decode($request->detailAp);
+        // $detailPi = json_decode($request->detailPi);
+        $paymentDate = $request->paymentDate;
+        $admin = $request->admin;
+        $discount = $request->discount;
+        $others = $request->others;
+        $subTotal = $request->subTotal;
+        $othersNote = "";
+        $bankName = ""; //Bank nya asn
+        $accountNumber = ""; //Account bank nya asn
         $status = '1';
-        $authorizedBy = "";
         $note="";
 
         // status
-        // 1. Draft
+        // 1. Saved
         // 2. Update
-        // 3. Posting
+        // 3. approve
         // 4. Cancel
-        // 5. Paid
         
-        $messages = [
-            'required' => 'The field is required.',
-            'unique' => 'The code has already been taken', 
-            'iunique' => "Invoice Number : $invoiceNumber on PO: $poNumber has already exist",
-        ];
+        // $messages = [
+        //     'required' => 'The field is required.',
+        //     'unique' => 'The code has already been taken', 
+        //     'iunique' => "Invoice Number : $invoiceNumber on PO: $poNumber has already exist",
+        // ];
         
-        Validator::extend('iunique', function ($attribute, $value, $parameters, $validator) use ($poNumber) {
-            $query = DB::table($parameters[0]);
-            $column = $query->getGrammar()->wrap($parameters[1]);
-            $column2 = $query->getGrammar()->wrap($parameters[2]);
-            return !$query->whereRaw("lower({$column}) = lower(?)", [$value])
-                          ->whereRaw("lower({$column2}) = lower(?)", [$poNumber])->count();
-        });
+        // Validator::extend('iunique', function ($attribute, $value, $parameters, $validator) use ($poNumber) {
+        //     $query = DB::table($parameters[0]);
+        //     $column = $query->getGrammar()->wrap($parameters[1]);
+        //     $column2 = $query->getGrammar()->wrap($parameters[2]);
+        //     return !$query->whereRaw("lower({$column}) = lower(?)", [$value])
+        //                   ->whereRaw("lower({$column2}) = lower(?)", [$poNumber])->count();
+        // });
 
-        $rule = [
-            'poNumberDet'  => 'required',
-            'invoiceNumber'=>'required|iunique:ap_pro_invoice,inv_number,po_number',
-            // 'doDate'  => 'required',
-        ];
+        // $rule = [
+        //     // 'poNumberDet'  => 'required',
+        //     // 'invoiceNumber'=>'required|iunique:ap_pro_invoice,inv_number,po_number',
+        //     // 'doDate'  => 'required',
+        // ];
 
-        $this->validate($request,$rule,$messages);
+        // $this->validate($request,$rule,$messages);
 
-        $hasilUpdate = AppHelpers::resetCode('PRO');
-        $piNumber = $this->getLastCode('PRO');
+        $hasilUpdate = AppHelpers::resetCode('BANK');
+        $disbursementNumber = $this->getLastCode('BANK');
         DB::beginTransaction();
         try {
-                DB::table('ap_pro_invoice')->insert([
-                    'pi_number' => $piNumber,
-                    'inv_number' => $invoiceNumber,
-                    'old_pi_number' => $piNumber,
-                    'inv_date' => $invoiceDate,
-                    'po_number' => $poNumber,
-                    'supplier_id' => $suppCode,
-                    'currency' => $currency,
-                    'kurs' => $rate,
-                    'basis_amount' => $basisAmount,
-                    'vat' => $vat,
-                    'pph23' => $pph23,
-                    'pph23_type' => $pph23Type,
-                    'other_deduction' => $otherDeduct,
-                    'account' => $account,
-                    'prepared_by' => Auth::user()->username,
+                DB::table('bank_disbursement_hdr')->insert([
+                    'disbursement_number' => $disbursementNumber,
+                    'disbursement_date' => $paymentDate,
+                    'total' => $subTotal,
+                    'admin' => $admin,
+                    'discount' => $discount,
+                    'other_admin' => $others ,
+                    'other_note' => $othersNote,
+                    'bank_name' => $bankName,
+                    'account_number' => $accountNumber,
                     'status' => $status,
                     'note' => $note,
                     'created_by' => Auth::user()->username,
@@ -269,42 +267,96 @@ class BankDisbursementController extends Controller
                     'updated_at' => date('Y-m-d H:i:s')
                 ]);
 
+                $dataSet = [];
+                foreach ($details as $val) {
+                    if ($val->type =="ap" ){
+                        $data1=DB::table('ap_invoice')
+                        ->leftJoin('third_party','third_party.kode','ap_invoice.supplier_id')
+                        ->select(DB::raw("'$disbursementNumber' as disbursement_number"),
+                                'ap_number',
+                                DB::raw("'$val->type' as ref_type"),
+                                'inv_number',
+                                'inv_date',
+                                'rec_date',
+                                'due_date',
+                                'third_party.bank_type',
+                                DB::raw('(basis_amount + vat)- (pph23+other_deduction) as total'))
+                        ->where('ap_number',$val->ap_number)
+                        ->where('inv_number',$val->inv_number)
+                        ->get();
+
+                        foreach($data1 as $data_1){
+                            $dataSet[] = [
+                                'disbursement_number' => $data_1->disbursement_number,
+                                'ref_number' => $data_1->ap_number,
+                                'ref_type' => $data_1->ref_type,
+                                'inv_number' => $data_1->inv_number,
+                                'inv_date' => $data_1->inv_date,
+                                'rec_date' => $data_1->rec_date,
+                                'due_date' => $data_1->due_date,
+                                'bank_type' => $data_1->bank_type,
+                                'total' => $data_1->total,
+                                'created_by' => Auth::user()->username,
+                                'updated_by' => Auth::user()->username,
+                                'created_at' => date('Y-m-d H:i:s'),
+                                'updated_at' => date('Y-m-d H:i:s')
+                            ];
+                        }
+                    }
+
+                    if ($val->type =="pi" ){
+                        $data2=DB::table('ap_pro_invoice')
+                        ->leftJoin('third_party','third_party.kode','ap_pro_invoice.supplier_id')
+                        ->select(DB::raw("'$disbursementNumber' as disbursement_number"),
+                                'pi_number',
+                                DB::raw("'$val->type' as ref_type"),
+                                'inv_number',
+                                'inv_date',
+                                'rec_date',
+                                'due_date',
+                                'third_party.bank_type',
+                                DB::raw('(basis_amount + vat)- (pph23+other_deduction) as total'))
+                        ->where('pi_number',$val->ap_number)
+                        ->where('inv_number',$val->inv_number)
+                        ->get();
+
+                        foreach($data2 as $data_2){
+                            $dataSet[] = [
+                                'disbursement_number' => $data_2->disbursement_number,
+                                'ref_number' => $data_2->pi_number,
+                                'ref_type' => $data_2->ref_type,
+                                'inv_number' => $data_2->inv_number,
+                                'inv_date' => $data_2->inv_date,
+                                'rec_date' => $data_2->rec_date,
+                                'due_date' => $data_2->due_date,
+                                'bank_type' => $data_2->bank_type,
+                                'total' => $data_2->total,
+                                'created_by' => Auth::user()->username,
+                                'updated_by' => Auth::user()->username,
+                                'created_at' => date('Y-m-d H:i:s'),
+                                'updated_at' => date('Y-m-d H:i:s')
+                            ];
+                        }
+                    } 
+                }
+        
+                DB::table('bank_disbursement_det')->insert($dataSet);
+
                 DB::commit();
 
-                $title ='Save Proforma Invoice';
+                $title ='Save Bank Disbursement Invoice';
                 $alert  ="success";
-                $message  = "$title $piNumber is successfully saved";
-
-                $data['details'] = DB::table('ap_pro_invoice')
-                ->where('pi_number',$piNumber)
-                ->get()->first();
-                
-                $data['supps'] = DB::table('third_party')
-                ->where ('third_party_type','=','supp')
-                ->orderBy('nama')
-                ->get();
-
-                $data['currency'] = ['IDR','USD'];
-
-                $data['accounts'] = DB::table('accounts')
-                ->get();
-
-                $data['status'] = 'Saved';
-
-                $data['title'] = $title;
-                $data['message'] = $message;
-                $data['alert'] = $alert;
-
+                $message  = "$title $disbursementNumber is successfully saved";
                 \LogActivity::addToLog($title,"username: $username Status $message");
-                return redirect()->back()->with($data);
+                return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'disNumber'=>$disbursementNumber));
 
         } catch (Exception $e) {
             DB::rollBack();
-            $title ='Save Invoice';
+            $title ='Save Bank Disbursement Invoice';
             $alert  ="warning";
-            $message  = "*Invoice $piNumber is failed to save";
+            $message  = "*Invoice $disbursementNumber is failed to save";
             \LogActivity::addToLog($title,"username: $username Status $message");
-            return redirect()->back()->with(array('title' => $title, 'message' => $message,'alert'=>$alert,'piNumber'=>$piNumber));
+            return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'disNumber'=>$disbursementNumber));
         }
         
     }
@@ -481,50 +533,79 @@ class BankDisbursementController extends Controller
 
     }
 
-    public function posting(Request $request)
+    public function approve(Request $request)
     {
         // status
         // 1. Draft
         // 2. Updated
-        // 3. Posted
+        // 3. Approved
         // 4. Canceled
-        // 5. Paid
-        // 6. Revised
 
         $username =  Auth::user()->username;
-        $piNumber = $request->piNumber;
-        $recType = "NORMAL";
-        $statusAp ="Posted";
+        $paymentCode = $request->paymentCode;
         $status = '3';
-        $authorizedBy = Auth::user()->username;
+        $statusAp = "Approved";
         
-        
-        $rowAffected = DB::table('ap_pro_invoice')
-            ->where('pi_number',$piNumber)
+        $rowAffected = DB::table('bank_disbursement_hdr')
+            ->where('disbursement_number',$paymentCode)
             ->update(
                 [   
                     'status' => $status,
-                    'authorized_by' => $authorizedBy,
-                    'authorized_at' => date('Y-m-d H:i:s'),
+                    'approved_by' => Auth::user()->username,
+                    'approved_at' => date('Y-m-d H:i:s'),
                     'updated_by' => Auth::user()->username,
                     'updated_at' => date('Y-m-d H:i:s')
                 ]
             );
 
         if ($rowAffected){
+
+            $disbs = DB::table('bank_disbursement_det')
+                ->where('disbursement_number',$paymentCode)
+                ->get();
+
+            foreach($disbs as $disb){
+                if ($disb->ref_type == 'ap'){
+                    DB::table('ap_invoice')
+                    ->where('ap_number',$disb->ref_number)
+                    ->where('inv_number',$disb->inv_number)
+                    ->update(
+                        [   
+                            'status' => '5',
+                            'updated_by' => Auth::user()->username,
+                            'updated_at' => date('Y-m-d H:i:s')
+                        ]
+                    );
+                }
+
+                if ($disb->ref_type == 'pi'){
+                    DB::table('ap_pro_invoice')
+                    ->where('pi_number',$disb->ref_number)
+                    ->where('inv_number',$disb->inv_number)
+                    ->update(
+                        [   
+                            'status' => '5',
+                            'updated_by' => Auth::user()->username,
+                            'updated_at' => date('Y-m-d H:i:s')
+                        ]
+                    );
+                }
+                
+            }
+
             DB::commit();
-            $title ='Posting Proforma invoice';
+            $title ='Posting bank disbursement';
             $alert  ="success";
-            $message  = "$title $piNumber is successfully updated";
+            $message  = "$title $paymentCode is successfully updated";
             \LogActivity::addToLog($title,"username: $username Status $message");
-            return response()->json(array('status' => 1, 'message' => $message,'alert'=>$alert,'piNumber'=>$piNumber,'statusAp'=>$statusAp));
+            return response()->json(array('status' => 1, 'message' => $message,'alert'=>$alert,'disNumber'=>$paymentCode,'statusAp'=>$statusAp));
         }else{
             DB::rollBack();
-            $title ='Posting Proforma invoice';
+            $title ='Posting bank disbursement';
             $alert  ="warning";
-            $message  = "$title $piNumber is failed to updated";
+            $message  = "$title $paymentCode is failed to updated";
             \LogActivity::addToLog($title,"username: $username Status $message");
-            return response()->json(array('status' => 0, 'message' => $message,'alert'=>$alert,'piNumber'=>$piNumber));            
+            return response()->json(array('status' => 0, 'message' => $message,'alert'=>$alert,'disNumber'=>$paymentCode));            
         }
     }
 
@@ -684,51 +765,36 @@ class BankDisbursementController extends Controller
         // 2. Updated
         // 3. Posted
         // 4. Canceled
-        // 5. Paid
-        // 6. Revised
-
-        $searchPo = strtolower($request->searchPo);
-        $searchInv = strtolower($request->searchInv);
-        $searchSupplier = $request->searchSupplier;
-        $searchStatus = $request->searchStatus;
-        $invDate = $request->invDate;
+        
+        $searchCode=strtolower($request->searchCode);
+        $searchDate=$request->searchDate;
+        $searchStatus=$request->searchStatus;
        
-
         $filter='';
         
         // $filter.="status <> 6 ";
         
-        if ($searchPo !='' ){
-            $filter.="lower(a.po_number) like '%$searchPo%' and ";
-        }
-
-        if ($searchInv !='' ){
-            $filter.="lower(a.inv_number) like '%$searchInv%' and ";
-        }
-
-        if ($searchSupplier  != '' ){
-            $filter.="supplier_id = '$searchSupplier' and ";            
+        if ($searchCode !='' ){
+            $filter.="lower(disbursement_number) like '%$searchCode%' and ";
         }
 
         if ($searchStatus  != '' ){
             $filter.="status = '$searchStatus' and ";            
         }
 
-        if ($invDate  != '' ){
-            $date = explode("to",$invDate);
+        if ($searchDate  != '' ){
+            $date = explode("to",$searchDate);
             $date1=trim($date[0]);
             $date2=trim($date[1]);
-            $filter.= "to_date(inv_date, 'DD/MM/YYYY')  BETWEEN to_date('$date1', 'DD/MM/YYYY') and to_date('$date2', 'DD/MM/YYYY') and ";
+            $filter.= "to_date(disbursement_date, 'DD/MM/YYYY') BETWEEN to_date('$date1', 'DD/MM/YYYY') and to_date('$date2', 'DD/MM/YYYY') and ";
         }
         
-        // if ($filter !=''){
-        //     $filter=" where ".substr($filter,0,-4);
-        // }
+        if ($filter !=''){
+            $filter=" where ".substr($filter,0,-4);
+        }
 
-        $data = DB::select("SELECT *,
-        (select concat(kode,'-',nama) from third_party where kode = supplier_id limit 1) as supp_name,
-        (basis_amount+vat+pph23)-other_deduction as total
-        from ap_pro_invoice a where $filter status != '6' ");
+        $data = DB::select("SELECT *,total-(admin+discount+other_admin) as grand_total
+        from bank_disbursement_hdr $filter");
 
         return Datatables::of($data)
         ->addColumn('action', function ($data) {
@@ -739,35 +805,26 @@ class BankDisbursementController extends Controller
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
             if (($data->status != '3') && ($data->status != '4')){
                 if (Auth::user()->can('ap-edit')) {
-                $buttons .=         '<a href="'. route('apProforma.edit',['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+                $buttons .=         '<a href="'. route('disbursement.edit',['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                         <i data-feather="file-text"></i>
                                         Edit
                                     </a>';
                 }
             }
 
-            $buttons .=         '<a href="'. route('apProforma.show', ['piNumber'=>Crypt::encryptString($data->pi_number)]) .'" class="dropdown-item">
+            $buttons .=         '<a href="'. route('disbursement.show', ['piNumber'=>Crypt::encryptString($data->disbursement_number)]) .'" class="dropdown-item">
                                     <i data-feather="list"></i>
                                     Detail
                                 </a>';
-                                
-            if ( $data->status == '3' ){
-                if (Auth::user()->can('ap-revision')) {
-                    $buttons .= '<a href="'. route('apProforma.revision', ['id'=>$data->id,'piNumber'=>$data->pi_number,'numRevision'=>$data->num_revision]) .'" class="dropdown-item">
-                                    <i data-feather="copy"></i>
-                                       Revision
-                                </a>';
-                }
-            }
                 
-            if (($data->status != '5' && $data->status != '4' )){
+            if (($data->status != '3' && $data->status != '4' )){
                 if (Auth::user()->can('receiving-delete')) {
                 $buttons .=         "<a href='javascript:;'
                                         id='deleteButton'
                                         class='dropdown-item'
                                         data-toggle='modal'
                                         data-target='#smallModalCancel'
-                                        data-href='". route("apProforma.destroy", ["id"=>Crypt::encryptString($data->id)]) ."'>
+                                        data-href='". route("disbursement.destroy", ["id"=>Crypt::encryptString($data->id)]) ."'>
                                         <i data-feather='trash-2'></i>
                                         Cancel
                                     </a>";
@@ -779,7 +836,7 @@ class BankDisbursementController extends Controller
             return $buttons;
             })
         ->addColumn('status', function ($data) {
-            $statusRec = ['Draft','Updated','Posted','Canceled','Paid','Revised'];
+            $statusRec = ['Draft','Updated','Approved','Canceled'];
             return $statusRec[$data->status - 1];
         })
         ->rawColumns(['action','status'])

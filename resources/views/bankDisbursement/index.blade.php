@@ -3,7 +3,6 @@
 @section('content')
 @include('layouts.breadcrumb')
 @include('partials.alert')
-
 <section id="article-index">
   <div class="card">
     <div class="card-header">  
@@ -19,28 +18,15 @@
         <form class="needs-validation" novalidate>
             <div class="form-row">
               <div class="form-group col-md-3"> 
-                <label for="searchPo">PO Number</label>
-                <input type="text" class="form-control text-uppercase" id="searchPo" name="searchPo" placeholder=""  />
-              </div>
-              <div class="form-group col-md-3"> 
-                <label class="form-label" for="searchSupplier">Supplier</label>
-                <select class="select2 form-control" id="searchSupplier" name="searchSupplier">
-                    <option value="">All</option>
-                    @foreach($supps as $val)
-                        <option value="{{$val->kode}}">{{$val->kode}} - {{$val->nama}}</option>
-                    @endforeach
-                </select>
-              </div>
-              <div class="form-group col-md-3"> 
-                <label for="searchInv">Proforma Invoice Number</label>
-                <input type="text" class="form-control text-uppercase" id="searchInv" name="searchInv" placeholder=""  />
+                <label for="searchCode">Disbursement Number</label>
+                <input type="text" class="form-control text-uppercase" id="searchCode" name="searchCode" placeholder=""  />
               </div>
               <div class="col-md-3 form-group">
-                <label for="invDate">Date</label>
-                <input type="text" id="invDate" name="invDate" class="form-control flatpickr-range" placeholder="YYYY-MM-DD to YYYY-MM-DD" />
+                <label for="searchDate">Date</label>
+                <input type="text" id="searchDate" name="searchDate" class="form-control flatpickr-range" placeholder="YYYY-MM-DD to YYYY-MM-DD" />
               </div>
-              <div class="form-group col-md-2"> 
-                <label class="form-label" for="searchStatus">Proforma Invoice Status</label>
+              <div class="form-group col-md-2">
+                <label class="form-label" for="searchStatus">Status</label>
                 <select class="select2 form-control" id="searchStatus" name="searchStatus">
                     <option value="">All</option>
                     @foreach($status as $index=>$val)
@@ -52,8 +38,8 @@
             <div class="form-row">
                 <div class="col-12"> 
                     <button type="button" class="btn btn-primary" id ="btnSearch" name="btnSearch">Search</button>
-                    @can('receiving-create')
-                    <a href="{{ route('apProforma.create') }}" class="btn btn-info"><i class="fa fa-plus"></i> Create</a>
+                    @can('disbursement-create')
+                    <a href="{{ route('disbursement.create') }}" class="btn btn-info"><i class="fa fa-plus"></i> Create</a>
                     @endcan
                 </div>
             </div>
@@ -131,29 +117,25 @@
   }
 
   $("#btnSearch").click(function(e){
-    let searchPo = $("#searchPo").val();
-    let searchInv = $("#searchInv").val();
-    let searchSupplier = $("#searchSupplier").val(); 
+    let searchCode = $("#searchCode").val();
+    let searchDate = $("#searchDate").val();
     let searchStatus = $("#searchStatus").val();
-    let invDate = $("#invDate").val();
-    showList(searchPo,searchInv,searchSupplier,searchStatus,invDate);
+    showList(searchCode,searchDate,searchStatus);
 
   });
 
-  function showList(searchPo,searchInv,searchSupplier,searchStatus,invDate){
+  function showList(searchCode,searchDate,searchStatus){
     let dtdom ='<"d-flex justify-content-between align-items-center header-actions mx-1 row mt-75"<"col-lg-12 col-xl-6" l><"col-lg-12 col-xl-6 pl-xl-75 pl-0"<"dt-action-buttons text-xl-right text-lg-left text-md-right text-left d-flex align-items-center justify-content-lg-end align-items-center flex-sm-nowrap flex-wrap mr-1"<"mr-1"f>B>>>t<"d-flex justify-content-between mx-2 row mb-1"<"col-sm-12 col-md-6"i><"col-sm-12 col-md-6"p>>';
     let arr_col_print =[2,3,4,5,6,7,8,9,10,11,12,13]; 
     $(function(){
       let oTable =$("#detailedTable").DataTable({
         ajax:
         {
-          url:'{{ route("apProforma.list")}}',
+          url:'{{ route("disbursement.list")}}',
           data:{
-              searchPo:searchPo,
-              searchInv:searchInv,
-              searchSupplier:searchSupplier,
-              searchStatus:searchStatus,
-              invDate:invDate
+            searchCode:searchCode,
+            searchDate:searchDate,
+            searchStatus:searchStatus
           }
         },
         processing: true,
@@ -232,20 +214,17 @@
         // scrollX: true, //pakai ini supaya waktu responsive  bisa di scroll horizontal
         columns: [
             { data: 'action', name: 'action',title:'action', orderable: false, searchable: false },
-            { data: 'pi_number', name: 'pi_number',title:'Proforma Number' },
-            { data: 'num_revision', name: 'num_revision',title:'Rev.' },
-            // { data: 'inv_number', name: 'inv_number',title:'Invoice Number' },
-            { data: 'inv_date', name: 'inv_date',title:'Inv Date' },
-            { data: 'supplier_id', name: 'supplier_id',title:'Supplier' },
-            // { data: 'supp_name', name: 'supp_name',title:'Supplier' },
-            { data: 'po_number', name: 'po_number',title:'PO Number' },
-            { data: 'basis_amount', name: 'basis_amount',title:'Basis Amount',render: $.fn.dataTable.render.number(',','.') },
-            { data: 'vat', name: 'vat',title:'VAT',render: $.fn.dataTable.render.number(',','.') },
-            { data: 'pph23', name: 'pph23',title:'PPH23',render: $.fn.dataTable.render.number(',','.') },
-            { data: 'other_deduction', name: 'other_deduction',title:'Other Deduction',render: $.fn.dataTable.render.number(',','.') },
+            { data: 'disbursement_number', name: 'disbursement_number',title:'Number' },
+            { data: 'disbursement_date', name: 'disbursement_date',title:'Date' },
             { data: 'total', name: 'total',title:'Total',render: $.fn.dataTable.render.number(',','.') },
-            { data: 'prepared_by', name: 'prepared_by',title:'Prepared By' },
-            { data: 'authorized_by', name: 'authorized_by',title:'Authorized By' },
+            { data: 'admin', name: 'admin',title:'Admin',render: $.fn.dataTable.render.number(',','.') },
+            { data: 'discount', name: 'discount',title:'Discount',render: $.fn.dataTable.render.number(',','.') },
+            { data: 'other_admin', name: 'other_admin',title:'Others',render: $.fn.dataTable.render.number(',','.') },
+            { data: 'grand_total', name: 'grand_total',title:'Grand Total',render: $.fn.dataTable.render.number(',','.') },
+            { data: 'created_by', name: 'created_by',title:'Created By' },
+            { data: 'created_at', name: 'created_at',title:'Prepared At' },
+            { data: 'approved_by', name: 'approved_by',title:'Approve By' },
+            { data: 'approved_at', name: 'approved_at',title:'Approve At' },
             { data: 'status', name: 'status',title:'Status' },
         ],
       });

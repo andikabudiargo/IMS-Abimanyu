@@ -31,7 +31,7 @@
                             <div class="form-row">
                                 <div class="form-group col-md-6">
                                     <label class="form-label" for="supplier">Supplier*</label>
-                                    <select class="select2 form-control" id="supplier" name="supplier" required>
+                                    <select class="select2 form-control disabled-el" id="supplier" name="supplier" required>
                                         <option value="">All</option>
                                         @foreach($supps as $val)
                                             <option value="{{ $val->kode }}" {{ old('supplier',Session::get('details') ? Session::get('details')->supplier_id :"") == $val->kode ? 'selected' : '' }} >{{$val->kode}} - {{$val->nama}}</option>
@@ -42,7 +42,7 @@
                             <div class="form-row">
                                 <div class="form-group col-md-6">
                                     <label class="form-label" for="poNumber">PO Number*</label>
-                                    <select class="select2 form-control" id="poNumber" name="poNumber" required>
+                                    <select class="select2 form-control disabled-el" id="poNumber" name="poNumber" required>
                                     </select>
                                 </div>
                             </div>
@@ -137,8 +137,8 @@
                                     <input type="text" id="grandTotal" name="grandTotal" class="form-control numeral-mask text-right" value="{{ old('grandTotal') }}" required />
                                 </div>
                                 <div class="form-group col-md-3">
-                                    <label class="form-label" for="account">COA</label>
-                                    <select class="select2 form-control w-100" id="account" name="account" reguired>
+                                    <label class="form-label" for="account">COA*</label>
+                                    <select class="select2 form-control" id="account" name="account" required>
                                         <option value="">Choose option</option>
                                         @foreach($accounts as $val)
                                             <option value="{{ $val->account }}" {{ old('account',Session::get('details') ? Session::get('details')->account : '') == $val->account ? 'selected' : '' }}>{{ $val->account}} - {{ $val->description }}</option>
@@ -244,6 +244,11 @@
 
         if(!supplierAda){
             $('#invoiceDate').val(currentDate);
+        }
+
+        if (status =='Saved'){
+            $('#supplier').attr('disabled', 'disabled');
+            $('#poNumber').attr('disabled', 'disabled');
         }
         
         mask_thousand();

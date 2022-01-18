@@ -301,7 +301,7 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('disbursement/list',['as'=>'disbursement.list','uses'=>'BankDisbursementController@list']);
 	Route::post('disbursement/delete',['as'=>'disbursement.destroy','uses'=>'BankDisbursementController@destroy']);
 	Route::post('disbursement/update',['as'=>'disbursement.update','uses'=>'BankDisbursementController@update']);
-	Route::post('disbursement/posting',['as'=>'disbursement.posting','uses'=>'BankDisbursementController@posting']);
+	Route::post('disbursement/approve',['as'=>'disbursement.approve','uses'=>'BankDisbursementController@approve']);
 	Route::get('disbursement/revision',['as'=>'disbursement.revision','uses'=>'BankDisbursementController@revision']);
 	Route::get('disbursement/show',['as'=>'disbursement.show','uses'=>'BankDisbursementController@show']);
 
