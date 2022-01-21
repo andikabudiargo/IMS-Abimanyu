@@ -179,6 +179,7 @@ return [
         Spatie\Permission\PermissionServiceProvider::class,
         App\Providers\LogActivityServiceProvider::class,
         Barryvdh\DomPDF\ServiceProvider::class,
+        App\Providers\ComposerServiceProvider::class,
 
     ],
 

@@ -19,8 +19,7 @@ class BankDisbursementController extends Controller
 {
     public function index(Request $request)
     {
-        $data['title'] = "List Proforma Invoice";
-        
+        $data['title'] = "List Bank Disbursement";
         $data['supps'] = DB::table('third_party')
         ->where ('third_party_type','=','supp')
         ->orderBy('nama')
@@ -364,8 +363,8 @@ class BankDisbursementController extends Controller
     public function show(Request $request)
     {
         $piNumber=Crypt::decryptString($request->piNumber);
-        $data['title'] = "Detail Proforma Invoice";
-        $data['subtitle'] = "Detail Proforma Invoice";
+        $data['title'] = "Detail Bank Disbursement";
+        $data['subtitle'] = "Detail Bank Disbursement";
 
         $data['details'] = DB::table('ap_pro_invoice')
         ->where('pi_number',$piNumber)
@@ -392,8 +391,8 @@ class BankDisbursementController extends Controller
     public function edit(Request $request)
     {
         $id=Crypt::decryptString($request->id);
-        $data['title'] = "Edit Proforma Invoice";
-        $data['subtitle'] = "Edit Proforma Invoice";
+        $data['title'] = "Edit Bank Disbursement";
+        $data['subtitle'] = "Edit Bank Disbursement";
 
         $data['details'] = DB::table('ap_pro_invoice')
         ->where('id',$id)
@@ -616,8 +615,8 @@ class BankDisbursementController extends Controller
         $numRevision = $request->numRevision ? $request->numRevision +1 : 1 ;
         $piNew = $piOrigin.'-R'.$numRevision;
 
-        $data['title'] = "Edit Invoice";
-        $data['subtitle'] = "Edit Invoice";
+        $data['title'] = "Edit Bank Disbursement";
+        $data['subtitle'] = "Edit Bank Disbursement";
         
         $sqlAp = "INSERT into ap_pro_invoice
         (
