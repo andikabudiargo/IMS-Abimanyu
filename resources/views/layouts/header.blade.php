@@ -45,14 +45,14 @@
 					<i class="ficon" data-feather="moon"></i>
 				</a>
 			</li>
-			<li class="nav-item nav-search"><a class="nav-link nav-link-search"><i class="ficon" data-feather="search"></i></a>
+			{{-- <li class="nav-item nav-search"><a class="nav-link nav-link-search"><i class="ficon" data-feather="search"></i></a>
 				<div class="search-input">
 					<div class="search-input-icon"><i data-feather="search"></i></div>
 					<input class="form-control input" type="text" placeholder="Search..." tabindex="-1" data-search="search">
 					<div class="search-input-close"><i data-feather="x"></i></div>
 					<ul class="search-list search-list-main"></ul>
 				</div>
-			</li>
+			</li> --}}
 			<li class="nav-item dropdown dropdown-user">
 				<a class="nav-link dropdown-toggle dropdown-user-link" id="dropdown-user" href="javascript:void(0);" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
 					<div class="user-nav d-sm-flex d-none">

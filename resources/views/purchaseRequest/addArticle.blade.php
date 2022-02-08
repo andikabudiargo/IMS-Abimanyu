@@ -11,12 +11,16 @@
         padding-right: 0.3rem;
     }
 
-    td.isian{
-        padding-right:10px;
-        padding-left:10px;
+    .isian{
+        padding-right:5px;
+        padding-left:5px;
     }
 
-    td.isian-satu{
+    .isian-utama{
+        padding-right:5px;
+    }
+
+    .isian-satu{
         padding-right:5px;
         padding-left:15px;
         width: 25%;border-top: 1px solid #ffffff !important;
@@ -28,12 +32,52 @@
         background-color:#f8f8f8;
         color:black;
     }
+
+    #article_row .form-group {
+        margin-bottom: 0.5rem;
+    }
     
 </style>
 {{-- table row untuk di clone--}}  
 <div id="new_row" name="new_row[]" class="d-none">
     <div id="baru" class="tanda-baris" >
-        <table class="table-bordered" style="width: 98%;table-layout: fixed;">
+        <div class="form-row d-flex align-items-end">
+            <div class="col-md-5 col-12">
+                <div class="form-group">
+                    <label for="article_id" class="d-block d-md-none">Article Code</label>
+                    <select class="dynamicSelect sku-select-system" id="article_id" name="article_id[]" data-dependent="article_id">
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-2 col-12">
+                <div class="form-group">
+                    <label for="qty_order" class="d-block d-md-none">Qty</label>
+                    <input type="text" class="form-control numeral-mask text-right" id = "qty_order" name="qty_order[]" maxlength="6" />
+                </div>
+            </div>
+            <div class="col-md-1 col-12">
+                <div class="form-group">
+                    <label for="uom" class="d-block d-md-none">Uom</label>
+                    <span class="" id = "uom" name="uom[]"></span>
+                </div>
+            </div>
+            <div class="col-md-3 col-12">
+                <div class="form-group">
+                    <label for="note" class="d-block d-md-none">Note</label>
+                    <input type="text" class="form-control" id = "note" name="note[]"  maxlength="100">
+                </div>
+            </div>
+            <div class="col-md-1 col-12">
+                <div class="form-group">
+                    <a onmouseover="this.style.cursor='pointer'" onclick="$(this).parents('.tanda-baris').remove();">
+                        <i data-feather="trash-2" class="remove_button feather-24">
+                        </i>
+                    </a>
+                </div>
+            </div>
+        </div>
+        <hr class="d-block d-md-none" />
+        {{-- <table class="table-bordered" style="width: 98%;table-layout: fixed;">
             <tbody>
                 <tr>
                     <td class="isian-satu" style="width: 25%">
@@ -57,7 +101,8 @@
                     </td>
                 </tr>
             </tbody>
-        </table>
+        </table> --}}
     </div>
+    
 </div>
 {{-- \.table row --}} 

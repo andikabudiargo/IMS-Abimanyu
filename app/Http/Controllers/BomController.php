@@ -174,7 +174,7 @@ class BomController extends Controller
                 DB::rollBack();
                 $title ='Save BOM';
                 $alert  ="warning";
-                $message  = "BOM $bomNumber is failed to save";
+                $message  = "$title $bomNumber is failed to save";
                 \LogActivity::addToLog($title,"username: $username Status $message");
                 return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'bomNumber'=>$bomNumber));
             }
@@ -183,7 +183,7 @@ class BomController extends Controller
 
     public function show(Request $request)
     {
-        $id=$request->id;
+        $id=Crypt::decryptString($request->id);
         $data['title'] = "Edit Bill Of Material";
         $data['subtitle'] = "Edit Bill Of Material";
 
@@ -429,7 +429,7 @@ class BomController extends Controller
             //                         Print
             //                     </a>';
             }
-            $buttons .=         '<a href="'. route('bom.show', ['id'=>$data->id]) .'" class="dropdown-item">
+            $buttons .=         '<a href="'. route('bom.show', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                     <i data-feather="list"></i>
                                     Detail
                                 </a>';

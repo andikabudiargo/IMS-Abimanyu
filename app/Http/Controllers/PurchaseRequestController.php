@@ -20,15 +20,15 @@ class PurchaseRequestController extends Controller
         $data['title'] = "Purchase Request";
 
         // status:
-        // 1 = New
+        // 1 = Draft
         // 2 = Validated
-        // 3 = Authorized
+        // 3 = Approved
         // 4 = Received
         // 5 = Canceled
         // 6 = closed
         // 7 = po
 
-        $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'AUTHORIZED','4'=>'RECEIVED','5'=>'CANCELED','6'=>"CLOSE",'7'=>'PO'];
+        $data['status'] = ['1'=>'DRAFT','2'=>'VALIDATED','3'=>'APPROVED','4'=>'RECEIVED','5'=>'CANCELED','6'=>"CLOSE",'7'=>'PO'];
             
         return view("purchaseRequest.index",$data);
     }

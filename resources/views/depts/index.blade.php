@@ -70,9 +70,7 @@
       </div>
     </div>
 </section>
-
 @include('partials.delete-modal')
-
 @endsection
 @section('styles')
 <style>

@@ -8,7 +8,7 @@
         <div class="col-md-12">
             <div class="card">
                 <div class="card-header">
-                    <h4 class="card-title">Status: New</h4>
+                    <h4 class="card-title">Status: Draft</h4>
                     <div class="heading-elements">
                         <ul class="list-inline mb-0">
                             <li><a data-action="collapse"><i data-feather="chevron-down"></i></a></li>
@@ -25,6 +25,8 @@
                                     <label for="prNumber">Request Number</label> <small class="text-muted"> automatic</small>
                                     <input type="text" id="prNumber" name="prNumber" class="form-control disabled-el"  disabled />
                                 </div>
+                            </div>
+                            <div class="form-row">
                                 <div class="form-group col-md-2">
                                     <label class="form-label" for="poType">PO Type*</label>
                                     <select class="select2 form-control" id="poType" name="poType" required>
@@ -33,7 +35,7 @@
                                     </select>
                                 </div>
                                 <div class="form-group col-md-2">
-                                    <label for="orderDate">Order Date*</label>
+                                    <label for="orderDate">Request Date*</label>
                                     <input type="text" id="orderDate" name="orderDate" class="form-control" placeholder="DD-MM-YYYY" required />
                                 </div>
                                 <div class="form-group col-md-3">
@@ -47,18 +49,12 @@
                                 </div>
                             </div>
                             <div class="form-row">
-                                <div class="form-group col-md-10">
+                                <div class="form-group col-md-7">
                                     <label class="form-label" for="note">Notes</label>
                                     <textarea type="text" id="note" name="note" class="form-control" rows="1" ></textarea>
                                 </div>
                             </div>
-                            <div class="form-row">
-                                <div class="col-12">
-                                    <button class="btn btn-warning" type="reset" id="cmdCancel" name="cmdCancel">Cancel</button>
-                                    <button class="btn btn-success" type="reset" id="cmdNew" name="cmdCancel">New</button>
-                                    <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Save</button>
-                                </div>
-                            </div>
+                            
                         </form>
                     </div>
                 </div>
@@ -67,92 +63,73 @@
         <div class="col-md-12">
             <div class="card">
                 <div class="card-header">
-                    <h4 class="card-title">Article</h4>
+                    <h4 class="card-title">Article Detail</h4>
                 </div>
                 <div class="card-body" >
-                    <div>
-                        <table class="" style="width:98%;table-layout: fixed;">
-                            <tbody>
-                                <tr>
-                                    <td class="isian-satu" style="width: 25%">
-                                        <label>Article Code</label>
-                                    </td>
-                                    <td class="isian" style="width: 5%">
-                                        <label>QTY</label>
-                                    </td>
-                                    <td class="isian" style="width: 5%">
-                                        <label>UOM</label>
-                                    </td>
-                                    <td class="isian" style="width: 10%">
-                                        <label>Note</label>
-                                    </td>
-                                    <td class="isian text-center" style="width: 5%">
-                                        <label>-</label>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>      
+                    {{-- <table class="" style="width:98%;table-layout: fixed;">
+                        <tbody>
+                            <tr>
+                                <td class="isian-satu" style="width: 25%">
+                                    <label>Article Code</label>
+                                </td>
+                                <td class="isian" style="width: 5%">
+                                    <label>QTY</label>
+                                </td>
+                                <td class="isian" style="width: 5%">
+                                    <label>UOM</label>
+                                </td>
+                                <td class="isian" style="width: 10%">
+                                    <label>Note</label>
+                                </td>
+                                <td class="isian text-center" style="width: 5%">
+                                    <label>-</label>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table> --}}
+                    {{-- <div class="" id="article_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px"> --}}
+                    <div class="form-row d-flex align-items-end">
+                        <div class="col-md-5 col-12 d-none d-md-block">
+                            <div class="form-group">
+                                <label class="d-none d-md-block">Article Code</label>
+                            </div>
+                        </div>
+                        <div class="col-md-2 col-12 d-none d-md-block">
+                            <div class="form-group">
+                                <label class="d-none d-md-block text-right">Qty</label>
+                            </div>
+                        </div>
+                        <div class="col-md-1 col-12 d-none d-md-block">
+                            <div class="form-group">
+                                <label class="d-none d-md-block">Uom</label>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-12 d-none d-md-block">
+                            <div class="form-group">
+                                <label class="d-none d-md-block">Note</label>
+                            </div>
+                        </div>
+                        <div class="col-md-1 col-12 d-none d-md-block">
+                            <div class="form-group">
+                                <label class="d-none d-md-block">-</label>
+                            </div>
+                        </div>
+                    </div>
                     <div class="" id="article_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px">
                         <input type="text" id ="last_row_number" class="d-none" value="0">
                     </div>
-                    <div class="d-flex justify-content-between align-items-end mt-75 ml-75">
+                    <div class="d-flex justify-content-between align-items-end mt-75">
                         <button class="btn btn-primary btn-prev" type="button" id="addNewRow" onclick="add_new_row();">
                             <i data-feather="plus" class="align-middle mr-sm-25 mr-0"></i>
                             <span class="align-middle d-sm-inline-block d-none">Add Article</span>
                         </button>
                     </div>
-                    {{-- <div class="d-flex justify-content-between align-items-end mt-75">
-                        <div class="col-md-4">
-                            <div class="form-group row mb-03">
-                                <label for="totalRow" class="col-sm-4 col-form-label titik-dua">Row(s)</label>
-                                <div class="col-sm-3">
-                                    <input type="text" class="form-control text-right font-weight-bold" id="totalRow" />
-                                </div>
-                            </div>
-                            <div class="form-group row mb-03">
-                                <label for="totalQTY" class="col-sm-4 col-form-label titik-dua">Total QTY</label>
-                                <div class="col-sm-3">
-                                    <input type="text" class="form-control text-right font-weight-bold" id="totalQTY" disabled/>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-5">
-                            <div class="form-group row mb-03">
-                                <label for="totalAmount" class="col-sm-3 col-form-label titik-dua">Bruto</label>
-                                <div class="col-sm-6">
-                                    <input type="text" class="form-control text-right font-weight-bold" id="totalAmount" disabled />
-                                </div>
-                            </div>
-                            <div class="form-group row mb-03">
-                                <label for="totalPPN" class="col-sm-3 col-form-label titik-dua">Discount </label>
-                                <div class="col-sm-2" style="padding-right: 0rem;">
-                                    <input type="text" class="form-control text-right font-weight-bold" id="persenDiscount" maxlength="2"/>
-                                </div>
-                                <div class="col-sm-4" style="padding-left: 0rem;">
-                                    <input type="text" class="form-control text-right font-weight-bold" id="totalDiscount" disabled/>
-                                </div>
-                            </div>
-                            <div class="form-group row mb-03">
-                                <label for="totalPPN" class="col-sm-3 col-form-label titik-dua">PPN <span id="nilaiPPN"></span> </label>
-                                <div class="col-sm-6">
-                                    <input type="text" class="form-control text-right font-weight-bold" id="totalPPN" disabled/>
-                                </div>
-                            </div>
-                            <div class="form-group row mb-03">
-                                <label for="totalPPH" class="col-sm-3 col-form-label titik-dua">PPH <span>22</span> </label>
-                                <div class="col-sm-6">
-                                    <input type="text" class="form-control text-right font-weight-bold" id="totalPPH" disabled/>
-                                </div>
-                            </div>
-                            <div class="form-group row mb-03">
-                                <label for="totalNetto" class="col-sm-3 col-form-label titik-dua">Netto</label>
-                                <div class="col-sm-6">
-                                    <input type="text" class="form-control text-right font-weight-bold" id="totalNetto" disabled/>
-                                </div>
-                            </div>
-                        </div>
-                    </div> --}}
+                    <br>
+                    <div class="mt-75">
+                        <button class="btn btn-warning" type="reset" id="cmdCancel" name="cmdCancel">Cancel</button>
+                        <button class="btn btn-success" type="reset" id="cmdNew" name="cmdCancel">New</button>
+                        <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Save</button>
+                    </div>
                 </div>
             </div>
         </div>

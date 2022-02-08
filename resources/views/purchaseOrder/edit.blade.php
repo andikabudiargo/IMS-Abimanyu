@@ -106,7 +106,6 @@
                                             @if( $header->status == '1' || $header->status == '2' || $header->status == '3' )
                                                 <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Update</button>
                                             @endif
-                                          
                                         </div>
                                     </div>
                                 </div>

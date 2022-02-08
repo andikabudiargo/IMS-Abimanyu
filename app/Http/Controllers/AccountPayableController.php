@@ -29,11 +29,11 @@ class AccountPayableController extends Controller
         // status
         // 1. Draft
         // 2. Updated
-        // 3. Posted
+        // 3. Submitted / Posted
         // 4. Canceled
         // 5. Paid
 
-        $data['status'] = ['1'=>'Draft','2'=>'Updated','3'=>'Posted','4'=>'Canceled','5'=>'Paid'];
+        $data['status'] = ['1'=>'Draft','2'=>'Updated','3'=>'Submitted','4'=>'Canceled','5'=>'Paid'];
             
         return view("accountPayable.index",$data);
     }

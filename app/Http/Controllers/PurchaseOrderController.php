@@ -27,10 +27,11 @@ class PurchaseOrderController extends Controller
         // status:
         // 1 = New
         // 2 = Validated
-        // 3 = Authorized
+        // 3 = Approved
         // 4 = Received
         // 5 = Canceled
         // 6 = closed
+        // 7 = Paid
 
         $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'AUTHORIZED','4'=>'RECEIVED','5'=>'CANCELED','6'=>"CLOSE"];
             
@@ -342,7 +343,7 @@ class PurchaseOrderController extends Controller
         // status:
         // 1 = New
         // 2 = Validated
-        // 3 = Authorized
+        // 3 = Approved
         // 4 = Received
         // 5 = Canceled
         // 6 = closed
@@ -977,17 +978,17 @@ class PurchaseOrderController extends Controller
                 }
             }
 
-            if (Auth::user()->can('purchaseOrder-delete')) {
-                $buttons .=         "<a href='javascript:;'
-                                        id='deleteButton'
-                                        class='dropdown-item'
-                                        data-toggle='modal'
-                                        data-target='#smallModal'
-                                        data-href='". route("purchaseOrder.destroy", ["id"=>$data->id]) ."'>
-                                        <i data-feather='x-circle'></i>
-                                        Clear
-                                    </a>";
-            }
+            // if (Auth::user()->can('purchaseOrder-delete')) {
+            //     $buttons .=         "<a href='javascript:;'
+            //                             id='deleteButton'
+            //                             class='dropdown-item'
+            //                             data-toggle='modal'
+            //                             data-target='#smallModal'
+            //                             data-href='". route("purchaseOrder.destroy", ["id"=>$data->id]) ."'>
+            //                             <i data-feather='x-circle'></i>
+            //                             Clear
+            //                         </a>";
+            // }
             $buttons .=     '</div>
                         </div>';
 

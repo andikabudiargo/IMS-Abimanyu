@@ -30,9 +30,9 @@
                                     <input type="text" id="orderDate" name="orderDate" class="form-control flatpickr-basic" placeholder="DD-MM-YYYY" required/>
                                 </div>
                                 <div class="form-group col-md-3">
-                                    <label for="salesman">Salesperson*</label>
+                                    <label for="salesman">Salesman*</label>
                                     <select class="select2 form-control" id="salesman" name="salesman" required>
-                                        <option value="">All</option>
+                                        <option value="">Choose Salesman</option>
                                         @foreach($employees as $val)
                                         <option value="{{$val->employee_id}}">{{$val->employee_id}} - {{$val->name}}</option>
                                         @endforeach
@@ -41,7 +41,6 @@
                                 <div class="form-group col-md-2">
                                     <label for="type">Type*</label>
                                     <select class="select2 form-control" id="type" name="type" required>
-                                        <option value="">All</option>
                                         @foreach($types as $val)
                                         <option value="{{$val}}">{{$val}}</option>
                                         @endforeach
@@ -50,7 +49,6 @@
                                 <div class="form-group col-md-2">
                                     <label for="currency">Currency*</label>
                                     <select class="select2 form-control" id="currency" name="currency" required>
-                                        {{-- <option value="">All</option> --}}
                                         @foreach($currency as $val)
                                         <option value="{{$val}}">{{$val}}</option>
                                         @endforeach
@@ -65,7 +63,7 @@
                                 <div class="form-group col-md-5">
                                     <label class="form-label" for="cust">Customer*</label>
                                     <select class="select2 form-control" id="cust" name="cust" required>
-                                        <option value="">All</option>
+                                        <option value="">Choose Customer</option>
                                         @foreach($custs as $val)
                                             <option value="{{$val->kode}}|{{$val->inisial}}" >{{$val->kode}} - {{$val->nama}}</option>
                                         @endforeach
@@ -87,13 +85,7 @@
                                     <textarea type="text" id="note" name="note" class="form-control" rows="1" ></textarea>
                                 </div>
                             </div>
-                            <div class="form-row">
-                                <div class="col-12">
-                                    <button class="btn btn-warning" type="reset" id="cmdCancel" name="cmdCancel">Cancel</button>
-                                    <button class="btn btn-success" type="reset" id="cmdNew" name="cmdCancel">New</button>
-                                    <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Save</button>
-                                </div>
-                            </div>
+                            
                         </form>
                     </div>
                 </div>
@@ -125,10 +117,16 @@
                                         <label>UOM</label>
                                     </td>
                                     <td class="isian" style="width: 10%">
-                                        <label>Price</label>
+                                        <label>Material Price</label>
                                     </td>
                                     <td class="isian" style="width: 10%">
-                                        <label>Total</label>
+                                        <label>Service Price</label>
+                                    </td>
+                                    <td class="isian" style="width: 10%">
+                                        <label>T.Material</label>
+                                    </td>
+                                    <td class="isian" style="width: 10%">
+                                        <label>T.Service</label>
                                     </td>
                                     <td class="isian text-center" style="width: 5%">
                                         <label>-</label>
@@ -189,6 +187,15 @@
                             </div>
                         </div>
                     </div>
+                    <hr>
+                    <br/>
+                    <div class="form-row">
+                        <div class="col-12">
+                            {{-- <button class="btn btn-warning" type="reset" id="cmdCancel" name="cmdCancel">Cancel</button> --}}
+                            <button class="btn btn-success" type="reset" id="cmdNew" name="cmdCancel">New</button>
+                            <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Save</button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -229,7 +236,7 @@
 <script type="text/javascript">
     let currentDate = todayDate('dd-mm-yyyy');    
     $(document).ready(function(){           
-        validateForm('frmAdd');
+        validateFormToast("frmAdd");
         $('#orderDate').val(currentDate);
     });
     
@@ -247,152 +254,144 @@
         window.location.reload();
     }
 
-    $("#cmdCancel").click(function(){
+    $("#cmdCancel,#cmdNew").click(function(){
         reloadPage();
     });
 
-    $("#cmdNew").click(function(){
-        reloadPage();
-    });
+    $("#cmdSave").click(function(){    
+        if (!$("#frmAdd")[0].checkValidity()){
+            $("#frmAdd").submit();
+        }else{ 
+            $('.disabled-el').removeAttr('disabled');
+            // ambil semua data article
+            let objQty= $('#article_row input[name="qty_order[]"]');
+            let objPrice= $('#article_row input[name="price[]"]');
+            let objPriceJasa= $('#article_row input[name="priceJasa[]"]');
+            let objUom= $('#article_row span[name="uom[]"]'); 
+            let objGroup= $('#article_row input[name="group[]"]'); 
+            let articles = []; 
+            let flag=0; 
+            let pesan="";
 
-    $("#cmdSave").click(function(){     
-        $('.disabled-el').removeAttr('disabled');
-        // ambil semua data article
-        let objQty= $('input[name="qty_order[]"]');
-        let objPrice= $('input[name="price[]"]');
-        let objUom= $('span[name="uom[]"]'); 
-        let objGroup= $('input[name="group[]"]'); 
-        let articles = []; 
-        let flag=0; 
-        let pesan="";
-
-        $("#article_row select[name='article_id[]']").map(function(i) {  
-		    let $this=$(this);
-            if ($this.val()){
-                let article=$this.val().split("|");
-                let articleName=$this.select2('data')[0].text;
-                let plu=article[0];
-                let inisial = articleName.substring(2,5); 
-                let qty=objQty.eq(i).val().replace(/[^0-9]/gi, '') || 0;
-                let price=objPrice.eq(i).val().replace(/[^0-9]/gi, '') || 0;
-                let uom=objUom.eq(i).text();
-                let group=objGroup.eq(i).val(); 
-                let cust=$('#cust').val().split("|");
-                let custName = $('#cust').select2('data')[0].text;
-                let customer=cust[1];
-            
-                //es6
-                // let obj = ingredient.find(obj => obj.plu == plu);
-
-                //jquery
-                //cek apakah article ada yang double input ato ngk
-                let obj = $.grep(articles, function(obj){
-                    return obj.article_code === plu;
-                })[0];
+            $("#article_row select[name='article_id[]']").map(function(i) {  
+                let $this=$(this);
+                if ($this.val()){
+                    let article=$this.val().split("|");
+                    let articleName=$this.select2('data')[0].text;
+                    let plu=article[0];
+                    let inisial = articleName.substring(2,5); 
+                    let qty=objQty.eq(i).val().replace(/[^0-9]/gi, '') || 0;
+                    let price=objPrice.eq(i).val().replace(/[^0-9]/gi, '') || 0;
+                    let priceJasa=objPriceJasa.eq(i).val().replace(/[^0-9]/gi, '') || 0;
+                    let uom=objUom.eq(i).text();
+                    let group=objGroup.eq(i).val(); 
+                    let cust=$('#cust').val().split("|");
+                    let custName = $('#cust').select2('data')[0].text;
+                    let customer=cust[1];
                 
-                if(obj) {
-                    pesan +="Article "+plu+" entered more than once !! <br>"; 
-                    flag=1;
-                } else {
-                    if ((plu!=='') && (qty> 0)){
-                        articles.push({
-                            "article_code":plu,
-                            "qty":qty,
-                            "uom":uom,
-                            "price":price,
-                            "group":group
-                        });
-                    }
-                } 
-            
-                if (qty == 0){
-                    pesan +="QTY of items "+ articleName +" cannot be 0 <br>"; 
-                    flag=1;
-                }
+                    //es6
+                    // let obj = ingredient.find(obj => obj.plu == plu);
 
-                if (inisial !== customer){
+                    //jquery
+                    //cek apakah article ada yang double input ato ngk
+                    let obj = $.grep(articles, function(obj){
+                        return obj.article_code === plu;
+                    })[0];
                     
-                    pesan +="This article "+ articleName +" does not belong to the customer "+custName +" <br>"; 
-                    flag=1;
-                }
-            
-            }
-        });
-
-        if (articles.length == 0){
-			pesan +="Articles must be filled in completely <br>"; 
-			flag=1;
-		}
-
-        if (flag==0){
-
-            let orderDate = $('#orderDate').val();
-            let currency = $('#currency').val();
-            let type = $('#type').val();
-            let poNumber = $('#poNumber').val();
-            let cust = $('#cust').val().split("|");
-            let customer = cust[0];
-            let salesman = $('#salesman').val();
-            let ppn = $('#ppn').val().replace(/[^0-9]/gi, '') || 0;
-            let totalPph = $('#totalPPH').val().replace(/[^0-9]/gi, '') || 0;
-            let totalPpn = $('#totalPPN').val().replace(/[^0-9]/gi, '') || 0;
-            let note = $('#note').val();
-
-            $.ajax({
-                type: "post",
-                url: "{{ route('salesOrder.store') }}",
-                data: {
-                    articles:JSON.stringify(articles),
-                    orderDate:orderDate,
-                    currency:currency,
-                    type:type,
-                    poNumber:poNumber,
-                    customer:customer,
-                    salesman:salesman,
-                    ppn:ppn,
-                    totalPph:totalPph,
-                    totalPpn:totalPpn,
-                    note:note
-                },
-                dataType: "json",
-                success: function(data) {
-                    if (data.status == 0 ){
-                        let message="";
-                        for(let i = 0; i < data.message.length; i++) {
-                            message += "-"+data.message[i]+"<br>";                           
+                    if(obj) {
+                        pesan +="Article "+plu+" entered more than once !! <br>"; 
+                        flag=1;
+                    } else {
+                        if ((plu!=='') && (qty> 0)){
+                            articles.push({
+                                "article_code":plu,
+                                "qty":qty,
+                                "uom":uom,
+                                "price":price,
+                                "price_service":priceJasa,
+                                "group":group
+                            });
                         }
-                        $("#alert-message-success").addClass(data.alert);
-                        $("#alert-message-success .alert-body").html(message);
-                        $("#alert-message-success").show();
-                        $("#alert-message-success").fadeTo(5000, 500).slideUp(500, function(){
-                            $("#alert-message-success").slideUp(500);
-                        });
-                        $('#poNumber').focus().select();
-                        $('#orderNum').attr('disabled','disabled');
-
-
-                    }else{
-                        $("#alert-message-success").addClass(data.alert);
-                        $("#alert-message-success .alert-body").html(data.message);
-                        $("#alert-message-success").show();
-                        $("#alert-message-success").fadeTo(5000, 500).slideUp(500, function(){
-                            $("#alert-message-success").slideUp(500);
-                        });
-                        $('#orderNum').val(data.soNumber);
-                        $('#orderNum').attr('disabled','disabled');
-                        $('#cmdSave').attr('disabled','disabled');
+                    } 
+                
+                    if (qty == 0){
+                        pesan +="QTY of items "+ articleName +" cannot be 0 <br>"; 
+                        flag=1;
                     }
-                    
-                },
-                error: function(error) {
-                    console.log(error);
+
+                    if (inisial !== customer){
+                        
+                        pesan +="This article "+ articleName +" does not belong to the customer "+custName +" <br>"; 
+                        flag=1;
+                    }
+                
                 }
             });
 
-        }else{
-            Swal.fire('Warning..',pesan,'warning');
+            if (articles.length == 0){
+                pesan +="Articles must be filled in completely <br>"; 
+                flag=1;
+            }
+
+            if (flag==0){
+
+                let orderDate = $('#orderDate').val();
+                let currency = $('#currency').val();
+                let type = $('#type').val();
+                let poNumber = $('#poNumber').val();
+                let cust = $('#cust').val().split("|");
+                let customer = cust[0];
+                let salesman = $('#salesman').val();
+                let ppn = $('#ppn').val().replace(/[^0-9]/gi, '') || 0;
+                let totalPpn = $('#totalPPN').val().replace(/[^0-9]/gi, '') || 0;
+                let totalPph = $('#totalPPH').val().replace(/[^0-9]/gi, '') || 0;
+                let note = $('#note').val();
+
+                $.ajax({
+                    type: "post",
+                    url: "{{ route('salesOrder.store') }}",
+                    data: {
+                        articles:JSON.stringify(articles),
+                        orderDate:orderDate,
+                        currency:currency,
+                        type:type,
+                        poNumber:poNumber,
+                        customer:customer,
+                        salesman:salesman,
+                        ppn:ppn,
+                        totalPpn:totalPpn,
+                        totalPph:totalPph,
+                        note:note
+                    },
+                    dataType: "json",
+                    success: function(data) {
+                        if (data.status == 0 ){
+                            
+                            for(let i = 0; i < data.message.length; i++) {
+                                show_msg(data.title, data.message[i], data.alert);
+                            }
+
+                            $('#poNumber').focus().select();
+                            $('#orderNum').attr('disabled','disabled');
+
+                        }else{
+                            show_msg(data.title, data.message, data.alert);
+
+                            $('#orderNum').val(data.soNumber);
+                            $('#orderNum').attr('disabled','disabled');
+                            $('#cmdSave').attr('disabled','disabled');
+                        }
+                        
+                    },
+                    error: function(error) {
+                        console.log(error);
+                    }
+                });
+
+            }else{
+                Swal.fire('Warning..',pesan,'warning');
+            }
         }
-    
     });
 
     let cloneCount=1;
@@ -404,10 +403,11 @@
             cloneCount++;
             $("#article_row").find('#baru').attr('id', 'new_row'+ cloneCount);
             $("#new_row"+ cloneCount).find('#article_id').attr('id', 'article_id'+ cloneCount);
-            changeselect('article_id','article_id'+ cloneCount,cust[0],'RM');
+            changeselect('article_id','article_id'+ cloneCount,cust[0],'FG');
             $("#article_id"+cloneCount).select2();
             tombolPanah('qty_order');
             tombolPanah('price');
+            tombolPanah('priceJasa');
             activate_angka();
             mask_thousand();
             splitArticle();
@@ -455,13 +455,18 @@
         let objQty= $('#article_row input[name="qty_order[]"]');
         let objPrice= $('#article_row input[name="price[]"]');
         let objTotal= $('#article_row span[name="totalLine[]"]');
+        let objPriceJasa= $('#article_row input[name="priceJasa[]"]');
+        let objTotalJasa= $('#article_row span[name="totalJasa[]"]');
         
         objQty.keyup(function() {
             let indexnya= objQty.index(this);
             let qty = objQty.eq(indexnya).val().replace(/[^0-9]/gi, '') || 0; 
             let price = objPrice.eq(indexnya).val().replace(/[^0-9]/gi, '') ||0;
+            let priceJasa = objPriceJasa.eq(indexnya).val().replace(/[^0-9]/gi, '') ||0;
             let total = qty*price;
+            let totalJasa = qty*priceJasa;
             objTotal.eq(indexnya).text(humanizeNumber(total));
+            objTotalJasa.eq(indexnya).text(humanizeNumber(totalJasa));
             hitungGrandTotal();
         });    
 
@@ -470,7 +475,22 @@
             let qty = objQty.eq(indexnya).val().replace(/[^0-9]/gi, '') || 0; 
             let price = objPrice.eq(indexnya).val().replace(/[^0-9]/gi, '')||0;
             let total = qty*price;
+            let priceJasa = objPriceJasa.eq(indexnya).val().replace(/[^0-9]/gi, '')||0;
+            let totalJasa = qty*priceJasa;
             objTotal.eq(indexnya).text(humanizeNumber(total));
+            objTotalJasa.eq(indexnya).text(humanizeNumber(totalJasa));
+            hitungGrandTotal();
+        });    
+
+        objPriceJasa.keyup(function() {
+            let indexnya= objPrice.index(this);
+            let qty = objQty.eq(indexnya).val().replace(/[^0-9]/gi, '') || 0; 
+            let price = objPrice.eq(indexnya).val().replace(/[^0-9]/gi, '')||0;
+            let total = qty*price;
+            let priceJasa = objPriceJasa.eq(indexnya).val().replace(/[^0-9]/gi, '')||0;
+            let totalJasa = qty*priceJasa;
+            objTotal.eq(indexnya).text(humanizeNumber(total));
+            objTotalJasa.eq(indexnya).text(humanizeNumber(totalJasa));
             hitungGrandTotal();
         });    
     }
@@ -480,24 +500,30 @@
         let objQtyTiw= $('#article_row input[name="qty_order[]"]');
         let objQTY= $('#article_row input[name="qty_order[]"]');
         let objPrice= $('#article_row input[name="price[]"]');
+        let objPriceJasa= $('#article_row input[name="priceJasa[]"]');
         let ppn= $('#ppn').val() ||0;
         let totalQty= 0;
         let totalAmount=0
+        let totalAmountJasa=0
+        let totalAmountMaterial=0
 
         var arr = objQtyTiw.map(function (i) {
             let qty = parseInt(objQTY.eq(i).val().replace(/[^0-9]/gi, '')) || 0;
             let price = parseInt(objPrice.eq(i).val().replace(/[^0-9]/gi, '')) || 0;
+            let priceJasa = parseInt(objPriceJasa.eq(i).val().replace(/[^0-9]/gi, '')) || 0;
             totalQty+= qty;
-            totalAmount+= qty*price;
+            totalAmount+= (qty*price)+(qty*priceJasa);
+            totalAmountMaterial+= (qty*price)+(qty*priceJasa);
+            totalAmountJasa+= (qty*priceJasa);
         }).get();
         
         $("#totalRow").val(objArticle.length);
         $("#nilaiPPN").text(ppn+"%");
         $("#totalQTY").val(humanizeNumber(totalQty));
         $("#totalAmount").val(humanizeNumber(totalAmount));
-        $("#totalPPN").val(humanizeNumber((parseInt(ppn)*totalAmount)/100));
-        $("#totalPPH").val(0);
-        $("#totalNetto").val(humanizeNumber(totalAmount+((parseInt(ppn)*totalAmount)/100)));
+        $("#totalPPN").val(humanizeNumber((parseInt(ppn)*totalAmountMaterial)/100));
+        $("#totalPPH").val(humanizeNumber((2*totalAmountJasa)/100));
+        $("#totalNetto").val(humanizeNumber(totalAmount+((parseInt(ppn)*totalAmount)/100)+((2*totalAmountJasa)/100)));
     
     }
 
@@ -538,9 +564,9 @@
         });
     }
     
-    dateLflatPickr = $('.flatpickr-basic');
-    if (dateLflatPickr.length) {
-        dateLflatPickr.flatpickr({
+    dateflatPickr = $('.flatpickr-basic');
+    if (dateflatPickr.length) {
+        dateflatPickr.flatpickr({
             dateFormat: "m-d-Y",
             // "setDate": new Date()
         });

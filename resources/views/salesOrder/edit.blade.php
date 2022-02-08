@@ -24,9 +24,9 @@
                                 <input type="text" id="orderDate" name="orderDate" class="form-control flatpickr-basic" value="{{ $header->so_date }}" placeholder="DD-MM-YYYY" />
                             </div>
                             <div class="form-group col-md-3">
-                                <label for="salesman">Salesperson*</label>
+                                <label for="salesman">Salesman*</label>
                                 <select class="select2 form-control" id="salesman" name="salesman" required>
-                                    <option value="">All</option>
+                                    <option value="">Choose salesman</option>
                                     @foreach($employees as $val)
                                     <option value="{{$val->employee_id}}" {{ $val->employee_id == $header->salesman_code ? "selected" : ""}}>{{$val->employee_id}} - {{$val->name}}</option>
                                     @endforeach
@@ -35,7 +35,6 @@
                             <div class="form-group col-md-2">
                                 <label for="type">Type</label>
                                 <select class="select2 form-control" id="type" name="type" required>
-                                    <option value="">All</option>
                                     @foreach($types as $val)
                                     <option value="{{$val}}" {{ $val == $header->order_type ? "selected" : ""}}>{{$val}}</option>
                                     @endforeach
@@ -58,8 +57,8 @@
                             </div>
                             <div class="form-group col-md-5">
                                 <label class="form-label" for="cust">Customer</label>
-                                <select class="select2 form-control" id="cust" name="cust" required>
-                                    <option value="">All</option>
+                                <select class="select2 form-control" id="cust" name="cust" disabled>
+                                    <option value="">Choose customer</option>
                                     @foreach($custs as $val)
                                         <option value="{{$val->kode}}|{{$val->inisial}}" {{$val->kode == $header->customer_id ? "selected" : ""}}>{{$val->kode}} - {{$val->nama}}</option>
                                     @endforeach
@@ -79,17 +78,6 @@
                             <div class="form-group col-md-10">
                                 <label class="form-label" for="note">Notes</label>
                                 <textarea type="text" id="note" name="note" class="form-control" rows="1" >{{ $header->note }}</textarea>
-                            </div>
-                        </div>
-                        <div class="form-row">
-                            <div class="col-12">
-                                <a href="{{ route('salesOrders.index') }}" class="btn btn-warning">
-                                    Cancel
-                                </a>
-                                <a href="{{ route('salesOrder.create') }}" class="btn btn-success">
-                                    New
-                                </a>
-                                <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Update</button>
                             </div>
                         </div>
                     </form>
@@ -142,7 +130,7 @@
                                     <tbody>
                                         <tr>
                                             <td class="isian-satu" style="">
-                                                <select class="select2 dynamicSelect sku-select-system" id="article_id{{ $key }}" name="article_id[]" data-dependent="article_id">
+                                                <select class="select2 form-control dynamicSelect sku-select-system" id="article_id{{ $key }}" name="article_id[]" data-dependent="article_id">
                                                     @foreach($articles as $val)
                                                         <option value="{{$val->article_code}}|{{$val->group}}|{{$val->qty}}|{{$val->uom1}}" {{$val->article_code ==$item->article_code ? "selected" : ""}}>{{$val->article_alternative_code}} | {{$val->article_desc}}</option>
                                                     @endforeach
@@ -227,6 +215,34 @@
                             </div>
                         </div>
                     </div>
+                    <hr/>
+                    <br/>
+                    <div class="form-row">
+                        <div class="col-md-12">
+                            <a href="{{ route('salesOrders.index') }}" class="btn btn-warning">
+                                Back
+                            </a>
+                            <a href="{{ route('salesOrder.create') }}" class="btn btn-success">
+                                New
+                            </a>
+                            
+                            @if( $approveValidate ? $approveValidate[0]->validate : '' )
+                                <input type="text" id ="approveLevel" name ="approveLevel" class="d-none" value="{{ $approveValidate[0]->last_approval }}">
+                                <button class="btn btn-primary" type="button" id="cmdApprove" name="cmdApprove">Approve</button>
+                            @else
+                                <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Update</button>
+                            @endif
+                        </div>
+                    </div>
+                    <br><br>
+                    <div class="row">
+                        @foreach($approveHistory as $val)
+                            <div class="col-xl-3 col-sm-6 col-12 mb-2 mb-xl-0">
+                                <h6 class="">Approve-{{ $val->approval_order }}</h6>
+                                <small>{{ $val->name }}</small>
+                            </div>
+                        @endforeach
+                    </div>
                 </div>
             </div>
         </div>
@@ -236,7 +252,6 @@
 @endsection
 @section('styles')
 <style>
-
     textarea {
         resize: none;
     }
@@ -280,13 +295,14 @@
 <script type="text/javascript">
     let currentDate = todayDate('dd-mm-yyyy');    
     $(document).ready(function(){           
-        validateForm('frmAdd');
-        $('#orderDate').val(currentDate);
+        validateFormToast("frmAdd");
+        // $('#orderDate').val(currentDate);
         tombolPanah('qty_order');
         tombolPanah('price');
         activate_angka();
         mask_thousand();
         splitArticle();
+        hitungTotal();
         hitungGrandTotal();
     });
     
@@ -312,7 +328,7 @@
         reloadPage();
     });
 
-    $("#cmdSave").click(function(){     
+    simpanData = (statusSimpan) =>{
         $('.disabled-el').removeAttr('disabled');
         // ambil semua data article
         let objQty= $('input[name="qty_order[]"]');
@@ -395,7 +411,8 @@
             let totalPph = $('#totalPPH').val().replace(/[^0-9]/gi, '') || 0;
             let totalPpn = $('#totalPPN').val().replace(/[^0-9]/gi, '') || 0;
             let note = $('#note').val();
-
+            let approveLevel = $('#approveLevel').val();
+    
             $.ajax({
                 type: "post",
                 url: "{{ route('salesOrder.update') }}",
@@ -411,31 +428,24 @@
                     ppn:ppn,
                     totalPph:totalPph,
                     totalPpn:totalPpn,
-                    note:note
+                    note:note,
+                    approveLevel:approveLevel,
+                    statusSimpan:statusSimpan
                 },
                 dataType: "json",
                 success: function(data) {
                     if (data.status == 0 ){
                         let message="";
                         for(let i = 0; i < data.message.length; i++) {
-                            message += "-"+data.message[i]+"<br>";                           
+                            show_msg(data.title, data.message[i], data.alert);
                         }
-                        $("#alert-message-success").addClass(data.alert);
-                        $("#alert-message-success .alert-body").html(message);
-                        $("#alert-message-success").show();
-                        $("#alert-message-success").fadeTo(5000, 500).slideUp(500, function(){
-                            $("#alert-message-success").slideUp(500);
-                        });
+                        
                         $('#poNumber').focus().select();
                         $('#orderNum').attr('disabled','disabled');
 
                     }else{
-                        $("#alert-message-success").addClass(data.alert);
-                        $("#alert-message-success .alert-body").html(data.message);
-                        $("#alert-message-success").show();
-                        $("#alert-message-success").fadeTo(5000, 500).slideUp(500, function(){
-                            $("#alert-message-success").slideUp(500);
-                        });
+                        show_msg(data.title, data.message, data.alert);
+
                         $('#orderNum').attr('disabled','disabled');
                     }
                     
@@ -448,7 +458,14 @@
         }else{
             Swal.fire('Warning..',pesan,'warning');
         }
-    
+    }
+
+    $("#cmdSave").click(function(){     
+        simpanData('update');
+    });
+
+    $("#cmdApprove").click(function(){     
+        simpanData('approve');
     });
     
     let cloneCount=$('#last_row_number').val();
@@ -557,7 +574,6 @@
         $("#totalPPH").val(0);
         $("#totalNetto").val(humanizeNumber(totalAmount+((parseInt(ppn)*totalAmount)/100)));
     }
-
 
     function changeselect(dependent,obj,value,type) {
       $.ajax({

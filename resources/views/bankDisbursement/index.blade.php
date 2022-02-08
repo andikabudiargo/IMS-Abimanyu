@@ -215,7 +215,7 @@
         columns: [
             { data: 'action', name: 'action',title:'action', orderable: false, searchable: false },
             { data: 'disbursement_number', name: 'disbursement_number',title:'Number' },
-            { data: 'disbursement_date', name: 'disbursement_date',title:'Date' },
+            { data: 'disbursement_date', name: 'disbursement_date',title:'Payment Date' },
             { data: 'total', name: 'total',title:'Total',render: $.fn.dataTable.render.number(',','.') },
             { data: 'admin', name: 'admin',title:'Admin',render: $.fn.dataTable.render.number(',','.') },
             { data: 'discount', name: 'discount',title:'Discount',render: $.fn.dataTable.render.number(',','.') },
