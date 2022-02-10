@@ -407,7 +407,7 @@ class BomController extends Controller
         ->leftJoin('article','article.article_code','bom_hdr.article_code')
         ->where(function ($query) use ($searchBom,$articleCode) {
             $searchBom ? $query->where('bom_code','ilike','%'.$searchBom.'%') : '';
-            $articleCode ? $query->where('article_code','ilike','%'.$articleCode.'%') : '';
+            $articleCode ? $query->where('bom_hdr.article_code','ilike','%'.$articleCode.'%') : '';
         })
         ->orderBy('bom_code')
         ->get(['bom_hdr.*',DB::raw("CONCAT(article.article_alternative_code,'-',article.article_desc) as article_des")]); 
@@ -415,7 +415,7 @@ class BomController extends Controller
         return Datatables::of($data)
         ->addColumn('action', function ($data) {
             $buttons = '<div class="d-inline-flex">
-                            <a class="pr-1 dropdown-toggle hide-arrow text-primary" data-toggle="dropdown">
+                            <a class="pr-1 dropdown-toggle hide-arrow" data-toggle="dropdown">
                                 <i data-feather="menu"></i>
                             </a>';
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
@@ -449,11 +449,18 @@ class BomController extends Controller
                         </div>';
 
             return $buttons;
-            })
-        ->addColumn('group_id', function ($user) {
-            return '';
         })
-        ->rawColumns(['action'])
+        
+        ->addColumn('bom_code', function ($data) {
+            return '<a href="'. route('bom.show', ['id'=>Crypt::encryptString($data->id)]) .'" ><span>'.$data->bom_code.'</span></a>';
+        })
+
+        ->addColumn('status', function ($data) {
+            $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary'];
+            $status = ['Active','Not Active'];
+            return "<div class='badge ".$badges[$data->status - 1]."'>".$status[$data->status - 1]."</div>";
+        })
+        ->rawColumns(['action','status','bom_code'])
         ->make(true);
     }
 

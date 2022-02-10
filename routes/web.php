@@ -376,6 +376,20 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('workingOrderSheets/code/create',['as'=>'workingOrderSheet.code.create','uses'=>'WorkingOrderSheetController@articleCodeCreate']);
 	Route::get('workingOrderSheets/print',['as'=>'workingOrderSheet.print','uses'=>'WorkingOrderSheetController@print']);
 
+
+	Route::get('production',['as'=>'production.index','uses'=>'ProductionController@index','middleware' => ['permission:workingOrder-index']]);
+	Route::get('production/create',['as'=>'production.create','uses'=>'ProductionController@create','middleware' => ['permission:workingOrder-create']]);
+	Route::post('production/store',['as'=>'production.store','uses'=>'ProductionController@store']);
+	Route::get('production/list',['as'=>'production.list','uses'=>'ProductionController@list']);
+	Route::get('production/list/detail',['as'=>'production.detail.list','uses'=>'ProductionController@listDetail']);
+	Route::get('production/show',['as'=>'production.show','uses'=>'ProductionController@show']);
+	Route::get('production/edit',['as'=>'production.edit','uses'=>'ProductionController@edit','middleware' => ['permission:workingOrder-edit']]);
+	Route::post('production/update',['as'=>'production.update','uses'=>'ProductionController@update']);
+	Route::post('production/delete',['as'=>'production.destroy','uses'=>'ProductionController@destroy']);
+	Route::get('production/code/create',['as'=>'production.code.create','uses'=>'ProductionController@articleCodeCreate']);
+	Route::get('production/print',['as'=>'production.print','uses'=>'ProductionController@print']);
+	Route::post('production/posting',['as'=>'production.posting','uses'=>'ProductionController@posting']);
+
 	Route::get('pettyCashs',['as'=>'pettyCashs.index','uses'=>'PettyCashController@index','middleware' => ['permission:pettyCash-index']]);
 	Route::get('pettyCashs/create',['as'=>'pettyCash.create','uses'=>'PettyCashController@create','middleware' => ['permission:pettyCash-create']]);
 	Route::post('pettyCashs/store',['as'=>'pettyCash.store','uses'=>'PettyCashController@store']);

@@ -197,6 +197,15 @@
             </li>
             @endcan
             @can('workingOrder-index')
+            <li class="{{ \Request::segment(1) == 'production' ? 'active' : '' }}" >
+              <a class="d-flex align-items-center" href="{{ route('production.index') }}">
+                <i data-feather="circle"></i>
+                <span class="menu-item text-truncate" data-i18n="Input">Production</span>
+              </a>
+            </li>
+            @endcan
+
+            {{-- @can('workingOrder-index')
             <li class="{{ \Request::segment(1) == 'workingOrderSheets' ? 'active' : '' }}" >
               <a class="d-flex align-items-center" href="{{ route('workingOrderSheets.index') }}">
                 <i data-feather="circle"></i>
@@ -211,7 +220,7 @@
                 <span class="menu-item text-truncate" data-i18n="Input">Working Order</span>
               </a>
             </li>
-            @endcan
+            @endcan --}}
             @can('bom-index')
             <li class="{{ \Request::segment(1) == 'boms' ? 'active' : '' }}" >
               <a class="d-flex align-items-center" href="{{ route('boms.index') }}">

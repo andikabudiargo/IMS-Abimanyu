@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Crypt;
 use Response;
 use App\Permission;
 use DataTables;
@@ -212,7 +213,7 @@ class CustomerController extends Controller
     public function edit(Request $request)
     {
         
-        $id=$request->id;
+        $id=Crypt::decryptString($request->id);
         $data['title'] = "Edit Customer";
         $data['subtitle'] = "Edit Customer";
         
@@ -393,8 +394,7 @@ class CustomerController extends Controller
     public function destroy(Request $request)
     {
         $username =  Auth::user()->username;
-        $id = $request->id;
-
+        $id=Crypt::decryptString($request->id);
         $row_affected = DB::table('third_party')
         ->where('id',$id)
         ->delete();
@@ -432,12 +432,12 @@ class CustomerController extends Controller
         return Datatables::of($data)
         ->addColumn('action', function ($data) {
             $buttons = '<div class="d-inline-flex">
-                            <a class="pr-1 dropdown-toggle hide-arrow text-primary" data-toggle="dropdown">
+                            <a class="pr-1 dropdown-toggle hide-arrow " data-toggle="dropdown">
                                 <i data-feather="menu"></i>
                             </a>';
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
             if (Auth::user()->can('customer-edit')) {
-            $buttons .=         '<a href="'. route('customer.edit', ['id'=>$data->id]) .'" class="dropdown-item">
+            $buttons .=         '<a href="'. route('customer.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                     <i data-feather="file-text"></i>
                                     Edit
                                 </a>';
@@ -448,7 +448,7 @@ class CustomerController extends Controller
                                         class='dropdown-item'
                                         data-toggle='modal'
                                         data-target='#smallModal'
-                                        data-href='". route("customer.destroy", ["id"=>$data->id]) ."'>
+                                        data-href='". route("customer.destroy", ["id"=>Crypt::encryptString($data->id)]) ."'>
                                         <i data-feather='trash-2'></i>
                                         Delete
                                     </a>";
@@ -458,9 +458,6 @@ class CustomerController extends Controller
 
             return $buttons;
             })
-        ->addColumn('group_id', function ($user) {
-            return '';
-        })
         ->addColumn('blacklist', function ($data) {
             if ($data->blacklist =='1') {
                 $blacklist = '<div class="custom-control custom-switch custom-control-inline">

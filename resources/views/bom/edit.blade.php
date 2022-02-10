@@ -77,12 +77,7 @@
                                     <textarea type="text" id="note" name="note" class="form-control" rows="1" >{{ old('note',$header->note) }}</textarea>
                                 </div>
                             </div>
-                            <div class="form-row">
-                                <div class="col-12">
-                                    <a href="{{ route('boms.index') }}" class="btn btn-warning">Cancel</a>
-                                    <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Save</button>
-                                </div>
-                            </div>
+                            
                         </form>
                     </div>
                 </div>
@@ -158,6 +153,13 @@
                             <span class="align-middle d-sm-inline-block d-none">Add Article</span>
                         </button>
                     </div>
+                    <hr>
+                    <div class="form-row">
+                        <div class="col-md-12 col-12">
+                            <a href="{{ route('boms.index') }}" class="btn btn-warning">Back</a>
+                            <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Update</button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -188,7 +190,7 @@
 
     td.isian-satu{
         padding-right:5px;
-        padding-left:15px;
+        /* padding-left:15px; */
         width: 25%;border-top: 1px solid #ffffff !important;
         border-bottom: 1px solid #ffffff !important;
         border-left: 1px solid #ffffff !important;

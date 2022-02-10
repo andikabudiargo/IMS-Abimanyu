@@ -36,11 +36,11 @@
         <table class="table-bordered" style="width: 98%;table-layout: fixed;">
             <tbody>
                 <tr>
-                    <td class="isian-satu" style="">
+                    <td class="isian-satu" style="width: 40%;">
                         <select class="dynamicSelect form-control sku-select-system" id="article_id" name="article_id[]" data-dependent="article_id">
                         </select>
                     </td>
-                    <td class="isian disabled" style="width: 15%;">
+                    <td class="isian disabled d-none" style="width: 15%;">
                         <input type="text" class="form-control-plaintext" id = "group" name="group[]" maxlength="5" disabled>
                     </td>
                     <td class="isian disabled" style="width: 5%">
@@ -59,10 +59,12 @@
                         <input type="text" class="form-control-plaintext numeral-mask text-right" id = "priceJasa" name="priceJasa[]"  maxlength="11">
                     </td>
                     <td class="isian disabled text-right" style="width: 10%">
-                        <span id="totalLine" name="totalLine[]"></span>
+                        <input type="text" class="form-control-plaintext numeral-mask text-right" id="totalLine" name="totalLine[]" >
+                        {{-- <span id="totalLine" name="totalLine[]"></span> --}}
                     </td>
                     <td class="isian disabled text-right" style="width: 10%">
-                        <span id="totalJasa" name="totalJasa[]"></span>
+                        <input type="text" class="form-control-plaintext numeral-mask text-right" id="totalJasa" name="totalJasa[]" >
+                        {{-- <span id="totalJasa" name="totalJasa[]"></span> --}}
                     </td>
                     <td class="isian text-center" style="width: 5%">
                         <a onmouseover="this.style.cursor='pointer'" onclick="$(this).parents('.tanda-baris').remove();hitungGrandTotal()">

@@ -50,7 +50,7 @@ class SalesOrderController extends Controller
         ]);
 
         $newCode = DB::table('master_code')
-        ->where('code_key','SO')
+        ->where('code_key',$key)
         ->value('code_number'); 
 
         $month = date('m');
@@ -119,7 +119,7 @@ class SalesOrderController extends Controller
         $customer = $request->customer;
         $salesman = $request->salesman;
         $ppn = $request->ppn;
-        $pph23 = 2;
+        $pph23 = $request->pph23;
         $totalPpn = $request->totalPpn;
         $totalPph = $request->totalPph;
         $note = $request->note;
@@ -230,8 +230,11 @@ class SalesOrderController extends Controller
     public function show(Request $request)
     {
         $id=Crypt::decryptString($request->id);
-        $data['title'] = "Detail Sales Order";
-        $data['subtitle'] = "Detail Sales Order";
+        $username =  Auth::user()->username;
+        $modulCode = 'SO';
+
+        $data['title'] = "Edit Sales Order";
+        $data['subtitle'] = "Edit Sales Order";
 
         $data['header'] = DB::table('sales_order_hdr')
         ->where('id',$id)
@@ -241,7 +244,7 @@ class SalesOrderController extends Controller
         ->leftJoin('article','article.article_code','=','sales_order_det.article_code')
         ->leftJoin('article_stock','article_stock.article_code','=','sales_order_det.article_code')
         ->where('so_code',$data['header']->so_code)
-        ->select('sales_order_det'.'.*','article_stock.article_qty as qty_stock', DB::raw('(SELECT name from group_materials where code = group_of_material) as group'))
+        ->select('sales_order_det'.'.*',DB::raw('round(sales_order_det.qty) as qty'),'article_stock.article_qty as qty_stock', DB::raw('(SELECT name from group_materials where code = group_of_material) as group'))
         ->orderBy('id')
         ->get();       
 
@@ -269,6 +272,16 @@ class SalesOrderController extends Controller
         ->orderBy('name')
         ->get();
 
+        $data['approveHistory'] = DB::table('approval_history')
+        ->leftJoin('users','users.username','approval_history.username')
+        ->where('module_code',$modulCode)
+        ->where('module_number',$data['header']->so_code)
+        ->orderBy("approval_order")
+        ->get();
+
+        $statusSo = ['New','Validated','Approved','Received','Canceled','Closed','Paid'];
+        $data['statusSo'] = $statusSo[$data['header']->status-1];
+
         return view("salesOrder.show",$data);
         
     }
@@ -290,7 +303,7 @@ class SalesOrderController extends Controller
         ->leftJoin('article','article.article_code','=','sales_order_det.article_code')
         ->leftJoin('article_stock','article_stock.article_code','=','sales_order_det.article_code')
         ->where('so_code',$data['header']->so_code)
-        ->select('sales_order_det'.'.*','article_stock.article_qty as qty_stock', DB::raw('(SELECT name from group_materials where code = group_of_material) as group'))
+        ->select('sales_order_det'.'.*',DB::raw('round(sales_order_det.qty) as qty'),'article_stock.article_qty as qty_stock', DB::raw('(SELECT name from group_materials where code = group_of_material) as group'))
         ->orderBy('id')
         ->get();       
 
@@ -328,17 +341,20 @@ class SalesOrderController extends Controller
         //cari di database apakah approval nya sudah sampe level mana
         $data['approveValidate'] = DB::select("SELECT * from 
         (SELECT username = '$username' as validate,
-        case when (select max(approval_order) from approval_history where module_code = 'SO' and module_number = '".$data['header']->so_code."') is null then 1
-        else (select max(approval_order)+1 from approval_history where module_code = 'SO' and module_number = '".$data['header']->so_code."') end as last_approval
+        case when (select max(approval_order) from approval_history where module_code = '$modulCode' and module_number = '".$data['header']->so_code."') is null then 1
+        else (select max(approval_order)+1 from approval_history where module_code = '$modulCode' and module_number = '".$data['header']->so_code."') end as last_approval
         from approval_level where module_code = '$modulCode' 
         and 
         approval_order = case when (select max(approval_order) from approval_history where module_code = '$modulCode' and module_number = '".$data['header']->so_code."') is null then 1
         else (select max(approval_order)+1 from approval_history where module_code = '$modulCode' and module_number = '".$data['header']->so_code."') end
         and 
-        (select approval_number from approval_master where module_code = '$modulCode') <= case when (select max(approval_order) from approval_history where module_code = 'SO' and module_number = '".$data['header']->so_code."') is null then 1
+        (select approval_number from approval_master where module_code = '$modulCode') >= case when (select max(approval_order) from approval_history where module_code = 'SO' and module_number = '".$data['header']->so_code."') is null then 1
         else (select max(approval_order)+1 from approval_history where module_code = '$modulCode' and module_number = '".$data['header']->so_code."') end
         and username = '$username') as oki
         where last_approval <= (select approval_number from approval_master where module_code = '$modulCode')");
+
+        $statusSo = ['New','Validated','Approved','Received','Canceled','Closed','Paid'];
+        $data['statusSo'] = $statusSo[$data['header']->status-1];
 
         return view("salesOrder.edit",$data);
         
@@ -346,6 +362,7 @@ class SalesOrderController extends Controller
 
     public function update(Request $request)
     {
+
         $username =  Auth::user()->username;
         $orderNumber = $request->orderNumber;
         $articles = json_decode($request -> articles);
@@ -356,7 +373,7 @@ class SalesOrderController extends Controller
         $customer = $request->customer;
         $salesman = $request->salesman;
         $ppn = $request->ppn;
-        $pph = 0;
+        $pph23 = $request->pph23;
         $totalPpn = $request->totalPpn;
         $totalPph = $request->totalPph;
         $note = $request->note;
@@ -427,7 +444,7 @@ class SalesOrderController extends Controller
                         'currency' => $currency,
                         'kurs' => $kurs,
                         'ppn' => $ppn,
-                        'pph23' => $pph,
+                        'pph23' => $pph23,
                         'order_type' => $type,
                         'status' => $status,
                         'gudang' => $gudang ,
@@ -461,8 +478,9 @@ class SalesOrderController extends Controller
                         'qty' => $val->qty,
                         'uom' => $val->uom,
                         'price' => $val->price,
-                        'ppn' => $totalPpn,
-                        'pph23' => $totalPph,
+                        'price_service' => $val->price_service,
+                        'ppn' => ($val->price*$val->qty) * $ppn/100,
+                        'pph23' => ($val->price_service*$val->qty) * $pph23/100,
                         'updated_by' => Auth::user()->username,
                         'updated_at' => date('Y-m-d H:i:s')
                         ]
@@ -505,7 +523,7 @@ class SalesOrderController extends Controller
     public function destroy(Request $request)
     {
         $username =  Auth::user()->username;
-        $id = $request->id;
+        $id=Crypt::decryptString($request->id);
         $so_code = DB::table('sales_order_hdr')->where('id',$id)->where('status','1')->value('so_code');
         $rowAffected = DB::table('sales_order_hdr')->where('id',$id)->delete();
         if($rowAffected>0){
@@ -574,17 +592,20 @@ class SalesOrderController extends Controller
                                     Detail
                                 </a>';
             }
+
+            if ( $data->status == 3){
             $buttons .=         '<a href="'. route('salesOrder.print', ['id'=>Crypt::encryptString($data->id)]) .'" target="_blank" class="dropdown-item">
                                 <i data-feather="printer"></i>
                                     Print
                                 </a>';
+            }
             if (Auth::user()->can('salesOrder-delete')) {
             $buttons .=         "<a href='javascript:;'
                                     id='deleteButton'
                                     class='dropdown-item'
                                     data-toggle='modal'
                                     data-target='#smallModal'
-                                    data-href='". route("salesOrder.destroy", ["id"=>$data->id]) ."'>
+                                    data-href='". route("salesOrder.destroy", ["id"=>Crypt::encryptString($data->id)]) ."'>
                                     <i data-feather='trash-2'></i>
                                     Delete
                                 </a>";
@@ -626,16 +647,16 @@ class SalesOrderController extends Controller
         ->where('id',$id)
         ->first();
 
-        $supplier=DB::table('third_party')
-        ->where('kode',$soHdr -> customer_id)
-        ->first();
+        // $supplier=DB::table('third_party')
+        // ->where('kode',$soHdr -> customer_id)
+        // ->first();
 
-        $data['suppliers']=array(
-            'nama'=>$supplier -> nama,
-            'alamat'=>$supplier -> alamat_tagih,
-            'kota' =>'KEC. BUNGURSARI KAB. PURWAKARTA JAWA BARAT',
-            'tlp' => $supplier -> hp
-        );
+        // $data['suppliers']=array(
+        //     'nama'=>$supplier -> nama,
+        //     'alamat'=>$supplier -> alamat_tagih,
+        //     'kota' =>'KEC. BUNGURSARI KAB. PURWAKARTA JAWA BARAT',
+        //     'tlp' => $supplier -> hp
+        // );
 
         $soNumber=$soHdr -> so_code;
        
@@ -644,11 +665,13 @@ class SalesOrderController extends Controller
         ->where('so_code',$soNumber)
         ->get();
 
-        $data['totals']=DB::select("SELECT *,((gross+ppn)-pph23) as netto from (
+        $data['totals']=DB::select("SELECT *,(total_material+total_service) as sub_total,((total_material+total_service+ppn)-pph23) as grand_total from (
             select 
             a.so_code,
             sum(qty) as qty,
-            sum(qty*price) + sum(qty*price_service) as gross,
+            -- sum(qty*price) + sum(qty*price_service) as gross,
+            sum(qty*price) as total_material,
+            sum(qty*price_service) as total_service,
             sum(a.ppn) as ppn,
             sum(a.pph23) as pph23 
             from sales_order_det a
@@ -671,7 +694,7 @@ class SalesOrderController extends Controller
         $statusSo = ['New','Validated','Approved','Received','Canceled','Closed','Paid'];
 
         $data['status'] = $statusSo[$soHdr->status - 1];
-        $data['no'] =1;
+        $data['no'] = 0;
 
         view()->share($data);
 

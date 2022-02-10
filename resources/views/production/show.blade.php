@@ -99,20 +99,20 @@
                                     <tbody>
                                         <tr>
                                             <td class="isian-satu" style="width: 25%">
-                                                <select class="form-control sku-select-system" id="article_id{{ $key }}" name="article_id[]" data-dependent="article_id" disabled>
+                                                <select class="select2 dynamicSelect sku-select-system" id="article_id{{ $key }}" name="article_id[]" data-dependent="article_id" disabled>
                                                     @foreach($articles as $val)
                                                         <option value="{{ $val->article_code }}|{{ $val->uom }}|{{ $val->costprice }}|{{ $val->article_type }}|{{ $val->type_name }}" {{$val->article_code == $item->article_code ? "selected" : ""}}>{{$val->article_code}} - {{$val->article_desc}}</option>
                                                     @endforeach
                                                 </select>
                                             </td>
                                             <td class="isian" style="width: 5%">
-                                                <input type="text" class="form-control-plaintext numeral-mask-digit text-right" id = "qtyBom" name="qtyBom[]" value="{{ $item->qty }}" disabled />
+                                                <input type="text" class="form-control-plaintext numeral-mask text-right" id = "qtyBom" name="qtyBom[]" value="{{ $item->qty }}" disabled />
                                             </td>
                                             <td class="isian disabled" style="width: 5%">
                                                 <span class="" id = "uom" name="uom[]">{{ $item->uom }}</span>
                                             </td>
                                             <td class="isian disabled" style="width: 10%">
-                                                <input type="text" class="form-control-plaintext numeral-mask-digit text-right" id = "price" name="price[]" value="{{ $item->cost_price }}" disabled>
+                                                <input type="text" class="form-control-plaintext numeral-mask text-right" id = "price" name="price[]" value="{{ $item->cost_price }}" disabled>
                                             </td>
                                             <td class="isian disabled" style="width: 10%">
                                                 <span class="" id = "type" name="type[]">{{ $item->uom }}</span>
@@ -123,12 +123,6 @@
                                 </table>
                             </div>
                         @endforeach
-                    </div>
-                    <hr>
-                    <div class="form-row">
-                        <div class="col-md-12 col-12">
-                            <a href="{{ route('boms.index') }}" class="btn btn-warning">Back</a>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -160,7 +154,7 @@
 
     td.isian-satu{
         padding-right:5px;
-        /* padding-left:15px; */
+        padding-left:15px;
         width: 25%;border-top: 1px solid #ffffff !important;
         border-bottom: 1px solid #ffffff !important;
         border-left: 1px solid #ffffff !important;
@@ -187,7 +181,7 @@
         isiDetailHeader();
         tombolPanah('qtyBom');
         activate_angka();
-        mask_thousand_digit(3);
+        mask_thousand();
         splitArticle();
     });
 

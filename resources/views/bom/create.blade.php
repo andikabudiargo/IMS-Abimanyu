@@ -76,13 +76,7 @@
                                     <textarea type="text" id="note" name="note" class="form-control" rows="1" >{{ old('note') }}</textarea>
                                 </div>
                             </div>
-                            <div class="form-row">
-                                <div class="col-12">
-                                    <button class="btn btn-warning" type="reset" id="cmdCancel" name="cmdCancel">Cancel</button>
-                                    <button class="btn btn-success" type="reset" id="cmdNew" name="cmdCancel">New</button>
-                                    <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Save</button>
-                                </div>
-                            </div>
+                            
                         </form>
                     </div>
                 </div>
@@ -125,6 +119,14 @@
                             <i data-feather="plus" class="align-middle mr-sm-25 mr-0"></i>
                             <span class="align-middle d-sm-inline-block d-none">Add Article</span>
                         </button>
+                    </div>
+                    <hr>
+                    <div class="form-row">
+                        <div class="col-md-12 col-12">
+                            {{-- <button class="btn btn-warning" type="reset" id="cmdCancel" name="cmdCancel">Cancel</button> --}}
+                            <button class="btn btn-success" type="reset" id="cmdNew" name="cmdCancel">New</button>
+                            <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Save</button>
+                        </div>
                     </div>
                 </div>
             </div>

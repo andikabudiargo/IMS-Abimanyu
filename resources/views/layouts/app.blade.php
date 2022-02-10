@@ -7,7 +7,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=0,minimal-ui">
     <meta name="csrf-token" content="{{csrf_token()}}">
     <meta name="description" content="Integrated Manufacture System">
-    <meta name="keywords" content="abimany, manufacture, ims">
+    <meta name="keywords" content="abimanyu, manufacture, ims">
     <meta name="author" content="Oki">
     <title>{{ env('APP_NAME')}} - @yield('title')</title>
 

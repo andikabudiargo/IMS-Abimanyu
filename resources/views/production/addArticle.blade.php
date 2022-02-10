@@ -18,7 +18,7 @@
 
     td.isian-satu{
         padding-right:5px;
-        /* padding-left:15px; */
+        padding-left:15px;
         width: 25%;border-top: 1px solid #ffffff !important;
         border-bottom: 1px solid #ffffff !important;
         border-left: 1px solid #ffffff !important;
@@ -32,25 +32,29 @@
 </style>
 {{-- table row untuk di clone--}}  
 <div id="new_row" name="new_row[]" class="d-none">
-    <div id="baru" class="tanda-baris barisDetail" >
+    <div id="baru" class="tanda-baris" >
         <table class="table-bordered" style="width: 98%;table-layout: fixed;">
             <tbody>
                 <tr>
-                    <td class="isian-satu" style="width: 25%">
-                        <select class="select2 form-control" id="article_id" name="article_id[]">
+                    <td class="isian-satu" style="width: 20%">
+                        <select class="form-control dynamicSelect sku-select-system" id="salesOrder" name="salesOrder[]" data-dependent="salesOrder">
                         </select>
                     </td>
-                    <td class="isian" style="width: 5%">
-                        <input type="text" class="form-control-plaintext numeral-mask-digit text-right tombol-panah" id = "qtyBom" name="qtyBom[]" maxlength="10" />
+                    <td class="" style="width: 25%">
+                        <select class="form-control dynamicSelect sku-select-system" id="article_id" name="article_id[]" data-dependent="article_id">
+                        </select>
                     </td>
                     <td class="isian disabled" style="width: 5%">
-                        <span class="" id = "uom" name="uom[]"></span>
+                        <input type="text" class="form-control-plaintext text-right" id = "qtyStock" name="qtyStock[]" disabled>
                     </td>
-                    <td class="isian disabled" style="width: 10%">
-                        <span class="" id = "type" name="type[]"></span>
+                    <td class="isian disabled" style="width: 5%">
+                        <input type="text" class="form-control-plaintext numeral-mask text-right" id = "qtyOrder" name="qtyOrder[]" disabled />
+                    </td>
+                    <td class="isian" style="width: 5%">
+                        <input type="text" class="form-control-plaintext numeral-mask text-right" id = "qtyProd" name="qtyProd[]" maxlength="9" />
                     </td>
                     <td class="isian text-center" style="width: 5%">
-                        <a onmouseover="this.style.cursor='pointer'" onclick="$(this).parents('.tanda-baris').remove();">
+                        <a onmouseover="this.style.cursor='pointer'" onclick="$(this).parents('.tanda-baris').remove();hitungGrandTotal()">
                             <i data-feather="trash-2" class="remove_button feather-24">
                             </i>
                         </a>

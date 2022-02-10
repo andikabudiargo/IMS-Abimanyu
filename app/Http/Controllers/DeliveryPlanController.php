@@ -65,6 +65,27 @@ class DeliveryPlanController extends Controller
 
     }
 
+    public function getLastCode($key)
+    {
+        DB::table('master_code')
+        ->where('code_key',$key)
+        ->update([
+            'code_number' => DB::raw('code_number + 1'),
+            'updated_by' => Auth::user()->username,
+            'updated_at' => date('Y-m-d H:i:s')
+        ]);
+
+        $newCode = DB::table('master_code')
+        ->where('code_key',$key)
+        ->value('code_number'); 
+
+        $month = date('m');
+        $year = date('y');
+        $soNumber="$key/ASN/$month/$year/$newCode";
+        
+        return $soNumber;
+    }
+
     public function generatePlan(Request $request)
     {   
         $articles = json_decode($request->articles);
@@ -97,7 +118,7 @@ class DeliveryPlanController extends Controller
 
         DB::table('del_plan_tmp')->insert($dataSet);
 
-        $planCode = "123456789";
+        $planCode = $this->getLastCode('DP');
 
         DB::select("INSERT into del_plan_det
         (del_plan_code,so_code,so_qty,article_code,article_alternative_code,article_desc,code,group_of_material,color_code,variant,day,tanggal,plan,act,balance,cust_code,cust_name,created_by,updated_by,created_at,updated_at)
@@ -154,6 +175,7 @@ class DeliveryPlanController extends Controller
 
         $data=DB::table('del_plan_det')
          ->whereBetween('day', [$fromDate1, $toDate1])
+        //  ->where('del_plan_code',$planCode)
          ->orderBy('code')
          ->orderBy('article_alternative_code')
          ->orderBy('day')
@@ -214,7 +236,7 @@ class DeliveryPlanController extends Controller
         //     group by supp_name,day
         //     order by supp_name,day");
 
-        return Response()->json(['data'=> $data,'kolom'=>$kolomHeader,'supp' => $sumOfSupp]);
+        return Response()->json(['data'=> $data,'kolom'=>$kolomHeader,'supp' => $sumOfSupp,'delPlanCode' => $planCode]);
 
     }
 

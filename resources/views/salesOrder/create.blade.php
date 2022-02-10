@@ -78,9 +78,18 @@
                                         </div>
                                     </div>
                                 </div>
+                                <div class="col-md-2">
+                                    <label class="form-label" for="pph23">PPH23</label>
+                                    <div class="input-group">
+                                        <input type="text" class="form-control angka text-right" id = "pph23" name="pph23" value="2" maxlength="2" />
+                                        <div class="input-group-append">
+                                            <span class="input-group-text">%</span>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                             <div class="form-row">
-                                <div class="form-group col-md-10">
+                                <div class="form-group col-md-12">
                                     <label class="form-label" for="note">Notes</label>
                                     <textarea type="text" id="note" name="note" class="form-control" rows="1" ></textarea>
                                 </div>
@@ -101,12 +110,12 @@
                         <table class="" style="width:98%;table-layout: fixed;">
                             <tbody>
                                 <tr>
-                                    <td class="isian-satu" style="width: 25%">
+                                    <td class="isian-satu" style="width: 40%">
                                         <label>Article Code</label>
                                     </td>
-                                    <td class="isian" style="width: 15%;">
+                                    {{-- <td class="isian" style="width: 15%;">
                                         <label>Group</label>
-                                    </td>
+                                    </td> --}}
                                     <td class="isian" style="width: 5%">
                                         <label>Stock</label>
                                     </td>
@@ -162,25 +171,25 @@
                         </div>
                         <div class="col-md-4">
                             <div class="form-group row mb-03">
-                                <label for="totalAmount" class="col-sm-3 col-form-label titik-dua tanpa-padding">Bruto</label>
+                                <label for="totalAmount" class="col-sm-4 col-form-label titik-dua tanpa-padding">Bruto</label>
                                 <div class="col-sm-6">
                                     <input type="text" class="form-control text-right font-weight-bold" id="totalAmount" disabled />
                                 </div>
                             </div>
                             <div class="form-group row mb-03">
-                                <label for="totalPPN" class="col-sm-3 col-form-label titik-dua tanpa-padding">PPN <span id="nilaiPPN"></span> </label>
+                                <label for="totalPPN" class="col-sm-4 col-form-label titik-dua tanpa-padding">PPN <span id="nilaiPPN"></span> </label>
                                 <div class="col-sm-6">
                                     <input type="text" class="form-control text-right font-weight-bold" id="totalPPN" disabled/>
                                 </div>
                             </div>
                             <div class="form-group row mb-03">
-                                <label for="totalPPH" class="col-sm-3 col-form-label titik-dua tanpa-padding">PPH <span>23</span> </label>
+                                <label for="totalPPH" class="col-sm-4 col-form-label titik-dua tanpa-padding">PPH23 <span id="nilaiPPH23"></span> </label>
                                 <div class="col-sm-6">
                                     <input type="text" class="form-control text-right font-weight-bold" id="totalPPH" disabled/>
                                 </div>
                             </div>
                             <div class="form-group row mb-03">
-                                <label for="totalNetto" class="col-sm-3 col-form-label titik-dua tanpa-padding">Netto</label>
+                                <label for="totalNetto" class="col-sm-4 col-form-label titik-dua tanpa-padding">Netto</label>
                                 <div class="col-sm-6">
                                     <input type="text" class="form-control text-right font-weight-bold" id="totalNetto" disabled/>
                                 </div>
@@ -343,6 +352,7 @@
                 let customer = cust[0];
                 let salesman = $('#salesman').val();
                 let ppn = $('#ppn').val().replace(/[^0-9]/gi, '') || 0;
+                let pph23 = $('#pph23').val().replace(/[^0-9]/gi, '') || 0;
                 let totalPpn = $('#totalPPN').val().replace(/[^0-9]/gi, '') || 0;
                 let totalPph = $('#totalPPH').val().replace(/[^0-9]/gi, '') || 0;
                 let note = $('#note').val();
@@ -359,6 +369,7 @@
                         customer:customer,
                         salesman:salesman,
                         ppn:ppn,
+                        pph23:pph23,
                         totalPpn:totalPpn,
                         totalPph:totalPph,
                         note:note
@@ -454,9 +465,9 @@
     function hitungTotal(){
         let objQty= $('#article_row input[name="qty_order[]"]');
         let objPrice= $('#article_row input[name="price[]"]');
-        let objTotal= $('#article_row span[name="totalLine[]"]');
+        let objTotal= $('#article_row input[name="totalLine[]"]');
         let objPriceJasa= $('#article_row input[name="priceJasa[]"]');
-        let objTotalJasa= $('#article_row span[name="totalJasa[]"]');
+        let objTotalJasa= $('#article_row input[name="totalJasa[]"]');
         
         objQty.keyup(function() {
             let indexnya= objQty.index(this);
@@ -465,8 +476,8 @@
             let priceJasa = objPriceJasa.eq(indexnya).val().replace(/[^0-9]/gi, '') ||0;
             let total = qty*price;
             let totalJasa = qty*priceJasa;
-            objTotal.eq(indexnya).text(humanizeNumber(total));
-            objTotalJasa.eq(indexnya).text(humanizeNumber(totalJasa));
+            objTotal.eq(indexnya).val(humanizeNumber(total));
+            objTotalJasa.eq(indexnya).val(humanizeNumber(totalJasa));
             hitungGrandTotal();
         });    
 
@@ -477,8 +488,8 @@
             let total = qty*price;
             let priceJasa = objPriceJasa.eq(indexnya).val().replace(/[^0-9]/gi, '')||0;
             let totalJasa = qty*priceJasa;
-            objTotal.eq(indexnya).text(humanizeNumber(total));
-            objTotalJasa.eq(indexnya).text(humanizeNumber(totalJasa));
+            objTotal.eq(indexnya).val(humanizeNumber(total));
+            objTotalJasa.eq(indexnya).val(humanizeNumber(totalJasa));
             hitungGrandTotal();
         });    
 
@@ -489,8 +500,8 @@
             let total = qty*price;
             let priceJasa = objPriceJasa.eq(indexnya).val().replace(/[^0-9]/gi, '')||0;
             let totalJasa = qty*priceJasa;
-            objTotal.eq(indexnya).text(humanizeNumber(total));
-            objTotalJasa.eq(indexnya).text(humanizeNumber(totalJasa));
+            objTotal.eq(indexnya).val(humanizeNumber(total));
+            objTotalJasa.eq(indexnya).val(humanizeNumber(totalJasa));
             hitungGrandTotal();
         });    
     }
@@ -502,6 +513,7 @@
         let objPrice= $('#article_row input[name="price[]"]');
         let objPriceJasa= $('#article_row input[name="priceJasa[]"]');
         let ppn= $('#ppn').val() ||0;
+        let pph23= $('#pph23').val() ||0;
         let totalQty= 0;
         let totalAmount=0
         let totalAmountJasa=0
@@ -519,11 +531,12 @@
         
         $("#totalRow").val(objArticle.length);
         $("#nilaiPPN").text(ppn+"%");
+        $("#nilaiPPH23").text(pph23+"%");
         $("#totalQTY").val(humanizeNumber(totalQty));
         $("#totalAmount").val(humanizeNumber(totalAmount));
         $("#totalPPN").val(humanizeNumber((parseInt(ppn)*totalAmountMaterial)/100));
-        $("#totalPPH").val(humanizeNumber((2*totalAmountJasa)/100));
-        $("#totalNetto").val(humanizeNumber(totalAmount+((parseInt(ppn)*totalAmount)/100)+((2*totalAmountJasa)/100)));
+        $("#totalPPH").val("-"+humanizeNumber((pph23*totalAmountJasa)/100));
+        $("#totalNetto").val(humanizeNumber(totalAmount+((parseInt(ppn)*totalAmount)/100)-((pph23*totalAmountJasa)/100)));
     
     }
 

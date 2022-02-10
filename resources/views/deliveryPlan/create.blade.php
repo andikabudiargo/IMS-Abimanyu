@@ -128,7 +128,7 @@
             <div id="planDelivery" class="content">
                 <div class="content-header">
                     <h5 class="mb-0">Plan Delivery</h5>
-                    <small></small>
+                    <small id="delPlanCode"></small>
                 </div>
                 <div class="row">
                     <div class="col-sm-12">
@@ -587,6 +587,7 @@
     });
 
     function generateData(soDate){
+        $('#delPlanCode').text("");
         let articleNumber="";
         let articles=[];
         $('input[name="articleCheck[]"]').each(function () {
@@ -623,6 +624,9 @@
                 let numberOfDate=result.kolom.length;
                 let numOfKolomHeader = 3;
                 let totKolom = numberOfDate+numOfKolomHeader;
+        
+                $('#delPlanCode').text(result.delPlanCode);
+        
                 for(let i =0;i<result.kolom.length;i++){
                     tahun=`<th class="" colspan="`+result.kolom[i].countday+1+`" >
                                 <label>`+result.kolom[i].dateyear+`</label>

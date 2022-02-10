@@ -19,10 +19,10 @@
         <form class="needs-validation" novalidate>
             <div class="form-row">
               <div class="form-group col-md-3"> 
-                <label for="searchBom">Bom Number</label>
-                <input type="text" class="form-control text-uppercase" id="searchBom" name="searchBom" placeholder=""  />
+                <label for="searchPrd">Production Number</label>
+                <input type="text" class="form-control text-uppercase" id="searchPrd" name="searchPrd" placeholder=""  />
               </div>
-              <div class="form-group col-md-5">
+              {{-- <div class="form-group col-md-5">
                 <label class="form-label" for="articleCode">Article*</label>
                 <select class="select2 form-control" id="articleCode" name="articleCode" required>
                     <option value="">All</option>
@@ -30,14 +30,14 @@
                         <option value="{{ $val->article_code }}" >{{ $val->article_alternative_code }} - {{ $val->article_desc }}</option>
                     @endforeach
                 </select>
-              </div>
+              </div> --}}
             </div>
             <div class="form-row">
                 <div class="col-12"> 
                     <button type="button" class="btn btn-primary" id ="btnSearch" name="btnSearch">Search</button>
-                    @can('bom-create')
-                    <a href="{{ route('bom.create') }}" class="btn btn-info"><i class="fa fa-plus"></i> Create</a>
-                    @endcan
+                    {{-- @can('bom-create') --}}
+                    <a href="{{ route('production.create') }}" class="btn btn-info"><i class="fa fa-plus"></i> Create</a>
+                    {{-- @endcan --}}
                 </div>
             </div>
         </form>
@@ -116,22 +116,30 @@
   }
 
   $("#btnSearch").click(function(e){
-    let searchBom = $("#searchBom").val();
+    let searchPrd = $("#searchPrd").val();
     let articleCode = $("#articleCode").val();
-    showList(searchBom,articleCode);
+    showList(searchPrd,articleCode);
 
   });
 
-  function showList(searchBom,articleCode){
-    let dtdom ='<"d-flex justify-content-between align-items-center header-actions mx-1 row mt-75" <"col-lg-12 col-xl-6" l><"col-lg-12 col-xl-6 pl-xl-75 pl-0"<"dt-action-buttons text-xl-right text-lg-left text-md-right text-left d-flex align-items-center justify-content-lg-end align-items-center flex-sm-nowrap flex-wrap mr-1"<"mr-1"f>B>>>t<"d-flex justify-content-between mx-2 row mb-1"<"col-sm-12 col-md-6"i><"col-sm-12 col-md-6"p>>';
-    let arr_col_print =[1,2,3,4,5,6,7,8,9]; 
+  function showList(searchPrd,articleCode){
+    // let dtdom = '<"card-header border-bottom p-1"<"head-label">><"d-flex justify-content-between align-items-center mx-0 row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-4"f><"col-sm-12 col-md-2"<"dt-action-buttons text-right"B>>>t<"d-flex justify-content-between mx-0 row"<"col-sm-12 col-md-6"i><"col-sm-12 col-md-6"p>>';
+    let dtdom ='<"d-flex justify-content-between align-items-center header-actions mx-1 row mt-75"' +
+        '<"col-lg-12 col-xl-6" l>' +
+        '<"col-lg-12 col-xl-6 pl-xl-75 pl-0"<"dt-action-buttons text-xl-right text-lg-left text-md-right text-left d-flex align-items-center justify-content-lg-end align-items-center flex-sm-nowrap flex-wrap mr-1"<"mr-1"f>B>>' +
+        '>t' +
+        '<"d-flex justify-content-between mx-2 row mb-1"' +
+        '<"col-sm-12 col-md-6"i>' +
+        '<"col-sm-12 col-md-6"p>' +
+        '>';
+    let arr_col_print =[1,2,3,4,5]; 
     $(function(){
       let oTable =$("#detailedTable").DataTable({
         ajax:
         {
-          url:'{{ route("bom.list")}}',
+          url:'{{ route("production.list")}}',
           data:{
-              searchBom:searchBom,
+              searchPrd:searchPrd,
               articleCode:articleCode,
           }
         },
@@ -197,7 +205,7 @@
           }
         },
         columnDefs: [
-          { width: '5%', targets: 0 },
+          { width: '10%', targets: 0 },
         ],
         drawCallback: function( settings ) {
           feather.replace({
@@ -210,22 +218,41 @@
         // scrollX: true, //pakai ini supaya waktu responsive  bisa di scroll horizontal
         columns: [
             { data: 'action', name: 'action',title:'action', orderable: false, searchable: false },
-            { data: 'bom_code', name: 'bom_code',title:'BOM Code' },
-            { data: 'customer', name: 'customer',title:'Customer' },
-            { data: 'article_des', name: 'article_des',title:'Article' },
-            { data: 'group_of_material', name: 'group_of_material',title:'Group' },
+            { data: 'prod_code', name: 'prod_code',title:'Prod. Code' },
+            { data: 'prod_date', name: 'prod_date',title:'Date' },
+            { data: 'prod_shift', name: 'prod_shift',title:'Shift' },
+            { data: 'prod_group', name: 'prod_group',title:'Group' },
             { data: 'status', name: 'status',title:'Status' },
-            { data: 'created_by', name: 'created_by',title:'Created By' },
-            { data: 'created_at', name: 'created_at',title:'Created At' },
-            { data: 'updated_by', name: 'updated_by',title:'Updated By' },
-            { data: 'updated_at', name: 'updated_at',title:'Updated At' },
-            
+            { data: 'note', name: 'note',title:'Note' },
         ],
       });
     });
     //$('div.head-label').html('<h6 class="mb-0">Data Users</h6>');
-    
   }
+
+  posting = (prodNumber) =>{
+    $.ajax({
+      type: "post",
+      url: "{{ route('production.posting') }}",
+      data: { prodNumber:prodNumber},
+      dataType: "json",
+      success: function(data) {
+          if (data.status == 0 ){
+              let message="";
+              for(let i = 0; i < data.message.length; i++) {
+                  show_msg(data.title, data.message[i], data.alert);
+              }
+
+          }else{
+              show_msg(data.title, data.message, data.alert)
+          }
+      },
+      error: function(error) {
+          console.log(error);
+      }
+    });
+  }
+        
 
   $.ajaxSetup({
     headers: {
