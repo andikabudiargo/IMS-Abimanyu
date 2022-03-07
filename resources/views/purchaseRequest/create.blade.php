@@ -8,7 +8,7 @@
         <div class="col-md-12">
             <div class="card">
                 <div class="card-header">
-                    <h4 class="card-title">Status: Draft</h4>
+                    <h4 class="card-title">Status: New</h4>
                     <div class="heading-elements">
                         <ul class="list-inline mb-0">
                             <li><a data-action="collapse"><i data-feather="chevron-down"></i></a></li>
@@ -94,7 +94,7 @@
                                 <label class="d-none d-md-block">Article Code</label>
                             </div>
                         </div>
-                        <div class="col-md-2 col-12 d-none d-md-block">
+                        <div class="col-md-1 col-12 d-none d-md-block">
                             <div class="form-group">
                                 <label class="d-none d-md-block text-right">Qty</label>
                             </div>
@@ -126,7 +126,7 @@
                     </div>
                     <br>
                     <div class="mt-75">
-                        <button class="btn btn-warning" type="reset" id="cmdCancel" name="cmdCancel">Cancel</button>
+                        {{-- <button class="btn btn-warning" type="reset" id="cmdCancel" name="cmdCancel">Cancel</button> --}}
                         <button class="btn btn-success" type="reset" id="cmdNew" name="cmdCancel">New</button>
                         <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Save</button>
                     </div>
@@ -183,7 +183,7 @@
 <script type="text/javascript">
     let currentDate = todayDate('dd-mm-yyyy');    
     $(document).ready(function(){           
-        validateForm('frmAdd');
+        validateFormToast("frmAdd");
         $('#orderDate').val(currentDate);
     });
     
@@ -207,124 +207,118 @@
     });
 
     $("#cmdSave").click(function(){     
-        $('.disabled-el').removeAttr('disabled');
-        // ambil semua data article
-        let objQty = $('input[name="qty_order[]"]');
-        let objNote = $('input[name="note[]"]');
-        let objUom = $('span[name="uom[]"]'); 
-        let dept = $('#dept').val();
-        let poType = $('#poType').val();
-        let articles = []; 
-        let flag=0; 
-        let pesan="";
 
-        $("#article_row select[name='article_id[]']").map(function(i) {  
-		    let $this=$(this);
-            if ($this.val()){
-                let article=$this.val().split("|");
-                let articleName=$this.select2('data')[0].text;
-                let plu=article[0];
-                let supp=article[2];
-                let uom=article[1];
-                let qty=objQty.eq(i).val().replace(/,/gi, '') || 0;
-                let note=objNote.eq(i).val();
-                            
-                //es6
-                // let obj = ingredient.find(obj => obj.plu == plu);
-
-                //jquery
-                //cek apakah article ada yang double input ato ngk
-                let obj = $.grep(articles, function(obj){
-                    return obj.article_code === plu;
-                })[0];
-                
-                if(obj) {
-                    pesan +="Article "+articleName+" entered more than once !! <br>"; 
-                    flag=1;
-                } else {
-                    if ((plu!=='') && (qty> 0)){
-                        articles.push({
-                            "article_code":plu,
-                            "qty":qty,
-                            "uom":uom,
-                            "supp":supp,
-                            "note":note,
-                        });
-                    }
-                } 
-            
-                if (qty == 0){
-                    pesan +="QTY of items "+ articleName +" cannot be 0 <br>"; 
-                    flag=1;
-                }
-            }
-        });
-
-        if (dept == ''){
-			pesan +="Department must be filled in <br>"; 
-			flag=1;
-		}
-
-        if (articles.length == 0){
-			pesan +="Articles must be filled in completely <br>"; 
-			flag=1;
-		}
-
-        if (flag==0){
-
-            let orderDate = $('#orderDate').val();
+        if (!$("#frmAdd")[0].checkValidity()){
+            $("#frmAdd").submit();
+        }else{
+            $('.disabled-el').removeAttr('disabled');
+            // ambil semua data article
+            let objQty = $('input[name="qty_order[]"]');
+            let objNote = $('input[name="note[]"]');
+            let objUom = $('span[name="uom[]"]'); 
             let dept = $('#dept').val();
-            let note = $('#note').val();
+            let poType = $('#poType').val();
+            let articles = []; 
+            let flag=0; 
+            let pesan="";
 
-            $.ajax({
-                type: "post",
-                url: "{{ route('purchaseRequest.store') }}",
-                data: {
-                    articles:JSON.stringify(articles),
-                    orderDate:orderDate,
-                    poType:poType,
-                    dept:dept,
-                    note:note,
-                },
-                dataType: "json",
-                success: function(data) {
-                    if (data.status == 0 ){
-                        let message="";
-                        for(let i = 0; i < data.message.length; i++) {
-                            message += "-"+data.message[i]+"<br>";                           
-                        }
-                        $("#alert-message-success").addClass(data.alert);
-                        $("#alert-message-success .alert-body").html(message);
-                        $("#alert-message-success").show();
-                        $("#alert-message-success").fadeTo(5000, 500).slideUp(500, function(){
-                            $("#alert-message-success").slideUp(500);
-                        });
-                        $('#prNumber').attr('disabled','disabled');
+            $("#article_row select[name='article_id[]']").map(function(i) {  
+                let $this=$(this);
+                if ($this.val()){
+                    let article=$this.val().split("|");
+                    let articleName=$this.select2('data')[0].text;
+                    let plu=article[0];
+                    let supp=article[2];
+                    let uom=article[1];
+                    let qty=objQty.eq(i).val().replace(/,/gi, '') || 0;
+                    let note=objNote.eq(i).val();
+                                
+                    //es6
+                    // let obj = ingredient.find(obj => obj.plu == plu);
 
-                    }else{
-                        $("#alert-message-success").addClass(data.alert);
-                        $("#alert-message-success .alert-body").html(data.message);
-                        $("#alert-message-success").show();
-                        $("#alert-message-success").fadeTo(5000, 500).slideUp(500, function(){
-                            $("#alert-message-success").slideUp(500);
-                        });
-                        $('#prNumber').attr('disabled','disabled');
-                        $('#cmdSave').attr('disabled','disabled');
-                        $('#addNewRow').attr('disabled','disabled');
-                        $('#prNumber').val(data.prNumber);
-                        
-                    }
+                    //jquery
+                    //cek apakah article ada yang double input ato ngk
+                    let obj = $.grep(articles, function(obj){
+                        return obj.article_code === plu;
+                    })[0];
                     
-                },
-                error: function(error) {
-                    console.log(error);
+                    if(obj) {
+                        pesan +="Article "+articleName+" entered more than once !! <br>"; 
+                        flag=1;
+                    } else {
+                        if ((plu!=='') && (qty> 0)){
+                            articles.push({
+                                "article_code":plu,
+                                "qty":qty,
+                                "uom":uom,
+                                "supp":supp,
+                                "note":note,
+                            });
+                        }
+                    } 
+                
+                    if (qty == 0){
+                        pesan +="QTY of items "+ articleName +" cannot be 0 <br>"; 
+                        flag=1;
+                    }
                 }
             });
 
-        }else{
-            Swal.fire('Warning..',pesan,'warning');
+            if (dept == ''){
+                pesan +="Department must be filled in <br>"; 
+                flag=1;
+            }
+
+            if (articles.length == 0){
+                pesan +="Articles must be filled in completely <br>"; 
+                flag=1;
+            }
+
+            if (flag==0){
+
+                let orderDate = $('#orderDate').val();
+                let dept = $('#dept').val();
+                let note = $('#note').val();
+
+                $.ajax({
+                    type: "post",
+                    url: "{{ route('purchaseRequest.store') }}",
+                    data: {
+                        articles:JSON.stringify(articles),
+                        orderDate:orderDate,
+                        poType:poType,
+                        dept:dept,
+                        note:note,
+                    },
+                    dataType: "json",
+                    success: function(data) {
+                        if (data.status == 0 ){
+                            for(let i = 0; i < data.message.length; i++) {
+                                show_msg(data.title, data.message[i], data.alert);
+                            }
+                            $('#prNumber').attr('disabled','disabled');
+
+                        }else{
+                            show_msg(data.title, data.message, data.alert);
+
+                            $('#prNumber').attr('disabled','disabled');
+                            $('#cmdSave').attr('disabled','disabled');
+                            $('#addNewRow').attr('disabled','disabled');
+                            $('#prNumber').val(data.prNumber);
+                            
+                        }
+                        
+                    },
+                    error: function(error) {
+                        console.log(error);
+                    }
+                });
+
+            }else{
+                Swal.fire('Warning..',pesan,'warning');
+            }
         }
-    
+
     });
 
     let cloneCount=1;

@@ -3,7 +3,6 @@
 @section('content')
 @include('layouts.breadcrumb')
 @include('partials.alert')
-
 <section id="article-index">
   <div class="card">
     <div class="card-header">  
@@ -19,22 +18,15 @@
         <form class="needs-validation" novalidate>
             <div class="form-row">
               <div class="form-group col-md-3"> 
-                <label for="searchPr">Request Number</label>
-                <input type="text" class="form-control text-uppercase" id="searchPr" name="searchPr" placeholder=""  />
+                <label for="searchCode">Bank receipt number</label>
+                <input type="text" class="form-control text-uppercase" id="searchCode" name="searchCode" placeholder=""  />
               </div>
               <div class="col-md-3 form-group">
-                <label for="requestDate">Date</label>
-                <input type="text" id="requestDate" name="requestDate" class="form-control flatpickr-range" placeholder="YYYY-MM-DD to YYYY-MM-DD" />
+                <label for="searchDate">Date</label>
+                <input type="text" id="searchDate" name="searchDate" class="form-control flatpickr-range" placeholder="YYYY-MM-DD to YYYY-MM-DD" />
               </div>
               <div class="form-group col-md-2">
-                <label class="form-label" for="poType">PO Type*</label>
-                <select class="select2 form-control" id="poType" name="poType" required>
-                    <option value="std">Standard</option>
-                    <option value="sub">Subcontracting</option>
-                </select>
-              </div>
-              <div class="form-group col-md-2"> 
-                <label class="form-label" for="searchStatus">Request Status</label>
+                <label class="form-label" for="searchStatus">Status</label>
                 <select class="select2 form-control" id="searchStatus" name="searchStatus">
                     <option value="">All</option>
                     @foreach($status as $index=>$val)
@@ -46,8 +38,8 @@
             <div class="form-row">
                 <div class="col-12"> 
                     <button type="button" class="btn btn-primary" id ="btnSearch" name="btnSearch">Search</button>
-                    @can('purchaseRequest-create')
-                    <a href="{{ route('purchaseRequest.create') }}" class="btn btn-info"><i class="fa fa-plus"></i> Create</a>
+                    @can('disbursement-create')
+                    <a href="{{ route('bankReceipt.create') }}" class="btn btn-info"><i class="fa fa-plus"></i> Create</a>
                     @endcan
                 </div>
             </div>
@@ -84,9 +76,7 @@
     </div>
   </div>
 </section>
-
 @include('partials.delete-modal')
-
 @endsection
 @section('styles')
 <style>
@@ -100,7 +90,7 @@
         event.preventDefault();
         href = $(this).data('href');
         console.log(href);
-        $('#modalConfirmation').attr("action", href);
+        $('#modalConfirmationCancel').attr("action", href);
     });
   });
 
@@ -127,27 +117,25 @@
   }
 
   $("#btnSearch").click(function(e){
-    let searchPr = $("#searchPr").val();
-    let poType = $("#poType").val();
+    let searchCode = $("#searchCode").val();
+    let searchDate = $("#searchDate").val();
     let searchStatus = $("#searchStatus").val();
-    let requestDate = $("#requestDate").val();
-    showList(searchPr,searchStatus,requestDate);
+    showList(searchCode,searchDate,searchStatus);
 
   });
 
-  function showList(searchPr,poType,searchStatus,requestDate){
-    let dtdom =`<"d-flex justify-content-between align-items-center header-actions mx-1 row mt-75"<"col-lg-12 col-xl-6" l><"col-lg-12 col-xl-6 pl-xl-75 pl-0"<"dt-action-buttons text-xl-right text-lg-left text-md-right text-left d-flex align-items-center justify-content-lg-end align-items-center flex-sm-nowrap flex-wrap mr-1"<"mr-1"f>B>>>t<"d-flex justify-content-between mx-2 row mb-1"<"col-sm-12 col-md-6"i><"col-sm-12 col-md-6"p>>`;
-    let arr_col_print =[1,2,3,4,5,6]; 
+  function showList(searchCode,searchDate,searchStatus){
+    let dtdom ='<"d-flex justify-content-between align-items-center header-actions mx-1 row mt-75"<"col-lg-12 col-xl-6" l><"col-lg-12 col-xl-6 pl-xl-75 pl-0"<"dt-action-buttons text-xl-right text-lg-left text-md-right text-left d-flex align-items-center justify-content-lg-end align-items-center flex-sm-nowrap flex-wrap mr-1"<"mr-1"f>B>>>t<"d-flex justify-content-between mx-2 row mb-1"<"col-sm-12 col-md-6"i><"col-sm-12 col-md-6"p>>';
+    let arr_col_print =[2,3,4,5,6,7,8,9,10,11,12,13]; 
     $(function(){
       let oTable =$("#detailedTable").DataTable({
         ajax:
         {
-          url:'{{ route("purchaseRequest.list")}}',
+          url:'{{ route("disbursement.list")}}',
           data:{
-              searchPr:searchPr,
-              poType:poType,
-              searchStatus:searchStatus,
-              requestDate:requestDate
+            searchCode:searchCode,
+            searchDate:searchDate,
+            searchStatus:searchStatus
           }
         },
         processing: true,
@@ -212,7 +200,8 @@
           }
         },
         columnDefs: [
-          { width: '5%', targets: 0 },
+          { width: '10%', targets: 0 },
+          { className: 'text-right','targets': [ 5,6,7,8,9,10 ] },
         ],
         drawCallback: function( settings ) {
           feather.replace({
@@ -225,17 +214,22 @@
         // scrollX: true, //pakai ini supaya waktu responsive  bisa di scroll horizontal
         columns: [
             { data: 'action', name: 'action',title:'action', orderable: false, searchable: false },
-            { data: 'pr_number', name: 'pr_number',title:'PR Number' },
-            { data: 'order_type', name: 'order_type',title:'PO Type' },
-            { data: 'dept', name: 'dept',title:'Department' },
-            { data: 'date', name: 'date',title:'PR Date' },
+            { data: 'disbursement_number', name: 'disbursement_number',title:'Number' },
+            { data: 'disbursement_date', name: 'disbursement_date',title:'Payment Date' },
+            { data: 'total', name: 'total',title:'Total',render: $.fn.dataTable.render.number(',','.') },
+            { data: 'admin', name: 'admin',title:'Admin',render: $.fn.dataTable.render.number(',','.') },
+            { data: 'discount', name: 'discount',title:'Discount',render: $.fn.dataTable.render.number(',','.') },
+            { data: 'other_admin', name: 'other_admin',title:'Others',render: $.fn.dataTable.render.number(',','.') },
+            { data: 'grand_total', name: 'grand_total',title:'Grand Total',render: $.fn.dataTable.render.number(',','.') },
+            { data: 'created_by', name: 'created_by',title:'Created By' },
+            { data: 'created_at', name: 'created_at',title:'Prepared At' },
+            { data: 'approved_by', name: 'approved_by',title:'Approve By' },
+            { data: 'approved_at', name: 'approved_at',title:'Approve At' },
             { data: 'status', name: 'status',title:'Status' },
-            { data: 'note', name: 'note',title:'Note' },
         ],
       });
     });
-    //$('div.head-label').html('<h6 class="mb-0">Data Users</h6>');
-    
+    //$('div.head-label').html('<h6 class="mb-0">Data Users</h6>');    
   }
 
   $.ajaxSetup({

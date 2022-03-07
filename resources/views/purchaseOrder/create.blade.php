@@ -475,6 +475,7 @@
                         $("#alert-message-success").fadeTo(5000, 500).slideUp(500, function(){
                             $("#alert-message-success").slideUp(500);
                         });
+
                         $('#poNumber').attr('disabled','disabled');
 
                     }else{
@@ -487,6 +488,7 @@
                         $('#poNumber').attr('disabled','disabled');
                         $('#cmdSave').attr('disabled','disabled');
                         $('#addNewRow').attr('disabled','disabled');
+                        $('#poNumber').val(data.poNumber);
                         
                     }
                     

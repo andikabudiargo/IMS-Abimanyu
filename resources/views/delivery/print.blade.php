@@ -2,7 +2,7 @@
 <html lang="en">
     <head>
     <meta charset="UTF-8">
-    <title>REC</title>
+    <title>INV</title>
     <style type="text/css">
 
         html { 
@@ -66,23 +66,33 @@
         <tr>
             <td width="30%" >
                 <img src="{{ public_path('app-assets/images/logo/logo_po.png') }}" alt="logo" style="width: 60%;"> 
+                <br>Kp. Karang Mulya RT 014 RW 005 Cikopo Bungursari Kab. Purwakarta
             </td>
-            <td valign="top" style="text-align:center"><h2>RECEIPT NOTE</h2></td>
+            <td valign="top" style="text-align:center"></td>
             <td width="30%" ></td>
         </tr>
     </table>
-    <table width="100%" border="0" >
+    <br>
+    <table>
         <tr>
-            <td width="45%" valign="top" >
-                Rec. Number : {{ $recHdr->rec_number }}<br>
-                PO Number   : {{ $recHdr->po_number }}<br>
-                Rec. Date   : {{ $recHdr->rec_date }}                
+            <td width="60%"style="border: 1px solid #0c0c0c;padding-left:10px">
+                <h2>DELIVERY NOTE</h2>
             </td>
-            <td width="25%"></td>
-            <td width="30%">
-                Customer   : {{ $suppliers[0]->nama }}<br>
-                DO Number  : {{ $recHdr->do_number }}<br>
-                DO Date    : {{ $recHdr->do_date }}
+            <td style="border: 1px solid #0c0c0c;padding-left:10px">
+                No:<br>{{ $recHdr->delivery_number }}
+            </td>
+        </tr>
+    </table>
+    <table>
+        <tr>
+            <td width="60%" valign="top" style="border: 1px solid #0c0c0c;padding-left:10px">
+                <strong> VENDOR </strong><br>
+                    {{ $customers->nama }} <br>
+                    {{ $customers->alamat_kirim_1 }} <br>
+            </td>
+            <td width="40%" valign="top" style="border: 1px solid #0c0c0c;padding-left:10px">
+                <strong>PO Number </strong><br>
+                
             </td>
         </tr>
     </table>
@@ -90,9 +100,10 @@
         <thead style="background-color: lightgray;">
         <tr>
             <th width="5%">#</th>
-            <th width="10%">Code</th>
-            <th width="45%">Description</th>
+            <th width="15%">Code</th>
+            <th width="60%">Description</th>
             <th width="10%">Qty</th>
+            <th width="10%">UOM</th>
         </tr>
         </thead>
         <tbody>
@@ -102,38 +113,24 @@
                     <td class="border-bottom" align="left">{{ $val->article_alternative_code }}</td>
                     <td class="border-bottom" align="left">{{ $val->article_desc }}</td>
                     <td class="border-bottom" align="right">{{ number_format($val->qty) }}</td>
+                    <td class="border-bottom" align="right">{{ $val->uom }}</td>
                 </tr>
             @endforeach
         </tbody>
         <tfoot>
             @foreach ($totals as $val )
                 <tr class="border-bottom">
-                    <td class="border-bottom" align="left" colspan="3">Total</td>
+                    <td class="border-bottom" align="left" colspan="4">Total</td>
                     <td class="border-bottom" align="right" >{{ number_format($val->qty) }}</td>
                 </tr>
             @endforeach
         </tfoot>
+        <tr>
+            <td colspan="5">Note: </td>
+        </tr>
+    
     </table>
-    <table width="100%" border="0">
-        <tr><td colspan="2" height="100"></td></tr>
-        <tr><td colspan="2" height="100"></td></tr>
-        <tr>
-            <td align="center">Authorized By</td>
-            <td align="center">Prepared By</td>
-        </tr>
-        <tr>
-            <td align="center"></td>
-            <td align="center"></td>
-        </tr>
-        <tr>
-            <td align="center"></td>
-            <td align="center"></td>
-        </tr>
-        <tr>
-            <td align="center">( _____________ )</td>
-            <td align="center">( _____________  )</td>
-        </tr>
-    </table>
+        
 {{-- @if($poNumber == "oki")
 </div>
 @endif --}}

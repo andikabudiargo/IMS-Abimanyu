@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Crypt;
 use Response;
 use App\Permission;
 use DataTables;
@@ -108,8 +109,10 @@ class PurchaseRequestController extends Controller
             foreach ($validation->messages()->getMessages() as $field_name => $messages){
                 $error_array[] = $messages;
             }
+
             $alert ="alert-danger";
             return response()->json(array('status' => 0, 'message' => $error_array,'alert' =>$alert));
+
         }else{
             $hasilUpdate = AppHelpers::resetCode($poLeadCode);
             $prNumber = $this->getLastCode($poLeadCode);
@@ -148,24 +151,26 @@ class PurchaseRequestController extends Controller
                     DB::table('purchase_request_det')->insert($dataSet);
 
                     DB::commit();
-                    $alert  ="alert-success";
-                    $message  = "PR $prNumber is successfully saved";
-                    \LogActivity::addToLog('PR save ',"username: $username Status $message");
-                    return response()->json(array('status' => 1, 'message' => $message,'alert'=>$alert,'prNumber'=>$prNumber));
+                    $title ='Save Purchase Request';
+                    $alert  ="success";
+                    $message  = "$title $prNumber is successfully saved";
+                    \LogActivity::addToLog($title,"username: $username Status $message");
+                    return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'prNumber'=>$prNumber));
 
             } catch (Exception $e) {
                 DB::rollBack();
-                $alert  ="alert-warning";
-                $message  = "PR $prNumber is failed to save";
-                \LogActivity::addToLog('PR save ',"username: $username Status $message");
-                return response()->json(array('status' => 1, 'message' => $message,'alert'=>$alert,'prNumber'=>$prNumber));
+                $title ='Save Purchase Request';
+                $alert  ="warning";
+                $message  = "$title $prNumber is failed to saved";
+                \LogActivity::addToLog($title,"username: $username Status $message");
+                return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'prNumber'=>$prNumber));
             }
         }
     }
 
     public function show(Request $request)
     {
-        $id=$request->id;
+        $id=Crypt::decryptString($request->id);
         $data['title'] = "Detail Purchase Request";
         $data['subtitle'] = "Detail Purchase Request";
 
@@ -198,7 +203,7 @@ class PurchaseRequestController extends Controller
 
     public function edit(Request $request)
     {
-        $id=$request->id;
+        $id=Crypt::decryptString($request->id);
 
         $data['title'] = "Edit Purchase Request";
         $data['subtitle'] = "Edit Purchase Request";
@@ -280,8 +285,10 @@ class PurchaseRequestController extends Controller
             foreach ($validation->messages()->getMessages() as $field_name => $messages){
                 $error_array[] = $messages;
             }
-            $alert ="alert-danger";
-            return response()->json(array('status' => 0, 'message' => $error_array,'alert' =>$alert));
+            
+            $title="Save Purchase Request";
+            $alert ="error";
+            return response()->json(array('status' => 0,'title' => $title, 'message' => $error_array,'alert' =>$alert));
         }else{
             DB::beginTransaction();
             try {
@@ -335,25 +342,29 @@ class PurchaseRequestController extends Controller
                     }
                     
                     DB::commit();
-                    $alert  ="alert-success";
-                    $message  = "PR $prNumber is successfully updated";
-                    \LogActivity::addToLog('PR update ',"username: $username Status $message");
-                    return response()->json(array('status' => 1, 'message' => $message,'alert'=>$alert,'prNumber'=>$prNumber));
+
+                    $title ='Save Purchase Request';
+                    $alert  ="success";
+                    $message  = "$title $prNumber is successfully updated";
+                    \LogActivity::addToLog($title,"username: $username Status $message");
+                    return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'prNumber'=>$prNumber));
 
             } catch (Exception $e) {
                 DB::rollBack();
-                $alert  ="alert-warning";
-                $message  = "PR $prNumber is failed to updated";
-                \LogActivity::addToLog('PR update ',"username: $username Status $message");
-                return response()->json(array('status' => 1, 'message' => $message,'alert'=>$alert,'prNumber'=>$prNumber));
+                DB::rollBack();
+                $title ='Save Purchase Request';
+                $alert  ="warning";
+                $message  = "$title $prNumber is failed to updated";
+                \LogActivity::addToLog($title,"username: $username Status $message");
+                return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'prNumber'=>$prNumber));
             }
         }
     }
 
     public function destroy(Request $request)
     {
+        $id=Crypt::decryptString($request->id);
         $username =  Auth::user()->username;       
-        $id = $request->id;
         $po_number = DB::table('purchase_request_hdr')->where('id',$id)->where('status','1')->value('pr_number');
         $rowAffected = DB::table('purchase_request_hdr')->where('id',$id)->delete();
         if($rowAffected>0){
@@ -420,21 +431,21 @@ class PurchaseRequestController extends Controller
         return Datatables::of($data)
         ->addColumn('action', function ($data) {
             $buttons = '<div class="d-inline-flex">
-                            <a class="pr-1 dropdown-toggle hide-arrow text-primary" data-toggle="dropdown">
+                            <a class="pr-1 dropdown-toggle hide-arrow" data-toggle="dropdown">
                                 <i data-feather="menu"></i>
                             </a>';
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
             if (Auth::user()->can('purchaseRequest-edit')) {
-            $buttons .=         '<a href="'. route('purchaseRequest.edit', ['id'=>$data->id]) .'" class="dropdown-item">
+            $buttons .=         '<a href="'. route('purchaseRequest.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                     <i data-feather="file-text"></i>
                                     Edit
                                 </a>';
-            $buttons .=         '<a href="'. route('purchaseRequest.print', ['id'=>$data->id]) .'" target="_blank" class="dropdown-item">
+            $buttons .=         '<a href="'. route('purchaseRequest.print', ['id'=>Crypt::encryptString($data->id)]) .'" target="_blank" class="dropdown-item">
                                     <i data-feather="printer"></i>
                                     Print
                                 </a>';
             }
-            $buttons .=         '<a href="'. route('purchaseRequest.show', ['id'=>$data->id]) .'" class="dropdown-item">
+            $buttons .=         '<a href="'. route('purchaseRequest.show', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                     <i data-feather="list"></i>
                                     Detail
                                 </a>';
@@ -445,7 +456,7 @@ class PurchaseRequestController extends Controller
                                     class='dropdown-item'
                                     data-toggle='modal'
                                     data-target='#smallModal'
-                                    data-href='". route("purchaseRequest.destroy", ["id"=>$data->id]) ."'>
+                                    data-href='". route("purchaseRequest.destroy", ["id"=>Crypt::encryptString($data->id)]) ."'>
                                     <i data-feather='trash-2'></i>
                                     Delete
                                 </a>";
@@ -454,9 +465,6 @@ class PurchaseRequestController extends Controller
                         </div>';
 
             return $buttons;
-            })
-        ->addColumn('group_id', function ($user) {
-            return '';
         })
         ->addColumn('status', function ($data) {
             $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary'];
@@ -470,13 +478,16 @@ class PurchaseRequestController extends Controller
                 return "<div class='badge badge-info'>Subcontract</div>";
             }
         })
-        ->rawColumns(['action','order_type','status'])
+        ->addColumn('pr_number', function ($data) {
+            return '<a href="'. route('purchaseRequest.show', ['id'=>Crypt::encryptString($data->id)]) .'" ><span>'.$data->pr_number.'</span></a>';
+        })
+        ->rawColumns(['action','order_type','status','pr_number'])
         ->make(true);
     }
 
     public function print(Request $request)
     {
-        $id = $request -> id;
+        $id=Crypt::decryptString($request->id);
 
         $data['companies']= array(
             "nama"=> "PT ABIMANYU SEKAR NUSANTARA",

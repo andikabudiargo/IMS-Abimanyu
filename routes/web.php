@@ -246,6 +246,39 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('receivings/print',['as'=>'receiving.print','uses'=>'ReceivingController@print']);
 	Route::post('receivings/posting',['as'=>'receiving.posting','uses'=>'ReceivingController@posting']);
 
+	Route::get('delivery',['as'=>'delivery.index','uses'=>'DeliveryController@index','middleware' => ['permission:receiving-index']]);
+	Route::get('delivery/create',['as'=>'delivery.create','uses'=>'DeliveryController@create','middleware' => ['permission:receiving-create']]);
+	Route::get('delivery/search',['as'=>'delivery.search','uses'=>'DeliveryController@search']);
+	Route::get('delivery/list/so',['as'=>'delivery.list.so','uses'=>'DeliveryController@listSo']);
+	Route::get('delivery/list/uom',['as'=>'delivery.list.uom','uses'=>'DeliveryController@listUom']);
+	Route::get('delivery/so/det',['as'=>'delivery.so.det','uses'=>'DeliveryController@soDetail']);
+	Route::post('delivery/store',['as'=>'delivery.store','uses'=>'DeliveryController@store']);
+	Route::get('delivery/list',['as'=>'delivery.list','uses'=>'DeliveryController@list']);
+	Route::get('delivery/show',['as'=>'delivery.show','uses'=>'DeliveryController@show']);
+	Route::get('delivery/edit',['as'=>'delivery.edit','uses'=>'DeliveryController@edit','middleware' => ['permission:receiving-edit']]);
+	Route::post('delivery/update',['as'=>'delivery.update','uses'=>'DeliveryController@update']);
+	Route::post('delivery/delete',['as'=>'delivery.destroy','uses'=>'DeliveryController@destroy']);
+	Route::get('delivery/code/create',['as'=>'delivery.code.create','uses'=>'DeliveryController@articleCodeCreate']);
+	Route::get('delivery/print',['as'=>'delivery.print','uses'=>'DeliveryController@print']);
+	Route::post('delivery/posting',['as'=>'delivery.posting','uses'=>'DeliveryController@posting']);
+
+	Route::get('invoice',['as'=>'invoice.index','uses'=>'InvoiceController@index','middleware' => ['permission:receiving-index']]);
+	Route::get('invoice/create',['as'=>'invoice.create','uses'=>'InvoiceController@create','middleware' => ['permission:receiving-create']]);
+	Route::get('invoice/search',['as'=>'invoice.search','uses'=>'InvoiceController@search']);
+	Route::get('invoice/list/so',['as'=>'invoice.list.so','uses'=>'InvoiceController@listSo']);
+	Route::get('invoice/list/dn',['as'=>'invoice.list.dn','uses'=>'InvoiceController@listDn']);
+	Route::get('invoice/list/uom',['as'=>'invoice.list.uom','uses'=>'InvoiceController@listUom']);
+	Route::get('invoice/dn/det',['as'=>'invoice.dn.det','uses'=>'InvoiceController@dnDetail']);
+	Route::post('invoice/store',['as'=>'invoice.store','uses'=>'InvoiceController@store']);
+	Route::get('invoice/list',['as'=>'invoice.list','uses'=>'InvoiceController@list']);
+	Route::get('invoice/show',['as'=>'invoice.show','uses'=>'InvoiceController@show']);
+	Route::get('invoice/edit',['as'=>'invoice.edit','uses'=>'InvoiceController@edit','middleware' => ['permission:receiving-edit']]);
+	Route::post('invoice/update',['as'=>'invoice.update','uses'=>'InvoiceController@update']);
+	Route::post('invoice/delete',['as'=>'invoice.destroy','uses'=>'InvoiceController@destroy']);
+	Route::get('invoice/code/create',['as'=>'invoice.code.create','uses'=>'InvoiceController@articleCodeCreate']);
+	Route::get('invoice/print',['as'=>'invoice.print','uses'=>'InvoiceController@print']);
+	Route::post('invoice/posting',['as'=>'invoice.posting','uses'=>'InvoiceController@posting']);
+
 	Route::get('aps',['as'=>'aps.index','uses'=>'AccountPayableController@index','middleware' => ['permission:ap-index']]);
 	Route::get('aps/create',['as'=>'ap.create','uses'=>'AccountPayableController@create','middleware' => ['permission:ap-create']]);
 	Route::get('aps/list/sj',['as'=>'ap.list.sj','uses'=>'AccountPayableController@listSj']);
@@ -305,6 +338,21 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('disbursement/approve',['as'=>'disbursement.approve','uses'=>'BankDisbursementController@approve']);
 	Route::get('disbursement/revision',['as'=>'disbursement.revision','uses'=>'BankDisbursementController@revision']);
 	Route::get('disbursement/show',['as'=>'disbursement.show','uses'=>'BankDisbursementController@show']);
+
+	Route::get('bankReceipt',['as'=>'bankReceipt.index','uses'=>'BankReceiptController@index','middleware' => ['permission:disbursement-index']]);
+	Route::get('bankReceipt/create',['as'=>'bankReceipt.create','uses'=>'BankReceiptController@create','middleware' => ['permission:disbursement-create']]);
+	Route::get('bankReceipt/list/invoice',['as'=>'bankReceipt.list.invoice','uses'=>'BankReceiptController@listInvoice']);
+	Route::get('bankReceipt/list/selected',['as'=>'bankReceipt.list.selected','uses'=>'BankReceiptController@listSelected']);
+	Route::get('bankReceipt/detail/rec',['as'=>'bankReceipt.po.detail','uses'=>'BankReceiptController@poDetail']);
+	Route::post('bankReceipt/store',['as'=>'bankReceipt.store','uses'=>'BankReceiptController@store']);
+	Route::get('bankReceipt/show',['as'=>'bankReceipt.show','uses'=>'BankReceiptController@show']);
+	Route::get('bankReceipt/edit',['as'=>'bankReceipt.edit','uses'=>'BankReceiptController@edit','middleware' => ['permission:disbursement-edit']]);
+	Route::get('bankReceipt/list',['as'=>'bankReceipt.list','uses'=>'BankReceiptController@list']);
+	Route::post('bankReceipt/delete',['as'=>'bankReceipt.destroy','uses'=>'BankReceiptController@destroy']);
+	Route::post('bankReceipt/update',['as'=>'bankReceipt.update','uses'=>'BankReceiptController@update']);
+	Route::post('bankReceipt/approve',['as'=>'bankReceipt.approve','uses'=>'BankReceiptController@approve']);
+	Route::get('bankReceipt/revision',['as'=>'bankReceipt.revision','uses'=>'BankReceiptController@revision']);
+	Route::get('bankReceipt/show',['as'=>'bankReceipt.show','uses'=>'BankReceiptController@show']);
 
 	Route::get('receivingsRm',['as'=>'receivingsRm.index','uses'=>'ReceivingRmController@index','middleware' => ['permission:receivingRm-index']]);
 	Route::get('receivingsRm/create',['as'=>'receivingRm.create','uses'=>'ReceivingRmController@create','middleware' => ['permission:receivingRm-create']]);

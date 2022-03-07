@@ -13,21 +13,21 @@ use DB;
 use PDF;
 use AppHelpers;
 
-class ReceivingController extends Controller
+class DeliveryController extends Controller
 {
 
     private $title;
     public function __construct()
     {
-        $this->title = "Receiving";
+        $this->title = "Delivery";
     }
 
     public function index(Request $request)
     {
         $data['title'] = $this->title;
 
-        $data['supps'] = DB::table('third_party')
-        ->where ('third_party_type','=','supp')
+        $data['customers'] = DB::table('third_party')
+        ->where ('third_party_type','=','cust')
         ->orderBy('nama')
         ->get();
 
@@ -39,7 +39,7 @@ class ReceivingController extends Controller
 
         $data['status'] = ['1'=>'Draft','2'=>'Update','3'=>'Posting','4'=>'Cancel'];
             
-        return view("receiving.index",$data);
+        return view("delivery.index",$data);
     }
 
     public function getLastCode($key)
@@ -55,47 +55,41 @@ class ReceivingController extends Controller
         $newCode = DB::table('master_code')
         ->where('code_key',$key)
         ->value('code_number'); 
-        $months = ['I', 'II', 'III','IV','V', 'VI', 'VII', 'VIII','IX','X','XI','XII'];
+        // $months = ['I', 'II', 'III','IV','V', 'VI', 'VII', 'VIII','IX','X','XI','XII'];
+        $months = ['01', '02', '03','04','05', '06', '07', '08','09','10','11','12'];
         $month = $months[date('n')-1];
-        $year = date('Y');
-        $poNumber="$key-ASN/$year/$month/$newCode";
+        $year = date('y');
+        $code="$key/ASN/$year/$month/$newCode";
         
-        return $poNumber;
+        return $code;
     }
 
     public function create(Request $request)
     {
-        $data['title'] = "Create Receiving";
-        $data['subtitle'] = "Create Receiving";
+        $data['title'] = "Create $this->title";
+        $data['subtitle'] = "Create $this->title";
         
-        $data['supps'] = DB::table('third_party')
-        ->where ('third_party_type','=','supp')
+        $data['customers'] = DB::table('third_party')
+        ->where ('third_party_type','=','cust')
         ->orderBy('nama')
         ->get();
 
-        return view("receiving.create",$data);
+        return view("delivery.create",$data);
     }
 
-    public function poDetail(Request $request)
+    public function soDetail(Request $request)
     {
-        $po = $request->value;
-        $data = DB::select("SELECT 
-                a.*,
+        $so = $request->value;
+        $data = DB::select("SELECT * ,
+                round(qty) as qty_so,
                 a.article_code,
                 article_alternative_code,
-                article_desc,uom_group, 
-                (COALESCE(a.qty,0)-COALESCE(b.qty,0)) as qty_order
-                from purchase_order_det a
+                article_desc
+                from sales_order_det a
                 left join uom on uom.code=a.uom
                 left join article on article.article_code = a.article_code
-                left join 
-                    (select po, article_code,sum(qty) as qty,price from (
-                        select *,(select po_number from receiving_hdr where rec_number = a.rec_number) as po from receiving_det a where rec_number in (
-                        select rec_number from receiving_hdr where status = '3')
-                    ) z
-                group by po, article_code,price) b
-                on a.po_number = b.po and a.article_code = b.article_code
-                where po_number = '$po'");
+                where so_code = '$so'
+                ");
 
         return response()->json($data);
     }
@@ -103,48 +97,46 @@ class ReceivingController extends Controller
     public function store(Request $request)
     {
         $username =  Auth::user()->username;
-        $doNumber = $request->doNumber;
-        $doDate = $request->doDate;
-        $invNumber = $request->invNumber;
-        $invDate = $request->invDate;
-        $poNumber = $request->poNumber;
-        $supplier = $request->supp;
-        $recDate = $request->recDate;
+        $articles = json_decode($request -> articles);
+        $dnDate = $request->dnDate;
+        $customer = $request->customer;
+        $soNumber = $request->soNumber;
+        $ppn = $request->ppn;
+        $pph23 = $request->pph23;
+        $totalPpn = $request->totalPpn;
+        $totalPph = $request->totalPph;
         $note = $request->note;
-        $articles = json_decode($request->articles);
-        $recType = "NORMAL";
-        $statusRec ="Draft";
         $status = '1';
-        $authorizedBy = "";
+        $gudang = 'false';
+        $kurs = 1;
 
-        // status
-        // 1. Draft
-        // 2. Update
-        // 3. Posting
-        // 4. Cancel
-        
-        $customMessages = [
+        // status:
+        // 1 = New
+        // 2 = Validated
+        // 3 = Approved
+        // 4 = Received
+        // 5 = Canceled
+        // 6 = Closed
+        // 7 = Paid
+
+        $messages = [
             'required' => 'The field is required.',
             'unique' => 'The code has already been taken', 
-            'iunique' => "Invoice : $invNumber has already been taken on PO : $poNumber",
+            // 'iunique' => "PO Number has already been taken",
         ];
         
-        Validator::extend('iunique', function ($attribute, $value, $parameters, $validator) use ($poNumber) {
+        Validator::extend('iunique', function ($attribute, $value, $parameters, $validator) {
             $query = DB::table($parameters[0]);
             $column = $query->getGrammar()->wrap($parameters[1]);
-            $column2 = $query->getGrammar()->wrap($parameters[2]);
-            return !$query->whereRaw("lower({$column}) = lower(?)", [$value])
-                          ->whereRaw("lower({$column2}) = lower(?)", [$poNumber])->count();
+            return !$query->whereRaw("lower({$column}) = lower(?)", [$value])->count();
         });
-        
+
         $validation = Validator::make($request->all(),$messages = [
-            // 'invNumber'=>'required|iunique:receiving_hdr,inv_number,po_number',
-            // 'invDate'  => 'required',
-            'doNumber'=>'required|iunique:receiving_hdr,do_number,po_number',
-            'doDate'  => 'required',
-            // 'recDate'  => 'required',
-            // 'poNumber'  => 'required',
-        ],$customMessages);
+            // 'poNumber'=>'required|unique:sales_order_hdr,po_number',
+            // 'dnNumber' => 'required',
+            'dnDate'  => 'required',
+            'customer'  => 'required',
+        ]);
         
         $error_array = array();
         $success_output = '';
@@ -153,27 +145,22 @@ class ReceivingController extends Controller
             foreach ($validation->messages()->getMessages() as $field_name => $messages){
                 $error_array[] = $messages;
             }
-            $alert ="alert-danger";
-            return response()->json(array('status' => 0, 'message' => $error_array,'alert' =>$alert));
+            $title="Save  $this->title";
+            $alert ="error";
+            return response()->json(array('status' => 0,'title' => $title, 'message' => $error_array,'alert' =>$alert));
         }else{
-            $hasilUpdate = AppHelpers::resetCode('REC');
-            $recNumber = $this->getLastCode('REC');
+            $hasilUpdate = AppHelpers::resetCode('DN');
+            $dnCode = $this->getLastCode('DN');
             DB::beginTransaction();
             try {
-                    DB::table('receiving_hdr')->insert([
-                        'rec_number' => $recNumber,
-                        'do_number' => $doNumber,
-                        'do_date' => $doDate,
-                        'inv_number' => $invNumber,
-                        'inv_date' => $invDate,
-                        'po_number' => $poNumber,
-                        'supplier_id' => $supplier,
-                        'rec_date' => $recDate,
-                        'authorized_by' => $authorizedBy,
-                        'prepared_by' => Auth::user()->username,
-                        'rec_type' => $recType,
+                    DB::table('delivery_hdr')->insert([
+                        'delivery_number' => $dnCode,
+                        'delivery_date' => $dnDate,
+                        'customer_id' => $customer,
+                        'so_number' => $soNumber,
+                        'po_number' => '',
                         'status' => $status,
-                        'note' => $note,
+                        'note' =>  $note,
                         'created_by' => Auth::user()->username,
                         'updated_by' => Auth::user()->username,
                         'created_at' => date('Y-m-d H:i:s'),
@@ -183,36 +170,32 @@ class ReceivingController extends Controller
                     $dataSet = [];
                     foreach ($articles as $val) {
                         $dataSet[] = [
-                            'rec_number' => $recNumber,
+                            'delivery_number' => $dnCode,
                             'article_code' => $val->article_code,
+                            'so_number' => $val->so_number,
                             'qty' => $val->qty,
-                            'uom_rec' => $val->uom,
-                            'qty_free' => $val->qty_free,
-                            'uom_free' => $val->uom_free,
-                            'price' => $val->price,
+                            'uom' => $val->uom,
                             'created_by' => Auth::user()->username,
-                            'updated_by' => Auth::user()->username,
                             'created_at' => date('Y-m-d H:i:s'),
-                            'updated_at' => date('Y-m-d H:i:s')
                         ];
                     }
 
-                    DB::table('receiving_det')->insert($dataSet);
+                    DB::table('delivery_det')->insert($dataSet);
 
                     DB::commit();
-                    $alert  ="alert-success";
-                    $message  = "Rec $recNumber is successfully saved";
-                    $statusRec  = $statusRec;
-                    \LogActivity::addToLog('Rec save ',"username: $username Status $message");
-                    return response()->json(array('statusRec' => $statusRec, 'status' => 1, 'message' => $message,'alert'=>$alert,'recNumber'=>$recNumber));
+                    $title ="Save $this->title";
+                    $alert  ="success";
+                    $message  = "$title $dnCode is successfully saved";
+                    \LogActivity::addToLog($title,"username: $username Status $message");
+                    return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'dnNumber'=>$dnCode));
 
             } catch (Exception $e) {
                 DB::rollBack();
-                $alert  ="alert-warning";
-                $message  = "Rec $recNumber is failed to save";
-                $statusRec = 'FAILED';
-                \LogActivity::addToLog('Rec save ',"username: $username Status $message");
-                return response()->json(array('statusRec' => $statusRec,'status' => 1, 'message' => $message,'alert'=>$alert,'recNumber'=>$recNumber));
+                $title ="Save $this->title";
+                $alert  ="warning";
+                $message  = "$title $dnCode is failed to save";
+                \LogActivity::addToLog($title,"username: $username Status $message");
+                return response()->json(array('status' => 0,'title' => $title, 'message' => $message,'alert'=>$alert,'dnNumber'=>$dnCode));
             }
         }
     }
@@ -247,7 +230,7 @@ class ReceivingController extends Controller
         $statusRec = ['Draft','Update','Posting','Cancel'];
         $data['statusRec'] = $statusRec[$data['header']->status-1];
 
-        return view("receiving.show",$data);
+        return view("delivery.show",$data);
         
     }
 
@@ -281,7 +264,7 @@ class ReceivingController extends Controller
         $statusRec = ['Draft','Update','Posting','Cancel'];
         $data['statusRec'] = $statusRec[$data['header']->status-1];
 
-        return view("receiving.edit",$data);
+        return view("delivery.edit",$data);
         
     }
 
@@ -291,8 +274,8 @@ class ReceivingController extends Controller
         $recNumber = $request->recNumber;
         $doNumber = $request->doNumber;
         $doDate = $request->doDate;
-        $invNumber = $request->invNumber;
-        $invDate = $request->invDate;
+        $dnNumber = $request->dnNumber;
+        $dnDate = $request->dnDate;
         $poNumber = $request->poNumber;
         $supplier = $request->supp;
         $recDate = $request->recDate;
@@ -312,7 +295,7 @@ class ReceivingController extends Controller
         $customMessages = [
             'required' => 'The field is required.',
             'unique' => 'The code has already been taken', 
-            'iunique' => "Invoice : $invNumber has already been taken on PO : $poNumber",
+            'iunique' => "Invoice : $dnNumber has already been taken on PO : $poNumber",
         ];
         
         Validator::extend('iunique', function ($attribute, $value, $parameters, $validator) use ($poNumber) {
@@ -324,7 +307,7 @@ class ReceivingController extends Controller
         });
         
         $validation = Validator::make($request->all(),$messages = [
-            // 'invNumber'=>'required|iunique:receiving_hdr,inv_number,po_number',
+            // 'dnNumber'=>'required|iunique:receiving_hdr,inv_number,po_number',
             'recDate'  => 'required',
             'poNumber'  => 'required',
             // 'supplier'  => 'required',
@@ -348,8 +331,8 @@ class ReceivingController extends Controller
                         [   
                             'do_number' => $doNumber,
                             'do_date' => $doDate,
-                            'inv_number' => $invNumber,
-                            'inv_date' => $invDate,
+                            'inv_number' => $dnNumber,
+                            'inv_date' => $dnDate,
                             'po_number' => $poNumber,
                             'supplier_id' => $supplier,
                             'rec_date' => $recDate,
@@ -515,7 +498,7 @@ class ReceivingController extends Controller
         ->get()->first();
 
         $recNumber = $poHdr->rec_number;
-        $invNumber = $poHdr->inv_number;
+        $dnNumber = $poHdr->inv_number;
         $note = $poHdr->note;
 
         $rowAffected=DB::table('receiving_hdr')
@@ -523,7 +506,7 @@ class ReceivingController extends Controller
         ->update(
             [   
                 'rec_number' => $recNumber."(C)",
-                'inv_number' => $invNumber."(C)",
+                'inv_number' => $dnNumber."(C)",
                 'status' => $status,
                 'note' => $note." (Cancel)",
                 'updated_by' => Auth::user()->username,
@@ -562,62 +545,17 @@ class ReceivingController extends Controller
         // 3. Posting
         // 4. Cancel
 
-        $searchRec = strtolower($request->searchRec);
-        $searchPo = strtolower($request->searchPo);
         $searchInv = strtolower($request->searchInv);
-        $searchSupplier = $request->searchSupplier;
+        $searchSo = strtolower($request->searchSo);
+        $searchCustomer = $request->searchCustomer; 
         $searchStatus = $request->searchStatus;
-        $recDate = $request->recDate;
-       
+        $recDate = $request->recDate;       
 
         $filter='';
-        
-        $filter.="lower(a.rec_type) = 'normal' and ";
-
-        if ($searchRec !='' ){
-            $filter.="lower(a.rec_number) like '%$searchRec%' and ";
-        }
-
-        if ($searchPo !='' ){
-            $filter.="lower(a.po_number) like '%$searchPo%' and ";
-        }
-
-        if ($searchInv !='' ){
-            $filter.="lower(a.inv_number) like '%$searchInv%' and ";
-        }
-
-        if ($searchSupplier  != '' ){
-            $filter.="supplier_id = '$searchSupplier' and ";            
-        }
-
-        if ($searchStatus  != '' ){
-            $filter.="status = '$searchStatus' and ";            
-        }
-
-        if ($recDate  != '' ){
-            $date = explode("to",$recDate);
-            $date1=trim($date[0]);
-            $date2=trim($date[1]);
-            $filter.= "to_date(rec_date, 'DD/MM/YYYY')  BETWEEN to_date('$date1', 'DD/MM/YYYY') and to_date('$date2', 'DD/MM/YYYY') and ";
-        }
-
-        
-        if ($filter !=''){
-            $filter=" where ".substr($filter,0,-4);
-        }
-
-        $data = DB::select("SELECT id,inv_number,rec_number,rec_date,po_number,inv_date,
-        (select concat(kode,'-',nama) from third_party where kode = supplier_id limit 1) as supp_name ,prepared_by,authorized_by,status
-        from receiving_hdr a $filter");
-
-        // $data=DB::select("SELECT *,delivery_date,(select concat(kode,'-',nama) from third_party where kode = supplier_id limit 1) as supp_name,(gross-discount)+ppn as netto from (
-        //     select b.status,b.id,a.po_number,supplier_id,po_date,delivery_date,pkp,termin,authorized_by,prepared_by,uom,sum(qty) as qty,sum(qty*price) as gross,sum(discount) as discount,sum(a.ppn) as ppn from purchase_order_det a
-        //     left join receiving_hdr b
-        //     on a.po_number = b.po_number 
-        //     $filter
-        //     group by b.id,a.po_number,supplier_id,po_date,delivery_date,pkp,termin,authorized_by,prepared_by,uom,b.status) as oki");
-        
-        // $data=DB::table('receiving_hdr')->get();
+                
+        $data = DB::select("SELECT *,
+        (select concat(kode,'-',nama) from third_party where kode = customer_id limit 1) as customer_name 
+        from delivery_hdr a $filter");
 
         return Datatables::of($data)
         ->addColumn('action', function ($data) {
@@ -628,20 +566,20 @@ class ReceivingController extends Controller
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
             if (($data->status != '3') && ($data->status != '4')){
                 if (Auth::user()->can('receiving-edit')) {
-                $buttons .=         '<a href="'. route('receiving.edit', ['id'=>$data->id]) .'" class="dropdown-item">
+                $buttons .=         '<a href="'. route('delivery.edit', ['id'=>$data->id]) .'" class="dropdown-item">
                                         <i data-feather="file-text"></i>
                                         Edit
                                     </a>';
                 }
             }
-            if ($data->status == '3'){
-                $buttons .=         '<a href="'. route('receiving.print', ['id'=>$data->id]) .'" target="_blank" class="dropdown-item">
+            // if ($data->status == '3'){
+                $buttons .=         '<a href="'. route('delivery.print', ['id'=>$data->id]) .'" target="_blank" class="dropdown-item">
                                         <i data-feather="printer"></i>
                                         Print
                                     </a>';
 
-            }
-            $buttons .=         '<a href="'. route('receiving.show', ['id'=>$data->id]) .'" class="dropdown-item">
+            // }
+            $buttons .=         '<a href="'. route('delivery.show', ['id'=>$data->id]) .'" class="dropdown-item">
                                     <i data-feather="list"></i>
                                     Detail
                                 </a>';
@@ -653,7 +591,7 @@ class ReceivingController extends Controller
                                         class='dropdown-item'
                                         data-toggle='modal'
                                         data-target='#smallModalCancel'
-                                        data-href='". route("receiving.destroy", ["id"=>$data->id]) ."'>
+                                        data-href='". route("delivery.destroy", ["id"=>$data->id]) ."'>
                                         <i data-feather='trash-2'></i>
                                         Cancel
                                     </a>";
@@ -690,57 +628,61 @@ class ReceivingController extends Controller
             'tlp' => ''
         );
         
-        $recHdr=DB::table('receiving_hdr')
+        $dnHdr=DB::table('delivery_hdr')
         ->where('id',$id)
         ->first();
 
-        $data['recHdr']=DB::table('receiving_hdr')
+        $data['recHdr']=DB::table('delivery_hdr')
         ->where('id',$id)
         ->first();
 
-        $recNumber=$recHdr -> rec_number;
+        $dnNumber=$dnHdr -> delivery_number;
        
-        $data['details']=DB::table('receiving_det')
-        ->leftJoin('article','article.article_code','receiving_det.article_code')
-        ->where('rec_number',$recNumber)
+        $data['details']=DB::table('delivery_det')
+        ->leftJoin('article','article.article_code','delivery_det.article_code')
+        ->where('delivery_number',$dnNumber)
         ->get();
+
 
         $data['totals']=DB::select("SELECT * from (
-            select a.rec_number,authorized_by,prepared_by,sum(qty) as qty from receiving_det a
-            left join receiving_hdr b
-            on a.rec_number = b.rec_number 
-            where a.rec_number = '$recNumber'
-            group by a.rec_number,authorized_by,prepared_by) as oki");
+            select 
+            a.delivery_number,
+            sum(qty) as qty 
+            from delivery_det a
+            left join delivery_hdr b
+            on a.delivery_number = b.delivery_number 
+            where a.delivery_number = '$dnNumber'
+            group by a.delivery_number) as oki");
 
-        $data['suppliers']=DB::table('third_party')
-        ->where('kode',$recHdr -> supplier_id)
-        ->get();
+        $data['customers']=DB::table('third_party')
+        ->where('kode',$dnHdr -> customer_id)
+        ->first();
         
         $data['status'] ='1';
-        $data['no'] =0;
+        $data['no'] = 0 ;
 
         view()->share($data);
 
-        $pdf = PDF::loadView('receiving.print');
-        return $pdf->stream("PO_$recNumber.pdf");
+        $pdf = PDF::loadView('delivery.print');
+        return $pdf->stream("DN_$dnNumber.pdf");
 
     }
 
-    public function listPo(Request $request)
+    public function listSo(Request $request)
     {
-        $supp= $request->value;      
+        $cust= $request->value;      
         $output="";
 
-        $data= DB::table("receiving_hdr") 
-        ->where("supplier_id",$supp)
+        $data= DB::table("sales_order_hdr") 
+        ->where("customer_id",$cust)
         ->where("status","3")
-        ->orderBy("po_number")
-        ->select("po_number")
+        ->orderBy("so_code")
+        ->select("so_code","po_number")
         ->get();          
 
         $output .='<option value=""></option>';            
         foreach ($data as $row){
-            $output .='<option value="'.$row->po_number.'">'.$row->po_number.'</option>';            
+            $output .='<option value="'.$row->so_code.'">'.$row->so_code. ' - ' .$row->po_number.'</option>';            
         }        
         
         return $output;
@@ -757,7 +699,7 @@ class ReceivingController extends Controller
         ->select("code","name")
         ->get();          
 
-        $output .='<option value=""></option>';            
+        // $output .='<option value=""></option>';            
         foreach ($data as $row){
             $output .='<option value="'.$row->code.'">'.$row->code.'</option>';            
         }        

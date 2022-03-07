@@ -1,0 +1,636 @@
+@extends('layouts.app')
+@section('title', $title)
+@section('content')
+@include('layouts.breadcrumb')
+<section id="add-index">
+    <div class="bs-stepper wizard-modern tab-disbursement">
+        <div class="bs-stepper-header">
+            <div class="step" data-target="#filterData">
+                <button type="button" class="step-trigger">
+                    <span class="bs-stepper-box">
+                        <i data-feather="file-text" class="font-medium-3"></i>
+                    </span>
+                    <span class="bs-stepper-label">
+                        <span class="bs-stepper-title">Filter data</span>
+                        <span class="bs-stepper-subtitle">Filter data by Customer</span>
+                    </span>
+                </button>
+            </div>
+            <div class="line">
+                <i data-feather="chevron-right" class="font-medium-2"></i>
+            </div>
+            <div class="step" data-target="#listPayment">
+                <button type="button" class="step-trigger">
+                    <span class="bs-stepper-box">
+                        <i data-feather="user" class="font-medium-3"></i>
+                    </span>
+                    <span class="bs-stepper-label">
+                        <span class="bs-stepper-title">List Payment</span>
+                        <span class="bs-stepper-subtitle">List invoice to be payment</span>
+                    </span>
+                </button>
+            </div>
+        </div>
+        <div class="bs-stepper-content">
+            <div id="filterData" class="content">
+                <div class="content-header">
+                    <h5 class="mb-0">Filter data</h5>
+                    <small class="text-muted">Invoice status must be posted</small>
+                </div>
+                <form>
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <label class="form-label" for="customer">Customer</label>
+                            <select class="select2 form-control" id="customer" name="customer">
+                                <option value="">All</option>
+                                @foreach($supps as $val)
+                                    <option value="{{ $val->kode }}" >{{$val->kode}} - {{$val->nama}}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-3 form-group">
+                            <label for="invDate">Invoice Date</label>
+                            <input type="text" id="invDate" name="invDate" class="form-control flatpickr-range" placeholder="YYYY-MM-DD to YYYY-MM-DD" />
+                        </div>
+
+                        <div class="col-md-3 form-group">
+                            <label for="dueDate">Due Date</label>
+                            <input type="text" id="dueDate" name="dueDate" class="form-control flatpickr-range" placeholder="YYYY-MM-DD to YYYY-MM-DD" />
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="col-md-12"> 
+                            <button type="button" class="btn btn-primary" id ="cmdSubmitFilter" name="cmdSubmitFilter">Submit</button>
+                        </div>
+                    </div>
+                    <div class="form-group col-md-12">
+                        <div class="row" style="min-height:200px">
+                            <div class="col-sm-12">
+                            <div class="card-datatable table-responsive pt-0">
+                                <table id="tblInvoiceList" class="table w-100">
+                                <thead class="thead-light">
+                                </thead>
+                                </table>
+                            </div>
+                            </div>
+                        </div>  
+                    </div>
+                </form> 
+                <div class="d-flex justify-content-end">
+                    <button class="btn btn-success btn-next" id="btnSelectedAp">
+                        <span class="align-middle d-sm-inline-block d-none">Next</span>
+                        <i data-feather="arrow-right" class="align-middle ml-sm-25 ml-0"></i>
+                    </button>
+                </div> 
+            </div>
+            <div id="listPayment" class="content">
+                <div class="content-header">
+                    <h5 class="mb-0">List Payment</h5>
+                    <small></small>
+                </div>
+                <form>
+                    <div class="form-row">
+                        <div class="form-group col-md-3">
+                            <label for="paymentCode">Payment Code</label> <small class="text-muted"> automatic</small>
+                            <input type="text" id="paymentCode" name="paymentCode" class="form-control" disabled/>
+                        </div> 
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group col-md-3">
+                            <label for="paymentDate">Payment Date</label>
+                            <input type="text" id="paymentDate" name="paymentDate" class="form-control" placeholder="DD-MM-YYYY" required/>
+                        </div> 
+                    </div>
+                    <div class="form-row">
+                        <div class="table-responsive">
+                            <table id="tblApList" class="table table-bordered">
+                                <thead></thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-end align-items-end mt-75">
+                        <div class="col-md-5">
+                            <div class="form-group row mb-03">
+                                <label for="subTotal" class="col-sm-3 col-form-label titik-dua">Subtotal</label>
+                                <div class="col-sm-6">
+                                    <input type="text" class="form-control text-right font-weight-bold numeral-mask" id="subTotal" disabled />
+                                </div>
+                            </div>
+                            <div class="form-group row mb-03">
+                                <label for="admin" class="col-sm-3 col-form-label titik-dua">Admin</label>
+                                <div class="col-sm-6">
+                                    <input type="text" class="form-control text-right font-weight-bold numeral-mask" id="admin"/>
+                                </div>
+                            </div>
+                            <div class="form-group row mb-03">
+                                <label for="discount" class="col-sm-3 col-form-label titik-dua numeral-mask">Discount</label>
+                                <div class="col-sm-6">
+                                    <input type="text" class="form-control text-right font-weight-bold" id="discount"/>
+                                </div>
+                            </div>
+                            <div class="form-group row mb-03">
+                                <label for="others" class="col-sm-3 col-form-label titik-dua">Others</label>
+                                <div class="col-sm-6">
+                                    <input type="text" class="form-control text-right font-weight-bold numeral-mask" id="others"/>
+                                </div>
+                            </div>
+                            <div class="form-group row mb-03">
+                                <label for="grandTotal" class="col-sm-3 col-form-label titik-dua">Total</label>
+                                <div class="col-sm-6">
+                                    <input type="text" class="form-control text-right font-weight-bold numeral-mask" id="grandTotal" disabled/>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="col-md-12"> 
+                            <button type="button" class="btn btn-primary" id ="cmdSave" name="cmdSave">Save</button>
+                            <button type="button" class="btn btn-primary" id ="cmdApprove" name="cmdApprove">Approve</button>
+                            <button type="button" class="btn btn-primary" id ="cmdPrint" name="cmdPrint">Print</button>
+                        </div>
+                    </div>
+                </form>
+                <br>
+                {{-- <div class="d-flex justify-content-between">
+                    <button class="btn btn-success btn-prev">
+                        <i data-feather="arrow-left" class="align-middle mr-sm-25 mr-0"></i>
+                        <span class="align-middle d-sm-inline-block d-none">Previous</span>
+                    </button>
+                </div> --}}
+            </div>       
+        </div>
+    </div>
+</section>
+@endsection
+@section('styles')
+<style>
+
+    textarea {
+        resize: none;
+    }
+
+    .mb-03{
+        margin-bottom: 0.3rem;
+    }
+    
+    label.titik-dua::after{
+        content : ":"; 
+        position : absolute;
+        right : 1px;
+    }
+
+    td.isian{
+        padding-right:10px;
+        padding-left:10px;
+    }
+
+    td.isian-satu{
+        padding-right:5px;
+        padding-left:15px;
+        width: 25%;border-top: 1px solid #ffffff !important;
+        border-bottom: 1px solid #ffffff !important;
+        border-left: 1px solid #ffffff !important;
+    }
+
+    td.disabled{
+        background-color:#f8f8f8;
+        color:black;
+    }
+
+    label.tanpa-padding{
+        padding-top: 5px;
+        padding-bottom: 0px;
+    }
+
+    .totalLine{
+        display: block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    
+</style>
+@endsection
+@section('scripts')
+<script type="text/javascript">
+    let currentDate = todayDate('dd-mm-yyyy');
+
+    var bsStepper = document.querySelectorAll('.bs-stepper'),tabDisbursement = document.querySelector('.tab-disbursement');
+    if (typeof tabDisbursement !== undefined && tabDisbursement !== null) {
+        var numberedStepper = new Stepper(tabDisbursement);
+        $(tabDisbursement)
+        .find('.btn-next')
+        .each(function () {
+            $(this).on('click', function (e) {
+                numberedStepper.next();
+                btnSelectedAp();
+            });
+        });
+
+        $(tabDisbursement)
+        .find('.btn-prev')
+        .on('click', function () {
+            numberedStepper.previous();
+        });
+
+    }
+
+    $(document).ready(function(){
+        $('#paymentDate').val(currentDate);
+        $('#cmdApprove').hide();
+        $('#cmdPrint').hide();
+        
+    });
+
+    rangePickr = $('.flatpickr-range');
+    if (rangePickr.length) {
+        rangePickr.flatpickr({
+        dateFormat: "d-m-Y",
+        mode: 'range'
+        });
+    }
+
+    paymentDate = $('#paymentDate');
+    if (paymentDate.length) {
+        paymentDate.flatpickr({
+            dateFormat: "d-m-Y",
+            // minDate: "today"
+        });
+    }
+
+    $('body').on('focus',".datepicker", function(){
+
+        if ($(this).length) {
+            $(this).flatpickr({
+                dateFormat: "d-m-Y",
+                // minDate: "today"
+            });
+        }
+
+    });
+        
+
+    $("#cmdSubmitFilter").click(function(e){
+        let isidata = $('#tblInvoiceList tr').length;
+        // alert(isidata);
+        if (isidata >0){
+            let table= $('#tblInvoiceList').DataTable();
+            table.destroy();
+            $('#tblInvoiceList tbody > tr').remove();
+            let celli="";
+            $("#tblInvoiceList thead > tr").remove();
+        }
+
+        let invDate = $("#invDate").val();
+        let dueDate = $("#dueDate").val();
+        let customer = $("#customer").val();
+
+        $(function(){
+            var oTable =$("#tblInvoiceList").DataTable({
+                ajax:{
+                    url:'{{ route("bankReceipt.list.invoice")}}',
+                    data:{
+                        invDate:invDate,
+                        dueDate:dueDate,
+                        customer:customer
+                    }
+                },
+                processing: true,
+                serverSide: true,
+                buttons: true,
+                dom: '<"d-flex w-100"<l><"#mydiv.d-flex ml-auto text-right"f>>tips',
+                lengthMenu: [
+                [ 10, 25, 50, -1 ],
+                [ '10', '25', '50', 'all' ]
+                ],
+                language: {
+                    paginate: {
+                        // remove previous & next text from pagination
+                        previous: '&nbsp;',
+                        next: '&nbsp;'
+                    }
+                },
+                columnDefs: [
+                    { width: '10%', targets: 0 },
+                    { className: 'text-right','targets': [ 5,6,7,8 ] }
+                ],
+                drawCallback: function( settings ) {
+                    feather.replace({
+                            width: 14,
+                            height: 14
+                    });
+                },
+                order: [[ 0, 'asc' ]],
+                bDestroy: true, //pakai ini supaya bisa di load berulang2
+                // scrollX: true, //pakai ini supaya waktu responsive  bisa di scroll horizontal
+                select: {
+                    style: 'multi',
+                    selector: 'td:first-child'
+                },
+                initComplete: function(settings, json) {
+                    let api = new $.fn.dataTable.Api(settings);
+                    let header = api.column(0).header();
+                    $(header).html('<input id="selectAll" name="selectAll" value="1" type="checkbox">');
+                    $("#selectAll").on( "click", function(e) {
+                        if ($(this).is( ":checked" )) {
+                            $(".select-checkbox").each(function() {
+                                this.checked=true;
+                            });
+                            // oTable.rows(  ).select();        
+                        } else {
+                            $(".select-checkbox").each(function() {
+                                this.checked=false;
+                            });
+                            // oTable.rows(  ).deselect(); 
+                        }
+                    });
+                },
+                columns: [
+                    { data: 'select_orders', name: 'select_orders',title: 'Check', searchable: false, orderable: false },
+                    { data: 'customer', name: 'customer',title:'customer' },
+                    { data: 'invoice_number', name: 'invoice_number',title:'Invoice Number' },
+                    { data: 'invoice_date', name: 'invoice_date',title:'Invoice Date' },
+                    { data: 'invoice_date', name: 'invoice_date',title:'Receipt Date' },
+                    // { data: 'receipt_date', name: 'receipt_date',title:'Receipt Date' },
+                    // { data: 'due_date', name: 'due_date',title:'Due Date' },
+                    { data: 'basis_amount', name: 'basis_amount',title:'Basis Amount',render: $.fn.dataTable.render.number(',','.') },
+                    { data: 'vat', name: 'vat',title:'VAT',render: $.fn.dataTable.render.number(',','.') },
+                    { data: 'pph23', name: 'pph23',title:'PPH23',render: $.fn.dataTable.render.number(',','.') },
+                    // { data: 'other_deduction', name: 'other_deduction',title:'Other Deduction',render: $.fn.dataTable.render.number(',','.') },
+                    { data: 'total', name: 'total',title:'Total',render: $.fn.dataTable.render.number(',','.') },
+                    // { data: 'paid_on', name: 'paid_on',title:'Paid On' }
+
+                ],
+            });
+        });
+        
+
+    });
+
+    btnSelectedAp = () => {
+        let dnNumber = "";
+        $('input[name="invCheck[]"]').each(function () {
+            if (this.checked)
+            dnNumber += $(this).val() + ',';
+        });
+
+        console.log(dnNumber);
+
+        $('#tblApList thead >tr').remove();
+        $('#tblApList tbody >tr').remove();
+
+        $('#subTotal').val('0');
+        $('#admin').val('0');
+        $('#others').val('0');
+        $('#discount').val('0');
+        $('#grandTotal').val('0');
+
+        $.ajax({
+            type: "get",
+            url: "{{ route('bankReceipt.list.selected') }}",
+            data: {
+                dnNumber:dnNumber
+            },
+            dataType: "json",
+            success: function(result) {
+                $('#tblApList > thead').append(`<tr>
+                                    <th style="width:30%">Customer</th>
+                                    <th>Inv. Number</th>
+                                    <th>Inv. Date</th>
+                                    <th>Due Date</th>                                    
+                                    <th class="text-right">Total</th>
+                                    <th >Paid On Date</th>
+                                    <th >Paid Amount</th>
+                                    <th >Paid Balance</th>
+                                    <th class="text-center">-</th>
+                                    </tr>`);
+
+                let jumlahData = result.length; 
+                let cell,recDate,dueDate = "";
+                for(let i=0;i < jumlahData;i++){
+                    recDate = result[i].rec_date ? result[i].invoice_date : '' ;
+                    dueDate = result[i].rec_date ? result[i].rec_date : '';
+                    cell +=`<tr class="tanda-baris">
+                            <td>
+                                `+result[i].customer+`
+                            </td>
+                            <td>
+                                `+result[i].invoice_number+`
+                                <input type="text" value="`+result[i].invoice_number+`" id="invNumber"`+i+` name="invNumber[]" hidden>
+                            </td>
+                            <td>
+                                `+result[i].invoice_date+`
+                                <input type="text" value="`+result[i].invoice_date+`" id="invDate"`+i+` name="invDate[]" hidden>
+                            </td>
+                            <td> 
+                                `+dueDate+`
+                                <input type="text" value="`+dueDate+`" id="dueDate"`+i+` name="dueDate[]" hidden>
+                            </td>
+                            <td class="text-right">
+                                `+humanizeNumber(result[i].total)+`
+                                <input type="text" value="`+result[i].total+`" id="total"`+i+` name="total[]" hidden>
+                            </td>
+                            <td> 
+                                <input type="text" class="datepicker form-control-plaintext text-hitam text-right" value="`+currentDate+`" value="`+humanizeNumber(result[i].total)+`" id="paidOn"`+i+` name="paidOn[]" >
+                            </td>
+                            <td> 
+                                <input type="text" class="form-control-plaintext text-hitam numeral-mask text-right" value="`+humanizeNumber(result[i].total)+`" id="paidAmount"`+i+` name="paidAmount[]" maxlength="9">
+                            </td>
+                            <td> 
+                                <input type="text" class="form-control-plaintext text-hitam numeral-mask text-right" value="`+humanizeNumber(result[i].total)+`" id="paidBalance"`+i+` name="paidBalance[]" maxlength="9" disabled>
+                            </td>
+                            <td class="text-center">
+                                <a onmouseover="this.style.cursor='pointer'" onclick="$(this).parents('.tanda-baris').remove();hitungTotal()" data-toggle="tooltip" data-placement="left" title="Delete row">
+                                    <i data-feather="trash-2" class="remove_button feather-24">
+                                    </i>
+                                </a>
+                            </td>
+                            </tr>`;
+                    $('#tblApList > tbody').append(cell);
+                    cell = "";
+                    if (feather) {
+                        feather.replace({
+                            width: 14,
+                            height: 14
+                        });
+                    }
+                    hitungTotal();
+                }
+            },
+            error: function(error) {
+                console.log(error);
+            }
+        });
+    };
+  
+    $('#cmdSave').click(function(e){
+        let apNumber,invNumber,total;
+        let details=[];
+        // let detailAp=[];
+        // let detailProf=[];
+        let objApNumber= $('#tblApList input[name="apNumber[]"]');
+        let objApType= $('#tblApList input[name="apType[]"]');
+        let objInvNumber= $('#tblApList input[name="invNumber[]"]');
+        // let objTotal= $('#tblApList input[name="total[]"]');
+        // let objinvDate= $('#tblApList input[name="invDate[]"]');
+        // let objrecDate= $('#tblApList input[name="recDate[]"]');
+        // let objdueDate= $('#tblApList input[name="dueDate[]"]');
+        // let objbankType= $('#tblApList input[name="bankType[]"]');
+        // let objtotal= $('#tblApList input[name="total[]"]');
+
+        objApNumber.map(function(i) {  
+		    let $this=$(this);
+            if ($this.val()){
+                let apNumber=$this.val().replace(/,/gi, '') || 0;
+                let invNumber=objInvNumber.eq(i).val().replace(/,/gi, '') || 0;
+                // let total=objTotal.eq(i).val().replace(/,/gi, '') || 0;
+                let apType=objApType.eq(i).val();
+
+                details.push({
+                    "ap_number":apNumber,
+                    "type" : apType,
+                    "inv_number":invNumber
+                });
+
+                // if (apType == 'ap'){
+                //     detailAp.push({
+                //         "ap_number":articleCode,
+                //         "type" : apType,
+                //         "inv_number":invNumber,
+                //         "total":total
+                //     });
+                // }
+                
+                // if (apType == 'pi'){
+                //     detailProf.push({
+                //         "pi_number":articleCode,
+                //         "type" : apType,
+                //         "inv_number":invNumber,
+                //         "total":total,
+                //     });
+                // }
+            }
+        });
+        let paymentDate = $("#paymentDate").val();
+        let subTotal = parseInt($('#subTotal').val().replace(/,/gi, '')) || 0;
+        let admin = parseInt($("#admin").val().replace(/,/gi, '')) || 0;
+        let others = parseInt($("#others").val().replace(/,/gi, '')) || 0;
+        let discount = parseInt($("#discount").val().replace(/,/gi, '')) || 0;
+        $.ajax({
+            type: "post",
+            url: "{{ route('disbursement.store') }}",
+            data: {
+                details:JSON.stringify(details),
+                // detailAp:JSON.stringify(detailAp),
+                // detailProf:JSON.stringify(detailProf),
+                paymentDate:paymentDate,
+                subTotal:subTotal,
+                admin:admin,
+                others:others,
+                discount:discount,
+
+            },
+            dataType: "json",
+            success: function(data) {
+                if (data.status == 0 ){
+                    let message="";
+                    for(let i = 0; i < data.message.length; i++) {
+                        show_msg(data.title, data.message[i], data.alert);
+                    }
+                    $('#paymentCode').attr('disabled','disabled');
+
+                }else{
+                    show_msg(data.title, data.message, data.alert)
+                    $('#paymentCode').attr('disabled','disabled');
+                    $('#cmdSave').hide();
+                    $('#cmdApprove').show();
+                    $('#cmdPrint').hide();
+                    $('#paymentCode').val(data.disNumber);
+                }
+
+            },
+            error: function(error) {
+                console.log(error);
+            }
+        });
+
+    });
+
+    hitungTotal = () => {
+        let objTotal= $('input[name="total[]"]');
+        let oTotal=0; 
+        let arr = objTotal.map(function (i) {
+            let subTotal = parseInt(objTotal.eq(i).val().replace(/,/gi, '')) || 0;
+            oTotal += subTotal;
+        }).get();
+        $("#subTotal").val(oTotal);
+        hitungGrandTotal();
+    }
+   
+    hitungGrandTotal = () => {
+        let subTotal = parseInt($('#subTotal').val().replace(/,/gi, '')) || 0;
+        let admin = parseInt($('#admin').val().replace(/,/gi, '')) || 0;
+        let others = parseInt($('#others').val().replace(/,/gi, '')) || 0;
+        let discount = parseInt($('#discount').val().replace(/,/gi, '')) || 0;
+        grandTotal = (subTotal+admin)-discount+others;
+        console.log(grandTotal);
+        $('#grandTotal').val(grandTotal);
+        mask_thousand();
+    }
+
+    $("#admin,#others,#pph23,#discount").keyup(function(){
+        hitungGrandTotal();
+    })
+         
+    function reloadPage(){
+        window.location.reload();
+    }
+
+    $("#cmdCancel").click(function(){
+        reloadPage();
+    });
+
+    $("#cmdNew").click(function(){
+        reloadPage();
+    });
+  
+    $("#cmdApprove").click(function(){        
+        let paymentCode = $('#paymentCode').val();            
+        $.ajax({
+            type: "post",
+            url: "{{ route('disbursement.approve') }}",
+            data: {
+                paymentCode:paymentCode
+            },
+            dataType: "json",
+            success: function(data) {
+                if (data.status == 0 ){
+                    show_msg(data.title, data.message, data.alert);
+                    $('#paymentCode').attr('disabled','disabled');
+                    $('#cmdSave').hide();
+                    $('#cmdApprove').show(); 
+                }else{
+                    show_msg(data.title, data.message, data.alert);
+                    $('#statusText').text(data.statusAp);
+                    $('#paymentCode').attr('disabled','disabled');  
+                    $('#cmdApprove').hide();                  
+                    $('#cmdSave').hide();
+                    $('#cmdPrint').show();
+                }
+            },
+            error: function(error) {
+                console.log(error);
+            }
+        });
+             
+    });
+        
+    $.ajaxSetup({
+        headers: {
+            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+        }
+    });
+
+</script>
+@endsection

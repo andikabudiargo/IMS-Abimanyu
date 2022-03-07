@@ -125,8 +125,12 @@ class PurchaseOrderController extends Controller
             foreach ($validation->messages()->getMessages() as $field_name => $messages){
                 $error_array[] = $messages;
             }
-            $alert ="alert-danger";
-            return response()->json(array('status' => 0, 'message' => $error_array,'alert' =>$alert));
+
+            
+            $title="Save Purchase Order";
+            $alert ="error";
+            return response()->json(array('status' => 0,'title' => $title, 'message' => $error_array,'alert' =>$alert));
+
         }else{
             $hasilUpdate = AppHelpers::resetCode($poLeadCode);
             $poNumber = $this->getLastCode($poLeadCode);
@@ -194,17 +198,20 @@ class PurchaseOrderController extends Controller
                     DB::table('purchase_order_det')->insert($dataSet);
 
                     DB::commit();
-                    $alert  ="alert-success";
-                    $message  = "PO $poNumber is successfully saved";
-                    \LogActivity::addToLog('SO save ',"username: $username Status $message");
-                    return response()->json(array('status' => 1, 'message' => $message,'alert'=>$alert,'poNumber'=>$poNumber));
+                    $title ='Save Purchase Request';
+                    $alert  ="success";
+                    $message  = "$title $prNumber is successfully saved";
+                    \LogActivity::addToLog($title,"username: $username Status $message");
+                    return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'prNumber'=>$prNumber));
 
             } catch (Exception $e) {
                 DB::rollBack();
-                $alert  ="alert-warning";
-                $message  = "PO $poNumber is failed to save";
-                \LogActivity::addToLog('SO save ',"username: $username Status $message");
-                return response()->json(array('status' => 1, 'message' => $message,'alert'=>$alert,'poNumber'=>$poNumber));
+                $title ='Save Purchase Request';
+                $alert  ="warning";
+                $message  = "$title $prNumber is failed to saved";
+                \LogActivity::addToLog($title,"username: $username Status $message");
+                return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'prNumber'=>$prNumber));
+
             }
         }
     }
@@ -561,8 +568,10 @@ class PurchaseOrderController extends Controller
             foreach ($validation->messages()->getMessages() as $field_name => $messages){
                 $error_array[] = $messages;
             }
+
             $alert ="alert-danger";
             return response()->json(array('status' => 0, 'message' => $error_array,'alert' =>$alert));
+
         }else{
             DB::beginTransaction();
             try {
@@ -666,17 +675,20 @@ class PurchaseOrderController extends Controller
                     );
                                             
                     DB::commit();
-                    $alert  ="alert-success";
-                    $message  = "PO $poNumber is successfully updated";
-                    \LogActivity::addToLog('PO update ',"username: $username Status $message");
-                    return response()->json(array('status' => 1, 'message' => $message,'alert'=>$alert,'poNumber'=>$poNumber));
+
+                    $title ='Save Purchase Order';
+                    $alert  ="success";
+                    $message  = "$title $poNumber is successfully updated";
+                    \LogActivity::addToLog($title,"username: $username Status $message");
+                    return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'poNumber'=>$poNumber));
 
             } catch (Exception $e) {
                 DB::rollBack();
-                $alert  ="alert-warning";
-                $message  = "PO $poNumber is failed to updated";
-                \LogActivity::addToLog('PO update ',"username: $username Status $message");
-                return response()->json(array('status' => 1, 'message' => $message,'alert'=>$alert,'poNumber'=>$poNumber));
+                $title ='Save Purchase Order';
+                $alert  ="warning";
+                $message  = "$title $poNumber is failed to updated";
+                \LogActivity::addToLog($title,"username: $username Status $message");
+                return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'prNumber'=>$poNumber));
             }
         }
 

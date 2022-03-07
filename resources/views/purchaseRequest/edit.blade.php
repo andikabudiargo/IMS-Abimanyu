@@ -25,6 +25,8 @@
                                     <label for="prNumber">Request Number</label> <small class="text-muted"> automatic</small>
                                     <input type="text" id="prNumber" name="prNumber" class="form-control disabled-el" value="{{ $header->pr_number }}" disabled />
                                 </div>
+                            </div>
+                            <div class="form-row">
                                 <div class="form-group col-md-2">
                                     <label class="form-label" for="poType">PO Type*</label>
                                     <select class="select2 form-control" id="poType" name="poType" required>
@@ -47,24 +49,12 @@
                                 </div>
                             </div>
                             <div class="form-row">
-                                <div class="form-group col-md-10">
+                                <div class="form-group col-md-7">
                                     <label class="form-label" for="note">Notes</label>
                                     <textarea type="text" id="note" name="note" class="form-control" rows="1" >{{ $header->note }}</textarea>
                                 </div>
                             </div>
-                            <div class="form-row">
-                                <div class="col-12">
-                                    <div class="form-row">
-                                        <div class="col-12">
-                                            <a href="{{ route('purchaseRequests.index') }}" class="btn btn-warning">Cancel</a>
-                                            <a href="{{ route('purchaseRequest.create') }}" class="btn btn-success">New</a>
-                                            <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Update</button>
-                                            {{-- <button class="btn btn-primary" type="button" id="cmdValidate" name="cmdValidate">Validate</button>
-                                            <button class="btn btn-primary" type="button" id="cmdAuthorized" name="cmdAuthorized">Auhorized</button> --}}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                            
                         </form>
                     </div>
                 </div>
@@ -76,7 +66,7 @@
                     <h4 class="card-title">Article</h4>
                 </div>
                 <div class="card-body">
-                    <div>
+                    {{-- <div>
                         <table class="" style="width:98%;table-layout: fixed;">
                             <tbody>
                                 <tr>
@@ -98,8 +88,82 @@
                                 </tr>
                             </tbody>
                         </table>
+                    </div> --}}
+
+                    <div class="form-row d-flex align-items-end">
+                        <div class="col-md-5 col-12 d-none d-md-block">
+                            <div class="form-group">
+                                <label class="d-none d-md-block">Article Code</label>
+                            </div>
+                        </div>
+                        <div class="col-md-1 col-12 d-none d-md-block">
+                            <div class="form-group">
+                                <label class="d-none d-md-block text-right">Qty</label>
+                            </div>
+                        </div>
+                        <div class="col-md-1 col-12 d-none d-md-block">
+                            <div class="form-group">
+                                <label class="d-none d-md-block">Uom</label>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-12 d-none d-md-block">
+                            <div class="form-group">
+                                <label class="d-none d-md-block">Note</label>
+                            </div>
+                        </div>
+                        <div class="col-md-1 col-12 d-none d-md-block">
+                            <div class="form-group">
+                                <label class="d-none d-md-block">-</label>
+                            </div>
+                        </div>
                     </div>
                     <div class="" id="article_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px">
+                        <input type="text" id ="last_row_number" class="d-none" value="{{ count($detail) }}">
+                        @foreach ($detail as $key =>$item)
+                            <div id="baru" class="tanda-baris" >
+                                <div class="form-row d-flex align-items-end">
+                                    <div class="col-md-5 col-12">
+                                        <div class="form-group">
+                                            <label for="article_id" class="d-block d-md-none">Article Code</label>
+                                            <select class="form-control dynamicSelect sku-select-system" id="article_id{{ $key }}" name="article_id[]" data-dependent="article_id">
+                                                @foreach($articles as $val)
+                                                    <option value="{{ $val->article_code }}|{{ $val->uom }}|{{ $val->third_party }}" {{$val->article_code == $item->article_code ? "selected" : ""}}>{{$val->article_code}} - {{$val->article_desc}}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-1 col-12">
+                                        <div class="form-group">
+                                            <label for="qty_order" class="d-block d-md-none">Qty</label>
+                                            <input type="text" class="form-control numeral-mask text-right" id = "qty_order" name="qty_order[]" value="{{ $item->qty }}" maxlength="6" />
+                                        </div>
+                                    </div>
+                                    <div class="col-md-1 col-12">
+                                        <div class="form-group">
+                                            <label for="uom" class="d-block d-md-none">Uom</label>
+                                            <span class="" id = "uom" name="uom[]">{{ $item->uom }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3 col-12">
+                                        <div class="form-group">
+                                            <label for="note" class="d-block d-md-none">Note</label>
+                                            <input type="text" class="form-control" id = "note" name="note[]" value="{{ $item->note }}" maxlength="100">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-1 col-12">
+                                        <div class="form-group">
+                                            <a onmouseover="this.style.cursor='pointer'" onclick="$(this).parents('.tanda-baris').remove();">
+                                                <i data-feather="trash-2" class="remove_button feather-24">
+                                                </i>
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                                <hr class="d-block d-md-none" />
+                            </div>
+                        @endforeach
+                    </div>
+                    {{-- <div class="" id="article_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px">
                         <input type="text" id ="last_row_number" class="d-none" value="{{ count($detail) }}">
                         @foreach ($detail as $key =>$item)
                             <div id="new_row{{ $key }}" class="tanda-baris" >
@@ -133,13 +197,21 @@
                                 </table>
                             </div>
                         @endforeach
-                    </div>
+                    </div> --}}
                     <hr>
-                    <div class="d-flex justify-content-between align-items-end mt-75 ml-75">
+                    <div class="d-flex justify-content-between align-items-end mt-75">
                         <button class="btn btn-primary btn-prev" type="button" id="addNewRow" onclick="add_new_row();">
                             <i data-feather="plus" class="align-middle mr-sm-25 mr-0"></i>
                             <span class="align-middle d-sm-inline-block d-none">Add Article</span>
                         </button>
+                    </div>
+                    <br>
+                    <div class="mt-75">
+                        <a href="{{ route('purchaseRequests.index') }}" class="btn btn-warning">Back</a>
+                        <a href="{{ route('purchaseRequest.create') }}" class="btn btn-success">New</a>
+                        <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Update</button>
+                        {{-- <button class="btn btn-primary" type="button" id="cmdValidate" name="cmdValidate">Validate</button>
+                        <button class="btn btn-primary" type="button" id="cmdAuthorized" name="cmdAuthorized">Auhorized</button> --}}
                     </div>
                 </div>
             </div>
@@ -192,7 +264,7 @@
 <script type="text/javascript">
     let currentDate = todayDate('dd-mm-yyyy');    
     $(document).ready(function(){           
-        validateForm('frmAdd');
+        validateFormToast("frmAdd");
         $('#orderDate').val(currentDate);
         tombolPanah('qty_order');
         activate_angka();
@@ -301,23 +373,12 @@
                     if (data.status == 0 ){
                         let message="";
                         for(let i = 0; i < data.message.length; i++) {
-                            message += "-"+data.message[i]+"<br>";                           
+                            show_msg(data.title, data.message[i], data.alert);
                         }
-                        $("#alert-message-success").addClass(data.alert);
-                        $("#alert-message-success .alert-body").html(message);
-                        $("#alert-message-success").show();
-                        $("#alert-message-success").fadeTo(5000, 500).slideUp(500, function(){
-                            $("#alert-message-success").slideUp(500);
-                        });
                         $('#prNumber').attr('disabled','disabled');
 
                     }else{
-                        $("#alert-message-success").addClass(data.alert);
-                        $("#alert-message-success .alert-body").html(data.message);
-                        $("#alert-message-success").show();
-                        $("#alert-message-success").fadeTo(5000, 500).slideUp(500, function(){
-                            $("#alert-message-success").slideUp(500);
-                        });
+                        show_msg(data.title, data.message, data.alert);
                         $('#prNumber').attr('disabled','disabled');
                         // $('#addNewRow').attr('disabled','disabled');                        
                     }

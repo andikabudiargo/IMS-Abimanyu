@@ -181,7 +181,7 @@
             @endcan
           </ul>
         </li>
-        <li class=" {{ in_array(\Request::segment(1), ['boms','workingOrders','workingOrderSheets','deliveryPlan']) ? 'active' : '' }} nav-item">
+        <li class=" {{ in_array(\Request::segment(1), ['boms','workingOrders','workingOrderSheets','deliveryPlan','delivery','invoice']) ? 'active' : '' }} nav-item">
           <a class="d-flex align-items-center" href="javascript:void(0);">
             <i data-feather='tool'></i>
             <span class="menu-title text-truncate" data-i18n="Form Elements">PPIC
@@ -204,6 +204,21 @@
               </a>
             </li>
             @endcan
+            
+            <li class="{{ \Request::segment(1) == 'invoice' ? 'active' : '' }} " >
+              <a class="d-flex align-items-center" href="{{ route('invoice.index') }}">
+                <i data-feather="circle"></i>
+                <span class="menu-item text-truncate" data-i18n="Input">Invoice</span>
+              </a>
+            </li>
+
+            <li class="{{ \Request::segment(1) == 'delivery' ? 'active' : '' }} " >
+              <a class="d-flex align-items-center" href="{{ route('delivery.index') }}">
+                <i data-feather="circle"></i>
+                <span class="menu-item text-truncate" data-i18n="Input">Delivery</span>
+              </a>
+            </li>
+            
 
             {{-- @can('workingOrder-index')
             <li class="{{ \Request::segment(1) == 'workingOrderSheets' ? 'active' : '' }}" >
@@ -281,7 +296,7 @@
             @endcan
           </ul>
         </li>
-        <li class=" {{ in_array(\Request::segment(1), ['aps','banks','pettyCash','proforma']) ? 'active' : '' }} nav-item">
+        <li class=" {{ in_array(\Request::segment(1), ['aps','banks','pettyCash','proforma','bankReceipt']) ? 'active' : '' }} nav-item">
           <a class="d-flex align-items-center" href="javascript:void(0);">
             <i data-feather="dollar-sign"></i>
             <span class="menu-title text-truncate" data-i18n="Form Elements">Finance
@@ -337,8 +352,8 @@
             </li>
             @endcan
             @can('finance-index')
-            <li class="{{ \Request::segment(1) == 'accountPayable'  ? 'active' : '' }} disabled">
-              <a class="d-flex align-items-center" href="{{ route('accTypes.index') }}">
+            <li class="{{ \Request::segment(1) == 'bankReceipt'  ? 'active' : '' }}">
+              <a class="d-flex align-items-center" href="{{ route('bankReceipt.index') }}">
                 <i data-feather="circle"></i>
                 <span class="menu-item text-truncate" data-i18n="Input">Bank Receipt</span>
               </a>

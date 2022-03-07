@@ -298,9 +298,7 @@
                             $('#cmdSave').attr('disabled','disabled');
                             $('#addNewRow').attr('disabled','disabled');
                             $('#bomNumber').val(data.bomNumber);
-                            
                         }
-                        
                     },
                     error: function(error) {
                         console.log(error);
