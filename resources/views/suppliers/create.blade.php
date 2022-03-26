@@ -30,8 +30,13 @@
                             </div>
                             <div class="form-group col-md-2">
                                 <label class="form-label" for="inisial">Initial*</label>
-                                {{-- <input type="hidden" id="inisial" name="inisial" class="form-control" value="{{ old('inisial') }}" /> --}}
                                 <input type="text" id="inisial" name="inisial" class="form-control text-uppercase" value="{{ old('inisial') }}" required maxlength="3"/>
+                            </div>
+                            <div class="form-group col-md-4 align-self-end" >
+                                <div class="custom-control custom-checkbox">
+                                    <input type="checkbox" class="custom-control-input" id="asCustomer" name="asCustomer" {{ old('asCustomer') == 't' ? 'checked' : '' }} />
+                                    <label class="custom-control-label" for="asCustomer">As Customer</label>
+                                </div>
                             </div>
                         </div>
                         <div class="form-row">
@@ -148,9 +153,9 @@
                             </div>
                         </div>
                         <div class="row">
-                            <div class="form-group col-md-4">
+                            <div class="form-group col-md-6">
                                 <label class="form-label" for="bankType">Type*</label>
-                                <select class="select2 form-control w-100" id="bankType" name="bankType" required>
+                                <select class="select2 form-control" id="bankType" name="bankType" required>
                                     <option value="">Choose bank type</option>
                                     <option value="NONBCA" {{ old('bankType') == "NONBCA" ? "selected" : "" }}>NON BCA</option>
                                     <option value="BCA" {{ old('bankType') == "BCA" ? "selected" : "" }}>BCA</option>
@@ -202,6 +207,7 @@
 </section>
 @endsection
 @section('styles')
+<link rel="stylesheet" type="text/css" href="{{ asset('assets/css/jquery-ui.css') }}">
 <style>
     textarea {
         resize: none;
@@ -209,6 +215,7 @@
 </style>
 @endsection
 @section('scripts')
+<script src="{{ asset('assets/js/ui.1.13.0.jquery-ui.js') }}"></script>
 <script type="text/javascript">
     let change_active = 'yes';
     $(document).ready(function(){     
@@ -231,6 +238,16 @@
         }).settings.ignore = "";
     });
 
+    let availableTags ="{{ $suppliers }}";
+    availableTags=availableTags.replace(/[[\]]/g,'');
+    availableTags=availableTags.replace(/&quot;/g,'').split(",");
+    $("#nama").autocomplete({
+        source: availableTags,
+        select: function( event, ui ) {
+            acroFunction();
+        }
+    });
+
     $("#cmdSave").click(function(){       
         $('.disabled-el').removeAttr('disabled');
         $("#frmAdd").submit(); // Submit the form
@@ -241,7 +258,7 @@
         $("#frmAdd").validate().resetForm();
     });
 
-    function getSuppAcronym(aString){
+    getSuppAcronym = (aString) =>{
         let initials= "";
         let namaPerusahaan = ["CV","PT","PTE.","LTD.","CORP.","INC.","PT.","CV.","PTE","LTD","CORP","INC","PD","PD.","UD","UD."];        
         let wordCount = aString.trim().split(' ').length;
@@ -273,12 +290,12 @@
         
         return initials;
     }
-
-    document.getElementById("nama").addEventListener("input", acroFunction);
-    function acroFunction() {
+    
+    acroFunction = () => {
         let aString = document.getElementById('nama').value;
         document.getElementById('inisial').value= getSuppAcronym(aString);
     }
+    document.getElementById("nama").addEventListener("input", acroFunction);
 
     npwp = $('.masking-npwp');
     if (npwp.length) {

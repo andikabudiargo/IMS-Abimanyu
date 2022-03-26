@@ -137,6 +137,9 @@
                                     <td class="isian" style="width: 10%">
                                         <label>T.Service</label>
                                     </td>
+                                    <td class="isian" style="width: 10%">
+                                        <label>Total</label>
+                                    </td>
                                     <td class="isian text-center" style="width: 5%">
                                         <label>-</label>
                                     </td>
@@ -183,6 +186,9 @@
                                             <td class="isian disabled text-right" style="width: 10%">
                                                 <input type="text" class="form-control-plaintext numeral-mask text-right" value="{{ number_format($item->qty * $item->price_service) }}" id="totalJasa" name="totalJasa[]" >
                                                 {{-- <span id="totalJasa" name="totalJasa[]"></span> --}}
+                                            </td>
+                                            <td class="isian disabled text-right" style="width: 10%">
+                                                <input type="text" class="form-control-plaintext numeral-mask text-right" value="{{ number_format(($item->qty * $item->price)+($item->qty * $item->price_service)) }}" id="totalAll" name="totalAll[]" >
                                             </td>
                                             <td class="isian text-center" style="width: 5%">
                                                 <a onmouseover="this.style.cursor='pointer'" onclick="$(this).parents('.tanda-baris').remove();hitungGrandTotal()">
@@ -275,7 +281,6 @@
         </div>
     </div>
 </section>
-@include('salesOrder.addArticle')
 @endsection
 @section('styles')
 <style>
@@ -319,11 +324,11 @@
 </style>
 @endsection
 @section('scripts')
+@include('salesOrder.addArticle')
 <script type="text/javascript">
-    let currentDate = todayDate('dd-mm-yyyy');    
+    let cloneCount=$('#last_row_number').val();
     $(document).ready(function(){           
         validateFormToast("frmAdd");
-        // $('#orderDate').val(currentDate);
         tombolPanah('qty_order');
         tombolPanah('price');
         activate_angka();
@@ -332,163 +337,144 @@
         hitungTotal();
         hitungGrandTotal();
     });
-    
-    $('#cust').on('change', function() {
-        let cust = $(this).val().split("|");
-        let customer = cust[0];
-        // changeselect('article_id',customer);
-    })
-
-    $('#ppn').on('keyup', function() {
-        hitungGrandTotal();
-    });
-
-    function reloadPage(){
-        window.location.reload();
-    }
-
-    $("#cmdCancel").click(function(){
-        reloadPage();
-    });
-
-    $("#cmdNew").click(function(){
-        reloadPage();
-    });
 
     simpanData = (statusSimpan) =>{
-        $('.disabled-el').removeAttr('disabled');
-        // ambil semua data article
-        let objQty= $('#article_row input[name="qty_order[]"]');
-        let objPrice= $('#article_row input[name="price[]"]');
-        let objPriceJasa= $('#article_row input[name="priceJasa[]"]');
-        let objUom= $('#article_row span[name="uom[]"]'); 
-        let objGroup= $('#article_row input[name="group[]"]'); 
-        let articles = []; 
-        let flag=0; 
-        let pesan="";
+        if (!$("#frmAdd")[0].checkValidity()){
+            $("#frmAdd").submit();
+        }else{ 
+            $('.disabled-el').removeAttr('disabled');
+            // ambil semua data article
+            let objQty= $('#article_row input[name="qty_order[]"]');
+            let objPrice= $('#article_row input[name="price[]"]');
+            let objPriceJasa= $('#article_row input[name="priceJasa[]"]');
+            let objUom= $('#article_row span[name="uom[]"]'); 
+            let objGroup= $('#article_row input[name="group[]"]'); 
+            let articles = []; 
+            let flag=0; 
+            let pesan="";
         
-        $("#article_row select[name='article_id[]']").map(function(i) {  
-		    let $this=$(this);
-            if ($this.val()){
-                let article=$this.val().split("|");
-                let articleName=$this.select2('data')[0].text;
-                let plu=article[0];
-                let inisial = articleName.substring(2,5); 
-                let qty=objQty.eq(i).val().replace(/[^0-9]/gi, '') || 0;
-                let price=objPrice.eq(i).val().replace(/[^0-9]/gi, '') || 0;
-                let priceJasa=objPriceJasa.eq(i).val().replace(/[^0-9]/gi, '') || 0;
-                let uom=objUom.eq(i).text();
-                let group=objGroup.eq(i).val();
-                let cust=$('#cust').val().split("|");
-                let custName = $('#cust').select2('data')[0].text;
-                let customer=cust[1];
-            
-                //es6
-                // let obj = ingredient.find(obj => obj.plu == plu);
-
-                //jquery
-                //cek apakah article ada yang double input ato ngk
-                let obj = $.grep(articles, function(obj){
-                    return obj.article_code === plu;
-                })[0];
+            $("#article_row select[name='article_id[]']").map(function(i) {  
+                let $this=$(this);
+                if ($this.val()){
+                    let article=$this.val().split("|");
+                    let articleName=$this.select2('data')[0].text;
+                    let plu=article[0];
+                    let inisial = articleName.substring(2,5); 
+                    let qty=objQty.eq(i).val().replace(/[^0-9]/gi, '') || 0;
+                    let price=objPrice.eq(i).val().replace(/[^0-9]/gi, '') || 0;
+                    let priceJasa=objPriceJasa.eq(i).val().replace(/[^0-9]/gi, '') || 0;
+                    let uom=objUom.eq(i).text();
+                    let group=objGroup.eq(i).val();
+                    let cust=$('#cust').val().split("|");
+                    let custName = $('#cust').select2('data')[0].text;
+                    let customer=cust[1];
                 
-                if(obj) {
-                    pesan +="Article "+plu+" entered more than once !! <br>"; 
-                    flag=1;
-                } else {
-                    if ((plu!=='') && (qty> 0)){
-                        articles.push({
-                            "article_code":plu,
-                            "qty":qty,
-                            "uom":uom,
-                            "price":price,
-                            "price_service":priceJasa,
-                            "group":group
-                        });
-                    }
-                } 
-            
-                if (qty == 0){
-                    pesan +="QTY of items "+ articleName +" cannot be 0 <br>"; 
-                    flag=1;
-                }
+                    //es6
+                    // let obj = ingredient.find(obj => obj.plu == plu);
 
-                if (inisial !== customer){
+                    //jquery
+                    //cek apakah article ada yang double input ato ngk
+                    let obj = $.grep(articles, function(obj){
+                        return obj.article_code === plu;
+                    })[0];
                     
-                    pesan +="This article "+ articleName +" does not belong to the customer "+custName +" <br>"; 
-                    flag=1;
-                }
-            
-            }
-        });
-
-        if (articles.length == 0){
-			pesan +="Articles must be filled in completely <br>"; 
-			flag=1;
-		}
-
-        if (flag==0){
-
-            let orderNumber = $('#orderNum').val();
-            let orderDate = $('#orderDate').val();
-            let currency = $('#currency').val();
-            let type = $('#type').val();
-            let poNumber = $('#poNumber').val();
-            let cust = $('#cust').val().split("|");
-            let customer = cust[0];
-            let salesman = $('#salesman').val();
-            let ppn = $('#ppn').val().replace(/[^0-9]/gi, '') || 0;
-            let pph23 = $('#pph23').val().replace(/[^0-9]/gi, '') || 0;
-            let totalPpn = $('#totalPPN').val().replace(/[^0-9]/gi, '') || 0;
-            let totalPph = $('#totalPPH').val().replace(/[^0-9]/gi, '') || 0;
-            let note = $('#note').val();
-            let approveLevel = $('#approveLevel').val();
-    
-            $.ajax({
-                type: "post",
-                url: "{{ route('salesOrder.update') }}",
-                data: {
-                    articles:JSON.stringify(articles),
-                    orderNumber:orderNumber,
-                    orderDate:orderDate,
-                    currency:currency,
-                    type:type,
-                    poNumber:poNumber,
-                    customer:customer,
-                    salesman:salesman,
-                    ppn:ppn,
-                    pph23:pph23,
-                    totalPph:totalPph,
-                    totalPpn:totalPpn,
-                    note:note,
-                    approveLevel:approveLevel,
-                    statusSimpan:statusSimpan
-                },
-                dataType: "json",
-                success: function(data) {
-                    if (data.status == 0 ){
-                        let message="";
-                        for(let i = 0; i < data.message.length; i++) {
-                            show_msg(data.title, data.message[i], data.alert);
+                    if(obj) {
+                        pesan +="Article "+plu+" entered more than once !! <br>"; 
+                        flag=1;
+                    } else {
+                        if ((plu!=='') && (qty> 0)){
+                            articles.push({
+                                "article_code":plu,
+                                "qty":qty,
+                                "uom":uom,
+                                "price":price,
+                                "price_service":priceJasa,
+                                "group":group
+                            });
                         }
-                        
-                        $('#poNumber').focus().select();
-                        $('#orderNum').attr('disabled','disabled');
-
-                    }else{
-                        show_msg(data.title, data.message, data.alert);
-                        $('#orderNum').attr('disabled','disabled');
-                        reloadPage();
+                    } 
+                
+                    if (qty == 0){
+                        pesan +="QTY of items "+ articleName +" cannot be 0 <br>"; 
+                        flag=1;
                     }
-                    
-                },
-                error: function(error) {
-                    console.log(error);
+
+                    if (inisial !== customer){
+                        
+                        pesan +="This article "+ articleName +" does not belong to the customer "+custName +" <br>"; 
+                        flag=1;
+                    }
+                
                 }
             });
 
-        }else{
-            Swal.fire('Warning..',pesan,'warning');
+            if (articles.length == 0){
+                pesan +="Articles must be filled in completely <br>"; 
+                flag=1;
+            }
+
+            if (flag==0){
+                let orderNumber = $('#orderNum').val();
+                let orderDate = $('#orderDate').val();
+                let currency = $('#currency').val();
+                let type = $('#type').val();
+                let poNumber = $('#poNumber').val();
+                let cust = $('#cust').val().split("|");
+                let customer = cust[0];
+                let salesman = $('#salesman').val();
+                let ppn = $('#ppn').val().replace(/[^0-9]/gi, '') || 0;
+                let pph23 = $('#pph23').val().replace(/[^0-9]/gi, '') || 0;
+                let totalPpn = $('#totalPPN').val().replace(/[^0-9]/gi, '') || 0;
+                let totalPph = $('#totalPPH').val().replace(/[^0-9]/gi, '') || 0;
+                let note = $('#note').val();
+                let approveLevel = $('#approveLevel').val();
+        
+                $.ajax({
+                    type: "post",
+                    url: "{{ route('salesOrder.update') }}",
+                    data: {
+                        articles:JSON.stringify(articles),
+                        orderNumber:orderNumber,
+                        orderDate:orderDate,
+                        currency:currency,
+                        type:type,
+                        poNumber:poNumber,
+                        customer:customer,
+                        salesman:salesman,
+                        ppn:ppn,
+                        pph23:pph23,
+                        totalPph:totalPph,
+                        totalPpn:totalPpn,
+                        note:note,
+                        approveLevel:approveLevel,
+                        statusSimpan:statusSimpan
+                    },
+                    dataType: "json",
+                    success: function(data) {
+                        if (data.status == 0 ){
+                            let message="";
+                            for(let i = 0; i < data.message.length; i++) {
+                                show_msg(data.title, data.message[i], data.alert);
+                            }
+                            
+                            $('#poNumber').focus().select();
+                            $('#orderNum').attr('disabled','disabled');
+
+                        }else{
+                            show_msg(data.title, data.message, data.alert);
+                            $('#orderNum').attr('disabled','disabled');
+                            reloadPage();
+                        }
+                        
+                    },
+                    error: function(error) {
+                        console.log(error);
+                    }
+                });
+
+            }else{
+                Swal.fire('Warning..',pesan,'warning');
+            }
         }
     }
 
@@ -499,187 +485,6 @@
     $("#cmdApprove").click(function(){     
         simpanData('approve');
     });
-    
-    let cloneCount=$('#last_row_number').val();
-    function add_new_row() {    
-        let customer = $('#cust');
-        let cust = customer.val().split("|");
-        if (customer.val()){            
-            $("#article_row").append($("#new_row").clone().html());
-            cloneCount++;
-            $("#article_row").find('#baru').attr('id', 'new_row'+ cloneCount);
-            $("#new_row"+ cloneCount).find('#article_id').attr('id', 'article_id'+ cloneCount);
-            changeselect('article_id','article_id'+ cloneCount,cust[0],'FG');
-            $("#article_id"+cloneCount).select2();
-            $('#remove_button').tooltip();
-            tombolPanah('qty_order');
-            tombolPanah('price');
-            activate_angka();
-            mask_thousand();
-            splitArticle();
-            hitungTotal();
-            hitungGrandTotal();
-        }else{
-            Swal.fire({
-                title: 'Warning',
-                text: "Choose customer",
-                icon: 'warning',
-                confirmButtonColor: '#3085d6',
-                confirmButtonText: 'OK'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    customer.select2('open');
-                }
-            })
-        }
-    };
-
-    function splitArticle(){
-        // split article with delimiter |
-        let objArticle = $('select[name="article_id[]"]');
-        let objGroup= $('input[name="group[]"]');
-        let objStock= $('input[name="qty_stock[]"]');
-        let objUom= $('span[name="uom[]"]'); 
-        let objQty= $('input[name="qty_order[]"]');
-        objArticle.change(function(e){        
-            let objIndex = objArticle.index(this);
-            let detail = objArticle.eq(objIndex).val();
-            let arrDetail = detail.split("|");
-            objGroup.eq(objIndex).val(arrDetail[1]);
-            objStock.eq(objIndex).val(arrDetail[2]||0);
-            objUom.eq(objIndex).text(arrDetail[3]);
-            objArticle.eq(objIndex).select2('open'); //belum bisa jalan
-            if (detail){
-                setTimeout(() => {
-                    objQty.eq(objIndex).focus().select();
-                }, 5);
-            }
-            
-		});
-    }
-
-    function hitungTotal(){
-        let objQty= $('#article_row input[name="qty_order[]"]');
-        let objPrice= $('#article_row input[name="price[]"]');
-        let objTotal= $('#article_row input[name="totalLine[]"]');
-        let objPriceJasa= $('#article_row input[name="priceJasa[]"]');
-        let objTotalJasa= $('#article_row input[name="totalJasa[]"]');
-        
-        objQty.keyup(function() {
-            let indexnya= objQty.index(this);
-            let qty = objQty.eq(indexnya).val().replace(/[^0-9]/gi, '') || 0; 
-            let price = objPrice.eq(indexnya).val().replace(/[^0-9]/gi, '') ||0;
-            let priceJasa = objPriceJasa.eq(indexnya).val().replace(/[^0-9]/gi, '') ||0;
-            let total = qty*price;
-            let totalJasa = qty*priceJasa;
-            objTotal.eq(indexnya).val(humanizeNumber(total));
-            objTotalJasa.eq(indexnya).val(humanizeNumber(totalJasa));
-            hitungGrandTotal();
-        });    
-
-        objPrice.keyup(function() {
-            let indexnya= objPrice.index(this);
-            let qty = objQty.eq(indexnya).val().replace(/[^0-9]/gi, '') || 0; 
-            let price = objPrice.eq(indexnya).val().replace(/[^0-9]/gi, '')||0;
-            let total = qty*price;
-            let priceJasa = objPriceJasa.eq(indexnya).val().replace(/[^0-9]/gi, '')||0;
-            let totalJasa = qty*priceJasa;
-            objTotal.eq(indexnya).val(humanizeNumber(total));
-            objTotalJasa.eq(indexnya).val(humanizeNumber(totalJasa));
-            hitungGrandTotal();
-        });    
-
-        objPriceJasa.keyup(function() {
-            let indexnya= objPrice.index(this);
-            let qty = objQty.eq(indexnya).val().replace(/[^0-9]/gi, '') || 0; 
-            let price = objPrice.eq(indexnya).val().replace(/[^0-9]/gi, '')||0;
-            let total = qty*price;
-            let priceJasa = objPriceJasa.eq(indexnya).val().replace(/[^0-9]/gi, '')||0;
-            let totalJasa = qty*priceJasa;
-            objTotal.eq(indexnya).val(humanizeNumber(total));
-            objTotalJasa.eq(indexnya).val(humanizeNumber(totalJasa));
-            hitungGrandTotal();
-        });    
-    }
-
-    function hitungGrandTotal(){
-        let objArticle = $('#article_row select[name="article_id[]"]');
-        let objQtyTiw= $('#article_row input[name="qty_order[]"]');
-        let objQTY= $('#article_row input[name="qty_order[]"]');
-        let objPrice= $('#article_row input[name="price[]"]');
-        let objPriceJasa= $('#article_row input[name="priceJasa[]"]');
-        let ppn= $('#ppn').val() ||0;
-        let pph23= $('#pph23').val() ||0;
-        let totalQty= 0;
-        let totalAmount=0
-        let totalAmountJasa=0
-        let totalAmountMaterial=0
-
-        var arr = objQtyTiw.map(function (i) {
-            let qty = parseInt(objQTY.eq(i).val().replace(/[^0-9]/gi, '')) || 0;
-            let price = parseInt(objPrice.eq(i).val().replace(/[^0-9]/gi, '')) || 0;
-            let priceJasa = parseInt(objPriceJasa.eq(i).val().replace(/[^0-9]/gi, '')) || 0;
-            totalQty+= qty;
-            totalAmount+= (qty*price)+(qty*priceJasa);
-            totalAmountMaterial+= (qty*price)+(qty*priceJasa);
-            totalAmountJasa+= (qty*priceJasa);
-        }).get();
-        
-        $("#totalRow").val(objArticle.length);
-        $("#nilaiPPN").text(ppn+"%");
-        $("#nilaiPPH23").text(pph23+"%");
-        $("#totalQTY").val(humanizeNumber(totalQty));
-        $("#totalAmount").val(humanizeNumber(totalAmount));
-        $("#totalPPN").val(humanizeNumber((parseInt(ppn)*totalAmountMaterial)/100));
-        $("#totalPPH").val("-"+humanizeNumber((pph23*totalAmountJasa)/100));
-        $("#totalNetto").val(humanizeNumber(totalAmount+((parseInt(ppn)*totalAmount)/100)-((pph23*totalAmountJasa)/100)));
-    
-    }
-
-    function changeselect(dependent,obj,value,type) {
-      $.ajax({
-        url:"{{route('dynamic.dependent')}}",
-        method:"POST",
-        data:{
-            value:value,
-            type:type,
-            dependent:dependent
-        },
-        success:function(result){
-            $('#'+obj).html(result);
-            $('#'+obj).val('').trigger('change');
-        }
-      })
-    }
-
-    function tombolPanah(objname){
-        // function kalo mau pindah filed dari atas ke bawah atau sebaliknya
-        let obj = $('input[name="'+objname+'[]"]');
-        obj.keyup(function(e) {
-            indexnya= obj.index(this);
-            indexnya=parseInt(indexnya);
-            if (e.keyCode == 38) {
-                //panah atas
-                indexTarget = indexnya-1;
-                obj.eq(indexTarget).focus().select();
-                return false;
-            }
-            if (e.keyCode == 40) {
-                //panah bawah
-                indexTarget = indexnya+1;
-                obj.eq(indexTarget).focus().select();
-                return false;
-            }
-        });
-    }
-    
-    dateLflatPickr = $('.flatpickr-basic');
-    if (dateLflatPickr.length) {
-        dateLflatPickr.flatpickr({
-            dateFormat: "m-d-Y",
-            // "setDate": new Date()
-        });
-    }
 
     $.ajaxSetup({
         headers: {

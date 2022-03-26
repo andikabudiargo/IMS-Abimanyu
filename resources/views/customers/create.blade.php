@@ -3,7 +3,6 @@
 @section('content')
 @include('layouts.breadcrumb')
 @include('partials.alert')
-
 <section class="add-customer">
     <div class="bs-stepper vertical vertical-input-tab">
         <div class="bs-stepper-header">
@@ -168,7 +167,7 @@
                             </select>
                         </div>
                     </div>
-                    <div class="form-row">
+                    <div class="form-row d-none">
                         <div class="form-group col-md-6">
                             <label class="form-label" for="areaKirim">Area kirim</label>
                             <select class="select2 w-100" id="areaKirim" name="areaKirim">

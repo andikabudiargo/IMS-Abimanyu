@@ -106,16 +106,80 @@
                     <h4 class="card-title">Article detail</h4>
                 </div>
                 <div class="card-body">
-                    <div>
+                    <div class="contaner-list-item">
+                        <div class="lebar-list-item">
+                            <div class="form-row d-flex align-items-end">
+                                <div class="col-md-4 col-12 d-none d-md-block">
+                                    <div class="form-group">
+                                        <label class="d-none d-md-block">Article Code</label>
+                                    </div>
+                                </div>
+                                {{-- <div class="col-md-1 col-12 d-none d-md-block">
+                                    <div class="form-group">
+                                        <label class="d-none d-md-block text-right">Group</label>
+                                    </div>
+                                </div> --}}
+                                <div class="col-md-1 col-12 d-none d-md-block">
+                                    <div class="form-group">
+                                        <label class="d-none d-md-block text-right">Stock</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-1 col-12 d-none d-md-block">
+                                    <div class="form-group">
+                                        <label class="d-none d-md-block text-right">QTY</label>
+                                    </div>
+                                </div>
+                                {{-- <div class="col-md-1 col-12 d-none d-md-block">
+                                    <div class="form-group">
+                                        <label class="d-none d-md-block">Uom</label>
+                                    </div>
+                                </div> --}}
+                                <div class="col-md-1 col-12 d-none d-md-block">
+                                    <div class="form-group">
+                                        <label class="d-none d-md-block text-right">Material Price</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-1 col-12 d-none d-md-block">
+                                    <div class="form-group">
+                                        <label class="d-none d-md-block text-right">Service Price</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-1 col-12 d-none d-md-block">
+                                    <div class="form-group">
+                                        <label class="d-none d-md-block text-right">T.Material</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-1 col-12 d-none d-md-block">
+                                    <div class="form-group">
+                                        <label class="d-none d-md-block text-right">T.Service</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-1 col-12 d-none d-md-block">
+                                    <div class="form-group">
+                                        <label class="d-none d-md-block text-right">Total</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-1 col-12 d-none d-md-block">
+                                    <div class="form-group">
+                                        <label class="d-none d-md-block">-</label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="" id="article_row">
+                                <input type="text" id ="last_row_number" class="d-none" value="0">
+                            </div>
+                        </div>
+                    </div>
+                    {{-- <div>
                         <table class="" style="width:98%;table-layout: fixed;">
                             <tbody>
                                 <tr>
                                     <td class="isian-satu" style="width: 40%">
                                         <label>Article Code</label>
                                     </td>
-                                    {{-- <td class="isian" style="width: 15%;">
+                                    <td class="isian" style="width: 15%;">
                                         <label>Group</label>
-                                    </td> --}}
+                                    </td>
                                     <td class="isian" style="width: 5%">
                                         <label>Stock</label>
                                     </td>
@@ -137,20 +201,21 @@
                                     <td class="isian" style="width: 10%">
                                         <label>T.Service</label>
                                     </td>
+                                    <td class="isian" style="width: 10%">
+                                        <label>Total</label>
+                                    </td>
                                     <td class="isian text-center" style="width: 5%">
                                         <label>-</label>
                                     </td>
                                 </tr>
                             </tbody>
                         </table>
-                    </div>      
-                    <div class="" id="article_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px">
-                        <input type="text" id ="last_row_number" class="d-none" value="0">
-                    </div>
+                    </div>       --}}
+                    
                     <div class="d-flex justify-content-between align-items-end mt-75 ml-75">
                         <button class="btn btn-primary btn-prev" type="button" onclick="add_new_row();">
                             <i data-feather="plus" class="align-middle mr-sm-25 mr-0"></i>
-                            <span class="align-middle d-sm-inline-block d-none">Add Article</span>
+                            <span class="align-middle d-sm-inline-block ">Add Article</span>
                         </button>
                     </div>
                     <hr>
@@ -210,7 +275,6 @@
         </div>
     </div>
 </section>
-@include('salesOrder.addArticle')
 @endsection
 @section('styles')
 <style>
@@ -237,36 +301,82 @@
     input.tanpa-padding{
         padding: 0;
     }
+
+
+    @media screen 
+    and (min-device-width: 1200px) 
+    and (max-device-width: 1600px) 
+    and (-webkit-min-device-pixel-ratio: 1) { 
+        .lebar-list-item{
+            width:150%;
+        }
+        .contaner-list-item{
+            max-width:100%;
+            overflow-x:auto;
+            scrollbar-width: thin;
+            margin-top:7px;
+        }
+    }
+
+    @media only screen and (min-width: 600px)
+    and (max-width: 1200px)
+    {
+        .lebar-list-item{
+            width:200%;
+        }
+        .contaner-list-item{
+            max-width:100%;
+            overflow-x:auto;
+            scrollbar-width: thin;
+            margin-top:7px;
+        }
+    }
+
+    /* @media screen 
+    and (min-device-width: 1600px) 
+    and (max-device-width: 1200px) 
+    and (-webkit-min-device-pixel-ratio: 1) { 
+        .lebar-list-item{
+            width:120%;
+        }
+        .contaner-list-item{
+            max-width:100%;
+            overflow-x:auto;
+            scrollbar-width: thin;
+            margin-top:7px;
+        }
+    } */
+
+    /* @media screen
+    (min-device-width: 400px) 
+    and (max-device-width: 1200px) {
+
+        .lebar-list-item{
+            width:180%;
+        }
+        .contaner-list-item{
+            max-width:100%;
+            overflow-x:auto;
+            scrollbar-width: thin;
+            margin-top:7px;
+        }
+
+    } */
+
+    
     
 
 </style>
 @endsection
 @section('scripts')
-<script type="text/javascript">
-    let currentDate = todayDate('dd-mm-yyyy');    
+@include('salesOrder.addArticle')
+<script type="text/javascript">    
+    let cloneCount=1;
     $(document).ready(function(){           
         validateFormToast("frmAdd");
         $('#orderDate').val(currentDate);
     });
     
-    $('#cust').on('change', function() {
-        let cust = $(this).val().split("|");
-        let customer = cust[0];
-        // changeselect('article_id',customer);
-    })
-
-    $('#ppn').on('keyup', function() {
-        hitungGrandTotal();
-    });
-    
-    function reloadPage(){
-        window.location.reload();
-    }
-
-    $("#cmdCancel,#cmdNew").click(function(){
-        reloadPage();
-    });
-
     $("#cmdSave").click(function(){    
         if (!$("#frmAdd")[0].checkValidity()){
             $("#frmAdd").submit();
@@ -343,7 +453,6 @@
             }
 
             if (flag==0){
-
                 let orderDate = $('#orderDate').val();
                 let currency = $('#currency').val();
                 let type = $('#type').val();
@@ -404,187 +513,6 @@
             }
         }
     });
-
-    let cloneCount=1;
-    function add_new_row() {
-        let customer = $('#cust');
-        let cust = customer.val().split("|");
-        if (customer.val()){            
-            $("#article_row").append($("#new_row").clone().html());
-            cloneCount++;
-            $("#article_row").find('#baru').attr('id', 'new_row'+ cloneCount);
-            $("#new_row"+ cloneCount).find('#article_id').attr('id', 'article_id'+ cloneCount);
-            changeselect('article_id','article_id'+ cloneCount,cust[0],'FG');
-            $("#article_id"+cloneCount).select2();
-            tombolPanah('qty_order');
-            tombolPanah('price');
-            tombolPanah('priceJasa');
-            activate_angka();
-            mask_thousand();
-            splitArticle();
-            hitungTotal();
-            hitungGrandTotal();
-        }else{
-            Swal.fire({
-                title: 'Warning',
-                text: "Choose customer",
-                icon: 'warning',
-                confirmButtonColor: '#3085d6',
-                confirmButtonText: 'OK'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    customer.select2('open');
-                }
-            })
-        }
-    };
-
-    function splitArticle(){
-        // split article with delimiter |
-        let objArticle = $('#article_row select[name="article_id[]"]');
-        let objGroup= $('#article_row input[name="group[]"]');
-        let objStock= $('#article_row input[name="qty_stock[]"]');
-        let objUom= $('#article_row span[name="uom[]"]'); 
-        let objQty= $('#article_row input[name="qty_order[]"]');
-        objArticle.change(function(e){        
-            let objIndex = objArticle.index(this);
-            let detail = objArticle.eq(objIndex).val();
-            let arrDetail = detail.split("|");
-            objGroup.eq(objIndex).val(arrDetail[1]);
-            objStock.eq(objIndex).val(arrDetail[2]||0);
-            objUom.eq(objIndex).text(arrDetail[3]);
-            objArticle.eq(objIndex).select2('open'); //belum bisa jalan
-            if (detail){
-                setTimeout(() => {
-                    objQty.eq(objIndex).focus().select();
-                }, 5);
-            }
-		});
-    }
-
-    function hitungTotal(){
-        let objQty= $('#article_row input[name="qty_order[]"]');
-        let objPrice= $('#article_row input[name="price[]"]');
-        let objTotal= $('#article_row input[name="totalLine[]"]');
-        let objPriceJasa= $('#article_row input[name="priceJasa[]"]');
-        let objTotalJasa= $('#article_row input[name="totalJasa[]"]');
-        
-        objQty.keyup(function() {
-            let indexnya= objQty.index(this);
-            let qty = objQty.eq(indexnya).val().replace(/[^0-9]/gi, '') || 0; 
-            let price = objPrice.eq(indexnya).val().replace(/[^0-9]/gi, '') ||0;
-            let priceJasa = objPriceJasa.eq(indexnya).val().replace(/[^0-9]/gi, '') ||0;
-            let total = qty*price;
-            let totalJasa = qty*priceJasa;
-            objTotal.eq(indexnya).val(humanizeNumber(total));
-            objTotalJasa.eq(indexnya).val(humanizeNumber(totalJasa));
-            hitungGrandTotal();
-        });    
-
-        objPrice.keyup(function() {
-            let indexnya= objPrice.index(this);
-            let qty = objQty.eq(indexnya).val().replace(/[^0-9]/gi, '') || 0; 
-            let price = objPrice.eq(indexnya).val().replace(/[^0-9]/gi, '')||0;
-            let total = qty*price;
-            let priceJasa = objPriceJasa.eq(indexnya).val().replace(/[^0-9]/gi, '')||0;
-            let totalJasa = qty*priceJasa;
-            objTotal.eq(indexnya).val(humanizeNumber(total));
-            objTotalJasa.eq(indexnya).val(humanizeNumber(totalJasa));
-            hitungGrandTotal();
-        });    
-
-        objPriceJasa.keyup(function() {
-            let indexnya= objPrice.index(this);
-            let qty = objQty.eq(indexnya).val().replace(/[^0-9]/gi, '') || 0; 
-            let price = objPrice.eq(indexnya).val().replace(/[^0-9]/gi, '')||0;
-            let total = qty*price;
-            let priceJasa = objPriceJasa.eq(indexnya).val().replace(/[^0-9]/gi, '')||0;
-            let totalJasa = qty*priceJasa;
-            objTotal.eq(indexnya).val(humanizeNumber(total));
-            objTotalJasa.eq(indexnya).val(humanizeNumber(totalJasa));
-            hitungGrandTotal();
-        });    
-    }
-
-    function hitungGrandTotal(){
-        let objArticle = $('#article_row select[name="article_id[]"]');
-        let objQtyTiw= $('#article_row input[name="qty_order[]"]');
-        let objQTY= $('#article_row input[name="qty_order[]"]');
-        let objPrice= $('#article_row input[name="price[]"]');
-        let objPriceJasa= $('#article_row input[name="priceJasa[]"]');
-        let ppn= $('#ppn').val() ||0;
-        let pph23= $('#pph23').val() ||0;
-        let totalQty= 0;
-        let totalAmount=0
-        let totalAmountJasa=0
-        let totalAmountMaterial=0
-
-        var arr = objQtyTiw.map(function (i) {
-            let qty = parseInt(objQTY.eq(i).val().replace(/[^0-9]/gi, '')) || 0;
-            let price = parseInt(objPrice.eq(i).val().replace(/[^0-9]/gi, '')) || 0;
-            let priceJasa = parseInt(objPriceJasa.eq(i).val().replace(/[^0-9]/gi, '')) || 0;
-            totalQty+= qty;
-            totalAmount+= (qty*price)+(qty*priceJasa);
-            totalAmountMaterial+= (qty*price)+(qty*priceJasa);
-            totalAmountJasa+= (qty*priceJasa);
-        }).get();
-        
-        $("#totalRow").val(objArticle.length);
-        $("#nilaiPPN").text(ppn+"%");
-        $("#nilaiPPH23").text(pph23+"%");
-        $("#totalQTY").val(humanizeNumber(totalQty));
-        $("#totalAmount").val(humanizeNumber(totalAmount));
-        $("#totalPPN").val(humanizeNumber((parseInt(ppn)*totalAmountMaterial)/100));
-        $("#totalPPH").val("-"+humanizeNumber((pph23*totalAmountJasa)/100));
-        $("#totalNetto").val(humanizeNumber(totalAmount+((parseInt(ppn)*totalAmount)/100)-((pph23*totalAmountJasa)/100)));
-    
-    }
-
-    function changeselect(dependent,obj,value,type) {
-      $.ajax({
-        url:"{{route('dynamic.dependent')}}",
-        method:"POST",
-        data:{
-            value:value,
-            type:type,
-            dependent:dependent
-        },
-        success:function(result){
-            $('#'+obj).html(result);
-            $('#'+obj).val('').trigger('change');
-        }
-      })
-    }
-
-    function tombolPanah(objname){
-        // function kalo mau pindah filed dari atas ke bawah atau sebaliknya
-        let obj = $('#article_row input[name="'+objname+'[]"]');
-        obj.keyup(function(e) {
-            indexnya = obj.index(this);
-            indexnya = parseInt(indexnya);
-            if (e.keyCode == 38) {
-                //panah atas
-                indexTarget = indexnya-1;
-                obj.eq(indexTarget).focus().select();
-                return false;
-            }
-            if (e.keyCode == 40) {
-                //panah bawah
-                indexTarget = indexnya+1;
-                obj.eq(indexTarget).focus().select();
-                return false;
-            }
-        });
-    }
-    
-    dateflatPickr = $('.flatpickr-basic');
-    if (dateflatPickr.length) {
-        dateflatPickr.flatpickr({
-            dateFormat: "m-d-Y",
-            // "setDate": new Date()
-        });
-    }
-
     $.ajaxSetup({
         headers: {
             'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')

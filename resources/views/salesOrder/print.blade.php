@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en">
-    <head>
+<head>
     <meta charset="UTF-8">
     <title>SO</title>
     <style type="text/css">
@@ -57,8 +57,7 @@
             white-space: nowrap;
         } */
     </style>
-
-    </head>
+</head>
 <body>
     {{-- @if($status == "B")
         <div id ="watermark">

@@ -191,9 +191,9 @@
 
     $("#cmdSave").click(function(){     
 
-        if (!$("#frmAdd")[0].checkValidity()){
-            $("#frmAdd").submit();
-        }else{
+        // if (!$("#frmAdd")[0].checkValidity()){
+        //     $("#frmAdd").submit();
+        // }else{
 
             $('.disabled-el').removeAttr('disabled');
             // ambil semua data article

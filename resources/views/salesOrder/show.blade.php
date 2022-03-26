@@ -137,7 +137,9 @@
                                     <td class="isian" style="width: 10%">
                                         <label>T.Service</label>
                                     </td>
-                                    
+                                    <td class="isian" style="width: 10%">
+                                        <label>Total</label>
+                                    </td>
                                 </tr>
                             </tbody>
                         </table>
@@ -179,6 +181,9 @@
                                             </td>
                                             <td class="isian disabled text-right" style="width: 10%">
                                                 <input type="text" class="form-control-plaintext numeral-mask text-right" value="{{ number_format($item->qty * $item->price_service) }}" id="totalJasa" name="totalJasa[]" disabled>
+                                            </td>
+                                            <td class="isian disabled text-right" style="width: 10%">
+                                                <input type="text" class="form-control-plaintext numeral-mask text-right" value="{{ number_format(($item->qty * $item->price)+($item->qty * $item->price_service)) }}" id="totalAll" name="totalAll[]" >
                                             </td>
                                         </tr>
                                     </tbody>
@@ -331,7 +336,6 @@
             
 		});
     }
-
     
     function hitungGrandTotal(){
         let objArticle = $('#article_row select[name="article_id[]"]');

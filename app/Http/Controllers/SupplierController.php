@@ -40,6 +40,12 @@ class SupplierController extends Controller
         ->where ('index','=',1)
         ->orderBy('region_name')
         ->get();
+
+        $data['suppliers']= DB::table('third_party') 
+        ->where('third_party_type','supp')
+        ->orderBy('nama')
+        ->distinct('nama')
+        ->pluck('nama');
                 
         return view("suppliers.create",$data);
     }
