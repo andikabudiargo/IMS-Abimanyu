@@ -166,23 +166,36 @@
 
     @if($message = Session::get('success'))
         <script>
-            show_msg('Success', '{{$message}}', 'success');
+            show_msg('Success', '{{ $message }}', 'success');
         </script>
     @endif
     @if($message = Session::get('error'))
         <script>
-            show_msg('Error', '{{$message}}', 'error');
+            show_msg('Error', '{{ $message }}', 'error');
         </script>
     @endif
     @if($message = Session::get('warning'))
         <script>
-            show_msg('Warning', '{{$message}}', 'warning');
+            show_msg('Warning', '{{ $message }}', 'warning');
         </script>
     @endif
 
     @if ($alert = Session::get('alert'))
         <script>
             show_msg( "{{ Session::get('title') }}","{{ Session::get('message') }}","{{ $alert }}" );
+        </script>
+    @endif
+
+    {{-- Validasi dari controller --}}
+    @if ($errors)
+        <script>
+            let errors = "{{ $errors }}";
+            errors=errors.replace(/[{[\]}]/g,'');
+            errors=errors.replace(/&quot;/g,'').split(",");
+            $.each(errors, function(key, value) {
+                if (value)
+                show_msg("Validasi Form", value, "warning");
+            });
         </script>
     @endif
 

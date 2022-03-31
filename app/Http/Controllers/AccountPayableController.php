@@ -142,7 +142,7 @@ class AccountPayableController extends Controller
                             ,c.kurs  as kurs
                             ,to_char(to_date(rec_date,'dd-mm-yyyy')+c.termin,'dd-mm-yyyy') as due_date
                             ,(select sum(qty*price) from purchase_order_det where po_number = a.po_number)-(select sum(basis_amount) from ap_invoice where po_number = a.po_number) as po_balance
-                            ,(select pi_number from ap_pro_invoice where po_number = a.po_number and status = '5') as pro_inv_num
+                            ,(select pi_number from ap_pro_invoice where po_number = a.po_number and status = '5' limit 1) as pro_inv_num
                             from receiving_hdr a
                             left join third_party b on b.kode = a.supplier_id
                             left join purchase_order_hdr c on c.po_number = a.po_number
@@ -719,12 +719,11 @@ class AccountPayableController extends Controller
 
         }else{
             DB::rollBack();
-            $title ='Cancelinput invoice';
+            $title ='Cancel input invoice';
             $alert  ="warning";
             $message  = "$apNumber is failed to cancel";
             \LogActivity::addToLog('Posting AP ',"username: $username Status $message");
             return response()->back()->with(array('status' => 0, 'message' => $message,'alert'=>$alert,'apNumber'=>$apNumber));
-
         }
 
     }
@@ -791,7 +790,7 @@ class AccountPayableController extends Controller
         return Datatables::of($data)
         ->addColumn('action', function ($data) {
             $buttons = '<div class="d-inline-flex">
-                            <a class="pr-1 dropdown-toggle hide-arrow text-primary" data-toggle="dropdown">
+                            <a class="pr-1 dropdown-toggle hide-arrow" data-toggle="dropdown">
                                 <i data-feather="menu"></i>
                             </a>';
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
@@ -836,11 +835,22 @@ class AccountPayableController extends Controller
 
             return $buttons;
             })
-        ->addColumn('status', function ($data) {
-            $statusRec = ['Draft','Updated','Posted','Canceled','Paid','Revised'];
-            return $statusRec[$data->status - 1];
+        
+        ->addColumn('ap_number', function ($data) {
+            return '<a href="'. route('ap.show',['apNumber'=>Crypt::encryptString($data->ap_number)]) .'" 
+                        type="button" 
+                        style="text-align: left;">
+                        <span>'.$data->ap_number.'</span>
+                    </a>';
+
+            
         })
-        ->rawColumns(['action','status'])
+        ->addColumn('status', function ($data) {
+            $badges=['badge-light-primary','badge-light-info','badge-light-success','badge-light-warning','badge-light-danger','badge-light-dark','badge-light-secondary','badge-light-danger'];
+            $statusCode = ['Draft','Updated','Posted','Canceled','Paid','Revised'];
+            return "<div class='badge badge-pill ".$badges[$data->status - 1]."'>".$statusCode[$data->status - 1]."</div>";
+        })
+        ->rawColumns(['action','status','ap_number'])
         ->make(true);
     }
 

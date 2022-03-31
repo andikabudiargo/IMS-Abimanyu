@@ -2,7 +2,7 @@
 @section('title', $title)
 @section('content')
 @include('layouts.breadcrumb')
-<section id="basic-tabs-components">
+<section id="accountPayable-index">
     <div class="row match-height">
         <div class="col-xl-12 col-lg-12">
             <div class="card">
@@ -207,8 +207,7 @@
                                             <br>
                                             <div class="form-row">
                                                 <div class="col-md-12">
-                                                    <button class="btn btn-warning" type="reset" id="cmdCancel" name="cmdCancel">Cancel</button>
-                                                    <button class="btn btn-success" type="reset" id="cmdNew" name="cmdCancel">New</button>
+                                                    <a href="{{ route('aps.index') }}" class="btn btn-success">Back</a>
                                                     @if($details->status == '1' || $details->status =='2' )
                                                         <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Update</button>
                                                     @endif
@@ -400,19 +399,14 @@
         </div>
     </div>
 </section>
-@include('receiving.addArticle')
 @endsection
 @section('styles')
 <style>
 </style>
 @endsection
 @section('scripts')
+@include('accountPayable.script')
 <script type="text/javascript">
-    let currentDate = todayDate('dd-mm-yyyy');
-    let poAda;
-    let recAda
-    let status ="{{ Session::get('status') ? Session::get('status'): '' }}";
-
     $(document).ready(function(){
         validateFormToast("frmAdd");
         let errors = "{{ $errors }}";
@@ -426,145 +420,12 @@
         let supplierAda = "{{ $details->supplier_id }}";
         poAda = "{{ $details->po_number }}";
         recAda = "{{ $details->rec_number }}";
-        console.log(supplierAda);
+        
         if(supplierAda){
             $('#supplier').val(supplierAda).trigger('change');
             $('#recNumber').val(recAda).trigger('change');
         }
         mask_thousand();
-    });
-
-    $("#pph23Check").change(function() {
-        if(this.checked) {
-            let basisAmount = parseInt($('#basisAmount').val().replace(/,/gi, '')) || 0;
-            $("#pph23").val(basisAmount * 0.2);
-            mask_thousand();
-            $("#tipePPH23").removeClass("d-none");
-            hitungTotal();
-        }else{
-            $("#pph23").val(0);
-            $("#sewa").prop("checked", true);
-            $("#tipePPH23").toggleClass("d-none");
-            hitungTotal();
-        }
-    });
-
-    hitungTotal = () => {
-        let ba = parseInt($('#basisAmount').val().replace(/,/gi, '')) || 0;
-        let vat = parseInt($('#vat').val().replace(/,/gi, '')) || 0;
-        let pph23 = parseInt($('#pph23').val().replace(/,/gi, '')) || 0;
-        let od = parseInt($('#otherDeduct').val().replace(/,/gi, '')) || 0;
-        let total = ba? (ba+vat+pph23)-od : '';
-        $('#grandTotal').val(total);
-        mask_thousand();
-    }
-
-    $("#basisAmount,#vat,#pph23,#otherDeduct").keyup(function(){
-        hitungTotal();
-    })
-    
-    invoiceDate = $('#invoiceDate');
-    if (invoiceDate.length) {
-        invoiceDate.flatpickr({
-            dateFormat: "d-m-Y"
-        });
-    }
-        
-    function reloadPage(){
-        window.location.reload();
-    }
-
-    $("#cmdCancel").click(function(){
-        reloadPage();
-    });
-
-    $("#cmdNew").click(function(){
-        reloadPage();
-    });
-
-    $('#supplier').change(function(){
-        let value= $(this).val();
-        let obj = 'poNumber';
-        $.ajax({
-            url:"{{ route('ap.list.po') }}",
-            method:"GET",
-            data:{
-                value:value,
-            },
-            success:function(result){
-                $('#'+obj).html(result);
-                poAda ? $('#'+obj).val(poAda).trigger('change'):$('#'+obj).val('').trigger('change');
-            },
-            error: function (response) {
-                //Error here
-                Swal.fire("Warning","Get list PO failed","warning");
-            }
-        })
-    });
-
-    $('#poNumber').change(function(){
-        let value = $(this).val();
-        let poDate = $(this).find(":selected").data("po-date");
-        let obj = 'recNumber';
-        $('#poDate').val(poDate);
-        $.ajax({
-            url:"{{ route('ap.list.rec') }}",
-            method:"GET",
-            data:{
-                value:value,
-            },
-            success:function(result){
-                $('#'+obj).html(result);
-                recAda ? $('#'+obj).val(recAda).trigger('change'):$('#'+obj).val('').trigger('change');
-            },
-            error: function (response) {
-                //Error here
-                Swal.fire("Warning","Get list Rec failed","warning");
-            }
-        })
-    });
-  
-    $('#recNumber').change(function(){
-        let poNumber= $('#poNumber').val();
-        let recNumber = $(this).val();
-        if(recNumber && poNumber){
-            $.ajax({
-                url:"{{ route('ap.detail.rec') }}",
-                method:"GET",
-                data:{
-                    poNumber:poNumber,
-                },
-                success:function(result){
-                    $('#poNumberDet').val(result[0].po_number);
-                    $('#suppCode').val(result[0].nama);
-                    $('#totalPO').val(result[0].total_po);
-                    $('#basisAmount').val(result[0].basis_amount);
-                    $('#vat').val(result[0].basis_amount*(result[0].vat/100));
-                    $('#dueDate').val(result[0].due_date);
-                    $('#recDate').val(result[0].rec_date);
-                    $('#balance').val(result[0].po_balance);
-                    if (status != 'Saved'){
-                        $('#currency').val(result[0].currency).trigger('change');
-                        $('#rate').val(result[0].kurs);
-                    }
-                    hitungTotal();
-                },
-                error: function (response) {
-                    //Error here
-                    Swal.fire("Warning","Get list SJ failed","warning");
-                }
-            })
-        }
-    });
-
-    $("#cmdSave").click(function(){     
-        if (!$("#frmAdd")[0].checkValidity()){
-            $('.disabled-el').removeAttr('disabled');
-            $("#frmAdd").submit();
-        }else{
-            $('.disabled-el').removeAttr('disabled');
-            $("#frmAdd").submit();
-        }
     });
 
     $("#cmdPosting").click(function(){        
@@ -593,7 +454,6 @@
                 console.log(error);
             }
         });
-             
     });
         
     $.ajaxSetup({

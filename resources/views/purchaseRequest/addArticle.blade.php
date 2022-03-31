@@ -1,47 +1,12 @@
 <style>
-    .jarak-antar-attr{
-        padding-left: 0.3rem;
-        margin-bottom: 0.3rem;
-        padding-right: 0.3rem;
-    }
-
-    .jarak-antar-attr-qty-order{
-        padding-left: 0.3rem;
-        margin-bottom: 1.8rem;
-        padding-right: 0.3rem;
-    }
-
-    .isian{
-        padding-right:5px;
-        padding-left:5px;
-    }
-
-    .isian-utama{
-        padding-right:5px;
-    }
-
-    .isian-satu{
-        padding-right:5px;
-        padding-left:15px;
-        width: 25%;border-top: 1px solid #ffffff !important;
-        border-bottom: 1px solid #ffffff !important;
-        border-left: 1px solid #ffffff !important;
-    }
-
-    td.disabled{
-        background-color:#f8f8f8;
-        color:black;
-    }
-
     #article_row .form-group {
         margin-bottom: 0.5rem;
     }
-    
 </style>
 {{-- table row untuk di clone--}}  
 <div id="new_row" name="new_row[]" class="d-none">
     <div id="baru" class="tanda-baris" >
-        <div class="form-row d-flex align-items-end">
+        <div class="form-row d-flex align-items-center">
             <div class="col-md-5 col-12">
                 <div class="form-group">
                     <label for="article_id" class="d-block d-md-none">Article Code</label>

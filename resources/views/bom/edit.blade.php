@@ -89,65 +89,79 @@
                     <h4 class="card-title">Article</h4>
                 </div>
                 <div class="card-body">
-                    <div>
-                        <table class="" style="width:98%;table-layout: fixed;">
-                            <tbody>
-                                <tr>
-                                    <td class="isian-satu" style="width: 25%">
-                                        <label>Article Code</label>
-                                    </td>
-                                    <td class="isian" style="width: 5%">
-                                        <label>QTY</label>
-                                    </td>
-                                    <td class="isian" style="width: 5%">
-                                        <label>UOM</label>
-                                    </td>
-                                    <td class="isian" style="width: 10%">
-                                        <label>Type</label>
-                                    </td>
-                                    <td class="isian text-center" style="width: 5%">
-                                        <label>-</label>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
+                    <div class="form-row">
+                        <div class="col-md-6 col-12 d-none d-md-block">
+                            <div class="form-group">
+                                <label class="d-none d-md-block">Article Code</label>
+                            </div>
+                        </div>
+                        <div class="col-md-2 col-12 d-none d-md-block">
+                            <div class="form-group">
+                                <label class="d-none d-md-block text-right">QTY</label>
+                            </div>
+                        </div>
+                        <div class="col-md-1 col-12 d-none d-md-block">
+                            <div class="form-group">
+                                <label class="d-none d-md-block">Uom</label>
+                            </div>
+                        </div>
+                        <div class="col-md-2 col-12 d-none d-md-block">
+                            <div class="form-group">
+                                <label class="d-none d-md-block">Type</label>
+                            </div>
+                        </div>
+                        <div class="col-md-1 col-12 d-none d-md-block">
+                            <div class="form-group">
+                                <label class="d-none d-md-block">-</label>
+                            </div>
+                        </div>
                     </div>
                     <div class="" id="article_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;">
                         <input type="text" id ="last_row_number" class="d-none" value="{{ count($detail) }}">
                         @foreach ($detail as $key =>$item)
                             <div id="new_row{{ $key }}" class="tanda-baris barisDetail" >
-                                <table class="table-bordered" style="width: 98%;table-layout: fixed;">
-                                    <tbody>
-                                        <tr>
-                                            <td class="isian-satu" style="width: 25%">
-                                                <select class="form-control sku-select-system" id="article_id{{ $key }}" name="article_id[]" >
-                                                    @foreach($articles as $val)
-                                                        <option value="{{ $val->article_code }}|{{ $val->uom }}|{{ $val->costprice }}|{{ $val->article_type }}|{{ $val->type_name }}" data-uom-group={{ $val->uom_group }} {{ $val->article_code == $item->article_code ? "selected" : "" }}>{{$val->article_code}} - {{$val->article_desc}}</option>
-                                                    @endforeach
-                                                </select>
-                                            </td>
-                                            <td class="isian" style="width: 5%">
-                                                <input type="text" class="form-control-plaintext text-right tombol-panah" data-nama-el-kiri = "article_id" data-type-el-kiri = "select" data-uom-group={{ $item->uom_group }} id = "qtyBom{{ $key }}" name="qtyBom[]" value="{{ $item->uom_group =='PIECE' ? $item->qty*1 : $item->qty }}" maxlength="6" />
-                                            </td>
-                                            <td class="isian disabled" style="width: 5%">
-                                                <span class="" id = "uom" name="uom[]">{{ $item->uom }}</span>
-                                            </td>
-                                            <td class="isian disabled" style="width: 10%">
-                                                <span class="" id = "type" name="type[]">{{ $item->type_name }}</span>
-                                            </td>
-                                            <td class="isian text-center" style="width: 5%">
-                                                <a onmouseover="this.style.cursor='pointer'" onclick="$(this).parents('.tanda-baris').remove();">
-                                                    <i data-feather="trash-2" class="remove_button feather-24">
-                                                    </i>
-                                                </a>
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
+                                <div class="form-row d-flex align-items-center">
+                                    <div class="col-md-6 col-12">
+                                        <div class="form-group margin-nol">
+                                            <select class="form-control sku-select-system" id="article_id{{ $key }}" name="article_id[]" >
+                                                @foreach($articles as $val)
+                                                    <option value="{{ $val->article_code }}|{{ $val->uom }}|{{ $val->costprice }}|{{ $val->article_type }}|{{ $val->type_name }}" data-uom-group={{ $val->uom_group }} {{ $val->article_code == $item->article_code ? "selected" : "" }}>{{$val->article_code}} - {{$val->article_desc}}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-2 col-12">
+                                        <div class="form-group margin-nol">
+                                            <label for="qty_stock" class="d-block d-md-none">QTY</label>
+                                            <input type="text" class="form-control text-right tombol-panah" data-nama-el-kiri="article_id" data-type-el-kiri="select" data-uom-group={{ $item->uom_group }} id = "qtyBom{{ $key }}" name="qtyBom[]" value="{{ $item->uom_group =='PIECE' ? $item->qty*1 : $item->qty }}" maxlength="6" />
+                                        </div>
+                                    </div>
+                                    <div class="col-md-1 col-12">
+                                        <div class="form-group margin-nol">
+                                            <label for="uom" class="d-block d-md-none">Uom</label>
+                                            <span class="" id = "uom" name="uom[]">{{ $item->uom }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-2 col-12">
+                                        <div class="form-group margin-nol">
+                                            <label for="uom" class="d-block d-md-none">Type</label>
+                                            <span class="" id = "type" name="type[]">{{ $item->type_name }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-1 col-12">
+                                        <div class="form-group margin-nol">
+                                            <a onmouseover="this.style.cursor='pointer'" onclick="$(this).parents('.tanda-baris').remove();">
+                                                <i data-feather="trash-2" class="remove_button feather-24">
+                                                </i>
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                                <hr class="d-block d-md-none" />
                             </div>
                         @endforeach
                     </div>
-                    <div class="d-flex justify-content-between align-items-end mt-75 ml-75">
+                    <div class="d-flex justify-content-between align-items-end mt-75">
                         <button class="btn btn-primary btn-prev" type="button" id="addNewRow" onclick="add_new_row();">
                             <i data-feather="plus" class="align-middle mr-sm-25 mr-0"></i>
                             <span class="align-middle d-sm-inline-block d-none">Add Article</span>
@@ -156,7 +170,7 @@
                     <hr>
                     <div class="form-row">
                         <div class="col-md-12 col-12">
-                            <a href="{{ route('boms.index') }}" class="btn btn-warning">Back</a>
+                            <a href="{{ route('boms.index') }}" class="btn btn-success">Back</a>
                             <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Update</button>
                         </div>
                     </div>
@@ -169,43 +183,9 @@
 @endsection
 @section('styles')
 <style>
-
     textarea {
         resize: none;
-    }
-
-    .mb-03{
-        margin-bottom: 0.3rem;
-    }
-    
-    label.titik-dua::after{
-        content : ":"; 
-        position : absolute;
-        right : 1px;
-    }
-    td.isian{
-        padding-right:10px;
-        padding-left:10px;
-    }
-
-    td.isian-satu{
-        padding-right:5px;
-        /* padding-left:15px; */
-        width: 25%;border-top: 1px solid #ffffff !important;
-        border-bottom: 1px solid #ffffff !important;
-        border-left: 1px solid #ffffff !important;
-    }
-
-    td.disabled{
-        background-color:#f8f8f8;
-        color:black;
-    }
-
-    label.tanpa-padding{
-        padding-top: 5px;
-        padding-bottom: 0px;
-    }
-
+    }   
 </style>
 @endsection
 @section('scripts')
@@ -240,114 +220,122 @@
         });
     }
 
-    $("#cmdSave").click(function(){     
-        // ambil semua data article
-        let bomNumber = $('#bomNumber').val();
-        let objArticle = $("#article_row select[name='article_id[]']");
-        let objQty = $('input[name="qtyBom[]"]');
-        let articleCode1 = $('#articleCode').val().split("|");
-        articleCode = articleCode1[0];
-        let uom = articleCode1[1];
-        let group = articleCode1[5];
-        let customer  = articleCode1[4];
-
-        let tag = $('#tag').val().replace(/,/gi, '') || 0;
-        let passRate = $('#passRate').val().replace(/,/gi, '') || 0;
-        let passThru = $('#passThru').val().replace(/,/gi, '') || 0;
-        let cycleTime = $('#cycleTime').val().replace(/,/gi, '') || 0;
+    $("#cmdSave").click(function(){  
         
-        let note = $('#note').val();
-        let articles = []; 
-        let flag=0; 
-        let pesan="";
+        if (!$("#frmAdd")[0].checkValidity()){
+            $("#frmAdd").submit();
+        }else{
 
-        objArticle.map(function(i) {  
-		    let $this=$(this);
-            if ($this.val()){
-                let article=$this.val().split("|");
-                let articleName=$this.select2('data')[0].text;
-                let plu=article[0];
-                let uom=article[1];
-                let type=article[3];
-                let qty=objQty.eq(i).val().replace(/,/gi, '') || 0;
+            $('.disabled-el').removeAttr('disabled');
+            // ambil semua data article
+            let bomNumber = $('#bomNumber').val();
+            let objArticle = $("#article_row select[name='article_id[]']");
+            let objQty = $('input[name="qtyBom[]"]');
+            let articleCode1 = $('#articleCode').val().split("|");
+            articleCode = articleCode1[0];
+            let uom = articleCode1[1];
+            let group = articleCode1[5];
+            let customer  = articleCode1[4];
 
-                //es6
-                // let obj = ingredient.find(obj => obj.plu == plu);
-
-                //jquery
-                //cek apakah article ada yang double input ato ngk
-                let obj = $.grep(articles, function(obj){
-                    return obj.article_code === plu;
-                })[0];
-                
-                if(obj) {
-                    pesan +="Article "+articleName+" entered more than once !! <br>"; 
-                    flag=1;
-                } else {
-                    if ((plu!=='') && (qty> 0)){
-                        articles.push({
-                            "article_code":plu,
-                            "qty":qty,
-                            "uom":uom,
-                            "customer_code":customer,
-                            "type":type
-                        });
-                    }
-                } 
+            let tag = $('#tag').val().replace(/,/gi, '') || 0;
+            let passRate = $('#passRate').val().replace(/,/gi, '') || 0;
+            let passThru = $('#passThru').val().replace(/,/gi, '') || 0;
+            let cycleTime = $('#cycleTime').val().replace(/,/gi, '') || 0;
             
-                if (qty == 0){
-                    pesan +="QTY of items "+ articleName +" cannot be 0 <br>"; 
-                    flag=1;
-                }
-            }
-        });
+            let note = $('#note').val();
+            let articles = []; 
+            let flag=0; 
+            let pesan="";
 
-        if (customer == ''){
-			pesan +="Customer must be filled in <br>"; 
-			flag=1;
-		}
+            objArticle.map(function(i) {  
+                let $this=$(this);
+                if ($this.val()){
+                    let article=$this.val().split("|");
+                    let articleName=$this.select2('data')[0].text;
+                    let plu=article[0];
+                    let uom=article[1];
+                    let type=article[3];
+                    let qty=objQty.eq(i).val().replace(/,/gi, '') || 0;
 
-        if (articles.length == 0){
-			pesan +="Articles must be filled in completely <br>"; 
-			flag=1;
-		}
+                    //es6
+                    // let obj = ingredient.find(obj => obj.plu == plu);
 
-        if (flag==0){
-            $.ajax({
-                type: "post",
-                url: "{{ route('bom.update') }}",
-                data: {
-                    articles:JSON.stringify(articles),
-                    articleCode:articleCode,
-                    customer:customer,
-                    note:note,
-                    group:group,
-                    uom:uom,
-                    bomNumber:bomNumber,
-                    tag:tag,
-                    passRate:passRate,
-                    passThru:passThru,
-                    cycleTime:cycleTime
-                },
-                dataType: "json",
-                success: function(data) {
-                    if (data.status == 0 ){
-                        let message="";
-                        for(let i = 0; i < data.message.length; i++) {
-                            message += "-"+data.message[i]+"<br>";                           
+                    //jquery
+                    //cek apakah article ada yang double input ato ngk
+
+                    let obj = $.grep(articles, function(obj){
+                        return obj.article_code === plu;
+                    })[0];
+                    
+                    if(obj) {
+                        pesan +="Article "+articleName+" entered more than once !! <br>"; 
+                        flag=1;
+                    } else {
+                        if ((plu!=='') && (qty> 0)){
+                            articles.push({
+                                "article_code":plu,
+                                "qty":qty,
+                                "uom":uom,
+                                "customer_code":customer,
+                                "type":type
+                            });
                         }
-                        show_msg("Update BOM", message, data.alert);
-                    }else{
-                        show_msg("Update BOM", data.message, data.alert);
+                    } 
+                
+                    if (qty == 0){
+                        pesan +="QTY of items "+ articleName +" cannot be 0 <br>"; 
+                        flag=1;
                     }
-                },
-                error: function(error) {
-                    console.log(error);
                 }
             });
 
-        }else{
-            Swal.fire('Warning..',pesan,'warning');
+            if (customer == ''){
+                pesan +="Customer must be filled in <br>"; 
+                flag=1;
+            }
+
+            if (articles.length == 0){
+                pesan +="Articles must be filled in completely <br>"; 
+                flag=1;
+            }
+
+            if (flag==0){
+                $.ajax({
+                    type: "post",
+                    url: "{{ route('bom.update') }}",
+                    data: {
+                        articles:JSON.stringify(articles),
+                        articleCode:articleCode,
+                        customer:customer,
+                        note:note,
+                        group:group,
+                        uom:uom,
+                        bomNumber:bomNumber,
+                        tag:tag,
+                        passRate:passRate,
+                        passThru:passThru,
+                        cycleTime:cycleTime
+                    },
+                    dataType: "json",
+                    success: function(data) {
+                        if (data.status == 0 ){
+                            let message="";
+                            for(let i = 0; i < data.message.length; i++) {
+                                message += "-"+data.message[i]+"<br>";                           
+                            }
+                            show_msg("Update BOM", message, data.alert);
+                        }else{
+                            show_msg("Update BOM", data.message, data.alert);
+                        }
+                    },
+                    error: function(error) {
+                        console.log(error);
+                    }
+                });
+
+            }else{
+                Swal.fire('Warning..',pesan,'warning');
+            }
         }
     
     });
@@ -417,7 +405,7 @@
 
     function changeselect(dependent,obj) {
       $.ajax({
-        url:"{{route('dynamic.dependent')}}",
+        url:"{{ route('dynamic.dependent') }}",
         method:"POST",
         data:{
             dependent:dependent

@@ -2,7 +2,6 @@
 @section('title', $title)
 @section('content')
 @include('layouts.breadcrumb')
-@include('partials.alert')
 <section id="add-index">
     <div class="form-row">
         <div class="col-md-6">
@@ -27,8 +26,10 @@
                                         <option value="{{$val->code}}" {{ $val->code == old("articleType",$article->article_type) ? "selected" : ""}}>{{$val->code}} - {{$val->name}}</option>
                                     @endforeach
                                 </select>
-                            </div>              
-                            <div class="form-group col-md-6">
+                            </div>       
+                        </div>
+                        <div class="form-row">       
+                            <div class="form-group col-md-12">
                                 <label class="form-label" for="group">Group of material</label>
                                 <select class="select2 form-control" id="group" name="group" required>
                                     <option value="">All</option>
@@ -66,7 +67,7 @@
                             <div class="col-12">
                                 <div class="form-group">
                                 <label for="nama">Description *</label>
-                                    <input type="text" id="nama" name="nama" class="form-control" value="{{ old('nama',$article->desc) }}"  required  maxlength="100"/>
+                                    <input type="text" id="nama" name="nama" class="form-control text-uppercase" value="{{ old('nama',$article->desc) }}"  required  maxlength="100"/>
                                 </div>
                             </div>
                         </div>                      
@@ -78,7 +79,7 @@
                             <div class="form-group col-md-6">
                                 <label class="form-label" for="uom">Smallest unit *</label>
                                 <select class="select2 form-control" id="uom" name="uom" required>
-                                    <option value="">All</option>
+                                    <option value=""></option>
                                     @foreach($uoms as $val)
                                         <option value="{{$val->code}}" {{ $val->code == old("uom",$article->uom) ? "selected" : ""}} >{{$val->code}} - {{$val->name}}</option>
                                     @endforeach
@@ -96,7 +97,7 @@
                         <div class="form-group col-md-4 align-self-end" >
                             <div class="custom-control custom-checkbox">
                                 <input type="checkbox" class="custom-control-input" id="status" name="status"  {{ old('status',$article->status) == '1' ? 'checked' : '' }} />
-                                <label class="custom-control-label" for="status">Aktif</label>
+                                <label class="custom-control-label" for="status">Active</label>
                             </div>
                         </div>                        
                     </form>
@@ -119,9 +120,9 @@
                     <div class="form-row">
                         <div class="col-12">
                             <a href="{{ route('articles.index') }}" class="btn btn-outline-secondary">
-                                Cancel
+                                Back
                             </a>
-                            <button class="btn btn-success" type="button" id="cmdSave" name="cmdSave">Save</button>
+                            <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Update</button>
                         </div>
                     </div>
                 </div>
@@ -157,7 +158,6 @@
         </div>
     </div>
 </section>
-
 <div id="viewImg" class="modal bisa-geser fade text-left" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
         <div class="modal-content">
@@ -174,9 +174,9 @@
         </div>
     </div>
 </div>
-
 @endsection
 @section('styles')
+<link rel="stylesheet" type="text/css" href="{{ asset('assets/css/jquery-ui.css') }}">
 <link rel="stylesheet" type="text/css" href="{{asset('app-assets/css/pages/app-ecommerce.css')}}">
 <style>
     textarea {
@@ -212,28 +212,20 @@
 </style>
 @endsection
 @section('scripts')
+<script src="{{ asset('assets/js/ui.1.13.0.jquery-ui.js') }}"></script>
 <script src="{{asset('app-assets/vendors/js/extensions/dropzone.min.js')}}"></script>
 <script type="text/javascript">
     let hapusCount=1;
     $(document).ready(function(){           
-        $("#frmAdd").validate({
-            invalidHandler: function(event, validator) {
-            let errors = validator.numberOfInvalids();
-            if (errors) {
-                let message = errors == 1
-                    ? 'You missed 1 field. It has been highlighted'
-                    : 'You missed ' + errors + ' fields. They have been highlighted';
-                $("#alert-message .alert-body").html(message);
-                $("#alert-message").show();
-                $("#alert-message").fadeTo(5000, 500).slideUp(500, function(){
-                    $("#alert-message").slideUp(500);
-                });
-            } else {
-                $("#alert-message").hide();
-            }
-        }
-        }).settings.ignore = "";
+        validateFormToast("frmAdd");
         mask_thousand();
+    });
+
+    let availableTags ="{{ $articles }}";
+    availableTags=availableTags.replace(/[[\]]/g,'');
+    availableTags=availableTags.replace(/&quot;/g,'').split(",");
+    $("#nama").autocomplete({
+        source: availableTags
     });
 
     $(".select2").on('change', function() {

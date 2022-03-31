@@ -1,33 +1,5 @@
 <style>
-    .jarak-antar-attr{
-        padding-left: 0.3rem;
-        margin-bottom: 0.3rem;
-        padding-right: 0.3rem;
-    }
-
-    .jarak-antar-attr-qty-order{
-        padding-left: 0.3rem;
-        margin-bottom: 1.8rem;
-        padding-right: 0.3rem;
-    }
-
-    td.isian{
-        padding-right:10px;
-        padding-left:10px;
-    }
-
-    td.isian-satu{
-        padding-right:5px;
-        padding-left:15px;
-        width: 25%;border-top: 1px solid #ffffff !important;
-        border-bottom: 1px solid #ffffff !important;
-        border-left: 1px solid #ffffff !important;
-    }
-
-    td.disabled{
-        background-color:#f8f8f8;
-        color:black;
-    }
+   
     
 </style>
 {{-- table row untuk di clone--}}  
@@ -60,7 +32,7 @@
                     <div class="input-group">
                         <input type="text" class="form-control numeral-mask text-right" id = "qty_order" name="qty_order[]" maxlength="9" />
                         <div class="input-group-append">
-                            <span class="input-group-text"  id ="uom" name="uom[]"></span>
+                            <span class="input-group-text" id ="uom" name="uom[]"></span>
                         </div>
                     </div>
                 </div>

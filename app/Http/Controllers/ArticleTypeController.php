@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Crypt;
 use Response;
 use App\Permission;
 use DataTables;
@@ -13,16 +14,22 @@ use DB;
 
 class ArticleTypeController extends Controller
 {
+    private $title;
+    public function __construct()
+    {
+        $this->title = "Article Type";
+    }
+
     public function index(Request $request)
     {
-        $data['title'] = "Article Type";
+        $data['title'] = "$this->title";
         return view("articleType.index",$data);
     }
 
     public function create(Request $request)
     {
-        $data['title'] = "Create Article Type";
-        $data['subtitle'] = "Create New Article Type";
+        $data['title'] = "Create $this->title";
+        $data['subtitle'] = "Create New $this->title";
                         
         return view("articleType.create",$data);
     }
@@ -69,16 +76,18 @@ class ArticleTypeController extends Controller
                 ]);
 
                 DB::commit();
-                $alert  ="alert-success";
-                $message  = "$kode is successfully saved";
-                \LogActivity::addToLog('Article type save ',"username: $username Status $message");
-                return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);  
+                $title ="Save $this->title";
+                $alert  ="success";
+                $message  = "$this->title $kode is successfully saved";
+                \LogActivity::addToLog($title,"username: $username Status $message");
+                return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);
 
         } catch (Exception $e) {
             DB::rollBack();
-            $alert  ="alert-warning";
-            $message  = "$kode is failed to save";
-            \LogActivity::addToLog('Article type save ',"username: $username Status $message");
+            $title ="Save $this->title";
+            $alert  ="warning";
+            $message  = "$this->title $kode is failed to save";
+            \LogActivity::addToLog($title,"username: $username Status $message");
             return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);   
         }
         
@@ -86,10 +95,9 @@ class ArticleTypeController extends Controller
 
     public function edit(Request $request)
     {
-
-        $id=$request->id;
-        $data['title'] = "Edit Article Type";
-        $data['subtitle'] = "Edit Article Type";
+        $id=Crypt::decryptString($request->id);
+        $data['title'] = "Edit $this->title";
+        $data['subtitle'] = "Edit $this->title";
         $data['types'] = DB::table('article_types')
         ->where('id',$id)
         ->get()->first();
@@ -101,7 +109,7 @@ class ArticleTypeController extends Controller
     public function update(Request $request)
     {
         $username =  Auth::user()->username;
-        $id = $request->id;
+        $id=$request->id;
         $kode = $request->input('kode');
         $nama = strtoupper($request->input('nama'));
         $desc = $request->input('desc');
@@ -114,7 +122,6 @@ class ArticleTypeController extends Controller
             'iunique' => "The code $kode has already been taken",
         ];
         
-
         $rule = [
             'nama'=>'required'
         ];
@@ -136,33 +143,35 @@ class ArticleTypeController extends Controller
                     ]
                 );
 
-                DB::commit();
-
                 if($row_affected>0){
-                    $alert  ="alert-success";
-                    $message  = "Successfully updated";
-                    \LogActivity::addToLog('Article Type update ',"username: $username Status $message");
+                    DB::commit();
+                    $title ="Update $this->title";
+                    $alert  ="success";
+                    $message  = "$this->title $nama is successfully updated";
+                    \LogActivity::addToLog($title,"username: $username Status $message");
                     return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);  
                 }else{
-                    $alert  ="alert-warning";
-                    $message  = "Failed to update";
-                    \LogActivity::addToLog('Article Type update ',"username: $username Status $message");
+                    $title ="Update $this->title";
+                    $alert  ="warning";
+                    $message  = "$this->title $nama is failed to updated";
+                    \LogActivity::addToLog($title,"username: $username Status $message");
                     return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);
                 }
 
         } catch (Exception $e) {
             DB::rollBack();
-            $alert  ="alert-warning";
-            $message  = "Failed to update";
-            \LogActivity::addToLog('Article Type update ',"username: $username Status $message");
+            $title ="Update $this->title";
+            $alert  ="warning";
+            $message  = "$this->title $nama is failed to updated";
+            \LogActivity::addToLog($title,"username: $username Status $message");
             return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);
         }
     }
 
     public function destroy(Request $request)
     {
-
         $username =  Auth::user()->username;
+        $nama = $request->name;
         $id = $request->id;
 
         $row_affected = DB::table('article_types')
@@ -170,17 +179,18 @@ class ArticleTypeController extends Controller
         ->delete();
 
         if($row_affected > 0){
-            $alert  ="alert-success";
-            $message  = "Successfully Deleted";
-            \LogActivity::addToLog('Article type delete ',"username: $username Status $message");
-            return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);  
+            $title ="Delete $this->title";
+            $alert  ="success";
+            $message  = "$this->title $nama is successfully deleted";
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);              
         }else{
-            $alert  ="alert-warning";
-            $message  = "Failed to Delete";
-            \LogActivity::addToLog('Account type delete ',"username: $username Status $message");
+            $title ="Delete $this->title";
+            $alert  ="warning";
+            $message  = "$this->title $articleAltCode is failed to delete";
+            \LogActivity::addToLog($title,"username: $username Status $message");
             return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);
         }
-
     }
 
     public function list(Request $request)
@@ -189,34 +199,35 @@ class ArticleTypeController extends Controller
         $name = strtolower($request->name);
 
         //ilike = string to lower
-        $data=DB::table('article_types');
-        $code ? $data->where('code','ilike','%'.$code.'%') : "";
-        $name ? $data->where('name','ilike','%'.$name.'%') : "";
-        $data->orderBy('name')->get();;
+        $data=DB::table('article_types')
+        ->where(function ($query) use ($code,$name) {
+            $code ? $query->where('code','ilike','%'.$code.'%') : "";
+            $name ? $query->where('name','ilike','%'.$name.'%') : "";
+        })->orderBy('name')->get();;
 
         return Datatables::of($data)
         ->addColumn('action', function ($data) {
             $buttons = '<div class="d-inline-flex">
-                            <a class="pr-1 dropdown-toggle hide-arrow text-primary" data-toggle="dropdown">
+                            <a class="pr-1 dropdown-toggle hide-arrow" data-toggle="dropdown">
                                 <i data-feather="menu"></i>
                             </a>';
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
             if (Auth::user()->can('articleType-edit')) {
-            $buttons .=         '<a href="'. route('articleType.edit', ['id'=>$data->id]) .'" class="dropdown-item">
+            $buttons .=         '<a href="'. route('articleType.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                     <i data-feather="file-text"></i>
                                     Edit
                                 </a>';
             }
             if (Auth::user()->can('articleType-delete')) {
-            $buttons .=         "<a href='javascript:;'
-                                    id='deleteButton'
-                                    class='dropdown-item'
-                                    data-toggle='modal'
-                                    data-target='#smallModal'
-                                    data-href='". route("articleType.destroy", ["id"=>$data->id]) ."'>
-                                    <i data-feather='trash-2'></i>
+            $buttons .=         '<a href="javascript:;"
+                                    id="deleteButton"
+                                    class="dropdown-item"
+                                    data-toggle="modal"
+                                    data-target="#smallModal"
+                                    data-href="'. route('articleType.destroy', ['id'=>$data->id]) .'">
+                                    <i data-feather="trash-2" class="feather-14-red"></i>
                                     Delete
-                                </a>";
+                                </a>';
             }
             $buttons .=     '</div>
                         </div>';

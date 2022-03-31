@@ -74,7 +74,6 @@
       </div>
     </div>
 </section>
-
 <section id="table-article">
     <div class="card">
       <div class="card-header">
@@ -102,9 +101,7 @@
       </div>
     </div>
 </section>
-
 <!-- Modal movement-->
-
 <div class="modal fade text-left bisa-geser" id="mdlmovement" tabindex="-1" role="dialog" aria-hidden="true">
   <div class="modal-dialog modal-xl modal-dialog-centered" role="document">
       <div class="modal-content">
@@ -136,9 +133,7 @@
       </div>
   </div>
 </div>
-
 @include('partials.delete-modal')
-
 @endsection
 @section('styles')
 <style>
@@ -146,23 +141,13 @@
 @endsection
 @section('scripts')
 <script type="text/javascript">
-  $(document).ready(function(){    
-    let href;
+  $(document).ready(function(){
     $(document).on('click', '#deleteButton', function(event) {
         event.preventDefault();
-        href = $(this).data('href');
+        let href = $(this).data('href');
         $('#modalConfirmation').attr("action", href);
     });
   });
-
-  let showAlert = "{{ Session::get('alert') }}";
-
-  if ( showAlert ){
-    showList();
-    $("#alert-message-alert").fadeTo(5000, 500).slideUp(500, function(){
-      $("#alert-message-alert").slideUp(500);
-    });
-  }
 
   //refresh di cards
   $('a[data-action="reload"]').on('click', function () {
@@ -187,7 +172,7 @@
 
   function showList(name,code,group,cust,supp,type){
     let dtdom ='<"d-flex justify-content-between align-items-center header-actions mx-1 row mt-75" <"col-lg-12 col-xl-6" l><"col-lg-12 col-xl-6 pl-xl-75 pl-0"<"dt-action-buttons text-xl-right text-lg-left text-md-right text-left d-flex align-items-center justify-content-lg-end align-items-center flex-sm-nowrap flex-wrap mr-1"<"mr-1"f>B>>>t<"d-flex justify-content-between mx-2 row mb-1"<"col-sm-12 col-md-6"i><"col-sm-12 col-md-6"p>>';
-    let arr_col_print =[1,2,3,4,5,6,7,8]; 
+    let arr_col_print =[1,2,3,4,5,6,7,8,9]; 
     $(function(){
       let oTable =$("#detailedTable").DataTable({
         ajax:
@@ -213,7 +198,7 @@
         buttons: [
           {
             extend: 'collection',
-            className: 'btn btn-outline-secondary dropdown-toggle mr-2 mt-07',
+            className: 'btn btn-outline-secondary dropdown-toggle mt-07',
             text: feather.icons['share'].toSvg({ class: 'font-small-4 mr-50' }) + 'Export',
             buttons: [
               {
@@ -281,24 +266,19 @@
         // scrollX: true, //pakai ini supaya waktu responsive  bisa di scroll horizontal
         columns: [
             { data: 'action', name: 'action',title:'action', orderable: false, searchable: false },
-            { data: 'code', name: 'article_alternative_code',title:'Code' },
+            { data: 'article_alternative_code', name: 'article_alternative_code',title:'Code' },
             { data: 'desc', name: 'article_desc',title:'Name' },
             { data: 'cust', name: 'third_party.nama',title:'Custs/Supp' },
             { data: 'costprice', name: 'costprice',title:'Price',render: $.fn.dataTable.render.number(',','.') },
-            // { data: 'article_qty', name: 'article_qty',title:'Qty',render: $.fn.dataTable.render.number(',','.',3) },
-            { data: "article_qty", name: 'article_stock.article_qty',title:'Qty',
-              render: function (data, type, row) {
-                return data ? humanizeNumber(data*1) : 0;
-              }
-            },
+            { data: 'article_qty', name: 'article_qty',title:'Qty'},
             { data: 'uom', name: 'uom',title:'UOM' },
             { data: 'group', name: 'group_materials.name',title:'Group' },
+            { data: 'status', name: 'status',title:'Status' },
             { data: 'note', name: 'note',title:'Note' }
         ],
       });
     });
     //$('div.head-label').html('<h6 class="mb-0">Data Users</h6>');
-    
   }
 
   function movement(artCode,artikelAlternativeCode,artDesc){
@@ -335,7 +315,7 @@
         buttons: [
           {
             extend: 'collection',
-            className: 'btn btn-outline-secondary dropdown-toggle mr-2 mt-07',
+            className: 'btn btn-outline-secondary dropdown-toggle mt-07',
             text: feather.icons['share'].toSvg({ class: 'font-small-4 mr-50' }) + 'Export',
             buttons: [
               {
@@ -409,51 +389,51 @@
     });
   }
 
-    //export all data on datatables and all pages
-    var oldExportAction = function (self, e, dt, button, config) {
-        if (button[0].className.indexOf('buttons-excel') >= 0) {
-            if ($.fn.dataTable.ext.buttons.excelHtml5.available(dt, config)) {
-                $.fn.dataTable.ext.buttons.excelHtml5.action.call(self, e, dt, button, config);
-            }
-            else {
-                $.fn.dataTable.ext.buttons.excelFlash.action.call(self, e, dt, button, config);
-            }
-        } else if (button[0].className.indexOf('buttons-print') >= 0) {
-            $.fn.dataTable.ext.buttons.print.action(e, dt, button, config);
-        }
-    };
+  //export all data on datatables and all pages
+  var oldExportAction = function (self, e, dt, button, config) {
+      if (button[0].className.indexOf('buttons-excel') >= 0) {
+          if ($.fn.dataTable.ext.buttons.excelHtml5.available(dt, config)) {
+              $.fn.dataTable.ext.buttons.excelHtml5.action.call(self, e, dt, button, config);
+          }
+          else {
+              $.fn.dataTable.ext.buttons.excelFlash.action.call(self, e, dt, button, config);
+          }
+      } else if (button[0].className.indexOf('buttons-print') >= 0) {
+          $.fn.dataTable.ext.buttons.print.action(e, dt, button, config);
+      }
+  };
 
-    var newExportAction = function (e, dt, button, config) {
-        var self = this;
-        var oldStart = dt.settings()[0]._iDisplayStart;
+  var newExportAction = function (e, dt, button, config) {
+      var self = this;
+      var oldStart = dt.settings()[0]._iDisplayStart;
 
-        dt.one('preXhr', function (e, s, data) {
-            // Just this once, load all data from the server...
-            data.start = 0;
-            data.length = 2147483647;
+      dt.one('preXhr', function (e, s, data) {
+          // Just this once, load all data from the server...
+          data.start = 0;
+          data.length = 2147483647;
 
-            dt.one('preDraw', function (e, settings) {
-                // Call the original action function 
-                oldExportAction(self, e, dt, button, config);
+          dt.one('preDraw', function (e, settings) {
+              // Call the original action function 
+              oldExportAction(self, e, dt, button, config);
 
-                dt.one('preXhr', function (e, s, data) {
-                    // DataTables thinks the first item displayed is index 0, but we're not drawing that.
-                    // Set the property to what it was before exporting.
-                    settings._iDisplayStart = oldStart;
-                    data.start = oldStart;
-                });
+              dt.one('preXhr', function (e, s, data) {
+                  // DataTables thinks the first item displayed is index 0, but we're not drawing that.
+                  // Set the property to what it was before exporting.
+                  settings._iDisplayStart = oldStart;
+                  data.start = oldStart;
+              });
 
-                // Reload the grid with the original page. Otherwise, API functions like table.cell(this) don't work properly.
-                setTimeout(dt.ajax.reload, 0);
+              // Reload the grid with the original page. Otherwise, API functions like table.cell(this) don't work properly.
+              setTimeout(dt.ajax.reload, 0);
 
-                // Prevent rendering of the full data to the DOM
-                return false;
-            });
-        });
+              // Prevent rendering of the full data to the DOM
+              return false;
+          });
+      });
 
-        // Requery the server with the new one-time export settings
-        dt.ajax.reload();
-    };
+      // Requery the server with the new one-time export settings
+      dt.ajax.reload();
+  };
 
   $.ajaxSetup({
     headers: {

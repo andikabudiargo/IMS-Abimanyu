@@ -14,9 +14,15 @@ use DB;
 
 class ArticleController extends Controller
 {
+    private $title;
+    public function __construct()
+    {
+        $this->title = "Article";
+    }
+
     public function index(Request $request)
     {
-        $data['title'] = "Article";
+        $data['title'] = $this->title;
 
         $data['types'] = DB::table('article_types')
         ->where ('status','=',1)
@@ -44,8 +50,8 @@ class ArticleController extends Controller
 
     public function create(Request $request)
     {
-        $data['title'] = "Create Article";
-        $data['subtitle'] = "Create New Article";
+        $data['title'] = "Create $this->title";
+        $data['subtitle'] = "Create New $this->title";
         
         $data['types'] = DB::table('article_types')
         ->where ('status','=',1)
@@ -60,6 +66,11 @@ class ArticleController extends Controller
         $data['uoms'] = DB::table('uom')
         ->orderBy('name')
         ->get();
+
+        $data['articles']= DB::table('article') 
+        ->orderBy('article_desc')
+        ->distinct('article_desc')
+        ->pluck('article_desc');
                         
         return view("articles.create",$data);
     }
@@ -171,7 +182,8 @@ class ArticleController extends Controller
         });
 
         $rule = [
-            'nama'=>'required'
+            'nama'=>'required',
+            'articleType'=>'required'
         ];
 
         $this->validate($request,$rule,$messages);
@@ -216,19 +228,20 @@ class ArticleController extends Controller
                     }
                 }
                
-
                 DB::commit();
-                $alert  ="alert-success";
-                $message  = "$articleCode is successfully saved";
-                \LogActivity::addToLog('Article save ',"username: $username Status $message");
-                return redirect()->back()->with(['alert'=>$alert,'message'=> $message,'articleCode'=>$articleCode]);  
+                $title ="Save $this->title";
+                $alert  ="success";
+                $message  = "$this->title $articleCode is successfully saved";
+                \LogActivity::addToLog($title,"username: $username Status $message");
+                return redirect()->back()->with(['status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'articleCode'=>$articleCode]);  
 
         } catch (Exception $e) {
             DB::rollBack();
-            $alert  ="alert-warning";
-            $message  = "$articleCode is failed to save";
-            \LogActivity::addToLog('Article save ',"username: $username Status $message");
-            return redirect()->back()->with(['alert'=>$alert,'message'=> $message,'articleCode'=>$articleCode]);   
+            $title ="Save $this->title";
+            $alert  ="warning";
+            $message  = "$this->title $articleCode is failed to save";
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return redirect()->back()->with(['status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'articleCode'=>$articleCode]);
         }
         
     }
@@ -267,6 +280,11 @@ class ArticleController extends Controller
         $data['uoms'] = DB::table('uom')
         ->orderBy('name')
         ->get();
+
+        $data['articles']= DB::table('article') 
+        ->orderBy('article_desc')
+        ->distinct('article_desc')
+        ->pluck('article_desc');
 
         return view('articles.edit',$data);
         
@@ -316,27 +334,22 @@ class ArticleController extends Controller
         $username =  Auth::user()->username;
         $id = $request->id;
         $artCode = $request->artCode;
-        $type = $request->input('articleType');
-        $cust = $request->input('cust');
-        $nama = strtoupper($request->input('nama'));
-        $group = $request->input('group');
-        $uom = $request->input('uom');
-        $price = $request->input('price');
+        $articleAltCode = $request->kode;
+        $type = $request->articleType;
+        $cust = $request->cust;
+        $nama = strtoupper($request->nama);
+        $group = $request->group;
+        $uom = $request->uom;
+        $price = $request->price;
         $price = $price ? str_replace(",","",$price) : $price;
-        $note = $request->input('note');
-        $files = $request->input('files');
-        $fileDihapus = $request->input('fileDihapus');
-        $status = $request->input('status') ? '0' : '1';
+        $note = $request->note;
+        $files = $request->files;
+        $fileDihapus = $request->fileDihapus;
+        $status = $request->statu == 'on' ? '0' : '1';
         $pesan = '';
-
-        $colorCode = $request->input('colorCode');
-        $variant = $request->input('variant');
-        
-
-        // status : 1= aktif, 0= closing
-
-        $pesan = '';
-        
+        $colorCode = $request->colorCode;
+        $variant = $request->variant;
+        // status : 1= aktif, 0= freeze        
         $messages = [
             'required' => 'The field is required.',
             'unique' => 'The code has already been taken',
@@ -391,46 +404,71 @@ class ArticleController extends Controller
                 DB::commit();
 
                 if($row_affected>0){
-                    $alert  ="alert-success";
-                    $message  = "Successfully updated";
-                    \LogActivity::addToLog('Article update ',"username: $username Status $message");
-                    return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);  
+                    DB::commit();
+                    $title ="Update $this->title";
+                    $alert  ="success";
+                    $message  = "$this->title $articleAltCode is successfully updated";
+                    \LogActivity::addToLog($title,"username: $username Status $message");
+                    return redirect()->back()->with(['status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'articleCode'=>$articleAltCode]);
                 }else{
-                    $alert  ="alert-warning";
-                    $message  = "Failed to update";
-                    \LogActivity::addToLog('Article update ',"username: $username Status $message");
-                    return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);
+                    $title ="Update $this->title";
+                    $alert  ="warning";
+                    $message  = "$this->title $articleAltCode is failed to updated";
+                    \LogActivity::addToLog($title,"username: $username Status $message");
+                    return redirect()->back()->with(['status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'articleCode'=>$articleAltCode]);
                 }
 
         } catch (Exception $e) {
             DB::rollBack();
-            $alert  ="alert-warning";
-            $message  = "Failed to update";
-            \LogActivity::addToLog('Article update ',"username: $username Status $message");
-            return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);
+            $title ="Update $this->title";
+            $alert  ="warning";
+            $message  = "$this->title $articleAltCode is failed to updated";
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return redirect()->back()->with(['status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'articleCode'=>$articleAltCode]);
         }
     }
 
     public function destroy(Request $request)
     {
-
         $username =  Auth::user()->username;
         $id = $request->id;
+        $artCode = $request->artCode;
+        $articleAltCode = $request -> articleAltCode;
 
-        $row_affected = DB::table('article')
-        ->where('id',$id)
-        ->delete();
+        $count = DB::table('movement')
+        ->where('artikel_code',$artCode)
+        ->count();
+
+        $statusDelete ='Deleted';
+        if ($count > 1){
+            $row_affected=DB::table('article')
+            ->where('id',$id)
+            ->update(
+                [
+                    'status' => '0',
+                    'updated_by' => Auth::user()->username,
+                    'updated_at' => date('Y-m-d H:i:s')
+                ]
+            );
+            $statusDelete ='Freeze';
+        }else{
+            $row_affected = DB::table('article')
+            ->where('id',$id)
+            ->delete();
+        }
 
         if($row_affected>0){
-            $alert  ="alert-success";
-            $message  = "Successfully Deleted";
-            \LogActivity::addToLog('Article delete ',"username: $username Status $message");
-            return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);  
+            $title ="$statusDelete $this->title";
+            $alert  ="success";
+            $message  = "$this->title $articleAltCode is successfully $statusDelete";
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return redirect()->back()->with(['status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'articleCode'=>$articleAltCode]);
         }else{
-            $alert  ="alert-warning";
-            $message  = "Failed to Delete";
-            \LogActivity::addToLog('Article delete ',"username: $username Status $message");
-            return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);
+            $title ="$statusDelete $this->title";
+            $alert  ="warning";
+            $message  = "$this->title $articleAltCode is failed to $statusDelete";
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return redirect()->back()->with(['status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'articleCode'=>$articleAltCode]);
         }
 
     }
@@ -445,9 +483,11 @@ class ArticleController extends Controller
         $type = strtolower($request->type);
 
         $data=DB::table('article')
-        ->select('article.*','costprice','article.article_code as art_code','article_alternative_code as code','article_desc as desc','article.uom','quality','note','article.id','group_materials.name as group','third_party.nama as cust','article_stock.article_qty as article_qty')->leftJoin('group_materials', 'group_materials.code', '=', 'article.group_of_material')
+        ->select('article.*','costprice','article.article_code as art_code','article_alternative_code as code','article_desc as desc','article.uom','quality','note','article.id','group_materials.name as group','third_party.nama as cust','article_stock.article_qty as article_qty','uom.uom_group')
+        ->leftJoin('group_materials', 'group_materials.code', '=', 'article.group_of_material')
         ->leftJoin('third_party', 'third_party.kode', '=', 'article.third_party')
         ->leftJoin('article_stock', 'article_stock.article_code', '=', 'article.article_code')
+        ->leftJoin('uom','uom.code','article.uom')
         ->where(function ($query) use ($code,$name,$group,$cust,$supp,$type) {
             $code ? $query->where('article_alternative_code','ilike','%'.$code.'%') :'';
             $name ? $query->where('article_desc','ilike','%'.$name.'%') :'';
@@ -455,12 +495,12 @@ class ArticleController extends Controller
             $cust ? $query->where('third_party','ilike','%'.$cust.'%') :'';
             $supp ? $query->where('third_party','ilike','%'.$supp.'%') :'';
             $type ? $query->where('article_alternative_code','ilike',$type.'%') :'';      
-        })->orderBy('article_desc')->get(['costprice','article.article_code','article_alternative_code as code','article_desc as desc','article.uom','quality','note','article.id','group_materials.name as group','third_party.nama as cust','article_stock.article_qty as article_qty']);
+        })->orderBy('article_desc')->get();
         
         return Datatables::of($data)
         ->addColumn('action', function ($data) {
             $buttons = '<div class="d-inline-flex">
-                            <a class="pr-1 dropdown-toggle hide-arrow text-primary" data-toggle="dropdown">
+                            <a class="pr-1 dropdown-toggle hide-arrow" data-toggle="dropdown">
                                 <i data-feather="menu"></i>
                             </a>';
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
@@ -480,22 +520,38 @@ class ArticleController extends Controller
                                     Detail
                                 </a>';
             if (Auth::user()->can('article-delete')) {
-            $buttons .=         "<a href='javascript:;'
-                                    id='deleteButton'
-                                    class='dropdown-item'
-                                    data-toggle='modal'
-                                    data-target='#smallModal'
-                                    data-href='". route("article.destroy", ["id"=>$data->id]) ."'>
-                                    <i data-feather='trash-2'></i>
+            $buttons .=         '<a href="javascript:;"
+                                    id="deleteButton"
+                                    class="dropdown-item"
+                                    data-toggle="modal"
+                                    data-target="#smallModal"
+                                    data-href="'. route("article.destroy", ['id'=>$data->id,'artCode'=>$data->art_code,'articleAltCode'=>$data->article_alternative_code]) .'">
+                                    <i data-feather="trash-2" class="feather-14-red"></i>
                                     Delete
-                                </a>";
+                                </a>';
             }
             $buttons .=     '</div>
                         </div>';
 
             return $buttons;
-            })
-        ->rawColumns(['action'])
+        })
+        ->addColumn('article_alternative_code', function ($data) {
+            return '<a href="'. route('article.show', ['id'=>Crypt::encryptString($data->id)]) .'" 
+                        type="button" 
+                        style="text-align: left;">
+                        <span>'.$data->article_alternative_code.'</span>
+                    </a>';
+        })
+        ->addColumn('article_qty', function ($data) {
+            $artilceQty = $data->uom_group =='PIECE' ? number_format($data->article_qty) : number_format($data->article_qty,3);
+            return $data->article_qty < 0 ? "<div class='text-red'>$artilceQty</div>" : "<div class='text-hitam'>$artilceQty</div>";
+        })
+        ->addColumn('status', function ($data) {
+            $badges=['badge-light-danger','badge-light-primary'];
+            $statusCode = ['Freeze','Active'];
+            return "<div class='badge badge-pill ".$badges[$data->status]."'>".$statusCode[$data->status]."</div>";
+        })
+        ->rawColumns(['action','article_alternative_code','status','article_qty'])
         ->make(true);
     }
 
@@ -513,7 +569,7 @@ class ArticleController extends Controller
         })->get();
         
         $output='';
-        $output .='<option value=""></option>';
+        $output .= $code == 'FG'?'<option value=""></option>':'<option value="All">All</option>';
 
         foreach ($data as $row){
             $output .="<option value='$row->kode'>$row->kode - $row->nama</option>";

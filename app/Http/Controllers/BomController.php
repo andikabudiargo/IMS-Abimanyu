@@ -16,9 +16,15 @@ use AppHelpers;
 
 class BomController extends Controller
 {
+    private $title;
+    public function __construct()
+    {
+        $this->title = "Bill Of Material";
+    }
+
     public function index(Request $request)
     {
-        $data['title'] = "Bill Of Material";
+        $data['title'] = "$this->title";
 
         $data['articles'] = DB::table('article')
         ->leftJoin('third_party','article.third_party','third_party.kode')
@@ -65,8 +71,8 @@ class BomController extends Controller
 
     public function create(Request $request)
     {
-        $data['title'] = "Create Bill Of Material";
-        $data['subtitle'] = "Create Bill Of Material";
+        $data['title'] = "Create $this->title";
+        $data['subtitle'] = "Create $this->title";
 
         $data['articles'] = DB::table('article')
         ->leftJoin('third_party','article.third_party','third_party.kode')
@@ -184,8 +190,8 @@ class BomController extends Controller
     public function show(Request $request)
     {
         $id=Crypt::decryptString($request->id);
-        $data['title'] = "Edit Bill Of Material";
-        $data['subtitle'] = "Edit Bill Of Material";
+        $data['title'] = "Edit $this->title";
+        $data['subtitle'] = "Edit $this->title";
 
         $data['header'] = DB::table('bom_hdr')
         ->where('id',$id)
@@ -193,6 +199,9 @@ class BomController extends Controller
 
         $data['detail'] = DB::table('bom_det')
         ->where('bom_code',$data['header']->bom_code)
+        ->leftJoin('uom','uom.code','bom_det.uom')
+        ->leftJoin('article_types','article_types.code','=','bom_det.article_type')
+        ->select('bom_det.*', 'uom.uom_group as uom_group','article_types.name as type_name')
         ->orderBy('bom_det.id')
         ->get();       
 
@@ -205,10 +214,11 @@ class BomController extends Controller
 
         $data['articles'] = DB::table('article') 
         ->leftJoin('article_types','article_types.code','=','article.article_type')
-        ->whereNotIn('article_type',['FG','RM'])
+        ->leftJoin('uom','uom.code','article.uom')
+        // ->whereNotIn('article_type',['FG','RM'])
         ->orderBy('article_desc')
-        ->select('article.*', 'article_types.name as type_name')
-        ->get();;   
+        ->select('article.*','uom.uom_group as uom_group','article_types.name as type_name')
+        ->get();
 
         return view("bom.show",$data);
         
@@ -217,8 +227,8 @@ class BomController extends Controller
     public function edit(Request $request)
     {
         $id=Crypt::decryptString($request->id);
-        $data['title'] = "Edit Bill Of Material";
-        $data['subtitle'] = "Edit Bill Of Material";
+        $data['title'] = "Edit $this->title";
+        $data['subtitle'] = "Edit $this->title";
 
         $data['header'] = DB::table('bom_hdr')
         ->where('id',$id)
@@ -353,16 +363,18 @@ class BomController extends Controller
                     }
                     
                     DB::commit();
+                    $title ="Update $this->title";
                     $alert  ="success";
-                    $message  = "BOM $bomNumber is successfully updated";
-                    \LogActivity::addToLog('BOM update ',"username: $username Status $message");
+                    $message  = "$title $bomNumber is successfully updated";
+                    \LogActivity::addToLog($title,"username: $username Status $message");
                     return response()->json(array('status' => 1, 'message' => $message,'alert'=>$alert,'bomNumber'=>$bomNumber));
 
             } catch (Exception $e) {
                 DB::rollBack();
+                $title ="Update $this->title";
                 $alert  ="warning";
-                $message  = "BOM $bomNumber is failed to updated";
-                \LogActivity::addToLog('BOM update ',"username: $username Status $message");
+                $message  = "$title $bomNumber is failed to updated";
+                \LogActivity::addToLog($title,"username: $username Status $message");
                 return response()->json(array('status' => 0, 'message' => $message,'alert'=>$alert,'bomNumber'=>$bomNumber));
             }
         }
@@ -371,22 +383,23 @@ class BomController extends Controller
     public function destroy(Request $request)
     {
         $username =  Auth::user()->username;       
-        $id = $request->id;
+        $id=Crypt::decryptString($request->id);
         $bom_code = DB::table('bom_hdr')->where('id',$id)->where('status','1')->value('bom_code');
         $rowAffected = DB::table('bom_hdr')->where('id',$id)->delete();
         if($rowAffected>0){
-            DB::table('bom_det')->where('bom_code',$bom_code)->delete();
-            $alert  ="alert-success";
-            $message  = "BOM $bom_code Successfully Deleted";
-            \LogActivity::addToLog('SO delete ',"username: $username Status $message");
+            $title ="Delete $this->title";
+            $alert  ="success";
+            $message  = "$this->title $bom_code is successfully deleted";
+            \LogActivity::addToLog($title,"username: $username Status $message");
             return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);  
-        }else{
-            $alert  ="alert-warning";
-            $message  = "BOM $bom_code Failed to Delete";
-            \LogActivity::addToLog('BOM delete ',"username: $username Status $message");
-            return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);
+       }else{
+            DB::rollBack();
+            $title ="Delete $this->title";
+            $alert  ="warning";
+            $message  = "$this->title $bom_code is failed to delete";
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);            
         }
-
     }
 
     public function list(Request $request)
@@ -435,15 +448,15 @@ class BomController extends Controller
                                 </a>';
                 
             if (Auth::user()->can('bom-delete')) {
-            $buttons .=         "<a href='javascript:;'
-                                    id='deleteButton'
-                                    class='dropdown-item'
-                                    data-toggle='modal'
-                                    data-target='#smallModal'
-                                    data-href='". route("bom.destroy", ["id"=>$data->id]) ."'>
-                                    <i data-feather='trash-2'></i>
+            $buttons .=         '<a href="javascript:;"
+                                    id="deleteButton"
+                                    class="dropdown-item"
+                                    data-toggle="modal"
+                                    data-target="#smallModal"
+                                    data-href="'. route("bom.destroy", ['id'=>Crypt::encryptString($data->id)]) .'">
+                                    <i data-feather="trash-2" class="feather-14-red"></i>
                                     Delete
-                                </a>";
+                                </a>';
             }
             $buttons .=     '</div>
                         </div>';

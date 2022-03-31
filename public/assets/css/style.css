@@ -87,6 +87,18 @@ WE WILL RELEASE FUTURE UPDATES SO IN ORDER TO NOT OVERWRITE YOUR STYLES IT'S BET
 	margin-top: 7px !important;
 }
 
+.feather-14{
+	width: 14px;
+	height: 14px;
+	color:#080808;
+}
+
+.feather-14-red{
+	width: 14px;
+	height: 14px;
+	color:#fc0707;
+}
+
 .feather-16{
 	width: 16px;
 	height: 16px;

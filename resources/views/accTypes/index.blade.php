@@ -2,8 +2,6 @@
 @section('title', $title)
 @section('content')
 @include('layouts.breadcrumb')
-@include('partials.alert')
-
 <section id="accTypes-index">
     <div class="row">
       <div class="col-12">
@@ -42,7 +40,6 @@
       </div>
     </div>
 </section>
-
 <section id="table-accTypes">
     <div class="card">
       <div class="card-header">
@@ -70,9 +67,7 @@
       </div>
     </div>
 </section>
-
 @include('partials.delete-modal')
-
 @endsection
 @section('styles')
 <style>
@@ -81,56 +76,37 @@
 @section('scripts')
 <script type="text/javascript">
   $(document).ready(function(){    
-    let href;
     $(document).on('click', '#deleteButton', function(event) {
         event.preventDefault();
-        href = $(this).data('href');
-        console.log(href);
+        let href = $(this).data('href');
         $('#modalConfirmation').attr("action", href);
     });
     showList();
   });
 
-   
-  let showAlert = "{{ Session::get('alert') }}";
-
-  if ( showAlert ){
-    showList();
-    $("#alert-message-alert").fadeTo(5000, 500).slideUp(500, function(){
-      $("#alert-message-alert").slideUp(500);
-    });
-  }
-
   //refresh di cards
   $('a[data-action="reload"]').on('click', function () {
-      showList();
+    let code =$("#searchAccTypeCode").val();
+    let nama =$("#searchAccType").val();
+    showList(nama,code);
   });
 
   $("#btnSearch").click(function(e){
-      let code =$("#searchAccTypeCode").val();
-      let nama =$("#searchAccType").val();
-      showList(nama,code);
+    let code =$("#searchAccTypeCode").val();
+    let nama =$("#searchAccType").val();
+    showList(nama,code);
   });
 
   function showList(nama,code){
-    // let dtdom = '<"card-header border-bottom p-1"<"head-label">><"d-flex justify-content-between align-items-center mx-0 row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-4"f><"col-sm-12 col-md-2"<"dt-action-buttons text-right"B>>>t<"d-flex justify-content-between mx-0 row"<"col-sm-12 col-md-6"i><"col-sm-12 col-md-6"p>>';
-    let dtdom ='<"d-flex justify-content-between align-items-center header-actions mx-1 row mt-75"' +
-        '<"col-lg-12 col-xl-6" l>' +
-        '<"col-lg-12 col-xl-6 pl-xl-75 pl-0"<"dt-action-buttons text-xl-right text-lg-left text-md-right text-left d-flex align-items-center justify-content-lg-end align-items-center flex-sm-nowrap flex-wrap mr-1"<"mr-1"f>B>>' +
-        '>t' +
-        '<"d-flex justify-content-between mx-2 row mb-1"' +
-        '<"col-sm-12 col-md-6"i>' +
-        '<"col-sm-12 col-md-6"p>' +
-        '>';
-    let arr_col_print =[2,3,4]; 
+    let dtdom ='<"d-flex justify-content-between align-items-center header-actions mx-1 row mt-75" <"col-lg-12 col-xl-6" l><"col-lg-12 col-xl-6 pl-xl-75 pl-0"<"dt-action-buttons text-xl-right text-lg-left text-md-right text-left d-flex align-items-center justify-content-lg-end align-items-center flex-sm-nowrap flex-wrap mr-1"<"mr-1"f>B>>>t<"d-flex justify-content-between mx-2 row mb-1"<"col-sm-12 col-md-6"i><"col-sm-12 col-md-6"p>>';
+    let arr_col_print =[1,2,3]; 
     $(function(){
       let oTable =$("#detailedTable").DataTable({
-        ajax:
-        {
+        ajax:{
           url:'{{ route("accType.list")}}',
           data:{
-              name:nama,
-              code:code
+            name:nama,
+            code:code
           }
         },
         processing: true,
@@ -144,7 +120,7 @@
         buttons: [
           {
             extend: 'collection',
-            className: 'btn btn-outline-secondary dropdown-toggle mr-2 mt-07',
+            className: 'btn btn-outline-secondary dropdown-toggle mt-07',
             text: feather.icons['share'].toSvg({ class: 'font-small-4 mr-50' }) + 'Export',
             buttons: [
               {
@@ -187,37 +163,6 @@
             }
           },
         ],
-        responsive: {
-          details: {
-            display: $.fn.dataTable.Responsive.display.modal({
-              header: function (row) {
-                var data = row.data();
-                return 'Details of ' + data['nama'];
-              }
-            }),
-            type: 'column',
-            renderer: function (api, rowIdx, columns) {
-              var data = $.map(columns, function (col, i) {
-                return col.title !== '' // ? Do not show row in modal popup if title is blank (for check box)
-                  ? '<tr data-dt-row="' +
-                      col.rowIndex +
-                      '" data-dt-column="' +
-                      col.columnIndex +
-                      '">' +
-                      '<td>' +
-                      col.title +
-                      ':' +
-                      '</td> ' +
-                      '<td>' +
-                      col.data +
-                      '</td>' +
-                      '</tr>'
-                  : '';
-              }).join('');
-              return data ? $('<table class="table"/>').append(data) : false;
-            }
-          }
-        },
         language: {
           paginate: {
             // remove previous & next text from pagination
@@ -245,11 +190,10 @@
                 height: 14
           });
         },
-        order: [[ 2, 'asc' ]],
+        order: [[ 1, 'asc' ]],
         bDestroy: true, //pakai ini supaya bisa di load berulang2
         // scrollX: true, //pakai ini supaya waktu responsive  bisa di scroll horizontal
         columns: [
-            { data: 'group_id',name:'group_id', title:'',orderable: false, searchable: false },
             { data: 'action', name: 'action',title:'action', orderable: false, searchable: false },
             { data: 'code', name: 'code',title:'Kode' },
             { data: 'name', name: 'name',title:'Nama' },
@@ -258,7 +202,6 @@
       });
     });
     //$('div.head-label').html('<h6 class="mb-0">Data Users</h6>');
-    
   }
 
   $.ajaxSetup({

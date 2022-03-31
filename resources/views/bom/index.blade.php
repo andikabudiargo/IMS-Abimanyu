@@ -2,8 +2,6 @@
 @section('title', $title)
 @section('content')
 @include('layouts.breadcrumb')
-@include('partials.alert')
-
 <section id="article-index">
   <div class="card">
     <div class="card-header">  
@@ -45,7 +43,6 @@
     </div>
   </div>
 </section>
-
 <section id="table-article">
   <div class="card">
     <div class="card-header">
@@ -73,9 +70,7 @@
     </div>
   </div>
 </section>
-
 @include('partials.delete-modal')
-
 @endsection
 @section('styles')
 <style>
@@ -84,11 +79,9 @@
 @section('scripts')
 <script type="text/javascript">
   $(document).ready(function(){    
-    let href;
     $(document).on('click', '#deleteButton', function(event) {
         event.preventDefault();
-        href = $(this).data('href');
-        console.log(href);
+        let href = $(this).data('href');
         $('#modalConfirmation').attr("action", href);
     });
   });
@@ -104,7 +97,9 @@
 
   //refresh di cards
   $('a[data-action="reload"]').on('click', function () {
-      showList();
+    let searchBom = $("#searchBom").val();
+    let articleCode = $("#articleCode").val();
+    showList(searchBom,articleCode);
   });
 
   rangePickr = $('.flatpickr-range');
@@ -146,7 +141,7 @@
         buttons: [
           {
             extend: 'collection',
-            className: 'btn btn-outline-secondary dropdown-toggle mr-2 mt-07',
+            className: 'btn btn-outline-secondary dropdown-toggle mt-07',
             text: feather.icons['share'].toSvg({ class: 'font-small-4 mr-50' }) + 'Export',
             buttons: [
               {

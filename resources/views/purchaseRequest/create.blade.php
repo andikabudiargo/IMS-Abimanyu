@@ -141,42 +141,7 @@
 <style>
     textarea {
         resize: none;
-    }
-
-    .mb-03{
-        margin-bottom: 0.3rem;
-    }
-    
-    label.titik-dua::after{
-        content : ":"; 
-        position : absolute;
-        right : 1px;
-    }
-
-    td.isian{
-        padding-right:10px;
-        padding-left:10px;
-    }
-
-    td.isian-satu{
-        padding-right:5px;
-        padding-left:15px;
-        width: 25%;border-top: 1px solid #ffffff !important;
-        border-bottom: 1px solid #ffffff !important;
-        border-left: 1px solid #ffffff !important;
-    }
-
-    td.disabled{
-        background-color:#f8f8f8;
-        color:black;
-    }
-
-    label.tanpa-padding{
-        padding-top: 5px;
-        padding-bottom: 0px;
-    }
-
-
+    }    
 </style>
 @endsection
 @section('scripts')

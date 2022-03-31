@@ -87,34 +87,38 @@
                 <div class="card-header">
                     <h4 class="card-title">Article</h4>
                 </div>
-                <div class="card-body" >
-                    <div>
-                        <table class="" style="width:98%;table-layout: fixed;">
-                            <tbody>
-                                <tr>
-                                    <td class="isian-satu" style="width: 25%">
-                                        <label>Article Code</label>
-                                    </td>
-                                    <td class="isian" style="width: 5%">
-                                        <label>QTY</label>
-                                    </td>
-                                    <td class="isian" style="width: 5%">
-                                        <label>UOM</label>
-                                    </td>
-                                    <td class="isian" style="width: 10%">
-                                        <label>Type</label>
-                                    </td>
-                                    <td class="isian text-center" style="width: 5%">
-                                        <label>-</label>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>      
+                <div class="card-body">
+                    <div class="form-row">
+                        <div class="col-md-6 col-12 d-none d-md-block">
+                            <div class="form-group">
+                                <label class="d-none d-md-block">Article Code</label>
+                            </div>
+                        </div>
+                        <div class="col-md-2 col-12 d-none d-md-block">
+                            <div class="form-group">
+                                <label class="d-none d-md-block">QTY</label>
+                            </div>
+                        </div>
+                        <div class="col-md-1 col-12 d-none d-md-block">
+                            <div class="form-group">
+                                <label class="d-none d-md-block">Uom</label>
+                            </div>
+                        </div>
+                        <div class="col-md-2 col-12 d-none d-md-block">
+                            <div class="form-group">
+                                <label class="d-none d-md-block">Type</label>
+                            </div>
+                        </div>
+                        <div class="col-md-1 col-12 d-none d-md-block">
+                            <div class="form-group">
+                                <label class="d-none d-md-block">-</label>
+                            </div>
+                        </div>
+                    </div>
                     <div class="" id="article_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px">
                         <input type="text" id ="last_row_number" class="d-none" value="0">
                     </div>
-                    <div class="d-flex justify-content-between align-items-end mt-75 ml-75">
+                    <div class="d-flex justify-content-between align-items-end mt-75">
                         <button class="btn btn-primary btn-prev" type="button" id="addNewRow" onclick="add_new_row();">
                             <i data-feather="plus" class="align-middle mr-sm-25 mr-0"></i>
                             <span class="align-middle d-sm-inline-block d-none">Add Article</span>
@@ -123,7 +127,6 @@
                     <hr>
                     <div class="form-row">
                         <div class="col-md-12 col-12">
-                            {{-- <button class="btn btn-warning" type="reset" id="cmdCancel" name="cmdCancel">Cancel</button> --}}
                             <button class="btn btn-success" type="reset" id="cmdNew" name="cmdCancel">New</button>
                             <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Save</button>
                         </div>
@@ -140,40 +143,6 @@
     textarea {
         resize: none;
     }
-
-    .mb-03{
-        margin-bottom: 0.3rem;
-    }
-    
-    label.titik-dua::after{
-        content : ":"; 
-        position : absolute;
-        right : 1px;
-    }
-
-    td.isian{
-        padding-right:10px;
-        padding-left:10px;
-    }
-
-    td.isian-satu{
-        padding-right:5px;
-        padding-left:15px;
-        width: 25%;border-top: 1px solid #ffffff !important;
-        border-bottom: 1px solid #ffffff !important;
-        border-left: 1px solid #ffffff !important;
-    }
-
-    td.disabled{
-        background-color:#f8f8f8;
-        color:black;
-    }
-
-    label.tanpa-padding{
-        padding-top: 5px;
-        padding-bottom: 0px;
-    }
-
 </style>
 @endsection
 @section('scripts')
@@ -191,9 +160,9 @@
 
     $("#cmdSave").click(function(){     
 
-        // if (!$("#frmAdd")[0].checkValidity()){
-        //     $("#frmAdd").submit();
-        // }else{
+        if (!$("#frmAdd")[0].checkValidity()){
+            $("#frmAdd").submit();
+        }else{
 
             $('.disabled-el').removeAttr('disabled');
             // ambil semua data article

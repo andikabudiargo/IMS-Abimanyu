@@ -105,7 +105,6 @@
     $(document).on('click', '#deleteButton', function(event) {
         event.preventDefault();
         href = $(this).data('href');
-        console.log(href);
         $('#modalConfirmationCancel').attr("action", href);
     });
   });

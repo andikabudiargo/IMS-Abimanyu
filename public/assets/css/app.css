@@ -154,3 +154,7 @@ th, td { white-space: nowrap; }
 .text-hitam {
   color:black;
 }
+
+.text-red {
+  color:red;
+}

@@ -2,7 +2,6 @@
 @section('title', $title)
 @section('content')
 @include('layouts.breadcrumb')
-@include('partials.alert')
 <section id="add-index">
     <div class="form-row">
         <div class="col-md-6">
@@ -20,16 +19,18 @@
                             <div class="form-group col-md-6">
                                 <label class="form-label" for="articleType">Article Type*</label>
                                 <select class="select2 form-control" id="articleType" name="articleType" autofocus required>
-                                    <option value="">All</option>
+                                    <option value=""></option>
                                     @foreach($types as $val)
                                         <option value="{{$val->code}}" {{ $val->code == old("articleType") ? "selected" : ""}}>{{$val->code}} - {{$val->name}}</option>
                                     @endforeach
                                 </select>
-                            </div>              
-                            <div class="form-group col-md-6">
+                            </div>            
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group col-md-12">
                                 <label class="form-label" for="group">Group of material</label>
                                 <select class="select2 form-control" id="group" name="group">
-                                    <option value="">All</option>
+                                    <option value=""></option>
                                     @foreach($groups as $val)
                                         <option value="{{$val->code}}" {{ $val->code == old("group") ? "selected" : ""}}>{{$val->code}} - {{$val->name}}</option>
                                     @endforeach
@@ -61,7 +62,7 @@
                             <div class="col-12">
                                 <div class="form-group">
                                     <label for="nama">Description*</label>
-                                    <input type="text" id="nama" name="nama" class="form-control text-uppercase" value="{{ old('nama') }}"  required  maxlength="100"/>
+                                    <input type="text" id="nama" name="nama" class="form-control text-uppercase" value="{{ old('nama') }}" maxlength="100" required/>
                                 </div>
                             </div>
                         </div>
@@ -73,7 +74,7 @@
                             <div class="form-group col-md-6">
                                 <label class="form-label" for="uom">Smallest Unit*</label>
                                 <select class="select2 form-control" id="uom" name="uom" required>
-                                    <option value="">All</option>
+                                    <option value=""></option>
                                     @foreach($uoms as $val)
                                         <option value="{{$val->code}}" {{ $val->code == old("uom") ? "selected" : ""}} >{{$val->code}} - {{$val->name}}</option>
                                     @endforeach
@@ -107,8 +108,8 @@
                     </div>
                     <div class="form-row">
                         <div class="col-12">
-                            <button class="btn btn-outline-secondary" type="reset" id="cmdCancel" name="cmdCancel">Cancel</button>
-                            <button class="btn btn-success" type="button" id="cmdSave" name="cmdSave">Save</button>
+                            <button class="btn btn-success" type="reset" id="cmdNew" name="cmdNew">New</button>
+                            <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Save</button>
                         </div>
                     </div>
                 </div>
@@ -118,6 +119,7 @@
 </section>
 @endsection
 @section('styles')
+<link rel="stylesheet" type="text/css" href="{{ asset('assets/css/jquery-ui.css') }}">
 <style>
     textarea {
         resize: none;
@@ -125,31 +127,20 @@
 </style>
 @endsection
 @section('scripts')
+<script src="{{ asset('assets/js/ui.1.13.0.jquery-ui.js') }}"></script>
 <script src="{{asset('app-assets/vendors/js/extensions/dropzone.min.js')}}"></script>
 <script type="text/javascript">
 
-    $(document).ready(function(){           
-        let $form = $("#frmAdd");
-        $form.validate({
-            invalidHandler: function(event, validator) {
-            let errors = validator.numberOfInvalids();
-            if (errors) {
-                let message = errors == 1
-                    ? 'You missed 1 field. It has been highlighted'
-                    : 'You missed ' + errors + ' fields. They have been highlighted';
-                $("#alert-message .alert-body").html(message);
-                $("#alert-message").show();
-                $("#alert-message").fadeTo(5000, 500).slideUp(500, function(){
-                    $("#alert-message").slideUp(500);
-                });
-            } else {
-                $("#alert-message").hide();
-            }
-        }
-        }).settings.ignore = "";
-
+    $(document).ready(function(){    
+        validateFormToast("frmAdd");
         mask_thousand();
-        
+    });
+
+    let availableTags ="{{ $articles }}";
+    availableTags=availableTags.replace(/[[\]]/g,'');
+    availableTags=availableTags.replace(/&quot;/g,'').split(",");
+    $("#nama").autocomplete({
+        source: availableTags
     });
     
     // Dropzone.autoDiscover = false;
@@ -189,7 +180,6 @@
         success: function( file, response ){
             // obj = JSON.parse(response);
             // console.log(response.message); // <---- here is your filename
-
             jQuery.each( response.files, function( i, val ) {
                 if(!$('#files_'+i).length){
                     $('#fileUpload').append('<input type="text" id="files_'+ i+'" name="files[]" value="'+ val +'">');
@@ -201,10 +191,8 @@
         }
     };
       
-    $("#cmdCancel").click(function() {
-        $(".select2").val('').trigger('change');
-        $("#frmAdd").validate().resetForm();
-        $('#kode').focus();
+    $("#cmdNew").click(function() {
+        window.location.reload();
     });
 
     $('#articleType').on('change', function() {
@@ -231,7 +219,6 @@
             'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
         }
     });
-
 
 </script>
 @endsection

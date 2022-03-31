@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Crypt;
 use Response;
 use App\Permission;
 use DataTables;
@@ -13,16 +14,22 @@ use DB;
 
 class UomController extends Controller
 {
+    private $title;
+    public function __construct()
+    {
+        $this->title = "UOM";
+    }
+
     public function index(Request $request)
     {
-        $data['title'] = "UOM (Unit of measurement)";
+        $data['title'] = $this->title. " (Unit of measurement)";
         return view("uom.index",$data);
     }
 
     public function create(Request $request)
     {
-        $data['title'] = "Create UOM";
-        $data['subtitle'] = "Create New UOM";
+        $data['title'] = "Create $this->title";
+        $data['subtitle'] = "Create New $this->title";
                         
         return view("uom.create",$data);
     }
@@ -68,40 +75,39 @@ class UomController extends Controller
                 ]);
 
                 DB::commit();
-                $alert  ="alert-success";
-                $message  = "$kode is successfully saved";
-                \LogActivity::addToLog('Uom save ',"username: $username Status $message");
-                return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);  
+                $title ="Save $this->title";
+                $alert  ="success";
+                $message  = "$this->title $kode is successfully saved";
+                \LogActivity::addToLog($title,"username: $username Status $message");
+                return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);  
 
         } catch (Exception $e) {
             DB::rollBack();
-            $alert  ="alert-warning";
-            $message  = "$kode is failed to save";
-            \LogActivity::addToLog('Dept save ',"username: $username Status $message");
-            return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);   
+            $title ="Save $this->title";
+            $alert  ="warning";
+            $message  = "$this->title $kode is failed to saved";
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);
         }
-        
     }
 
     public function edit(Request $request)
     {
-
-        $id=$request->id;
-        $data['title'] = "Edit UOM";
-        $data['subtitle'] = "Edit UOM";
+        $id=Crypt::decryptString($request->id);
+        $data['title'] = "Edit $this->title";
+        $data['subtitle'] = "Edit $this->title";
         $data['uom'] = DB::table('uom')
 
         ->where('id',$id)
         ->get()->first();
 
         return view('uom.edit',$data);
-        
     }
 
     public function update(Request $request)
     {
         $username =  Auth::user()->username;
-        $id = $request->id;
+        $id=Crypt::decryptString($request->id);
         $kode = strtoupper($request->input('kode'));
         $nama = $request->input('nama');
         $uomType = $request -> input('uomType');
@@ -138,48 +144,53 @@ class UomController extends Controller
                 DB::commit();
 
                 if($row_affected>0){
-                    $alert  ="alert-success";
-                    $message  = "Successfully updated";
-                    \LogActivity::addToLog('Uom update ',"username: $username Status $message");
-                    return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);  
+                    DB::commit();
+                    $title ="Update $this->title";
+                    $alert  ="success";
+                    $message  = "$this->title $kode is successfully updated";
+                    \LogActivity::addToLog($title,"username: $username Status $message");
+                    return redirect()->back()->with(['title' => $title, 'alert'=>$alert,'message'=> $message]);
                 }else{
-                    $alert  ="alert-warning";
-                    $message  = "Failed to update";
-                    \LogActivity::addToLog('Uom update ',"username: $username Status $message");
-                    return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);
+                    $title ="Update $this->title";
+                    $alert  ="warning";
+                    $message  = "$this->title $kode is failed to updated";
+                    \LogActivity::addToLog($title,"username: $username Status $message");
+                    return redirect()->back()->with(['title' => $title, 'alert'=>$alert,'message'=> $message]);
                 }
 
         } catch (Exception $e) {
             DB::rollBack();
-            $alert  ="alert-warning";
-            $message  = "Failed to update";
-            \LogActivity::addToLog('Uom update ',"username: $username Status $message");
-            return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);
+            $title ="Update $this->title";
+            $alert  ="warning";
+            $message  = "$this->title $kode is failed to updated";
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return redirect()->back()->with(['title' => $title, 'alert'=>$alert,'message'=> $message]);
         }
     }
 
     public function destroy(Request $request)
     {
-
         $username =  Auth::user()->username;
         $id = $request->id;
+        $name = $request->name;
 
         $row_affected = DB::table('uom')
         ->where('id',$id)
         ->delete();
 
         if($row_affected>0){
-            $alert  ="alert-success";
-            $message  = "Successfully Deleted";
-            \LogActivity::addToLog('Uom delete ',"username: $username Status $message");
-            return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);  
+            $title ="Delete $this->title";
+            $alert  ="success";
+            $message  = "$this->title $name is successfully deleted";
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return redirect()->back()->with(['status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'name'=>$name]);
         }else{
-            $alert  ="alert-warning";
-            $message  = "Failed to Delete";
-            \LogActivity::addToLog('Uom delete ',"username: $username Status $message");
-            return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);
+            $title ="Delete $this->title";
+            $alert  ="warning";
+            $message  = "$this->title $name is failed to delete";
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return redirect()->back()->with(['status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'name'=>$name]);
         }
-
     }
 
     public function list(Request $request)
@@ -196,12 +207,12 @@ class UomController extends Controller
         return DataTables::of($data)
         ->addColumn('action', function ($data) {
             $buttons = '<div class="d-inline-flex">
-                            <a class="pr-1 dropdown-toggle hide-arrow text-primary" data-toggle="dropdown">
+                            <a class="pr-1 dropdown-toggle hide-arrow" data-toggle="dropdown">
                                 <i data-feather="menu"></i>
                             </a>';
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
             if (Auth::user()->can('department-edit')) {
-            $buttons .=         '<a href="'. route('uom.edit', ['id'=>$data->id]) .'" class="dropdown-item">
+            $buttons .=         '<a href="'. route('uom.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                     <i data-feather="file-text"></i>
                                     Edit
                                 </a>';
@@ -212,7 +223,7 @@ class UomController extends Controller
                                     class='dropdown-item'
                                     data-toggle='modal'
                                     data-target='#smallModal'
-                                    data-href='". route("uom.destroy", ["id"=>$data->id]) ."'>
+                                    data-href='". route("uom.destroy", ['id'=>$data->id,'uomCode'=>$data->name]) ."'>
                                     <i data-feather='trash-2'></i>
                                     Delete
                                 </a>";

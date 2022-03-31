@@ -199,6 +199,11 @@
                                 </div> 
                             </div>
                         @endforeach
+                        <div class="form-row">
+                            <div class="col-md-12">
+                                <a href="{{ route('aps.index') }}" class="btn btn-success">Back</a>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

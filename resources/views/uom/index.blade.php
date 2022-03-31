@@ -2,7 +2,6 @@
 @section('title', $title)
 @section('content')
 @include('layouts.breadcrumb')
-@include('partials.alert')
 <section id="depts-index">
     <div class="row">
       <div class="col-12">
@@ -76,29 +75,20 @@
 @endsection
 @section('scripts')
 <script type="text/javascript">
-  $(document).ready(function(){    
-    let href;
+  $(document).ready(function(){
     $(document).on('click', '#deleteButton', function(event) {
         event.preventDefault();
-        href = $(this).data('href');
-        console.log(href);
+        let href = $(this).data('href');
         $('#modalConfirmation').attr("action", href);
     });
     showList();
   });
    
-  let showAlert = "{{ Session::get('alert') }}";
-
-  if ( showAlert ){
-    showList();
-    $("#alert-message-alert").fadeTo(5000, 500).slideUp(500, function(){
-      $("#alert-message-alert").slideUp(500);
-    });
-  }
-
   //refresh di cards
   $('a[data-action="reload"]').on('click', function () {
-      showList();
+    let code =$("#searchUomCode").val();
+    let nama =$("#searchUom").val();
+    showList(nama,code);
   });
 
   $("#btnSearch").click(function(e){
@@ -131,7 +121,7 @@
         buttons: [
           {
             extend: 'collection',
-            className: 'btn btn-outline-secondary dropdown-toggle mr-2 mt-07',
+            className: 'btn btn-outline-secondary dropdown-toggle mt-07',
             text: feather.icons['share'].toSvg({ class: 'font-small-4 mr-50' }) + 'Export',
             buttons: [
               {

@@ -31,7 +31,7 @@
         </li>
         <li class=" navigation-header"><span data-i18n="Apps &amp; Pages">Apps &amp; Pages</span><i data-feather="more-horizontal"></i>
         </li>
-        <li class=" {{ in_array(\Request::segment(1), ['articles','stockTake','uoms','uomCons','groupMaterials','articleTypes']) ? 'active' : '' }} nav-item">
+        <li class=" {{ in_array(\Request::segment(1), ['articles','articles','articles/create','articles/edit','articles/show','stockTake','uoms','uomCons','groupMaterials','articleTypes']) ? 'active' : '' }} nav-item">
           <a class="d-flex align-items-center" href="javascript:void(0);">
             <i data-feather="box"></i>
             <span class="menu-title text-truncate" data-i18n="Form Elements">Inventory
@@ -39,7 +39,7 @@
           </a>
           <ul class="menu-content">
             @can('article-index')
-            <li class="{{ \Request::is('articles') ? 'active' : '' }}">
+            <li class="{{ \Request::is(['articles','articles/create','articles/edit','articles/show']) ? 'active' : '' }}">
               <a class="d-flex align-items-center" href="{{ route('articles.index') }}">
                 <i data-feather="circle"></i>
                 <span class="menu-item text-truncate" data-i18n="Input">Article</span>

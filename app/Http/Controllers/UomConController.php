@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Crypt;
 use Response;
 use App\Permission;
 use DataTables;
@@ -13,17 +14,23 @@ use DB;
 
 class UomConController extends Controller
 {
+    private $title;
+    public function __construct()
+    {
+        $this->title = "UOM Coversion";
+    }
+    
     public function index(Request $request)
     {
-        $data['title'] = "UOM Coversion";
+        $data['title'] = "$this->title";
         $data['uoms'] = DB::table('uom')->orderBy('name')->get();
         return view("uomCon.index",$data);
     }
 
     public function create(Request $request)
     {
-        $data['title'] = "Create UOM Conversion";
-        $data['subtitle'] = "Create UOM New Conversion";
+        $data['title'] = "Create $this->title";
+        $data['subtitle'] = "Create New $this->title";
         $data['uoms'] = DB::table('uom')->orderBy('name')->get();
         return view("uomCon.create",$data);
     }
@@ -69,25 +76,27 @@ class UomConController extends Controller
                 );
 
                 DB::commit();
-                $alert  ="alert-success";
-                $message  = "Data is successfully saved";
-                \LogActivity::addToLog('Uom save ',"username: $username Unit From : $unitFrom[0] Unit To : $unitTo[0]");
-                return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);  
+                $title ="Save $this->title";
+                $alert  ="success";
+                $message  = "$this->title is successfully saved Unit From : $unitFrom[0] Unit To : $unitTo[0]";
+                \LogActivity::addToLog($title,"username: $username Status $message");
+                return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);  
 
         } catch (Exception $e) {
             DB::rollBack();
-            $alert  ="alert-warning";
-            $message  = "Data is failed to save";
-            \LogActivity::addToLog('Dept save ',"username: $username Unit From : $unitFrom[0] Unit To : $unitTo[0]");
-            return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);   
+            $title ="Save $this->title";
+            $alert  ="warning";
+            $message  = "$this->title is failed to saved Unit From : $unitFrom[0] Unit To : $unitTo[0]";
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);
         }
     }
 
     public function edit(Request $request)
     {
-        $id=$request->id;
-        $data['title'] = "Edit UOM Conversion";
-        $data['subtitle'] = "Edit UOM Conversion";
+        $id=Crypt::decryptString($request->id);
+        $data['title'] = "Edit $this->title";
+        $data['subtitle'] = "Edit $this->title";
         $data['uomCon'] = DB::table('uom_con')
         ->leftJoin('uom','code','unit_from')
         ->where('uom_con.id',$id)
@@ -98,30 +107,30 @@ class UomConController extends Controller
         ->orderBy('name')->get();
 
         return view('uomCon.edit',$data);
-        
     }
 
     public function destroy(Request $request)
     {
         $username =  Auth::user()->username;
-        $id = $request->id;
+        $id=Crypt::decryptString($request->id);
 
         $row_affected = DB::table('uom_con')
         ->where('id',$id)
         ->delete();
 
         if($row_affected>0){
-            $alert  ="alert-success";
-            $message  = "Successfully Deleted";
-            \LogActivity::addToLog('Uom delete ',"username: $username Status $message");
-            return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);  
+            $title ="Delete $this->title";
+            $alert  ="success";
+            $message  = "$this->title $name is successfully deleted";
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);
         }else{
-            $alert  ="alert-warning";
-            $message  = "Failed to Delete";
-            \LogActivity::addToLog('Uom delete ',"username: $username Status $message");
+            $title ="Delete $this->title";
+            $alert  ="warning";
+            $message  = "$this->title $name is failed to delete";
+            \LogActivity::addToLog($title,"username: $username Status $message");
             return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);
         }
-
     }
 
     public function list(Request $request)
@@ -129,10 +138,11 @@ class UomConController extends Controller
         $unitFrom = strtolower($request->unitFrom);
         $unitTo = strtolower($request->unitTo);
         // ilike = string to lower
-        $data=DB::table('uom_con');
-        $unitFrom ? $data->where('unit_from','ilike','%'.$unitFrom.'%') :"";
-        $unitTo ? $data->where('unit_to','ilike','%'.$unitTo.'%') :"";  
-        $data->get();
+        $data = DB::table('uom_con')
+        ->where(function ($query) use ($unitFrom,$unitTo) {
+            $unitFrom ? $query->where('unit_from','ilike','%'.$unitFrom.'%') :"";
+            $unitTo ? $query->where('unit_to','ilike','%'.$unitTo.'%') :"";  
+        })->get(); 
 
         return Datatables::of($data)
         ->addColumn('action', function ($data) {
@@ -142,7 +152,7 @@ class UomConController extends Controller
                             </a>';
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
             if (Auth::user()->can('department-edit')) {
-            $buttons .=         '<a href="'. route('uomCon.edit', ['id'=>$data->id]) .'" class="dropdown-item">
+            $buttons .=         '<a href="'. route('uomCon.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                     <i data-feather="file-text"></i>
                                     Edit
                                 </a>';
@@ -153,7 +163,7 @@ class UomConController extends Controller
                                     class='dropdown-item'
                                     data-toggle='modal'
                                     data-target='#smallModal'
-                                    data-href='". route("uomCon.destroy", ["id"=>$data->id]) ."'>
+                                    data-href='". route("uomCon.destroy", ["id"=>Crypt::encryptString($data->id)]) ."'>
                                     <i data-feather='trash-2'></i>
                                     Delete
                                 </a>";
@@ -169,7 +179,6 @@ class UomConController extends Controller
 
     public function getFactor(Request $request)
     {
-
         $uomFrom = $request->unitFrom;
         $uomTo = $request->unitTo;
 
@@ -179,7 +188,5 @@ class UomConController extends Controller
         ->value('unit_factor');
 
         return response()->json(['hasil'=>$data]);
-
-
     }
 }

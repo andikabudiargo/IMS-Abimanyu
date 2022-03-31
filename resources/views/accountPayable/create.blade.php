@@ -117,7 +117,7 @@
                                     <label for="basisAmount">Basis Amount*</label>
                                     <input type="text" id="basisAmount" name="basisAmount" class="form-control numeral-mask text-right" value="{{ old('basisAmount',Session::get('details') ? Session::get('details')->basis_amount : '') }}" required/>
                                 </div>
-                                <div class="form-group col-md-3">
+                                <div class="form-group col-md-4">
                                     <label class="form-label" for="accountBasisA">COA*</label>
                                     <select class="select2 form-control w-100" id="accountBasisA" name="accountBasisA" required>
                                         <option value="">Choose option</option>
@@ -172,7 +172,7 @@
                                     <label for="grandTotal">Total*</label>
                                     <input type="text" id="grandTotal" name="grandTotal" class="form-control numeral-mask text-right" value="{{ old('grandTotal') }}" required/>
                                 </div>
-                                <div class="form-group col-md-3">
+                                <div class="form-group col-md-4">
                                     <label class="form-label" for="account">COA*</label>
                                     <select class="select2 form-control w-100" id="account" name="account" required>
                                         <option value="">Choose option</option>
@@ -191,7 +191,6 @@
                             <br>
                             <div class="form-row">
                                 <div class="col-md-12">
-                                    <button class="btn btn-warning" type="reset" id="cmdCancel" name="cmdCancel">Cancel</button>
                                     <button class="btn btn-success" type="reset" id="cmdNew" name="cmdCancel">New</button>
                                     @if( Session::get('status') != 'Saved' )
                                         <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Save</button>
@@ -210,7 +209,6 @@
         </div>
     </div>
 </section>
-@include('receiving.addArticle')
 @endsection
 @section('styles')
 <style>
@@ -263,12 +261,8 @@
 </style>
 @endsection
 @section('scripts')
-<script type="text/javascript">
-    let currentDate = todayDate('dd-mm-yyyy');
-    let poAda;
-    let recAda
-    let status ="{{ Session::get('status') ? Session::get('status'): '' }}";
-    // show_msg(data.title, data.message[i], data.alert);
+@include('accountPayable.script')
+<script type="text/javascript">    
     $(document).ready(function(){
         validateFormToast("frmAdd");
         let errors = "{{ $errors }}";
@@ -282,6 +276,7 @@
         let supplierAda = "{{ Session::get('details') ? Session::get('details')->supplier_id :"" }}";
         poAda = "{{ Session::get('details') ? Session::get('details')->po_number :"" }}";
         recAda = "{{ Session::get('details') ? Session::get('details')->rec_number :"" }}";
+
         if(supplierAda){
             $('#supplier').val(supplierAda).trigger('change');
             $('#recNumber').val(recAda).trigger('change');
@@ -289,165 +284,6 @@
 
         $('#invoiceDate').val(currentDate);
         mask_thousand();
-    });
-
-    $("#pph23Check").change(function() {
-        if(this.checked) {
-            let basisAmount = parseInt($('#basisAmount').val().replace(/,/gi, '')) || 0;
-            $("#pph23").val(basisAmount * 0.2);
-            mask_thousand();
-            $("#tipePPH23").removeClass("d-none");
-        }else{
-            $("#pph23").val(0);
-            $("#sewa").prop("checked", true);
-            $("#tipePPH23").toggleClass("d-none");
-        }
-    });
-
-    hitungTotal = () => {
-        let ba = parseInt($('#basisAmount').val().replace(/,/gi, '')) || 0;
-        let vat = parseInt($('#vat').val().replace(/,/gi, '')) || 0;
-        let pph23 = parseInt($('#pph23').val().replace(/,/gi, '')) || 0;
-        let od = parseInt($('#otherDeduct').val().replace(/,/gi, '')) || 0;
-        let total = ba? (ba+vat)-(pph23+od) : '';
-        $('#grandTotal').val(total);
-        mask_thousand();
-    }
-
-    $("#basisAmount,#vat,#pph23,#otherDeduct").keyup(function(){
-        hitungTotal();
-    })
-    
-    invoiceDate = $('#invoiceDate');
-    if (invoiceDate.length) {
-        invoiceDate.flatpickr({
-            dateFormat: "d-m-Y"
-        });
-    }
-
-    function reloadPage(){
-        window.location.reload();
-    }
-
-    $("#cmdCancel").click(function(){
-        reloadPage();
-    });
-
-    $("#cmdNew").click(function(){
-        reloadPage();
-    });
-
-    kosongkanData = () =>{
-        $('#poNumberDet').val("");
-        $('#profInvoice').val("");
-        $('#suppCode').val("");
-        $('#totalPO').val("");
-        $('#basisAmount').val("");
-        $('#vat').val("");
-        $('#dueDate').val("");
-        $('#recDate').val("");
-        $('#balance').val("");
-        $('#currency').val("IDR").trigger("change");
-        $('#rate').val("");
-        $('#invoiceNumber').val();
-        $('#invoiceDate').val(currentDate);
-        $('#taxInvoiceNumber').val("");
-        $('#accountBa').val("").trigger("change");
-        $('#account').val("").trigger("change");
-        $('#otherDeduct').val("");
-        $('#pph23Check').prop('checked', false);
-        $("#pph23").val(0);
-        $("#sewa").prop("checked", true);
-        $("#tipePPH23").toggleClass("d-none");
-        hitungTotal();
-    }
-
-    $('#supplier').change(function(){
-        let value= $(this).val();
-        let obj = 'poNumber';
-        kosongkanData();
-        $.ajax({
-            url:"{{ route('ap.list.po') }}",
-            method:"GET",
-            data:{
-                value:value,
-            },
-            success:function(result){
-                $('#'+obj).html(result);
-                poAda ? $('#'+obj).val(poAda).trigger('change'):$('#'+obj).val('').trigger('change');
-            },
-            error: function (response) {
-                //Error here
-                Swal.fire("Warning","Get list PO failed","warning");
-            }
-        })
-    });
-
-    $('#poNumber').change(function(){
-        let value = $(this).val();
-        let poDate = $(this).find(":selected").data("po-date");
-        let obj = 'recNumber';
-        $('#poDate').val(poDate);
-        $.ajax({
-            url:"{{ route('ap.list.rec') }}",
-            method:"GET",
-            data:{
-                value:value,
-            },
-            success:function(result){
-                $('#'+obj).html(result);
-                recAda ? $('#'+obj).val(recAda).trigger('change'):$('#'+obj).val('').trigger('change');
-            },
-            error: function (response) {
-                //Error here
-                Swal.fire("Warning","Get list Rec failed","warning");
-            }
-        })
-    });
-  
-    $('#recNumber').change(function(){
-        let poNumber= $('#poNumber').val();
-        let recNumber = $(this).val();
-        if(recNumber && poNumber){
-            $.ajax({
-                url:"{{ route('ap.detail.rec') }}",
-                method:"GET",
-                data:{
-                    poNumber:poNumber,
-                },
-                success:function(result){
-                    $('#poNumberDet').val(result[0].po_number);
-                    $('#suppCode').val(result[0].nama);
-                    $('#profInvoice').val(result[0].pro_inv_num);
-                    $('#totalPO').val(result[0].total_po);
-                    $('#basisAmount').val(result[0].basis_amount);
-                    $('#vat').val(result[0].basis_amount*(result[0].vat/100));
-                    $('#dueDate').val(result[0].due_date);
-                    $('#recDate').val(result[0].rec_date);
-                    $('#balance').val(result[0].po_balance);
-                    if (status != 'Saved'){
-                        $('#currency').val(result[0].currency).trigger('change');
-                        $('#rate').val(result[0].kurs);
-                    }
-                    hitungTotal();
-                    $('#invoiceNumber').focus();
-                },
-                error: function (response) {
-                    //Error here
-                    Swal.fire("Warning","Get list data failed","warning");
-                }
-            })
-        }
-    });
-
-    $("#cmdSave").click(function(){     
-        if (!$("#frmAdd")[0].checkValidity()){
-            // $('.disabled-el').removeAttr('disabled');
-            $("#frmAdd").submit();
-        }else{
-            $('.disabled-el').removeAttr('disabled');
-            $("#frmAdd").submit();
-        }
     });
 
     $("#cmdPosting").click(function(){        
@@ -464,7 +300,6 @@
                     show_msg(data.title, data.message, data.alert);
                     $('#apNumber').attr('disabled','disabled');
                     $('#cmdSave').show();
-                    // $('#cmdPosting').hide();
                 }else{
                     show_msg(data.title, data.message, data.alert);
                     $('#statusText').text(data.statusAp);
