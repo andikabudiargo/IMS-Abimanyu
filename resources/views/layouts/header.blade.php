@@ -13,6 +13,8 @@
 					<img src="{{asset('app-assets/images/logo/logo.png')}}" alt="logo" class="logo" style="height: 50px;">
 				{{-- </li> --}}
 			</ul>
+			
+			
 			{{-- <ul class="nav navbar-nav bookmark-icons">
 				<li class="nav-item d-none d-lg-block"><a class="nav-link" href="app-email.html" data-toggle="tooltip" data-placement="top" title="Email"><i class="ficon" data-feather="mail"></i></a></li>
 				<li class="nav-item d-none d-lg-block"><a class="nav-link" href="app-chat.html" data-toggle="tooltip" data-placement="top" title="Chat"><i class="ficon" data-feather="message-square"></i></a></li>
@@ -28,9 +30,16 @@
 					</div>
 				</li>
 			</ul> --}}
-			<ul class="nav navbar-nav" style="margin-left:10px">
+			<ul class="nav navbar-nav ml-1">
 				<li class="nav-item d-none d-lg-block" >
 					<img src="{{asset('app-assets/images/logo/logo.png')}}" alt="logo" class="logo" style="height: 50px;">
+				</li>
+			</ul>
+			<ul class="nav navbar-nav align-items-end ml-2">
+				<li class="nav-item d-none d-lg-block  mt-1">
+					@if( env('APP_ENVIRONMENT') )
+						<h2> {{ env('APP_ENVIRONMENT') }}</h2>
+					@endif
 				</li>
 			</ul>
 		</div>
