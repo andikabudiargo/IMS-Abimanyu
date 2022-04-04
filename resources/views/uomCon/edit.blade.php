@@ -34,20 +34,18 @@
                             </div>
                         </div>
                         <div class="form-row">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="unitFactor">Unit Factor</label>
-                                    <input type="text" id="unitFactor" name="unitFactor" class="form-control angka" value="{{ old('unitFactor',$uomCon->unit_factor) }}"  required  maxlength="20"/>
-                                </div>
+                            <div class="form-group col-md-6">
+                                <label for="unitFactor">Unit Factor</label>
+                                <input type="text" id="unitFactor" name="unitFactor" class="form-control angka" value="{{ old('unitFactor',$uomCon->unit_factor) }}"  required  maxlength="20"/>
                             </div>
                         </div>
                         <br>
                         <div class="form-row">
-                            <div class="col-12">
-                                <a href="{{ route('uomCons.index') }}" class="btn btn-outline-secondary">
-                                    Cancel
+                            <div class="col-md-12">
+                                <a href="{{ route('uomCons.index') }}" class="btn btn-success">
+                                    Back
                                 </a>
-                                <button class="btn btn-success" type="button" id="cmdSave" name="cmdSave">Save</button>
+                                <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Save</button>
                             </div>
                         </div>
                     </form>

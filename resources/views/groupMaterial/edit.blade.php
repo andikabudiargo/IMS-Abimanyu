@@ -2,11 +2,9 @@
 @section('title', $title)
 @section('content')
 @include('layouts.breadcrumb')
-@include('partials.alert')
-
 <section id="add-index">
-    <div class="row">
-        <div class="col-6">
+    <div class="form-row">
+        <div class="col-md-6">
             <div class="card">
                 {{-- <div class="card-header">
                     <h4 class="card-title">accounts</h4>
@@ -14,36 +12,30 @@
                 <div class="card-body">
                     <form id="frmAdd" name="frmAdd" action="{{ route('groupMaterial.update',['id'=> $group->id]) }}" method="post" autocomplete="off">
                         @csrf
-                        <div class="row">
-                            <div class="col-4">
-                                <div class="form-group">
-                                    <label for="kode">Kode</label>
-                                    <input type="text" id="kode" name="kode" class="form-control .disabled-el"  value="{{old('kode',$group->code)}}" required disabled  />
-                                </div>
+                        <div class="form-row">
+                            <div class="form-group col-md-4">
+                                <label for="kode">Kode</label>
+                                <input type="text" id="kode" name="kode" class="form-control .disabled-el"  value="{{old('kode',$group->code)}}" required disabled  />
                             </div>
                         </div>
-                        <div class="row">
-                            <div class="col-12">
-                                <div class="form-group">
-                                    <label for="nama">Nama</label>
-                                    <input type="text" id="nama" name="nama" class="form-control text-uppercase" value="{{old('nama',$group->name)}}"  required  maxlength="100"  autofocus />
-                                </div>
+                        <div class="form-row">
+                            <div class="form-group col-md-12">
+                                <label for="nama">Nama</label>
+                                <input type="text" id="nama" name="nama" class="form-control text-uppercase" value="{{old('nama',$group->name)}}"  required  maxlength="100"  autofocus />
                             </div>
                         </div>
-                        <div class="row">
-                            <div class="col-12">
-                                <div class="form-group">
-                                    <label for="desc">Keterangan</label>
-                                    <input type="text" id="desc" name="desc" class="form-control" value="{{old('desc',$group->description)}}"  maxlength="100"/>
-                                </div>
+                        <div class="form-row">
+                            <div class="form-group col-md-12">
+                                <label for="desc">Keterangan</label>
+                                <input type="text" id="desc" name="desc" class="form-control" value="{{old('desc',$group->description)}}"  maxlength="100"/>
                             </div>
                         </div>
-                        <div class="row">
-                            <div class="col-12">
-                                <a href="{{ route('groupMaterials.index') }}" class="btn btn-outline-secondary">
-                                    Cancel
+                        <div class="form-row">
+                            <div class="col-md-12">
+                                <a href="{{ route('groupMaterials.index') }}" class="btn btn-success">
+                                    Back
                                 </a>
-                                <button class="btn btn-success" type="button" id="cmdSave" name="cmdSave">Save</button>
+                                <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Save</button>
                             </div>
                         </div>
                     </form>
@@ -63,24 +55,7 @@
 @section('scripts')
 <script type="text/javascript">
     $(document).ready(function(){           
-        $("#frmAdd").validate({
-            invalidHandler: function(event, validator) {
-            let errors = validator.numberOfInvalids();
-            if (errors) {
-                let message = errors == 1
-                    ? 'You missed 1 field. It has been highlighted'
-                    : 'You missed ' + errors + ' fields. They have been highlighted';
-                $("#alert-message .alert-body").html(message);
-                $("#alert-message").show();
-                $("#alert-message").fadeTo(5000, 500).slideUp(500, function(){
-                    $("#alert-message").slideUp(500);
-                });
-            } else {
-                $("#alert-message").hide();
-            }
-        }
-        }).settings.ignore = "";
-
+        validateFormToast("frmAdd");
     });
 
     $("#cmdSave").click(function(){       

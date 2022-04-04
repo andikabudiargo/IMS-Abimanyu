@@ -416,27 +416,14 @@
                     dataType: "json",
                     success: function(data) {
                         if (data.status == 0 ){
-                            let message="";
                             for(let i = 0; i < data.message.length; i++) {
-                                message += "-"+data.message[i]+"<br>";                           
+                                show_msg(data.title, data.message[i], data.alert);
                             }
-                            $("#alert-message-success").addClass(data.alert);
-                            $("#alert-message-success .alert-body").html(message);
-                            $("#alert-message-success").show();
-                            $("#alert-message-success").fadeTo(5000, 500).slideUp(500, function(){
-                                $("#alert-message-success").slideUp(500);
-                            });
                             $('#recNumber').attr('disabled','disabled');
                             $('#cmdSave').show();
                             $('#cmdPosting').hide();
-
                         }else{
-                            $("#alert-message-success").addClass(data.alert);
-                            $("#alert-message-success .alert-body").html(data.message);
-                            $("#alert-message-success").show();
-                            $("#alert-message-success").fadeTo(5000, 500).slideUp(500, function(){
-                                $("#alert-message-success").slideUp(500);
-                            });
+                            show_msg(data.title, data.message, data.alert);
                             $('#statusText').text(data.statusRec);
                             // $('#recNumber').val(data.recNumber);
                             // $('#cmdSave').hide();

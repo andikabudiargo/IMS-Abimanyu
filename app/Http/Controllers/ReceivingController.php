@@ -200,19 +200,21 @@ class ReceivingController extends Controller
                     DB::table('receiving_det')->insert($dataSet);
 
                     DB::commit();
-                    $alert  ="alert-success";
-                    $message  = "Rec $recNumber is successfully saved";
+                    $title = "Save $this->title";
+                    $alert  ="success";
+                    $message  = "$title $recNumber is successfully saved";
                     $statusRec  = $statusRec;
-                    \LogActivity::addToLog('Rec save ',"username: $username Status $message");
-                    return response()->json(array('statusRec' => $statusRec, 'status' => 1, 'message' => $message,'alert'=>$alert,'recNumber'=>$recNumber));
+                    \LogActivity::addToLog($title,"username: $username Status $message");
+                    return response()->json(array('statusRec' => $statusRec, 'title' => $title, 'status' => 1, 'message' => $message,'alert'=>$alert,'recNumber'=>$recNumber));
 
             } catch (Exception $e) {
                 DB::rollBack();
-                $alert  ="alert-warning";
-                $message  = "Rec $recNumber is failed to save";
+                $title = "Save $this->title";
+                $alert  ="warning";
+                $message  = "$title $recNumber is failed to save";
                 $statusRec = 'FAILED';
-                \LogActivity::addToLog('Rec save ',"username: $username Status $message");
-                return response()->json(array('statusRec' => $statusRec,'status' => 1, 'message' => $message,'alert'=>$alert,'recNumber'=>$recNumber));
+                \LogActivity::addToLog($title,"username: $username Status $message");
+                return response()->json(array('statusRec' => $statusRec, 'title' => $title, 'status' => 1, 'message' => $message,'alert'=>$alert,'recNumber'=>$recNumber));
             }
         }
     }
@@ -397,17 +399,19 @@ class ReceivingController extends Controller
                     }
                                                                 
                     DB::commit();
-                    $alert  ="alert-success";
-                    $message  = "Rec $recNumber is successfully updated";
-                    \LogActivity::addToLog('Rec update ',"username: $username Status $message");
-                    return response()->json(array('statusRec' => $statusRec,'status' => 1, 'message' => $message,'alert'=>$alert,'recNumber'=>$recNumber));
+                    $title ="Update $this->title";
+                    $alert  ="success";
+                    $message  = "$title $recNumber is successfully updated";
+                    \LogActivity::addToLog($title,"username: $username Status $message");
+                    return response()->json(array('statusRec' => $statusRec,'status' => 1, 'title' => $title,'message' => $message,'alert'=>$alert,'recNumber'=>$recNumber));
 
             } catch (Exception $e) {
                 DB::rollBack();
-                $alert  ="alert-warning";
-                $message  = "Rec $recNumber is failed to updated";
-                \LogActivity::addToLog('Rec update ',"username: $username Status $message");
-                return response()->json(array('statusRec' => $statusRec,'status' => 1, 'message' => $message,'alert'=>$alert,'recNumber'=>$recNumber));
+                $title ="Update $this->title";
+                $alert  ="warning";
+                $message  = "$title $recNumber is failed to updated";
+                \LogActivity::addToLog($title,"username: $username Status $message");
+                return response()->json(array('statusRec' => $statusRec,'status' => 1, 'title' => $title,'message' => $message,'alert'=>$alert,'recNumber'=>$recNumber));
             }
         }
 
@@ -486,15 +490,17 @@ class ReceivingController extends Controller
             DB::select($sqlMovement);
 
             DB::commit();
-            $alert  ="alert-success";
-            $message  = "Posting Rec $recNumber Successfully Posting";
-            \LogActivity::addToLog('Posting Rec ',"username: $username Status $message");
-            return response()->json(array('statusRec' => $statusRec,'status' => 1, 'message' => $message,'alert'=>$alert,'recNumber'=>$recNumber));
+            $title ="Posting $this->title";
+            $alert  ="success";
+            $message  = "$title $recNumber Successfully Posting";
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return response()->json(array('statusRec' => $statusRec,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'recNumber'=>$recNumber));
         }else{
-            $alert  ="alert-warning";
-            $message  = "Posting Rec $recNumber Failed to Posting";
-            \LogActivity::addToLog('Posting Rec ',"username: $username Status $message");
-            return response()->json(array('statusRec' => $statusRec,'status' => 1, 'message' => $message,'alert'=>$alert,'recNumber'=>$recNumber));
+            $title ="Posting $this->title";
+            $alert  ="warning";
+            $message  = "$title $recNumber Failed to Posting";
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return response()->json(array('statusRec' => $statusRec,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'recNumber'=>$recNumber));
         }
     }
 
@@ -542,15 +548,17 @@ class ReceivingController extends Controller
                 ]
             );
 
-            $alert  ="alert-success";
-            $message  = "Rec $recNumber Successfully Cancel";
-            \LogActivity::addToLog('Rec cancel ',"username: $username Status $message");
-            return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);  
+            $title ="Cancel $this->title";
+            $alert  ="success";
+            $message  = "$title $recNumber Successfully Cancel";
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return redirect()->back()->with(['alert'=>$alert,'title' => $title,'message'=> $message]);  
         }else{
-            $alert  ="alert-warning";
-            $message  = "Rec $recNumber Failed to Cancel";
-            \LogActivity::addToLog('Rec cancel ',"username: $username Status $message");
-            return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);
+            $title ="Cancel $this->title";
+            $alert  ="warning";
+            $message  = "$title $recNumber Failed to Cancel";
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return redirect()->back()->with(['alert'=>$alert,'title' => $title,'message'=> $message]);
         }
     }
 
@@ -622,7 +630,7 @@ class ReceivingController extends Controller
         return Datatables::of($data)
         ->addColumn('action', function ($data) {
             $buttons = '<div class="d-inline-flex">
-                            <a class="pr-1 dropdown-toggle hide-arrow text-primary" data-toggle="dropdown">
+                            <a class="pr-1 dropdown-toggle hide-arrow" data-toggle="dropdown">
                                 <i data-feather="menu"></i>
                             </a>';
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
@@ -654,7 +662,7 @@ class ReceivingController extends Controller
                                         data-toggle='modal'
                                         data-target='#smallModalCancel'
                                         data-href='". route("receiving.destroy", ["id"=>$data->id]) ."'>
-                                        <i data-feather='trash-2'></i>
+                                        <i data-feather='trash-2' class='feather-14-red'></i>
                                         Cancel
                                     </a>";
                 }
@@ -665,8 +673,9 @@ class ReceivingController extends Controller
             return $buttons;
             })
         ->addColumn('status', function ($data) {
+            $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary'];
             $statusRec = ['Draft','Update','Posting','Cancel'];
-            return $statusRec[$data->status - 1];
+            return "<div class='badge ".$badges[$data->status - 1]."'>".$statusRec[$data->status - 1]."</div>";
         })
         ->rawColumns(['action','status'])
         ->make(true);

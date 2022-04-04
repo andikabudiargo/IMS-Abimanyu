@@ -113,6 +113,10 @@ class UomConController extends Controller
     {
         $username =  Auth::user()->username;
         $id=Crypt::decryptString($request->id);
+        
+        $uom = DB::table('uom_con')
+        ->where('id',$id)
+        ->first();
 
         $row_affected = DB::table('uom_con')
         ->where('id',$id)
@@ -121,15 +125,15 @@ class UomConController extends Controller
         if($row_affected>0){
             $title ="Delete $this->title";
             $alert  ="success";
-            $message  = "$this->title $name is successfully deleted";
+            $message  = "$this->title is successfully deleted Unit From : $uom->unit_from Unit To : $uom->unit_to";
             \LogActivity::addToLog($title,"username: $username Status $message");
-            return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);
+            return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);
         }else{
             $title ="Delete $this->title";
             $alert  ="warning";
-            $message  = "$this->title $name is failed to delete";
+            $message  = "$this->title $uom is failed to delete Unit From : $uom->unit_from Unit To : $uom->unit_to";
             \LogActivity::addToLog($title,"username: $username Status $message");
-            return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);
+            return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);
         }
     }
 
@@ -147,7 +151,7 @@ class UomConController extends Controller
         return Datatables::of($data)
         ->addColumn('action', function ($data) {
             $buttons = '<div class="d-inline-flex">
-                            <a class="pr-1 dropdown-toggle hide-arrow text-primary" data-toggle="dropdown">
+                            <a class="pr-1 dropdown-toggle hide-arrow" data-toggle="dropdown">
                                 <i data-feather="menu"></i>
                             </a>';
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
@@ -164,7 +168,7 @@ class UomConController extends Controller
                                     data-toggle='modal'
                                     data-target='#smallModal'
                                     data-href='". route("uomCon.destroy", ["id"=>Crypt::encryptString($data->id)]) ."'>
-                                    <i data-feather='trash-2'></i>
+                                    <i data-feather='trash-2' class='feather-14-red'></i>
                                     Delete
                                 </a>";
             }

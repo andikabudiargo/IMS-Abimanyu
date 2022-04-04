@@ -16,9 +16,15 @@ use AppHelpers;
 
 class SalesOrderController extends Controller
 {
+    private $title;
+    public function __construct()
+    {
+        $this->title = "Sales Order";
+    }
+
     public function index(Request $request)
     {
-        $data['title'] = "Sales Order";
+        $data['title'] = "$this->title";
 
         $data['custs'] = DB::table('third_party')
         ->where ('third_party_type','=','cust')
@@ -62,8 +68,8 @@ class SalesOrderController extends Controller
 
     public function create(Request $request)
     {
-        $data['title'] = "Create Sales Order";
-        $data['subtitle'] = "Create Sales Order";
+        $data['title'] = "Create $this->title";
+        $data['subtitle'] = "Create $this->title";
         
         $data['custs'] = DB::table('third_party')
         ->where ('third_party_type','=','cust')
@@ -80,6 +86,10 @@ class SalesOrderController extends Controller
         $data['uoms'] = DB::table('uom')
         ->orderBy('name')
         ->get();
+
+        $data['attribute'] = DB::table('attributes')
+        ->where('attr_name','main')
+        ->pluck('attr_value','attr_code');
 
         // $data['orderNumber'] = $this->getLastCode('SO');
 
@@ -202,6 +212,7 @@ class SalesOrderController extends Controller
                             'price_service' => $val->price_service,
                             'ppn' => ($val->price*$val->qty) * $ppn/100,
                             'pph23' => ($val->price_service*$val->qty) * $pph23/100,
+                            'status' => $status,
                             'created_by' => Auth::user()->username,
                             'created_at' => date('Y-m-d H:i:s'),
                         ];
@@ -210,7 +221,7 @@ class SalesOrderController extends Controller
                     DB::table('sales_order_det')->insert($dataSet);
 
                     DB::commit();
-                    $title ='Save SO';
+                    $title ="Save $this->title";
                     $alert  ="success";
                     $message  = "$title $soCode is successfully saved";
                     \LogActivity::addToLog($title,"username: $username Status $message");
@@ -218,7 +229,7 @@ class SalesOrderController extends Controller
 
             } catch (Exception $e) {
                 DB::rollBack();
-                $title ='Save SO';
+                $title ="Save $this->title";
                 $alert  ="warning";
                 $message  = "$title $soCode is failed to save";
                 \LogActivity::addToLog($title,"username: $username Status $message");
@@ -233,8 +244,8 @@ class SalesOrderController extends Controller
         $username =  Auth::user()->username;
         $modulCode = 'SO';
 
-        $data['title'] = "Edit Sales Order";
-        $data['subtitle'] = "Edit Sales Order";
+        $data['title'] = "Detail $this->title";
+        $data['subtitle'] = "Detail $this->title";
 
         $data['header'] = DB::table('sales_order_hdr')
         ->where('id',$id)
@@ -292,8 +303,8 @@ class SalesOrderController extends Controller
         $username =  Auth::user()->username;
         $modulCode = 'SO';
 
-        $data['title'] = "Edit Sales Order";
-        $data['subtitle'] = "Edit Sales Order";
+        $data['title'] = "Edit $this->title";
+        $data['subtitle'] = "Edit $this->title";
 
         $data['header'] = DB::table('sales_order_hdr')
         ->where('id',$id)
@@ -357,6 +368,65 @@ class SalesOrderController extends Controller
         $data['statusSo'] = $statusSo[$data['header']->status-1];
 
         return view("salesOrder.edit",$data);
+        
+    }
+
+    public function close(Request $request)
+    {
+        $id=Crypt::decryptString($request->id);
+        $username =  Auth::user()->username;
+        $modulCode = 'SO';
+
+        $data['title'] = "Close $this->title";
+        $data['subtitle'] = "Close $this->title";
+
+        $data['header'] = DB::table('sales_order_hdr')
+        ->where('id',$id)
+        ->get()->first();
+
+        $data['detail'] = DB::table('sales_order_det')
+        ->leftJoin('article','article.article_code','=','sales_order_det.article_code')
+        ->leftJoin('article_stock','article_stock.article_code','=','sales_order_det.article_code')
+        ->where('so_code',$data['header']->so_code)
+        ->select('sales_order_det'.'.*',DB::raw('round(sales_order_det.qty) as qty'),'article_stock.article_qty as qty_stock', DB::raw('(SELECT name from group_materials where code = group_of_material) as group'))
+        ->orderBy('id')
+        ->get();       
+
+        $data['articles']= DB::table('article') 
+        ->leftJoin('article_stock','article_stock.article_code','=','article.article_code')
+        ->leftJoin('group_materials','group_materials.code','=','article.group_of_material')
+        ->where('third_party',$data['header']->customer_id)
+        ->orderBy('article_desc')
+        ->select('article'.'.*', 'article_stock.article_qty as qty','article.uom as uom1','group_materials.name as group')
+        ->get();
+
+        $data['approveHistory'] = DB::table('approval_history')
+        ->leftJoin('users','users.username','approval_history.username')
+        ->where('module_code',$modulCode)
+        ->where('module_number',$data['header']->so_code)
+        ->orderBy("approval_order")
+        ->get();
+
+        $data['custs'] = DB::table('third_party')
+        ->where ('third_party_type','=','cust')
+        ->orderBy('nama')
+        ->get();
+
+        $data['employees'] = DB::table('employees')
+        ->where('job_position','05')
+        ->get();
+
+        $data['types'] = ['NEW','REPEAT'];
+        $data['currency'] = ['IDR','USD'];
+
+        $data['uoms'] = DB::table('uom')
+        ->orderBy('name')
+        ->get();
+
+        $statusSo = ['New','Validated','Approved','Received','Canceled','Closed','Paid'];
+        $data['statusSo'] = $statusSo[$data['header']->status-1];
+
+        return view("salesOrder.close",$data);
         
     }
 
@@ -503,19 +573,59 @@ class SalesOrderController extends Controller
                 }
                 
                 DB::commit();
-                $title ='Update SO';
+                $title ="Update $this->title";
                 $alert  ="success";
                 $message  = "$title $orderNumber is successfully updated";
                 \LogActivity::addToLog($title,"username: $username Status $message");
                 return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'soNumber'=>$orderNumber));
             } catch (Exception $e) {
                 DB::rollBack();
-                $title ='Update SO';
+                $title ="Update $this->title";
                 $alert  ="warning";
                 $message  = "$title $orderNumber is failed to updated";
                 \LogActivity::addToLog($title,"username: $username Status $message");
                 return response()->json(array('status' => 0,'title' => $title, 'message' => $message,'alert'=>$alert,'soNumber'=>$orderNumber));
             }
+        }
+
+    }
+
+    public function updateClose(Request $request)
+    {
+        $username =  Auth::user()->username;
+        $orderNumber = $request->orderNumber;
+        $articles = json_decode($request -> articles);
+
+        DB::beginTransaction();
+        try {
+        
+            foreach ($articles as $val) {
+                DB::table('sales_order_det')
+                ->where('so_code',$val->so_code)
+                ->where('article_code',$val->article_code)
+                ->update(
+                    [
+                    'status' => $val->status,
+                    'updated_by' => Auth::user()->username,
+                    'updated_at' => date('Y-m-d H:i:s')
+                    ]
+                );
+            }
+            
+            DB::commit();
+            $title ="Update $this->title";
+            $alert  ="success";
+            $message  = "$title $orderNumber is successfully updated";
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'soNumber'=>$orderNumber));
+            
+        } catch (Exception $e) {
+            DB::rollBack();
+            $title ="Update $this->title";
+            $alert  ="warning";
+            $message  = "$title $orderNumber is failed to updated";
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return response()->json(array('status' => 0,'title' => $title, 'message' => $message,'alert'=>$alert,'soNumber'=>$orderNumber));
         }
 
     }
@@ -528,17 +638,18 @@ class SalesOrderController extends Controller
         $rowAffected = DB::table('sales_order_hdr')->where('id',$id)->delete();
         if($rowAffected>0){
             DB::table('sales_order_det')->where('so_code',$so_code)->delete();
-            $alert  ="alert-success";
-            $message  = "SO $so_code Successfully Deleted";
-            \LogActivity::addToLog('SO delete ',"username: $username Status $message");
+            $title ="Delete $this->title";
+            $alert ="success";
+            $message  = "$title $so_code Successfully Deleted";
+            \LogActivity::addToLog($title,"username: $username Status $message");
             return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);  
         }else{
-            $alert  ="alert-warning";
-            $message  = "SO $so_code Failed to Delete";
-            \LogActivity::addToLog('SO delete ',"username: $username Status $message");
+            $title ="Delete $this->title";
+            $alert  ="warning";
+            $message  = "$title $so_code Failed to Delete";
+            \LogActivity::addToLog($title,"username: $username Status $message");
             return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);
         }
-
     }
 
     public function list(Request $request)
@@ -600,13 +711,19 @@ class SalesOrderController extends Controller
                                 </a>';
             }
             if (Auth::user()->can('salesOrder-delete')) {
+
+            $buttons .=         '<a href="'. route('salesOrder.close', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+                                    <i data-feather="x-circle"></i>
+                                    Close
+                                </a>';
+
             $buttons .=         "<a href='javascript:;'
                                     id='deleteButton'
                                     class='dropdown-item'
                                     data-toggle='modal'
                                     data-target='#smallModal'
                                     data-href='". route("salesOrder.destroy", ["id"=>Crypt::encryptString($data->id)]) ."'>
-                                    <i data-feather='trash-2'></i>
+                                    <i data-feather='trash-2' class='feather-14-red'></i>
                                     Delete
                                 </a>";
             }

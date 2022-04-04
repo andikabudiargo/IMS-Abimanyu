@@ -4,7 +4,7 @@
 @include('layouts.breadcrumb')
 <section id="add-index">
     <div class="form-row">
-        <div class="col-6">
+        <div class="col-md-6">
             <div class="card">
                 {{-- <div class="card-header">
                     <h4 class="card-title">yield('title')</h4>
@@ -40,9 +40,9 @@
                         </div>
                         <br>
                         <div class="form-row">
-                            <div class="col-12">
-                                <button class="btn btn-outline-secondary" type="reset" id="cmdCancel" name="cmdCancel">Cancel</button>
-                                <button class="btn btn-success" type="button" id="cmdSave" name="cmdSave">Save</button>
+                            <div class="col-ms-12">
+                                <button class="btn btn-success" type="reset" id="cmdCancel" name="cmdCancel">New</button>
+                                <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Save</button>
                             </div>
                         </div>
                     </form>
@@ -66,7 +66,7 @@
     });
 
     $("#cmdCancel").click(function() {
-        reloadPage();
+        window.location.reload();
     });
 
     $(document).on('change', '.dynamicSelect', function() {

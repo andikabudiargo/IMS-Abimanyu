@@ -10,7 +10,7 @@
     <meta name="description" content="Integrated Manufacture System">
     <meta name="keywords" content="abimany, manufacture, ims">
     <meta name="author" content="Oki">
-    <title>{{ env('APP_NAME')}} - Login</title>
+    <title>{{ env('APP_NAME') }} - Login</title>
 
     <link rel="apple-touch-icon" sizes="57x57" href="{{asset('app-assets/images/ico/favicon/apple-icon-57x57.png')}}">
     <link rel="apple-touch-icon" sizes="60x60" href="{{asset('app-assets/images/ico/favicon/apple-icon-60x60.png')}}">
@@ -62,7 +62,9 @@
                             <div class="card-body">
                                 <div class="mb-2">
                                     <img src="{{asset('app-assets/images/logo/logo.png')}}" alt="logo" class="logo" style="height: 100px;">
-                                    {{-- <h2 class="text-primary">{{ env('APP_NAME') }}</h2> --}}
+                                    @if( env('APP_ENVIRONMENT') )
+                                    <h2 class="text-primary">{{ env('APP_ENVIRONMENT') }}</h2>
+                                    @endif
                                     <h2 class="text-secondary">{{ env('APP_NAME_ALIAS') }}</h2>
                                 </div>
                                 <h4 class="card-title mb-1">sign-in</h4>
@@ -95,8 +97,7 @@
                                     @endforeach
                                     @endif
 
-                                    <button id="login" name="login" type="submit" value="Login"
-                                        class="btn btn-primary btn-block" tabindex="4">Sign in</button>
+                                    <button id="login" name="login" type="submit" value="Login" class="btn btn-primary btn-block" tabindex="4">Sign in</button>
                                 </form>
                                 <p class="text-center mt-2">
                                     {{-- <span>New on our platform?</span> --}}
@@ -107,8 +108,8 @@
                             </div>
                             <div class="card-body">
                                 <p class="clearfix mb-0">
-                                    <span class="float-md-left d-block d-md-inline-block mt-25">COPYRIGHT &copy; {{ env('APP_YEAR_CREATED') }}
-                                        <span class="d-sm-inline-block">{{ env('APP_COMPANY') }}, All rights Reserved</span>
+                                    <span class="float-md-left d-block d-md-inline-block mt-25">COPYRIGHT &copy; {{ env('APP_YEAR_CREATED') }} | {{ env('APP_COMPANY') }}, All rights Reserved
+                                        <span class="d-sm-inline-block">{{ env('APP_VERSION') }} </span>
                                     </span>
                                 </p>
                             </div>

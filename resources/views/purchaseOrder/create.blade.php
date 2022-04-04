@@ -2,7 +2,6 @@
 @section('title', $title)
 @section('content')
 @include('layouts.breadcrumb')
-@include('partials.alert')
 <section id="add-index">
     <div class="form-row">
         <div class="col-md-12">
@@ -34,7 +33,7 @@
                                 </div>
                                 <div class="form-group col-md-2">
                                     <label for="orderDate">Order Date*</label>
-                                    <input type="text" id="orderDate" name="orderDate" class="form-control" placeholder="DD-MM-YYYY" required />
+                                    <input type="text" id="orderDate" name="orderDate" class="form-control" placeholder="DD-MM-YYYY" required disabled/>
                                 </div>
                                 <div class="form-group col-md-2">
                                     <label for="deliveryDate">Delivery Date</label>
@@ -84,7 +83,7 @@
                                 <div class="form-group col-md-2">
                                     <label class="form-label" for="ppn">PPN</label>
                                     <div class="input-group">
-                                        <input type="text" class="form-control angka text-right" id = "ppn" name="ppn" value="10" maxlength="2" />
+                                        <input type="text" class="form-control angka text-right" id = "ppn" name="ppn" value="{{ $attribute['ppn'] }}" maxlength="2" />
                                         <div class="input-group-append">
                                             <span class="input-group-text">%</span>
                                         </div>
@@ -315,7 +314,7 @@
 <script type="text/javascript">
     let currentDate = todayDate('dd-mm-yyyy');    
     $(document).ready(function(){           
-        validateForm('frmAdd');
+        validateFormToast("frmAdd");
         $('#orderDate').val(currentDate);
     });
 
@@ -363,143 +362,133 @@
     });
 
     $("#cmdSave").click(function(){     
-        $('.disabled-el').removeAttr('disabled');
-        // ambil semua data article
-        let objQty= $('input[name="qty_order[]"]');
-        let objPrice= $('input[name="price[]"]');
-        let objNewPrice= $('input[name="newPrice[]"]');
-        let objUom= $('span[name="uom[]"]'); 
-        let objpr= $('select[name="pRequest[]"]'); 
-        let articles = []; 
-        let flag=0; 
-        let pesan="";
+        if (!$("#frmAdd")[0].checkValidity()){
+            $("#frmAdd").submit();
+        }else{ 
+            $('.disabled-el').removeAttr('disabled');
+            // ambil semua data article
+            let objQty= $('input[name="qty_order[]"]');
+            let objPrice= $('input[name="price[]"]');
+            let objNewPrice= $('input[name="newPrice[]"]');
+            let objUom= $('span[name="uom[]"]'); 
+            let objpr= $('select[name="pRequest[]"]'); 
+            let articles = []; 
+            let flag=0; 
+            let pesan="";
 
-        $("#article_row select[name='article_id[]']").map(function(i) {  
-		    let $this=$(this);
-            if ($this.val()){
-                let article=$this.val().split("|");
-                let articleName=$this.select2('data')[0].text;
-                let plu=article[0];
-                let qty=objQty.eq(i).val().replace(/,/gi, '') || 0;
-                let newPrice=objNewPrice.eq(i).val().replace(/[^0-9]/gi, '') || 0;
-                let price=objPrice.eq(i).val().replace(/[^0-9]/gi, '') || 0;
-                let pRequest=objpr.eq(i).val();
-                let uom=objUom.eq(i).text();
-                let supp=$('#supplier').val();
-                let suppName = $('#supplier').select2('data')[0].text;
-                let supplier=supp;
-            
-                //es6
-                // let obj = ingredient.find(obj => obj.plu == plu);
-
-                //jquery
-                //cek apakah article ada yang double input ato ngk
-                let obj = $.grep(articles, function(obj){
-                    return obj.article_code === plu;
-                })[0];
+            $("#article_row select[name='article_id[]']").map(function(i) {  
+                let $this=$(this);
+                if ($this.val()){
+                    let article=$this.val().split("|");
+                    let articleName=$this.select2('data')[0].text;
+                    let plu=article[0];
+                    let qty=objQty.eq(i).val().replace(/,/gi, '') || 0;
+                    let newPrice=objNewPrice.eq(i).val().replace(/[^0-9]/gi, '') || 0;
+                    let price=objPrice.eq(i).val().replace(/[^0-9]/gi, '') || 0;
+                    let pRequest=objpr.eq(i).val();
+                    let uom=objUom.eq(i).text();
+                    let supp=$('#supplier').val();
+                    let suppName = $('#supplier').select2('data')[0].text;
+                    let supplier=supp;
                 
-                if(obj) {
-                    pesan +="Article "+articleName+" entered more than once !! <br>"; 
-                    flag=1;
-                } else {
-                    if ((plu!=='') && (qty> 0)){
-                        articles.push({
-                            "article_code":plu,
-                            "qty":qty,
-                            "uom":uom,
-                            "price":price,
-                            "newPrice":newPrice,
-                            "pRequest":pRequest
-                        });
-                    }
-                } 
-            
-                if (qty == 0){
-                    pesan +="QTY of items "+ articleName +" cannot be 0 <br>"; 
-                    flag=1;
-                }
-            
-            }
-        });
+                    //es6
+                    // let obj = ingredient.find(obj => obj.plu == plu);
 
-        if (articles.length == 0){
-			pesan +="Articles must be filled in completely <br>"; 
-			flag=1;
-		}
-
-        if (flag==0){
-
-            let orderDate = $('#orderDate').val();
-            let poType = $('#poType').val();
-            let deliveryDate = $('#deliveryDate').val();
-            let currency = $('#currency').val();
-            let supp = $('#supplier').val();
-            let tax = $('#tax').val();
-            let term = $('#term').val() || 0;
-            let kurs = $('#kurs').val() || 1;
-            let ppn = $('#ppn').val().replace(/[^0-9]/gi, '') || 0;
-            let totalPph = $('#totalPPH').val().replace(/[^0-9]/gi, '') || 0;
-            let totalPpn = $('#totalPPN').val().replace(/[^0-9]/gi, '') || 0;
-            let note = $('#note').val();
-            let persenDiscount = $('#persenDiscount').val() || 0;
-
-            $.ajax({
-                type: "post",
-                url: "{{ route('purchaseOrder.store') }}",
-                data: {
-                    articles:JSON.stringify(articles),
-                    orderDate:orderDate,
-                    poType:poType,
-                    deliveryDate:deliveryDate,
-                    currency:currency,                
-                    supplier:supp,
-                    tax:tax,
-                    ppn:ppn,
-                    term:term,
-                    totalPph:totalPph,
-                    totalPpn:totalPpn,
-                    kurs:kurs,
-                    note:note,
-                    discount:persenDiscount
-                },
-                dataType: "json",
-                success: function(data) {
-                    if (data.status == 0 ){
-                        let message="";
-                        for(let i = 0; i < data.message.length; i++) {
-                            message += "-"+data.message[i]+"<br>";                           
-                        }
-                        $("#alert-message-success").addClass(data.alert);
-                        $("#alert-message-success .alert-body").html(message);
-                        $("#alert-message-success").show();
-                        $("#alert-message-success").fadeTo(5000, 500).slideUp(500, function(){
-                            $("#alert-message-success").slideUp(500);
-                        });
-
-                        $('#poNumber').attr('disabled','disabled');
-
-                    }else{
-                        $("#alert-message-success").addClass(data.alert);
-                        $("#alert-message-success .alert-body").html(data.message);
-                        $("#alert-message-success").show();
-                        $("#alert-message-success").fadeTo(5000, 500).slideUp(500, function(){
-                            $("#alert-message-success").slideUp(500);
-                        });
-                        $('#poNumber').attr('disabled','disabled');
-                        $('#cmdSave').attr('disabled','disabled');
-                        $('#addNewRow').attr('disabled','disabled');
-                        $('#poNumber').val(data.poNumber);
-                        
-                    }
+                    //jquery
+                    //cek apakah article ada yang double input ato ngk
+                    let obj = $.grep(articles, function(obj){
+                        return obj.article_code === plu;
+                    })[0];
                     
-                },
-                error: function(error) {
-                    console.log(error);
+                    if(obj) {
+                        pesan +="Article "+articleName+" entered more than once !! <br>"; 
+                        flag=1;
+                    } else {
+                        if ((plu!=='') && (qty> 0)){
+                            articles.push({
+                                "article_code":plu,
+                                "qty":qty,
+                                "uom":uom,
+                                "price":price,
+                                "newPrice":newPrice,
+                                "pRequest":pRequest
+                            });
+                        }
+                    } 
+                
+                    if (qty == 0){
+                        pesan +="QTY of items "+ articleName +" cannot be 0 <br>"; 
+                        flag=1;
+                    }
+                
                 }
             });
 
-        }else{
-            Swal.fire('Warning..',pesan,'warning');
+            if (articles.length == 0){
+                pesan +="Articles must be filled in completely <br>"; 
+                flag=1;
+            }
+
+            if (flag==0){
+
+                let orderDate = $('#orderDate').val();
+                let poType = $('#poType').val();
+                let deliveryDate = $('#deliveryDate').val();
+                let currency = $('#currency').val();
+                let supp = $('#supplier').val();
+                let tax = $('#tax').val();
+                let term = $('#term').val() || 0;
+                let kurs = $('#kurs').val() || 1;
+                let ppn = $('#ppn').val().replace(/[^0-9]/gi, '') || 0;
+                let totalPph = $('#totalPPH').val().replace(/[^0-9]/gi, '') || 0;
+                let totalPpn = $('#totalPPN').val().replace(/[^0-9]/gi, '') || 0;
+                let note = $('#note').val();
+                let persenDiscount = $('#persenDiscount').val() || 0;
+
+                $.ajax({
+                    type: "post",
+                    url: "{{ route('purchaseOrder.store') }}",
+                    data: {
+                        articles:JSON.stringify(articles),
+                        orderDate:orderDate,
+                        poType:poType,
+                        deliveryDate:deliveryDate,
+                        currency:currency,                
+                        supplier:supp,
+                        tax:tax,
+                        ppn:ppn,
+                        term:term,
+                        totalPph:totalPph,
+                        totalPpn:totalPpn,
+                        kurs:kurs,
+                        note:note,
+                        discount:persenDiscount
+                    },
+                    dataType: "json",
+                    success: function(data) {
+                        if (data.status == 0 ){
+                            for(let i = 0; i < data.message.length; i++) {
+                                show_msg(data.title, data.message[i], data.alert);
+                            }
+                            $('#poNumber').attr('disabled','disabled');
+                        }else{
+                            show_msg(data.title, data.message, data.alert);
+                            $('#poNumber').attr('disabled','disabled');
+                            $('#cmdSave').attr('disabled','disabled');
+                            $('#addNewRow').attr('disabled','disabled');
+                            $('#poNumber').val(data.poNumber);
+                            
+                        }
+                        
+                    },
+                    error: function(error) {
+                        console.log(error);
+                    }
+                });
+
+            }else{
+                Swal.fire('Warning..',pesan,'warning');
+            }
         }
     
     });
@@ -602,8 +591,8 @@
         let objListPrice= $('#article_row a[name="listPrice[]"]');
         let objTotal= $('#article_row span[name="totalLine[]"]');
         objArticle.change(function(e){   
-            //     0            1           2         3       4        5
-            // article_code.'|'group.'|'qty_stock.'|'qty.'|'uom1.'|'costprice.'"
+            //     0            1           2         3       4        5             6
+            // article_code.'|'group.'|'qty_stock.'|'qty.'|'uom1.'|'costprice.'|'last_price.'"
             let objIndex = objArticle.index(this);
             let detail = objArticle.eq(objIndex).val();
             console.log(detail);
@@ -614,7 +603,7 @@
             objUom.eq(objIndex).text(arrDetail[4]);
             objQty.eq(objIndex).val(humanizeNumber(arrDetail[3]||0));
             objPrice.eq(objIndex).val(humanizeNumber(arrDetail[5]||0));
-            objNewPrice.eq(objIndex).val(humanizeNumber(arrDetail[5]||0));
+            objNewPrice.eq(objIndex).val(humanizeNumber(arrDetail[6]||0));
             objArticle.eq(objIndex).select2('open');
             if (detail){
                 setTimeout(() => {

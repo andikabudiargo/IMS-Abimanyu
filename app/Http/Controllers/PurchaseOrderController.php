@@ -15,9 +15,15 @@ use AppHelpers;
 
 class PurchaseOrderController extends Controller
 {
+
+    private $title;
+    public function __construct()
+    {
+        $this->title = "Purchase Order";
+    }
     public function index(Request $request)
     {
-        $data['title'] = "Purchase Order";
+        $data['title'] = "$this->title";
 
         $data['supps'] = DB::table('third_party')
         ->where ('third_party_type','=','supp')
@@ -61,8 +67,8 @@ class PurchaseOrderController extends Controller
 
     public function create(Request $request)
     {
-        $data['title'] = "Create Purchase Order";
-        $data['subtitle'] = "Create Purchase Order";
+        $data['title'] = "Create $this->title";
+        $data['subtitle'] = "Create $this->title";
         
         $data['supps'] = DB::table('third_party')
         ->where ('third_party_type','=','supp')
@@ -74,6 +80,10 @@ class PurchaseOrderController extends Controller
         $data['uoms'] = DB::table('uom')
         ->orderBy('name')
         ->get();
+
+        $data['attribute'] = DB::table('attributes')
+        ->where('attr_name','main')
+        ->pluck('attr_value','attr_code');
 
         return view("purchaseOrder.create",$data);
     }
@@ -127,7 +137,7 @@ class PurchaseOrderController extends Controller
             }
 
             
-            $title="Save Purchase Order";
+            $title="Save $this->title";
             $alert ="error";
             return response()->json(array('status' => 0,'title' => $title, 'message' => $error_array,'alert' =>$alert));
 
@@ -198,19 +208,19 @@ class PurchaseOrderController extends Controller
                     DB::table('purchase_order_det')->insert($dataSet);
 
                     DB::commit();
-                    $title ='Save Purchase Request';
+                    $title ="Save $this->title";
                     $alert  ="success";
-                    $message  = "$title $prNumber is successfully saved";
+                    $message  = "$title $poNumber is successfully saved";
                     \LogActivity::addToLog($title,"username: $username Status $message");
-                    return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'prNumber'=>$prNumber));
+                    return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'poNumber'=>$poNumber));
 
             } catch (Exception $e) {
                 DB::rollBack();
-                $title ='Save Purchase Request';
+                $title ="Save $this->title";
                 $alert  ="warning";
-                $message  = "$title $prNumber is failed to saved";
+                $message  = "$title $poNumber is failed to save";
                 \LogActivity::addToLog($title,"username: $username Status $message");
-                return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'prNumber'=>$prNumber));
+                return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'poNumber'=>$poNumber));
 
             }
         }
@@ -219,8 +229,8 @@ class PurchaseOrderController extends Controller
     public function show(Request $request)
     {
         $id=$request->id;
-        $data['title'] = "Detail Purchase Order";
-        $data['subtitle'] = "Detail Purchase Order";
+        $data['title'] = "Detail $this->title";
+        $data['subtitle'] = "Detail $this->title";
 
         $data['header'] = DB::table('purchase_order_hdr')
         // ->leftJoin('purchase_request_det','purchase_order_hdr.po_number','purchase_request_det.po_number')
@@ -292,8 +302,8 @@ class PurchaseOrderController extends Controller
 
     public function showEdit($key){
         $id=$key;
-        $data['title'] = "Edit Purchase Order";
-        $data['subtitle'] = "Edit Purchase Order";
+        $data['title'] = "Edit $this->title";
+        $data['subtitle'] = "Edit $this->title";
 
         $data['header'] = DB::table('purchase_order_hdr')
         // ->leftJoin('purchase_request_det','purchase_order_hdr.po_number','purchase_request_det.po_number')
@@ -498,14 +508,17 @@ class PurchaseOrderController extends Controller
             // );
 
             // $idBaru = DB::table('purchase_order_hdr')->where('po_number',$poNew)->value('id');
-            $alert  ="alert-success";
-            $message  = "Revison PO: $poOrigin to $poNew is successfully saved";
-            \LogActivity::addToLog('SO save ',"username: $username Status $message");
+            
+            $title ="Save $this->title";
+            $alert  ="success";
+            $message  = "$title Revison PO: $poOrigin to $poNew is successfully saved";
+            \LogActivity::addToLog($title,"username: $username Status $message");
             return $this->showEdit($id);
         }else{
-            $alert  ="alert-warning";
-            $message  = "Revison PO: $poOrigin to $poNew is successfully failed";
-            \LogActivity::addToLog('PO delete ',"username: $username Status $message");
+            $title ="Save $this->title";
+            $alert  ="warning";
+            $message  = "$title Revison PO: $poOrigin to $poNew is successfully failed";
+            \LogActivity::addToLog($title,"username: $username Status $message");
             return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);
         }
         
@@ -676,7 +689,7 @@ class PurchaseOrderController extends Controller
                                             
                     DB::commit();
 
-                    $title ='Save Purchase Order';
+                    $title ="Save $this->title";
                     $alert  ="success";
                     $message  = "$title $poNumber is successfully updated";
                     \LogActivity::addToLog($title,"username: $username Status $message");
@@ -684,8 +697,8 @@ class PurchaseOrderController extends Controller
 
             } catch (Exception $e) {
                 DB::rollBack();
-                $title ='Save Purchase Order';
-                $alert  ="warning";
+                $title ="Save $this->title";
+                $alert ="warning";
                 $message  = "$title $poNumber is failed to updated";
                 \LogActivity::addToLog($title,"username: $username Status $message");
                 return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'prNumber'=>$poNumber));
@@ -723,17 +736,19 @@ class PurchaseOrderController extends Controller
                 );
 
                 DB::commit();
-                $alert  ="alert-success";
-                $message  = "PO $poNumber is successfully Authorized";
-                \LogActivity::addToLog('PO update ',"username: $username Status $message");
-                return response()->json(array('statusPo' => $statusPo,'status' => 1, 'message' => $message,'alert'=>$alert,'poNumber'=>$poNumber));
+                $title ="Autorized $this->title";
+                $alert  ="success";
+                $message  = "$title $poNumber is successfully Authorized";
+                \LogActivity::addToLog($title,"username: $username Status $message");
+                return response()->json(array('statusPo' => $statusPo,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'poNumber'=>$poNumber));
 
         } catch (Exception $e) {
             DB::rollBack();
-            $alert  ="alert-warning";
-            $message  = "PO $poNumber is failed to Authorize";
-            \LogActivity::addToLog('PO update ',"username: $username Status $message");
-            return response()->json(array('statusPo' => $statusPo,'status' => 1, 'message' => $message,'alert'=>$alert,'poNumber'=>$poNumber));
+            $title ="Autorized $this->title";
+            $alert  ="warning";
+            $message  = "$title $poNumber is failed to Authorize";
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return response()->json(array('statusPo' => $statusPo,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'poNumber'=>$poNumber));
         }
     }
 
@@ -764,21 +779,22 @@ class PurchaseOrderController extends Controller
                         'updated_by' => Auth::user()->username,
                         'updated_at' => date('Y-m-d H:i:s')
                     ]
-                );
-                
+                );                
                                         
                 DB::commit();
-                $alert  ="alert-success";
-                $message  = "PO $poNumber is successfully Validated";
-                \LogActivity::addToLog('PO update ',"username: $username Status $message");
-                return response()->json(array('statusPo' => $statusPo,'status' => 1, 'message' => $message,'alert'=>$alert,'poNumber'=>$poNumber));
+                $title ="Validate $this->title";
+                $alert  ="success";
+                $message  = "$title $poNumber is successfully Validated";
+                \LogActivity::addToLog($title,"username: $username Status $message");
+                return response()->json(array('statusPo' => $statusPo,'status' => 1, 'title' => $title,'message' => $message,'alert'=>$alert,'poNumber'=>$poNumber));
 
         } catch (Exception $e) {
             DB::rollBack();
-            $alert  ="alert-warning";
-            $message  = "PO $poNumber is failed to Validate";
-            \LogActivity::addToLog('PO update ',"username: $username Status $message");
-            return response()->json(array('statusPo' => $statusPo,'status' => 1, 'message' => $message,'alert'=>$alert,'poNumber'=>$poNumber));
+            $title ="Validate $this->title";
+            $alert  ="warning";
+            $message  = "$title $poNumber is failed to Validate";
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return response()->json(array('statusPo' => $statusPo,'status' => 1, 'title' => $title,'message' => $message,'alert'=>$alert,'poNumber'=>$poNumber));
         }
     }
 
@@ -790,15 +806,17 @@ class PurchaseOrderController extends Controller
         $rowAffected = DB::table('purchase_order_hdr')->where('id',$id)->delete();
         if($rowAffected>0){
             DB::table('purchase_order_det')->where('po_number',$po_number)->delete();
-            $alert  ="alert-success";
-            $message  = "PO $po_number Successfully Deleted";
-            \LogActivity::addToLog('PO delete ',"username: $username Status $message");
-            return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);  
+            $title ="Delete $this->title";
+            $alert  ="success";
+            $message  = "$title $po_number Successfully Deleted";
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);  
         }else{
-            $alert  ="alert-warning";
-            $message  = "PO $po_number Failed to Delete";
-            \LogActivity::addToLog('PO delete ',"username: $username Status $message");
-            return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);
+            $title ="Delete $this->title";
+            $alert  ="warning";
+            $message  = "$title $po_number Failed to Delete";
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);
         }
 
     }
@@ -930,7 +948,7 @@ class PurchaseOrderController extends Controller
         return Datatables::of($data)
         ->addColumn('action', function ($data) {
             $buttons = '<div class="d-inline-flex">
-                            <a class="pr-1 dropdown-toggle hide-arrow text-primary" data-toggle="dropdown">
+                            <a class="pr-1 dropdown-toggle hide-arrow" data-toggle="dropdown">
                                 <i data-feather="menu"></i>
                             </a>';
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
@@ -984,37 +1002,26 @@ class PurchaseOrderController extends Controller
                                         data-toggle='modal'
                                         data-target='#smallModal'
                                         data-href='". route("purchaseOrder.destroy", ["id"=>$data->id]) ."'>
-                                        <i data-feather='trash-2'></i>
+                                        <i data-feather='trash-2' class='feather-14-red'></i>
                                         Delete
                                     </a>";
                 }
             }
 
-            // if (Auth::user()->can('purchaseOrder-delete')) {
-            //     $buttons .=         "<a href='javascript:;'
-            //                             id='deleteButton'
-            //                             class='dropdown-item'
-            //                             data-toggle='modal'
-            //                             data-target='#smallModal'
-            //                             data-href='". route("purchaseOrder.destroy", ["id"=>$data->id]) ."'>
-            //                             <i data-feather='x-circle'></i>
-            //                             Clear
-            //                         </a>";
-            // }
             $buttons .=     '</div>
                         </div>';
 
             return $buttons;
-            })
-        ->addColumn('group_id', function ($user) {
-            return '';
+        })
+        ->addColumn('po_number', function ($data) {
+            return '<a href="'. route('purchaseOrder.show', ['id'=>$data->id]) .'" ><span>'.$data->po_number.'</span></a>';
         })
         ->addColumn('status', function ($data) {
             $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary'];
             $statusPo = ['New','Validated','Authorized','Received','Canceled','Closed','Revised'];
             return "<div class='badge ".$badges[$data->status - 1]."'>".$statusPo[$data->status - 1]."</div>";
         })
-        ->rawColumns(['action','status'])
+        ->rawColumns(['action','status','po_number'])
         ->make(true);
     }
 

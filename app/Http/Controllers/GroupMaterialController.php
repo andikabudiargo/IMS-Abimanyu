@@ -13,16 +13,23 @@ use DB;
 
 class GroupMaterialController extends Controller
 {
+
+    private $title;
+    public function __construct()
+    {
+        $this->title = "Group of Material";
+    }
+
     public function index(Request $request)
     {
-        $data['title'] = "Group of Material";
+        $data['title'] = "$this->title";
         return view("groupMaterial.index",$data);
     }
 
     public function create(Request $request)
     {
-        $data['title'] = "Create Group of Material";
-        $data['subtitle'] = "Create New Group of Material";
+        $data['title'] = "Create $this->title";
+        $data['subtitle'] = "Create New $this->title";
                         
         return view("groupMaterial.create",$data);
     }
@@ -69,17 +76,19 @@ class GroupMaterialController extends Controller
                 ]);
 
                 DB::commit();
-                $alert  ="alert-success";
-                $message  = "$kode is successfully saved";
-                \LogActivity::addToLog('Group Material save ',"username: $username Status $message");
-                return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);  
+                $title ="Save $this->title";
+                $alert  ="success";
+                $message  = "$this->title $kode is successfully saved";
+                \LogActivity::addToLog($title,"username: $username Status $message");
+                return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);  
 
         } catch (Exception $e) {
             DB::rollBack();
-            $alert  ="alert-warning";
-            $message  = "$kode is failed to save";
-            \LogActivity::addToLog('Group Material save ',"username: $username Status $message");
-            return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);   
+            $title ="Save $this->title";
+            $alert  ="warning";
+            $message  = "$this->title $kode is failed to saved";
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);
         }
         
     }
@@ -88,8 +97,8 @@ class GroupMaterialController extends Controller
     {
 
         $id=$request->id;
-        $data['title'] = "Edit Group of Material";
-        $data['subtitle'] = "Edit Group of Material";
+        $data['title'] = "Edit $this->title";
+        $data['subtitle'] = "Edit $this->title";
         $data['group'] = DB::table('group_materials')
         ->where('id',$id)
         ->get()->first();
@@ -136,26 +145,28 @@ class GroupMaterialController extends Controller
                     ]
                 );
 
-                DB::commit();
-
                 if($row_affected>0){
-                    $alert  ="alert-success";
-                    $message  = "Successfully updated";
-                    \LogActivity::addToLog('Group of Material update ',"username: $username Status $message");
-                    return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);  
+                    DB::commit();
+                    $title ="Update $this->title";
+                    $alert  ="success";
+                    $message  = "$this->title $kode is successfully updated";
+                    \LogActivity::addToLog($title,"username: $username Status $message");
+                    return redirect()->back()->with(['title' => $title, 'alert'=>$alert,'message'=> $message]);
                 }else{
-                    $alert  ="alert-warning";
-                    $message  = "Failed to update";
-                    \LogActivity::addToLog('Group of Material update ',"username: $username Status $message");
-                    return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);
+                    $title ="Update $this->title";
+                    $alert  ="warning";
+                    $message  = "$this->title $kode is failed to updated";
+                    \LogActivity::addToLog($title,"username: $username Status $message");
+                    return redirect()->back()->with(['title' => $title, 'alert'=>$alert,'message'=> $message]);
                 }
 
         } catch (Exception $e) {
             DB::rollBack();
-            $alert  ="alert-warning";
-            $message  = "Failed to update";
-            \LogActivity::addToLog('Group of Material pdate ',"username: $username Status $message");
-            return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);
+            $title ="Update $this->title";
+            $alert  ="warning";
+            $message  = "$this->title $kode is failed to updated";
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return redirect()->back()->with(['title' => $title, 'alert'=>$alert,'message'=> $message]);
         }
     }
 
@@ -165,22 +176,27 @@ class GroupMaterialController extends Controller
         $username =  Auth::user()->username;
         $id = $request->id;
 
+        $name = DB::table('group_materials')
+        ->where('id',$id)
+        ->value('name');
+
         $row_affected = DB::table('group_materials')
         ->where('id',$id)
         ->delete();
 
         if($row_affected>0){
-            $alert  ="alert-success";
-            $message  = "Successfully Deleted";
-            \LogActivity::addToLog('Group of Material delete ',"username: $username Status $message");
-            return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);  
+            $title ="Delete $this->title";
+            $alert  ="success";
+            $message  = "$this->title $name is successfully deleted";
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);
         }else{
-            $alert  ="alert-warning";
-            $message  = "Failed to Delete";
-            \LogActivity::addToLog('Group of Material delete ',"username: $username Status $message");
-            return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);
+            $title ="Delete $this->title";
+            $alert  ="warning";
+            $message  = "$this->title $name is failed to delete";
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);
         }
-
     }
 
     public function list(Request $request)
@@ -196,8 +212,8 @@ class GroupMaterialController extends Controller
         return Datatables::of($data)
         ->addColumn('action', function ($data) {
             $buttons = '<div class="d-inline-flex">
-                            <a class="pr-1 dropdown-toggle hide-arrow text-primary" data-toggle="dropdown">
-                                <i data-feather="more-vertical"></i>
+                            <a class="pr-1 dropdown-toggle hide-arrow" data-toggle="dropdown">
+                                <i data-feather="menu"></i>
                             </a>';
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
             if (Auth::user()->can('groupMaterial-edit')) {
@@ -213,7 +229,7 @@ class GroupMaterialController extends Controller
                                     data-toggle='modal'
                                     data-target='#smallModal'
                                     data-href='". route("groupMaterial.destroy", ["id"=>$data->id]) ."'>
-                                    <i data-feather='trash-2'></i>
+                                    <i data-feather='trash-2' class='feather-14-red'></i>
                                     Delete
                                 </a>";
             }
@@ -221,9 +237,6 @@ class GroupMaterialController extends Controller
                         </div>';
 
             return $buttons;
-            })
-        ->addColumn('group_id', function ($user) {
-            return '';
         })
         ->rawColumns(['action'])
         ->make(true);

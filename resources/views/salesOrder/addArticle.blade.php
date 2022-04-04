@@ -1,11 +1,9 @@
 <style>
-   
-    
 </style>
 {{-- table row untuk di clone--}}  
 <div id="new_row" name="new_row[]" class="d-none">
     <div id="baru" class="tanda-baris">
-        <div class="form-row ">
+        <div class="form-row">
             <div class="col-md-4 col-12">
                 <div class="form-group margin-nol">
                     <label for="article_id" class="d-block d-md-none">Article Code</label>
@@ -14,12 +12,6 @@
                     <small class="text-muted" ><span id = "group" name="group[]"></span></small></p>
                 </div>
             </div>
-            {{-- <div class="col-md-1 col-12">
-                <div class="form-group margin-nol">
-                    <label for="qty_order" class="d-block d-md-none">Group</label>
-                    <input type="text" class="form-control" id = "group" name="group[]" maxlength="5" disabled>
-                </div>
-            </div> --}}
             <div class="col-md-1 col-12">
                 <div class="form-group margin-nol">
                     <label for="qty_stock" class="d-block d-md-none">QTY Stock</label>
@@ -37,12 +29,6 @@
                     </div>
                 </div>
             </div>
-            {{-- <div class="col-md-1 col-12">
-                <div class="form-group margin-nol">
-                    <label for="uom" class="d-block d-md-none">Uom</label>
-                    <span class="" id ="uom" name="uom[]"></span>
-                </div>
-            </div> --}}
             <div class="col-md-1 col-12">
                 <div class="form-group margin-nol">
                     <label for="price" class="d-block d-md-none">Price</label>
@@ -82,55 +68,10 @@
                 </div>
             </div>
         </div>
-        
         <hr class="d-block d-md-none" />
-        {{-- <table class="table-bordered" style="width: 98%;table-layout: fixed;">
-            <tbody>
-                <tr>
-                    <td class="isian-satu" style="width: 40%;">
-                        <select class="dynamicSelect form-control sku-select-system" id="article_id" name="article_id[]" data-dependent="article_id">
-                        </select>
-                    </td>
-                    <td class="isian disabled d-none" style="width: 15%;">
-                        <input type="text" class="form-control-plaintext" id = "group" name="group[]" maxlength="5" disabled>
-                    </td>
-                    <td class="isian disabled" style="width: 5%">
-                        <input type="text" class="form-control-plaintext text-right" id = "qty_stock" name="qty_stock[]" disabled>
-                    </td>
-                    <td class="isian" style="width: 5%">
-                        <input type="text" class="form-control-plaintext numeral-mask text-right" id = "qty_order" name="qty_order[]" maxlength="9" />
-                    </td>
-                    <td class="isian disabled" style="width: 5%">
-                        <span class="" id = "uom" name="uom[]"></span>
-                    </td>
-                    <td class="isian" style="width: 10%">
-                        <input type="text" class="form-control-plaintext numeral-mask text-right" id = "price" name="price[]"  maxlength="11">
-                    </td>
-                    <td class="isian" style="width: 10%">
-                        <input type="text" class="form-control-plaintext numeral-mask text-right" id = "priceJasa" name="priceJasa[]"  maxlength="11">
-                    </td>
-                    <td class="isian disabled text-right" style="width: 10%">
-                        <input type="text" class="form-control-plaintext numeral-mask text-right" id="totalLine" name="totalLine[]" >
-                    </td>
-                    <td class="isian disabled text-right" style="width: 10%">
-                        <input type="text" class="form-control-plaintext numeral-mask text-right" id="totalJasa" name="totalJasa[]" >
-                    </td>
-                    <td class="isian disabled text-right" style="width: 10%">
-                        <input type="text" class="form-control-plaintext numeral-mask text-right" id="totalAll" name="totalAll[]" >
-                    </td>
-                    <td class="isian text-center" style="width: 5%">
-                        <a onmouseover="this.style.cursor='pointer'" onclick="$(this).parents('.tanda-baris').remove();hitungGrandTotal()">
-                            <i data-feather="trash-2" class="remove_button feather-24">
-                            </i>
-                        </a>
-                    </td>
-                </tr>
-            </tbody>
-        </table> --}}
     </div>
 </div>
 {{-- \.table row --}} 
-
 <style>
     .margin-nol{
         margin-bottom:0;
@@ -138,7 +79,8 @@
 </style>
 
 <script type="text/javascript">
-    let currentDate = todayDate('dd-mm-yyyy');    
+       
+    let cloneCount = {{ isset($detail) ? count($detail) :1 }};
     
     $('#cust').on('change', function() {
         let cust = $(this).val().split("|");
@@ -290,7 +232,7 @@
         $("#totalQTY").val(humanizeNumber(totalQty));
         $("#totalAmount").val(humanizeNumber(totalAmount));
         $("#totalPPN").val(humanizeNumber((parseInt(ppn)*totalAmountMaterial)/100));
-        $("#totalPPH").val("-"+humanizeNumber((pph23*totalAmountJasa)/100));
+        $("#totalPPH").val(humanizeNumber((pph23*totalAmountJasa)/100));
         $("#totalNetto").val(humanizeNumber(totalAmount+((parseInt(ppn)*totalAmount)/100)-((pph23*totalAmountJasa)/100)));
     
     }

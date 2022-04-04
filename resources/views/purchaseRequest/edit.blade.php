@@ -66,30 +66,6 @@
                     <h4 class="card-title">Article</h4>
                 </div>
                 <div class="card-body">
-                    {{-- <div>
-                        <table class="" style="width:98%;table-layout: fixed;">
-                            <tbody>
-                                <tr>
-                                    <td class="isian-satu" style="width: 25%">
-                                        <label>Article Code</label>
-                                    </td>
-                                    <td class="isian" style="width: 5%">
-                                        <label>QTY</label>
-                                    </td>
-                                    <td class="isian" style="width: 5%">
-                                        <label>UOM</label>
-                                    </td>
-                                    <td class="isian" style="width: 10%">
-                                        <label>Note</label>
-                                    </td>
-                                    <td class="isian text-center" style="width: 5%">
-                                        <label>-</label>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div> --}}
-
                     <div class="form-row d-flex align-items-end">
                         <div class="col-md-5 col-12 d-none d-md-block">
                             <div class="form-group">
@@ -120,7 +96,7 @@
                     <div class="" id="article_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px">
                         <input type="text" id ="last_row_number" class="d-none" value="{{ count($detail) }}">
                         @foreach ($detail as $key =>$item)
-                            <div id="baru" class="tanda-baris" >
+                            <div id="new_row{{ $key }}" class="tanda-baris" >
                                 <div class="form-row d-flex align-items-end">
                                     <div class="col-md-5 col-12">
                                         <div class="form-group">
@@ -163,41 +139,6 @@
                             </div>
                         @endforeach
                     </div>
-                    {{-- <div class="" id="article_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px">
-                        <input type="text" id ="last_row_number" class="d-none" value="{{ count($detail) }}">
-                        @foreach ($detail as $key =>$item)
-                            <div id="new_row{{ $key }}" class="tanda-baris" >
-                                <table class="table-bordered" style="width: 98%;table-layout: fixed;">
-                                    <tbody>
-                                        <tr>
-                                            <td class="isian-satu" style="width: 25%">
-                                                <select class="select2 form-control dynamicSelect sku-select-system" id="article_id{{ $key }}" name="article_id[]" data-dependent="article_id">
-                                                    @foreach($articles as $val)
-                                                        <option value="{{ $val->article_code }}|{{ $val->uom }}|{{ $val->third_party }}" {{$val->article_code == $item->article_code ? "selected" : ""}}>{{$val->article_code}} - {{$val->article_desc}}</option>
-                                                    @endforeach
-                                                </select>
-                                            </td>
-                                            <td class="isian" style="width: 5%">
-                                                <input type="text" class="form-control-plaintext numeral-mask text-right" id = "qty_order" name="qty_order[]" value="{{ $item->qty }}" maxlength="9" />
-                                            </td>
-                                            <td class="isian disabled" style="width: 5%">
-                                                <span class="" id = "uom" name="uom[]">{{ $item->uom }}</span>
-                                            </td>
-                                            <td class="isian" style="width: 10%">
-                                                <input type="text" class="form-control-plaintext" id = "note" name="note[]" value="{{ $item->note }}" maxlength="100">
-                                            </td>
-                                            <td class="isian text-center" style="width: 5%">
-                                                <a onmouseover="this.style.cursor='pointer'" onclick="$(this).parents('.tanda-baris').remove();">
-                                                    <i data-feather="trash-2" class="remove_button feather-24">
-                                                    </i>
-                                                </a>
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        @endforeach
-                    </div> --}}
                     <hr>
                     <div class="d-flex justify-content-between align-items-end mt-75">
                         <button class="btn btn-primary btn-prev" type="button" id="addNewRow" onclick="add_new_row();">

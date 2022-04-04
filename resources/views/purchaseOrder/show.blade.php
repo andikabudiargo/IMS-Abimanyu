@@ -2,13 +2,12 @@
 @section('title', $title)
 @section('content')
 @include('layouts.breadcrumb')
-@include('partials.alert')
 <section id="show">
     <div class="form-row">
         <div class="col-md-12">
             <div class="card">
                 <div class="card-header">
-                    <h4 class="card-title">Status: <span id="statusText">{{ $statusPo }}</h4>
+                    <h4 class="card-title">Status: <span id="statusText">{{ $statusPo }} oki</h4>
                     <div class="heading-elements">
                         <ul class="list-inline mb-0">
                             <li><a data-action="collapse"><i data-feather="chevron-down"></i></a></li>
@@ -283,7 +282,6 @@
         </div>
     </div>
 </section>
-@include('salesOrder.addArticle')
 @endsection
 @section('styles')
 <style>
@@ -383,24 +381,12 @@
             dataType: "json",
             success: function(data) {
                 if (data.status == 0 ){
-                    let message="";
                     for(let i = 0; i < data.message.length; i++) {
-                        message += "-"+data.message[i]+"<br>";                           
+                        show_msg(data.title, data.message[i], data.alert);
                     }
-                    $("#alert-message-success").addClass(data.alert);
-                    $("#alert-message-success .alert-body").html(message);
-                    $("#alert-message-success").show();
-                    $("#alert-message-success").fadeTo(5000, 500).slideUp(500, function(){
-                        $("#alert-message-success").slideUp(500);
-                    });
 
                 }else{
-                    $("#alert-message-success").addClass(data.alert);
-                    $("#alert-message-success .alert-body").html(data.message);
-                    $("#alert-message-success").show();
-                    $("#alert-message-success").fadeTo(5000, 500).slideUp(500, function(){
-                        $("#alert-message-success").slideUp(500);
-                    });
+                    show_msg(data.title, data.message, data.alert);
                     $('#statusText').text(data.statusPo)
                     $('#cmdValidate').hide();
                     $('#cmdAuthorized').hide();
@@ -426,24 +412,12 @@
             dataType: "json",
             success: function(data) {
                 if (data.status == 0 ){
-                    let message="";
                     for(let i = 0; i < data.message.length; i++) {
-                        message += "-"+data.message[i]+"<br>";                           
+                        show_msg(data.title, data.message[i], data.alert);
                     }
-                    $("#alert-message-success").addClass(data.alert);
-                    $("#alert-message-success .alert-body").html(message);
-                    $("#alert-message-success").show();
-                    $("#alert-message-success").fadeTo(5000, 500).slideUp(500, function(){
-                        $("#alert-message-success").slideUp(500);
-                    });
 
                 }else{
-                    $("#alert-message-success").addClass(data.alert);
-                    $("#alert-message-success .alert-body").html(data.message);
-                    $("#alert-message-success").show();
-                    $("#alert-message-success").fadeTo(5000, 500).slideUp(500, function(){
-                        $("#alert-message-success").slideUp(500);
-                    });
+                    show_msg(data.title, data.message, data.alert);
                     $('#statusText').text(data.statusPo)
                     $('#addNewRow').hide();
                     $('#cmdAuthorized').hide();

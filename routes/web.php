@@ -209,6 +209,8 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('salesOrders/list',['as'=>'salesOrder.list','uses'=>'SalesOrderController@list']);
 	Route::get('salesOrders/show',['as'=>'salesOrder.show','uses'=>'SalesOrderController@show']);
 	Route::get('salesOrders/edit',['as'=>'salesOrder.edit','uses'=>'SalesOrderController@edit','middleware' => ['permission:salesOrder-edit']]);
+	Route::get('salesOrders/close',['as'=>'salesOrder.close','uses'=>'SalesOrderController@close','middleware' => ['permission:salesOrder-edit']]);
+	Route::post('salesOrders/update/close',['as'=>'salesOrder.update.close','uses'=>'SalesOrderController@updateClose']);
 	Route::post('salesOrders/update',['as'=>'salesOrder.update','uses'=>'SalesOrderController@update']);
 	Route::post('salesOrders/delete',['as'=>'salesOrder.destroy','uses'=>'SalesOrderController@destroy']);
 	Route::get('salesOrders/code/create',['as'=>'salesOrder.code.create','uses'=>'SalesOrderController@articleCodeCreate']);

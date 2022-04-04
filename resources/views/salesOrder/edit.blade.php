@@ -2,7 +2,6 @@
 @section('title', $title)
 @section('content')
 @include('layouts.breadcrumb')
-@include('partials.alert')
 <section id="add-index">
     <div class="form-row">
         <div class="col-md-12">
@@ -27,7 +26,7 @@
                                 </div>
                                 <div class="form-group col-md-2">
                                     <label for="orderDate">Order Date</label>
-                                    <input type="text" id="orderDate" name="orderDate" class="form-control flatpickr-basic" value="{{ $header->so_date }}" placeholder="DD-MM-YYYY" />
+                                    <input type="text" id="orderDate" name="orderDate" class="form-control flatpickr-basic" value="{{ $header->so_date }}" placeholder="DD-MM-YYYY" disabled/>
                                 </div>
                                 <div class="form-group col-md-3">
                                     <label for="salesman">Salesman*</label>
@@ -38,6 +37,8 @@
                                         @endforeach
                                     </select>
                                 </div>
+                            </div>
+                            <div class="form-row">
                                 <div class="form-group col-md-2">
                                     <label for="type">Type</label>
                                     <select class="select2 form-control" id="type" name="type" required>
@@ -52,21 +53,6 @@
                                         {{-- <option value="">All</option> --}}
                                         @foreach($currency as $val)
                                         <option value="{{$val}}" {{ $val == $header->currency ? "selected" : ""}}>{{$val}}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="form-row">
-                                <div class="form-group col-md-3">
-                                    <label for="poNumber">PO Number</label>
-                                    <input type="text" id="poNumber" name="poNumber" class="form-control text-uppercase" value="{{ $header->po_number }}" maxlength="40" autofocus required />
-                                </div>
-                                <div class="form-group col-md-5">
-                                    <label class="form-label" for="cust">Customer</label>
-                                    <select class="select2 form-control" id="cust" name="cust" disabled>
-                                        <option value="">Choose customer</option>
-                                        @foreach($custs as $val)
-                                            <option value="{{$val->kode}}|{{$val->inisial}}" {{$val->kode == $header->customer_id ? "selected" : ""}}>{{$val->kode}} - {{$val->nama}}</option>
                                         @endforeach
                                     </select>
                                 </div>
@@ -90,7 +76,22 @@
                                 </div>
                             </div>
                             <div class="form-row">
-                                <div class="form-group col-md-12">
+                                <div class="form-group col-md-3">
+                                    <label for="poNumber">PO Number</label>
+                                    <input type="text" id="poNumber" name="poNumber" class="form-control text-uppercase" value="{{ $header->po_number }}" maxlength="40" autofocus required />
+                                </div>
+                                <div class="form-group col-md-5">
+                                    <label class="form-label" for="cust">Customer</label>
+                                    <select class="select2 form-control" id="cust" name="cust" disabled>
+                                        <option value="">Choose customer</option>
+                                        @foreach($custs as $val)
+                                            <option value="{{$val->kode}}|{{$val->inisial}}" {{$val->kode == $header->customer_id ? "selected" : ""}}>{{$val->kode}} - {{$val->nama}}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group col-md-8">
                                     <label class="form-label" for="note">Notes</label>
                                     <textarea type="text" id="note" name="note" class="form-control" rows="1" >{{ $header->note }}</textarea>
                                 </div>
@@ -106,102 +107,89 @@
                     <h4 class="card-title">Article</h4>
                 </div>
                 <div class="card-body">
-                    <div>
-                        <table class="" style="width:98%;table-layout:fixed;">
-                            <tbody>
-                                <tr>
-                                    <td class="isian-satu" style="width: 40%">
-                                        <label>Article Code</label>
-                                    </td>
-                                    {{-- <td class="isian" style="width: 15%;">
-                                        <label>Group</label>
-                                    </td> --}}
-                                    <td class="isian" style="width: 5%">
-                                        <label>Stock</label>
-                                    </td>
-                                    <td class="isian" style="width: 5%">
-                                        <label>QTY</label>
-                                    </td>
-                                    <td class="isian" style="width: 5%">
-                                        <label>UOM</label>
-                                    </td>
-                                    <td class="isian" style="width: 10%">
-                                        <label>Material Price</label>
-                                    </td>
-                                    <td class="isian" style="width: 10%">
-                                        <label>Service Price</label>
-                                    </td>
-                                    <td class="isian" style="width: 10%">
-                                        <label>T.Material</label>
-                                    </td>
-                                    <td class="isian" style="width: 10%">
-                                        <label>T.Service</label>
-                                    </td>
-                                    <td class="isian" style="width: 10%">
-                                        <label>Total</label>
-                                    </td>
-                                    <td class="isian text-center" style="width: 5%">
-                                        <label>-</label>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>  
-                    <div class="" id="article_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px">
-                        <input type="text" id ="last_row_number" class="d-none" value="{{ count($detail) }}">
-                        @foreach ($detail as $key =>$item)
-                            <div id="new_row{{ $key }}" class="tanda-baris" >
-                                <table class="table-bordered" style="width: 98%;table-layout:fixed;">
-                                    <tbody>
-                                        <tr>
-                                            <td class="isian-satu" style="width: 40%;">
-                                                <select class="select2 form-control dynamicSelect sku-select-system" id="article_id{{ $key }}" name="article_id[]" data-dependent="article_id">
-                                                    @foreach($articles as $val)
-                                                        <option value="{{$val->article_code}}|{{$val->group}}|{{$val->qty}}|{{$val->uom1}}" {{$val->article_code ==$item->article_code ? "selected" : ""}}>{{$val->article_alternative_code}} | {{$val->article_desc}}</option>
-                                                    @endforeach
-                                                </select>
-                                            </td>
-                                            <td class="isian disabled d-none" style="width: 15%;">
-                                                <input type="text" class="form-control-plaintext" id = "group" name="group[]" value="{{ $item->group }}"  disabled>
-                                            </td>
-                                            <td class="isian disabled" style="width: 5%">
-                                                <input type="text" class="form-control-plaintext text-right" id = "qty_stock" name="qty_stock[]" value="{{ $item->qty_stock ==0 ? 0 :$item->qty_stock }}" disabled>
-                                            </td>
-                                            <td class="isian" style="width: 5%">
-                                                <input type="text" class="form-control-plaintext angka text-right" id = "qty_order" name="qty_order[]" value="{{ $item->qty }}" maxlength="9" />
-                                            </td>
-                                            <td class="isian disabled" style="width: 5%">
-                                                <span class="" id = "uom" name="uom[]">{{ $item->uom }}</span>
-                                            </td>
-                                            <td class="isian" style="width: 10%">
-                                                <input type="text" class="form-control-plaintext numeral-mask text-right" id = "price" name="price[]" value="{{ $item->price }}"  maxlength="11">
-                                            </td>
-                                            <td class="isian" style="width: 10%">
-                                                <input type="text" class="form-control-plaintext numeral-mask text-right" id = "priceJasa" name="priceJasa[]" value="{{ $item->price_service }}" maxlength="11">
-                                            </td>
-                                            <td class="isian disabled text-right" style="width: 10%">
-                                                <input type="text" class="form-control-plaintext numeral-mask text-right" value="{{ number_format($item->qty * $item->price) }}" id="totalLine" name="totalLine[]" >
-                                                {{-- <span id="totalLine" name="totalLine[]">{{ number_format($item->qty * $item->price) }}</span> --}}
-                                            </td>
-                                            <td class="isian disabled text-right" style="width: 10%">
-                                                <input type="text" class="form-control-plaintext numeral-mask text-right" value="{{ number_format($item->qty * $item->price_service) }}" id="totalJasa" name="totalJasa[]" >
-                                                {{-- <span id="totalJasa" name="totalJasa[]"></span> --}}
-                                            </td>
-                                            <td class="isian disabled text-right" style="width: 10%">
-                                                <input type="text" class="form-control-plaintext numeral-mask text-right" value="{{ number_format(($item->qty * $item->price)+($item->qty * $item->price_service)) }}" id="totalAll" name="totalAll[]" >
-                                            </td>
-                                            <td class="isian text-center" style="width: 5%">
-                                                <a onmouseover="this.style.cursor='pointer'" onclick="$(this).parents('.tanda-baris').remove();hitungGrandTotal()">
-                                                    <i data-feather="trash-2" class="remove_button feather-24">
-                                                    </i>
-                                                </a>
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
+                    <div class="container-list-item">
+                        <div class="lebar-list-item">
+                            @include('salesOrder.headerColumn')
+                            <div class="" id="article_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px">
+                                <input type="text" id ="last_row_number" class="d-none" value="{{ count($detail) }}">
+                                @foreach ($detail as $key =>$item)
+                                    <div id="new_row{{ $key }}" class="tanda-baris" >
+                                        <div class="form-row ">
+                                            <div class="col-md-4 col-12">
+                                                <div class="form-group margin-nol">
+                                                    <label for="article_id" class="d-block d-md-none">Article Code</label>
+                                                    <select class="select2 form-control dynamicSelect sku-select-system" id="article_id{{ $key }}" name="article_id[]" data-dependent="article_id">
+                                                        @foreach($articles as $val)
+                                                            <option value="{{$val->article_code}}|{{$val->group}}|{{$val->qty}}|{{$val->uom1}}" {{$val->article_code ==$item->article_code ? "selected" : ""}}>{{$val->article_alternative_code}} | {{$val->article_desc}}</option>
+                                                        @endforeach
+                                                    </select>
+                                                    <small class="text-muted" ><span id = "group" name="group[]">{{ $item->group }}</span></small></p>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-1 col-12">
+                                                <div class="form-group margin-nol">
+                                                    <label for="qty_stock" class="d-block d-md-none">QTY Stock</label>
+                                                    <input type="text" class="form-control text-right" id = "qty_stock" name="qty_stock[]" value="{{ $item->qty_stock ==0 ? 0 :$item->qty_stock }}" disabled>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-1 col-12">
+                                                <div class="form-group margin-nol">
+                                                    <label for="qty_order" class="d-block d-md-none">QTY Order</label>
+                                                    <div class="input-group">
+                                                        <input type="text" class="form-control numeral-mask text-right" id = "qty_order" name="qty_order[]" value="{{ $item->qty }}" maxlength="9" />
+                                                        <div class="input-group-append">
+                                                            <span class="input-group-text" id ="uom" name="uom[]">{{ $item->uom }}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-1 col-12">
+                                                <div class="form-group margin-nol">
+                                                    <label for="price" class="d-block d-md-none">Price</label>
+                                                    <input type="text" class="form-control numeral-mask text-right" id = "price" name="price[]" value="{{ $item->price }}"  maxlength="11">
+                                                </div>
+                                            </div>
+                                            <div class="col-md-1 col-12">
+                                                <div class="form-group margin-nol">
+                                                    <label for="priceJasa" class="d-block d-md-none">Price Jasa</label>
+                                                    <input type="text" class="form-control numeral-mask text-right" id = "priceJasa" name="priceJasa[]" value="{{ $item->price_service }}" maxlength="11">
+                                                </div>
+                                            </div>
+                                            <div class="col-md-1 col-12">
+                                                <div class="form-group margin-nol">
+                                                    <label for="totalLine" class="d-block d-md-none">T.Material</label>
+                                                    <input type="text" class="form-control numeral-mask text-right" value="{{ number_format($item->qty * $item->price) }}" id="totalLine" name="totalLine[]" disabled >
+                                                </div>
+                                            </div>
+                                            <div class="col-md-1 col-12">
+                                                <div class="form-group margin-nol">
+                                                    <label for="totalJasa" class="d-block d-md-none">T.Service</label>
+                                                    <input type="text" class="form-control numeral-mask text-right" value="{{ number_format($item->qty * $item->price_service) }}" id="totalJasa" name="totalJasa[]" disabled>
+                                                    
+                                                </div>
+                                            </div>
+                                            <div class="col-md-1 col-12">
+                                                <div class="form-group margin-nol">
+                                                    <label for="totalAll" class="d-block d-md-none">Total</label>
+                                                    <input type="text" class="form-control numeral-mask text-right" value="{{ number_format(($item->qty * $item->price)+($item->qty * $item->price_service)) }}" id="totalAll" name="totalAll[]" disabled >
+                                                </div>
+                                            </div>
+                                            <div class="col-md-1 col-12">
+                                                <div class="form-group margin-nol">
+                                                    <a onmouseover="this.style.cursor='pointer'" onclick="$(this).parents('.tanda-baris').remove();hitungGrandTotal()">
+                                                        <i data-feather="trash-2" class="remove_button feather-24">
+                                                        </i>
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <hr class="d-block d-md-none" />
+                                    </div>
+                                @endforeach
                             </div>
-                        @endforeach
-                    </div>
+                        </div>
+                    </div> 
+                    
                     <div class="d-flex justify-content-between align-items-end mt-75 ml-75">
                         <button class="btn btn-primary btn-prev" type="button" onclick="add_new_row();">
                             <i data-feather="plus" class="align-middle mr-sm-25 mr-0"></i>
@@ -298,35 +286,53 @@
         right : 1px;
     }
 
-    td.isian{
-        padding-right:10px;
-        padding-left:10px;
-    }
-
-    td.isian-satu{
-        padding-right:5px;
-        padding-left:15px;
-        width: 25%;border-top: 1px solid #ffffff !important;
-        border-bottom: 1px solid #ffffff !important;
-        border-left: 1px solid #ffffff !important;
-    }
-
-    td.disabled{
-        background-color:#f8f8f8;
-        color:black;
-    }
-
     label.tanpa-padding{
-        padding-top: 5px;
+        padding-top: 0px;
         padding-bottom: 0px;
     }
+
+    input.tanpa-padding{
+        padding: 0;
+    }
+
+
+    @media screen 
+    and (min-device-width: 1200px) 
+    and (max-device-width: 1600px) 
+    and (-webkit-min-device-pixel-ratio: 1) { 
+        .lebar-list-item{
+            width:150%;
+        }
+        .container-list-item{
+            max-width:100%;
+            overflow-x:auto;
+            scrollbar-width: thin;
+            margin-top:7px;
+        }
+    }
+
+    @media only screen and (min-width: 600px)
+    and (max-width: 1200px)
+    {
+        .lebar-list-item{
+            width:200%;
+        }
+        .container-list-item{
+            max-width:100%;
+            overflow-x:auto;
+            scrollbar-width: thin;
+            margin-top:7px;
+        }
+    }
+
+
+    
 
 </style>
 @endsection
 @section('scripts')
 @include('salesOrder.addArticle')
 <script type="text/javascript">
-    let cloneCount=$('#last_row_number').val();
     $(document).ready(function(){           
         validateFormToast("frmAdd");
         tombolPanah('qty_order');

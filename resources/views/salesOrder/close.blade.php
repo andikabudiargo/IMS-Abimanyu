@@ -234,6 +234,7 @@
                     <div class="form-row">
                         <div class="col-md-12">
                             <a href="{{ route('salesOrders.index') }}" class="btn btn-success">Back</a>
+                            <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Update</button>
                         </div>
                     </div>
                     <br><br>
@@ -314,12 +315,98 @@
 @section('scripts')
 @include('salesOrder.addArticle')
 <script type="text/javascript">
-    $(document).ready(function(){
+    $(document).ready(function(){           
+        validateFormToast("frmAdd");
         activate_angka();
         mask_thousand();
         splitArticle();
         hitungTotal();
         hitungGrandTotal();
+        lockUnlock();
+    });
+    
+    function lockUnlock(){
+        $(".soClose").change(function(){
+            let key = $(this).attr('id');
+            let domId="lblClose_"+ key;
+            if (this.checked) {
+                $("#"+domId).text('Open');
+            } else {
+                $("#"+domId).text('Closed');
+            }
+        });
+    }
+
+    simpanData = (statusSimpan) =>{
+        if (!$("#frmAdd")[0].checkValidity()){
+            $("#frmAdd").submit();
+        }else{ 
+            $('.disabled-el').removeAttr('disabled');
+            // ambil semua data article
+            let objStatus= $('#article_row input[name="status[]"]');
+            let articles = []; 
+            let flag=0; 
+            let pesan="";
+        
+            $("#article_row select[name='article_id[]']").map(function(i) {  
+                let $this=$(this);
+                if ($this.val()){
+                    let article=$this.val().split("|");
+                    let articleName=$this.select2('data')[0].text;
+                    let plu=article[0];
+                    let inisial = articleName.substring(2,5); 
+                    let statusId=objStatus.eq(i).attr('id')
+                    let status=$("#"+statusId).is(":checked") ? '1':'0';
+                    let orderNumber = $('#orderNum').val();
+
+                    if ((plu!=='')){
+                        articles.push({
+                            "so_code":orderNumber,
+                            "article_code":plu,
+                            "status":status,
+                        });
+                    }
+                
+                }
+            });
+
+            if (articles.length == 0){
+                pesan +="Articles must be filled in completely <br>"; 
+                flag=0;
+            }
+
+            if (flag==0){
+                let orderNumber = $('#orderNum').val();        
+                $.ajax({
+                    type: "post",
+                    url: "{{ route('salesOrder.update.close') }}",
+                    data: {
+                        articles:JSON.stringify(articles),
+                        orderNumber:orderNumber
+                    },
+                    dataType: "json",
+                    success: function(data) {
+                        if (data.status == 0 ){
+                            show_msg(data.title, data.message[i], data.alert);
+                            $('#orderNum').attr('disabled','disabled');
+                        }else{
+                            show_msg(data.title, data.message, data.alert);
+                            $('#orderNum').attr('disabled','disabled');
+                        }
+                    },
+                    error: function(error) {
+                        console.log(error);
+                    }
+                });
+
+            }else{
+                Swal.fire('Warning..',pesan,'warning');
+            }
+        }
+    }
+
+    $("#cmdSave").click(function(){     
+        simpanData('update');
     });
 
     $.ajaxSetup({

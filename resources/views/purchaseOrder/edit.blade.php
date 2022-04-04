@@ -2,7 +2,6 @@
 @section('title', $title)
 @section('content')
 @include('layouts.breadcrumb')
-@include('partials.alert')
 <section id="add-index">
     <div class="form-row">
         <div class="col-md-12">
@@ -372,7 +371,8 @@
         splitArticle();
         isiListArticle();
         hitungTotal();
-        $('.sku-select-system').select2();
+        hitungGrandTotal();
+        // $('.sku-select-system').select2();
     });
 
     orderDate = $('#orderDate');
@@ -414,142 +414,133 @@
         reloadPage();
     });
 
-    $("#cmdSave").click(function(){     
-        $('.disabled-el').removeAttr('disabled');
-        // ambil semua data article
-        let objQty= $('input[name="qty_order[]"]');
-        let objPrice= $('input[name="price[]"]');
-        let objNewPrice= $('input[name="newPrice[]"]');
-        let objUom= $('span[name="uom[]"]'); 
-        let objpr= $('select[name="pRequest[]"]'); 
-        let articles = []; 
-        let flag=0; 
-        let pesan="";
-        
-        $("#article_row select[name='article_id[]']").map(function(i) {  
-		    let $this=$(this);
-            if ($this.val()){
-                let article=$this.val().split("|");
-                let articleName=$this.select2('data')[0].text;
-                let plu=article[0];
-                let qty=objQty.eq(i).val().replace(/,/gi, '') || 0;
-                let newPrice=objNewPrice.eq(i).val().replace(/[^0-9]/gi, '') || 0;
-                let price=objPrice.eq(i).val().replace(/[^0-9]/gi, '') || 0;
-                let pRequest=objpr.eq(i).val();
-                let uom=objUom.eq(i).text();
-                let supp=$('#supplier').val();
-                let suppName = $('#supplier').select2('data')[0].text;
-                let supplier=supp;
+    $("#cmdSave").click(function(){
+        if (!$("#frmAdd")[0].checkValidity()){
+            $("#frmAdd").submit();
+        }else{  
+            $('.disabled-el').removeAttr('disabled');
+            // ambil semua data article
+            let objQty= $('input[name="qty_order[]"]');
+            let objPrice= $('input[name="price[]"]');
+            let objNewPrice= $('input[name="newPrice[]"]');
+            let objUom= $('span[name="uom[]"]'); 
+            let objpr= $('select[name="pRequest[]"]'); 
+            let articles = []; 
+            let flag=0; 
+            let pesan="";
             
-                //es6
-                // let obj = ingredient.find(obj => obj.plu == plu);
-
-                //jquery
-                //cek apakah article ada yang double input ato ngk
-                let obj = $.grep(articles, function(obj){
-                    return obj.article_code === plu;
-                })[0];
+            $("#article_row select[name='article_id[]']").map(function(i) {  
+                let $this=$(this);
+                if ($this.val()){
+                    let article=$this.val().split("|");
+                    let articleName=$this.select2('data')[0].text;
+                    let plu=article[0];
+                    let qty=objQty.eq(i).val().replace(/,/gi, '') || 0;
+                    let newPrice=objNewPrice.eq(i).val().replace(/[^0-9]/gi, '') || 0;
+                    let price=objPrice.eq(i).val().replace(/[^0-9]/gi, '') || 0;
+                    let pRequest=objpr.eq(i).val();
+                    let uom=objUom.eq(i).text();
+                    let supp=$('#supplier').val();
+                    let suppName = $('#supplier').select2('data')[0].text;
+                    let supplier=supp;
                 
-                if(obj) {
-                    pesan +="Article "+plu+" entered more than once !! <br>"; 
-                    flag=1;
-                } else {
-                    if ((plu!=='') && (qty> 0)){
-                        articles.push({
-                            "article_code":plu,
-                            "qty":qty,
-                            "uom":uom,
-                            "price":price,
-                            "newPrice":newPrice,
-                            "pRequest":pRequest
-                        });
-                    }
-                } 
-            
-                if (qty == 0){
-                    pesan +="QTY of items "+ articleName +" cannot be 0 <br>"; 
-                    flag=1;
-                }
-            
-            }
-        });
+                    //es6
+                    // let obj = ingredient.find(obj => obj.plu == plu);
 
-        if (articles.length == 0){
-			pesan +="Articles must be filled in completely <br>"; 
-			flag=1;
-		}
-
-        if (flag==0){
-
-            let orderDate = $('#orderDate').val();
-            let poType = $('#poType').val();
-            let deliveryDate = $('#deliveryDate').val();
-            let currency = $('#currency').val();
-            let supp = $('#supplier').val();
-            let tax = $('#tax').val();
-            let term = $('#term').val()||0;
-            let kurs = $('#kurs').val()||1;
-            let ppn = $('#ppn').val().replace(/[^0-9]/gi, '') || 0;
-            let totalPph = $('#totalPPH').val().replace(/[^0-9]/gi, '') || 0;
-            let totalPpn = $('#totalPPN').val().replace(/[^0-9]/gi, '') || 0;
-            let note = $('#note').val();
-            let persenDiscount = $('#persenDiscount').val() || 0;
-            let poNumber = $('#poNumber').val();
-
-            $.ajax({
-                type: "post",
-                url: "{{ route('purchaseOrder.update') }}",
-                data: {
-                    articles:JSON.stringify(articles),
-                    poNumber:poNumber,
-                    orderDate:orderDate,
-                    poType:poType,
-                    deliveryDate:deliveryDate,
-                    currency:currency,                
-                    supplier:supp,
-                    tax:tax,
-                    ppn:ppn,
-                    term:term,
-                    totalPph:totalPph,
-                    totalPpn:totalPpn,
-                    kurs:kurs,
-                    note:note,
-                    discount:persenDiscount
-                },
-                dataType: "json",
-                success: function(data) {
-                    if (data.status == 0 ){
-                        let message="";
-                        for(let i = 0; i < data.message.length; i++) {
-                            message += "-"+data.message[i]+"<br>";                           
-                        }
-                        $("#alert-message-success").addClass(data.alert);
-                        $("#alert-message-success .alert-body").html(message);
-                        $("#alert-message-success").show();
-                        $("#alert-message-success").fadeTo(5000, 500).slideUp(500, function(){
-                            $("#alert-message-success").slideUp(500);
-                        });
-
-                    }else{
-                        $("#alert-message-success").addClass(data.alert);
-                        $("#alert-message-success .alert-body").html(data.message);
-                        $("#alert-message-success").show();
-                        $("#alert-message-success").fadeTo(5000, 500).slideUp(500, function(){
-                            $("#alert-message-success").slideUp(500);
-                        });
-                        $('#poNumber').attr('disabled','disabled');
-                    }
+                    //jquery
+                    //cek apakah article ada yang double input ato ngk
+                    let obj = $.grep(articles, function(obj){
+                        return obj.article_code === plu;
+                    })[0];
                     
-                },
-                error: function(error) {
-                    console.log(error);
+                    if(obj) {
+                        pesan +="Article "+plu+" entered more than once !! <br>"; 
+                        flag=1;
+                    } else {
+                        if ((plu!=='') && (qty> 0)){
+                            articles.push({
+                                "article_code":plu,
+                                "qty":qty,
+                                "uom":uom,
+                                "price":price,
+                                "newPrice":newPrice,
+                                "pRequest":pRequest
+                            });
+                        }
+                    } 
+                
+                    if (qty == 0){
+                        pesan +="QTY of items "+ articleName +" cannot be 0 <br>"; 
+                        flag=1;
+                    }
+                
                 }
             });
 
-        }else{
-            Swal.fire('Warning..',pesan,'warning');
+            if (articles.length == 0){
+                pesan +="Articles must be filled in completely <br>"; 
+                flag=1;
+            }
+
+            if (flag==0){
+
+                let orderDate = $('#orderDate').val();
+                let poType = $('#poType').val();
+                let deliveryDate = $('#deliveryDate').val();
+                let currency = $('#currency').val();
+                let supp = $('#supplier').val();
+                let tax = $('#tax').val();
+                let term = $('#term').val()||0;
+                let kurs = $('#kurs').val()||1;
+                let ppn = $('#ppn').val().replace(/[^0-9]/gi, '') || 0;
+                let totalPph = $('#totalPPH').val().replace(/[^0-9]/gi, '') || 0;
+                let totalPpn = $('#totalPPN').val().replace(/[^0-9]/gi, '') || 0;
+                let note = $('#note').val();
+                let persenDiscount = $('#persenDiscount').val() || 0;
+                let poNumber = $('#poNumber').val();
+
+                $.ajax({
+                    type: "post",
+                    url: "{{ route('purchaseOrder.update') }}",
+                    data: {
+                        articles:JSON.stringify(articles),
+                        poNumber:poNumber,
+                        orderDate:orderDate,
+                        poType:poType,
+                        deliveryDate:deliveryDate,
+                        currency:currency,                
+                        supplier:supp,
+                        tax:tax,
+                        ppn:ppn,
+                        term:term,
+                        totalPph:totalPph,
+                        totalPpn:totalPpn,
+                        kurs:kurs,
+                        note:note,
+                        discount:persenDiscount
+                    },
+                    dataType: "json",
+                    success: function(data) {
+                        if (data.status == 0 ){
+                            for(let i = 0; i < data.message.length; i++) {
+                                show_msg(data.title, data.message[i], data.alert);
+                            }
+
+                        }else{
+                            show_msg(data.title, data.message, data.alert);
+                            $('#poNumber').attr('disabled','disabled');
+                        }
+                        
+                    },
+                    error: function(error) {
+                        console.log(error);
+                    }
+                });
+
+            }else{
+                Swal.fire('Warning..',pesan,'warning');
+            }
         }
-    
     });
     
     let cloneCount=$('#last_row_number').val();
@@ -609,7 +600,7 @@
             objStock.eq(objIndex).val(humanizeNumber(arrDetail[2]||0));
             objUom.eq(objIndex).text(arrDetail[4]);
             objPrice.eq(objIndex).val(humanizeNumber(arrDetail[5]||0));
-            objNewPrice.eq(objIndex).val(humanizeNumber(arrDetail[5]||0));
+            objNewPrice.eq(objIndex).val(humanizeNumber(arrDetail[6]||0));
             objArticle.eq(objIndex).select2('open');
             if (detail){
                 setTimeout(() => {

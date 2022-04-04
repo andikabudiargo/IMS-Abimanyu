@@ -2,7 +2,6 @@
 @section('title', $title)
 @section('content')
 @include('layouts.breadcrumb')
-@include('partials.alert')
 <section id="add-index">
     <div class="form-row">
         <div class="col-md-12">
@@ -27,7 +26,7 @@
                                 </div>
                                 <div class="form-group col-md-2">
                                     <label for="orderDate">Order Date*</label>
-                                    <input type="text" id="orderDate" name="orderDate" class="form-control flatpickr-basic" placeholder="DD-MM-YYYY" required/>
+                                    <input type="text" id="orderDate" name="orderDate" class="form-control flatpickr-basic" placeholder="DD-MM-YYYY" required disabled/>
                                 </div>
                                 <div class="form-group col-md-3">
                                     <label for="salesman">Salesman*</label>
@@ -38,6 +37,8 @@
                                         @endforeach
                                     </select>
                                 </div>
+                            </div>
+                            <div class="form-row"> 
                                 <div class="form-group col-md-2">
                                     <label for="type">Type*</label>
                                     <select class="select2 form-control" id="type" name="type" required>
@@ -54,6 +55,24 @@
                                         @endforeach
                                     </select>
                                 </div>
+                                <div class="col-md-2">
+                                    <label class="form-label" for="ppn">PPN</label>
+                                    <div class="input-group">
+                                        <input type="text" class="form-control angka text-right" id="ppn" name="ppn" value="{{ $attribute['ppn'] }}" maxlength="2" />
+                                        <div class="input-group-append">
+                                            <span class="input-group-text">%</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label" for="pph23">PPH23</label>
+                                    <div class="input-group">
+                                        <input type="text" class="form-control angka text-right" id = "pph23" name="pph23" value="{{ $attribute['pph23'] }}" maxlength="2" />
+                                        <div class="input-group-append">
+                                            <span class="input-group-text">%</span>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                             <div class="form-row">
                                 <div class="form-group col-md-3">
@@ -69,32 +88,13 @@
                                         @endforeach
                                     </select>
                                 </div>
-                                <div class="col-md-2">
-                                    <label class="form-label" for="ppn">PPN</label>
-                                    <div class="input-group">
-                                        <input type="text" class="form-control angka text-right" id = "ppn" name="ppn" value="10" maxlength="2" />
-                                        <div class="input-group-append">
-                                            <span class="input-group-text">%</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-md-2">
-                                    <label class="form-label" for="pph23">PPH23</label>
-                                    <div class="input-group">
-                                        <input type="text" class="form-control angka text-right" id = "pph23" name="pph23" value="2" maxlength="2" />
-                                        <div class="input-group-append">
-                                            <span class="input-group-text">%</span>
-                                        </div>
-                                    </div>
-                                </div>
                             </div>
                             <div class="form-row">
-                                <div class="form-group col-md-12">
+                                <div class="form-group col-md-8">
                                     <label class="form-label" for="note">Notes</label>
                                     <textarea type="text" id="note" name="note" class="form-control" rows="1" ></textarea>
                                 </div>
                             </div>
-                            
                         </form>
                     </div>
                 </div>
@@ -106,111 +106,14 @@
                     <h4 class="card-title">Article detail</h4>
                 </div>
                 <div class="card-body">
-                    <div class="contaner-list-item">
+                    <div class="container-list-item">
                         <div class="lebar-list-item">
-                            <div class="form-row d-flex align-items-end">
-                                <div class="col-md-4 col-12 d-none d-md-block">
-                                    <div class="form-group">
-                                        <label class="d-none d-md-block">Article Code</label>
-                                    </div>
-                                </div>
-                                {{-- <div class="col-md-1 col-12 d-none d-md-block">
-                                    <div class="form-group">
-                                        <label class="d-none d-md-block text-right">Group</label>
-                                    </div>
-                                </div> --}}
-                                <div class="col-md-1 col-12 d-none d-md-block">
-                                    <div class="form-group">
-                                        <label class="d-none d-md-block text-right">Stock</label>
-                                    </div>
-                                </div>
-                                <div class="col-md-1 col-12 d-none d-md-block">
-                                    <div class="form-group">
-                                        <label class="d-none d-md-block text-right">QTY</label>
-                                    </div>
-                                </div>
-                                {{-- <div class="col-md-1 col-12 d-none d-md-block">
-                                    <div class="form-group">
-                                        <label class="d-none d-md-block">Uom</label>
-                                    </div>
-                                </div> --}}
-                                <div class="col-md-1 col-12 d-none d-md-block">
-                                    <div class="form-group">
-                                        <label class="d-none d-md-block text-right">Material Price</label>
-                                    </div>
-                                </div>
-                                <div class="col-md-1 col-12 d-none d-md-block">
-                                    <div class="form-group">
-                                        <label class="d-none d-md-block text-right">Service Price</label>
-                                    </div>
-                                </div>
-                                <div class="col-md-1 col-12 d-none d-md-block">
-                                    <div class="form-group">
-                                        <label class="d-none d-md-block text-right">T.Material</label>
-                                    </div>
-                                </div>
-                                <div class="col-md-1 col-12 d-none d-md-block">
-                                    <div class="form-group">
-                                        <label class="d-none d-md-block text-right">T.Service</label>
-                                    </div>
-                                </div>
-                                <div class="col-md-1 col-12 d-none d-md-block">
-                                    <div class="form-group">
-                                        <label class="d-none d-md-block text-right">Total</label>
-                                    </div>
-                                </div>
-                                <div class="col-md-1 col-12 d-none d-md-block">
-                                    <div class="form-group">
-                                        <label class="d-none d-md-block">-</label>
-                                    </div>
-                                </div>
-                            </div>
+                            @include('salesOrder.headerColumn')
                             <div class="" id="article_row">
                                 <input type="text" id ="last_row_number" class="d-none" value="0">
                             </div>
                         </div>
                     </div>
-                    {{-- <div>
-                        <table class="" style="width:98%;table-layout: fixed;">
-                            <tbody>
-                                <tr>
-                                    <td class="isian-satu" style="width: 40%">
-                                        <label>Article Code</label>
-                                    </td>
-                                    <td class="isian" style="width: 15%;">
-                                        <label>Group</label>
-                                    </td>
-                                    <td class="isian" style="width: 5%">
-                                        <label>Stock</label>
-                                    </td>
-                                    <td class="isian" style="width: 5%">
-                                        <label>QTY</label>
-                                    </td>
-                                    <td class="isian" style="width: 5%">
-                                        <label>UOM</label>
-                                    </td>
-                                    <td class="isian" style="width: 10%">
-                                        <label>Material Price</label>
-                                    </td>
-                                    <td class="isian" style="width: 10%">
-                                        <label>Service Price</label>
-                                    </td>
-                                    <td class="isian" style="width: 10%">
-                                        <label>T.Material</label>
-                                    </td>
-                                    <td class="isian" style="width: 10%">
-                                        <label>T.Service</label>
-                                    </td>
-                                    <td class="isian" style="width: 10%">
-                                        <label>Total</label>
-                                    </td>
-                                    <td class="isian text-center" style="width: 5%">
-                                        <label>-</label>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>       --}}
                     
                     <div class="d-flex justify-content-between align-items-end mt-75 ml-75">
                         <button class="btn btn-primary btn-prev" type="button" onclick="add_new_row();">
@@ -310,7 +213,7 @@
         .lebar-list-item{
             width:150%;
         }
-        .contaner-list-item{
+        .container-list-item{
             max-width:100%;
             overflow-x:auto;
             scrollbar-width: thin;
@@ -324,7 +227,7 @@
         .lebar-list-item{
             width:200%;
         }
-        .contaner-list-item{
+        .container-list-item{
             max-width:100%;
             overflow-x:auto;
             scrollbar-width: thin;
@@ -332,46 +235,12 @@
         }
     }
 
-    /* @media screen 
-    and (min-device-width: 1600px) 
-    and (max-device-width: 1200px) 
-    and (-webkit-min-device-pixel-ratio: 1) { 
-        .lebar-list-item{
-            width:120%;
-        }
-        .contaner-list-item{
-            max-width:100%;
-            overflow-x:auto;
-            scrollbar-width: thin;
-            margin-top:7px;
-        }
-    } */
-
-    /* @media screen
-    (min-device-width: 400px) 
-    and (max-device-width: 1200px) {
-
-        .lebar-list-item{
-            width:180%;
-        }
-        .contaner-list-item{
-            max-width:100%;
-            overflow-x:auto;
-            scrollbar-width: thin;
-            margin-top:7px;
-        }
-
-    } */
-
-    
-    
-
 </style>
 @endsection
 @section('scripts')
 @include('salesOrder.addArticle')
 <script type="text/javascript">    
-    let cloneCount=1;
+    let currentDate = todayDate('dd-mm-yyyy');
     $(document).ready(function(){           
         validateFormToast("frmAdd");
         $('#orderDate').val(currentDate);

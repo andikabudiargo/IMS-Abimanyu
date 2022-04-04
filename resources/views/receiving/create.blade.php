@@ -23,7 +23,7 @@
                             <div class="form-row">
                                 <div class="form-group col-md-4">
                                     <label class="form-label" for="recType">Receive type</label>
-                                    <select class="select2 form-control" id="recType" name="recType" required>
+                                    <select class="select2 form-control" id="recType" name="recType" required disabled>
                                         <option label="recPo">By PO</option>
                                         <option label="recSo">By SO</option>
                                         <option label="recFree">Free Input</option>
@@ -35,7 +35,7 @@
                                 </div>
                                 <div class="form-group col-md-2">
                                     <label for="recDate">Receiving Date*</label>
-                                    <input type="text" id="recDate" name="recDate" class="form-control" placeholder="DD-MM-YYYY" required />
+                                    <input type="text" id="recDate" name="recDate" class="form-control" placeholder="DD-MM-YYYY" required disabled/>
                                 </div>                               
                             </div>
                             <div class="form-row">
@@ -80,7 +80,6 @@
                             </div>
                             <div class="form-row">
                                 <div class="col-12">
-                                    <button class="btn btn-warning" type="reset" id="cmdCancel" name="cmdCancel">Cancel</button>
                                     <button class="btn btn-success" type="reset" id="cmdNew" name="cmdCancel">New</button>
                                     <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Save</button>
                                     @can('receiving-posting')
@@ -222,34 +221,13 @@
 @endsection
 @section('scripts')
 <script type="text/javascript">
-    let currentDate = todayDate('dd-mm-yyyy');    
-    
+    let currentDate = todayDate('dd-mm-yyyy');
     $(document).ready(function(){
-
-        $("#frmAdd").validate({
-            invalidHandler: function(event, validator) {
-            let errors = validator.numberOfInvalids();
-            if (errors) {
-                let message = errors == 1
-                    ? 'You missed 1 field. It has been highlighted'
-                    : 'You missed ' + errors + ' fields. They have been highlighted';
-                $("#alert-message .alert-body").html(message);
-                $("#alert-message").show();
-                $("#alert-message").fadeTo(5000, 500).slideUp(500, function(){
-                    $("#alert-message").slideUp(500);
-                });
-            } else {
-                $("#alert-message").hide();
-            }
-        }
-        }).settings.ignore = "";
-
+        validateFormToast("frmAdd");
         $("#totalRow").val(0);
         $("#totalQTY").val(humanizeNumber(0));
         $("#totalQtyFree").val(humanizeNumber(0));
         $("#grandTotalQty").val(humanizeNumber(0));
-
-
         $('#statusText').text('New');
         $('#recDate').val(currentDate);
         $('#cmdSave').show();
@@ -365,27 +343,15 @@
                     dataType: "json",
                     success: function(data) {
                         if (data.status == 0 ){
-                            let message="";
                             for(let i = 0; i < data.message.length; i++) {
-                                message += "-"+data.message[i]+"<br>";                           
+                                show_msg(data.title, data.message[i], data.alert);
                             }
-                            $("#alert-message-success").addClass(data.alert);
-                            $("#alert-message-success .alert-body").html(message);
-                            $("#alert-message-success").show();
-                            $("#alert-message-success").fadeTo(5000, 500).slideUp(500, function(){
-                                $("#alert-message-success").slideUp(500);
-                            });
                             $('#recNumber').attr('disabled','disabled');
                             $('#cmdSave').show();
                             $('#cmdPosting').hide();
 
                         }else{
-                            $("#alert-message-success").addClass(data.alert);
-                            $("#alert-message-success .alert-body").html(data.message);
-                            $("#alert-message-success").show();
-                            $("#alert-message-success").fadeTo(5000, 500).slideUp(500, function(){
-                                $("#alert-message-success").slideUp(500);
-                            });
+                            show_msg(data.title, data.message, data.alert);
                             $('#statusText').text(data.statusRec);
                             $('#recNumber').val(data.recNumber);
                             $('#cmdSave').hide();
