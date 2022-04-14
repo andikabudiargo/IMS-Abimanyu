@@ -188,7 +188,7 @@
                         </div> --}}
                         <div class="form-row">
                             <div class="col-12">
-                                <a href="{{ route('suppliers.index') }}" class="btn btn-primary">
+                                <a href="{{ route('suppliers.index') }}" class="btn btn-success">
                                     Back
                                 </a>
                             </div>

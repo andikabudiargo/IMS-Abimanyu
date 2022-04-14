@@ -273,7 +273,7 @@
         let pph23 = parseInt($('#pph23').val().replace(/,/gi, '')) || 0;
         let od = parseInt($('#otherDeduct').val().replace(/,/gi, '')) || 0;
         let total = ba? (ba+vat+pph23)-od : '';
-        console.log(total);
+        // console.log(total);
         $('#grandTotal').val(total);
         mask_thousand();
     }

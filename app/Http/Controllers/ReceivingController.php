@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Crypt;
 use Response;
 use App\Permission;
 use DataTables;
@@ -221,9 +222,9 @@ class ReceivingController extends Controller
 
     public function show(Request $request)
     {
-        $id=$request->id;
-        $data['title'] = "Details Receiving";
-        $data['subtitle'] = "Details Receiving";
+        $id=Crypt::decryptString($request->id);
+        $data['title'] = "Details $this->title";
+        $data['subtitle'] = "Details $this->title";
 
         $data['header'] = DB::table('receiving_hdr')
         ->where('id',$id)
@@ -255,9 +256,9 @@ class ReceivingController extends Controller
 
     public function edit(Request $request)
     {
-        $id=$request->id;
-        $data['title'] = "Edit Receiving";
-        $data['subtitle'] = "Edit Receiving";
+        $id=Crypt::decryptString($request->id);
+        $data['title'] = "Edit $this->title";
+        $data['subtitle'] = "Edit $this->title";
 
         $data['header'] = DB::table('receiving_hdr')
         ->where('id',$id)
@@ -513,7 +514,7 @@ class ReceivingController extends Controller
         // 4. Cancel
 
         $username =  Auth::user()->username;       
-        $id = $request->id;
+        $id=Crypt::decryptString($request->id);
         $status = "4";
 
         $poHdr= DB::table('receiving_hdr')
@@ -576,10 +577,7 @@ class ReceivingController extends Controller
         $searchSupplier = $request->searchSupplier;
         $searchStatus = $request->searchStatus;
         $recDate = $request->recDate;
-       
-
         $filter='';
-        
         $filter.="lower(a.rec_type) = 'normal' and ";
 
         if ($searchRec !='' ){
@@ -636,20 +634,20 @@ class ReceivingController extends Controller
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
             if (($data->status != '3') && ($data->status != '4')){
                 if (Auth::user()->can('receiving-edit')) {
-                $buttons .=         '<a href="'. route('receiving.edit', ['id'=>$data->id]) .'" class="dropdown-item">
+                $buttons .=         '<a href="'. route('receiving.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                         <i data-feather="file-text"></i>
                                         Edit
                                     </a>';
                 }
             }
             if ($data->status == '3'){
-                $buttons .=         '<a href="'. route('receiving.print', ['id'=>$data->id]) .'" target="_blank" class="dropdown-item">
+                $buttons .=         '<a href="'. route('receiving.print', ['id'=>Crypt::encryptString($data->id)]) .'" target="_blank" class="dropdown-item">
                                         <i data-feather="printer"></i>
                                         Print
                                     </a>';
 
             }
-            $buttons .=         '<a href="'. route('receiving.show', ['id'=>$data->id]) .'" class="dropdown-item">
+            $buttons .=         '<a href="'. route('receiving.show', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                     <i data-feather="list"></i>
                                     Detail
                                 </a>';
@@ -661,7 +659,7 @@ class ReceivingController extends Controller
                                         class='dropdown-item'
                                         data-toggle='modal'
                                         data-target='#smallModalCancel'
-                                        data-href='". route("receiving.destroy", ["id"=>$data->id]) ."'>
+                                        data-href='". route("receiving.destroy", ["id"=>Crypt::encryptString($data->id)]) ."'>
                                         <i data-feather='trash-2' class='feather-14-red'></i>
                                         Cancel
                                     </a>";
@@ -671,13 +669,16 @@ class ReceivingController extends Controller
                         </div>';
 
             return $buttons;
-            })
+        })
+        ->addColumn('rec_number', function ($data) {
+            return '<a href="'. route('receiving.show', ['id'=>Crypt::encryptString($data->id)]) .'" ><span>'.$data->rec_number.'</span></a>';
+        })
         ->addColumn('status', function ($data) {
             $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary'];
             $statusRec = ['Draft','Update','Posting','Cancel'];
             return "<div class='badge ".$badges[$data->status - 1]."'>".$statusRec[$data->status - 1]."</div>";
         })
-        ->rawColumns(['action','status'])
+        ->rawColumns(['action','status','rec_number'])
         ->make(true);
     }
 

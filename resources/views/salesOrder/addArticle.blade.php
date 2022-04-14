@@ -74,7 +74,7 @@
 {{-- \.table row --}} 
 <style>
     .margin-nol{
-        margin-bottom:0;
+        margin-bottom:0.5rem;
     }
 </style>
 

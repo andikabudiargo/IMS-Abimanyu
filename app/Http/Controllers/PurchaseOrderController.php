@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Crypt;
 use Response;
 use App\Permission;
 use DataTables;
@@ -84,6 +85,8 @@ class PurchaseOrderController extends Controller
         $data['attribute'] = DB::table('attributes')
         ->where('attr_name','main')
         ->pluck('attr_value','attr_code');
+
+        $data['currentDate'] = date('d-m-Y');
 
         return view("purchaseOrder.create",$data);
     }
@@ -228,7 +231,7 @@ class PurchaseOrderController extends Controller
 
     public function show(Request $request)
     {
-        $id=$request->id;
+        $id=Crypt::decryptString($request->id);
         $data['title'] = "Detail $this->title";
         $data['subtitle'] = "Detail $this->title";
 
@@ -253,12 +256,21 @@ class PurchaseOrderController extends Controller
             ->leftJoin('article','article.article_code','=','purchase_request_det'.'.article_code')
             ->leftJoin('article_stock','article_stock.article_code','=','purchase_request_det'.'.article_code')
             ->leftJoin('group_materials','group_materials.code','=','article.group_of_material')
+            ->leftJoin('uom','uom.code','=','purchase_request_det.uom')
             // ->where('supp_code',$data['header']->supplier_id)
             ->where('po_number','=',$poNumber)
             // ->where('pr_number','=',$data['header']->pr_number)
             ->orderBy('article.article_desc')
             ->distinct('article.article_desc')
-            ->select('purchase_request_det'.'.*','article.article_alternative_code','article.article_code as artikel_code','article.article_desc','article.costprice','article_stock.article_qty as qty_stock','purchase_request_det.uom as uom1','group_materials.name as group')
+            ->select('purchase_request_det'.'.*'
+                ,'article.article_alternative_code'
+                ,'article.article_code as artikel_code'
+                ,'article.article_desc'
+                ,'article.costprice'
+                ,'article_stock.article_qty as qty_stock'
+                ,'purchase_request_det.uom as uom1'
+                ,'uom.uom_group'
+                ,'group_materials.name as group')
             ->get();
 
         $data['detail'] = DB::table('purchase_order_det')
@@ -268,8 +280,13 @@ class PurchaseOrderController extends Controller
             $join->on('purchase_request_det.po_number','purchase_order_det.po_number')
             ->on('purchase_request_det.article_code','purchase_order_det.article_code');
         })
+        ->leftJoin('uom','uom.code','=','purchase_order_det.uom')
         ->where('purchase_order_det.po_number',$poNumber)
-        ->select('purchase_order_det'.'.*','purchase_request_det.pr_number','article_stock.article_qty as qty_stock', DB::raw('(SELECT name from group_materials where code = group_of_material) as group'))
+        ->select('purchase_order_det'.'.*'
+            ,'purchase_order_det.pr_number'
+            ,'article_stock.article_qty as qty_stock'
+            ,'uom.uom_group'
+            , DB::raw('(SELECT name from group_materials where code = group_of_material) as group'))
         ->orderBy('id')
         ->get();       
 
@@ -287,11 +304,20 @@ class PurchaseOrderController extends Controller
         // status:
         // 1 = New
         // 2 = Validated
-        // 3 = Authorized
+        // 3 = Approved
         // 4 = Received
         // 5 = Canceled
         // 6 = closed
         // 7 = Revised
+
+        $statusPo = ['New','Validated','Authorized','Received','Canceled','Closed','Revised'];
+        $data['statusPo'] = $statusPo[$data['header']->status-1];
+
+        $data['attribute'] = DB::table('attributes')
+        ->where('attr_name','main')
+        ->pluck('attr_value','attr_code');
+
+        $data['currentDate'] = date('d-m-Y');
 
         $statusPo = ['New','Validated','Authorized','Received','Canceled','Closed','Revised'];
         $data['statusPo'] = $statusPo[$data['header']->status-1];
@@ -326,12 +352,21 @@ class PurchaseOrderController extends Controller
             ->leftJoin('article','article.article_code','=','purchase_request_det'.'.article_code')
             ->leftJoin('article_stock','article_stock.article_code','=','purchase_request_det'.'.article_code')
             ->leftJoin('group_materials','group_materials.code','=','article.group_of_material')
+            ->leftJoin('uom','uom.code','=','purchase_request_det.uom')
             // ->where('supp_code',$data['header']->supplier_id)
             ->where('po_number','=',$poNumber)
             // ->where('pr_number','=',$data['header']->pr_number)
             ->orderBy('article.article_desc')
             ->distinct('article.article_desc')
-            ->select('purchase_request_det'.'.*','article.article_alternative_code','article.article_code as artikel_code','article.article_desc','article.costprice','article_stock.article_qty as qty_stock','purchase_request_det.uom as uom1','group_materials.name as group')
+            ->select('purchase_request_det'.'.*'
+                ,'article.article_alternative_code'
+                ,'article.article_code as artikel_code'
+                ,'article.article_desc'
+                ,'article.costprice'
+                ,'article_stock.article_qty as qty_stock'
+                ,'purchase_request_det.uom as uom1'
+                ,'uom.uom_group'
+                ,'group_materials.name as group')
             ->get();
 
         $data['detail'] = DB::table('purchase_order_det')
@@ -341,8 +376,13 @@ class PurchaseOrderController extends Controller
             $join->on('purchase_request_det.po_number','purchase_order_det.po_number')
             ->on('purchase_request_det.article_code','purchase_order_det.article_code');
         })
+        ->leftJoin('uom','uom.code','=','purchase_order_det.uom')
         ->where('purchase_order_det.po_number',$poNumber)
-        ->select('purchase_order_det'.'.*','purchase_order_det.pr_number','article_stock.article_qty as qty_stock', DB::raw('(SELECT name from group_materials where code = group_of_material) as group'))
+        ->select('purchase_order_det'.'.*'
+            ,'purchase_order_det.pr_number'
+            ,'article_stock.article_qty as qty_stock'
+            ,'uom.uom_group'
+            , DB::raw('(SELECT name from group_materials where code = group_of_material) as group'))
         ->orderBy('id')
         ->get();       
 
@@ -368,13 +408,19 @@ class PurchaseOrderController extends Controller
 
         $statusPo = ['New','Validated','Authorized','Received','Canceled','Closed','Revised'];
         $data['statusPo'] = $statusPo[$data['header']->status-1];
-        
+
+        $data['attribute'] = DB::table('attributes')
+        ->where('attr_name','main')
+        ->pluck('attr_value','attr_code');
+
+        $data['currentDate'] = date('d-m-Y');
+               
         return view("purchaseOrder.edit",$data);
     }
 
     public function edit(Request $request)
     {
-        $id=$request->id;
+        $id=Crypt::decryptString($request->id);
         return $this->showEdit($id);
     }
 
@@ -801,7 +847,7 @@ class PurchaseOrderController extends Controller
     public function destroy(Request $request)
     {
         $username =  Auth::user()->username;       
-        $id = $request->id;
+        $id=Crypt::decryptString($request->id);
         $po_number = DB::table('purchase_order_hdr')->where('id',$id)->where('status','1')->value('po_number');
         $rowAffected = DB::table('purchase_order_hdr')->where('id',$id)->delete();
         if($rowAffected>0){
@@ -861,7 +907,7 @@ class PurchaseOrderController extends Controller
         ->leftJoin('purchase_order_hdr','purchase_order_hdr.po_number','purchase_order_det.po_number')
         ->where('article_code',$articleCode)
         ->select('purchase_order_det.po_number','po_date','price', 'purchase_order_hdr.created_at')
-        ->orderBy('created_at','desc')
+        ->orderBy('po_date','desc')
         ->limit(10)
         ->get();
 
@@ -954,7 +1000,7 @@ class PurchaseOrderController extends Controller
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
             if ( $data->status == '2' ){
                 if (Auth::user()->can('purchaseOrder-authorize')) {
-                $buttons .=         '<a href="'. route('purchaseOrder.show', ['id'=>$data->id]) .'" class="dropdown-item">
+                $buttons .=         '<a href="'. route('purchaseOrder.show', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                         <i data-feather="file-text"></i>
                                         Authorize
                                     </a>';
@@ -962,7 +1008,7 @@ class PurchaseOrderController extends Controller
             }
             if ( $data->status == '1' ){
                 if (Auth::user()->can('purchaseOrder-validate')) {
-                $buttons .=         '<a href="'. route('purchaseOrder.show', ['id'=>$data->id]) .'" class="dropdown-item">
+                $buttons .=         '<a href="'. route('purchaseOrder.show', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                         <i data-feather="file-text"></i>
                                         Validate
                                     </a>';
@@ -970,7 +1016,7 @@ class PurchaseOrderController extends Controller
             }
             if ( $data->status == '1' ){
                 if (Auth::user()->can('purchaseOrder-edit')) {
-                $buttons .=         '<a href="'. route('purchaseOrder.edit', ['id'=>$data->id]) .'" class="dropdown-item">
+                $buttons .=         '<a href="'. route('purchaseOrder.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                         <i data-feather="file-text"></i>
                                         Edit
                                     </a>';
@@ -985,12 +1031,12 @@ class PurchaseOrderController extends Controller
                 }
             }
             
-            $buttons .=         '<a href="'. route('purchaseOrder.print', ['id'=>$data->id]) .'" target="_blank" class="dropdown-item">
+            $buttons .=         '<a href="'. route('purchaseOrder.print', ['id'=>Crypt::encryptString($data->id)]) .'" target="_blank" class="dropdown-item">
                                     <i data-feather="printer"></i>
                                     Print
                                 </a>';
             
-            $buttons .=         '<a href="'. route('purchaseOrder.show', ['id'=>$data->id]) .'" class="dropdown-item">
+            $buttons .=         '<a href="'. route('purchaseOrder.show', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                     <i data-feather="list"></i>
                                     Detail
                                 </a>';
@@ -1001,7 +1047,7 @@ class PurchaseOrderController extends Controller
                                         class='dropdown-item'
                                         data-toggle='modal'
                                         data-target='#smallModal'
-                                        data-href='". route("purchaseOrder.destroy", ["id"=>$data->id]) ."'>
+                                        data-href='". route("purchaseOrder.destroy", ["id"=>Crypt::encryptString($data->id)]) ."'>
                                         <i data-feather='trash-2' class='feather-14-red'></i>
                                         Delete
                                     </a>";
@@ -1014,7 +1060,7 @@ class PurchaseOrderController extends Controller
             return $buttons;
         })
         ->addColumn('po_number', function ($data) {
-            return '<a href="'. route('purchaseOrder.show', ['id'=>$data->id]) .'" ><span>'.$data->po_number.'</span></a>';
+            return '<a href="'. route('purchaseOrder.show', ['id'=>Crypt::encryptString($data->id)]) .'" ><span>'.$data->po_number.'</span></a>';
         })
         ->addColumn('status', function ($data) {
             $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary'];

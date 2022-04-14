@@ -115,11 +115,13 @@
                                     <div id="new_row{{ $key }}" class="tanda-baris" >
                                         <div class="form-row ">
                                             <div class="col-md-1 col-12">
-                                                <div class="custom-control custom-switch custom-control-inline">
-                                                    <input type="checkbox" class="custom-control-input soClose" id="status{{ $key }}" name ="status[]" {{  $item->status == '1' ? 'checked' :'' }} />
-                                                    <label  class="custom-control-label" for="status{{ $key }}"></label>
+                                                <div class="form-group margin-nol">
+                                                    <label class="d-block d-md-none">Status</label>
+                                                    <div class="custom-control custom-switch custom-control-inline">
+                                                        <input type="checkbox" class="custom-control-input soClose" id="status{{ $key }}" name ="status[]" {{  $item->status == '1' ? 'checked' :'' }} disabled/>
+                                                        <label  class="custom-control-label" for="status{{ $key }}"><span id="lblClose_status{{ $key }}">{{  $item->status == '1' ? 'Open' :'Closed' }}</span></label>
+                                                    </div>
                                                 </div>
-                                                <small class="text-muted" ><span id="lblClose_status{{ $key }}">{{  $item->status == '1' ? 'Open' :'Closed' }}</span></small></p>
                                             </div>
                                             <div class="col-md-4 col-12">
                                                 <div class="form-group margin-nol">

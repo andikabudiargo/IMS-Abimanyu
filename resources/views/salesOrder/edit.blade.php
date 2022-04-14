@@ -123,7 +123,7 @@
                                                             <option value="{{$val->article_code}}|{{$val->group}}|{{$val->qty}}|{{$val->uom1}}" {{$val->article_code ==$item->article_code ? "selected" : ""}}>{{$val->article_alternative_code}} | {{$val->article_desc}}</option>
                                                         @endforeach
                                                     </select>
-                                                    <small class="text-muted" ><span id = "group" name="group[]">{{ $item->group }}</span></small></p>
+                                                    <small class="text-muted" ><span id = "group" name="group[]">{{ $item->group }}</span></small>
                                                 </div>
                                             </div>
                                             <div class="col-md-1 col-12">

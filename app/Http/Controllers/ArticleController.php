@@ -154,20 +154,20 @@ class ArticleController extends Controller
         // ddd($request);
         
         $username =  Auth::user()->username;
-        $type = $request->input('articleType');
-        $cust = $request->input('cust');
-        $nama = strtoupper($request->input('nama'));
-        $group = $request->input('group');
-        $uom = $request->input('uom');
-        $price = $request->input('price');
+        $type = $request->articleType;
+        $cust = $request->cust;
+        $nama = strtoupper($request->nama);
+        $group = $request->group;
+        $uom = $request->uom;
+        $price = $request->price;
         $price = $price ? str_replace(",","",$price) : $price;
-        $note = $request->input('note');
-        $files = $request->input('files');
+        $note = $request->note;
+        $files = $request->files;
         $status = '1';
         $pesan = '';
 
-        $colorCode = $request->input('colorCode');
-        $variant = $request->input('variant');
+        $colorCode = $request->colorCode;
+        $variant = $request->variant;
 
         
         $messages = [
@@ -200,7 +200,7 @@ class ArticleController extends Controller
                     'article_alternative_code' => $articleDet[0],
                     'article_desc' => $nama,
                     'group_of_material' => $group,
-                    'third_party' => $cust,
+                    'third_party' => $cust[0],
                     'note' => $note,
                     'uom' => $uom,
                     'costprice' => $price,
@@ -213,6 +213,18 @@ class ArticleController extends Controller
                     'created_at' => date('Y-m-d H:i:s'),
                     'updated_at' => date('Y-m-d H:i:s')
                 ]); 
+
+                foreach($cust as $val){
+                    DB::table('article_supplier')->insert([
+                        'article_code' => $artCode,
+                        'supplier_code' => $val,
+                        'main_supplier' => $cust[0] == $val ? 'Y' : 'N',
+                        'created_by' => Auth::user()->username,
+                        'updated_by' => Auth::user()->username,
+                        'created_at' => date('Y-m-d H:i:s'),
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]); 
+                }
 
                 if($files){
                     foreach($files as $val){
@@ -250,8 +262,8 @@ class ArticleController extends Controller
     {
 
         $id=Crypt::decryptString($request->id);
-        $data['title'] = "Edit Article";
-        $data['subtitle'] = "Edit Article";
+        $data['title'] = "Edit $this->title";
+        $data['subtitle'] = "Edit $this->title";
         
         $data['article'] = DB::table('article')
         ->where('id',$id)
@@ -285,6 +297,11 @@ class ArticleController extends Controller
         ->orderBy('article_desc')
         ->distinct('article_desc')
         ->pluck('article_desc');
+
+        $data['suppliers']= DB::table('article_supplier') 
+        ->where('article_code',$data['article']->article_code)
+        ->orderBy('id')
+        ->pluck('supplier_code')->toArray();
 
         return view('articles.edit',$data);
         
@@ -325,6 +342,11 @@ class ArticleController extends Controller
         ->orderBy('name')
         ->get();
 
+        $data['suppliers']= DB::table('article_supplier') 
+        ->where('article_code',$data['article']->article_code)
+        ->orderBy('id')
+        ->pluck('supplier_code')->toArray();
+        
         return view('articles.show',$data);
         
     }
@@ -371,7 +393,7 @@ class ArticleController extends Controller
                     [
                         'article_desc' => $nama,
                         'group_of_material' => $group,
-                        'third_party' => $cust,
+                        'third_party' => $cust[0],
                         'note' => $note,
                         'uom' => $uom,
                         'costprice' => $price,
@@ -383,10 +405,40 @@ class ArticleController extends Controller
                     ]
                 );
 
+                
+                $dataset=[];
+                foreach ($cust as $val) {
+                $dataSet[] = [
+                    $artCode.$val
+                ];
+                    
+                }
+                    
+                //Delete kalo article tidak ada di po $poNumber dan article nya $val->article_code
+                //berdasarkan 2 kondisi
+                DB::table('article_supplier')
+                ->whereNotIn(DB::raw("CONCAT(article_code,supplier_code)"),$dataSet)
+                ->delete();
+                    
+                foreach($cust as $val){
+                    DB::table('article_supplier')
+                        ->updateOrInsert(
+                        ['article_code' => $artCode,'supplier_code' => $val],
+                        [ 
+                            'article_code' => $artCode,
+                            'supplier_code' => $val,
+                            'main_supplier' => $cust[0] == $val ? 'Y' : 'N',
+                            'created_by' => Auth::user()->username,
+                            'updated_by' => Auth::user()->username,
+                            'created_at' => date('Y-m-d H:i:s'),
+                            'updated_at' => date('Y-m-d H:i:s')
+                        ]); 
+                }
+
                 if($fileDihapus){
                     DB::table('images')->whereIn('path',$fileDihapus)->delete();
                 }
-
+                
                 if($files){
                     foreach($files as $val){
                         DB::table('images')->insert([

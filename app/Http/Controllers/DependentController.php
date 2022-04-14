@@ -201,17 +201,18 @@ class DependentController extends Controller
             break;
                 default:
                     $table='';
-            }
+        }
                 
 
         if($dependent =='article_id'){
             $data= DB::table($table) 
             ->leftJoin('article_stock','article_stock.article_code','=',$table.'.article_code')
             ->leftJoin('group_materials','group_materials.code','=',$table.'.group_of_material')
+            ->leftJoin('uom','uom.code','=',$table.'.uom')
             ->where($field,$code)
             ->where($field2,$type)
             ->orderBy($order)
-            ->select($table.'.*', 'article_stock.article_qty as qty','article.uom as uom1','group_materials.name as group')
+            ->select($table.'.*', 'article_stock.article_qty as qty','article.uom as uom1','group_materials.name as group','uom.uom_group')
             ->get();          
         }elseif($dependent =='article_bom'){
             $data= DB::table($table) 
@@ -226,8 +227,10 @@ class DependentController extends Controller
             ->leftJoin('article','article.article_code','=',$table.'.article_code')
             ->leftJoin('article_stock','article_stock.article_code','=',$table.'.article_code')
             ->leftJoin('group_materials','group_materials.code','=','article.group_of_material')
+            ->leftJoin('uom','uom.code','=',$table.'.uom')
             // Permintaan dari bu ifah tidak usah di filter by supplier
-            // ->where($field,$code)
+            // 11 04 2022 permintaan batal dari bu Yorin, jadi tetap di filter
+            ->where($field,$code)
             ->where('po_number','=',null)
             ->where('pr_number','=',$prNumber)
             ->orderBy('article.article_desc')
@@ -239,6 +242,7 @@ class DependentController extends Controller
             ,'article_stock.article_qty as qty_stock'
             ,'purchase_request_det.uom as uom1'
             ,'group_materials.name as group'
+            ,'uom.uom_group'
             ,DB::raw("(SELECT price as last_price from purchase_order_det where article_code = $table.article_code order by updated_at,created_at desc limit 1) as last_price")
             )
             ->get();
@@ -247,6 +251,7 @@ class DependentController extends Controller
             ->leftJoin('article','article.article_code','=',$table.'.article_code')
             ->leftJoin('article_stock','article_stock.article_code','=',$table.'.article_code')
             ->leftJoin('group_materials','group_materials.code','=','article.group_of_material')
+            ->leftJoin('uom','uom.code','=',$table.'.uom')
             // ->where('po_number','=',null) //sementara PO boleh di isi sebagian, jadi kalo udah dibikin PO juga masih bisa dibikin PO lagi
             ->where('pr_number','=',$prNumber)
             ->orderBy('article.article_desc')
@@ -258,6 +263,7 @@ class DependentController extends Controller
             ,'article_stock.article_qty as qty_stock'
             ,'purchase_request_det.uom as uom1'
             ,'group_materials.name as group'
+            ,'uom.uom_group'
             ,DB::raw("(SELECT price as last_price from purchase_order_det where article_code = $table.article_code order by updated_at,created_at desc limit 1) as last_price")
             )
             ->get();          
@@ -308,7 +314,8 @@ class DependentController extends Controller
                 $query->select('pr_number')->from('purchase_request_hdr')->where('order_type','std');
             })
             // permintaan bu ifah tidak si filter by supplier
-            // ->where($field,$code)
+            // 11 04 2022 permintaan batal dari bu Yorin, jadi tetap di filter
+            ->where($field,$code)
             ->where('po_number','=',null)
             ->orderBy($order)
             ->distinct($order)
@@ -344,7 +351,7 @@ class DependentController extends Controller
 
         foreach ($data as $row){
             if($dependent =='article_id'){
-                $output .='<option value="'.$row->$value.'|'.$row->group.'|'.$row->qty.'|'.$row->uom1.'|'.$row->costprice.'">'.$row->$value2.' - '. $row->$name.'</option>';
+                $output .='<option value="'.$row->$value.'|'.$row->group.'|'.$row->qty.'|'.$row->uom1.'|'.$row->costprice.'" data-uom-group="'.$row->uom_group.'">'.$row->$value2.'-'. $row->$name.'</option>';
             }elseif($dependent =='article_pr'){
                 $output .='<option value="'.$row->article_code.'|'.$row->uom.'|'.$row->third_party.'|'.$row->dept.'">'.$row->article_alternative_code.' - '. $row->article_desc.'</option>';
             }elseif($dependent =='article_pr_sub'){
@@ -356,9 +363,9 @@ class DependentController extends Controller
             }elseif($dependent =='article_bom'){
                 $output .='<option value="'.$row->article_code.'|'.$row->uom.'|'.$row->costprice.'|'.$row->article_type.'|'.$row->type_name.'" data-uom-group="'.$row->uom_group.'">'.$row->article_alternative_code.' - '. $row->article_desc.'</option>';
             }elseif($dependent =='searchFromPr'){
-                $output .='<option value="'.$row->article_code.'|'.$row->group.'|'.$row->qty_stock.'|'.$row->qty.'|'.$row->uom1.'|'.$row->costprice.'|'.$row->last_price.'">'.$row->article_alternative_code.' - '. $row->article_desc.'</option>';
+                $output .='<option value="'.$row->article_code.'|'.$row->group.'|'.$row->qty_stock.'|'.$row->qty.'|'.$row->uom1.'|'.$row->costprice.'|'.$row->last_price.'" data-uom-group="'.$row->uom_group.'">'.$row->article_alternative_code.' - '. $row->article_desc.'</option>';
             }elseif($dependent =='searchFromPr_sub'){
-                $output .='<option value="'.$row->article_code.'|'.$row->group.'|'.$row->qty_stock.'|'.$row->qty.'|'.$row->uom1.'|'.$row->costprice.'|'.$row->last_price.'">'.$row->article_alternative_code.' - '. $row->article_desc.'</option>';
+                $output .='<option value="'.$row->article_code.'|'.$row->group.'|'.$row->qty_stock.'|'.$row->qty.'|'.$row->uom1.'|'.$row->costprice.'|'.$row->last_price.'" data-uom-group="'.$row->uom_group.'">'.$row->article_alternative_code.' - '. $row->article_desc.'</option>';
             }elseif($dependent =='searchFromSO'){
                 $output .='<option value="'.$row->article_code.'|'.$row->group.'|'.$row->qty_stock.'|'.$row->qty.'|'.$row->uom1.'|'.$row->costprice.'">'.$row->article_alternative_code.' - '. $row->article_desc.'</option>';
             }elseif($dependent =='unitTo'){

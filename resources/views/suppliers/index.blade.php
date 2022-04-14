@@ -68,9 +68,7 @@
       </div>
     </div>
 </section>
-
 @include('partials.delete-modal')
-
 @endsection
 @section('styles')
 <style>
@@ -130,7 +128,7 @@
             buttons: [
               {
                 extend: 'collection',
-                className: 'btn btn-outline-secondary dropdown-toggle mr-2 mt-07',
+                className: 'btn btn-outline-secondary dropdown-toggle mt-07',
                 text: feather.icons['share'].toSvg({ class: 'font-small-4 mr-50' }) + 'Export',
                 buttons: [
                   {
@@ -181,7 +179,7 @@
               }
             },
             columnDefs: [
-              { width: '10%', targets: 0 }
+              { width: '5%', targets: 0 }
             ],
             drawCallback: function( settings ) {
               feather.replace({
@@ -189,7 +187,7 @@
                     height: 14
               });
             },
-            order: [[ 1, 'asc' ]],
+            order: [[ 2, 'asc' ]],  
             bDestroy: true, //pakai ini supaya bisa di load berulang2
             // scrollX: true, //pakai ini supaya waktu responsive  bisa di scroll horizontal
             columns: [

@@ -54,7 +54,7 @@
                         <div class="form-row">
                             <div class="form-group col-md-12">
                                 <label class="form-label" for="cust" id="custLable">Customer/Supplier*</label>
-                                <select class="select2 form-control" id="cust" name="cust" autofocus required>
+                                <select class="select2 form-control" id="cust" name="cust[]" autofocus required multiple>
                                 </select>
                             </div>
                         </div>

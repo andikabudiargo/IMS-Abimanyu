@@ -14,16 +14,22 @@ use DB;
 
 class SupplierController extends Controller
 {
+    private $title;
+    public function __construct()
+    {
+        $this->title = "Supplier";
+    }
+
     public function index(Request $request)
     {
-        $data['title'] = "Supplier";
+        $data['title'] = "$this->title";
         return view("suppliers.index",$data);
     }
 
     public function create(Request $request)
     {
-        $data['title'] = "Create Supplier";
-        $data['subtitle'] = "Create New Supplier";
+        $data['title'] = "Create $this->title";
+        $data['subtitle'] = "Create New $this->title";
 
         $data['provinces'] = DB::table('regions')
         ->where ('index','=',0)
@@ -79,32 +85,63 @@ class SupplierController extends Controller
     
     }
 
+    public function customerCodeCreate($initial){
+        /*
+            pembuatan article_alternative_code sesuai dengan aturan, kalo FG dan RM harus ada kode cabang nya
+            apabila type nya FG atau RM makan akan terbentuk sekaligus 2 article
+            kode customer
+            INISIAL di bentuk oleh javascript
+            MAJU PT = MAJXXXXXCUST
+            MAJU JAYA PT = MJAXXXXXCUST
+            MAJU JAYA ABADI PT = MJAXXXXXCUST
+            MAJU JAYA SENTOSA CV = MJSXXXXXCUST
+        */
+         
+        $lastCode = DB::table('third_party')
+        ->where('kode','like',$initial.'%CUST')
+        ->value('kode');
+
+        if (!$lastCode){
+            $newCode = '00001';
+        }else{
+            $lastCode = substr($lastCode,3,5);
+            $newCode = str_pad($lastCode+1, 5, "0", STR_PAD_LEFT);
+        }
+
+        $newCode = $initial.str_pad($newCode, 5, "0", STR_PAD_LEFT)."CUST";
+
+        return  $newCode;
+    
+    }
+
     public function store(Request $request)
     {
         $username = Auth::user()->username;
-        $nama = strtoupper($request->input('nama'));
-        $inisial = strtoupper($request->input('inisial'));
+        $nama = strtoupper($request->nama);
+        $inisial = strtoupper($request->inisial);
         $kode = $this->supplierCodeCreate($inisial);
-        $alamat = $request->input('alamat');
-        $provinsi = $request->input('provinsi');
-        $kota = $request->input('kota');
-        $kelurahan = $request->input('kelurahan');
-        $kecamatan = $request->input('kecamatan');
-        $kodePos = $request->input('kodePos');
-        $telepon = $request->input('telepon');
-        $fax = $request->input('fax');
-        $hp = $request->input('hp');
-        $kontak = $request->input('kontak');
-        $email = $request->input('email');
-        $termin = $request->input('termin');
-        $npwp = $request->input('npwp');
-        $alamatNpwp = $request->input('alamatNpwp');
-        $kotaNpwp = $request->input('kotaNpwp');
-        $bankType = $request->input('bankType');
-        $bankName = $request->input('bankName');
-        $accNumber = $request->input('accNumber');
-        $branch = $request->input('branch');
-        // $bankBca = $request->input('bankBca') ? 'yes' : 'no';
+        $kodeCust = $this->customerCodeCreate($inisial);
+        $alamat = $request->alamat;
+        $provinsi = $request->provinsi;
+        $kota = $request->kota;
+        $kelurahan = $request->kelurahan;
+        $kecamatan = $request->kecamatan;
+        $kodePos = $request->kodePos;
+        $telepon = $request->telepon;
+        $fax = $request->fax;
+        $hp = $request->hp;
+        $kontak = $request->kontak;
+        $email = $request->email;
+        $termin = $request->termin;
+        $npwp = $request->npwp;
+        $alamatNpwp = $request->alamatNpwp;
+        $kotaNpwp = $request->kotaNpwp;
+        $bankType = $request->bankType;
+        $bankName = $request->bankName;
+        $accNumber = $request->accNumber;
+        $branch = $request->branch;
+        $asCustomer = $request->asCustomer;
+        // $bankBca = $request->bankBca ? 'yes' : 'no';
         $third_party_type='supp';
         $aktif = '1';
         $blacklist = '0';
@@ -165,29 +202,64 @@ class SupplierController extends Controller
                     'updated_at' => date('Y-m-d H:i:s')
                 ]);
 
+                if ($asCustomer){
+                    DB::table('third_party')->insert([
+                        'kode'=> $kodeCust,
+                        'nama'=> $nama,
+                        'inisial'=> $inisial,
+                        'alamat_tagih'=> $alamat,
+                        'provinsi'=> $provinsi,
+                        'kota'=>  $kota,
+                        'kelurahan'=> $kelurahan,
+                        'kecamatan'=> $kecamatan,                   
+                        'kode_pos'=> $kodePos,
+                        'pkp'=> $pkp,
+                        'telepon'=> $telepon,
+                        'hp'=> $hp,
+                        'fax'=> $fax,
+                        'email'=> $email,
+                        'nama_kontak'=> $kontak,
+                        'top_batas_1'=> $termin,
+                        'aktif'=> $aktif,
+                        'blacklist'=> $blacklist,
+                        'third_party_type'=> 'cust',
+                        'npwp'=> $npwp,
+                        'alamat_npwp'=> $alamatNpwp,
+                        'kota_npwp'=> $kotaNpwp,
+                        // 'bank_bca' => $bankBca,
+                        'bank_type' => $bankType,
+                        'bank_name' => $bankName,
+                        'account_number' => $accNumber,
+                        'bank_branch' => $branch,
+                        'created_by' => Auth::user()->username,
+                        'updated_by' => Auth::user()->username,
+                        'created_at' => date('Y-m-d H:i:s'),
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]); 
+                }
+
                 DB::commit();
-                $alert  ="alert-success";
-                $message  = "$kode is successfully saved";
+                $title = $this->title;
+                $alert  ="success";
+                $message  = "$title $kode is successfully saved";
                 \LogActivity::addToLog('Supplier save ',"username: $username Status $message");
-                return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);  
+                return redirect()->back()->with(['alert'=>$alert,'title'=>$title,'message'=> $message]);  
 
         } catch (Exception $e) {
             DB::rollBack();
-            $alert  ="alert-warning";
-            $message  = "$kode is failed to save";
+            $title = $this->title;
+            $alert  ="warning";
+            $message  = "$title $kode is failed to save";
             \LogActivity::addToLog('Supplier save ',"username: $username Status $message");
-            return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);   
-        }        
-        
-
-        
+            return redirect()->back()->with(['alert'=>$alert,'title'=>$title,'message'=> $message]);   
+        }                
     }
 
     public function edit(Request $request)
     {
         $id=Crypt::decryptString($request->id);
-        $data['title'] = "Edit Supplier";
-        $data['subtitle'] = "Edit New Supplier";
+        $data['title'] = "Edit $this->title";
+        $data['subtitle'] = "Edit New $this->title";
 
         $data['suppliers'] = DB::table('third_party')
         ->where('id',$id)
@@ -218,8 +290,8 @@ class SupplierController extends Controller
     public function show(Request $request)
     {
         $id=Crypt::decryptString($request->id);
-        $data['title'] = "Detail Supplier";
-        $data['subtitle'] = "Detail Supplier";
+        $data['title'] = "Detail $this->title";
+        $data['subtitle'] = "Detail $this->title";
 
         $data['suppliers'] = DB::table('third_party')
         ->where('id',$id)
@@ -337,23 +409,26 @@ class SupplierController extends Controller
                 DB::commit();
 
                 if($row_affected>0){
-                    $alert  ="alert-success";
-                    $message  = "Successfully updated";
+                    $title = $this->title;
+                    $alert  ="success";
+                    $message  = "$title Successfully updated";
                     \LogActivity::addToLog('Supplier update ',"username: $username Status $message");
-                    return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);  
+                    return redirect()->back()->with(['alert'=>$alert,'title'=>$title,'message'=> $message]);  
                 }else{
-                    $alert  ="alert-warning";
-                    $message  = "Failed to update";
+                    $title = $this->title;
+                    $alert  ="warning";
+                    $message  = "$title Failed to update";
                     \LogActivity::addToLog('Supplier update ',"username: $username Status $message");
-                    return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);
+                    return redirect()->back()->with(['alert'=>$alert,'title'=>$title,'message'=> $message]);
                 }
 
         } catch (Exception $e) {
             DB::rollBack();
-            $alert  ="alert-warning";
-            $message  = "Failed to update";
+            $title = $this->title;
+            $alert  ="warning";
+            $message  = "$title Failed to update";
             \LogActivity::addToLog('Supplier update ',"username: $username Status $message");
-            return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);
+            return redirect()->back()->with(['alert'=>$alert,'title'=>$title,'message'=> $message]);
         }
     }
 
@@ -367,15 +442,17 @@ class SupplierController extends Controller
         ->delete();
 
         if($row_affected>0){
-            $alert  ="alert-success";
-            $message  = "Successfully Deleted";
+            $title = $this->title;
+            $alert  ="success";
+            $message  = "$title successfully Deleted";
             \LogActivity::addToLog('Supplier delete ',"username: $username Status $message");
-            return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);  
+            return redirect()->back()->with(['alert'=>$alert,'title'=>$title,'message'=> $message]);  
         }else{
-            $alert  ="alert-warning";
-            $message  = "Failed to Delete";
+            $title = $this->title;
+            $alert  ="warning";
+            $message  = "$title failed to Delete";
             \LogActivity::addToLog('Supplier delete ',"username: $username Status $message");
-            return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);
+            return redirect()->back()->with(['alert'=>$alert,'title'=>$title,'message'=> $message]);
         }
     }
 
@@ -385,16 +462,19 @@ class SupplierController extends Controller
         $name = strtolower($request->name);
 
         //ilike = string to lower
-        $data=DB::table('third_party');
-        $data->where('third_party_type','supp');
-        $code ? $data->where('kode','ilike','%'.$code.'%'):"";
-        $name ? $data->where('nama','ilike','%'.$name.'%'):""; 
-        $data->orderBy('nama')->get();
+        $data=DB::table('third_party')
+        ->where(function ($query) use ($code,$name) {
+            $code ? $query->where('kode','ilike','%'.$code.'%'):"";
+            $name ? $query->where('nama','ilike','%'.$name.'%'):""; 
+        })
+        ->where('third_party_type','supp')
+        ->orderBy('nama')
+        ->get();
 
         return Datatables::of($data)
         ->addColumn('action', function ($data) {
             $buttons = '<div class="d-inline-flex">
-                            <a class="pr-1 dropdown-toggle hide-arrow text-primary" data-toggle="dropdown">
+                            <a class="pr-1 dropdown-toggle hide-arrow" data-toggle="dropdown">
                                 <i data-feather="menu"></i>
                             </a>';
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
@@ -415,7 +495,7 @@ class SupplierController extends Controller
                                         data-toggle='modal'
                                         data-target='#smallModal'
                                         data-href='". route("supplier.destroy", ['id'=>Crypt::encryptString($data->id)]) ."'>
-                                        <i data-feather='trash-2'></i>
+                                        <i data-feather='trash-2' class='feather-14-red'></i>
                                         Delete
                                     </a>";
             }
@@ -423,7 +503,10 @@ class SupplierController extends Controller
                         </div>';
 
             return $buttons;
-            })
+        })
+        ->addColumn('kode', function ($data) {
+            return '<a href="'. route('supplier.show', ['id'=>Crypt::encryptString($data->id)]) .'" ><span>'.$data->kode.'</span></a>';
+        })
         ->addColumn('blacklist', function ($data) {
             if ($data->blacklist =='1') {
                 $blacklist = '<div class="custom-control custom-switch custom-control-inline">
@@ -446,7 +529,7 @@ class SupplierController extends Controller
             }
             return $epte;
         })
-        ->rawColumns(['action','blacklist','epte'])
+        ->rawColumns(['action','blacklist','epte','kode'])
         ->make(true);
     }
 }

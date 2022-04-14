@@ -57,9 +57,9 @@
                         <div class="form-row">
                             <div class="form-group col-md-12">
                                 <label class="form-label" for="cust"> {{ $article->article_type == 'FG' || $article->article_type == 'RM' ? 'Customer' : 'Supplier'}}</label>
-                                <select class="select2 form-control" id="cust" name="cust" disabled>
+                                <select class="select2 form-control" id="cust" name="cust[]" disabled multiple>
                                     @foreach($custs as $val)
-                                        <option value="{{$val->kode}}" {{ $val->kode == old("cust",$article->cust) ? "selected" : ""}}>{{$val->kode}} - {{$val->nama}}</option>
+                                        <option value="{{$val->kode}}" {{ in_array($val->kode, old('cust',$suppliers)) ? "selected" : ""}}>{{$val->kode}} - {{$val->nama}}</option>
                                     @endforeach
                                 </select>
                             </div>
@@ -103,8 +103,8 @@
                         </div>                        
                     </form>
                     <div class="form-row">
-                        <div class="col-12">
-                            <a href="{{ route('articles.index') }}" class="btn btn-outline-secondary">
+                        <div class="col-md-12">
+                            <a href="{{ route('articles.index') }}" class="btn btn-success">
                                 Back
                             </a>
                         </div>

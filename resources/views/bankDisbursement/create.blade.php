@@ -361,7 +361,7 @@
             apNumber += $(this).val() + ',';
         });
 
-        console.log(apNumber);
+        // console.log(apNumber);
 
         $('#tblApList thead >tr').remove();
         $('#tblApList tbody >tr').remove();

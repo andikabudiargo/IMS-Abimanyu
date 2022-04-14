@@ -606,3 +606,29 @@
             }
         });
     }
+
+    // let totalFromArray=(...data)=>{
+    //     let total = 0;
+    //     let itemm = 0;
+    //     for(const item of data){
+    //         itemm = item.replace(/[^0-9]/gi, '')||0;
+    //         total += parseFloat(itemm);
+    //     }
+    //     return total
+    // }
+
+    let sumFromArray = (arr1,arr2 = []) =>{
+        let jumlah=0;
+        let nilai1;
+        let nilai2 = 1;
+        if (arr1.length>0){
+            for (let i=0;i<arr1.length;i++){
+                nilai1 = arr1[i].replace(/,/gi, '') || 0;
+                if (arr2.length>0){
+                    nilai2 = arr2[i].replace(/,/gi, '') || 0;
+                }
+                jumlah += parseFloat(nilai1)*parseInt(nilai2); 
+            }
+        }
+        return jumlah;
+    }

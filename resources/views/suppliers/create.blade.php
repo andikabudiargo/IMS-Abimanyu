@@ -2,10 +2,9 @@
 @section('title', $title)
 @section('content')
 @include('layouts.breadcrumb')
-@include('partials.alert')
 <section id="add-index">
     <div class="form-row">
-        <div class="col-6">
+        <div class="col-md-6">
             <div class="card">
                 {{-- <div class="card-header">
                     <h4 class="card-title">Suppliers</h4>
@@ -17,16 +16,14 @@
                             <div class="col-4">
                                 <div class="form-group">
                                     <label for="kode">Kode</label>
-                                    <input type="text" id="kode" name="kode" class="form-control" value="{{ old('kode') }}" required maxlength="20" autofocus />
+                                     <input type="text" id="kode" name="kode" class="form-control" value="{{ old('kode') }}" required maxlength="20" autofocus />
                                 </div>
                             </div>
                         </div> --}}
                         <div class="form-row">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="nama">Name*</label>
-                                    <input type="text" id="nama" name="nama" class="form-control text-uppercase" value="{{ old('nama') }}" required  maxlength="100"/>
-                                </div>
+                            <div class="form-group col-md-6">
+                                <label for="nama">Name*</label>
+                                <input type="text" id="nama" name="nama" class="form-control text-uppercase" value="{{ old('nama') }}" required  maxlength="100"/>
                             </div>
                             <div class="form-group col-md-2">
                                 <label class="form-label" for="inisial">Initial*</label>
@@ -40,11 +37,9 @@
                             </div>
                         </div>
                         <div class="form-row">
-                            <div class="col-md-12">
-                                <div class="form-group">
-                                    <label for="alamat">Address</label>
-                                    <textarea type="text" id="alamat" name="alamat" class="form-control" rows="2" value="{{ old('alamat') }}" maxlength="100"></textarea>
-                                </div>
+                            <div class="form-group col-md-12">
+                                <label for="alamat">Address</label>
+                                <textarea type="text" id="alamat" name="alamat" class="form-control" rows="2" value="{{ old('alamat') }}" maxlength="100"></textarea>
                             </div>
                         </div>
                         <div class="form-row">
@@ -195,8 +190,8 @@
                         </div> --}}
                         <div class="form-row">
                             <div class="col-12">
-                                <button class="btn btn-outline-secondary" type="reset" id="cmdCancel" name="cmdCancel">Cancel</button>
-                                <button class="btn btn-success" type="button" id="cmdSave" name="cmdSave">Save</button>
+                                <button class="btn btn-success" type="reset" id="cmdCancel" name="cmdCancel">New</button>
+                                <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Save</button>
                             </div>
                         </div>
                     </form>
@@ -219,23 +214,7 @@
 <script type="text/javascript">
     let change_active = 'yes';
     $(document).ready(function(){     
-        $("#frmAdd").validate({
-            invalidHandler: function(event, validator) {
-            let errors = validator.numberOfInvalids();
-            if (errors) {
-                var message = errors == 1
-                    ? 'You missed 1 field. It has been highlighted'
-                    : 'You missed ' + errors + ' fields. They have been highlighted';
-                $("#alert-message .alert-body").html(message);
-                $("#alert-message").show();
-                $("#alert-message").fadeTo(5000, 500).slideUp(500, function(){
-                    $("#alert-message").slideUp(500);
-                });
-            } else {
-                $("#alert-message").hide();
-            }
-        }
-        }).settings.ignore = "";
+        validateFormToast("frmAdd");
     });
 
     let availableTags ="{{ $suppliers }}";
