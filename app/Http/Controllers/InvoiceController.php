@@ -65,8 +65,8 @@ class InvoiceController extends Controller
 
     public function create(Request $request)
     {
-        $data['title'] = "Create Invoice";
-        $data['subtitle'] = "Create Invoice";
+        $data['title'] = "Create $this->title";
+        $data['subtitle'] = "Create $this->title";
         
         $data['customers'] = DB::table('third_party')
         ->where ('third_party_type','=','cust')
@@ -238,8 +238,8 @@ class InvoiceController extends Controller
     public function show(Request $request)
     {
         $id=$request->id;
-        $data['title'] = "Details Receiving";
-        $data['subtitle'] = "Details Receiving";
+        $data['title'] = "Details $this->title";
+        $data['subtitle'] = "Details $this->title";
 
         $data['header'] = DB::table('receiving_hdr')
         ->where('id',$id)
@@ -272,8 +272,8 @@ class InvoiceController extends Controller
     public function edit(Request $request)
     {
         $id=$request->id;
-        $data['title'] = "Edit Receiving";
-        $data['subtitle'] = "Edit Receiving";
+        $data['title'] = "Edit $this->title";
+        $data['subtitle'] = "Edit $this->title";
 
         $data['header'] = DB::table('receiving_hdr')
         ->where('id',$id)

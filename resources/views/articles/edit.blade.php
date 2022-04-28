@@ -40,13 +40,13 @@
                             </div>         
                         </div>
                         <div class="form-row">
-                            <div class="col-6">
+                            <div class="col-md-6">
                                 <div class="form-group">
                                     <label for="colorCode">Color Code</label>
                                     <input type="text" id="colorCode" name="colorCode" class="form-control text-uppercase" value="{{ old("colorCode",$article->color_code) }}" maxlength="10"/>
                                 </div>
                             </div>
-                            <div class="col-6">
+                            <div class="col-md-6">
                                 <div class="form-group">
                                     <label for="variant">Variant</label>
                                     <input type="text" id="variant" name="variant" class="form-control text-uppercase" value="{{ old('variant',$article->variant) }}" maxlength="10"/>

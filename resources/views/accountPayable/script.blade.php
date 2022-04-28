@@ -15,7 +15,7 @@
             $("#pph23").val(0);
             $("#sewa").prop("checked", true);
             $("#tipePPH23").toggleClass("d-none");
-            hitungTotal();
+            hitungTotal();  
         }
     });
 
@@ -106,6 +106,8 @@
                     poNumber:poNumber,
                 },
                 success:function(result){
+
+                    // let {po_number,nama,pro_inv_num,total_po,basis_amount,due_date,rec_date,po_balance,currency,kurs} = result;
                     $('#poNumberDet').val(result[0].po_number);
                     $('#suppCode').val(result[0].nama);
                     $('#profInvoice').val(result[0].pro_inv_num);

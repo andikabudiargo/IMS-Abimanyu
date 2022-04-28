@@ -54,12 +54,12 @@
                         <div class="form-row">
                             <div class="form-group col-md-12">
                                 <label class="form-label" for="cust" id="custLable">Customer/Supplier*</label>
-                                <select class="select2 form-control" id="cust" name="cust[]" autofocus required multiple>
+                                <select class="select2 form-control select2-hidden-accessible" id="cust" name="cust[]" autofocus required multiple>
                                 </select>
                             </div>
                         </div>
                         <div class="form-row">
-                            <div class="col-12">
+                            <div class="col-md-12">
                                 <div class="form-group">
                                     <label for="nama">Description*</label>
                                     <input type="text" id="nama" name="nama" class="form-control text-uppercase" value="{{ old('nama') }}" maxlength="100" required/>

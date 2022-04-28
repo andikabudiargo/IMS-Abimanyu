@@ -75,122 +75,43 @@
 @endsection
 @section('scripts')
 <script type="text/javascript">
-  $(document).ready(function(){    
+
+  let code = document.querySelector('#articleTypeCode');
+  let name = document.querySelector('#articleTypeName');
+  let search = document.querySelector('#btnSearch');
+  let modal = document.querySelector('#modalConfirmation');
+  let reload = document.querySelector('a[data-action="reload"]');
+
+  document.addEventListener("DOMContentLoaded", function() {
     $(document).on('click', '#deleteButton', function(event) {
         event.preventDefault();
         let href = $(this).data('href');
-        $('#modalConfirmation').attr("action", href);
+        modal.setAttribute("action", href);
     });
     showList();
   });
    
   //refresh di cards
-  $('a[data-action="reload"]').on('click', function () {
-    let code =$("#articleTypeCode").val();
-    let nama =$("#articleTypeName").val();
-    showList(nama,code);
-  });
+  reload.addEventListener("click",function(){
+    showList(name.value,code.value);
+  })
 
-  $("#btnSearch").click(function(e){
-      let code =$("#articleTypeCode").val();
-      let nama =$("#articleTypeName").val();
-      showList(nama,code);
-  });
+  search.addEventListener("click", function(){ 
+    showList(name.value,code.value);
+  }); 
 
-  function showList(nama,code){
-    let dtdom ='<"d-flex justify-content-between align-items-center header-actions mx-1 row mt-75" <"col-lg-12 col-xl-6" l><"col-lg-12 col-xl-6 pl-xl-75 pl-0"<"dt-action-buttons text-xl-right text-lg-left text-md-right text-left d-flex align-items-center justify-content-lg-end align-items-center flex-sm-nowrap flex-wrap mr-1"<"mr-1"f>B>>>t<"d-flex justify-content-between mx-2 row mb-1"<"col-sm-12 col-md-6"i><"col-sm-12 col-md-6"p>>';
-    let arr_col_print =[1,2,3]; 
-    $(function(){
-      let oTable =$("#detailedTable").DataTable({
-        ajax:{
-          url:'{{ route("articleType.list")}}',
-          data:{
-              name:nama,
-              code:code
-          }
-        },
-        processing: true,
-        serverSide: true,
-        buttons: true,
-        dom:dtdom,
-        lengthMenu: [
-          [ 10, 25, 50, -1 ],
-          [ '10', '25', '50', 'all' ]
-        ],
-        buttons: [
-          {
-            extend: 'collection',
-            className: 'btn btn-outline-secondary dropdown-toggle mt-07',
-            text: feather.icons['share'].toSvg({ class: 'font-small-4 mr-50' }) + 'Export',
-            buttons: [
-              {
-                extend: 'print',
-                text: feather.icons['printer'].toSvg({ class: 'font-small-4 mr-50' }) + 'Print',
-                className: 'dropdown-item',
-                exportOptions: { columns: arr_col_print }
-              },
-              {
-                extend: 'csv',
-                text: feather.icons['file-text'].toSvg({ class: 'font-small-4 mr-50' }) + 'Csv',
-                className: 'dropdown-item',
-                exportOptions: { columns: arr_col_print }
-              },
-              {
-                extend: 'excel',
-                text: feather.icons['file'].toSvg({ class: 'font-small-4 mr-50' }) + 'Excel',
-                className: 'dropdown-item',
-                exportOptions: { columns: arr_col_print }
-              },
-              {
-                extend: 'pdf',
-                text: feather.icons['clipboard'].toSvg({ class: 'font-small-4 mr-50' }) + 'Pdf',
-                className: 'dropdown-item',
-                exportOptions: { columns: arr_col_print }
-              },
-              {
-                extend: 'copy',
-                text: feather.icons['copy'].toSvg({ class: 'font-small-4 mr-50' }) + 'Copy',
-                className: 'dropdown-item',
-                exportOptions: { columns: arr_col_print }
-              }
-            ],
-            init: function (api, node, config) {
-              $(node).removeClass('btn-secondary');
-              $(node).parent().removeClass('btn-group');
-              setTimeout(function () {
-                $(node).closest('.dt-buttons').removeClass('btn-group').addClass('d-inline-flex');
-              }, 50);
-            }
-          },
-        ],
-        language: {
-          paginate: {
-            // remove previous & next text from pagination
-            previous: '&nbsp;',
-            next: '&nbsp;'
-          }
-        },
-        columnDefs: [
-          { width: '10%', targets: 0 }
-        ],
-        drawCallback: function( settings ) {
-          feather.replace({
-                width: 14,
-                height: 14
-          });
-        },
-        order: [[ 2, 'asc' ]],
-        bDestroy: true, //pakai ini supaya bisa di load berulang2
-        // scrollX: true, //pakai ini supaya waktu responsive  bisa di scroll horizontal
-        columns: [
-            { data: 'action', name: 'action',title:'action', orderable: false, searchable: false },
-            { data: 'code', name: 'code',title:'Kode' },
-            { data: 'name', name: 'name',title:'Nama' },
-            { data: 'description', name: 'description',title:'Keterangan' }
-        ],
-      });
+  const showList = (nama,code) => {
+    showDataTables({
+      tableId:"detailedTable",
+      route:"{{ route('articleType.list') }}",
+      kolom:{!! $kolom !!},
+      arrColPrint:[1,2,3],
+      dataSearch:  {
+        name:nama,
+        code:code
+      },
+      orderColumn:[[2,'asc']],
     });
-    //$('div.head-label').html('<h6 class="mb-0">Data Users</h6>');
   }
 
   $.ajaxSetup({

@@ -130,6 +130,13 @@
     <script src="{{ asset('app-assets/js/core/app.js') }}"></script>
                 
     <script type="text/javascript">
+
+        $(document).ready(function(){
+            $('[data-toggle="tooltip"]').click(function () {
+                $('[data-toggle="tooltip"]').tooltip("hide");
+            });
+        });
+
         $(window).on('load', function() {
             if (feather) {
                 feather.replace({
@@ -147,23 +154,17 @@
             }
         };
 
-        $(document).ready(function(){
-            $('[data-toggle="tooltip"]').click(function () {
-                $('[data-toggle="tooltip"]').tooltip("hide");
-            });
-        });
+        let numberOfDecimalDigit = {{ env('APP_NUMBER_OFF_DECIMAL_DIGIT',2) }}
 
         $("input[type='text']").click(function () {
             $(this).select();
         });
 
-        let numberOfDecimalDigit = {{ env('APP_NUMBER_OFF_DECIMAL_DIGIT',2) }}
-        
     </script>
     <script src="{{ asset('assets/js/app.js') }}"></script>
     <script src="{{ asset('assets/js/custom.js') }}"></script>
+    <script src="{{ asset('assets/js/globDataTables.js') }}"></script>
     @yield('scripts')
-
     @if($message = Session::get('success'))
         <script>
             show_msg('Success', '{{ $message }}', 'success');
@@ -179,13 +180,11 @@
             show_msg('Warning', '{{ $message }}', 'warning');
         </script>
     @endif
-
     @if ($alert = Session::get('alert'))
         <script>
             show_msg( "{{ Session::get('title') }}","{{ Session::get('message') }}","{{ $alert }}" );
         </script>
     @endif
-
     {{-- Validasi dari controller --}}
     @if ($errors)
         <script>
@@ -198,6 +197,5 @@
             });
         </script>
     @endif
-
 </body>
 </html>

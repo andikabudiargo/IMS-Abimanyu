@@ -3,7 +3,7 @@
 @section('content')
 @include('layouts.breadcrumb')
 <section id="users-index">
-  <div class="row">
+  <div class="form-row">
     <div class="col-md-12">
       <div class="card">
         <div class="card-header">  
@@ -29,7 +29,6 @@
     </div>
   </div>
 </section>
-
 <section id="table-users">
   <div class="card">
     <h5 class="card-header">Search Filter</h5>
@@ -65,7 +64,6 @@
     </div>
   </div>
 </section>
-	
 @endsection
 @section('styles')
 <style>
@@ -74,45 +72,48 @@
 
 @section('scripts')
 <script type="text/javascript">
-
-  function validasidelete(userid){
-     Swal.fire({
-        title: "Yakin akan di hapus?",
-        text: "ID "+userid+" Akan dihapus",
+  function validasidelete(userid,username){
+    Swal.fire({
+      title: "Are you sure?",
+        text: "User: "+username+" will be deleted",
         icon: "warning",
         showCancelButton: true,
-        confirmButtonClass: "btn-danger",
-        confirmButtonText: "Hapus",
-        closeOnConfirm: false
-    } ,
-    function(){
+        customClass: {
+          cancelButton: 'order-1 right-gap',
+          confirmButton: 'order-2 btn-danger',
+        },
+        confirmButtonText: "Yes",
+    }).then((result) => {
+      if (result.isConfirmed) {
         $.ajax({
           dataType: 'json',
           type:'DELETE',
-          url: "{{route('users.delete')}}",
-          data:{userid:userid},
+          url: "{{ route('users.delete') }}",
+          data:{
+            userid:userid
+          },
           success: function(data) {
-              //  Swal.fire("UPDATED!", "Generate data berhasil", "success");
+              Swal.fire("DELETED!", data.message, "success");
               tampildata('');
           },
-            error: function(data) {
-              // Swal.fire("Error :" + data.status);
+          error: function(data) {
+              Swal.fire("DELETED!", data.status, "warning");
               tampildata('');
           }
         });
-         Swal.fire("DELETED!", "Hapus data berhasil", "success");
-      });
-      //return confirm("Do you want to delete this item?"); 
+      }   
+    });
   }
-
-	$("#btnSearch").click(function(e){
-		var nama =$("#SearchUser").val();
+    
+  $("#btnSearch").click(function(e){
+    let nama =$("#SearchUser").val();
     tampildata(nama);
   });
 
   //refresh di cards
   $('a[data-action="reload"]').on('click', function () {
-    tampildata('');
+    let nama =$("#SearchUser").val();
+    tampildata(nama);
   });
 
   function lockUnlock(){
@@ -153,87 +154,32 @@
               $("#"+domId).text("Locked");
             }
           }else{
-             Swal.fire("Warning", data.message, "warning");
+            Swal.fire("Warning", data.message, "warning");
           }
         },
         error: function(data) {
-           Swal.fire("Error","Error :" + data.status,"error");
+          Swal.fire("Error","Error :" + data.status,"error");
         }
       });
   }
   
-	function tampildata(nama){
-    // let dtdom = '<"card-header border-bottom p-1"<"head-label">><"d-flex justify-content-between align-items-center mx-0 row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-4"f><"col-sm-12 col-md-2"<"dt-action-buttons text-right"B>>>t<"d-flex justify-content-between mx-0 row"<"col-sm-12 col-md-6"i><"col-sm-12 col-md-6"p>>';
-    let dtdom ='<"d-flex justify-content-between align-items-center header-actions mx-1 row mt-75"' +
-        '<"col-lg-12 col-xl-6" l>' +
-        '<"col-lg-12 col-xl-6 pl-xl-75 pl-0"<"dt-action-buttons text-xl-right text-lg-left text-md-right text-left d-flex align-items-center justify-content-lg-end align-items-center flex-sm-nowrap flex-wrap mr-1"<"mr-1"f>B>>' +
-        '>t' +
-        '<"d-flex justify-content-between mx-2 row mb-1"' +
-        '<"col-sm-12 col-md-6"i>' +
-        '<"col-sm-12 col-md-6"p>' +
-        '>';
+  function tampildata(nama){
     let arr_col_print =[1,2,3,4]; 
     $(function(){
         var oTable =$("#detailedTable").DataTable({
-            ajax:
-            {
+            ajax:{
               url:'{{ route("user.lists")}}',
               data:{q:nama}
             },
             processing: true,
             serverSide: true,
             buttons: true,
-            dom:dtdom,
+            dom:dtdomGlob,
             lengthMenu: [
               [ 10, 25, 50, -1 ],
               [ '10', '25', '50', 'all' ]
             ],
-            buttons: [
-              {
-                extend: 'collection',
-                className: 'btn btn-outline-secondary dropdown-toggle mr-2 mt-07',
-                text: feather.icons['share'].toSvg({ class: 'font-small-4 mr-50' }) + 'Export',
-                buttons: [
-                  {
-                    extend: 'print',
-                    text: feather.icons['printer'].toSvg({ class: 'font-small-4 mr-50' }) + 'Print',
-                    className: 'dropdown-item',
-                    exportOptions: { columns: arr_col_print }
-                  },
-                  {
-                    extend: 'csv',
-                    text: feather.icons['file-text'].toSvg({ class: 'font-small-4 mr-50' }) + 'Csv',
-                    className: 'dropdown-item',
-                    exportOptions: { columns: arr_col_print }
-                  },
-                  {
-                    extend: 'excel',
-                    text: feather.icons['file'].toSvg({ class: 'font-small-4 mr-50' }) + 'Excel',
-                    className: 'dropdown-item',
-                    exportOptions: { columns: arr_col_print }
-                  },
-                  {
-                    extend: 'pdf',
-                    text: feather.icons['clipboard'].toSvg({ class: 'font-small-4 mr-50' }) + 'Pdf',
-                    className: 'dropdown-item',
-                    exportOptions: { columns: arr_col_print }
-                  },
-                  {
-                    extend: 'copy',
-                    text: feather.icons['copy'].toSvg({ class: 'font-small-4 mr-50' }) + 'Copy',
-                    className: 'dropdown-item',
-                    exportOptions: { columns: arr_col_print }
-                  }
-                ],
-                init: function (api, node, config) {
-                  $(node).removeClass('btn-secondary');
-                  $(node).parent().removeClass('btn-group');
-                  setTimeout(function () {
-                    $(node).closest('.dt-buttons').removeClass('btn-group').addClass('d-inline-flex');
-                  }, 50);
-                }
-              },
-            ],
+            buttons: buttonExportGlob(arr_col_print),
             responsive: {
               details: {
                 display: $.fn.dataTable.Responsive.display.modal({
@@ -345,17 +291,7 @@
             order: [[ 1, 'asc' ]],
             bDestroy: true, //pakai ini supaya bisa di load berulang2
             // scrollX: true, //pakai ini supaya waktu responsive  bisa di scroll horizontal
-            columns: [
-                { data: 'group_id',name:'group_id', title:'',orderable: false, searchable: false },
-                { data: 'name', name: 'name',title:'Name' },
-                { data: 'username', name: 'username',title:'Username'},
-                { data: 'email', name: 'email',title:'Email' },
-                { data: 'status', name: 'status',title:'Status' },
-                { data: 'roles', name: 'roles',title:'Roles' },
-                { data: 'last_login_at', name: 'last_login_at',title:'Last login' },
-                { data: 'last_login_ip', name: 'last_login_ip',title:'Last IP' },
-                { data: 'action', name: 'action',title:'action', orderable: false, searchable: false },
-            ],
+            columns: {!! $kolom !!},
             initComplete: function () {
               // Adding role filter once table initialized
               $( "#UserRole" ).remove();
@@ -436,11 +372,11 @@
       });
   });
 	
-	$.ajaxSetup({
-	    headers: {
-	        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-	    }
-	});
+  $.ajaxSetup({
+      headers: {
+          'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+      }
+  });
 
 </script>
 @endsection

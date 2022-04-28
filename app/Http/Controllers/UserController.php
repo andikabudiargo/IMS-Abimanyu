@@ -83,16 +83,27 @@ class UserController extends Controller
         return response()->json(compact('user'));
     }
 
-    /**
-     * Display a listing of the resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
+    public function getTableColoumn(){
+        $kolom=[
+            ['data'=>'group_id','name'=>'group_id','title'=>'','orderable'=> false,'searchable'=> false],
+            ['data'=>'name', 'name'=>'name','title'=>'Name'],
+            ['data'=>'username', 'name'=>'username','title'=>'Username'],
+            ['data'=>'email', 'name'=>'email','title'=>'Email'],
+            ['data'=>'status', 'name'=>'status','title'=>'Status'],
+            ['data'=>'roles', 'name'=>'roles','title'=>'Roles'],
+            ['data'=>'last_login_at', 'name'=>'last_login_at','title'=>'Last login'],
+            ['data'=>'last_login_ip', 'name'=>'last_login_ip','title'=>'Last IP'],
+            ['data'=>'action', 'name'=>'action','title'=>'action','orderable'=>false,'searchable'=>false]
+        ];
+
+        return json_encode($kolom, true);
+    }
 
     public function index(Request $request)
     {
         \LogActivity::addToLog('User index','masuk ke menu users');
-        return view('users.index');
+        $data['kolom']=$this->getTableColoumn();
+        return view('users.index',$data);
     }
 
     /**
@@ -246,6 +257,18 @@ class UserController extends Controller
                         ->with('success','User deleted successfully');
     }
 
+
+    public function delete(Request $request)
+    {
+        $id = $request->userid;
+        $username =  Auth::user()->username;
+        $message = "User $id Deleted";
+        $title = "User";
+        \LogActivity::addToLog($title,"username: $username Status $message");
+        User::find($id)->delete();
+        return response()->json(array('message' => $message));
+    }
+
     public function userProfile(Request $request)
     {
         $id = Auth::user()->id;
@@ -348,16 +371,16 @@ class UserController extends Controller
         return Datatables::of($user)
         ->addColumn('action', function ($user) {
             $buttons = '<div class="d-inline-flex">
-                            <a class="pr-1 dropdown-toggle hide-arrow text-primary" data-toggle="dropdown">
-                                <i data-feather="more-vertical"></i>
+                            <a class="pr-1 dropdown-toggle hide-arrow" data-toggle="dropdown">
+                                <i data-feather="menu"></i>
                             </a>';
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
             $buttons .=         '<a href="'. route('users.edit', $user->id) .'" class="dropdown-item">
                                     <i data-feather="file-text"></i>
                                     Edit
                                 </a>';
-            $buttons .=         '<a href="javascript:;" onclick="validasidelete(\''.$user->id.'\')" class="dropdown-item">
-                                    <i data-feather="trash-2"></i>
+            $buttons .=         '<a href="javascript:;" onclick="validasidelete(\''.$user->id.'\',\''.$user->username.'\')" class="dropdown-item">
+                                    <i data-feather="trash-2" class="feather-14-red"></i>
                                     Delete
                                 </a>';
             $buttons .=     '</div>

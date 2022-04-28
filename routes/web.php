@@ -160,7 +160,6 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('jobPositions/update',['as'=>'jobPosition.update','uses'=>'JobPositionController@update']);
 	Route::post('jobPositions/delete',['as'=>'jobPosition.destroy','uses'=>'JobPositionController@destroy']);
 
-
 	Route::get('employees',['as'=>'employees.index','uses'=>'EmployeeController@index','middleware' => ['permission:employee-index']]);
 	Route::get('employees/create',['as'=>'employee.create','uses'=>'EmployeeController@create','middleware' => ['permission:employee-create']]);
 	Route::post('employees/store',['as'=>'employee.store','uses'=>'EmployeeController@store']);
@@ -169,7 +168,6 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('employees/edit',['as'=>'employee.edit','uses'=>'EmployeeController@edit','middleware' => ['permission:employee-edit']]);
 	Route::post('employees/update',['as'=>'employee.update','uses'=>'EmployeeController@update']);
 	Route::post('employees/delete',['as'=>'employee.destroy','uses'=>'EmployeeController@destroy']);
-
 
 	Route::get('articles',['as'=>'articles.index','uses'=>'ArticleController@index','middleware' => ['permission:article-index']]);
 	Route::get('articles/create',['as'=>'article.create','uses'=>'ArticleController@create','middleware' => ['permission:article-create']]);
@@ -192,7 +190,6 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('articleTypes/edit',['as'=>'articleType.edit','uses'=>'ArticleTypeController@edit','middleware' => ['permission:articleType-edit']]);
 	Route::post('articleTypes/update',['as'=>'articleType.update','uses'=>'ArticleTypeController@update']);
 	Route::post('articleTypes/delete',['as'=>'articleType.destroy','uses'=>'ArticleTypeController@destroy']);
-
 
 	Route::get('banks',['as'=>'banks.index','uses'=>'BankController@index','middleware' => ['permission:bank-index']]);
 	Route::get('banks/create',['as'=>'bank.create','uses'=>'BankController@create','middleware' => ['permission:bank-create']]);
@@ -455,6 +452,15 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('pettyCashs/revision',['as'=>'pettyCash.revision','uses'=>'PettyCashController@revision','middleware' => ['permission:pettyCash-revision']]);
 	Route::get('pettyCashs/validate',['as'=>'pettyCash.validate','uses'=>'PettyCashController@validasi']);
 	Route::get('pettyCashs/authorize',['as'=>'pettyCash.authorize','uses'=>'PettyCashController@otorisasi']);
+
+	Route::get('approval',['as'=>'approval.index','uses'=>'ApprovalController@index','middleware' => ['permission:approval-index']]);
+	Route::get('approval/create/level',['as'=>'approval.create.level','uses'=>'ApprovalController@createLevel','middleware' => ['permission:approval-create']]);
+	Route::post('approval/store/level',['as'=>'approval.store.level','uses'=>'ApprovalController@storeLevel']);
+	Route::get('approval/list/master',['as'=>'approval.list.master','uses'=>'ApprovalController@listMaster']);
+	Route::get('approval/list/level',['as'=>'approval.list.level','uses'=>'ApprovalController@listLevel']);
+	Route::get('approval/edit/level',['as'=>'approval.edit.level','uses'=>'ApprovalController@editLevel','middleware' => ['permission:approval-edit']]);
+	Route::post('approval/update/level',['as'=>'approval.update.level','uses'=>'ApprovalController@updateLevel']);
+	Route::post('approval/delete/level',['as'=>'approval.destroy.level','uses'=>'ApprovalController@destroyLevel']);
 
 	Route::post('dynamic/dependent',['as'=>'dynamic.dependent','uses'=>'DependentController@dependentFetch']);
 

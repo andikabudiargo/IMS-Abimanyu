@@ -20,9 +20,21 @@ class ArticleTypeController extends Controller
         $this->title = "Article Type";
     }
 
+    public function getTableColoumn(){
+        $kolom=[
+            [ 'data'=>'action','name'=>'action','title'=>'action','orderable'=> false,'searchable'=>false],
+            [ 'data'=>'code','name'=>'code','title'=>'Kode'],
+            [ 'data'=>'name','name'=>'name','title'=>'Nama'],
+            [ 'data'=>'description','name'=>'description','title'=>'Keterangan']
+        ];
+
+        return json_encode($kolom, true);
+    }
+
     public function index(Request $request)
     {
         $data['title'] = "$this->title";
+        $data['kolom']=$this->getTableColoumn();
         return view("articleType.index",$data);
     }
 
