@@ -11,9 +11,7 @@ class NotificationComposer
 {
     public function compose(View $view)
     {
-        
         $username =  Auth::user() ? Auth::user()->username : '';
-        
         // $listPo = DB::table('purchase_order_hdr')
         // // ->where('status','2')
         // // ->where('authorized_by',"")

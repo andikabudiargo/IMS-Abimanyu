@@ -281,4 +281,3 @@ $(document).on('click', 'a[data-ajax-delete="true"]', function () {
 $('body').on('shown.bs.modal', '#commonModal', function () {
     $('input:visible:enabled:first', this).focus();
 })
-

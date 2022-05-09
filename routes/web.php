@@ -226,8 +226,7 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('purchaseOrders/print',['as'=>'purchaseOrder.print','uses'=>'PurchaseOrderController@print']);
 	Route::get('purchaseOrders/price/list',['as'=>'purchaseOrder.price.list','uses'=>'PurchaseOrderController@priceList']);
 	Route::get('purchaseOrders/revision',['as'=>'purchaseOrder.revision','uses'=>'PurchaseOrderController@revision','middleware' => ['permission:purchaseOrder-revision']]);
-	Route::get('purchaseOrders/validate',['as'=>'purchaseOrder.validate','uses'=>'PurchaseOrderController@validasi']);
-	Route::get('purchaseOrders/authorize',['as'=>'purchaseOrder.authorize','uses'=>'PurchaseOrderController@otorisasi']);
+	Route::get('purchaseOrders/approve',['as'=>'purchaseOrder.approve','uses'=>'PurchaseOrderController@approve']);
 
 	Route::get('receivings',['as'=>'receivings.index','uses'=>'ReceivingController@index','middleware' => ['permission:receiving-index']]);
 	Route::get('receivings/create',['as'=>'receiving.create','uses'=>'ReceivingController@create','middleware' => ['permission:receiving-create']]);

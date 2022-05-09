@@ -179,7 +179,7 @@
         activate_angka();
         mask_thousand();
         splitArticle();
-        $('.sku-select-system').select2();
+        // $('.sku-select-system').select2();
     });
 
     orderDate = $('#orderDate');

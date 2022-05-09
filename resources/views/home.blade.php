@@ -3,22 +3,26 @@
 @section('content')
 @include('layouts.breadcrumb')
 <section id="home">
-    <div class="row">
+    @if ( Session::get('firstLogin') == "success")
+    <div class="form-row">
         <div class="col-md-12">
             <div class="card card-transparent">
-                <div class="card-header">Dashboard</div>
+                <div class="card-header"></div>
                 <div class="card-body">
+                    <h2 class="font-weight-bold">{{ $greeting }}, {{ strtoupper(Auth::user()->name) }}!</h2>
+                    <h4>{{ $tanggal }}</h4>
                     @if (session('status'))
                         <div class="alert alert-success" role="alert">
                             {{ session('status') }}
                         </div>
                     @endif
-                    You are logged in!
+                    
                 </div>
             </div>
         </div>
     </div>
-    <div class="row">
+    @endif
+    <div class="form-row">
         <!-- Company Table Card -->
         <div class="col-lg-12 col-12">
             <div class="card">
@@ -99,14 +103,12 @@
 @endsection
 @section('scripts')
 <script type="text/javascript">
-
     if ("{{ Session::get('firstLogin') }}" == "success"){
         setTimeout(function () {
-            show_msg('👋 Welcome {{ strtoupper(Auth::user()->name) }}!', 'You have successfully logged in to IMS!', 'success');
+            show_msg('👋 {{ $greeting }},{{  strtoupper(Auth::user()->name) }}!', 'You have successfully logged in to IMS!', 'success');
             "{{ Session::forget('firstLogin') }}";
         }, 3000);
     }
-    
 </script>
 @endsection
 

@@ -111,7 +111,7 @@
                                             <div class="col-md-2 col-12">
                                                 <div class="form-group margin-nol">
                                                     <label for="pRequest" class="d-block d-md-none">Purchase Request</label>
-                                                    <select class="select2 form-control dynamicSelect sku-select-system" id="pRequest{{ $key }}" name="pRequest[]" data-dependent="pRequest">
+                                                    <select class="form-control dynamicSelect sku-select-system" id="pRequest{{ $key }}" name="pRequest[]" data-dependent="pRequest">
                                                         @foreach($prHeader as $val)
                                                             <option value="{{ $val->pr_number }}" {{ $val->pr_number == $item->pr_number ? "selected" :"" }} >{{ $val->pr_number }}</option>
                                                         @endforeach
@@ -121,7 +121,7 @@
                                             <div class="col-md-3 col-12">
                                                 <div class="form-group margin-nol">
                                                     <label for="article_id" class="d-block d-md-none">Article</label>
-                                                    <select class="select2 form-control dynamicSelect sku-select-system" id="article_id{{ $key }}" name="article_id[]" data-dependent="article_id">
+                                                    <select class="form-control dynamicSelect sku-select-system" id="article_id{{ $key }}" name="article_id[]" data-dependent="article_id">
                                                         @foreach($articles as $val)
                                                             <option value="{{ $val->article_code }}|{{ $val->group }}|{{ $val->qty_stock }}|{{ $val->qty }}|{{ $val->uom1 }}|{{ $val->costprice }}" 
                                                                     data-uom-group="{{ $val->uom_group }}'" {{ $val->article_code == $item->article_code && $val->pr_number == $item->pr_number ? "selected" :"" }}>
@@ -166,8 +166,7 @@
                                                                     data-toggle="tooltip" 
                                                                     data-placement="right" 
                                                                     title="List Price"
-                                                                    onClick="listPrice('{{ $item->article_code }}','{{ $item->article_code }}','{{ $key }}')"
-                                                                >
+                                                                    onClick="listPrice('{{ $item->article_code }}','{{ $item->article_code }}','{{ $key }}')">
                                                                     <i data-feather="info" class="feather-24">
                                                                     </i>
                                                                 </a>
@@ -197,7 +196,7 @@
                         </div>
                     </div>
                     <hr>
-                    <div class="d-flex justify-content-between align-items-end mt-75 ml-75">
+                    <div class="d-flex justify-content-between align-items-end mt-75">
                         <button class="btn btn-primary btn-prev" type="button" id="addNewRow" onclick="add_new_row();">
                             <i data-feather="plus" class="align-middle mr-sm-25 mr-0"></i>
                             <span class="align-middle d-sm-inline-block d-none">Add Article</span>
@@ -259,14 +258,41 @@
                         <div class="col-md-12">
                             <div class="form-row">
                                 <div class="col-md-12">
-                                    {{-- <a href="{{ route('purchaseOrders.index') }}" class="btn btn-warning">Back</a> --}}
+                                    <a href="{{ route('purchaseOrders.index') }}" class="btn btn-warning">Back</a>
                                     <a href="{{ route('purchaseOrder.create') }}" class="btn btn-success">New</a>
-                                    @if( $header->status == '1' || $header->status == '2' || $header->status == '3' )
-                                        <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Update</button>
+                                    @if( $approveValidate ? $approveValidate[0]->validate : '')
+                                        <input type="text" id ="approveLevel" name ="approveLevel" class="d-none" value="{{ $approveValidate[0]->next_level }}">
+                                        <input type="text" id ="maxLevel" name ="maxLevel" class="d-none" value="{{ $approveValidate[0]->max_level }}">
+                                        <button class="btn btn-primary" type="button" id="cmdApprove" name="cmdApprove">Approve</button>
+                                    @else
+                                        @if(!count($approveHistory))
+                                            <button class="btn btn-primary" type="button" id="cmdUpdate" name="cmdUpdate">Update</button>
+                                        @endif
                                     @endif
                                 </div>
                             </div>
                         </div>
+                    </div>
+                    <br>
+                    <hr>
+                    <div class="form-row card-statistics">
+                        @foreach($approveHistory as $val)
+                            <div class="statistics-body">
+                                <div class="col-xl-3 col-sm-6 col-12 mb-2 mb-xl-0">
+                                    <div class="media">
+                                        <div class="avatar bg-light-success mr-2">
+                                            <div class="avatar-content">
+                                                <i data-feather="check" class="avatar-icon"></i>
+                                            </div>
+                                        </div>
+                                        <div class="media-body my-auto">
+                                            <h4 class="font-weight-bolder mb-0">Approve-{{ $val->approval_order }}/{{ $val->approval_number }}</h4>
+                                            <p class="card-text mb-0">{{ $val->name }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        @endforeach
                     </div>
 
                 </div>
@@ -298,7 +324,7 @@
         isiListArticle();
         hitungTotal();
         hitungGrandTotal();
-        // $('.sku-select-system').select2();
+        $('.sku-select-system').select2();
     });
 
     // orderDate = $('#orderDate');

@@ -5,14 +5,14 @@
             <div class="col-md-2 col-12">
                 <div class="form-group margin-nol">
                     <label for="pRequest" class="d-block d-md-none">Purchase Request</label>
-                    <select class="dynamicSelect form-control sku-select-system" id="pRequest" name="pRequest[]" data-dependent="pRequest">
+                    <select class="dynamicSelect form-control" id="pRequest" name="pRequest[]" data-dependent="pRequest">
                     </select>
                 </div>
             </div>
             <div class="col-md-3 col-12">
                 <div class="form-group margin-nol">
                     <label for="article_id" class="d-block d-md-none">Article</label>
-                    <select class="dynamicSelect form-control sku-select-system" id="article_id" name="article_id[]" data-dependent="article_id">
+                    <select class="dynamicSelect form-control" id="article_id" name="article_id[]" data-dependent="article_id">
                     </select>
                 </div>
             </div>
@@ -176,10 +176,11 @@
         reloadPage();
     });
 
-    $("#cmdSave").click(function(){     
+    simpanData = () => {
         if (!$("#frmAdd")[0].checkValidity()){
             $("#frmAdd").submit();
         }else{ 
+            $('#cmdSave').attr('disabled','disabled');
             $('.disabled-el').removeAttr('disabled');
             // ambil semua data article
             let objQty= $('input[name="qty_order[]"]');
@@ -292,12 +293,9 @@
                         }else{
                             show_msg(data.title, data.message, data.alert);
                             $('#poNumber').attr('disabled','disabled');
-                            $('#cmdSave').attr('disabled','disabled');
                             $('#addNewRow').attr('disabled','disabled');
                             $('#poNumber').val(data.poNumber);
-                            
                         }
-                        
                     },
                     error: function(error) {
                         console.log(error);
@@ -308,7 +306,155 @@
                 Swal.fire('Warning..',pesan,'warning');
             }
         }
-    
+    }
+
+    updateData = (statusSimpan) =>{
+        if (!$("#frmAdd")[0].checkValidity()){
+            $("#frmAdd").submit();
+        }else{  
+            $('.disabled-el').removeAttr('disabled');
+            // ambil semua data article
+            let objQty= $('input[name="qty_order[]"]');
+            let objPrice= $('input[name="price[]"]');
+            let objNewPrice= $('input[name="newPrice[]"]');
+            let objUom= $('span[name="uom[]"]'); 
+            let objpr= $('select[name="pRequest[]"]'); 
+            let articles = []; 
+            let flag=0; 
+            let pesan="";
+            
+            $("#article_row select[name='article_id[]']").map(function(i) {  
+                let $this=$(this);
+                if ($this.val()){
+                    let article=$this.val().split("|");
+                    let articleName=$this.select2('data')[0].text;
+                    let plu=article[0];
+                    let qty=objQty.eq(i).val().replace(/,/gi, '') || 0;
+                    let newPrice=objNewPrice.eq(i).val().replace(/[^0-9]/gi, '') || 0;
+                    let price=objPrice.eq(i).val().replace(/[^0-9]/gi, '') || 0;
+                    let pRequest=objpr.eq(i).val();
+                    let uom=objUom.eq(i).text();
+                    let supp=$('#supplier').val();
+                    let suppName = $('#supplier').select2('data')[0].text;
+                    let supplier=supp;
+                
+                    //es6
+                    // let obj = ingredient.find(obj => obj.plu == plu);
+
+                    //jquery
+                    //cek apakah article ada yang double input ato ngk
+                    let obj = $.grep(articles, function(obj){
+                        return obj.article_code === plu;
+                    })[0];
+                    
+                    if(obj) {
+                        pesan +="Article "+plu+" entered more than once !! <br>"; 
+                        flag=1;
+                    } else {
+                        if ((plu!=='') && (qty> 0)){
+                            articles.push({
+                                "article_code":plu,
+                                "qty":qty,
+                                "uom":uom,
+                                "price":price,
+                                "newPrice":newPrice,
+                                "pRequest":pRequest
+                            });
+                        }
+                    } 
+                
+                    if (qty == 0){
+                        pesan +="QTY of items "+ articleName +" cannot be 0 <br>"; 
+                        flag=1;
+                    }
+                
+                }
+            });
+
+            if (articles.length == 0){
+                pesan +="Articles must be filled in completely <br>"; 
+                flag=1;
+            }
+
+            if (flag==0){
+
+                let orderDate = $('#orderDate').val();
+                let poType = $('#poType').val();
+                let deliveryDate = $('#deliveryDate').val();
+                let currency = $('#currency').val();
+                let supp = $('#supplier').val();
+                let term = $('#term').val()||0;
+                let kurs = $('#kurs').val()||1;
+                let ppn = $('#ppn').val().replace(/[^0-9]/gi, '') || 0;
+                let totalPph = $('#totalPPH').val().replace(/[^0-9]/gi, '') || 0;
+                let totalPpn = $('#totalPPN').val().replace(/[^0-9]/gi, '') || 0;
+                let note = $('#note').val();
+                let persenDiscount = $('#persenDiscount').val() || 0;
+                let poNumber = $('#poNumber').val();
+                let approveLevel = $('#approveLevel').val();
+                let maxLevel = $('#maxLevel').val();
+                let tax = $('#pkp').is(':checked') ? 'PKP' : '';
+
+                $.ajax({
+                    type: "post",
+                    url: "{{ route('purchaseOrder.update') }}",
+                    data: {
+                        articles:JSON.stringify(articles),
+                        poNumber:poNumber,
+                        orderDate:orderDate,
+                        poType:poType,
+                        deliveryDate:deliveryDate,
+                        currency:currency,                
+                        supplier:supp,
+                        tax:tax,
+                        ppn:ppn,
+                        term:term,
+                        totalPph:totalPph,
+                        totalPpn:totalPpn,
+                        kurs:kurs,
+                        note:note,
+                        discount:persenDiscount,
+                        statusSimpan:statusSimpan,
+                        approveLevel:approveLevel,
+                        maxLevel:maxLevel
+                    },
+                    dataType: "json",
+                    success: function(data) {
+                        if (data.status == 0 ){
+                            for(let i = 0; i < data.message.length; i++) {
+                                show_msg(data.title, data.message[i], data.alert);
+                            }
+                            $('#poNumber').attr('disabled','disabled');
+                        }else{
+                            show_msg(data.title, data.message, data.alert);
+                            $('#poNumber').attr('disabled','disabled');
+                            $('#cmdApprove').attr('disabled','disabled');
+                            $('#cmdUpdate').attr('disabled','disabled');
+                            $('#addNewRow').attr('disabled','disabled');
+                            $('#poNumber').val(data.poNumber);
+                        }
+                    },
+                    error: function(error) {
+                        console.log(error);
+                    }
+                });
+
+            }else{
+                Swal.fire('Warning..',pesan,'warning');
+            }
+        }
+    }
+
+    $("#cmdSave").click(function(){     
+        simpanData();
+    });
+
+    $("#cmdUpdate").click(function(){     
+        updateData('update');
+    });
+
+    $("#cmdApprove").click(function(){     
+        updateData('approve');
     });
 
     function add_new_row() {

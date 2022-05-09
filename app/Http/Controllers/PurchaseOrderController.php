@@ -16,31 +16,48 @@ use AppHelpers;
 
 class PurchaseOrderController extends Controller
 {
-
     private $title;
+    private $moduleCode;
     public function __construct()
     {
         $this->title = "Purchase Order";
+        $this->moduleCode = "PO";
     }
+
+    public function getTableColoumn(){
+        $kolom=
+        [
+            ['data'=>'action','name'=>'action','title'=>'action','orderable'=> false,'searchable'=>false],
+            ['data'=>'po_number','name'=>'po_number','title'=>'PO Number'],
+            ['data'=>'num_revision','name'=>'num_revision','title'=>'Revision'],
+            ['data'=>'supp_name','name'=>'supp_name','title'=>'Supplier'],
+            ['data'=>'po_date','name'=>'po_date','title'=>'PO Date'],
+            ['data'=>'delivery_date','name'=>'delivery_date','title'=>'Delivery Date'],
+            ['data'=>'created_by','name'=>'created_by','title'=>'Created By'],
+            ['data'=>'validate_by','name'=>'validate_by','title'=>'Prepared By'],
+            ['data'=>'authorized_by','name'=>'authorized_by','title'=>'Authorized By'],
+            ['data'=>'pkp','name'=>'pkp','title'=>'Tax'],
+            ['data'=>'termin','name'=>'termin','title'=>'Tax'],            
+            ['data'=>'qty','name'=>'qty','title'=>'QTY'],
+            ['data'=>'gross','name'=>'gross','title'=>'Bruto'],
+            ['data'=>'discount','name'=>'discount','title'=>'Discount'],
+            ['data'=>'ppn','name'=>'ppn','title'=>'PPN'],
+            ['data'=>'netto','name'=>'netto','title'=>'Netto'],
+            ['data'=>'status','name'=>'status','title'=>'Status'],
+        ];
+        return json_encode($kolom, true);
+    }
+
     public function index(Request $request)
     {
         $data['title'] = "$this->title";
-
+        $data['kolom'] = $this->getTableColoumn();
         $data['supps'] = DB::table('third_party')
         ->where ('third_party_type','=','supp')
         ->orderBy('nama')
         ->get();
 
-        // status:
-        // 1 = New
-        // 2 = Validated
-        // 3 = Approved
-        // 4 = Received
-        // 5 = Canceled
-        // 6 = closed
-        // 7 = Paid
-
-        $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'AUTHORIZED','4'=>'RECEIVED','5'=>'CANCELED','6'=>"CLOSE"];
+        $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'RECEIVED','5'=>'CANCELED','6'=>'CLOSED','7'=>'RVISED','8'=>'DECLINE'];
             
         return view("purchaseOrder.index",$data);
     }
@@ -112,6 +129,8 @@ class PurchaseOrderController extends Controller
         $status = '1';
         $poLeadCode = $poType=='std' ? 'PO' : 'POSUB'; 
 
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'RECEIVED','5'=>'CANCELED','6'=>'CLOSED','7'=>'RVISED','8'=>'DECLINE'];
+
         $messages = [
             'required' => 'The field is required.',
             'unique' => 'The code has already been taken', 
@@ -138,8 +157,7 @@ class PurchaseOrderController extends Controller
             foreach ($validation->messages()->getMessages() as $field_name => $messages){
                 $error_array[] = $messages;
             }
-
-            
+           
             $title="Save $this->title";
             $alert ="error";
             return response()->json(array('status' => 0,'title' => $title, 'message' => $error_array,'alert' =>$alert));
@@ -232,6 +250,7 @@ class PurchaseOrderController extends Controller
     public function show(Request $request)
     {
         $id=Crypt::decryptString($request->id);
+        $username =  Auth::user()->username;
         $data['title'] = "Detail $this->title";
         $data['subtitle'] = "Detail $this->title";
 
@@ -273,6 +292,7 @@ class PurchaseOrderController extends Controller
                 ,'group_materials.name as group')
             ->get();
 
+        
         $data['detail'] = DB::table('purchase_order_det')
         ->leftJoin('article','article.article_code','=','purchase_order_det.article_code')
         ->leftJoin('article_stock','article_stock.article_code','=','purchase_order_det.article_code')
@@ -288,7 +308,24 @@ class PurchaseOrderController extends Controller
             ,'uom.uom_group'
             , DB::raw('(SELECT name from group_materials where code = group_of_material) as group'))
         ->orderBy('id')
-        ->get();       
+        ->get();
+
+        // $data['subDetails'] = DB::table('purchase_order_det')
+        // ->leftJoin('article','article.article_code','=','purchase_order_det.article_code')
+        // ->leftJoin('article_stock','article_stock.article_code','=','purchase_order_det.article_code')
+        // ->leftJoin('purchase_request_det', function($join) {
+        //     $join->on('purchase_request_det.po_number','purchase_order_det.po_number')
+        //     ->on('purchase_request_det.article_code','purchase_order_det.article_code');
+        // })
+        // ->leftJoin('uom','uom.code','=','purchase_order_det.uom')
+        // ->where('purchase_order_det.po_number',$poNumber)
+        // ->select('purchase_order_det'.'.*'
+        //     ,'purchase_order_det.pr_number'
+        //     ,'article_stock.article_qty as qty_stock'
+        //     ,'uom.uom_group'
+        //     , DB::raw('(SELECT name from group_materials where code = group_of_material) as group'))
+        // ->orderBy('id')
+        // ->get();
 
         $data['supps'] = DB::table('third_party')
         ->where ('third_party_type','=','supp')
@@ -301,33 +338,46 @@ class PurchaseOrderController extends Controller
         ->orderBy('name')
         ->get();
 
-        // status:
-        // 1 = New
-        // 2 = Validated
-        // 3 = Approved
-        // 4 = Received
-        // 5 = Canceled
-        // 6 = closed
-        // 7 = Revised
+        
+        $data['approveHistory'] = DB::table('approval_history')
+        ->leftJoin('users','users.username','approval_history.username')
+        ->leftJoin('approval_master','approval_master.module_code','approval_history.module_code')
+        ->where('approval_history.module_code',$this->moduleCode)
+        ->where('module_number',$poNumber)
+        ->select('users.name','approval_history.approval_order','approval_master.approval_number')
+        ->orderBy("approval_order")
+        ->get();
 
-        $statusPo = ['New','Validated','Authorized','Received','Canceled','Closed','Revised'];
+
+        $data['approveValidate'] = DB::select("SELECT username= '$username' as validate,current_level + 1 as next_level,* from (
+        select username,approval_order,
+        (select max(approval_number) from approval_master where module_code = a.module_code ) as max_level,
+        COALESCE((select max(approval_order) from approval_history
+        where module_code = a.module_code
+        and module_number = '".$poNumber."'),'0') as current_level
+        from approval_level a 
+        where module_code = '".$this->moduleCode."' and username = '$username') b
+        where approval_order = current_level+1");
+
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'RECEIVED','5'=>'CANCELED','6'=>'CLOSED','7'=>'RVISED','8'=>'DECLINE'];
+        $approvLevel  = $data['approveValidate'] ? 'APPROVED-'.$data['approveValidate'][0]->current_level.'/'.$data['approveValidate'][0]->max_level : 'APPROVED';
+        $statusPo = ['NEW','VALIDATED',$approvLevel,'RECEIVED','CANCELED','CLOSED','REVISED','DECLINE'];
         $data['statusPo'] = $statusPo[$data['header']->status-1];
-
+        
         $data['attribute'] = DB::table('attributes')
         ->where('attr_name','main')
         ->pluck('attr_value','attr_code');
 
-        $data['currentDate'] = date('d-m-Y');
-
-        $statusPo = ['New','Validated','Authorized','Received','Canceled','Closed','Revised'];
-        $data['statusPo'] = $statusPo[$data['header']->status-1];
+        $data['currentDate'] = date('d-m-Y');       
 
         return view("purchaseOrder.show",$data);
         
     }
 
-    public function showEdit($key){
+    public function showEdit($key)
+    {
         $id=$key;
+        $username =  Auth::user()->username;
         $data['title'] = "Edit $this->title";
         $data['subtitle'] = "Edit $this->title";
 
@@ -342,7 +392,7 @@ class PurchaseOrderController extends Controller
         $poNumber = $data['header']->po_number;
         
         $data['prHeader'] = DB::table('purchase_request_det') 
-        // ->where('supp_code',$data['header']->supplier_id)
+        ->where('supp_code',$data['header']->supplier_id)
         ->where('po_number','=',$poNumber)
         ->orderBy('pr_number')
         ->distinct('pr_number')
@@ -353,7 +403,7 @@ class PurchaseOrderController extends Controller
             ->leftJoin('article_stock','article_stock.article_code','=','purchase_request_det'.'.article_code')
             ->leftJoin('group_materials','group_materials.code','=','article.group_of_material')
             ->leftJoin('uom','uom.code','=','purchase_request_det.uom')
-            // ->where('supp_code',$data['header']->supplier_id)
+            ->where('supp_code',$data['header']->supplier_id)
             ->where('po_number','=',$poNumber)
             // ->where('pr_number','=',$data['header']->pr_number)
             ->orderBy('article.article_desc')
@@ -397,16 +447,29 @@ class PurchaseOrderController extends Controller
         ->orderBy('name')
         ->get();
 
-        // status:
-        // 1 = New
-        // 2 = Validated
-        // 3 = Approved
-        // 4 = Received
-        // 5 = Canceled
-        // 6 = closed
-        // 7 = Revised
+        $data['approveHistory'] = DB::table('approval_history')
+        ->leftJoin('users','users.username','approval_history.username')
+        ->leftJoin('approval_master','approval_master.module_code','approval_history.module_code')
+        ->where('approval_history.module_code',$this->moduleCode)
+        ->where('module_number',$poNumber)
+        ->select('users.name','approval_history.approval_order','approval_master.approval_number')
+        ->orderBy("approval_order")
+        ->get();
 
-        $statusPo = ['New','Validated','Authorized','Received','Canceled','Closed','Revised'];
+        $data['approveValidate'] = DB::select("SELECT username= '$username' as validate,current_level + 1 as next_level,* from (
+            select username,approval_order,
+            (select max(approval_number) from approval_master where module_code = a.module_code ) as max_level,
+            COALESCE((select max(approval_order) from approval_history
+            where module_code = a.module_code
+            and module_number = '".$poNumber."'),'0') as current_level
+            from approval_level a 
+            where module_code = '".$this->moduleCode."' and username = '$username') b
+            where approval_order = current_level+1"); 
+
+    
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'RECEIVED','5'=>'CANCELED','6'=>'CLOSED','7'=>'RVISED','8'=>'DECLINE'];
+        $approvLevel  = $data['approveValidate'] ? 'APPROVED-'.$data['approveValidate'][0]->current_level.'/'.$data['approveValidate'][0]->max_level : 'APPROVED';
+        $statusPo = ['NEW','VALIDATED',$approvLevel,'RECEIVED','CANCELED','CLOSED','REVISED','DECLINE'];
         $data['statusPo'] = $statusPo[$data['header']->status-1];
 
         $data['attribute'] = DB::table('attributes')
@@ -589,16 +652,17 @@ class PurchaseOrderController extends Controller
         $totalPph = $request->totalPph;
         $discount = $request->discount;
         $note = $request->note;
-        $status = '1';
+        
+        $statusSimpan = $request->statusSimpan;
+        if ( $statusSimpan == 'approve' ){
+            $maxLevel = $request->maxLevel;
+            $approveLevel  = $request->approveLevel;
+            $status = $approveLevel === $maxLevel ? '3' : '2';
+        }else{
+            $status = '1';
+        }       
 
-        // status:
-        // 1 = New
-        // 2 = Validated
-        // 3 = Authorized
-        // 4 = Received
-        // 5 = Canceled
-        // 6 = closed
-        // 7 = Revised
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'RECEIVED','5'=>'CANCELED','6'=>'CLOSED','7'=>'RVISED','8'=>'DECLINE'];
         
         $messages = [
             'required' => 'The field is required.',
@@ -628,7 +692,7 @@ class PurchaseOrderController extends Controller
                 $error_array[] = $messages;
             }
 
-            $alert ="alert-danger";
+            $alert ="warning";
             return response()->json(array('status' => 0, 'message' => $error_array,'alert' =>$alert));
 
         }else{
@@ -673,7 +737,6 @@ class PurchaseOrderController extends Controller
                         ->whereNotIn(DB::raw("CONCAT(po_number,article_code)"),$dataSet)
                         ->where('po_number',$poNumber)
                         ->delete();
-
                                   
                     foreach ($articles as $val) {
                         DB::table('purchase_order_det')
@@ -732,6 +795,21 @@ class PurchaseOrderController extends Controller
                             'updated_at' => date('Y-m-d H:i:s')
                         ]
                     );
+
+                    if ( $statusSimpan == 'approve' ){
+                        DB::table('approval_history')->insert([
+                            'module_code' => $this->moduleCode,
+                            'module_number' => $poNumber,
+                            'username' => Auth::user()->username,
+                            'approval_order' => $approveLevel,
+                            'approval_date' => date('Y-m-d'),
+                            'status' => 1,
+                            'created_by' => Auth::user()->username,
+                            'updated_by' => Auth::user()->username,
+                            'created_at' => date('Y-m-d H:i:s'),
+                            'updated_at' => date('Y-m-d H:i:s')
+                        ]);
+                    }
                                             
                     DB::commit();
 
@@ -753,38 +831,58 @@ class PurchaseOrderController extends Controller
 
     }
 
-    public function otorisasi(Request $request)
+    public function approve(Request $request)
     {
-        // status:
-        // 1 = New
-        // 2 = Validated
-        // 3 = Authorized
-        // 4 = Received
-        // 5 = Canceled
-        // 6 = closed
-        // 7 = Revised
-
+     
         $username =  Auth::user()->username;
-        $poNumber = $request -> poNumber;
-        $statusPo = 'Authorized';
-        $status = '3';
+        $poNumber = $request->poNumber;
 
+        $status = DB::select("SELECT max_level,next_level from
+        (
+        select 
+        (select max(approval_order) from approval_level where module_code = 'PO') as max_level, 
+        max(approval_order) as current_level,
+        max(approval_order)+1 as next_level
+        from approval_history 
+        where module_code ='".$this->moduleCode."'
+        and module_number = '$poNumber'
+        ) as oki
+        where  current_level+1 in 
+        (select approval_order from approval_level where module_code = 'PO' and username = '$username'");
+
+        $status = $status[0]->next_level == $status[0]->max_level ? '3' :'2';
+        
         DB::beginTransaction();
         try {
                 $row_affected=DB::table('purchase_order_hdr')
                 ->where('po_number',$poNumber)
                 ->update(
                     [
-                        'status' => $status,
+                        'status' => $status[0]->next_level,
                         'authorized_by' => Auth::user()->username,
                         'authorized_at' => date('Y-m-d H:i:s')
                     ]
                 );
 
+                if ($row_affected){
+                    DB::table('approval_history')->insert([
+                        'module_code' => $this->moduleCode,
+                        'module_number' => $poNumber,
+                        'username' => Auth::user()->username,
+                        'approval_order' => $status[0]->next_level,
+                        'approval_date' => date('Y-m-d'),
+                        'status' => 1,
+                        'created_by' => Auth::user()->username,
+                        'updated_by' => Auth::user()->username,
+                        'created_at' => date('Y-m-d H:i:s'),
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]);
+                }
+                
                 DB::commit();
-                $title ="Autorized $this->title";
+                $title ="Approve $this->title";
                 $alert  ="success";
-                $message  = "$title $poNumber is successfully Authorized";
+                $message  = "$title $poNumber is successfully Approve-".$status[0]->next_level;
                 \LogActivity::addToLog($title,"username: $username Status $message");
                 return response()->json(array('statusPo' => $statusPo,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'poNumber'=>$poNumber));
 
@@ -792,55 +890,9 @@ class PurchaseOrderController extends Controller
             DB::rollBack();
             $title ="Autorized $this->title";
             $alert  ="warning";
-            $message  = "$title $poNumber is failed to Authorize";
+            $message  = "$title $poNumber is failed to Approve-".$status[0]->next_level;
             \LogActivity::addToLog($title,"username: $username Status $message");
             return response()->json(array('statusPo' => $statusPo,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'poNumber'=>$poNumber));
-        }
-    }
-
-    public function validasi(Request $request)
-    {
-        // status:
-        // 1 = New
-        // 2 = Validated
-        // 3 = Authorized
-        // 4 = Received
-        // 5 = Canceled
-        // 6 = closed
-        // 7 = Revised
-
-        $username =  Auth::user()->username;
-        $poNumber = $request -> poNumber;
-        $statusPo = 'Validated';
-        $status = '2';
-
-        DB::beginTransaction();
-        try {
-                $row_affected=DB::table('purchase_order_hdr')
-                ->where('po_number',$poNumber)
-                ->update(
-                    [
-                        'status' => $status,
-                        'validate_by' => Auth::user()->username,
-                        'updated_by' => Auth::user()->username,
-                        'updated_at' => date('Y-m-d H:i:s')
-                    ]
-                );                
-                                        
-                DB::commit();
-                $title ="Validate $this->title";
-                $alert  ="success";
-                $message  = "$title $poNumber is successfully Validated";
-                \LogActivity::addToLog($title,"username: $username Status $message");
-                return response()->json(array('statusPo' => $statusPo,'status' => 1, 'title' => $title,'message' => $message,'alert'=>$alert,'poNumber'=>$poNumber));
-
-        } catch (Exception $e) {
-            DB::rollBack();
-            $title ="Validate $this->title";
-            $alert  ="warning";
-            $message  = "$title $poNumber is failed to Validate";
-            \LogActivity::addToLog($title,"username: $username Status $message");
-            return response()->json(array('statusPo' => $statusPo,'status' => 1, 'title' => $title,'message' => $message,'alert'=>$alert,'poNumber'=>$poNumber));
         }
     }
 
@@ -917,21 +969,12 @@ class PurchaseOrderController extends Controller
 
     public function list(Request $request)
     {
-        // status:
-        // 1 = New
-        // 2 = Validated
-        // 3 = Authorized
-        // 4 = Received
-        // 5 = Canceled
-        // 6 = closed
-        // 7 = Revised
-
         $seachPo = strtolower($request->seachPo);
+        $username = Auth::user()->username;
         $searchSupplier = $request->searchSupplier;
         $searchStatus = $request->searchStatus;
         $orderDate = $request->orderDate;
        
-
         $filter='';
         
         if ($seachPo !='' ){
@@ -945,52 +988,69 @@ class PurchaseOrderController extends Controller
         if ($searchStatus  != '' ){
             $filter.="status = '$searchStatus' and ";            
         }
-
         
         $filter.="status <> '7' and ";            
-        
-
+     
         if ($orderDate  != '' ){
             $date = explode("to",$orderDate);
             $date1=trim($date[0]);
             $date2=trim($date[1]);
             $filter.= "to_date(po_date, 'DD/MM/YYYY')  BETWEEN to_date('$date1', 'DD/MM/YYYY') and to_date('$date2', 'DD/MM/YYYY') and ";
         }
-
         
         if ($filter !=''){
             $filter=" where ".substr($filter,0,-4);
         }
 
-        $data=DB::select("SELECT *,delivery_date,(select concat(kode,'-',nama) from third_party where kode = supplier_id limit 1) as supp_name,(gross-discount)+ppn as netto 
-            from (
-                select 
-                    b.created_by,
-                    b.status,b.id,
-                    a.po_number,
-                    supplier_id,
-                    po_date,
-                    delivery_date,
-                    pkp,
-                    termin,
-                    authorized_by,
-                    validate_by,
-                    uom,
-                    sum(qty) as qty,
-                    sum(qty*price) as gross,
-                    sum(discount) as discount,
-                    sum(a.ppn) as ppn,
-                    b.num_revision
-                from purchase_order_det a
-                left join purchase_order_hdr b
-                on a.po_number = b.po_number 
-                $filter
-                group by b.id,a.po_number,supplier_id,po_date,delivery_date,pkp,termin,authorized_by,validate_by,b.created_by,uom,b.status,b.num_revision
-            ) as oki
-            order by id");
-        
-        // $data=DB::table('purchase_order_hdr')->get();
+        $data=DB::select("SELECT *,oki.id as idku,
+        case when uom_group = 'PIECE' then TO_CHAR(qtyku,'999,999,999') when uom_group <> 'PIECE' then TO_CHAR(qtyku,'999,999,999.99') end as qty,
+        TO_CHAR(grossku,'999,999,999') as gross,
+        TO_CHAR(discountku,'999,999,999') as discount,
+        TO_CHAR(ppnku,'999,999,999') as ppn,
+        delivery_date,
+        (select concat(kode,'-',nama) from third_party where kode = supplier_id limit 1) as supp_name,
+        TO_CHAR((grossku-discountku)+ppnku,'999,999,999') as netto,
+        --query apakah user berhak untuk approve atau tidak
+        (SELECT username= '$username' as validate from (
+            select username,approval_order,
+            (select max(approval_number) from approval_master where module_code = a.module_code ) as max_level,
+            COALESCE((select max(approval_order) from approval_history
+            where module_code = a.module_code
+            and module_number = oki.po_number),'0') as current_level
+            from approval_level a 
+            where module_code = '".$this->moduleCode."' and username = '$username') b
+            where approval_order = current_level+1
+        ) as statusku
+        from (
+            select 
+                b.created_by,
+                b.status,b.id,
+                a.po_number,
+                supplier_id,
+                po_date,
+                delivery_date,
+                pkp,
+                termin,
+                authorized_by,
+                validate_by,
+                uom,
+                sum(qty) as qtyku,
+                sum(qty*price) as grossku,
+                sum(discount) as discountku,
+                sum(a.ppn) as ppnku,
+                b.num_revision
+            from purchase_order_det a
+            left join purchase_order_hdr b
+            on a.po_number = b.po_number    
+            $filter
+            group by b.id,a.po_number,supplier_id,po_date,delivery_date,pkp,termin,authorized_by,validate_by,b.created_by,uom,b.status,b.num_revision
+        ) as oki
+        left join uom c
+        on oki.uom = c.code
+        order by oki.id");
 
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'RECEIVED','5'=>'CANCELED','6'=>'CLOSED','7'=>'RVISED','8'=>'DECLINE'];
+    
         return Datatables::of($data)
         ->addColumn('action', function ($data) {
             $buttons = '<div class="d-inline-flex">
@@ -998,58 +1058,66 @@ class PurchaseOrderController extends Controller
                                 <i data-feather="menu"></i>
                             </a>';
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
-            if ( $data->status == '2' ){
+            
+            if ( $data->statusku == '1' && $data->status != '3' ){
                 if (Auth::user()->can('purchaseOrder-authorize')) {
-                $buttons .=         '<a href="'. route('purchaseOrder.show', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+                $buttons .=         '<a href="'. route('purchaseOrder.edit', ['id'=>Crypt::encryptString($data->idku)]) .'" class="dropdown-item">
                                         <i data-feather="file-text"></i>
-                                        Authorize
+                                        <span>'. __("Approve") .'</span>
                                     </a>';
                 }
             }
-            if ( $data->status == '1' ){
-                if (Auth::user()->can('purchaseOrder-validate')) {
-                $buttons .=         '<a href="'. route('purchaseOrder.show', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
-                                        <i data-feather="file-text"></i>
-                                        Validate
-                                    </a>';
-                }
-            }
+
+            // if ( $data->status == '1' ){
+            //     if (Auth::user()->can('purchaseOrder-validate')) {
+            //     $buttons .=         '<a href="'. route('purchaseOrder.show', ['id'=>Crypt::encryptString($data->idku)]) .'" class="dropdown-item">
+            //                             <i data-feather="file-text"></i>
+            //                             <span>'. __("Validate") .'</span>
+            //                         </a>';
+            //     }
+            // }
+
+
             if ( $data->status == '1' ){
                 if (Auth::user()->can('purchaseOrder-edit')) {
-                $buttons .=         '<a href="'. route('purchaseOrder.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+                $buttons .=         '<a href="'. route('purchaseOrder.edit', ['id'=>Crypt::encryptString($data->idku)]) .'" class="dropdown-item">
                                         <i data-feather="file-text"></i>
-                                        Edit
+                                        <span>'. __("Edit") .'</span>
                                     </a>';
                 }
             }
             if (($data->status == '2') || ($data->status == '3') ){
                 if (Auth::user()->can('purchaseOrder-revision')) {
-                    $buttons .=         '<a href="'. route('purchaseOrder.revision', ['id'=>$data->id,'poNumber'=>$data->po_number,'numRevision'=>$data->num_revision]) .'" class="dropdown-item">
+                    $buttons .=         '<a href="'. route('purchaseOrder.revision', ['id'=>$data->idku,'poNumber'=>$data->po_number,'numRevision'=>$data->num_revision]) .'" class="dropdown-item">
                                             <i data-feather="copy"></i>
-                                            Revision
+                                            <span>'. __("Revision") .'</span>
                                         </a>';
                 }
             }
             
-            $buttons .=         '<a href="'. route('purchaseOrder.print', ['id'=>Crypt::encryptString($data->id)]) .'" target="_blank" class="dropdown-item">
+            $buttons .=         '<a href="'. route('purchaseOrder.print', ['id'=>Crypt::encryptString($data->idku)]) .'" target="_blank" class="dropdown-item">
                                     <i data-feather="printer"></i>
-                                    Print
+                                    <span>'. __("Print") .'</span>
                                 </a>';
             
-            $buttons .=         '<a href="'. route('purchaseOrder.show', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+            $buttons .=         '<a href="'. route('purchaseOrder.show', ['id'=>Crypt::encryptString($data->idku)]) .'" class="dropdown-item">
                                     <i data-feather="list"></i>
-                                    Detail
+                                    <span>'. __("Detail") .'</span>
                                 </a>';
+
             if ( $data->status == '1' ){
                 if (Auth::user()->can('purchaseOrder-delete')) {
-                $buttons .=         "<a href='javascript:;'
+                    $buttons .=         "<a href='javascript:;'
+                                        class='dropdown-item' 
+                                        data-size='sm'
+                                        data-ajax-delete='true'
+                                        data-confirm='Are You Sure want to Delete?|This action can not be undone. Do you want to continue?' 
+                                        data-confirm-yes='document.getElementById(\""."delete-form-".$data->id."\").submit();'
+                                        data-modal-id='".$data->id."'
                                         id='deleteButton'
-                                        class='dropdown-item'
-                                        data-toggle='modal'
-                                        data-target='#smallModal'
-                                        data-href='". route("purchaseOrder.destroy", ["id"=>Crypt::encryptString($data->id)]) ."'>
+                                        data-url='". route('purchaseOrder.destroy', ['id'=>Crypt::encryptString($data->idku)]) ."'>
                                         <i data-feather='trash-2' class='feather-14-red'></i>
-                                        Delete
+                                        <span>". __('Delete') ."</span>
                                     </a>";
                 }
             }
@@ -1060,11 +1128,11 @@ class PurchaseOrderController extends Controller
             return $buttons;
         })
         ->addColumn('po_number', function ($data) {
-            return '<a href="'. route('purchaseOrder.show', ['id'=>Crypt::encryptString($data->id)]) .'" ><span>'.$data->po_number.'</span></a>';
+            return '<a href="'. route('purchaseOrder.show', ['id'=>Crypt::encryptString($data->idku)]) .'" ><span>'.$data->po_number.'</span></a>';
         })
         ->addColumn('status', function ($data) {
-            $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary'];
-            $statusPo = ['New','Validated','Authorized','Received','Canceled','Closed','Revised'];
+            $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-danger'];            
+            $statusPo = ['NEW','VALIDATED','APPROVED','RECEIVED','CANCELED','CLOSED','REVISED','DECLINE'];
             return "<div class='badge ".$badges[$data->status - 1]."'>".$statusPo[$data->status - 1]."</div>";
         })
         ->rawColumns(['action','status','po_number'])
@@ -1127,4 +1195,5 @@ class PurchaseOrderController extends Controller
         return $pdf->stream("PO_$poNumber.pdf");
 
     }
+
 }

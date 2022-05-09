@@ -2,8 +2,7 @@
 @section('title', $title)
 @section('content')
 @include('layouts.breadcrumb')
-@include('partials.alert')
-<section id="article-index">
+<section id="purchase-index">
   <div class="card">
     <div class="card-header">  
       <h4 class="card-title">Filter</h4>
@@ -57,8 +56,7 @@
     </div>
   </div>
 </section>
-
-<section id="table-article">
+<section id="table-purchase">
   <div class="card">
     <div class="card-header">
       <h4 class="card-title"> @yield('title') List</h4>
@@ -85,9 +83,6 @@
     </div>
   </div>
 </section>
-
-@include('partials.delete-modal')
-
 @endsection
 @section('styles')
 <style>
@@ -95,31 +90,19 @@
 @endsection
 @section('scripts')
 <script type="text/javascript">
-  $(document).ready(function(){    
-    let href;
-    $(document).on('click', '#deleteButton', function(event) {
-        event.preventDefault();
-        href = $(this).data('href');
-        console.log(href);
-        $('#modalConfirmation').attr("action", href);
-    });
+
+  let seachPo = document.querySelector("#seachPo");
+  let searchSupplier = document.querySelector("#searchSupplier"); 
+  let searchStatus = document.querySelector("#searchStatus");
+  let orderDate = document.querySelector("#orderDate");
+  let search = document.querySelector('#btnSearch');
+  let refresh = document.querySelector('a[data-action="reload"]');
+  let rangePickr = document.querySelector('.flatpickr-range');
+
+  document.addEventListener("DOMContentLoaded", function(event) {
+
   });
 
-  let showAlert = "{{ Session::get('alert') }}";
-
-  if ( showAlert ){
-    showList();
-    $("#alert-message-alert").fadeTo(5000, 500).slideUp(500, function(){
-      $("#alert-message-alert").slideUp(500);
-    });
-  }
-
-  //refresh di cards
-  $('a[data-action="reload"]').on('click', function () {
-      showList();
-  });
-
-  rangePickr = $('.flatpickr-range');
   if (rangePickr.length) {
     rangePickr.flatpickr({
       dateFormat: "d-m-Y",
@@ -127,129 +110,36 @@
     });
   }
 
-  $("#btnSearch").click(function(e){
-    let seachPo = $("#seachPo").val();
-    let searchSupplier = $("#searchSupplier").val(); 
-    let searchStatus = $("#searchStatus").val();
-    let orderDate = $("#orderDate").val();
-    showList(seachPo,searchSupplier,searchStatus,orderDate);
+  //refresh di cards
+  refresh.addEventListener("click",function(){
+    showList(seachPo.value,searchSupplier.value,searchStatus.value,orderDate.value);
+  })
 
-  });
+  search.addEventListener("click", function(){ 
+    showList(seachPo.value,searchSupplier.value,searchStatus.value,orderDate.value);
+  }); 
 
-  function showList(seachPo,searchSupplier,searchStatus,orderDate){
-    let dtdom ='<"d-flex justify-content-between align-items-center header-actions mx-1 row mt-75" <"col-lg-12 col-xl-6" l><"col-lg-12 col-xl-6 pl-xl-75 pl-0"<"dt-action-buttons text-xl-right text-lg-left text-md-right text-left d-flex align-items-center justify-content-lg-end align-items-center flex-sm-nowrap flex-wrap mr-1"<"mr-1"f>B>>>t<"d-flex justify-content-between mx-2 row mb-1"<"col-sm-12 col-md-6"i><"col-sm-12 col-md-6"p>>';
-    let arr_col_print =[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16]; 
-    $(function(){
-      let oTable =$("#detailedTable").DataTable({
-        ajax:
-        {
-          url:'{{ route("purchaseOrder.list")}}',
-          data:{
-              seachPo:seachPo,
-              searchSupplier:searchSupplier,
-              searchStatus:searchStatus,
-              orderDate:orderDate
-          }
-        },
-        processing: true,
-        serverSide: true,
-        buttons: true,
-        dom:dtdom,
-        lengthMenu: [
-          [ 10, 25, 50, -1 ],
-          [ '10', '25', '50', 'all' ]
-        ],
-        buttons: [
-          {
-            extend: 'collection',
-            className: 'btn btn-outline-secondary dropdown-toggle mt-07',
-            text: feather.icons['share'].toSvg({ class: 'font-small-4 mr-50' }) + 'Export',
-            buttons: [
-              {
-                extend: 'print',
-                text: feather.icons['printer'].toSvg({ class: 'font-small-4 mr-50' }) + 'Print',
-                className: 'dropdown-item',
-                exportOptions: { columns: arr_col_print }
-              },
-              {
-                extend: 'csv',
-                text: feather.icons['file-text'].toSvg({ class: 'font-small-4 mr-50' }) + 'Csv',
-                className: 'dropdown-item',
-                exportOptions: { columns: arr_col_print }
-              },
-              {
-                extend: 'excel',
-                text: feather.icons['file'].toSvg({ class: 'font-small-4 mr-50' }) + 'Excel',
-                className: 'dropdown-item',
-                exportOptions: { columns: arr_col_print }
-              },
-              {
-                extend: 'pdf',
-                text: feather.icons['clipboard'].toSvg({ class: 'font-small-4 mr-50' }) + 'Pdf',
-                className: 'dropdown-item',
-                exportOptions: { columns: arr_col_print }
-              },
-              {
-                extend: 'copy',
-                text: feather.icons['copy'].toSvg({ class: 'font-small-4 mr-50' }) + 'Copy',
-                className: 'dropdown-item',
-                exportOptions: { columns: arr_col_print }
-              }
-            ],
-            init: function (api, node, config) {
-              $(node).removeClass('btn-secondary');
-              $(node).parent().removeClass('btn-group');
-              setTimeout(function () {
-                $(node).closest('.dt-buttons').removeClass('btn-group').addClass('d-inline-flex');
-              }, 50);
-            }
-          },
-        ],
-        language: {
-          paginate: {
-            // remove previous & next text from pagination
-            previous: '&nbsp;',
-            next: '&nbsp;'
-          }
-        },
-        columnDefs: [
-          { width: '10%', targets: 0 },
-          { className: 'text-right','targets': [ 11,12,13,14,15 ] },
-        ],
-        drawCallback: function( settings ) {
-          feather.replace({
-                width: 14,
-                height: 14
-          });
-        },
-        order: [[ 2, 'asc' ]],
-        bDestroy: true, //pakai ini supaya bisa di load berulang2
-        // scrollX: true, //pakai ini supaya waktu responsive  bisa di scroll horizontal
-        columns: [
-            { data: 'action', name: 'action',title:'action', orderable: false, searchable: false },
-            { data: 'po_number', name: 'po_number',title:'PO Number' },
-            { data: 'num_revision', name: 'num_revision',title:'Revision' },
-            { data: 'supp_name', name: 'supp_name',title:'Supplier' },
-            { data: 'po_date', name: 'po_date',title:'PO Date' },
-            { data: 'delivery_date', name: 'delivery_date',title:'Delivery Date' },
-            { data: 'created_by', name: 'created_by',title:'Created By' },
-            { data: 'validate_by', name: 'validate_by',title:'Prepared By' },
-            { data: 'authorized_by', name: 'authorized_by',title:'Authorized By' },
-            { data: 'pkp', name: 'pkp',title:'Tax' },
-            { data: 'termin', name: 'termin',title:'Tax' },            
-            { data: 'qty', name: 'qty',title:'QTY',render: $.fn.dataTable.render.number(',','.') },
-            { data: 'gross', name: 'gross',title:'Bruto',render: $.fn.dataTable.render.number(',','.')},
-            { data: 'discount', name: 'discount',title:'Discount',render: $.fn.dataTable.render.number(',','.')},
-            { data: 'ppn', name: 'ppn',title:'PPN',render: $.fn.dataTable.render.number(',','.')},
-            { data: 'netto', name: 'netto',title:'Netto',render: $.fn.dataTable.render.number(',','.')},
-            { data: 'status', name: 'status',title:'Status' },
-        ],
-      });
+  const showList = (seachPo,searchSupplier,searchStatus,orderDate) => {
+    showDataTables({
+      tableId:"detailedTable",
+      route:"{{ route('purchaseOrder.list') }}",
+      kolom:{!! $kolom !!},
+      arrColPrint:[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16],
+      columnDefs :[
+        { width: '10%', targets: 0 },
+        { className: 'text-right','targets': [ 11,12,13,14,15 ] },
+      ],
+      dataSearch:  {
+        eachPo:seachPo,
+        searchSupplier:searchSupplier,
+        searchStatus:searchStatus,
+        orderDate:orderDate
+      },
+      orderColumn:[[ 2, 'asc' ]],
+      excelFileName:'purchase_order'
     });
-    //$('div.head-label').html('<h6 class="mb-0">Data Users</h6>');
-    
   }
-
+ 
   $.ajaxSetup({
     headers: {
         'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')

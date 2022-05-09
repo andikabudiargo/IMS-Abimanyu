@@ -97,6 +97,7 @@
   let code = document.querySelector('#searchCode');
   let name = document.querySelector('#searchName');
   let search = document.querySelector('#btnSearch');
+  let refresh = document.querySelector('a[data-action="reload"]');
 
   document.addEventListener("DOMContentLoaded", function(event) {
     showListMaster();
@@ -104,8 +105,8 @@
   });
 
   //refresh card
-  document.querySelector('a[data-action="reload"]').addEventListener("click",function(){
-    showListMaster();
+  refresh.addEventListener("click",function(){
+    showListMaster(code.value,name.value);
   })
 
   search.addEventListener("click", function(){ 
@@ -127,6 +128,7 @@
         code:code
       },
       orderColumn:[[1,'asc'],[4,'asc']],
+      excelFileName:'Approval_level'
     });
   }
 
@@ -145,6 +147,7 @@
         code:code
       },
       orderColumn:[[1,'asc'],[2,'asc'],[3,'asc']],
+      excelFileName:'Approval_level'
     });
   }
 

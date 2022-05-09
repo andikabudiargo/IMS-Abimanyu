@@ -13,22 +13,11 @@
 					<img src="{{asset('app-assets/images/logo/logo.png')}}" alt="logo" class="logo" style="height: 50px;">
 				{{-- </li> --}}
 			</ul>
-			
-			
 			{{-- <ul class="nav navbar-nav bookmark-icons">
 				<li class="nav-item d-none d-lg-block"><a class="nav-link" href="app-email.html" data-toggle="tooltip" data-placement="top" title="Email"><i class="ficon" data-feather="mail"></i></a></li>
 				<li class="nav-item d-none d-lg-block"><a class="nav-link" href="app-chat.html" data-toggle="tooltip" data-placement="top" title="Chat"><i class="ficon" data-feather="message-square"></i></a></li>
 				<li class="nav-item d-none d-lg-block"><a class="nav-link" href="app-calendar.html" data-toggle="tooltip" data-placement="top" title="Calendar"><i class="ficon" data-feather="calendar"></i></a></li>
 				<li class="nav-item d-none d-lg-block"><a class="nav-link" href="app-todo.html" data-toggle="tooltip" data-placement="top" title="Todo"><i class="ficon" data-feather="check-square"></i></a></li>
-			</ul> --}}
-			{{-- <ul class="nav navbar-nav">
-				<li class="nav-item d-none d-lg-block"><a class="nav-link bookmark-star"><i class="ficon text-warning" data-feather="star"></i></a>
-					<div class="bookmark-input search-input">
-						<div class="bookmark-input-icon"><i data-feather="search"></i></div>
-						<input class="form-control input" type="text" placeholder="Bookmark" tabindex="0" data-search="search">
-						<ul class="search-list search-list-bookmark"></ul>
-					</div>
-				</li>
 			</ul> --}}
 			<ul class="nav navbar-nav ml-1">
 				<li class="nav-item d-none d-lg-block" >
@@ -66,13 +55,13 @@
 				<a class="nav-link dropdown-toggle dropdown-user-link" id="dropdown-user" href="javascript:void(0);" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
 					<div class="user-nav d-sm-flex d-none">
 						<span class="user-name font-weight-bolder">{{ strtoupper(Auth::user()->name) }}</span>
-						{{-- <span class="user-status">Admin</span> --}}
+						<span class="user-status">{{ strtoupper(Auth::user()->username) }}</span>
 					</div>
 					<span class="avatar">
 						<img class="round" src="{{ asset(Auth::user()->filename) }}" 
-							onerror="this.src='{{ asset('app-assets/images/avatars/default.png')}}';" 
+							onerror="this.src='{{ asset('app-assets/images/avatars/default.png') }}';" 
 							alt="avatar" height="40" width="40">
-						{{-- <span class="avatar-status-online"></span> --}}
+						<span class="avatar-status-online"></span>
 						{{-- <span class="avatar-status-offline"></span> --}}
 					</span>
 				</a>
@@ -90,6 +79,5 @@
 	</div>
 </nav>
 
-<ul class="main-search-list-defaultlist d-none">
-	
+<ul class="main-search-list-defaultlist d-none">	
 </ul>

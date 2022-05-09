@@ -201,7 +201,6 @@ class ApprovalController extends Controller
                 $buttons .=         "<a href='javascript:;'
                                         class='dropdown-item' 
                                         data-size='sm'
-                                        data-title='Edit'
                                         data-ajax-delete='true'
                                         data-confirm='Are You Sure want to Delete?|This action can not be undone. Do you want to continue?' 
                                         data-confirm-yes='document.getElementById(\""."delete-form-".$data->id."\").submit();'
