@@ -2,8 +2,6 @@
 @section('title', $title)
 @section('content')
 @include('layouts.breadcrumb')
-@include('partials.alert')
-
 <section class="add-customer">
     <div class="bs-stepper vertical vertical-input-tab">
         <div class="bs-stepper-header">
@@ -286,19 +284,19 @@
                         </div>
                         <div class="form-group col-md-4">
                             <label class="form-label" for="kota">Kota</label>
-                            <select class="select2 w-100 dynamicSelect" id="kota" name="kota" data-dependent="kelurahan">
+                            <select class="select2 w-100 dynamicSelect" id="kota" name="kota" data-dependent="kecamatan">
                             </select>
                         </div>
                     </div>
                     <div class="form-row">
                         <div class="form-group col-md-4">
-                            <label class="form-label" for="kelurahan">Kelurahan</label>
-                            <select class="select2 w-100 dynamicSelect" id="kelurahan" name="kelurahan" data-dependent="kecamatan">
+                            <label class="form-label" for="kecamatan">Kecamatan</label>
+                            <select class="select2 w-100 dynamicSelect" id="kecamatan" name="kecamatan"  data-dependent="kelurahan">
                             </select>
                         </div>
                         <div class="form-group col-md-4">
-                            <label class="form-label" for="kecamatan">Kecamatan</label>
-                            <select class="select2 w-100" id="kecamatan" name="kecamatan">
+                            <label class="form-label" for="kelurahan">Kelurahan</label>
+                            <select class="select2 w-100" id="kelurahan" name="kelurahan">
                             </select>
                         </div>
                     </div>
@@ -344,31 +342,10 @@
         emptySelect('kecamatan');
         emptySelect('kelurahan');
 
-        $("#frmAdd").validate({
-            invalidHandler: function(event, validator) {
-            let errors = validator.numberOfInvalids();
-            if (errors) {
-                var message = errors == 1
-                    ? 'You missed 1 field. It has been highlighted'
-                    : 'You missed ' + errors + ' fields. They have been highlighted';
-                $("#alert-message .alert-body").html(message);
-                $("#alert-message").show();
-                $("#alert-message").fadeTo(5000, 500).slideUp(500, function(){
-                    $("#alert-message").slideUp(500);
-                });
-            } else {
-                $("#alert-message").hide();
-            }
-        }
-        }).settings.ignore = "";
+        validateFormToast("frmAdd");
 
         if ('{{ $errors->any() }}' || '{{ $edit == 1 }}' ){
-            // apabila ada error validation status change_active berubah jadi no
-            //Supaya dependent tidak jalan
             change_active = 'no'; 
-
-            // Setelah 2 detik status ganti jadi 'yes';
-            // Supaya dependent bisa befungi lagi
             setTimeout(() => { 
                 change_active = 'yes';
             }, 2000);
@@ -376,18 +353,13 @@
         
         '{{ Request::old('provinsi', $customers->efaktur_provinsi) }}' ? changeselect('provinsi',0,'{{ Request::old('provinsi',$customers->efaktur_provinsi) }}') : '';   
         '{{ Request::old('kota',$customers->efaktur_kota) }}' ? changeselect('kota','{{ Request::old('provinsi',$customers->efaktur_provinsi) }}','{{ Request::old('kota',$customers->efaktur_kota) }}') : '';
-        '{{ Request::old('kelurahan',$customers->efaktur_kelurahan) }}' ? changeselect('kelurahan','{{ Request::old('kota',$customers->efaktur_kota) }}','{{ Request::old('kelurahan',$customers->efaktur_kelurahan) }}') : '';
-        '{{ Request::old('kecamatan',$customers->efaktur_kecamatan) }}' ? changeselect('kecamatan','{{ Request::old('kelurahan',$customers->efaktur_kelurahan) }}','{{ Request::old('kecamatan',$customers->efaktur_kecamatan) }}') : '';
-
+        '{{ Request::old('kecamatan',$customers->efaktur_kecamatan) }}' ? changeselect('kecamatan','{{ Request::old('kota',$customers->efaktur_kota) }}','{{ Request::old('kecamatan',$customers->efaktur_kecamatan) }}') : '';
+        '{{ Request::old('kelurahan',$customers->efaktur_kelurahan) }}' ? changeselect('kelurahan','{{ Request::old('kecamatan',$customers->efaktur_kecamatan) }}','{{ Request::old('kelurahan',$customers->efaktur_kelurahan) }}') : '';
     });
 
     $("#cmdSave").click(function(){       
         $('.disabled-el').removeAttr('disabled');
-        //GET ALL IDS
-        // var ids = $('*[id]').map(function() {
-        //     console.log("$"+this.id+" = $request->input('"+this.id+"');");
-        // }).get();
-        $("#frmAdd").submit(); // Submit the form
+        $("#frmAdd").submit();
     });
 
     $("#cmdCancel").click(function() {
@@ -469,7 +441,7 @@
       ;
     }
 
-    $('#kecamatan').change(function(e) {
+    $('#kelurahan').change(function(e) {
         let val = $(this).find(':selected').text().split(",");
         val.length > 0 ? $('#kodePos').val(val[1]) :'';
     })

@@ -254,46 +254,77 @@ class PurchaseOrderController extends Controller
         $data['title'] = "Detail $this->title";
         $data['subtitle'] = "Detail $this->title";
 
-        $data['header'] = DB::table('purchase_order_hdr')
-        // ->leftJoin('purchase_request_det','purchase_order_hdr.po_number','purchase_request_det.po_number')
-        ->where('purchase_order_hdr.id',$id)
-        ->get()->first();
-
-        // $poNumber = explode("-",$data['header']->origin_po_number);
-        // $poNumber = $poNumber[0].'-'.$poNumber[1];
-
-        $poNumber = $data['header']->po_number;
-        
-        $data['prHeader'] = DB::table('purchase_request_det') 
-        // ->where('supp_code',$data['header']->supplier_id)
-        ->where('po_number','=',$poNumber)
-        ->orderBy('pr_number')
-        ->distinct('pr_number')
+        $data['headers'] = DB::table('purchase_order_hdr')
+        ->where('origin_po_number', function($query) use ($id){
+            $query->select('po_number')->from('purchase_order_hdr')->where('id',$id);
+        })
+        ->select('purchase_order_hdr.*'
+        ,DB::raw("(select concat(kode,' - ',nama) from third_party where kode = purchase_order_hdr.supplier_id) as supp_name") 
+        ,DB::raw('(select sum(qty) from purchase_order_det where po_number = purchase_order_hdr.po_number) as sum_qty') 
+        ,DB::raw('(select count(*) from purchase_order_det where po_number = purchase_order_hdr.po_number) as sum_row')
+        ,DB::raw('(select round(sum(qty*price)) from purchase_order_det where po_number = purchase_order_hdr.po_number) as sum_amount')
+        ,DB::raw('(select round(sum((qty*price)*purchase_order_hdr.discount/100)) from purchase_order_det where po_number = purchase_order_hdr.po_number) as sum_discount')
+        ,DB::raw('(select round(sum((qty*price)*purchase_order_hdr.ppn/100)) from purchase_order_det where po_number = purchase_order_hdr.po_number) as sum_ppn')
+        ,DB::raw('(select round(sum((qty*price)*purchase_order_hdr.pph22/100)) from purchase_order_det where po_number = purchase_order_hdr.po_number) as sum_pph22')
+        )
+        ->orderBy('id')
         ->get();
 
-        $data['articles'] = DB::table('purchase_request_det')
-            ->leftJoin('article','article.article_code','=','purchase_request_det'.'.article_code')
-            ->leftJoin('article_stock','article_stock.article_code','=','purchase_request_det'.'.article_code')
-            ->leftJoin('group_materials','group_materials.code','=','article.group_of_material')
-            ->leftJoin('uom','uom.code','=','purchase_request_det.uom')
-            // ->where('supp_code',$data['header']->supplier_id)
-            ->where('po_number','=',$poNumber)
-            // ->where('pr_number','=',$data['header']->pr_number)
-            ->orderBy('article.article_desc')
-            ->distinct('article.article_desc')
-            ->select('purchase_request_det'.'.*'
-                ,'article.article_alternative_code'
-                ,'article.article_code as artikel_code'
-                ,'article.article_desc'
-                ,'article.costprice'
-                ,'article_stock.article_qty as qty_stock'
-                ,'purchase_request_det.uom as uom1'
-                ,'uom.uom_group'
-                ,'group_materials.name as group')
-            ->get();
-
+        $poNumber = $data['headers'][0]->origin_po_number;
         
-        $data['detail'] = DB::table('purchase_order_det')
+        $data['details'] = DB::table('purchase_order_det')
+        ->leftJoin('article','article.article_code','=','purchase_order_det.article_code')
+        ->leftJoin('article_stock','article_stock.article_code','=','purchase_order_det.article_code')
+        ->leftJoin('purchase_request_det', function($join) {
+            $join->on('purchase_request_det.po_number','purchase_order_det.po_number')
+            ->on('purchase_request_det.article_code','purchase_order_det.article_code');
+        })
+        ->leftJoin('uom','uom.code','=','purchase_order_det.uom')
+        ->whereIn('purchase_order_det.po_number', function($query) use ($poNumber){
+            $query->select('po_number')->from('purchase_order_hdr')->where('origin_po_number',$poNumber);
+        })
+        ->select('purchase_order_det'.'.*'
+            ,'purchase_order_det.pr_number'
+            ,'article_stock.article_qty as qty_stock'
+            ,'uom.uom_group'
+            , DB::raw('(SELECT name from group_materials where code = group_of_material) as group')
+            ,DB::raw('concat(article_alternative_code,article_desc) as article')
+        )
+        ->orderBy('id')
+        ->get();        
+
+        $data['approveHistory'] = DB::table('approval_history')
+        ->leftJoin('users','users.username','approval_history.username')
+        ->leftJoin('approval_master','approval_master.module_code','approval_history.module_code')
+        ->where('approval_history.module_code',$this->moduleCode)
+        ->where('module_number',$poNumber)
+        ->select('users.name','approval_history.approval_order','approval_master.approval_number')
+        ->orderBy("approval_order")
+        ->get();
+
+        $data['approveValidate'] = DB::select("SELECT username= '$username' as validate,current_level + 1 as next_level,* from (
+        select username,approval_order,
+        (select max(approval_number) from approval_master where module_code = a.module_code ) as max_level,
+        COALESCE((select max(approval_order) from approval_history
+        where module_code = a.module_code
+        and module_number = '".$poNumber."'),'0') as current_level
+        from approval_level a 
+        where module_code = '".$this->moduleCode."' and username = '$username') b
+        where approval_order = current_level+1");
+
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'RECEIVED','5'=>'CANCELED','6'=>'CLOSED','7'=>'RVISED','8'=>'DECLINE'];
+        $approvLevel  = $data['approveValidate'] ? 'APPROVED-'.$data['approveValidate'][0]->current_level.'/'.$data['approveValidate'][0]->max_level : 'APPROVED';
+        $statusPo = ['NEW','VALIDATED',$approvLevel,'RECEIVED','CANCELED','CLOSED','REVISED','DECLINE'];
+        $data['statusPo'] = $statusPo[$data['headers'][0]->status-1];
+        
+        return view("purchaseOrder.show",$data);
+        
+    }
+
+    public function detail(Request $request)
+    {
+        $poNumber=$request->poNumber;
+        $detail = DB::table('purchase_order_det')
         ->leftJoin('article','article.article_code','=','purchase_order_det.article_code')
         ->leftJoin('article_stock','article_stock.article_code','=','purchase_order_det.article_code')
         ->leftJoin('purchase_request_det', function($join) {
@@ -310,70 +341,9 @@ class PurchaseOrderController extends Controller
         ->orderBy('id')
         ->get();
 
-        // $data['subDetails'] = DB::table('purchase_order_det')
-        // ->leftJoin('article','article.article_code','=','purchase_order_det.article_code')
-        // ->leftJoin('article_stock','article_stock.article_code','=','purchase_order_det.article_code')
-        // ->leftJoin('purchase_request_det', function($join) {
-        //     $join->on('purchase_request_det.po_number','purchase_order_det.po_number')
-        //     ->on('purchase_request_det.article_code','purchase_order_det.article_code');
-        // })
-        // ->leftJoin('uom','uom.code','=','purchase_order_det.uom')
-        // ->where('purchase_order_det.po_number',$poNumber)
-        // ->select('purchase_order_det'.'.*'
-        //     ,'purchase_order_det.pr_number'
-        //     ,'article_stock.article_qty as qty_stock'
-        //     ,'uom.uom_group'
-        //     , DB::raw('(SELECT name from group_materials where code = group_of_material) as group'))
-        // ->orderBy('id')
-        // ->get();
+        return response()->json(array('status' => 0, 'data' => $detail));
 
-        $data['supps'] = DB::table('third_party')
-        ->where ('third_party_type','=','supp')
-        ->orderBy('nama')
-        ->get();
-
-        $data['currency'] = ['IDR','USD'];
-
-        $data['uoms'] = DB::table('uom')
-        ->orderBy('name')
-        ->get();
-
-        
-        $data['approveHistory'] = DB::table('approval_history')
-        ->leftJoin('users','users.username','approval_history.username')
-        ->leftJoin('approval_master','approval_master.module_code','approval_history.module_code')
-        ->where('approval_history.module_code',$this->moduleCode)
-        ->where('module_number',$poNumber)
-        ->select('users.name','approval_history.approval_order','approval_master.approval_number')
-        ->orderBy("approval_order")
-        ->get();
-
-
-        $data['approveValidate'] = DB::select("SELECT username= '$username' as validate,current_level + 1 as next_level,* from (
-        select username,approval_order,
-        (select max(approval_number) from approval_master where module_code = a.module_code ) as max_level,
-        COALESCE((select max(approval_order) from approval_history
-        where module_code = a.module_code
-        and module_number = '".$poNumber."'),'0') as current_level
-        from approval_level a 
-        where module_code = '".$this->moduleCode."' and username = '$username') b
-        where approval_order = current_level+1");
-
-        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'RECEIVED','5'=>'CANCELED','6'=>'CLOSED','7'=>'RVISED','8'=>'DECLINE'];
-        $approvLevel  = $data['approveValidate'] ? 'APPROVED-'.$data['approveValidate'][0]->current_level.'/'.$data['approveValidate'][0]->max_level : 'APPROVED';
-        $statusPo = ['NEW','VALIDATED',$approvLevel,'RECEIVED','CANCELED','CLOSED','REVISED','DECLINE'];
-        $data['statusPo'] = $statusPo[$data['header']->status-1];
-        
-        $data['attribute'] = DB::table('attributes')
-        ->where('attr_name','main')
-        ->pluck('attr_value','attr_code');
-
-        $data['currentDate'] = date('d-m-Y');       
-
-        return view("purchaseOrder.show",$data);
-        
     }
-
     public function showEdit($key)
     {
         $id=$key;
@@ -1141,36 +1111,26 @@ class PurchaseOrderController extends Controller
 
     public function print(Request $request)
     {
-        $id = $request -> id;
+        $id=Crypt::decryptString($request->id);
 
-        $data['companies']= array(
-            "nama"=> "PT ABIMANYU SEKAR NUSANTARA",
-            "alamat"=> "KP. KARANG MULYA RT 014 RW 005 DESA CIKOPO",
-            "kota" => "KEC. BUNGURSARI KAB. PURWAKARTA JAWA BARAT",
-            "tlp" =>  ""
-        );
-        
-        $data['suppliers']=array(
-            'nama'=>'PT ABIMANYU SEKAR NUSANTARA',
-            'alamat'=>'KP. KARANG MULYA RT 014 RW 005 DESA CIKOPO',
-            'kota' =>'KEC. BUNGURSARI KAB. PURWAKARTA JAWA BARAT',
-            'tlp' => ''
-        );
-        
+        $data['companies']=DB::table('company')
+        ->where('code','ASN')
+        ->select('name as nama', 'address as alamat', DB::RAW('(select region_name from regions where region_code = city::integer)  as kota'),'tlp')
+        ->get()->first();
+            
         $poHdr=DB::table('purchase_order_hdr')
         ->where('id',$id)
         ->first();
 
         $poNumber=$poHdr -> po_number;
-       
-
+    
         $data['details']=DB::table('purchase_order_det')
         ->leftJoin('article','article.article_code','purchase_order_det.article_code')
         ->where('po_number',$poNumber)
         ->get();
 
         $data['totals']=DB::select("SELECT *,(gross-discount)+ppn as netto from (
-            select a.po_number,authorized_by,validate_by,sum(qty) as qty,sum(qty*price) as gross,sum(discount) as discount,sum(a.ppn) as ppn from purchase_order_det a
+            select a.po_number,authorized_by,validate_by,sum(qty) as qty,sum(qty*price) as gross,sum(discount) as discount,sum(qty*price*b.ppn/100) as ppn from purchase_order_det a
             left join purchase_order_hdr b
             on a.po_number = b.po_number 
             where a.po_number = '$poNumber'
@@ -1186,8 +1146,16 @@ class PurchaseOrderController extends Controller
         $data['poTerm'] =$poHdr -> termin;
         $data['poDelDate'] =$poHdr -> delivery_date;
         
-        $data['status'] ='1';
+        $data['status'] = $poHdr->status;
         $data['no'] =1;
+
+        // $poNumber = 'PO-ASN/2022/V/8';
+
+        $data['approved'] = DB::table('approval_history')
+        ->leftJoin('users','users.username','approval_history.username')
+        ->where('module_number',$poNumber)
+        ->orderBy('approval_order','desc')
+        ->value('users.name');
 
         view()->share($data);
 

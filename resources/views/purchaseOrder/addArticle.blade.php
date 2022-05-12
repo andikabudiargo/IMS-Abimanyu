@@ -73,6 +73,55 @@
     </div>
 </div>
 {{-- \.table row --}} 
+
+<div id="new_row_show" name="new_row_show[]" class="d-none">
+    <div id="baru_show">
+        <div class="form-row d-flex align-items-center">
+            <div class="col-md-2 col-12">
+                <div class="form-group margin-nol">
+                    <label for="pRequestShow" class="d-block d-md-none">Purchase Request</label>
+                    <input type="text" class="form-control" id="pRequestShow" name="pRequestShow[]" disabled>
+                </div>
+            </div>
+            <div class="col-md-3 col-12">
+                <div class="form-group margin-nol">
+                    <label for="article_id" class="d-block d-md-none">Article</label>
+                    <input type="text" class="form-control" id="article_idShow" name="article_idShow[]" disabled>
+                </div>
+            </div>
+            <div class="col-md-1 col-12">
+                <div class="form-group margin-nol">
+                    <label for="qty_stockShow" class="d-block d-md-none">Stock</label>
+                    <input type="text" class="form-control numeral-mask-satuan text-right" id = "qty_stockShow" name="qty_stockShow[]" disabled>
+                </div>
+            </div>
+            <div class="col-md-1 col-12">
+                <div class="form-group margin-nol">
+                    <label for="qty_orderShow" class="d-block d-md-none">QTY Order</label>
+                    <div class="input-group input-group-merge">
+                        <input type="text" class="form-control numeral-mask-satuan text-right" id = "qty_orderShow" name="qty_orderShow[]" maxlength="9" />
+                        <div class="input-group-append">
+                            <span class="input-group-text" id ="uomShow" name="uomShow[]"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-1 col-12 d-none">
+                <div class="form-group margin-nol">
+                    <label for="priceShow" class="d-block d-md-none">Price</label>
+                    <input type="text" class="form-control numeral-mask text-right" id= "priceShow" name="priceShow[]"  maxlength="11">
+                </div>
+            </div>
+            <div class="col-md-2 col-12">
+                <div class="form-group margin-nol">
+                    <label for="totalLineShow" class="d-block d-md-none">Total</label>
+                    <input type="text" class="form-control numeral-mask text-right" id="totalLineShow" name="totalLineShow[]" disabled>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <style>
 
     textarea {
@@ -180,7 +229,6 @@
         if (!$("#frmAdd")[0].checkValidity()){
             $("#frmAdd").submit();
         }else{ 
-            $('#cmdSave').attr('disabled','disabled');
             $('.disabled-el').removeAttr('disabled');
             // ambil semua data article
             let objQty= $('input[name="qty_order[]"]');
@@ -377,7 +425,6 @@
             }
 
             if (flag==0){
-
                 let orderDate = $('#orderDate').val();
                 let poType = $('#poType').val();
                 let deliveryDate = $('#deliveryDate').val();
@@ -444,18 +491,6 @@
             }
         }
     }
-
-    $("#cmdSave").click(function(){     
-        simpanData();
-    });
-
-    $("#cmdUpdate").click(function(){     
-        updateData('update');
-    });
-
-    $("#cmdApprove").click(function(){     
-        updateData('approve');
-    });
 
     function add_new_row() {
         let supplier = $('#supplier');
@@ -543,6 +578,37 @@
       })
     }
 
+    function listPrice(article,desc,indexNya){
+        $("#modalTableData tbody> tr").remove();
+        $.ajax({
+            dataType: 'json',
+            type:'GET',
+            url: "{{ route('purchaseOrder.price.list') }}",
+            data: { article:article },
+            success: function(data) {
+                if(data.length > 0 ){
+                    let html = '';
+                    for(let i=0;i<data.length;i++){
+                        html += `<tr>
+                        <td>${i+1}</td>
+                        <td>${data[i].po_number}</td>
+                        <td>${data[i].po_date}</td>
+                        <td class="text-right">
+                            <a href='javascript:;' type="button" class='btn btn-outline-primary waves-effect' onclick="definePrice('${indexNya}','${data[i].price}');">${humanizeNumber(data[i].price)}</a>
+                        </td>
+                        </tr>`;
+                    }
+                    $('#modalTableData tbody').append(html);
+                }                
+            },
+            error: function(data) {
+                swal.fire("Warning","Error data","warning");
+            }
+        });
+        $('#modalArticle').text(desc);
+        $('#modalListPrice').modal('show'); 
+    }
+
     function splitArticle(){
         // split article with delimiter |
         let objArticle = $('#article_row select[name="article_id[]"]');
@@ -561,6 +627,8 @@
             let detailText = objArticle.eq(objIndex).select2('data')[0].text;
             let arrDetail = detail.split("|");
             let uomGroup = objArticle.eq(objIndex).find(":selected").data("uom-group");
+
+            console.log(arrDetail[0]+"-"+detailText);
             
             objListPrice.eq(objIndex).attr("onClick", `listPrice('${arrDetail[0]}','${detailText}','${objIndex}');`);
             objStock.eq(objIndex).val(humanizeNumber(arrDetail[2]||0));
@@ -596,36 +664,7 @@
         $("#modalListPrice").modal('hide');
     }
 
-    function listPrice(article,desc,indexNya){
-        $("#modalTableData tbody> tr").remove();
-        $.ajax({
-            dataType: 'json',
-            type:'GET',
-            url: "{{ route('purchaseOrder.price.list') }}",
-            data: { article:article },
-            success: function(data) {
-                if(data.length > 0 ){
-                    let html = '';
-                    for(let i=0;i<data.length;i++){
-                        html += `<tr>
-                        <td>${i+1}</td>
-                        <td>${data[i].po_number}</td>
-                        <td>${data[i].po_date}</td>
-                        <td class="text-right">
-                            <a href='javascript:;' type="button" class='btn btn-outline-primary waves-effect' onclick="definePrice('${indexNya}','${data[i].price}');">${humanizeNumber(data[i].price)}</a>
-                        </td>
-                        </tr>`;
-                    }
-                    $('#modalTableData tbody').append(html);
-                }                
-            },
-            error: function(data) {
-                swal.fire("Warning","Error data","warning");
-            }
-        });
-        $('#modalArticle').text(desc);
-        $('#modalListPrice').modal('show'); 
-    }
+    
 
     function hitungTotal(){
         let objQty= $('#article_row input[name="qty_order[]"]');

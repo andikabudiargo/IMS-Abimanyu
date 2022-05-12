@@ -20,9 +20,25 @@ class SupplierController extends Controller
         $this->title = "Supplier";
     }
 
+    public function getTableColoumn(){
+        $kolom=
+        [
+            ['data'=>'action','name'=>'action','title'=>'action','orderable'=>false,'searchable'=>false],
+            ['data'=>'kode','name'=>'kode','title'=>'Kode'],
+            ['data'=>'nama','name'=>'nama','title'=>'Nama'],
+            ['data'=>'nama_kontak','name'=>'nama_kontak','title'=>'Nama Kontak'],
+            ['data'=>'telepon','name'=>'telepon','title'=>'Telepon'],
+            ['data'=>'hp','name'=>'hp','title'=>'HP'],
+            ['data'=>'fax','name'=>'fax','title'=>'Fax'],
+            ['data'=>'alamat_tagih','name'=>'alamat_tagih','title'=>'Alamat']
+        ];
+        return json_encode($kolom, true);
+    }
+
     public function index(Request $request)
     {
         $data['title'] = "$this->title";
+        $data['kolom'] = $this->getTableColoumn();
         return view("suppliers.index",$data);
     }
 
@@ -490,13 +506,16 @@ class SupplierController extends Controller
                                 </a>';
             if (Auth::user()->can('supplier-delete')) {
                 $buttons .=         "<a href='javascript:;'
+                                        class='dropdown-item' 
+                                        data-size='sm'
+                                        data-ajax-delete='true'
+                                        data-confirm='Are You Sure want to Delete?|This action can not be undone. Do you want to continue?' 
+                                        data-confirm-yes='document.getElementById(\""."delete-form-".$data->id."\").submit();'
+                                        data-modal-id='".$data->id."'
                                         id='deleteButton'
-                                        class='dropdown-item'
-                                        data-toggle='modal'
-                                        data-target='#smallModal'
-                                        data-href='". route("supplier.destroy", ['id'=>Crypt::encryptString($data->id)]) ."'>
+                                        data-url='". route("supplier.destroy", ['id'=>Crypt::encryptString($data->id)]) ."'>
                                         <i data-feather='trash-2' class='feather-14-red'></i>
-                                        Delete
+                                        <span>". __('Delete') ."</span>
                                     </a>";
             }
             $buttons .=     '</div>

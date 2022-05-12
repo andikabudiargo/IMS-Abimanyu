@@ -294,7 +294,6 @@
                             </div>
                         @endforeach
                     </div>
-
                 </div>
             </div>
         </div>
@@ -309,6 +308,17 @@
 @section('scripts')
 @include('purchaseOrder.addArticle')
 <script type="text/javascript">
+    const updateBtn = document.querySelector('#cmdUpdate'); 
+    const approveBtn = document.querySelector('#cmdApprove'); 
+
+    updateBtn.addEventListener('click',() =>{
+        updateData('update');
+    },{ once:true});
+
+    // approveBtn.addEventListener('click',() =>{
+    //     updateData('approve');
+    // },{ once:true});
+
     let cloneCount={{ count($detail) }};
     $("input[type='text']").click(function () {
         $(this).select();

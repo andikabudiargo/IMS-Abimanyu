@@ -20,6 +20,15 @@ class DependentRegionsController extends Controller
         $akhusus='';
 
         switch ($dependent) { 
+            case 'provinsi': 
+                $table='regions';
+                $field ='parent_region_code';
+                $order ='region_name';
+                $value ='region_code';
+                $name  ='region_name';
+                $default='';
+                $defaulttxt='Choose';
+                break;
             case 'kota': 
                 $table='regions';
                 $field ='parent_region_code';
@@ -39,15 +48,6 @@ class DependentRegionsController extends Controller
                 $defaulttxt='Choose';
                 break;
             case 'kelurahan': 
-                $table='regions';
-                $field ='parent_region_code';
-                $order ='region_name';
-                $value ='region_code';
-                $name  ='region_name';
-                $default='';
-                $defaulttxt='Choose';
-                break;
-            case 'provinsi': 
                 $table='regions';
                 $field ='parent_region_code';
                 $order ='region_name';

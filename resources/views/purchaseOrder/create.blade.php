@@ -189,6 +189,10 @@
 @include('purchaseOrder.addArticle')
 <script type="text/javascript">
     let cloneCount=1;
+    document.querySelector('#cmdSave').addEventListener('click',() =>{
+        simpanData();
+    });
+
     $(document).ready(function(){           
         validateFormToast("frmAdd");
         $('#orderDate').val(currentDate);

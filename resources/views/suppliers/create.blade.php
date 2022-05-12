@@ -53,20 +53,20 @@
                                 </select>
                             </div>
                             <div class="form-group col-md-6">
-                                <label class="form-label" for="kota">Kota</label>
-                                <select class="select2 form-control dynamicSelect" id="kota" name="kota" data-dependent="kelurahan">
+                                <label class="form-label" for="kota">Kota/Kabupaten</label>
+                                <select class="select2 form-control dynamicSelect" id="kota" name="kota" data-dependent="kecamatan">
                                 </select>
                             </div>
                         </div>
                         <div class="form-row">
                             <div class="form-group col-md-6">
-                                <label class="form-label" for="kelurahan">Kelurahan</label>
-                                <select class="select2 form-control dynamicSelect" id="kelurahan" name="kelurahan" data-dependent="kecamatan">
+                                <label class="form-label" for="kecamatan">Kecamatan</label>
+                                <select class="select2 form-control dynamicSelect" id="kecamatan" name="kecamatan" data-dependent="kelurahan">
                                 </select>
                             </div>
                             <div class="form-group col-md-6">
-                                <label class="form-label" for="kecamatan">Kecamatan</label>
-                                <select class="select2 form-control" id="kecamatan" name="kecamatan">
+                                <label class="form-label" for="kelurahan">Kelurahan</label>
+                                <select class="select2 form-control" id="kelurahan" name="kelurahan">
                                 </select>
                             </div>
                         </div>
@@ -326,7 +326,7 @@
       })
     }
 
-    $('#kecamatan').change(function(e) {
+    $('#kelurahan').change(function(e) {
         let val = $(this).find(':selected').text().split(",");
         val.length > 0 ? $('#kodePos').val(val[1]) :'';
     })

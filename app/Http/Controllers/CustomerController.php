@@ -13,17 +13,47 @@ use DataTables;
 use DB;
 
 class CustomerController extends Controller
-{
+{   
+    private $title;
+    public function __construct()
+    {
+        $this->title = "Supplier";
+    }
+
+    public function getTableColoumn(){
+        $kolom=
+        [
+            ['data'=>'action','name'=>'action','title'=>'action','orderable'=>false, 'searchable'=>false],
+            ['data'=>'kode','name'=>'kode','title'=>'Kode'],
+            ['data'=>'nama','name'=>'nama','title'=>'Nama'],
+            ['data'=>'inisial','name'=>'inisial','title'=>'Inisial'],
+            ['data'=>'nama_kontak','name'=>'nama_kontak','title'=>'Nama Kontak'],
+            ['data'=>'telepon','name'=>'telepon','title'=>'Telepon'],
+            ['data'=>'hp','name'=>'hp','title'=>'HP'],
+            ['data'=>'fax','name'=>'fax','title'=>'Fax'],
+            ['data'=>'alamat_tagih','name'=>'alamat_tagih','title'=>'Alamat tagih'],
+            ['data'=>'alamat_kirim_1','name'=>'alamat_kirim_1','title'=>'Alamat Kirim 1'],
+            ['data'=>'alamat_kirim_2','name'=>'alamat_kirim_2','title'=>'Alamat Kirim 2'],
+            ['data'=>'npwp','name'=>'npwp','title'=>'NPWP'],
+            ['data'=>'nppkp','name'=>'nppkp','title'=>'NPPKP'],
+            ['data'=>'alamat_npwp','name'=>'alamat_npwp','title'=>'Alamat NPWP'],
+            ['data'=>'blacklist','name'=>'blacklist','title'=>'Blacklist'],
+            ['data'=>'epte','name'=>'epte','title'=>'EPTE'],
+        ];
+        return json_encode($kolom, true);
+    }
+
     public function index(Request $request)
     {
-        $data['title'] = "Customer";
+        $data['title'] = "$this->title";
+        $data['kolom'] = $this->getTableColoumn();
         return view("customers.index",$data);
     }
 
     public function create(Request $request)
     {
-        $data['title'] = "Create Customer";
-        $data['subtitle'] = "Create New Customer";
+        $data['title'] = "Create $this->title";
+        $data['subtitle'] = "Create New $this->title";
         $data['provinces'] = DB::table('regions')
         ->where ('index','=',0)
         ->get();
@@ -195,24 +225,24 @@ class CustomerController extends Controller
                 ]);
 
                 DB::commit();
-                $alert  ="alert-success";
-                $message  = "$kode is successfully saved";
-                \LogActivity::addToLog('Customer save ',"username: $username Status $message");
-                return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);  
+                $title = $this->title;
+                $alert  ="success";
+                $message  = "$title $kode is successfully saved";
+                \LogActivity::addToLog('Supplier save ',"username: $username Status $message");
+                return redirect()->back()->with(['alert'=>$alert,'title'=>$title,'message'=> $message]);  
 
         } catch (Exception $e) {
             DB::rollBack();
-            $alert  ="alert-warning";
-            $message  = "$kode is failed to save";
-            \LogActivity::addToLog('Customer save ',"username: $username Status $message");
-            return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);   
+            $title = $this->title;
+            $alert  ="warning";
+            $message  = "$title $kode is failed to save";
+            \LogActivity::addToLog('Supplier save ',"username: $username Status $message");
+            return redirect()->back()->with(['alert'=>$alert,'title'=>$title,'message'=> $message]);
         }
-
     }
 
     public function edit(Request $request)
     {
-        
         $id=Crypt::decryptString($request->id);
         $data['title'] = "Edit Customer";
         $data['subtitle'] = "Edit Customer";
@@ -370,23 +400,26 @@ class CustomerController extends Controller
                 DB::commit();
 
                 if($row_affected>0){
-                    $alert  ="alert-success";
-                    $message  = "Successfully updated";
-                    \LogActivity::addToLog('Customer update ',"username: $username Status $message");
-                    return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);  
+                    $title = $this->title;
+                    $alert  ="success";
+                    $message  = "$title Successfully updated";
+                    \LogActivity::addToLog('Supplier update ',"username: $username Status $message");
+                    return redirect()->back()->with(['alert'=>$alert,'title'=>$title,'message'=> $message]);  
                 }else{
-                    $alert  ="alert-warning";
-                    $message  = "Failed to update";
-                    \LogActivity::addToLog('Customer update ',"username: $username Status $message");
-                    return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);
+                    $title = $this->title;
+                    $alert  ="warning";
+                    $message  = "$title Failed to update";
+                    \LogActivity::addToLog('Supplier update ',"username: $username Status $message");
+                    return redirect()->back()->with(['alert'=>$alert,'title'=>$title,'message'=> $message]);
                 }
 
         } catch (Exception $e) {
             DB::rollBack();
-            $alert  ="alert-warning";
-            $message  = "Failed to update";
-            \LogActivity::addToLog('Customer update ',"username: $username Status $message");
-            return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);
+            $title = $this->title;
+            $alert  ="warning";
+            $message  = "$title Failed to update";
+            \LogActivity::addToLog('Supplier update ',"username: $username Status $message");
+            return redirect()->back()->with(['alert'=>$alert,'title'=>$title,'message'=> $message]);
         }
 
     }
@@ -400,15 +433,17 @@ class CustomerController extends Controller
         ->delete();
 
         if($row_affected>0){
-            $alert  ="alert-success";
-            $message  = "Successfully Deleted";
+            $title = $this->title;
+            $alert  ="success";
+            $message  = "$title successfully Deleted";
             \LogActivity::addToLog('Supplier delete ',"username: $username Status $message");
-            return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);  
+            return redirect()->back()->with(['alert'=>$alert,'title'=>$title,'message'=> $message]);  
         }else{
-            $alert  ="alert-warning";
-            $message  = "Failed to Delete";
+            $title = $this->title;
+            $alert  ="warning";
+            $message  = "$title failed to Delete";
             \LogActivity::addToLog('Supplier delete ',"username: $username Status $message");
-            return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);
+            return redirect()->back()->with(['alert'=>$alert,'title'=>$title,'message'=> $message]);
         }
     }
 
@@ -419,15 +454,14 @@ class CustomerController extends Controller
         $name = strtolower($request->name);
 
         // ilike = string to lower
-        $data=DB::table('third_party');
-        $data->where('third_party_type','cust');
-        $code ? $data->where('kode','ilike','%'.$code.'%') : "";
-        $name ? $data->where('nama','ilike','%'.$name.'%') : "";
-        $data->orderBy('nama')->get();
-
-        // $query = $request->get('q');
-        // $sqlku="SELECT * from third_party where third_party_type = 'cust' and nama like '%$query%'";
-        // $data = DB::table(DB::raw("($sqlku) as oki"));
+        $data=DB::table('third_party')
+        ->where(function ($query) use ($code,$name) {
+            $code ? $query->where('kode','ilike','%'.$code.'%'):"";
+            $name ? $query->where('nama','ilike','%'.$name.'%'):""; 
+        })
+        ->where('third_party_type','cust')
+        ->orderBy('nama')
+        ->get();
 
         return Datatables::of($data)
         ->addColumn('action', function ($data) {
@@ -444,13 +478,16 @@ class CustomerController extends Controller
             }
             if (Auth::user()->can('customer-delete')) {
                 $buttons .=         "<a href='javascript:;'
+                                        class='dropdown-item' 
+                                        data-size='sm'
+                                        data-ajax-delete='true'
+                                        data-confirm='Are You Sure want to Delete?|This action can not be undone. Do you want to continue?' 
+                                        data-confirm-yes='document.getElementById(\""."delete-form-".$data->id."\").submit();'
+                                        data-modal-id='".$data->id."'
                                         id='deleteButton'
-                                        class='dropdown-item'
-                                        data-toggle='modal'
-                                        data-target='#smallModal'
-                                        data-href='". route("customer.destroy", ["id"=>Crypt::encryptString($data->id)]) ."'>
-                                        <i data-feather='trash-2'></i>
-                                        Delete
+                                        data-url='". route("customer.destroy", ['id'=>Crypt::encryptString($data->id)]) ."'>
+                                        <i data-feather='trash-2' class='feather-14-red'></i>
+                                        <span>". __('Delete') ."</span>
                                     </a>";
             }
             $buttons .=     '</div>
@@ -458,6 +495,9 @@ class CustomerController extends Controller
 
             return $buttons;
             })
+        ->addColumn('kode', function ($data) {
+            return '<a href="'. route('customer.edit', ['id'=>Crypt::encryptString($data->id)]) .'" ><span>'.$data->kode.'</span></a>';
+        })
         ->addColumn('blacklist', function ($data) {
             if ($data->blacklist =='1') {
                 $blacklist = '<div class="custom-control custom-switch custom-control-inline">
@@ -480,7 +520,7 @@ class CustomerController extends Controller
             }
             return $weightStatus;
         })
-        ->rawColumns(['action','blacklist','epte'])
+        ->rawColumns(['action','blacklist','epte','kode'])
         ->make(true);
     }
 }

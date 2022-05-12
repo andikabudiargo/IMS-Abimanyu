@@ -52,20 +52,20 @@
                                 </select>
                             </div>
                             <div class="form-group col-md-6">
-                                <label class="form-label" for="kota">Kota</label>
-                                <select class="select2 form-control dynamicSelect" id="kota" name="kota" data-dependent="kelurahan" disabled>
+                                <label class="form-label" for="kota">Kota/Kabupaten</label>
+                                <select class="select2 form-control dynamicSelect" id="kota" name="kota" data-dependent="kecamatan" disabled>
                                 </select>
                             </div>
                         </div>
                         <div class="form-row">
                             <div class="form-group col-md-6">
-                                <label class="form-label" for="kelurahan">Kelurahan</label>
-                                <select class="select2 form-control dynamicSelect" id="kelurahan" name="kelurahan" data-dependent="kecamatan" disabled>
+                                <label class="form-label" for="kecamatan">Kecamatan</label>
+                                <select class="select2 form-control" id="kecamatan" name="kecamatan" data-dependent="kelurahan" disabled>
                                 </select>
                             </div>
                             <div class="form-group col-md-6">
-                                <label class="form-label" for="kecamatan">Kecamatan</label>
-                                <select class="select2 form-control" id="kecamatan" name="kecamatan" disabled>
+                                <label class="form-label" for="kelurahan">Kelurahan</label>
+                                <select class="select2 form-control dynamicSelect" id="kelurahan" name="kelurahan" disabled>
                                 </select>
                             </div>
                         </div>
@@ -211,28 +211,11 @@
 <script type="text/javascript">
     let change_active = 'no';
     $(document).ready(function(){     
-        $("#frmAdd").validate({
-            invalidHandler: function(event, validator) {
-            let errors = validator.numberOfInvalids();
-            if (errors) {
-                var message = errors == 1
-                    ? 'You missed 1 field. It has been highlighted'
-                    : 'You missed ' + errors + ' fields. They have been highlighted';
-                $("#alert-message .alert-body").html(message);
-                $("#alert-message").show();
-                $("#alert-message").fadeTo(5000, 500).slideUp(500, function(){
-                    $("#alert-message").slideUp(500);
-                });
-            } else {
-                $("#alert-message").hide();
-            }
-        }
-        }).settings.ignore = "";
 
         '{{ Request::old('provinsi', $suppliers ? $suppliers->provinsi :'') }}' ? changeselect('provinsi',0,'{{ Request::old('provinsi',$suppliers ? $suppliers->provinsi : '') }}') : ''; 
         '{{ Request::old('kota', $suppliers ? $suppliers->kota :'') }}' ? changeselect('kota','{{ Request::old('provinsi',$suppliers ? $suppliers->provinsi : '') }}','{{ Request::old('kota',$suppliers ? $suppliers->kota : '') }}') : '';
-        '{{ Request::old('kelurahan', $suppliers ? $suppliers->kelurahan :'') }}' ? changeselect('kelurahan','{{ Request::old('kota',$suppliers ? $suppliers->kota : '') }}','{{ Request::old('kelurahan',$suppliers ? $suppliers->kelurahan : '') }}') : '';
-        '{{ Request::old('kecamatan', $suppliers ? $suppliers->kecamatan :'') }}' ? changeselect('kecamatan','{{ Request::old('kelurahan',$suppliers ? $suppliers->kelurahan : '') }}','{{ Request::old('kecamatan',$suppliers ? $suppliers->kecamatan : '') }}') : '';
+        '{{ Request::old('kecamatan', $suppliers ? $suppliers->kecamatan :'') }}' ? changeselect('kecamatan','{{ Request::old('kota',$suppliers ? $suppliers->kota : '') }}','{{ Request::old('kecamatan',$suppliers ? $suppliers->kecamatan : '') }}') : '';
+        '{{ Request::old('kelurahan', $suppliers ? $suppliers->kelurahan :'') }}' ? changeselect('kelurahan','{{ Request::old('kecamatan',$suppliers ? $suppliers->kecamatan : '') }}','{{ Request::old('kelurahan',$suppliers ? $suppliers->kelurahan : '') }}') : '';
 
         setTimeout( function() {
             change_active = 'yes';
