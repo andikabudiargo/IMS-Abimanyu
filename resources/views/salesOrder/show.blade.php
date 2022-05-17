@@ -238,15 +238,36 @@
                             <a href="{{ route('salesOrders.index') }}" class="btn btn-success">Back</a>
                         </div>
                     </div>
+                    <br>
+                    <hr>
+                    <div class="form-row card-statistics">
+                        @foreach($approveHistory as $val)
+                            <div class="statistics-body">
+                                <div class="col-xl-3 col-sm-6 col-12 mb-2 mb-xl-0">
+                                    <div class="media">
+                                        <div class="avatar bg-light-success mr-2">
+                                            <div class="avatar-content">
+                                                <i data-feather="check" class="avatar-icon"></i>
+                                            </div>
+                                        </div>
+                                        <div class="media-body my-auto">
+                                            <h4 class="font-weight-bolder mb-0">Approve-{{ $val->approval_order }}/{{ $val->approval_number }}</h4>
+                                            <p class="card-text mb-0">{{ $val->name }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
                     <br><br>
-                    <div class="row">
+                    {{-- <div class="row">
                         @foreach($approveHistory as $val)
                             <div class="col-xl-3 col-sm-6 col-12 mb-2 mb-xl-0">
                                 <h6 class="">Approve-{{ $val->approval_order }}</h6>
                                 <small>{{ $val->name }}</small>
                             </div>
                         @endforeach
-                    </div>
+                    </div> --}}
                 </div>
             </div>
         </div>

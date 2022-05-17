@@ -179,7 +179,7 @@
 </style>
 
 <script type="text/javascript">
-    let currentDate = "{{  $currentDate  }}";
+    let currentDate = "{{ $currentDate }}";
     orderDate = $('#orderDate');
     deliveryDate = $('#deliveryDate');
     

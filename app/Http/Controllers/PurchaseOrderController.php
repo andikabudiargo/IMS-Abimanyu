@@ -57,7 +57,7 @@ class PurchaseOrderController extends Controller
         ->orderBy('nama')
         ->get();
 
-        $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'RECEIVED','5'=>'CANCELED','6'=>'CLOSED','7'=>'RVISED','8'=>'DECLINE'];
+        $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'RECEIVED','5'=>'CANCELED','6'=>'CLOSED','7'=>'REVISED','8'=>'DECLINE'];
             
         return view("purchaseOrder.index",$data);
     }
@@ -302,6 +302,13 @@ class PurchaseOrderController extends Controller
         ->orderBy("approval_order")
         ->get();
 
+        $data['approveLevel'] = DB::table('approval_level')
+        ->leftJoin('users','users.username','approval_level.username')
+        ->where('module_code',$this->moduleCode)
+        ->select('approval_level.*','users.name')
+        ->orderBy('approval_order','asc')
+        ->get();
+
         $data['approveValidate'] = DB::select("SELECT username= '$username' as validate,current_level + 1 as next_level,* from (
         select username,approval_order,
         (select max(approval_number) from approval_master where module_code = a.module_code ) as max_level,
@@ -426,18 +433,24 @@ class PurchaseOrderController extends Controller
         ->orderBy("approval_order")
         ->get();
 
-        $data['approveValidate'] = DB::select("SELECT username= '$username' as validate,current_level + 1 as next_level,* from (
-            select username,approval_order,
-            (select max(approval_number) from approval_master where module_code = a.module_code ) as max_level,
-            COALESCE((select max(approval_order) from approval_history
-            where module_code = a.module_code
-            and module_number = '".$poNumber."'),'0') as current_level
-            from approval_level a 
-            where module_code = '".$this->moduleCode."' and username = '$username') b
-            where approval_order = current_level+1"); 
+        $data['approveLevel'] = DB::table('approval_level')
+        ->leftJoin('users','users.username','approval_level.username')
+        ->where('module_code',$this->moduleCode)
+        ->select('approval_level.*','users.name')
+        ->orderBy('approval_order','asc')
+        ->get();
 
+        $data['approveValidate'] = DB::select("SELECT username= '$username' as validate,current_level + 1 as next_level,* from (
+        select username,approval_order,
+        (select max(approval_number) from approval_master where module_code = a.module_code ) as max_level,
+        COALESCE((select max(approval_order) from approval_history
+        where module_code = a.module_code
+        and module_number = '".$poNumber."'),'0') as current_level
+        from approval_level a 
+        where module_code = '".$this->moduleCode."' and username = '$username') b
+        where approval_order = current_level+1"); 
     
-        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'RECEIVED','5'=>'CANCELED','6'=>'CLOSED','7'=>'RVISED','8'=>'DECLINE'];
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'RECEIVED','5'=>'CANCELED','6'=>'CLOSED','7'=>'REVISED','8'=>'DECLINE'];
         $approvLevel  = $data['approveValidate'] ? 'APPROVED-'.$data['approveValidate'][0]->current_level.'/'.$data['approveValidate'][0]->max_level : 'APPROVED';
         $statusPo = ['NEW','VALIDATED',$approvLevel,'RECEIVED','CANCELED','CLOSED','REVISED','DECLINE'];
         $data['statusPo'] = $statusPo[$data['header']->status-1];
@@ -447,7 +460,6 @@ class PurchaseOrderController extends Controller
         ->pluck('attr_value','attr_code');
 
         $data['currentDate'] = date('d-m-Y');
-               
         return view("purchaseOrder.edit",$data);
     }
 
@@ -632,7 +644,7 @@ class PurchaseOrderController extends Controller
             $status = '1';
         }       
 
-        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'RECEIVED','5'=>'CANCELED','6'=>'CLOSED','7'=>'RVISED','8'=>'DECLINE'];
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'RECEIVED','5'=>'CANCELED','6'=>'CLOSED','7'=>'REVISED','8'=>'DECLINE'];
         
         $messages = [
             'required' => 'The field is required.',
@@ -803,32 +815,30 @@ class PurchaseOrderController extends Controller
 
     public function approve(Request $request)
     {
-     
         $username =  Auth::user()->username;
         $poNumber = $request->poNumber;
 
-        $status = DB::select("SELECT max_level,next_level from
-        (
-        select 
-        (select max(approval_order) from approval_level where module_code = 'PO') as max_level, 
-        max(approval_order) as current_level,
-        max(approval_order)+1 as next_level
+        $statusDB = DB::select("SELECT max_level,current_level,next_level from
+        (select 
+        (select approval_number from approval_master where module_code = 'PO') as max_level 
+        ,coalesce(max(approval_order),0) as current_level
+        ,coalesce(max(approval_order),0)+1 as next_level
         from approval_history 
         where module_code ='".$this->moduleCode."'
         and module_number = '$poNumber'
         ) as oki
-        where  current_level+1 in 
-        (select approval_order from approval_level where module_code = 'PO' and username = '$username'");
-
-        $status = $status[0]->next_level == $status[0]->max_level ? '3' :'2';
+        where  next_level in (select approval_order from approval_level where module_code = 'PO' and username = '$username')");
         
+        $nextLevel = $statusDB[0]->next_level;
+        $statusPo = $statusDB[0]->next_level == $statusDB[0]->max_level ? '3' :'2';
+                
         DB::beginTransaction();
         try {
                 $row_affected=DB::table('purchase_order_hdr')
                 ->where('po_number',$poNumber)
                 ->update(
                     [
-                        'status' => $status[0]->next_level,
+                        'status' => $statusPo,
                         'authorized_by' => Auth::user()->username,
                         'authorized_at' => date('Y-m-d H:i:s')
                     ]
@@ -839,7 +849,7 @@ class PurchaseOrderController extends Controller
                         'module_code' => $this->moduleCode,
                         'module_number' => $poNumber,
                         'username' => Auth::user()->username,
-                        'approval_order' => $status[0]->next_level,
+                        'approval_order' => $nextLevel,
                         'approval_date' => date('Y-m-d'),
                         'status' => 1,
                         'created_by' => Auth::user()->username,
@@ -852,7 +862,7 @@ class PurchaseOrderController extends Controller
                 DB::commit();
                 $title ="Approve $this->title";
                 $alert  ="success";
-                $message  = "$title $poNumber is successfully Approve-".$status[0]->next_level;
+                $message  = "$title $poNumber is successfully Approve-".$nextLevel;
                 \LogActivity::addToLog($title,"username: $username Status $message");
                 return response()->json(array('statusPo' => $statusPo,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'poNumber'=>$poNumber));
 
@@ -860,7 +870,7 @@ class PurchaseOrderController extends Controller
             DB::rollBack();
             $title ="Autorized $this->title";
             $alert  ="warning";
-            $message  = "$title $poNumber is failed to Approve-".$status[0]->next_level;
+            $message  = "$title $poNumber is failed to Approve-".$nextLevel;
             \LogActivity::addToLog($title,"username: $username Status $message");
             return response()->json(array('statusPo' => $statusPo,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'poNumber'=>$poNumber));
         }
@@ -939,7 +949,7 @@ class PurchaseOrderController extends Controller
 
     public function list(Request $request)
     {
-        $seachPo = strtolower($request->seachPo);
+        $searchPo = strtolower($request->searchPo);
         $username = Auth::user()->username;
         $searchSupplier = $request->searchSupplier;
         $searchStatus = $request->searchStatus;
@@ -947,8 +957,8 @@ class PurchaseOrderController extends Controller
        
         $filter='';
         
-        if ($seachPo !='' ){
-            $filter.="lower(a.po_number) like '%$seachPo%' and ";
+        if ($searchPo !='' ){
+            $filter.="lower(a.po_number) like '%$searchPo%' and ";
         }
 
         if ($searchSupplier  != '' ){
@@ -1019,7 +1029,7 @@ class PurchaseOrderController extends Controller
         on oki.uom = c.code
         order by oki.id");
 
-        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'RECEIVED','5'=>'CANCELED','6'=>'CLOSED','7'=>'RVISED','8'=>'DECLINE'];
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'RECEIVED','5'=>'CANCELED','6'=>'CLOSED','7'=>'REVISED','8'=>'DECLINE'];
     
         return Datatables::of($data)
         ->addColumn('action', function ($data) {

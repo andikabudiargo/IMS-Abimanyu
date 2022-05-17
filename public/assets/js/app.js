@@ -632,3 +632,23 @@
         }
         return jumlah;
     }
+
+    let changeSelect = (opt) => {
+        opt = $.extend({
+            dependent:"",
+            obj:"",
+            url:""
+        }, opt);
+
+        $.ajax({
+            url:opt.url,
+            method:"POST",
+            data:{
+                dependent:opt.dependent
+            },
+            success:function(result){
+                $('#'+opt.obj).html(result);
+                $('#'+opt.obj).val('').trigger('change');
+            }
+        })
+    }

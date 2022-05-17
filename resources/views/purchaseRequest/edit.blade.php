@@ -108,7 +108,19 @@
                                             </select>
                                         </div>
                                     </div>
-                                    <div class="col-md-1 col-12">
+                                    <div class="col-md-2 col-12">
+                                        <div class="form-group margin-nol">
+                                            <label for="qty_order" class="d-block d-md-none">QTY</label>
+                                            <div class="input-group input-group-merge">
+                                                <input type="text" class="form-control numeral-mask text-right" id = "qty_order" name="qty_order[]" value="{{ $item->qty }}" maxlength="9" />
+                                                <div class="input-group-append">
+                                                    <span class="" id = "uom" name="uom[]">{{ $item->uom }}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {{-- <div class="col-md-1 col-12">
                                         <div class="form-group">
                                             <label for="qty_order" class="d-block d-md-none">Qty</label>
                                             <input type="text" class="form-control numeral-mask text-right" id = "qty_order" name="qty_order[]" value="{{ $item->qty }}" maxlength="6" />
@@ -119,7 +131,7 @@
                                             <label for="uom" class="d-block d-md-none">Uom</label>
                                             <span class="" id = "uom" name="uom[]">{{ $item->uom }}</span>
                                         </div>
-                                    </div>
+                                    </div> --}}
                                     <div class="col-md-3 col-12">
                                         <div class="form-group">
                                             <label for="note" class="d-block d-md-none">Note</label>

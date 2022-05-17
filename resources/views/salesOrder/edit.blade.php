@@ -109,16 +109,16 @@
                 <div class="card-body">
                     <div class="container-list-item">
                         <div class="lebar-list-item">
-                            @include('salesOrder.headerColumn')
+                            @include('salesOrder.headerColumnOne')
                             <div class="" id="article_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px">
                                 <input type="text" id ="last_row_number" class="d-none" value="{{ count($detail) }}">
                                 @foreach ($detail as $key =>$item)
                                     <div id="new_row{{ $key }}" class="tanda-baris" >
-                                        <div class="form-row ">
+                                        <div class="form-row">
                                             <div class="col-md-4 col-12">
                                                 <div class="form-group margin-nol">
                                                     <label for="article_id" class="d-block d-md-none">Article Code</label>
-                                                    <select class="select2 form-control dynamicSelect sku-select-system" id="article_id{{ $key }}" name="article_id[]" data-dependent="article_id">
+                                                    <select class="form-control dynamicSelect sku-select-system" id="article_id{{ $key }}" name="article_id[]" data-dependent="article_id">
                                                         @foreach($articles as $val)
                                                             <option value="{{$val->article_code}}|{{$val->group}}|{{$val->qty}}|{{$val->uom1}}" {{$val->article_code ==$item->article_code ? "selected" : ""}}>{{$val->article_alternative_code}} | {{$val->article_desc}}</option>
                                                         @endforeach
@@ -255,12 +255,24 @@
                             @endif
                         </div>
                     </div>
-                    <br><br>
-                    <div class="row">
+                    <br>
+                    <hr>
+                    <div class="form-row card-statistics">
                         @foreach($approveHistory as $val)
-                            <div class="col-xl-3 col-sm-6 col-12 mb-2 mb-xl-0">
-                                <h6 class="">Approve-{{ $val->approval_order }}</h6>
-                                <small>{{ $val->name }}</small>
+                            <div class="statistics-body">
+                                <div class="col-xl-3 col-sm-6 col-12 mb-2 mb-xl-0">
+                                    <div class="media">
+                                        <div class="avatar bg-light-success mr-2">
+                                            <div class="avatar-content">
+                                                <i data-feather="check" class="avatar-icon"></i>
+                                            </div>
+                                        </div>
+                                        <div class="media-body my-auto">
+                                            <h4 class="font-weight-bolder mb-0">Approve-{{ $val->approval_order }}/{{ $val->approval_number }}</h4>
+                                            <p class="card-text mb-0">{{ $val->name }}</p>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         @endforeach
                     </div>

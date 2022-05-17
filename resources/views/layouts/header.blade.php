@@ -61,7 +61,7 @@
 						<img class="round" src="{{ asset(Auth::user()->filename) }}" 
 							onerror="this.src='{{ asset('app-assets/images/avatars/default.png') }}';" 
 							alt="avatar" height="40" width="40">
-						<span class="avatar-status-online"></span>
+						<span class="online"></span>
 						{{-- <span class="avatar-status-offline"></span> --}}
 					</span>
 				</a>
@@ -81,3 +81,39 @@
 
 <ul class="main-search-list-defaultlist d-none">	
 </ul>
+
+<script type="text/javascript">
+	const online = document.querySelector(".online");
+
+	window.addEventListener("load", async (event) => {
+		const status = navigator.onLine;
+		if (status){
+			online.classList.remove('avatar-status-offline');
+			online.classList.add('avatar-status-online')
+		}else{
+			online.classList.remove('avatar-status-online')
+			online.classList.add('avatar-status-offline');
+		}
+	});
+
+	const checkOnlineStatus = async () => {
+		try {
+			const online = await navigator.onLine;
+			return online // either true or false
+		} catch (err) {
+			return false; // definitely offline
+		}
+	};
+
+	setInterval(async () => {
+		const result = await checkOnlineStatus();
+		if (result){
+			online.classList.remove('avatar-status-offline');
+			online.classList.add('avatar-status-online')
+		}else{
+			online.classList.remove('avatar-status-online')
+			online.classList.add('avatar-status-offline');
+		}
+	}, 30000);
+
+</script>

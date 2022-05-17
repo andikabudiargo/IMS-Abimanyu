@@ -68,8 +68,8 @@
                 </div>
             </li>   
             <li class="scrollable-container media-list">
-                @foreach($listPo2 as $val)
-                    <a class="d-flex" href="{{ route('purchaseOrder.edit', ['id'=>Crypt::encryptString($val->id)]) }}">
+                @foreach($listPo2 as $key=>$val)
+                    {{-- <a class="d-flex" href="{{ route('purchaseOrder.edit', ['id'=>Crypt::encryptString($val->id)]) }}"> --}}
                         <div class="media d-flex align-items-start">
                             <div class="media-left">
                                 <div class="avatar">
@@ -78,24 +78,53 @@
                                 </div>
                             </div>
                             <div class="media-body">
-                                <p class="media-heading">
-                                    <span class="font-weight-bolder">{{ $val->po_number }}</span>
-                                </p>
-                                <p class="media-heading">
-                                    <small class="notification-text">So Date: {{ $val->po_date }}</small>
-                                </p>
-                                <p class="media-heading">
-                                    <small class="notification-text">Supplier: {{ $val->supplier_name }}</small>
-                                </p>
-                                <p class="media-heading">
-                                    <small class="notification-text">Amount: Rp.{{ number_format($val->po_amount) }},-</small>
-                                </p>
-                                <p class="media-heading">
-                                    <small class="notification-text">#Approve: {{ $val->sudah_approve }}</small>
-                                </p>
+                                <div class="col-12">
+                                    <p class="media-heading">
+                                        <span class="font-weight-bolder">{{ $val->po_number }}</span>
+                                    </p>
+                                    <p class="media-heading">
+                                        <small class="notification-text">PO Date: {{ $val->po_date }}</small>
+                                    </p>
+                                    <p class="media-heading">
+                                        <small class="notification-text">Supplier: {{ $val->supplier_name }}</small>
+                                    </p>
+                                    <p class="media-heading">
+                                        <small class="notification-text">Amount: Rp{{ number_format($val->po_amount) }},-</small>
+                                    </p>
+                                    <p class="media-heading">
+                                        <small class="notification-text">#Approved: {{ $val->current_level }} of {{ $val->max_level }}</small>
+                                    </p>
+                                </div>
+                                <div class="col-12 mt-50">
+                                    <a class="btn btn-outline-info btn-sm" id="cmdDetail{{ $key }}" name="cmdDetail{{ $key }}" href="{{ route('purchaseOrder.edit', ['id'=>Crypt::encryptString($val->id)]) }}"> 
+                                        <i data-feather='list'></i>
+                                        Detail
+                                    </a>
+                                    <a href='javascript:;'
+                                        onclick="action(this)"
+                                        id = 'btnDecline{{ $key }}'
+                                        class="btn btn-outline-danger btn-sm"
+                                        data-key = '{{ $key }}'
+                                        data-doc-number='{{ $val->po_number }}'
+                                        data-url='{{ route("purchaseOrder.approve", ["poNumber"=>$val->po_number]) }}'>
+                                        <i data-feather='x-circle'></i>
+                                        Decline
+                                    </a>
+                                    <a href='javascript:;'
+                                        onclick="action(this)"
+                                        id = 'button{{ $key }}'
+                                        class="btn btn-outline-success btn-sm"
+                                        data-key = '{{ $key }}'
+                                        data-doc-number='{{ $val->po_number }}'
+                                        data-url='{{ route("purchaseOrder.approve", ["poNumber"=>$val->po_number]) }}'>
+                                        <i data-feather='check-circle'></i>
+                                        Approve
+                                    </a>
+                                </div>
                             </div>
                         </div>
-                    </a>
+                        
+                    {{-- </a> --}}
                 @endforeach
             </li>
             {{-- <li class="dropdown-menu-footer">
@@ -107,6 +136,36 @@
 
 
 <script type="text/javascript">
+
+    action=(me)=>{
+        let meId=me.getAttribute('id'),    
+        meDocNumber=me.getAttribute("data-doc-number"),
+        meUrl=me.getAttribute("data-url"),
+        meKey= me.getAttribute("data-key");
+
+        fetch(meUrl, {
+            method: "GET",
+            headers: {"Content-type": "application/json;charset=UTF-8"}
+        })
+        .then(response => response.json())
+        .then((responseData) => {
+            // console.log(responseData);
+            // return responseData;
+            document.getElementById("btnDecline"+meKey).classList.add('d-none')
+            document.getElementById(meId).classList.add('d-none')
+        })
+        .catch(err => console.log(err));
+    }
+
+    // $(document).on('click', 'a[data-ajax-approve="true"]', function () {
+    //     console.log("oki");
+    //     let me = $(this),
+    //         me_doc_number = me.data('doc-number'),
+    //         me_href = me.data('url'),
+    //         me_id = me.attr('id');
+    //         console.log(me_doc_number);
+    // });
+
     // let username = "{{ Auth::user()->name }}";
     // getNotification = () => {
     //     $.ajax({

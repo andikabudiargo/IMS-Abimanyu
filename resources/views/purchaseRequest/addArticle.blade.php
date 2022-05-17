@@ -7,14 +7,26 @@
 <div id="new_row" name="new_row[]" class="d-none">
     <div id="baru" class="tanda-baris" >
         <div class="form-row d-flex align-items-center">
-            <div class="col-md-5 col-12">
+            <div class="col-md-6 col-12">
                 <div class="form-group">
                     <label for="article_id" class="d-block d-md-none">Article Code</label>
                     <select class="form-control dynamicSelect sku-select-system" id="article_id" name="article_id[]" data-dependent="article_id">
                     </select>
                 </div>
             </div>
-            <div class="col-md-1 col-12">
+            <div class="col-md-2 col-12">
+                <div class="form-group margin-nol">
+                    <label for="qty_order" class="d-block d-md-none">QTY</label>
+                    <div class="input-group input-group-merge">
+                        <input type="text" class="form-control numeral-mask-satuan text-right" id = "qty_order" name="qty_order[]" maxlength="9" />
+                        <div class="input-group-append">
+                            <span class="input-group-text" id ="uom" name="uom[]"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- <div class="col-md-1 col-12">
                 <div class="form-group">
                     <label for="qty_order" class="d-block d-md-none">Qty</label>
                     <input type="text" class="form-control numeral-mask text-right" id = "qty_order" name="qty_order[]" maxlength="6" />
@@ -25,7 +37,7 @@
                     <label for="uom" class="d-block d-md-none">Uom</label>
                     <span class="" id = "uom" name="uom[]"></span>
                 </div>
-            </div>
+            </div> --}}
             <div class="col-md-3 col-12">
                 <div class="form-group">
                     <label for="note" class="d-block d-md-none">Note</label>
@@ -42,31 +54,6 @@
             </div>
         </div>
         <hr class="d-block d-md-none" />
-        {{-- <table class="table-bordered" style="width: 98%;table-layout: fixed;">
-            <tbody>
-                <tr>
-                    <td class="isian-satu" style="width: 25%">
-                        <select class="dynamicSelect sku-select-system" id="article_id" name="article_id[]" data-dependent="article_id">
-                        </select>
-                    </td>
-                    <td class="isian" style="width: 5%">
-                        <input type="text" class="form-control-plaintext numeral-mask text-right" id = "qty_order" name="qty_order[]" maxlength="6" />
-                    </td>
-                    <td class="isian disabled" style="width: 5%">
-                        <span class="" id = "uom" name="uom[]"></span>
-                    </td>
-                    <td class="isian" style="width: 10%">
-                        <input type="text" class="form-control-plaintext" id = "note" name="note[]"  maxlength="100">
-                    </td>
-                    <td class="isian text-center" style="width: 5%">
-                        <a onmouseover="this.style.cursor='pointer'" onclick="$(this).parents('.tanda-baris').remove();">
-                            <i data-feather="trash-2" class="remove_button feather-24">
-                            </i>
-                        </a>
-                    </td>
-                </tr>
-            </tbody>
-        </table> --}}
     </div>
 </div>
 {{-- \.table row --}} 

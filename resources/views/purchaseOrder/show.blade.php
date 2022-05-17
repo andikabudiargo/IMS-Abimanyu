@@ -130,10 +130,9 @@
                                             </tbody>
                                         </table>
                                     </div>
-                                    <hr>
                                     <div class="d-flex justify-content-between align-items-end mt-75">
                                         <div class="col-md-4">
-                                            <span>ROW : {{ $header2->sum_row }}</span>
+                                            <span>ROW : {{ $header2->sum_row }}</span> <br>
                                             <span>QTY : {{ $header2->sum_qty }}</span>
                                         </div>
                                         <div class="col-md-4">
@@ -166,6 +165,7 @@
                                         </div>
                                     </div>
                                     <br>
+                                    <a href="{{ route('purchaseOrders.index') }}" class="btn btn-success">Back</a>
                                     <a href="{{ route('purchaseOrder.print', ['id'=>Crypt::encryptString($header2->id)]) }}" target="_blank" type="button" class="btn btn-primary">
                                         <i data-feather="printer"></i>
                                         <span>{{ __("Print") }}</span>
@@ -174,18 +174,57 @@
                             @endforeach
                         </div>
                         <hr>
-                        <div class="form-row">
-                            <div class="col-md-12">
-                                <div class="form-row">
-                                    <div class="col-md-12">
-                                        <a href="{{ route('purchaseOrders.index') }}" class="btn btn-success">Back</a>
+                        <div class="form-row card-statistics">
+                            @php
+                                $ketemu = "false";
+                            @endphp
+                            @foreach($approveLevel as $val)
+                                
+                                @php
+                                    $ketemu = "false";
+                                @endphp
+                                @foreach($approveHistory as $val2)
+                                    @if( $val2->name == $val->name && $val2->approval_order == $val->approval_order )
+                                    <div class="statistics-body">
+                                        <div class="col-xl-3 col-sm-6 col-12 mb-2 mb-xl-0">
+                                            <div class="media">
+                                                <div class="avatar bg-light-success mr-2">
+                                                    <div class="avatar-content">
+                                                        <i data-feather="check" class="avatar-icon"></i>
+                                                    </div>
+                                                </div>
+                                                <div class="media-body my-auto">
+                                                    <h4 class="font-weight-bolder mb-0">Approve-{{ $val2->approval_order }}/{{ $val2->approval_number }}</h4>
+                                                    <p class="card-text mb-0">{{ $val2->name }}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    @php
+                                        $ketemu = "true";
+                                    @endphp
+                                    @endif
+                                @endforeach
+                                @if( $ketemu == 'false')
+                                <div class="statistics-body">
+                                    <div class="col-xl-3 col-sm-6 col-12 mb-2 mb-xl-0">
+                                        <div class="media">
+                                            <div class="avatar bg-light-danger mr-2">
+                                                <div class="avatar-content">
+                                                    <i data-feather="x" class="avatar-icon"></i>
+                                                </div>
+                                            </div>
+                                            <div class="media-body my-auto">
+                                                <h4 class="font-weight-bolder mb-0">Approve-{{ $val->approval_order }}</h4>
+                                                <p class="card-text mb-0">{{ $val->name }}</p>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        </div>
-                        <br>
-                        <hr>
-                        <div class="form-row card-statistics">
+                                @endif
+                                    
+                            @endforeach
+{{-- 
                             @foreach($approveHistory as $val)
                                 <div class="statistics-body">
                                     <div class="col-xl-3 col-sm-6 col-12 mb-2 mb-xl-0">
@@ -202,7 +241,8 @@
                                         </div>
                                     </div>
                                 </div>
-                            @endforeach
+                            @endforeach --}}
+
                         </div>
                     </div>
                 </div>

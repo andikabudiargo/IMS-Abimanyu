@@ -36,6 +36,7 @@ pssword: admin
 ##### sudah dilengkapi dengan:
 - Auth menggunakan spatie
 - Activity log
+- Jwt
 
 clear chace untuk browser
 Route::get('/clear-cache', function() {

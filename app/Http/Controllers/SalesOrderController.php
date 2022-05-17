@@ -17,9 +17,11 @@ use AppHelpers;
 class SalesOrderController extends Controller
 {
     private $title;
+    private $moduleCode;
     public function __construct()
     {
         $this->title = "Sales Order";
+        $this->moduleCode = "SO";
     }
 
     public function index(Request $request)
@@ -242,8 +244,7 @@ class SalesOrderController extends Controller
     {
         $id=Crypt::decryptString($request->id);
         $username =  Auth::user()->username;
-        $modulCode = 'SO';
-
+    
         $data['title'] = "Detail $this->title";
         $data['subtitle'] = "Detail $this->title";
 
@@ -251,10 +252,12 @@ class SalesOrderController extends Controller
         ->where('id',$id)
         ->get()->first();
 
+        $soCode = $data['header']->so_code;
+
         $data['detail'] = DB::table('sales_order_det')
         ->leftJoin('article','article.article_code','=','sales_order_det.article_code')
         ->leftJoin('article_stock','article_stock.article_code','=','sales_order_det.article_code')
-        ->where('so_code',$data['header']->so_code)
+        ->where('so_code',$soCode)
         ->select('sales_order_det'.'.*',DB::raw('round(sales_order_det.qty) as qty'),'article_stock.article_qty as qty_stock', DB::raw('(SELECT name from group_materials where code = group_of_material) as group'))
         ->orderBy('id')
         ->get();       
@@ -283,12 +286,32 @@ class SalesOrderController extends Controller
         ->orderBy('name')
         ->get();
 
+        // $data['approveHistory'] = DB::table('approval_history')
+        // ->leftJoin('users','users.username','approval_history.username')
+        // ->where('module_code',$modulCode)
+        // ->where('module_number',$soCode)
+        // ->orderBy("approval_order")
+        // ->get();
+
         $data['approveHistory'] = DB::table('approval_history')
         ->leftJoin('users','users.username','approval_history.username')
-        ->where('module_code',$modulCode)
-        ->where('module_number',$data['header']->so_code)
+        ->leftJoin('approval_master','approval_master.module_code','approval_history.module_code')
+        ->where('approval_history.module_code',$this->moduleCode)
+        ->where('module_number',$soCode)
+        ->select('users.name','approval_history.approval_order','approval_master.approval_number')
         ->orderBy("approval_order")
         ->get();
+
+        $data['approveValidate'] = DB::select("SELECT username= '$username' as validate,current_level + 1 as next_level,* from (
+        select username,approval_order,
+        (select max(approval_number) from approval_master where module_code = a.module_code ) as max_level,
+        COALESCE((select max(approval_order) from approval_history
+        where module_code = a.module_code
+        and module_number = '".$soCode."'),'0') as current_level
+        from approval_level a 
+        where module_code = '".$this->moduleCode."' and username = '$username') b
+        where approval_order = current_level+1");
+
 
         $statusSo = ['New','Validated','Approved','Received','Canceled','Closed','Paid'];
         $data['statusSo'] = $statusSo[$data['header']->status-1];
@@ -301,7 +324,6 @@ class SalesOrderController extends Controller
     {
         $id=Crypt::decryptString($request->id);
         $username =  Auth::user()->username;
-        $modulCode = 'SO';
 
         $data['title'] = "Edit $this->title";
         $data['subtitle'] = "Edit $this->title";
@@ -309,6 +331,8 @@ class SalesOrderController extends Controller
         $data['header'] = DB::table('sales_order_hdr')
         ->where('id',$id)
         ->get()->first();
+
+        $soCode = $data['header']->so_code;
 
         $data['detail'] = DB::table('sales_order_det')
         ->leftJoin('article','article.article_code','=','sales_order_det.article_code')
@@ -344,25 +368,44 @@ class SalesOrderController extends Controller
 
         $data['approveHistory'] = DB::table('approval_history')
         ->leftJoin('users','users.username','approval_history.username')
-        ->where('module_code',$modulCode)
-        ->where('module_number',$data['header']->so_code)
+        ->leftJoin('approval_master','approval_master.module_code','approval_history.module_code')
+        ->where('approval_history.module_code',$this->moduleCode)
+        ->where('module_number',$soCode)
+        ->select('users.name','approval_history.approval_order','approval_master.approval_number')
         ->orderBy("approval_order")
         ->get();
 
-        //cari di database apakah approval nya sudah sampe level mana
-        $data['approveValidate'] = DB::select("SELECT * from 
-        (SELECT username = '$username' as validate,
-        case when (select max(approval_order) from approval_history where module_code = '$modulCode' and module_number = '".$data['header']->so_code."') is null then 1
-        else (select max(approval_order)+1 from approval_history where module_code = '$modulCode' and module_number = '".$data['header']->so_code."') end as last_approval
-        from approval_level where module_code = '$modulCode' 
-        and 
-        approval_order = case when (select max(approval_order) from approval_history where module_code = '$modulCode' and module_number = '".$data['header']->so_code."') is null then 1
-        else (select max(approval_order)+1 from approval_history where module_code = '$modulCode' and module_number = '".$data['header']->so_code."') end
-        and 
-        (select approval_number from approval_master where module_code = '$modulCode') >= case when (select max(approval_order) from approval_history where module_code = 'SO' and module_number = '".$data['header']->so_code."') is null then 1
-        else (select max(approval_order)+1 from approval_history where module_code = '$modulCode' and module_number = '".$data['header']->so_code."') end
-        and username = '$username') as oki
-        where last_approval <= (select approval_number from approval_master where module_code = '$modulCode')");
+        $data['approveValidate'] = DB::select("SELECT username= '$username' as validate,current_level + 1 as next_level,* from (
+        select username,approval_order,
+        (select max(approval_number) from approval_master where module_code = a.module_code ) as max_level,
+        COALESCE((select max(approval_order) from approval_history
+        where module_code = a.module_code
+        and module_number = '".$soCode."'),'0') as current_level
+        from approval_level a 
+        where module_code = '".$this->moduleCode."' and username = '$username') b
+        where approval_order = current_level+1"); 
+
+        // $data['approveHistory'] = DB::table('approval_history')
+        // ->leftJoin('users','users.username','approval_history.username')
+        // ->where('module_code',$modulCode)
+        // ->where('module_number',$data['header']->so_code)
+        // ->orderBy("approval_order")
+        // ->get();
+
+        // //cari di database apakah approval nya sudah sampe level mana
+        // $data['approveValidate'] = DB::select("SELECT * from 
+        // (SELECT username = '$username' as validate,
+        // case when (select max(approval_order) from approval_history where module_code = '$modulCode' and module_number = '".$data['header']->so_code."') is null then 1
+        // else (select max(approval_order)+1 from approval_history where module_code = '$modulCode' and module_number = '".$data['header']->so_code."') end as last_approval
+        // from approval_level where module_code = '$modulCode' 
+        // and 
+        // approval_order = case when (select max(approval_order) from approval_history where module_code = '$modulCode' and module_number = '".$data['header']->so_code."') is null then 1
+        // else (select max(approval_order)+1 from approval_history where module_code = '$modulCode' and module_number = '".$data['header']->so_code."') end
+        // and 
+        // (select approval_number from approval_master where module_code = '$modulCode') >= case when (select max(approval_order) from approval_history where module_code = 'SO' and module_number = '".$data['header']->so_code."') is null then 1
+        // else (select max(approval_order)+1 from approval_history where module_code = '$modulCode' and module_number = '".$data['header']->so_code."') end
+        // and username = '$username') as oki
+        // where last_approval <= (select approval_number from approval_master where module_code = '$modulCode')");
 
         $statusSo = ['New','Validated','Approved','Received','Canceled','Closed','Paid'];
         $data['statusSo'] = $statusSo[$data['header']->status-1];
@@ -432,7 +475,6 @@ class SalesOrderController extends Controller
 
     public function update(Request $request)
     {
-
         $username =  Auth::user()->username;
         $orderNumber = $request->orderNumber;
         $articles = json_decode($request -> articles);

@@ -2,8 +2,6 @@
 @section('title', $title)
 @section('content')
 @include('layouts.breadcrumb')
-@include('partials.alert')
-
 <section id="article-index">
   <div class="card">
     <div class="card-header">  
@@ -27,8 +25,8 @@
                 <input type="text" id="requestDate" name="requestDate" class="form-control flatpickr-range" placeholder="YYYY-MM-DD to YYYY-MM-DD" />
               </div>
               <div class="form-group col-md-2">
-                <label class="form-label" for="poType">PO Type*</label>
-                <select class="select2 form-control" id="poType" name="poType" required>
+                <label class="form-label" for="orderType">PO Type*</label>
+                <select class="select2 form-control" id="orderType" name="orderType" required>
                     <option value="std">Standard</option>
                     <option value="sub">Subcontracting</option>
                 </select>
@@ -56,7 +54,6 @@
     </div>
   </div>
 </section>
-
 <section id="table-article">
   <div class="card">
     <div class="card-header">
@@ -84,9 +81,7 @@
     </div>
   </div>
 </section>
-
 @include('partials.delete-modal')
-
 @endsection
 @section('styles')
 <style>
@@ -94,148 +89,54 @@
 @endsection
 @section('scripts')
 <script type="text/javascript">
-  $(document).ready(function(){    
-    let href;
-    $(document).on('click', '#deleteButton', function(event) {
-        event.preventDefault();
-        href = $(this).data('href');
-        console.log(href);
-        $('#modalConfirmation').attr("action", href);
-    });
+
+  let searchPr = document.querySelector("#searchPr");
+  let orderType = document.querySelector("#orderType"); 
+  let searchStatus = document.querySelector("#searchStatus");
+  let requestDate = document.querySelector("#requestDate");
+  let search = document.querySelector('#btnSearch');
+  let refresh = document.querySelector('a[data-action="reload"]');
+  let rangePickr = document.querySelector('.flatpickr-range');
+
+  document.addEventListener("DOMContentLoaded", function(event) {
   });
 
-  let showAlert = "{{ Session::get('alert') }}";
-
-  if ( showAlert ){
-    showList();
-    $("#alert-message-alert").fadeTo(5000, 500).slideUp(500, function(){
-      $("#alert-message-alert").slideUp(500);
+  if (rangePickr.length) {
+    initDatePicker(rangePickr,{
+      minDate: "01/01/2010",
+      maxDate: "31/12/2030",
+      dateFormat: "d-m-Y",
+      mode: "range"
     });
   }
 
   //refresh di cards
-  $('a[data-action="reload"]').on('click', function () {
-      showList();
+  refresh.addEventListener("click",function(){
+    showList(searchPr.value,orderType.value,searchStatus.value,requestDate.value);
+  })
+
+  search.addEventListener("click", function(){ 
+    showList(searchPr.value,orderType.value,searchStatus.value,requestDate.value);
   });
 
-  rangePickr = $('.flatpickr-range');
-  if (rangePickr.length) {
-    rangePickr.flatpickr({
-      dateFormat: "d-m-Y",
-      mode: 'range'
+  const showList = (searchPr,orderType,searchStatus,requestDate) => {
+    showDataTables({
+      tableId:"detailedTable",
+      route:"{{ route("purchaseRequest.list") }}",
+      kolom:{!! $kolom !!},
+      arrColPrint:[1,2,3,4,5,6],
+      columnDefs :[
+        { width: '5%', targets: 0 },
+      ],
+      dataSearch:  {
+        searchPr:searchPr,
+        orderType:orderType,
+        searchStatus:searchStatus,
+        requestDate:requestDate
+      },
+      // orderColumn:[[ 2, 'asc' ]],
+      excelFileName:'purchase_request'
     });
-  }
-
-  $("#btnSearch").click(function(e){
-    let searchPr = $("#searchPr").val();
-    let poType = $("#poType").val();
-    let searchStatus = $("#searchStatus").val();
-    let requestDate = $("#requestDate").val();
-    showList(searchPr,searchStatus,requestDate);
-
-  });
-
-  function showList(searchPr,poType,searchStatus,requestDate){
-    let dtdom =`<"d-flex justify-content-between align-items-center header-actions mx-1 row mt-75"<"col-lg-12 col-xl-6" l><"col-lg-12 col-xl-6 pl-xl-75 pl-0"<"dt-action-buttons text-xl-right text-lg-left text-md-right text-left d-flex align-items-center justify-content-lg-end align-items-center flex-sm-nowrap flex-wrap mr-1"<"mr-1"f>B>>>t<"d-flex justify-content-between mx-2 row mb-1"<"col-sm-12 col-md-6"i><"col-sm-12 col-md-6"p>>`;
-    let arr_col_print =[1,2,3,4,5,6]; 
-    $(function(){
-      let oTable =$("#detailedTable").DataTable({
-        ajax:
-        {
-          url:'{{ route("purchaseRequest.list")}}',
-          data:{
-              searchPr:searchPr,
-              poType:poType,
-              searchStatus:searchStatus,
-              requestDate:requestDate
-          }
-        },
-        processing: true,
-        serverSide: true,
-        buttons: true,
-        dom:dtdom,
-        lengthMenu: [
-          [ 10, 25, 50, -1 ],
-          [ '10', '25', '50', 'all' ]
-        ],
-        buttons: [
-          {
-            extend: 'collection',
-            className: 'btn btn-outline-secondary dropdown-toggle mr-2 mt-07',
-            text: feather.icons['share'].toSvg({ class: 'font-small-4 mr-50' }) + 'Export',
-            buttons: [
-              {
-                extend: 'print',
-                text: feather.icons['printer'].toSvg({ class: 'font-small-4 mr-50' }) + 'Print',
-                className: 'dropdown-item',
-                exportOptions: { columns: arr_col_print }
-              },
-              {
-                extend: 'csv',
-                text: feather.icons['file-text'].toSvg({ class: 'font-small-4 mr-50' }) + 'Csv',
-                className: 'dropdown-item',
-                exportOptions: { columns: arr_col_print }
-              },
-              {
-                extend: 'excel',
-                text: feather.icons['file'].toSvg({ class: 'font-small-4 mr-50' }) + 'Excel',
-                className: 'dropdown-item',
-                exportOptions: { columns: arr_col_print }
-              },
-              {
-                extend: 'pdf',
-                text: feather.icons['clipboard'].toSvg({ class: 'font-small-4 mr-50' }) + 'Pdf',
-                className: 'dropdown-item',
-                exportOptions: { columns: arr_col_print }
-              },
-              {
-                extend: 'copy',
-                text: feather.icons['copy'].toSvg({ class: 'font-small-4 mr-50' }) + 'Copy',
-                className: 'dropdown-item',
-                exportOptions: { columns: arr_col_print }
-              }
-            ],
-            init: function (api, node, config) {
-              $(node).removeClass('btn-secondary');
-              $(node).parent().removeClass('btn-group');
-              setTimeout(function () {
-                $(node).closest('.dt-buttons').removeClass('btn-group').addClass('d-inline-flex');
-              }, 50);
-            }
-          },
-        ],
-        language: {
-          paginate: {
-            // remove previous & next text from pagination
-            previous: '&nbsp;',
-            next: '&nbsp;'
-          }
-        },
-        columnDefs: [
-          { width: '5%', targets: 0 },
-        ],
-        drawCallback: function( settings ) {
-          feather.replace({
-                width: 14,
-                height: 14
-          });
-        },
-        order: [[ 1, 'asc' ]],
-        bDestroy: true, //pakai ini supaya bisa di load berulang2
-        // scrollX: true, //pakai ini supaya waktu responsive  bisa di scroll horizontal
-        columns: [
-            { data: 'action', name: 'action',title:'action', orderable: false, searchable: false },
-            { data: 'pr_number', name: 'pr_number',title:'PR Number' },
-            { data: 'order_type', name: 'order_type',title:'PO Type' },
-            { data: 'dept', name: 'dept',title:'Department' },
-            { data: 'date', name: 'date',title:'PR Date' },
-            { data: 'status', name: 'status',title:'Status' },
-            { data: 'note', name: 'note',title:'Note' },
-        ],
-      });
-    });
-    //$('div.head-label').html('<h6 class="mb-0">Data Users</h6>');
-    
   }
 
   $.ajaxSetup({
@@ -243,6 +144,9 @@
         'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
     }
   });
+
+
+  
     
 </script>
 @endsection

@@ -17,8 +17,8 @@
         <form class="needs-validation" novalidate>
             <div class="form-row">
               <div class="form-group col-md-3"> 
-                <label for="seachPo">PO Number</label>
-                <input type="text" class="form-control text-uppercase" id="seachPo" name="seachPo" placeholder=""  />
+                <label for="searchPo">PO Number</label>
+                <input type="text" class="form-control text-uppercase" id="searchPo" name="searchPo" placeholder=""  />
               </div>
               <div class="form-group col-md-3"> 
                 <label class="form-label" for="searchSupplier">Supplier</label>
@@ -91,7 +91,7 @@
 @section('scripts')
 <script type="text/javascript">
 
-  let seachPo = document.querySelector("#seachPo");
+  let searchPo = document.querySelector("#searchPo");
   let searchSupplier = document.querySelector("#searchSupplier"); 
   let searchStatus = document.querySelector("#searchStatus");
   let orderDate = document.querySelector("#orderDate");
@@ -100,7 +100,6 @@
   let rangePickr = document.querySelector('.flatpickr-range');
 
   document.addEventListener("DOMContentLoaded", function(event) {
-
   });
 
   if (rangePickr.length) {
@@ -112,14 +111,14 @@
 
   //refresh di cards
   refresh.addEventListener("click",function(){
-    showList(seachPo.value,searchSupplier.value,searchStatus.value,orderDate.value);
+    showList(searchPo.value,searchSupplier.value,searchStatus.value,orderDate.value);
   })
 
   search.addEventListener("click", function(){ 
-    showList(seachPo.value,searchSupplier.value,searchStatus.value,orderDate.value);
+    showList(searchPo.value,searchSupplier.value,searchStatus.value,orderDate.value);
   }); 
 
-  const showList = (seachPo,searchSupplier,searchStatus,orderDate) => {
+  const showList = (searchPo,searchSupplier,searchStatus,orderDate) => {
     showDataTables({
       tableId:"detailedTable",
       route:"{{ route('purchaseOrder.list') }}",
@@ -130,7 +129,7 @@
         { className: 'text-right','targets': [ 11,12,13,14,15 ] },
       ],
       dataSearch:  {
-        eachPo:seachPo,
+        searchPo:searchPo,
         searchSupplier:searchSupplier,
         searchStatus:searchStatus,
         orderDate:orderDate

@@ -281,3 +281,60 @@ $(document).on('click', 'a[data-ajax-delete="true"]', function () {
 $('body').on('shown.bs.modal', '#commonModal', function () {
     $('input:visible:enabled:first', this).focus();
 })
+
+const FLATPICKR_CUSTOM_YEAR_SELECT = 'flatpickr-custom-year-select';
+  const initDatePicker = (inputId,opt) => {
+    opt = $.extend({
+      minDate: "01/01/1900",
+      maxDate: "31/12/2100",
+      dateFormat: "d-m-Y",
+      mode: "single",
+      allowInput: true,
+    }, opt);
+
+    $(inputId).flatpickr({
+      minDate: opt.minDate,
+      maxDate: opt.maxDate,
+      dateFormat: opt.dateFormat,
+      mode: opt.mode,
+      allowInput: opt.allowInput,
+      onChange: function () {
+          $(inputId).blur();
+      },
+      //here what was added
+      onReady: function (selectedDates, dateStr, instance) {
+          const flatpickrYearElement = instance.currentYearElement;
+          const children = flatpickrYearElement.parentElement.children;
+          for (let i in children) {
+              if (children.hasOwnProperty(i)) {
+                  children[i].style.display = 'none';
+              }
+          }
+
+          const yearSelect = document.createElement('select');
+          const minYear = new Date(instance.config._minDate).getFullYear();
+          const maxYear = new Date(instance.config._maxDate).getFullYear();
+          for (let i = minYear; i < maxYear; i++) {
+              const option = document.createElement('option');
+              option.value = '' + i;
+              option.text = '' + i;
+              yearSelect.appendChild(option);
+          }
+          yearSelect.addEventListener('change', function (event) {
+              flatpickrYearElement.value = event.target['value'];
+              instance.currentYear = parseInt(event.target['value']);
+              instance.redraw();
+          });
+
+          yearSelect.className = 'flatpickr-monthDropdown-months';
+          yearSelect.id = FLATPICKR_CUSTOM_YEAR_SELECT;
+          yearSelect.value = instance.currentYearElement.value;
+
+          flatpickrYearElement.parentElement.appendChild(yearSelect);
+      },
+      onMonthChange: function (selectedDates, dateStr, instance) {
+          document.getElementById(FLATPICKR_CUSTOM_YEAR_SELECT).value = '' + instance.currentYear;
+      }
+    })
+  }
+

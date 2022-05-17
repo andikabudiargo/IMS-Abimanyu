@@ -36,7 +36,7 @@
                                 </div>
                                 <div class="form-group col-md-2">
                                     <label for="orderDate">Request Date*</label>
-                                    <input type="text" id="orderDate" name="orderDate" class="form-control" placeholder="DD-MM-YYYY" required />
+                                    <input type="text" id="orderDate" name="orderDate" class="form-control" placeholder="DD-MM-YYYY" required disabled/>
                                 </div>
                                 <div class="form-group col-md-3">
                                     <label class="form-label" for="dept">Department*</label>
@@ -54,7 +54,6 @@
                                     <textarea type="text" id="note" name="note" class="form-control" rows="1" ></textarea>
                                 </div>
                             </div>
-                            
                         </form>
                     </div>
                 </div>
@@ -66,55 +65,7 @@
                     <h4 class="card-title">Article Detail</h4>
                 </div>
                 <div class="card-body" >
-                    {{-- <table class="" style="width:98%;table-layout: fixed;">
-                        <tbody>
-                            <tr>
-                                <td class="isian-satu" style="width: 25%">
-                                    <label>Article Code</label>
-                                </td>
-                                <td class="isian" style="width: 5%">
-                                    <label>QTY</label>
-                                </td>
-                                <td class="isian" style="width: 5%">
-                                    <label>UOM</label>
-                                </td>
-                                <td class="isian" style="width: 10%">
-                                    <label>Note</label>
-                                </td>
-                                <td class="isian text-center" style="width: 5%">
-                                    <label>-</label>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table> --}}
-                    {{-- <div class="" id="article_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px"> --}}
-                    <div class="form-row d-flex align-items-end">
-                        <div class="col-md-5 col-12 d-none d-md-block">
-                            <div class="form-group">
-                                <label class="d-none d-md-block">Article Code</label>
-                            </div>
-                        </div>
-                        <div class="col-md-1 col-12 d-none d-md-block">
-                            <div class="form-group">
-                                <label class="d-none d-md-block text-right">Qty</label>
-                            </div>
-                        </div>
-                        <div class="col-md-1 col-12 d-none d-md-block">
-                            <div class="form-group">
-                                <label class="d-none d-md-block">Uom</label>
-                            </div>
-                        </div>
-                        <div class="col-md-3 col-12 d-none d-md-block">
-                            <div class="form-group">
-                                <label class="d-none d-md-block">Note</label>
-                            </div>
-                        </div>
-                        <div class="col-md-1 col-12 d-none d-md-block">
-                            <div class="form-group">
-                                <label class="d-none d-md-block">-</label>
-                            </div>
-                        </div>
-                    </div>
+                    @include("purchaseRequest.headerColumn")
                     <div class="" id="article_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px">
                         <input type="text" id ="last_row_number" class="d-none" value="0">
                     </div>
@@ -126,7 +77,6 @@
                     </div>
                     <br>
                     <div class="mt-75">
-                        {{-- <button class="btn btn-warning" type="reset" id="cmdCancel" name="cmdCancel">Cancel</button> --}}
                         <button class="btn btn-success" type="reset" id="cmdNew" name="cmdCancel">New</button>
                         <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Save</button>
                     </div>
@@ -146,7 +96,7 @@
 @endsection
 @section('scripts')
 <script type="text/javascript">
-    let currentDate = todayDate('dd-mm-yyyy');    
+    let currentDate = "{{ $currentDate }}";
     $(document).ready(function(){           
         validateFormToast("frmAdd");
         $('#orderDate').val(currentDate);
@@ -270,20 +220,16 @@
                             $('#cmdSave').attr('disabled','disabled');
                             $('#addNewRow').attr('disabled','disabled');
                             $('#prNumber').val(data.prNumber);
-                            
                         }
-                        
                     },
                     error: function(error) {
                         console.log(error);
                     }
                 });
-
             }else{
                 Swal.fire('Warning..',pesan,'warning');
             }
         }
-
     });
 
     let cloneCount=1;
@@ -320,40 +266,27 @@
 		});
     }
 
-    function changeselect(dependent,obj) {
-      $.ajax({
-        url:"{{route('dynamic.dependent')}}",
-        method:"POST",
-        data:{
-            dependent:dependent
-        },
-        success:function(result){
-            $('#'+obj).html(result);
-            $('#'+obj).val('').trigger('change');
-        }
-      })
-    }
-
-    function tombolPanah(objname){
-        // function kalo mau pindah filed dari atas ke bawah atau sebaliknya
-        let obj = $('input[name="'+objname+'[]"]');
-        obj.keyup(function(e) {
-            indexnya= obj.index(this);
-            indexnya=parseInt(indexnya);
-            if (e.keyCode == 38) {
-                //panah atas
-                indexTarget = indexnya-1;
-                obj.eq(indexTarget).focus().select();
-                return false;
-            }
-            if (e.keyCode == 40) {
-                //panah bawah
-                indexTarget = indexnya+1;
-                obj.eq(indexTarget).focus().select();
-                return false;
-            }
+    function changeselect(dependent,obj){
+        changeSelect({
+            dependent:dependent,
+            obj:obj,
+            url:"{{ route('dynamic.dependent') }}"            
         });
     }
+    
+    // function changeselect(dependent,obj) {
+    //   $.ajax({
+    //     url:"{{ route('dynamic.dependent') }}",
+    //     method:"POST",
+    //     data:{
+    //         dependent:dependent
+    //     },
+    //     success:function(result){
+    //         $('#'+obj).html(result);
+    //         $('#'+obj).val('').trigger('change');
+    //     }
+    //   })
+    // }
 
     $.ajaxSetup({
         headers: {
