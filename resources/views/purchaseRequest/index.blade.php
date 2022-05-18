@@ -67,6 +67,8 @@
     </div>
     <div class="card-content collapse show">
       <div class="card-body">
+        <button type="button" class="btn btn-primary" id ="btnDetail" name="btnDetail">Detail</button>
+        <button type="button" class="btn btn-primary" id ="btnSummary" name="btnSummary">Summary</button>
         <div class="row">
             <div class="col-sm-12">
               <div class="card-datatable table-responsive pt-0">
@@ -81,7 +83,6 @@
     </div>
   </div>
 </section>
-@include('partials.delete-modal')
 @endsection
 @section('styles')
 <style>
@@ -97,36 +98,87 @@
   let search = document.querySelector('#btnSearch');
   let refresh = document.querySelector('a[data-action="reload"]');
   let rangePickr = document.querySelector('.flatpickr-range');
+  let btnSummary = document.querySelector('#btnSummary');
+  let btnDetail = document.querySelector('#btnDetail');
 
   document.addEventListener("DOMContentLoaded", function(event) {
+    btnSummary.style.display = "none";
+    btnDetail.style.display = "none";
   });
-
-  if (rangePickr.length) {
-    initDatePicker(rangePickr,{
-      minDate: "01/01/2010",
-      maxDate: "31/12/2030",
-      dateFormat: "d-m-Y",
-      mode: "range"
-    });
-  }
+  
+  initDatePicker(rangePickr,{
+    minDate: "01/01/2010",
+    maxDate: "31/12/2030",
+    dateFormat: "d-m-Y",
+    mode: "range"
+  });
 
   //refresh di cards
   refresh.addEventListener("click",function(){
+    btnDetail.style.display = "block";
+    btnSummary.style.display = "none";
     showList(searchPr.value,orderType.value,searchStatus.value,requestDate.value);
   })
 
-  search.addEventListener("click", function(){ 
+  search.addEventListener("click", function(){
+    btnDetail.style.display = "block";
+    btnSummary.style.display = "none";
     showList(searchPr.value,orderType.value,searchStatus.value,requestDate.value);
   });
 
+  btnSummary.addEventListener("click", function(){
+    btnSummary.style.display = "none";
+    btnDetail.style.display = "block";
+    showList(searchPr.value,orderType.value,searchStatus.value,requestDate.value);;
+  });
+  
+  btnDetail.addEventListener("click", function(){
+    btnSummary.style.display = "block";
+    btnDetail.style.display = "none";
+    showListDetail(searchPr.value,orderType.value,searchStatus.value,requestDate.value);
+  });
+
   const showList = (searchPr,orderType,searchStatus,requestDate) => {
+    if ($('#detailedTable tr').length >0){
+        let table= $('#detailedTable').DataTable();
+        table.destroy();
+        $('#detailedTable tbody > tr').remove();
+        $("#detailedTable thead > tr").remove();
+    }
     showDataTables({
       tableId:"detailedTable",
       route:"{{ route("purchaseRequest.list") }}",
       kolom:{!! $kolom !!},
-      arrColPrint:[1,2,3,4,5,6],
+      arrColPrint:[1,2,3,4,5,6,7,8,9,10],
       columnDefs :[
         { width: '5%', targets: 0 },
+      ],
+      dataSearch:  {
+        searchPr:searchPr,
+        orderType:orderType,
+        searchStatus:searchStatus,
+        requestDate:requestDate
+      },
+      // orderColumn:[[ 2, 'asc' ]],
+      excelFileName:'purchase_request'
+    });
+  }
+
+  const showListDetail = (searchPr,orderType,searchStatus,requestDate) => {
+    if ($('#detailedTable tr').length >0){
+        let table= $('#detailedTable').DataTable();
+        table.destroy();
+        $('#detailedTable tbody > tr').remove();
+        $("#detailedTable thead > tr").remove();
+    }
+    showDataTables({
+      tableId:"detailedTable",
+      route:"{{ route("purchaseRequest.list.detail") }}",
+      kolom:{!! $kolomDetail !!},
+      arrColPrint:[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18],
+      columnDefs :[
+        { width: '5%', targets: 0 },
+        { className: 'text-right','targets': [4,5] },
       ],
       dataSearch:  {
         searchPr:searchPr,

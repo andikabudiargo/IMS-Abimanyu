@@ -29,11 +29,41 @@ class PurchaseRequestController extends Controller
         [
             ['data'=>'action','name'=>'action','title'=>'action','orderable'=>false,'searchable'=>false],
             ['data'=>'pr_number','name'=>'pr_number','title'=>'PR Number'],
-            ['data'=>'order_type','name'=>'order_type','title'=>'PO Type'],
+            ['data'=>'order_type','name'=>'order_type','title'=>'Order Type'],
             ['data'=>'dept','name'=>'dept','title'=>'Department'],
             ['data'=>'date','name'=>'date','title'=>'PR Date'],
             ['data'=>'status','name'=>'status','title'=>'Status'],
             ['data'=>'note','name'=>'note','title'=>'Note'],
+            ['data'=>'created_by','name'=>'created_by','title'=>'Created By'],
+            ['data'=>'created_at','name'=>'created_at','title'=>'Created Date'],
+            ['data'=>'updated_by','name'=>'updated_by','title'=>'Updated By'],
+            ['data'=>'updated_at','name'=>'updated_at','title'=>'Updated Date'],
+        ];
+        return json_encode($kolom, true);
+    }
+
+    public function getTableColoumnDetail(){
+        $kolom=
+        [
+            ['data'=>'pr_number','name'=>'pr_number','title'=>'PR Number'],
+            ['data'=>'po_number','name'=>'po_number','title'=>'PO Number'],
+            ['data'=>'article_alternative_code','name'=>'article_alternative_code','title'=>'Article Code'],
+            ['data'=>'article_desc','name'=>'article_desc','title'=>'Description'],
+            ['data'=>'qtyku','name'=>'qtyku','title'=>'Qty'],
+            ['data'=>'qty_po','name'=>'qty_po','title'=>'Qty PO'],
+            ['data'=>'uom','name'=>'uom','title'=>'UOM'],
+            ['data'=>'supp_code','name'=>'supp_code','title'=>'Supplier'],
+            ['data'=>'supp_name','name'=>'supp_name','title'=>'Supplier Name'],
+            ['data'=>'order_type','name'=>'order_type','title'=>'Order Type'],
+            ['data'=>'dept_name','name'=>'dept_name','title'=>'Department'],
+            ['data'=>'date','name'=>'date','title'=>'PR Date'],
+            ['data'=>'status','name'=>'status','title'=>'Status'],
+            ['data'=>'noteku','name'=>'noteku','title'=>'Main Note'],
+            ['data'=>'note','name'=>'note','title'=>'Note'],
+            ['data'=>'created_by','name'=>'created_by','title'=>'Created By'],
+            ['data'=>'created_at','name'=>'created_at','title'=>'Created Date'],
+            ['data'=>'updated_by','name'=>'updated_by','title'=>'Updated By'],
+            ['data'=>'updated_at','name'=>'updated_at','title'=>'Updated Date'],
         ];
         return json_encode($kolom, true);
     }
@@ -42,6 +72,7 @@ class PurchaseRequestController extends Controller
     {
         $data['title'] = "$this->title";
         $data['kolom'] = $this->getTableColoumn();
+        $data['kolomDetail'] = $this->getTableColoumnDetail();
         $data['status'] = ['1'=>'NEW','2'=>'VALIDATED','3'=>'APPROVED','4'=>'RECEIVED','5'=>'CANCELED','6'=>"CLOSE",'7'=>'PO'];
             
         return view("purchaseRequest.index",$data);
@@ -490,6 +521,73 @@ class PurchaseRequestController extends Controller
             return '<a href="'. route('purchaseRequest.show', ['id'=>Crypt::encryptString($data->id)]) .'" ><span>'.$data->pr_number.'</span></a>';
         })
         ->rawColumns(['action','order_type','status','pr_number'])
+        ->make(true);
+    }
+
+    public function listDetail(Request $request)
+    {
+        $seachPr = strtolower($request->seachPr);
+        $orderType = strtolower($request->orderType);
+        $searchStatus = $request->searchStatus;
+        $requestDate = $request->requestDate;
+        $fromDate ="";
+        $toDate = "";
+
+        if ($requestDate){
+            $date = explode("to",$requestDate);
+            $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+            $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
+        }
+
+        $data = DB::table('purchase_request_det')
+        ->leftJoin('purchase_request_hdr','purchase_request_hdr.pr_number','purchase_request_det.pr_number')
+        ->leftJoin('article','article.article_code','purchase_request_det.article_code')
+        ->leftJoin('third_party','third_party.kode','purchase_request_det.supp_code')
+        ->leftJoin('uom','uom.code','purchase_request_det.uom')
+        ->where(function ($query) use ($orderType,$seachPr,$searchStatus,$requestDate,$fromDate,$toDate) {
+            $orderType ? $query->where('order_type',$orderType) : '';
+            $seachPr ? $query->where('purchase_request_det.pr_number','ilike','%'.$seachPr.'%') : '';
+            $searchStatus ? $query->where('purchase_request_hdr.status',$searchStatus) : '';
+            $requestDate ? $query->whereBetween(DB::raw("to_date(purchase_request_hdr.date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
+        })
+        ->select('purchase_request_det.*'
+        ,DB::raw("(select concat(code,'-',name) from depts where code = purchase_request_hdr.dept limit 1) as dept_name")
+        ,'article_alternative_code'
+        ,'article.article_desc'
+        ,'purchase_request_hdr.status as statusku'
+        ,'purchase_request_hdr.order_type'
+        ,'purchase_request_hdr.date'
+        ,'purchase_request_hdr.note as noteku'
+        ,'third_party.nama as supp_name'
+        ,'uom_group'
+        ,DB::raw("case when uom_group = 'PIECE' then TO_CHAR(qty,'999,999,999') when uom_group <> 'PIECE' then TO_CHAR(qty,'999,999,999.999') end as qtyku")
+        ,DB::raw("(select concat(code,'-',name) from depts where code = purchase_request_hdr.dept limit 1) as dept_name")
+        ,DB::raw("(select case when uom_group = 'PIECE' then TO_CHAR(qty,'999,999,999') when uom_group <> 'PIECE' then TO_CHAR(qty,'999,999,999.999') end from purchase_order_det where po_number = purchase_request_det.po_number and pr_number=purchase_request_det.pr_number and article_code=purchase_request_det.article_code) as qty_po")
+        )
+        ->orderBy('id')
+        ->orderBy('pr_number')
+        ->get(); 
+             
+        return Datatables::of($data)
+        ->addColumn('status', function ($data) {
+            $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary'];
+            $statusPo = ['NEW','VALIDATED','APPROVED','RECEIVED','CANCELED','CLOSED','PO','PO'];
+
+            if($data->statusku == 0){
+                return "<div class='badge ".$badges[0]."'>".$statusPo[0]."</div>";
+            }else{
+                return "<div class='badge ".$badges[$data->statusku-1]."'>".$statusPo[$data->statusku-1]."</div>";
+            }
+            
+        })
+        ->addColumn('order_type', function ($data) {
+            if ($data->order_type == 'std'){
+                return "<div class='badge badge-primary'>Standar</div>";
+            }else{
+                return "<div class='badge badge-info'>Subcontract</div>";
+            }
+        })
+        ->rawColumns(['order_type','status'])
         ->make(true);
     }
 

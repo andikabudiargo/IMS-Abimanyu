@@ -37,13 +37,48 @@ class PurchaseOrderController extends Controller
             ['data'=>'validate_by','name'=>'validate_by','title'=>'Prepared By'],
             ['data'=>'authorized_by','name'=>'authorized_by','title'=>'Authorized By'],
             ['data'=>'pkp','name'=>'pkp','title'=>'Tax'],
-            ['data'=>'termin','name'=>'termin','title'=>'Tax'],            
+            ['data'=>'termin','name'=>'termin','title'=>'Termin'],            
             ['data'=>'qty','name'=>'qty','title'=>'QTY'],
             ['data'=>'gross','name'=>'gross','title'=>'Bruto'],
             ['data'=>'discount','name'=>'discount','title'=>'Discount'],
             ['data'=>'ppn','name'=>'ppn','title'=>'PPN'],
             ['data'=>'netto','name'=>'netto','title'=>'Netto'],
             ['data'=>'status','name'=>'status','title'=>'Status'],
+            ['data'=>'approval_by','name'=>'approval_by','title'=>'Approved By']
+        ];
+        return json_encode($kolom, true);
+    }
+
+    public function getTableColoumnDetail(){
+        $kolom=
+        [
+            ['data'=>'po_number','name'=>'po_number','title'=>'PO Number'],
+            ['data'=>'pr_number','name'=>'pr_number','title'=>'PR Number'],
+            ['data'=>'po_date','name'=>'po_date','title'=>'PO Date'],
+            ['data'=>'delivery_date','name'=>'delivery_date','title'=>'Delivery Date'],
+            ['data'=>'article_alternative_code','name'=>'article_alternative_code','title'=>'Article code'],
+            ['data'=>'article_desc','name'=>'article_desc','title'=>'Article desc'],
+            ['data'=>'qtyku','name'=>'qtyku','title'=>'Qty'],
+            ['data'=>'uom','name'=>'uom','title'=>'UOM'],
+            ['data'=>'price','name'=>'price','title'=>'Price'],
+            ['data'=>'discount','name'=>'discount','title'=>'Discount'],
+            ['data'=>'total_ppn','name'=>'total_ppn','title'=>'PPN'],
+            ['data'=>'total_pph22','name'=>'total_pph22','title'=>'PPH22'],
+            ['data'=>'grand_total','name'=>'grand_total','title'=>'Grand Total'],
+            ['data'=>'currency','name'=>'currency','title'=>'Currency'],
+            ['data'=>'kurs','name'=>'kurs','title'=>'Kurs'],
+            ['data'=>'ppn','name'=>'ppn','title'=>'PPN'],
+            ['data'=>'pph22','name'=>'pph22','title'=>'PPH22'],
+            ['data'=>'pkp','name'=>'pkp','title'=>'PKP'],
+            ['data'=>'termin','name'=>'termin','title'=>'Termin'],
+            ['data'=>'num_revision','name'=>'num_revision','title'=>'Revision'],
+            ['data'=>'supplier_id','name'=>'supplier_id','title'=>'Supplier code'],
+            ['data'=>'supp_name','name'=>'supp_name','title'=>'Supplier'],
+            ['data'=>'approval_by','name'=>'approval_by','title'=>'Approved By'],
+            ['data'=>'created_by','name'=>'created_by','title'=>'Created By'],
+            ['data'=>'created_at','name'=>'created_at','title'=>'Created Date'],
+            ['data'=>'updated_by','name'=>'updated_by','title'=>'Updated By'],
+            ['data'=>'updated_at','name'=>'updated_at','title'=>'Updated Date'],
         ];
         return json_encode($kolom, true);
     }
@@ -52,6 +87,7 @@ class PurchaseOrderController extends Controller
     {
         $data['title'] = "$this->title";
         $data['kolom'] = $this->getTableColoumn();
+        $data['kolomDetail'] = $this->getTableColoumnDetail();
         $data['supps'] = DB::table('third_party')
         ->where ('third_party_type','=','supp')
         ->orderBy('nama')
@@ -991,7 +1027,7 @@ class PurchaseOrderController extends Controller
         (select concat(kode,'-',nama) from third_party where kode = supplier_id limit 1) as supp_name,
         TO_CHAR((grossku-discountku)+ppnku,'999,999,999') as netto,
         --query apakah user berhak untuk approve atau tidak
-        (SELECT username= '$username' as validate from (
+        (SELECT username = '$username' as validate from (
             select username,approval_order,
             (select max(approval_number) from approval_master where module_code = a.module_code ) as max_level,
             COALESCE((select max(approval_order) from approval_history
@@ -1018,7 +1054,8 @@ class PurchaseOrderController extends Controller
                 sum(qty*price) as grossku,
                 sum(discount) as discountku,
                 sum(a.ppn) as ppnku,
-                b.num_revision
+                b.num_revision,
+                (select STRING_AGG((select name from users where username = z.username), ' -> ' ORDER BY approval_order) AS main from approval_history z where module_number = a.po_number) as approval_by
             from purchase_order_det a
             left join purchase_order_hdr b
             on a.po_number = b.po_number    
@@ -1116,6 +1153,141 @@ class PurchaseOrderController extends Controller
             return "<div class='badge ".$badges[$data->status - 1]."'>".$statusPo[$data->status - 1]."</div>";
         })
         ->rawColumns(['action','status','po_number'])
+        ->make(true);
+    }
+
+    public function listDetail(Request $request)
+    {
+
+        $searchPo = strtolower($request->searchPo);
+        $username = Auth::user()->username;
+        $searchSupplier = $request->searchSupplier;
+        $searchStatus = $request->searchStatus;
+        $orderDate = $request->orderDate;
+        $fromDate ="";
+        $toDate = "";
+        
+        if ($orderDate){
+            $date = explode("to",$orderDate);
+            $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+            $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
+        }
+
+        $data = DB::table('purchase_order_det')
+        ->leftJoin('purchase_order_hdr','purchase_order_hdr.po_number','purchase_order_det.po_number')
+        ->leftJoin('article','article.article_code','purchase_order_det.article_code')
+        ->leftJoin('third_party','third_party.kode','purchase_order_hdr.supplier_id')
+        ->leftJoin('uom','uom.code','purchase_order_det.uom')
+        ->where(function ($query) use ($searchPo,$searchStatus,$orderDate,$fromDate,$toDate,$searchSupplier) {
+            $searchSupplier ? $query->where('supplier_id',$searchSupplier) : '';
+            $searchPo ? $query->where('po_number','ilike','%'.$searchPo.'%') : '';
+            $searchStatus ? $query->where('purchase_order_hdr.status',$searchStatus) : '';
+            $orderDate ? $query->whereBetween(DB::raw("to_date(po_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
+        })
+        ->select('purchase_order_det.*'
+        ,'purchase_order_hdr.*'
+        ,'article_alternative_code'
+        ,'article.article_desc'
+        ,'third_party.nama as supp_name'
+        ,'uom_group'
+        ,DB::raw("case when uom_group = 'PIECE' then TO_CHAR(qty,'999,999,999') when uom_group <> 'PIECE' then TO_CHAR(qty,'999,999,999.999') end as qtyku")
+        ,DB::raw("TO_CHAR(price*qty*purchase_order_hdr.ppn/100,'999,999,999') as total_ppn")
+        ,DB::raw("TO_CHAR(price*qty*purchase_order_hdr.pph22/100,'999,999,999') as total_pph22")
+        ,DB::raw("TO_CHAR((((price*qty)-discount)+(price*qty*purchase_order_hdr.ppn/100)-(price*qty*purchase_order_hdr.pph22)),'999,999,999') as grand_total")
+        ,DB::raw("(select STRING_AGG((select name from users where username = a.username), ' -> ' ORDER BY approval_order) AS main from approval_history a where module_number = purchase_order_det.po_number) as approval_by")
+        )
+        ->orderBy('purchase_order_det.id')
+        ->get(); 
+
+        // $searchPo = strtolower($request->searchPo);
+        // $username = Auth::user()->username;
+        // $searchSupplier = $request->searchSupplier;
+        // $searchStatus = $request->searchStatus;
+        // $orderDate = $request->orderDate;
+       
+        // $filter='';
+        
+        // if ($searchPo !='' ){
+        //     $filter.="lower(a.po_number) like '%$searchPo%' and ";
+        // }
+
+        // if ($searchSupplier  != '' ){
+        //     $filter.="supplier_id = '$searchSupplier' and ";            
+        // }
+
+        // if ($searchStatus  != '' ){
+        //     $filter.="status = '$searchStatus' and ";            
+        // }
+        
+        // $filter.="status <> '7' and ";            
+     
+        // if ($orderDate  != '' ){
+        //     $date = explode("to",$orderDate);
+        //     $date1=trim($date[0]);
+        //     $date2=trim($date[1]);
+        //     $filter.= "to_date(po_date, 'DD/MM/YYYY')  BETWEEN to_date('$date1', 'DD/MM/YYYY') and to_date('$date2', 'DD/MM/YYYY') and ";
+        // }
+        
+        // if ($filter !=''){
+        //     $filter=" where ".substr($filter,0,-4);
+        // }
+
+        // $data=DB::select("SELECT *,oki.id as idku,
+        // case when uom_group = 'PIECE' then TO_CHAR(qtyku,'999,999,999') when uom_group <> 'PIECE' then TO_CHAR(qtyku,'999,999,999.99') end as qty,
+        // TO_CHAR(grossku,'999,999,999') as gross,
+        // TO_CHAR(discountku,'999,999,999') as discount,
+        // TO_CHAR(ppnku,'999,999,999') as ppn,
+        // delivery_date,
+        // (select concat(kode,'-',nama) from third_party where kode = supplier_id limit 1) as supp_name,
+        // TO_CHAR((grossku-discountku)+ppnku,'999,999,999') as netto,
+        // --query apakah user berhak untuk approve atau tidak
+        // (SELECT username= '$username' as validate from (
+        //     select username,approval_order,
+        //     (select max(approval_number) from approval_master where module_code = a.module_code ) as max_level,
+        //     COALESCE((select max(approval_order) from approval_history
+        //     where module_code = a.module_code
+        //     and module_number = oki.po_number),'0') as current_level
+        //     from approval_level a 
+        //     where module_code = '".$this->moduleCode."' and username = '$username') b
+        //     where approval_order = current_level+1
+        // ) as statusku
+        // from (
+        //     select 
+        //         b.created_by,
+        //         b.status,b.id,
+        //         a.po_number,
+        //         supplier_id,
+        //         po_date,
+        //         delivery_date,
+        //         pkp,
+        //         termin,
+        //         authorized_by,
+        //         validate_by,
+        //         uom,
+        //         sum(qty) as qtyku,
+        //         sum(qty*price) as grossku,
+        //         sum(discount) as discountku,
+        //         sum(a.ppn) as ppnku,
+        //         b.num_revision
+        //     from purchase_order_det a
+        //     left join purchase_order_hdr b
+        //     on a.po_number = b.po_number    
+        //     $filter
+        //     group by b.id,a.po_number,supplier_id,po_date,delivery_date,pkp,termin,authorized_by,validate_by,b.created_by,uom,b.status,b.num_revision
+        // ) as oki
+        // left join uom c
+        // on oki.uom = c.code
+        // order by oki.id");
+
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'RECEIVED','5'=>'CANCELED','6'=>'CLOSED','7'=>'REVISED','8'=>'DECLINE'];
+    
+        return Datatables::of($data)
+        ->addColumn('status', function ($data) {
+            $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-danger'];            
+            $statusPo = ['NEW','VALIDATED','APPROVED','RECEIVED','CANCELED','CLOSED','REVISED','DECLINE'];
+            return "<div class='badge ".$badges[$data->status - 1]."'>".$statusPo[$data->status - 1]."</div>";
+        })
+        ->rawColumns(['status'])
         ->make(true);
     }
 
