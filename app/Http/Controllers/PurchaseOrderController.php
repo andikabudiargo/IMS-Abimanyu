@@ -135,6 +135,8 @@ class PurchaseOrderController extends Controller
         ->orderBy('name')
         ->get();
 
+        $data['term'] = '30';
+
         $data['attribute'] = DB::table('attributes')
         ->where('attr_name','main')
         ->pluck('attr_value','attr_code');

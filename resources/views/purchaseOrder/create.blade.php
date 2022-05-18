@@ -52,7 +52,7 @@
                                 </div>
                                 <div class="form-group col-md-1">
                                     <label class="form-label" for="term">Term</label>
-                                    <input type="text" class="form-control angka text-right" id = "term" name="term" value="0" maxlength="4" />
+                                    <input type="text" class="form-control angka text-right" id = "term" name="term" value="{{ $term }}" maxlength="4" />
                                 </div>
                                 <div class="form-group col-md-1 d-flex align-items-end" >
                                     <div class="custom-control custom-checkbox">
