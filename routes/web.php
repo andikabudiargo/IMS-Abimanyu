@@ -48,6 +48,9 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('company',['as'=>'company.index','uses'=>'CompanyController@index']);
 	Route::post('company/store',['as'=>'company.store','uses'=>'CompanyController@store']);	
 
+	Route::get('setting',['as'=>'setting.index','uses'=>'AttributeController@index']);
+	Route::post('setting/store',['as'=>'setting.store','uses'=>'AttributeController@store']);	
+
 	Route::get('show.menu',['as'=>'show.menu','uses'=>'MenuController@showmenu']);
 	Route::get('daftar.menu',['as'=>'daftar.menu','uses'=>'MenuController@daftarmenu']);
 	Route::get('list.menu',['as'=>'list.menu','uses'=>'MenuController@listmenu']);

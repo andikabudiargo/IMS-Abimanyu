@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 use DB;
 use DataTables;
@@ -39,13 +40,34 @@ class HomeController extends Controller
     public function index()
     {
 
+        $username =  Auth::user()->username;
         $data['tanggal'] = Carbon::now()->format('l').','.Carbon::now()->format('M Y');
-        $data['listPo'] = DB::table('purchase_order_hdr')
-        ->where('status','2')
-        // ->where('authorized_by',"")
-        ->select('purchase_order_hdr'.'.*', DB::raw('(SELECT sum(qty*price) from purchase_order_det where po_number = purchase_order_hdr.po_number) as po_amount'))
-        ->orderBy('id')
-        ->get();
+        $data['listPo'] = DB::select("SELECT * from (
+        select 
+            id
+            ,supplier_id
+            ,po_number
+            ,po_date
+            ,created_by
+            ,validate_by
+            ,status
+            ,'$username' as username
+            ,coalesce((select max(approval_order) from approval_history where module_code ='PO' and module_number =a.po_number),0) as current_level
+            ,(select approval_number from approval_master where module_code = 'PO') as max_level
+            ,coalesce((select min(approval_order) from approval_level where username = '$username' and module_code = 'PO'),0) as berhak_approve
+            ,(SELECT sum(qty*price) from purchase_order_det where po_number = a.po_number) as po_amount
+            ,(select nama from third_party where kode = supplier_id) as supplier_name
+        from purchase_order_hdr a
+        where status not in ('3','4','5','6','7','8')
+        ) as Oki
+        where current_level+1 = berhak_approve");
+
+        // $data['listPo'] = DB::table('purchase_order_hdr')
+        // ->where('status','2')
+        // // ->where('authorized_by',"")
+        // ->select('purchase_order_hdr'.'.*', DB::raw('(SELECT sum(qty*price) from purchase_order_det where po_number = purchase_order_hdr.po_number) as po_amount'))
+        // ->orderBy('id')
+        // ->get();
 
         $data['greeting'] = self::greeting();            
 

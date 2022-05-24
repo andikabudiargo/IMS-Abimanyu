@@ -26,7 +26,7 @@
         <!-- Company Table Card -->
         <div class="col-lg-12 col-12">
             <div class="card">
-                <div class="card-header">PO that must be authorized </div>
+                <div class="card-header">PO that must be approve </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
                         <table class="table">
@@ -37,7 +37,7 @@
                                     <th>PO Date</th>
                                     <th>Amount</th>
                                     <th>Created By</th>
-                                    <th>Validate By</th>
+                                    {{-- <th>Validate By</th> --}}
                                     <th>Action</th>
                                 </tr>
                             </thead>
@@ -73,17 +73,17 @@
                                             </div>
                                         </div>
                                     </td>
-                                    <td>
+                                    {{-- <td>
                                         <div class="d-flex align-items-center">
                                             <div>
                                                 <div class="font-weight-bolder">{{ $val->validate_by }}</div>
                                             </div>
                                         </div>
-                                    </td>
+                                    </td> --}}
                                     <td>
-                                        @can('purchaseOrder-authorize')
-                                            <a href="{{ route('purchaseOrder.show', ['id'=>$val->id]) }}" class="btn btn-primary">Auhorize</a>
-                                        @endcan
+                                        {{-- @can('purchaseOrder-authorize') --}}
+                                            <a href="{{ route('purchaseOrder.show', ['id'=>$val->id]) }}" class="btn btn-primary">Approve</a>
+                                        {{-- @endcan --}}
                                     </td>
                                 </tr>
                                 @endforeach

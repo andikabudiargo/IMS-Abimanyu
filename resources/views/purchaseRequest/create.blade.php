@@ -2,7 +2,6 @@
 @section('title', $title)
 @section('content')
 @include('layouts.breadcrumb')
-@include('partials.alert')
 <section id="add-index">
     <div class="form-row">
         <div class="col-md-12">
@@ -66,7 +65,7 @@
                 </div>
                 <div class="card-body" >
                     @include("purchaseRequest.headerColumn")
-                    <div class="" id="article_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px">
+                    <div class="" id="article_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width:thin;margin-top:7px;padding-right:10px">
                         <input type="text" id ="last_row_number" class="d-none" value="0">
                     </div>
                     <div class="d-flex justify-content-between align-items-end mt-75">
@@ -96,38 +95,29 @@
 @endsection
 @section('scripts')
 <script type="text/javascript">
-    let currentDate = "{{ $currentDate }}";
+    let orderDate = $('#orderDate');
+    let cloneCount=1;
     $(document).ready(function(){           
         validateFormToast("frmAdd");
-        $('#orderDate').val(currentDate);
+        $('#orderDate').val("{{ $currentDate }}");
     });
     
-    orderDate = $('#orderDate');
     if (orderDate.length) {
         orderDate.flatpickr({
             dateFormat: "d-m-Y",
         });
     }
     
-    function reloadPage(){
-        window.location.reload();
-    }
-
-    $("#cmdCancel").click(function(){
+    $("#cmdCancel,#cmdNew").click(function(){
         reloadPage();
     });
 
-    $("#cmdNew").click(function(){
-        reloadPage();
-    });
-
-    $("#cmdSave").click(function(){     
-
+    $("#cmdSave").click(function(){
         if (!$("#frmAdd")[0].checkValidity()){
             $("#frmAdd").submit();
         }else{
+            $('#cmdSave').attr('disabled','disabled');
             $('.disabled-el').removeAttr('disabled');
-            // ambil semua data article
             let objQty = $('input[name="qty_order[]"]');
             let objNote = $('input[name="note[]"]');
             let objUom = $('span[name="uom[]"]'); 
@@ -147,12 +137,7 @@
                     let uom=article[1];
                     let qty=objQty.eq(i).val().replace(/,/gi, '') || 0;
                     let note=objNote.eq(i).val();
-                                
-                    //es6
-                    // let obj = ingredient.find(obj => obj.plu == plu);
-
-                    //jquery
-                    //cek apakah article ada yang double input ato ngk
+                            
                     let obj = $.grep(articles, function(obj){
                         return obj.article_code === plu;
                     })[0];
@@ -171,7 +156,6 @@
                             });
                         }
                     } 
-                
                     if (qty == 0){
                         pesan +="QTY of items "+ articleName +" cannot be 0 <br>"; 
                         flag=1;
@@ -183,14 +167,11 @@
                 pesan +="Department must be filled in <br>"; 
                 flag=1;
             }
-
             if (articles.length == 0){
                 pesan +="Articles must be filled in completely <br>"; 
                 flag=1;
             }
-
             if (flag==0){
-
                 let orderDate = $('#orderDate').val();
                 let dept = $('#dept').val();
                 let note = $('#note').val();
@@ -212,10 +193,8 @@
                                 show_msg(data.title, data.message[i], data.alert);
                             }
                             $('#prNumber').attr('disabled','disabled');
-
                         }else{
                             show_msg(data.title, data.message, data.alert);
-
                             $('#prNumber').attr('disabled','disabled');
                             $('#cmdSave').attr('disabled','disabled');
                             $('#addNewRow').attr('disabled','disabled');
@@ -227,12 +206,13 @@
                     }
                 });
             }else{
+                $('#cmdSave').removeAttr('disabled');
                 Swal.fire('Warning..',pesan,'warning');
             }
         }
     });
 
-    let cloneCount=1;
+    
     function add_new_row() {
         let poType = $('#poType').val();
         $("#article_row").append($("#new_row").clone().html());
@@ -274,20 +254,6 @@
         });
     }
     
-    // function changeselect(dependent,obj) {
-    //   $.ajax({
-    //     url:"{{ route('dynamic.dependent') }}",
-    //     method:"POST",
-    //     data:{
-    //         dependent:dependent
-    //     },
-    //     success:function(result){
-    //         $('#'+obj).html(result);
-    //         $('#'+obj).val('').trigger('change');
-    //     }
-    //   })
-    // }
-
     $.ajaxSetup({
         headers: {
             'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')

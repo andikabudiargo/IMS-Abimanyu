@@ -601,6 +601,14 @@
                 </a>
               </li>
               @endcan
+              @can('setting-index')
+              <li class="{{ \Request::segment(1) == 'setting' && \Request::segment(2) == '' ? 'active' : '' }}">
+                <a class="d-flex align-items-center" href="{{ route('setting.index') }}">
+                  <i data-feather="circle"></i>
+                  <span class="menu-item text-truncate" data-i18n="Input">System Setting</span>
+                </a>
+              </li>
+              @endcan
           </ul>
         </li>
         <li class=" {{ in_array(\Request::segment(1), ['logActivity']) ? 'active' : '' }} nav-item">

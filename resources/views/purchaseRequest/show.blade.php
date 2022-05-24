@@ -7,7 +7,7 @@
         <div class="col-md-12">
             <div class="card">
                 <div class="card-header">
-                    <h4 class="card-title">Status: New</h4>
+                    <h4 class="card-title">Status: {{ $statusPr }}</h4>
                     <div class="heading-elements">
                         <ul class="list-inline mb-0">
                             <li><a data-action="collapse"><i data-feather="chevron-down"></i></a></li>
@@ -64,75 +64,77 @@
                     <h4 class="card-title">Article</h4>
                 </div>
                 <div class="card-body">
-                    <div class="form-row d-flex align-items-end">
-                        <div class="col-md-5 col-12 d-none d-md-block">
-                            <div class="form-group">
-                                <label class="d-none d-md-block">Article Code</label>
-                            </div>
+                    <div class="table-responsive main-table">
+                        <table class="table table-bordered w-100" >
+                            <thead class="thead-dark">
+                                <tr>
+                                    <th>#</th>
+                                    <th>Article</th>
+                                    <th class="text-right">QTY</th>
+                                    <th class="text-right">Note</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            @foreach( $details as $key =>$item )
+                                <tr>
+                                    <td ></td>
+                                    <td >{{ $item->article }}</td>
+                                    <td class="text-right">{{ $item->uom_group =='PIECE' ? number_format($item->qty) : number_format($item->qty,$decimalPlaces) }} {{ $item->uom }}</td>
+                                    <td class="text-right">{{ $item->note }}</td>
+                                </tr>
+                            @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-end mt-75">
+                        <div class="col-md-4">
+                            <span>ROW : {{ $header->sum_row }}</span> <br>
+                            <span>QTY : {{ number_format($header->sum_qty,$decimalPlaces) }}</span>
                         </div>
-                        <div class="col-md-1 col-12 d-none d-md-block">
-                            <div class="form-group">
-                                <label class="d-none d-md-block text-right">Qty</label>
-                            </div>
-                        </div>
-                        <div class="col-md-1 col-12 d-none d-md-block">
-                            <div class="form-group">
-                                <label class="d-none d-md-block">Uom</label>
-                            </div>
-                        </div>
-                        <div class="col-md-3 col-12 d-none d-md-block">
-                            <div class="form-group">
-                                <label class="d-none d-md-block">Note</label>
-                            </div>
-                        </div>
-                        <div class="col-md-1 col-12 d-none d-md-block">
-                            <div class="form-group">
-                                <label class="d-none d-md-block">-</label>
-                            </div>
+                        <div class="col-md-4">
                         </div>
                     </div>
-                    <div class="" id="article_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px">
-                        <input type="text" id ="last_row_number" class="d-none" value="{{ count($detail) }}">
-                        @foreach ($detail as $key =>$item)
-                            <div id="baru" class="tanda-baris" >
-                                <div class="form-row d-flex align-items-end">
-                                    <div class="col-md-5 col-12">
-                                        <div class="form-group">
-                                            <label for="article_id" class="d-block d-md-none">Article Code</label>
-                                            <select class="form-control dynamicSelect sku-select-system" id="article_id{{ $key }}" name="article_id[]" data-dependent="article_id" disabled>
-                                                @foreach($articles as $val)
-                                                    <option value="{{ $val->article_code }}|{{ $val->uom }}|{{ $val->third_party }}" {{$val->article_code == $item->article_code ? "selected" : ""}}>{{$val->article_code}} - {{$val->article_desc}}</option>
-                                                @endforeach
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-1 col-12">
-                                        <div class="form-group">
-                                            <label for="qty_order" class="d-block d-md-none">Qty</label>
-                                            <input type="text" class="form-control numeral-mask text-right" id = "qty_order" name="qty_order[]" value="{{ $item->qty }}" maxlength="6" disabled/>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-1 col-12">
-                                        <div class="form-group">
-                                            <label for="uom" class="d-block d-md-none">Uom</label>
-                                            <span class="" id = "uom" name="uom[]">{{ $item->uom }}</span>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-3 col-12">
-                                        <div class="form-group">
-                                            <label for="note" class="d-block d-md-none">Note</label>
-                                            <input type="text" class="form-control" id = "note" name="note[]" value="{{ $item->note }}" maxlength="100" disabled>
+                    <hr>
+                    <div class="mt-75">
+                        <a href="{{ route('purchaseRequests.index') }}" class="btn btn-warning">Back</a>
+                    </div>
+                    <hr>
+                    <div class="form-row card-statistics">
+                        @foreach($approvalHistory as $val)
+                            @if($val->status == true)
+                                <div class="statistics-body">
+                                    <div class="col-xl-3 col-sm-6 col-12 mb-2 mb-xl-0">
+                                        <div class="media">
+                                            <div class="avatar bg-light-success mr-2">
+                                                <div class="avatar-content">
+                                                    <i data-feather="check" class="avatar-icon"></i>
+                                                </div>
+                                            </div>
+                                            <div class="media-body my-auto">
+                                                <h4 class="font-weight-bolder mb-0">Approve-{{ $val->approval_order }}</h4>
+                                                <p class="card-text mb-0">{{ $val->name }}</p>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
-                                <hr class="d-block d-md-none" />
-                            </div>
+                            @else
+                                <div class="statistics-body">
+                                    <div class="col-xl-3 col-sm-6 col-12 mb-2 mb-xl-0">
+                                        <div class="media">
+                                            <div class="avatar bg-light-danger mr-2">
+                                                <div class="avatar-content">
+                                                    <i data-feather="x" class="avatar-icon"></i>
+                                                </div>
+                                            </div>
+                                            <div class="media-body my-auto">
+                                                <h4 class="font-weight-bolder mb-0">Approve-{{ $val->approval_order }}</h4>
+                                                <p class="card-text mb-0">{{ $val->petugas }}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endif
                         @endforeach
-                    </div>
-                    <hr>
-                    <br>
-                    <div class="mt-75">
-                        <a href="{{ route('purchaseRequests.index') }}" class="btn btn-warning">Back</a>
                     </div>
                 </div>
             </div>
@@ -146,36 +148,18 @@
         resize: none;
     }
 
-    .mb-03{
-        margin-bottom: 0.3rem;
-    }
-    
-    label.titik-dua::after{
-        content : ":"; 
-        position : absolute;
-        right : 1px;
-    }
-    td.isian{
-        padding-right:10px;
-        padding-left:10px;
+    .main-table table {
+        counter-reset: rowNumber;
     }
 
-    td.isian-satu{
-        padding-right:5px;
-        padding-left:15px;
-        width: 25%;border-top: 1px solid #ffffff !important;
-        border-bottom: 1px solid #ffffff !important;
-        border-left: 1px solid #ffffff !important;
+    .main-table table tr > td:first-child{
+        counter-increment: rowNumber;
     }
 
-    td.disabled{
-        background-color:#f8f8f8;
-        color:black;
-    }
-
-    label.tanpa-padding{
-        padding-top: 5px;
-        padding-bottom: 0px;
+    .main-table table tr td:first-child::before {
+        content: counter(rowNumber);
+        min-width: 1em;
+        margin-right: 0.5em;
     }
 
 </style>

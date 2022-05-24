@@ -10,7 +10,7 @@
             <div class="col-md-6 col-12">
                 <div class="form-group">
                     <label for="article_id" class="d-block d-md-none">Article Code</label>
-                    <select class="form-control dynamicSelect sku-select-system" id="article_id" name="article_id[]" data-dependent="article_id">
+                    <select class="form-control dynamicSelect" id="article_id" name="article_id[]" data-dependent="article_id">
                     </select>
                 </div>
             </div>
@@ -25,19 +25,6 @@
                     </div>
                 </div>
             </div>
-
-            {{-- <div class="col-md-1 col-12">
-                <div class="form-group">
-                    <label for="qty_order" class="d-block d-md-none">Qty</label>
-                    <input type="text" class="form-control numeral-mask text-right" id = "qty_order" name="qty_order[]" maxlength="6" />
-                </div>
-            </div>
-            <div class="col-md-1 col-12">
-                <div class="form-group">
-                    <label for="uom" class="d-block d-md-none">Uom</label>
-                    <span class="" id = "uom" name="uom[]"></span>
-                </div>
-            </div> --}}
             <div class="col-md-3 col-12">
                 <div class="form-group">
                     <label for="note" class="d-block d-md-none">Note</label>

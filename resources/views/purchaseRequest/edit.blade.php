@@ -8,7 +8,7 @@
         <div class="col-md-12">
             <div class="card">
                 <div class="card-header">
-                    <h4 class="card-title">Status: New</h4>
+                    <h4 class="card-title">Status: {{ $statusPr }}</h4>
                     <div class="heading-elements">
                         <ul class="list-inline mb-0">
                             <li><a data-action="collapse"><i data-feather="chevron-down"></i></a></li>
@@ -66,39 +66,13 @@
                     <h4 class="card-title">Article</h4>
                 </div>
                 <div class="card-body">
-                    <div class="form-row d-flex align-items-end">
-                        <div class="col-md-5 col-12 d-none d-md-block">
-                            <div class="form-group">
-                                <label class="d-none d-md-block">Article Code</label>
-                            </div>
-                        </div>
-                        <div class="col-md-1 col-12 d-none d-md-block">
-                            <div class="form-group">
-                                <label class="d-none d-md-block text-right">Qty</label>
-                            </div>
-                        </div>
-                        <div class="col-md-1 col-12 d-none d-md-block">
-                            <div class="form-group">
-                                <label class="d-none d-md-block">Uom</label>
-                            </div>
-                        </div>
-                        <div class="col-md-3 col-12 d-none d-md-block">
-                            <div class="form-group">
-                                <label class="d-none d-md-block">Note</label>
-                            </div>
-                        </div>
-                        <div class="col-md-1 col-12 d-none d-md-block">
-                            <div class="form-group">
-                                <label class="d-none d-md-block">-</label>
-                            </div>
-                        </div>
-                    </div>
+                    @include("purchaseRequest.headerColumn")
                     <div class="" id="article_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px">
                         <input type="text" id ="last_row_number" class="d-none" value="{{ count($detail) }}">
                         @foreach ($detail as $key =>$item)
                             <div id="new_row{{ $key }}" class="tanda-baris" >
                                 <div class="form-row d-flex align-items-end">
-                                    <div class="col-md-5 col-12">
+                                    <div class="col-md-6 col-12">
                                         <div class="form-group">
                                             <label for="article_id" class="d-block d-md-none">Article Code</label>
                                             <select class="form-control dynamicSelect sku-select-system" id="article_id{{ $key }}" name="article_id[]" data-dependent="article_id">
@@ -112,26 +86,13 @@
                                         <div class="form-group margin-nol">
                                             <label for="qty_order" class="d-block d-md-none">QTY</label>
                                             <div class="input-group input-group-merge">
-                                                <input type="text" class="form-control numeral-mask text-right" id = "qty_order" name="qty_order[]" value="{{ $item->qty }}" maxlength="9" />
+                                                <input type="text" class="form-control numeral-mask-satuan text-right" id = "qty_order" name="qty_order[]" value="{{ $item->qty }}" maxlength="9" />
                                                 <div class="input-group-append">
-                                                    <span class="" id = "uom" name="uom[]">{{ $item->uom }}</span>
+                                                    <span class="input-group-text" id ="uom" name="uom[]">{{ $item->uom }}</span>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
-
-                                    {{-- <div class="col-md-1 col-12">
-                                        <div class="form-group">
-                                            <label for="qty_order" class="d-block d-md-none">Qty</label>
-                                            <input type="text" class="form-control numeral-mask text-right" id = "qty_order" name="qty_order[]" value="{{ $item->qty }}" maxlength="6" />
-                                        </div>
-                                    </div>
-                                    <div class="col-md-1 col-12">
-                                        <div class="form-group">
-                                            <label for="uom" class="d-block d-md-none">Uom</label>
-                                            <span class="" id = "uom" name="uom[]">{{ $item->uom }}</span>
-                                        </div>
-                                    </div> --}}
                                     <div class="col-md-3 col-12">
                                         <div class="form-group">
                                             <label for="note" class="d-block d-md-none">Note</label>
@@ -151,20 +112,68 @@
                             </div>
                         @endforeach
                     </div>
-                    <hr>
                     <div class="d-flex justify-content-between align-items-end mt-75">
                         <button class="btn btn-primary btn-prev" type="button" id="addNewRow" onclick="add_new_row();">
                             <i data-feather="plus" class="align-middle mr-sm-25 mr-0"></i>
                             <span class="align-middle d-sm-inline-block d-none">Add Article</span>
                         </button>
                     </div>
-                    <br>
-                    <div class="mt-75">
-                        <a href="{{ route('purchaseRequests.index') }}" class="btn btn-warning">Back</a>
-                        <a href="{{ route('purchaseRequest.create') }}" class="btn btn-success">New</a>
-                        <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Update</button>
-                        {{-- <button class="btn btn-primary" type="button" id="cmdValidate" name="cmdValidate">Validate</button>
-                        <button class="btn btn-primary" type="button" id="cmdAuthorized" name="cmdAuthorized">Auhorized</button> --}}
+                    <hr>
+                    <div class="form-row">
+                        <div class="col-md-12">
+                            <div class="form-row">
+                                <div class="col-md-12">
+                                    <a href="{{ route('purchaseRequests.index') }}" class="btn btn-warning">Back</a>
+                                    @if( $approveValidate ? $approveValidate[0]->validate : '')
+                                        <input type="text" id ="approveLevel" name ="approveLevel" class="d-none" value="{{ $approveValidate[0]->next_level }}">
+                                        <input type="text" id ="maxLevel" name ="maxLevel" class="d-none" value="{{ $approveValidate[0]->max_level }}">
+                                        <button class="btn btn-primary" type="button" id="cmdApprove" name="cmdApprove">Approve</button>
+                                    @else
+                                        @if(!count($approveHistory))
+                                            <button class="btn btn-primary" type="button" id="cmdUpdate" name="cmdUpdate">Update</button>
+                                        @endif
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="form-row card-statistics">
+                        @foreach($approvalHistory as $val)
+                            @if($val->status == true)
+                                <div class="statistics-body">
+                                    <div class="col-xl-3 col-sm-6 col-12 mb-2 mb-xl-0">
+                                        <div class="media">
+                                            <div class="avatar bg-light-success mr-2">
+                                                <div class="avatar-content">
+                                                    <i data-feather="check" class="avatar-icon"></i>
+                                                </div>
+                                            </div>
+                                            <div class="media-body my-auto">
+                                                <h4 class="font-weight-bolder mb-0">Approve-{{ $val->approval_order }}</h4>
+                                                <p class="card-text mb-0">{{ $val->name }}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            @else
+                                <div class="statistics-body">
+                                    <div class="col-xl-3 col-sm-6 col-12 mb-2 mb-xl-0">
+                                        <div class="media">
+                                            <div class="avatar bg-light-danger mr-2">
+                                                <div class="avatar-content">
+                                                    <i data-feather="x" class="avatar-icon"></i>
+                                                </div>
+                                            </div>
+                                            <div class="media-body my-auto">
+                                                <h4 class="font-weight-bolder mb-0">Approve-{{ $val->approval_order }}</h4>
+                                                <p class="card-text mb-0">{{ $val->petugas }}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endif
+                        @endforeach
                     </div>
                 </div>
             </div>
@@ -191,7 +200,7 @@
         activate_angka();
         mask_thousand();
         splitArticle();
-        // $('.sku-select-system').select2();
+        $('.sku-select-system').select2();
     });
 
     orderDate = $('#orderDate');
@@ -209,7 +218,7 @@
         reloadPage();
     });
 
-    $("#cmdSave").click(function(){     
+    $("#cmdSave").click(function(){
         $('.disabled-el').removeAttr('disabled');
         // ambil semua data article
         let objQty = $('input[name="qty_order[]"]');
@@ -230,12 +239,6 @@
                 let uom=article[1];
                 let qty=objQty.eq(i).val().replace(/,/gi, '') || 0;
                 let note=objNote.eq(i).val();
-                            
-                //es6
-                // let obj = ingredient.find(obj => obj.plu == plu);
-
-                //jquery
-                //cek apakah article ada yang double input ato ngk
                 let obj = $.grep(articles, function(obj){
                     return obj.article_code === plu;
                 })[0];
@@ -254,7 +257,6 @@
                         });
                     }
                 } 
-            
                 if (qty == 0){
                     pesan +="QTY of items "+ articleName +" cannot be 0 <br>"; 
                     flag=1;
@@ -266,19 +268,15 @@
 			pesan +="Department must be filled in <br>"; 
 			flag=1;
 		}
-
         if (articles.length == 0){
 			pesan +="Articles must be filled in completely <br>"; 
 			flag=1;
 		}
-
         if (flag==0){
-
             let orderDate = $('#orderDate').val();
             let dept = $('#dept').val();
             let note = $('#note').val();
             let prNumber = $('#prNumber').val();
-
             $.ajax({
                 type: "post",
                 url: "{{ route('purchaseRequest.update') }}",
@@ -309,11 +307,9 @@
                     console.log(error);
                 }
             });
-
         }else{
             Swal.fire('Warning..',pesan,'warning');
         }
-    
     });
     
     let cloneCount=$('#last_row_number').val();

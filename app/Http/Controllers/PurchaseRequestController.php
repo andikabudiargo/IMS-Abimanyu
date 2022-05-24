@@ -18,10 +18,12 @@ class PurchaseRequestController extends Controller
 {
     private $title;
     private $moduleCode;
+    private $decimalPlaces;
     public function __construct()
     {
         $this->title = "Purchase Request";
         $this->moduleCode = "PR";
+        $this->decimalPlaces = config('globalParam.decimal');
     }
 
     public function getTableColoumn(){
@@ -216,41 +218,71 @@ class PurchaseRequestController extends Controller
 
     public function show(Request $request)
     {
+        $username =  Auth::user()->username;
         $id=Crypt::decryptString($request->id);
         $data['title'] = "Detail $this->title";
         $data['subtitle'] = "Detail $this->title";
 
         $data['header'] = DB::table('purchase_request_hdr')
         ->where('id',$id)
+        ->select('purchase_request_hdr.*'
+        ,DB::raw('(select sum(qty) from purchase_request_det where pr_number = purchase_request_hdr.pr_number) as sum_qty') 
+        ,DB::raw('(select count(*) from purchase_request_det where pr_number = purchase_request_hdr.pr_number) as sum_row')
+        )
         ->get()->first();
 
-        $data['detail'] = DB::table('purchase_request_det')
+        $prNumber = $data['header']->pr_number;
+
+        $data['details'] = DB::table('purchase_request_det')
+        ->leftJoin('uom','uom.code','=','purchase_request_det.uom')
         ->leftJoin('article','article.article_code','=','purchase_request_det.article_code')
         ->where('pr_number',$data['header']->pr_number)
+        ->select('purchase_request_det'.'.*'
+            ,'uom.uom_group'
+            ,DB::raw("concat(article_alternative_code,'-',article_desc) as article")
+        )
         ->orderBy('purchase_request_det.id')
         ->get();       
-
-        $data['articles']= DB::table('article') 
-        ->whereNotIn('article_type',['FG','RM'])
-        ->orderBy('article_desc')
-        ->get();   
 
         $data['depts'] = DB::table('depts')
         ->orderBy('name')
         ->get();
 
-        $data['uoms'] = DB::table('uom')
-        ->orderBy('name')
-        ->get();
+        $data['approvalHistory'] = DB::select("SELECT DISTINCT ON (a.approval_order) a.approval_order 
+        ,(select name from users where username = a.username) as name
+        ,(select STRING_AGG((select name from users where username = a.username),',' ORDER BY module_code) AS main from approval_level where module_code = a.module_code and approval_order = a.approval_order ) as petugas
+        ,(select approval_number from approval_master where module_code = a.module_code) as max_approval,
+        case when module_number is not null then true else false end status
+        from approval_level a
+        left join (select * from approval_history where module_number = '$prNumber') b
+        on b.module_code = a.module_code and b.approval_order = a.approval_order and b.username = a.username
+        where a.approval_order <= (select approval_number from approval_master where module_code ='$this->moduleCode')
+        and a.module_code = '$this->moduleCode'
+        order by a.approval_order");
+
+        $data['approveValidate'] = DB::select("SELECT username= '$username' as validate,current_level + 1 as next_level,* from (
+        select username,approval_order,
+        (select max(approval_number) from approval_master where module_code = a.module_code ) as max_level,
+        COALESCE((select max(approval_order) from approval_history
+        where module_code = a.module_code
+        and module_number = '".$prNumber."'),'0') as current_level
+        from approval_level a 
+        where module_code = '".$this->moduleCode."' and username = '$username') b
+        where approval_order = current_level+1"); 
+
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATED','3'=>'APPROVED','4'=>'RECEIVED','5'=>'CANCELED','6'=>"CLOSE",'7'=>'PO'];
+        $approvLevel = $data['approveValidate'] ? 'APPROVED-'.$data['approveValidate'][0]->current_level.'/'.$data['approveValidate'][0]->max_level : 'APPROVED';
+        $statusPr = ['NEW','VALIDATED',$approvLevel,'RECEIVED','CANCELED','CLOSED','PO'];
+        $data['statusPr'] = $statusPr[$data['header']->status-1];
 
         return view("purchaseRequest.show",$data);
         
     }
 
     public function edit(Request $request)
-    {
+    {   
+        $username =  Auth::user()->username;
         $id=Crypt::decryptString($request->id);
-
         $data['title'] = "Edit Purchase Request";
         $data['subtitle'] = "Edit Purchase Request";
 
@@ -258,14 +290,14 @@ class PurchaseRequestController extends Controller
         ->where('id',$id)
         ->get()->first();
 
+        $prNumber = $data['header']->pr_number;
         $orderType = $data['header']->order_type;
-
         $data['detail'] = DB::table('purchase_request_det')
         ->where('pr_number',$data['header']->pr_number)
         ->orderBy('purchase_request_det.id')
-        ->get();       
+        ->get(); 
 
-        $data['articles']= DB::table('article') 
+        $data['articles']= DB::table('article')
         // ->whereNotIn('article_type',['FG','RM'])
         ->where(function($query) use ($orderType)  {
             $orderType=='std' ? $query->whereNotIn('article_type',['FG']) : $query->whereIn('article_type',['FG']);
@@ -280,6 +312,33 @@ class PurchaseRequestController extends Controller
         $data['uoms'] = DB::table('uom')
         ->orderBy('name')
         ->get();
+
+        $data['approvalHistory'] = DB::select("SELECT DISTINCT ON (a.approval_order) a.approval_order 
+        ,(select name from users where username = a.username) as name
+        ,(select STRING_AGG((select name from users where username = a.username),',' ORDER BY module_code) AS main from approval_level where module_code = a.module_code and approval_order = a.approval_order ) as petugas
+        ,(select approval_number from approval_master where module_code = a.module_code) as max_approval,
+        case when module_number is not null then true else false end status
+        from approval_level a
+        left join (select * from approval_history where module_number = '$prNumber') b
+        on b.module_code = a.module_code and b.approval_order = a.approval_order and b.username = a.username
+        where a.approval_order <= (select approval_number from approval_master where module_code ='$this->moduleCode')
+        and a.module_code = '$this->moduleCode'
+        order by a.approval_order");
+
+        $data['approveValidate'] = DB::select("SELECT username= '$username' as validate,current_level + 1 as next_level,* from (
+        select username,approval_order,
+        (select max(approval_number) from approval_master where module_code = a.module_code ) as max_level,
+        COALESCE((select max(approval_order) from approval_history
+        where module_code = a.module_code
+        and module_number = '".$prNumber."'),'0') as current_level
+        from approval_level a 
+        where module_code = '".$this->moduleCode."' and username = '$username') b
+        where approval_order = current_level+1"); 
+
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATED','3'=>'APPROVED','4'=>'RECEIVED','5'=>'CANCELED','6'=>"CLOSE",'7'=>'PO'];
+        $approvLevel = $data['approveValidate'] ? 'APPROVED-'.$data['approveValidate'][0]->current_level.'/'.$data['approveValidate'][0]->max_level : 'APPROVED';
+        $statusPr = ['NEW','VALIDATED',$approvLevel,'RECEIVED','CANCELED','CLOSED','PO'];
+        $data['statusPr'] = $statusPr[$data['header']->status-1];
 
         return view("purchaseRequest.edit",$data);
         
@@ -435,7 +494,7 @@ class PurchaseRequestController extends Controller
         // status:
         // 1 = New
         // 2 = Validated
-        // 3 = Authorized
+        // 3 = Approved
         // 4 = Received
         // 5 = Canceled
         // 6 = closed

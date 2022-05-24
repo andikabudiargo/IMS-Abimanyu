@@ -13,6 +13,10 @@ class ComposerServiceProvider extends ServiceProvider
         View::composer(
             '*', 'App\Http\ViewComposers\NotificationComposer'
         );
+        
+        View::composer(
+            '*', 'App\Http\ViewComposers\GlobalSettingComposer'
+        );
     }
 
     /**
