@@ -188,11 +188,11 @@ class AccountPayableController extends Controller
         $data['status'] = 'New';
 
         $data['accountBa'] = DB::table('accounts')
-        ->whereIn('type_code',['11','12','14','15','42','44','46','48'])
+        // ->whereIn('type_code',['11','12','14','15','42','44','46','48'])
         ->get();
 
         $data['accounts'] = DB::table('accounts')
-        ->whereIn('type_code',['21','22','23','24'])
+        // ->whereIn('type_code',['21','22','23','24'])
         ->get();
 
         return view("accountPayable.create",$data);
@@ -350,11 +350,11 @@ class AccountPayableController extends Controller
         $data['statusEdit'] = $statusEdit[$data['details']->status -1];
 
         $data['accountBa'] = DB::table('accounts')
-        ->whereIn('type_code',['11','12','14','15','42','44','46','48'])
+        // ->whereIn('type_code',['11','12','14','15','42','44','46','48'])
         ->get();
 
         $data['accounts'] = DB::table('accounts')
-        ->whereIn('type_code',['21','22','23','24'])
+        // ->whereIn('type_code',['21','22','23','24'])
         ->get();
 
         return view("accountPayable.show",$data);
@@ -392,11 +392,11 @@ class AccountPayableController extends Controller
         $data['status'] = 'New';
         
         $data['accountBa'] = DB::table('accounts')
-        ->whereIn('type_code',['11','12','14','15','42','44','46','48'])
+        // ->whereIn('type_code',['11','12','14','15','42','44','46','48'])
         ->get();
 
         $data['accounts'] = DB::table('accounts')
-        ->whereIn('type_code',['21','22','23','24'])
+        // ->whereIn('type_code',['21','22','23','24'])
         ->get();
 
         $data['statusRevision'] = '';
