@@ -3,7 +3,7 @@
 @section('content')
 @include('layouts.breadcrumb')
 <section id="add-index">
-    <div class="row">
+    <div class="form-row">
         <div class="col-md-12">
             <div class="card">
                 <div class="card-header">
@@ -19,7 +19,7 @@
                         <form id="frmAdd" name="frmAdd" autocomplete="off">
                             @csrf
                             {{-- <input type="text" id="article" name="article" hidden> --}}
-                            <div class="row">
+                            <div class="form-row">
                                 <div class="form-group col-md-3">
                                     <label for="recNumber">Receiving Number</label> <small class="text-muted"> automatic</small>
                                     <input type="text" id="recNumber" name="recNumber" class="form-control text-hitam disabled-el"  disabled />
@@ -29,8 +29,8 @@
                                     <input type="text" id="recDate" name="recDate" class="form-control" placeholder="DD-MM-YYYY" required />
                                 </div>                               
                             </div>
-                            <div class="row">
-                                <div class="form-group col-md-4">
+                            <div class="form-row">
+                                <div class="form-group col-md-5">
                                     <label class="form-label" for="customer">Customer*</label>
                                     <select class="select2 form-control" id="customer" name="customer" required>
                                         <option value="">All</option>
@@ -39,6 +39,8 @@
                                         @endforeach
                                     </select>
                                 </div>
+                            </div>
+                            <div class="form-row">
                                 <div class="form-group col-md-3">
                                     <label class="form-label" for="soNumber">SO Number*</label>
                                     <select class="select2 form-control" id="soNumber" name="soNumber" required>
@@ -53,20 +55,10 @@
                                     <input type="text" id="docNumber" name="docNumber" class="form-control disabled-el" required/>
                                 </div>
                             </div>
-                            <div class="row">
-                                <div class="form-group col-md-12">
+                            <div class="form-row">
+                                <div class="form-group col-md-8">
                                     <label class="form-label" for="note">Notes</label>
                                     <textarea type="text" id="note" name="note" class="form-control" rows="1" ></textarea>
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-12">
-                                    <button class="btn btn-warning" type="reset" id="cmdCancel" name="cmdCancel">Clear</button>
-                                    <button class="btn btn-success" type="reset" id="cmdNew" name="cmdCancel">New</button>
-                                    <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Save</button>
-                                    @can('receiving-posting')
-                                        <button class="btn btn-primary" type="button" id="cmdPosting" name="cmdPosting">Posting</button>
-                                    @endcan
                                 </div>
                             </div>
                         </form>
@@ -80,29 +72,7 @@
                     <h4 class="card-title">Article</h4>
                 </div>
                 <div class="card-body" >
-                    <div>
-                        <table class="" style="width:98%;table-layout: fixed;">
-                            <tbody>
-                                <tr>
-                                    <td class="" style="width: 25%">
-                                        <label>Article Code</label>
-                                    </td>
-                                    <td class="isian" style="width: 5%">
-                                        <label>Qty SO</label>
-                                    </td>
-                                    <td class="isian" style="width: 5%">
-                                        <label>Qty</label>
-                                    </td>
-                                    <td class="isian" style="width: 5%">
-                                        <label>UOM</label>
-                                    </td>
-                                    <td class="isian" style="width: 5%">
-                                        <label>Total Qty</label>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>      
+                    @include('receivingRm.headerColumn')
                     <input type="text" id ="last_row_number" class="d-none" value="0">
                     <div class="" id="article_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px">
                     </div>
@@ -130,6 +100,17 @@
                                     <input type="text" class="form-control text-right font-weight-bold" id="grandTotalQty" disabled />
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="form-row">
+                        <div class="col-12">
+                            {{-- <button class="btn btn-warning" type="reset" id="cmdCancel" name="cmdCancel">Clear</button> --}}
+                            <button class="btn btn-success" type="reset" id="cmdNew" name="cmdCancel">New</button>
+                            <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Save</button>
+                            @can('receiving-posting')
+                                <button class="btn btn-primary" type="button" id="cmdPosting" name="cmdPosting">Posting</button>
+                            @endcan
                         </div>
                     </div>
                 </div>
@@ -266,6 +247,11 @@
 
             if (articles.length == 0){
                 pesan +="Articles must be filled in completely <br>"; 
+                flag=1;
+            }
+
+            if ( $("#grandTotalQty").val() == 0 ){
+                pesan +="Total Qty cannot be 0 <br>"; 
                 flag=1;
             }
 

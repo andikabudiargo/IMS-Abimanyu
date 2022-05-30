@@ -258,7 +258,7 @@ class ReceivingRmController extends Controller
         ->orderBy('name')
         ->get();
 
-        $statusRec = ['Draft','Update','Posting','Cancel'];
+        $statusRec = ['DRAFT','UPDATED','POSTED','CANCEL'];
         $data['statusRec'] = $statusRec[$data['header']->status-1];
 
         return view("receivingRm.show",$data);
@@ -292,7 +292,8 @@ class ReceivingRmController extends Controller
         ->orderBy('name')
         ->get();
 
-        $statusRec = ['Draft','Update','Posting','Cancel'];
+        // $data['status'] = ['1'=>'DRAFT','2'=>'UPDATED','3'=>'POSTED','4'=>'CANCELED'];
+        $statusRec = ['DRAFT','UPDATED','POSTED','CANCEL'];
         $data['statusRec'] = $statusRec[$data['header']->status-1];
 
         return view("receivingRm.edit",$data);
@@ -425,12 +426,7 @@ class ReceivingRmController extends Controller
 
     public function posting(Request $request)
     {
-        // status
-        // 1. Draft
-        // 2. Update
-        // 3. Posting
-        // 4. Cancel
-
+        // $statusRec = ['DRAFT','UPDATED','POSTED','CANCEL'];
         $username =  Auth::user()->username;
         $recNumber = $request->recNumber;
         $recType = "RM";
@@ -689,7 +685,7 @@ class ReceivingRmController extends Controller
             return '<span class="d-none">'.$data->rec_number.'</span><a class="badge d-block '.$badges[$data->status - 1].'" href="'. route('receivingRm.show', ['id'=>Crypt::encryptString($data->id)]) .'" >'.$data->rec_number.'</a>';
         })
         ->addColumn('status', function ($data) {
-            $statusRec = ['Draft','Update','Posting','Cancel'];
+            $statusRec = ['DRAFT','UPDATED','POSTED','CANCEL'];
             return $statusRec[$data->status - 1];
         })
         ->rawColumns(['action','status','rec_number'])

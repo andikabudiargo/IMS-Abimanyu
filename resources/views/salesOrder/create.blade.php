@@ -77,7 +77,7 @@
                             <div class="form-row">
                                 <div class="form-group col-md-3">
                                     <label for="poNumber">PO Number*</label>
-                                    <input type="text" id="poNumber" name="poNumber" class="form-control text-uppercase" maxlength="40" autofocus required />
+                                    <input type="text" id="poNumber" name="poNumber" class="form-control" maxlength="40" autofocus required />
                                 </div>
                                 <div class="form-group col-md-5">
                                     <label class="form-label" for="cust">Customer*</label>

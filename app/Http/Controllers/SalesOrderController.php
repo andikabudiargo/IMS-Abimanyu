@@ -687,7 +687,7 @@ class SalesOrderController extends Controller
                                 <i data-feather="menu"></i>
                             </a>';
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
-            if (Auth::user()->can( 'salesOrder-edit' and  ($data->status == 3 or $data->status == 2) )) {
+            if (Auth::user()->can('salesOrder-edit') and ($data->status == 1 or $data->status == 2)) {
             $buttons .=         '<a href="'. route('salesOrder.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                     <i data-feather="file-text"></i>
                                     Edit

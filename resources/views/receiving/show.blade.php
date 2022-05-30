@@ -60,7 +60,7 @@
                                 </div>
                             </div>
                             <div class="form-row">
-                                <div class="form-group col-md-12">
+                                <div class="form-group col-md-8">
                                     <label class="form-label" for="note">Notes</label>
                                     <textarea type="text" id="note" name="note" class="form-control text-hitam" rows="1" disabled>{{ $header->note }} </textarea>
                                 </div>
@@ -212,8 +212,8 @@
         $("#new_row"+ cloneCount).find('#totalQty').attr('id', 'totalQty'+ cloneCount);
         $('#totalQty'+ cloneCount).text(parseFloat(qty)+parseFloat(qtyFree));
         mask_thousand_digit(numberOfDecimalDigit);
-        // hitungTotal();
-        // hitungGrandTotalLoad();
+        hitungTotal();
+        hitungGrandTotalLoad();
 
         if ( uomGroup === 'PIECE' ){
             $('#qty_rec'+ cloneCount).removeClass("numeral-mask-digit");
@@ -251,24 +251,33 @@
         let objQtyRec= $('#article_row input[name="qty_rec[]"]');
         let objQtyFree= $('#article_row input[name="qty_free[]"]');
         let objTotalQty= $('#article_row span[name="totalQty[]"]');
+        let objQtyPo= $('#article_row input[name="qty_po[]"]');
         
         objQtyRec.keyup(function() {
             let indexnya= objQtyRec.index(this);
-            let qtyRec = parseInt(objQtyRec.eq(indexnya).val().replace(/[^0-9]/gi, '') || 0); 
-            let qtyFree = parseInt(objQtyFree.eq(indexnya).val().replace(/[^0-9]/gi, '') || 0); 
+            let qtyRec = parseFloat(objQtyRec.eq(indexnya).val().replace(/,/gi, '') || 0); 
+            let qtyFree = parseFloat(objQtyFree.eq(indexnya).val().replace(/,/gi, '') || 0); 
             let totalQty = qtyRec+qtyFree;
-            objTotalQty.eq(indexnya).text(humanizeNumber(totalQty));
+            let qtyPo = parseFloat(objQtyPo.eq(indexnya).val().replace(/,/gi, '') || 0); 
+            let uomGroup = objQtyRec.eq(indexnya).data('uom-group');
+            if ( qtyRec > qtyPo ){
+                objQtyRec.eq(indexnya).delay(3000).css("background-color","rgba(255,0,0, 0.5)");
+            }else{
+                objQtyRec.eq(indexnya).delay(3000).css("background-color","");
+            }
+            objTotalQty.eq(indexnya).text(totalQty.toLocaleString(undefined, {maximumFractionDigits:numberOfDecimalDigit})); 
             hitungGrandTotal();
         });    
 
         objQtyFree.keyup(function() {
             let indexnya= objQtyRec.index(this);
-            let qtyRec = parseInt(objQtyRec.eq(indexnya).val().replace(/[^0-9]/gi, '') || 0); 
-            let qtyFree = parseInt(objQtyFree.eq(indexnya).val().replace(/[^0-9]/gi, '') || 0); 
+            let qtyRec = parseFloat(objQtyRec.eq(indexnya).val().replace(/,/gi, '') || 0); 
+            let qtyFree = parseFloat(objQtyFree.eq(indexnya).val().replace(/,/gi, '') || 0); 
             let totalQty = qtyRec+qtyFree;
-            objTotalQty.eq(indexnya).text(humanizeNumber(totalQty));
+            let uomGroup = objQtyFree.eq(indexnya).data('uom-group');
+            objTotalQty.eq(indexnya).text(totalQty.toLocaleString(undefined, {maximumFractionDigits:numberOfDecimalDigit}));
             hitungGrandTotal();
-        });
+        }); 
     }
 
     function hitungGrandTotal(){
@@ -277,19 +286,17 @@
         let objQtyFree= $('#article_row input[name="qty_free[]"]');
         let totalQty= 0;
         let totalQtyFree= 0;
-
         var arr = objQtyRec.map(function (i) {
-            let qty = parseInt(objQtyRec.eq(i).val().replace(/[^0-9]/gi, '')) || 0;
-            let qtyFree = parseInt(objQtyFree.eq(i).val().replace(/[^0-9]/gi, '')) || 0;
+            let qty = parseFloat(objQtyRec.eq(i).val().replace(/,/gi, '')) || 0;
+            let qtyFree = parseFloat(objQtyFree.eq(i).val().replace(/,/gi, '')) || 0;
             totalQty+= qty;
             totalQtyFree+= qtyFree;
         }).get();
         grandTotalQty=totalQty+totalQtyFree;
-        
         $("#totalRow").val(objArticle.length);
-        $("#totalQTY").val(humanizeNumber(totalQty));
-        $("#totalQtyFree").val(humanizeNumber(totalQtyFree));
-        $("#grandTotalQty").val(humanizeNumber(grandTotalQty));
+        $("#totalQTY").val(totalQty.toLocaleString(undefined, {maximumFractionDigits:numberOfDecimalDigit}));
+        $("#totalQtyFree").val(totalQtyFree.toLocaleString(undefined, {maximumFractionDigits:numberOfDecimalDigit}));
+        $("#grandTotalQty").val(grandTotalQty.toLocaleString(undefined, {maximumFractionDigits:numberOfDecimalDigit}));
     }
 
     function hitungGrandTotalLoad(){
@@ -310,9 +317,9 @@
         }).get();
         grandTotalQty=totalQty+totalQtyFree;
         $("#totalRow").val(objArticle.length);
-        $("#totalQTY").val(humanizeNumber(totalQty));
-        $("#totalQtyFree").val(humanizeNumber(totalQtyFree));
-        $("#grandTotalQty").val(humanizeNumber(grandTotalQty));
+        $("#totalQTY").val(totalQty.toLocaleString(undefined, {maximumFractionDigits:numberOfDecimalDigit}));
+        $("#totalQtyFree").val(totalQtyFree.toLocaleString(undefined, {maximumFractionDigits:numberOfDecimalDigit}));
+        $("#grandTotalQty").val(grandTotalQty.toLocaleString(undefined, {maximumFractionDigits:numberOfDecimalDigit}));
     }
     
     $.ajaxSetup({

@@ -2,13 +2,12 @@
 @section('title', $title)
 @section('content')
 @include('layouts.breadcrumb')
-@include('partials.alert')
 <section id="add-index">
     <div class="form-row">
         <div class="col-md-12">
             <div class="card">
                 <div class="card-header">
-                    <h4 class="card-title">Status: <span id="statusText">{{ $statusRec }}</span></h4>
+                    <h4 class="card-title">Status: <span id="statusText">{{ $statusDel }}</span></h4>
                     <div class="heading-elements">
                         <ul class="list-inline mb-0">
                             <li><a data-action="collapse"><i data-feather="chevron-down"></i></a></li>
@@ -19,52 +18,39 @@
                     <div class="card-body">
                         <form id="frmAdd" name="frmAdd" autocomplete="off">
                             @csrf
-                            {{-- <input type="text" id="article" name="article" hidden> --}}
+
                             <div class="form-row">
                                 <div class="form-group col-md-3">
-                                    <label for="recNumber">Receiving Number</label> <small class="text-muted"> automatic</small>
-                                    <input type="text" id="recNumber" name="recNumber" class="form-control text-hitam disabled-el" value="{{ $header->rec_number }}"  disabled />
+                                    <label for="dnNumber">Delivery Note Number</label> <small class="text-muted"> automatic</small>
+                                    <input type="text" id="dnNumber" name="dnNumber" class="form-control text-hitam disabled-el" value="{{ $header->delivery_number }}" disabled />
                                 </div>
                                 <div class="form-group col-md-2">
-                                    <label for="recDate">Receiving Date*</label>
-                                    <input type="text" id="recDate" name="recDate" class="form-control text-hitam" placeholder="DD-MM-YYYY" value="{{ $header->rec_date }}" disabled />
+                                    <label for="dnDate">Delivery Date*</label>
+                                    <input type="text" id="dnDate" name="dnDate" class="form-control" placeholder="DD-MM-YYYY" value="{{ $header->delivery_date }}" required />
                                 </div>                               
                             </div>
                             <div class="form-row">
                                 <div class="form-group col-md-5">
-                                    <label class="form-label" for="supplier">Supplier*</label>
-                                    <select class="select2 form-control text-hitam" id="supplier" name="supplier" disabled>
-                                        <option value="">All</option>
-                                        @foreach($supps as $val)
-                                            <option value="{{$val->kode}}" {{$val->kode == $header->supplier_id ? "selected" : ""}} >{{$val->kode}} - {{$val->nama}}</option>
+                                    <label class="form-label" for="customer">Customer*</label>
+                                    <select class="select2 form-control" id="customer" name="customer" required>
+                                        {{-- <option value="">All</option> --}}
+                                        @foreach($customers as $val)
+                                            <option value="{{$val->kode}}" {{$val->kode == $header->customer_id ? "selected" : ""}} >{{$val->kode}} - {{$val->nama}}</option>
                                         @endforeach
                                     </select>
                                 </div>
                                 <div class="form-group col-md-4">
-                                    <label class="form-label" for="poNumber">PO Number*</label>
-                                    <input type="text" id="poNumber" name="poNumber" class="form-control text-hitam disabled-el" value="{{ $header->po_number }}"  disabled />
-                                </div>
-                                <div class="form-group col-md-3">
-                                    <label for="invNumber">Invoice Number</label>
-                                    <input type="text" id="invNumber" name="invNumber" class="form-control text-hitam disabled-el" value="{{ $header->inv_number }}" disabled />
+                                    <label class="form-label" for="soNumber">SO Number*</label>
+                                    <input type="text" id="soNumber" name="soNumber" class="form-control" value="{{ $header->so_number }}" required />
                                 </div>
                             </div>
                             <div class="form-row">
-                                <div class="form-group col-md-12">
+                                <div class="form-group col-md-9">
                                     <label class="form-label" for="note">Notes</label>
-                                    <textarea type="text" id="note" name="note" class="form-control text-hitam" rows="1" disabled>{{ $header->note }} </textarea>
+                                    <textarea type="text" id="note" name="note" class="form-control" rows="1" >{{ $header->note }}</textarea>
                                 </div>
                             </div>
-                            <div class="form-row">
-                                <div class="col-12">
-                                    <div class="form-row">
-                                        <div class="col-12">
-                                            <a href="{{ route('receivings.index') }}" class="btn btn-warning">Back</a>
-                                            <a href="{{ route('receiving.create') }}" class="btn btn-success">New</a>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                            
                         </form>
                     </div>
                 </div>
@@ -76,37 +62,9 @@
                     <h4 class="card-title">Article</h4>
                 </div>
                 <div class="card-body">
-                    <div>
-                        <table class="" style="width:98%;table-layout: fixed;">
-                            <tbody>
-                                <tr>
-                                    <td class="" style="width: 25%">
-                                        <label>Article Code</label>
-                                    </td>
-                                    <td class="isian" style="width: 5%">
-                                        <label>Qty PO</label>   
-                                    </td>
-                                    <td class="isian" style="width: 5%">
-                                        <label>Qty</label>
-                                    </td>
-                                    <td class="isian" style="width: 5%">
-                                        <label>UOM</label>
-                                    </td>
-                                    <td class="isian" style="width: 5%">
-                                        <label>Free Goods</label>
-                                    </td>
-                                    <td class="isian" style="width: 5%">
-                                        <label>UOM</label>
-                                    </td>
-                                    <td class="isian" style="width: 5%">
-                                        <label>Total Qty</label>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
+                    @include('delivery.headerColumn')
                     <div class="" id="article_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px">
-                        <input type="text" id ="last_row_number" class="d-none" value="">
+                        <input type="text" id ="last_row_number" class="d-none" value="{{ count($detail) }}">
                     </div>
                     <div class="d-flex justify-content-between align-items-end mt-75 ml-75">
                     </div>
@@ -126,16 +84,14 @@
                                     <input type="text" class="form-control text-right font-weight-bold" id="totalQTY" disabled />
                                 </div>
                             </div>
-                            <div class="form-group row mb-03">
-                                <label for="totalQtyFree" class="col-sm-4 col-form-label titik-dua">Total Qty Free</label>
-                                <div class="col-sm-4">
-                                    <input type="text" class="form-control text-right font-weight-bold" id="totalQtyFree" disabled />
-                                </div>
-                            </div>
-                            <div class="form-group row mb-03">
-                                <label for="grandTotalQty" class="col-sm-4 col-form-label titik-dua">Grand Total Qty</label>
-                                <div class="col-sm-4">
-                                    <input type="text" class="form-control text-right font-weight-bold" id="grandTotalQty" disabled />
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="form-row">
+                        <div class="col-12">
+                            <div class="form-row">
+                                <div class="col-12">
+                                    <a href="{{ route('delivery.index') }}" class="btn btn-success">Back</a>
                                 </div>
                             </div>
                         </div>
@@ -145,34 +101,9 @@
         </div>
     </div>
 </section>
-<div class="modal fade text-left bisa-geser" id="modalListPrice" tabindex="-1" role="dialog" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h4>List price</h4>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body">
-                <h5><span class="semi-bold" id='modalArticle'></span></h5>
-                <div class="table-responsive">
-                    <table class="table" id='modalTableData'>
-                        <thead>
-                            <tr>
-                                <td>PO Number</td>
-                                <td>Date</td>
-                                <td>Price</td>
-                            </tr>
-                        </thead>
-                        <tbody></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-@include('receiving.addArticle')
+
+@include('delivery.addArticle')
+@include('partials.delete-modal')
 @endsection
 @section('styles')
 <style>
@@ -225,56 +156,145 @@
 @section('scripts')
 <script type="text/javascript">
     let currentDate = todayDate('dd-mm-yyyy');  
-    
-    $(document).ready(function(){           
+    $(document).ready(function(){    
+        validateFormToast("frmAdd");
+        let href;
+        $(document).on('click', '#deleteButton', function(event) {
+            event.preventDefault();
+            href = $(this).data('href');
+            $('#modalConfirmationCancel').attr("action", href);
+        });
+
         let detail = {!!  $detail !!};
         for(let i=0;i<detail.length;i++){
-            console.log(detail[i].article_code);
             article = detail[i].article_code;
             articleCode = detail[i].article_alternative_code;
             articleDesc = detail[i].article_desc;
-            qtyPo =  detail[i].qty;
+            qtyDel = detail[i].qty;
             uomGroup =  detail[i].uom_group;
-            uom =  detail[i].uomQty;
-            qty =  detail[i].qty;
-            uomQty =  detail[i].uom_rec;
-            qtyFree =  detail[i].qty_free;
-            uomFree =  detail[i].uom_free;
-            add_new_row(article,articleCode,articleDesc,qtyPo,uomGroup,uom,qty,uomQty,qtyFree,uomFree);
+            uom = detail[i].uom;
+            soCode = detail[i].so_number;
+            add_new_row(article,articleCode,articleDesc,qtyDel,uomGroup,uom,soCode);
         }
-            
     });
 
-    recDate = $('#recDate');
-    if (recDate.length) {
-        recDate.flatpickr({
+    dnDate = $('#dnDate');
+    if (dnDate.length) {
+        dnDate.flatpickr({
             dateFormat: "d-m-Y",
+            maxDate: "today"
         });
     }
 
-    let cloneCount=1;
-    function add_new_row(article,articleCode,articleDesc,qtyPo,uomGroup,uom,qty,uomQty,qtyFree,uomFree) {
+    function reloadPage(){
+        window.location.reload();
+    }
+
+    $("#cmdNew").click(function(){
+        reloadPage();
+    });
+
+    $("#cmdSave").click(function(){    
+        if (!$("#frmAdd")[0].checkValidity()){
+            $("#frmAdd").submit();
+        }else{ 
+            $('.disabled-el').removeAttr('disabled');
+            let objQty= $('#article_row input[name="qtyInv[]"]');
+            let objUom= $('#article_row span[name="uom[]"]'); 
+            let articles = []; 
+            let flag=0; 
+            let pesan="";
+
+            $("#article_row input[name='articleId[]']").map(function(i) {  
+                let $this=$(this);
+                if ($this.val()){
+                    let articleCode = $this.data("code");
+                    let articleDesc = $this.data("desc");
+                    let articleUom = $this.data("uom");
+                    let articleSoCode = $this.data("so-code");
+                    let qty=objQty.eq(i).val().replace(/[^0-9]/gi, '') || 0;
+                    
+                    if ((articleCode!=='') && (qty> 0)){
+                        articles.push({
+                            "article_code":articleCode,
+                            "qty":qty,
+                            "uom":articleUom,
+                            "so_number":articleSoCode
+                        });
+                    }
+                    if (qty == 0){
+                        pesan +="QTY of items "+ articleDesc +" cannot be 0 <br>"; 
+                        flag=1;
+                    }
+                }
+            });
+
+            if (articles.length == 0){
+                pesan +="Articles must be filled in completely <br>"; 
+                flag=1;
+            }
+
+            if (flag==0){
+
+                let dnDate = $('#dnDate').val();
+                let customer = $('#customer').val()
+                let soNumber = $('#soNumber').val()
+                let note = $('#note').val();
+                let dnNumber = $('#dnNumber').val();
+
+                $.ajax({
+                    type: "post",
+                    url: "{{ route('delivery.update') }}",
+                    data: {
+                        articles:JSON.stringify(articles),
+                        dnDate:dnDate,
+                        customer:customer,
+                        soNumber:soNumber,
+                        dnNumber:dnNumber,
+                        note:note
+                    },
+                    dataType: "json",
+                    success: function(data) {
+                        if (data.status == 0 ){
+                            for(let i = 0; i < data.message.length; i++) {
+                                show_msg(data.title, data.message[i], data.alert);
+                            }
+                            $('#dnNumber').attr('disabled','disabled');
+                        }else{
+                            show_msg(data.title, data.message, data.alert);
+                            $('#dnNumber').val(data.dnNumber);
+                            $('#dnNumber').attr('disabled','disabled');
+                            $('#cmdSave').attr('disabled','disabled');
+                        }
+                    },
+                    error: function(error) {
+                        console.log(error);
+                    }
+                });
+
+            }else{
+                Swal.fire('Warning..',pesan,'warning');
+            }
+        }
+    });
+
+        
+    let cloneCount=0;
+    function add_new_row(article,articleCode,articleDesc,qtyDel,uomGroup,uom,soCode) {
+        // console.log(article,articleCode,articleDesc,qtyDel,uomGroup,uom);
         $("#article_row").append($("#new_row").clone().html());
         cloneCount++;
         $("#article_row").find('#baru').attr('id', 'new_row'+ cloneCount);
-        $("#new_row"+ cloneCount).find('#article_id').attr('id', 'article_id'+ cloneCount);
-        $('#article_id'+ cloneCount).attr('data-code', article);
-        $('#article_id'+ cloneCount).attr('data-uom', uom);
-        $('#article_id'+ cloneCount).val(articleCode +" - " + articleDesc);
-        $("#new_row"+ cloneCount).find('#qty_po').attr('id', 'qty_po'+ cloneCount);
-        $('#qty_po'+ cloneCount).val("");
-        $("#new_row"+ cloneCount).find('#qty_rec').attr('id', 'qty_rec'+ cloneCount);
-        $('#qty_rec'+ cloneCount).val(qty);
-        $('#qty_rec'+ cloneCount).attr('disabled','disabled');
+        $("#new_row"+ cloneCount).find('#articleId').attr('id', 'articleId'+ cloneCount);
+        $('#articleId'+ cloneCount).attr('data-code', article);
+        $('#articleId'+ cloneCount).attr('data-uom', uom);
+        $('#articleId'+ cloneCount).attr('data-so-code', soCode);
+        $('#articleId'+ cloneCount).val(articleCode +" - " + articleDesc);
+        $("#new_row"+ cloneCount).find('#qtyInv').attr('id', 'qtyInv'+ cloneCount);
+        $('#qtyInv'+ cloneCount).val(qtyDel);
         $("#new_row"+ cloneCount).find('#uom').attr('id', 'uom'+ cloneCount);
-        listUom('uom'+ cloneCount,uomGroup,uom,uomQty);
-        $('#uom'+ cloneCount).attr('disabled','disabled');
-        $("#new_row"+ cloneCount).find('#qty_free').attr('id', 'qty_free'+ cloneCount);
-        $('#qty_free'+ cloneCount).val(qtyFree);
-        $('#qty_free'+ cloneCount).attr('disabled','disabled');
-        $("#new_row"+ cloneCount).find('#uomFree').attr('id', 'uomFree'+ cloneCount);
-        listUom('uomFree'+ cloneCount,uomGroup,uom,uomFree);
-        $('#uomFree'+ cloneCount).attr('disabled','disabled');
+        listUom('uom'+ cloneCount,uomGroup,uom,uom);
+        tombolPanah('qtyInv');
         mask_thousand_digit(3);
         hitungTotal();
         hitungGrandTotalLoad();
@@ -298,73 +318,61 @@
     }
 
     function hitungTotal(){
-        let objQtyRec= $('#article_row input[name="qty_rec[]"]');
-        let objQtyFree= $('#article_row input[name="qty_free[]"]');
-        let objTotalQty= $('#article_row span[name="totalQty[]"]');
-        
-        objQtyRec.keyup(function() {
-            let indexnya= objQtyRec.index(this);
-            let qtyRec = parseInt(objQtyRec.eq(indexnya).val().replace(/[^0-9]/gi, '') || 0); 
-            let qtyFree = parseInt(objQtyFree.eq(indexnya).val().replace(/[^0-9]/gi, '') || 0); 
-            let totalQty = qtyRec+qtyFree;
-            objTotalQty.eq(indexnya).text(humanizeNumber(totalQty));
-            hitungGrandTotal();
-        });    
-
-        objQtyFree.keyup(function() {
-            let indexnya= objQtyRec.index(this);
-            let qtyRec = parseInt(objQtyRec.eq(indexnya).val().replace(/[^0-9]/gi, '') || 0); 
-            let qtyFree = parseInt(objQtyFree.eq(indexnya).val().replace(/[^0-9]/gi, '') || 0); 
-            let totalQty = qtyRec+qtyFree;
-            objTotalQty.eq(indexnya).text(humanizeNumber(totalQty));
+        let objQtyInv= $('#article_row input[name="qtyInv[]"]');
+        objQtyInv.keyup(function() {
+            let indexnya= objQtyInv.index(this);
+            let qty = objQtyInv.eq(indexnya).val().replace(/[^0-9]/gi, '') || 0; 
             hitungGrandTotal();
         });
-            
     }
 
     function hitungGrandTotal(){
-        let objArticle = $('#article_row input[name="article_id[]"]');
-        let objQtyRec= $('#article_row input[name="qty_rec[]"]');
-        let objQtyFree= $('#article_row input[name="qty_free[]"]');
-        let totalQty= 0;
-        let totalQtyFree= 0;
-
-        var arr = objQtyRec.map(function (i) {
-            let qty = parseInt(objQtyRec.eq(i).val().replace(/[^0-9]/gi, '')) || 0;
-            let qtyFree = parseInt(objQtyFree.eq(i).val().replace(/[^0-9]/gi, '')) || 0;
+        let objArticle = $('#article_row input[name="articleId[]"]');
+        let objQtyTiw= $('#article_row input[name="qtyInv[]"]');
+        let objQTY= $('#article_row input[name="qtyInv[]"]');
+        let totalQty=0;
+        var arr = objQtyTiw.map(function (i) {
+            let qty = parseInt(objQTY.eq(i).val().replace(/[^0-9]/gi, '')) || 0;
             totalQty+= qty;
-            totalQtyFree+= qtyFree;
         }).get();
-        grandTotalQty=totalQty+totalQtyFree;
         
         $("#totalRow").val(objArticle.length);
         $("#totalQTY").val(humanizeNumber(totalQty));
-        $("#totalQtyFree").val(humanizeNumber(totalQtyFree));
-        $("#grandTotalQty").val(humanizeNumber(grandTotalQty));
     }
 
     function hitungGrandTotalLoad(){
-        let objArticle = $('#article_row input[name="article_id[]"]');
-        let objQtyRec= $('#article_row input[name="qty_rec[]"]');
-        let objQtyFree= $('#article_row input[name="qty_free[]"]');
-        let objTotalQty= $('#article_row span[name="totalQty[]"]');
-        
-        let totalQty= 0;
-        let totalQtyFree= 0;
-
-        var arr = objQtyRec.map(function (i) {
-            let qty = parseInt(objQtyRec.eq(i).val().replace(/[^0-9]/gi, '')) || 0;
-            let qtyFree = parseInt(objQtyFree.eq(i).val().replace(/[^0-9]/gi, '')) || 0;
+        let objArticle = $('#article_row input[name="articleId[]"]');
+        let objQtyTiw= $('#article_row input[name="qtyInv[]"]');
+        let objQTY= $('#article_row input[name="qtyInv[]"]');
+        let totalQty=0;
+        var arr = objQtyTiw.map(function (i) {
+            let qty = parseInt(objQTY.eq(i).val().replace(/[^0-9]/gi, '')) || 0;
             totalQty+= qty;
-            totalQtyFree+= qtyFree;
-            objTotalQty.eq(i).text(humanizeNumber(qty+qtyFree));
         }).get();
-        grandTotalQty=totalQty+totalQtyFree;
         
         $("#totalRow").val(objArticle.length);
         $("#totalQTY").val(humanizeNumber(totalQty));
-        $("#totalQtyFree").val(humanizeNumber(totalQtyFree));
-        $("#grandTotalQty").val(humanizeNumber(grandTotalQty));
+    }
+
+    function tombolPanah(objname){
+        // function kalo mau pindah filed dari atas ke bawah atau sebaliknya
+        let obj = $('input[name="'+objname+'[]"]');
+        obj.keyup(function(e) {
+            indexnya= obj.index(this);
+            indexnya=parseInt(indexnya);
+            if (e.keyCode == 38) {
+                //panah atas
+                indexTarget = indexnya-1;
+                obj.eq(indexTarget).focus().select();
+                return false;
+            }
+            if (e.keyCode == 40) {
+                //panah bawah
+                indexTarget = indexnya+1;
+                obj.eq(indexTarget).focus().select();
+                return false;
+            }
+        });
     }
     
     $.ajaxSetup({

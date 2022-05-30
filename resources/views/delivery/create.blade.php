@@ -20,8 +20,8 @@
                         <form id="frmAdd" name="frmAdd" autocomplete="off">
                             @csrf
                             {{-- <input type="text" id="article" name="article" hidden> --}}
-                            <input type="text" id="ppn" name="ppn"  values="10" hidden>
-                            <input type="text" id="pph23" name="ppn23" values="2" hidden>
+                            {{-- <input type="text" id="ppn" name="ppn"  values="10" hidden>
+                            <input type="text" id="pph23" name="ppn23" values="2" hidden> --}}
                             <div class="form-row">
                                 <div class="form-group col-md-3">
                                     <label for="dnNumber">Delivery Note Number</label> <small class="text-muted"> automatic</small>
@@ -65,29 +65,7 @@
                     <h4 class="card-title">Article</h4>
                 </div>
                 <div class="card-body" >
-                    <div>
-                        <table class="" style="width:98%;table-layout: fixed;">
-                            <tbody>
-                                <tr>
-                                    <td class="" style="width: 40%">
-                                        <label>Article Code</label>
-                                    </td>
-                                    {{-- <td class="isian" style="width: 5%">
-                                        <label>Qty SO</label>
-                                    </td> --}}
-                                    <td class="isian" style="width: 5%">
-                                        <label>Qty</label>
-                                    </td>
-                                    <td class="isian" style="width: 5%">
-                                        <label>UOM</label>
-                                    </td>
-                                    <td class="isian text-center" style="width: 5%">
-                                        <label>-</label>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>      
+                    @include('delivery.headerColumn')
                     <input type="text" id ="last_row_number" class="d-none" value="0">
                     <div class="" id="article_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px">
                     </div>
@@ -186,7 +164,6 @@
         validateFormToast("frmAdd");
         $("#totalRow").val(0);
         $("#totalQTY").val(humanizeNumber(0));
-
         $('#statusText').text('New');
         $('#dnDate').val(currentDate);
         $('#cmdSave').show();
@@ -298,7 +275,7 @@
         let dnNumber = $('#dnNumber').val();            
         $.ajax({
             type: "post",
-            url: "{{ route('receiving.posting') }}",
+            url: "{{ route('delivery.posting') }}",
             data: {
                 dnNumber:dnNumber
             },
