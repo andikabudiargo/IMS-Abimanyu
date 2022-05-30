@@ -417,21 +417,21 @@
             @endcan
           </ul>
         </li>
-        {{-- <li class=" {{ in_array(\Request::segment(1), ['employees','jobPositions','depts']) ? 'active' : '' }} nav-item">
+        <li class=" {{ in_array(\Request::segment(1), ['employees','jobPositions','depts']) ? 'active' : '' }} nav-item">
           <a class="d-flex align-items-center" href="javascript:void(0);">
             <i data-feather='users'></i>
             <span class="menu-title text-truncate" data-i18n="Form Elements">HRD
             </span>
           </a>
           <ul class="menu-content">
-            @can('employee-index')
+            {{-- @can('employee-index')
             <li class="{{ \Request::segment(1) == 'employees'  ? 'active' : '' }}">
               <a class="d-flex align-items-center" href="{{ route('employees.index') }}">
                 <i data-feather="circle"></i>
                 <span class="menu-item text-truncate" data-i18n="Input">Employee</span>
               </a>
             </li>
-            @endcan
+            @endcan --}}
             @can('department-index')
             <li class="{{ \Request::segment(1) == 'depts'  ? 'active' : '' }}">
               <a class="d-flex align-items-center" href="{{ route('depts.index') }}">
@@ -440,15 +440,15 @@
               </a>
             </li>
             @endcan
-            @can('jobPosition-index')
+            {{-- @can('jobPosition-index')
             <li class="{{ \Request::segment(1) == 'jobPositions'  ? 'active' : '' }}">
               <a class="d-flex align-items-center" href="{{ route('jobPositions.index') }}">
                 <i data-feather="circle"></i>
                 <span class="menu-item text-truncate" data-i18n="Input">Position</span>
               </a>
             </li>
-            @endcan
-            @can('jobPosition-index')
+            @endcan --}}
+            {{-- @can('jobPosition-index')
             <li class="{{ \Request::segment(1) == 'jobPositionsSS'  ? 'active' : '' }} disabled">
               <a class="d-flex align-items-center" href="{{ route('jobPositions.index') }}">
                 <i data-feather="circle"></i>
@@ -463,9 +463,9 @@
                 <span class="menu-item text-truncate" data-i18n="Input">Payroll</span>
               </a>
             </li>
-            @endcan
+            @endcan --}}
           </ul>
-        </li> --}}
+        </li>
         {{-- <li class=" {{ in_array(\Request::segment(1), []) ? 'active' : '' }} nav-item">
           <a class="d-flex align-items-center" href="javascript:void(0);">
             <i data-feather="share"></i>

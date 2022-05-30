@@ -13,6 +13,7 @@ use DataTables;
 use DB;
 use PDF;
 use AppHelpers;
+use Approval;
 
 class PurchaseRequestController extends Controller
 {
@@ -229,7 +230,7 @@ class PurchaseRequestController extends Controller
         ,DB::raw('(select sum(qty) from purchase_request_det where pr_number = purchase_request_hdr.pr_number) as sum_qty') 
         ,DB::raw('(select count(*) from purchase_request_det where pr_number = purchase_request_hdr.pr_number) as sum_row')
         )
-        ->get()->first();
+        ->get()->first();       
 
         $prNumber = $data['header']->pr_number;
 
@@ -248,31 +249,11 @@ class PurchaseRequestController extends Controller
         ->orderBy('name')
         ->get();
 
-        $data['approvalHistory'] = DB::select("SELECT DISTINCT ON (a.approval_order) a.approval_order 
-        ,(select name from users where username = a.username) as name
-        ,(select STRING_AGG((select name from users where username = a.username),',' ORDER BY module_code) AS main from approval_level where module_code = a.module_code and approval_order = a.approval_order ) as petugas
-        ,(select approval_number from approval_master where module_code = a.module_code) as max_approval,
-        case when module_number is not null then true else false end status
-        from approval_level a
-        left join (select * from approval_history where module_number = '$prNumber') b
-        on b.module_code = a.module_code and b.approval_order = a.approval_order and b.username = a.username
-        where a.approval_order <= (select approval_number from approval_master where module_code ='$this->moduleCode')
-        and a.module_code = '$this->moduleCode'
-        order by a.approval_order");
-
-        $data['approveValidate'] = DB::select("SELECT username= '$username' as validate,current_level + 1 as next_level,* from (
-        select username,approval_order,
-        (select max(approval_number) from approval_master where module_code = a.module_code ) as max_level,
-        COALESCE((select max(approval_order) from approval_history
-        where module_code = a.module_code
-        and module_number = '".$prNumber."'),'0') as current_level
-        from approval_level a 
-        where module_code = '".$this->moduleCode."' and username = '$username') b
-        where approval_order = current_level+1"); 
+        $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode,$prNumber,$username);
+        $data['approveValidate'] = Approval::approveValidate($this->moduleCode,$prNumber,$username);
 
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATED','3'=>'APPROVED','4'=>'RECEIVED','5'=>'CANCELED','6'=>"CLOSE",'7'=>'PO'];
-        $approvLevel = $data['approveValidate'] ? 'APPROVED-'.$data['approveValidate'][0]->current_level.'/'.$data['approveValidate'][0]->max_level : 'APPROVED';
-        $statusPr = ['NEW','VALIDATED',$approvLevel,'RECEIVED','CANCELED','CLOSED','PO'];
+        $statusPr = ['NEW','VALIDATED','APPROVED','RECEIVED','CANCELED','CLOSED','PO'];
         $data['statusPr'] = $statusPr[$data['header']->status-1];
 
         return view("purchaseRequest.show",$data);
@@ -313,31 +294,11 @@ class PurchaseRequestController extends Controller
         ->orderBy('name')
         ->get();
 
-        $data['approvalHistory'] = DB::select("SELECT DISTINCT ON (a.approval_order) a.approval_order 
-        ,(select name from users where username = a.username) as name
-        ,(select STRING_AGG((select name from users where username = a.username),',' ORDER BY module_code) AS main from approval_level where module_code = a.module_code and approval_order = a.approval_order ) as petugas
-        ,(select approval_number from approval_master where module_code = a.module_code) as max_approval,
-        case when module_number is not null then true else false end status
-        from approval_level a
-        left join (select * from approval_history where module_number = '$prNumber') b
-        on b.module_code = a.module_code and b.approval_order = a.approval_order and b.username = a.username
-        where a.approval_order <= (select approval_number from approval_master where module_code ='$this->moduleCode')
-        and a.module_code = '$this->moduleCode'
-        order by a.approval_order");
-
-        $data['approveValidate'] = DB::select("SELECT username= '$username' as validate,current_level + 1 as next_level,* from (
-        select username,approval_order,
-        (select max(approval_number) from approval_master where module_code = a.module_code ) as max_level,
-        COALESCE((select max(approval_order) from approval_history
-        where module_code = a.module_code
-        and module_number = '".$prNumber."'),'0') as current_level
-        from approval_level a 
-        where module_code = '".$this->moduleCode."' and username = '$username') b
-        where approval_order = current_level+1"); 
+        $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode,$prNumber,$username);
+        $data['approveValidate'] = Approval::approveValidate($this->moduleCode,$prNumber,$username);
 
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATED','3'=>'APPROVED','4'=>'RECEIVED','5'=>'CANCELED','6'=>"CLOSE",'7'=>'PO'];
-        $approvLevel = $data['approveValidate'] ? 'APPROVED-'.$data['approveValidate'][0]->current_level.'/'.$data['approveValidate'][0]->max_level : 'APPROVED';
-        $statusPr = ['NEW','VALIDATED',$approvLevel,'RECEIVED','CANCELED','CLOSED','PO'];
+        $statusPr = ['NEW','VALIDATED','APPROVED','RECEIVED','CANCELED','CLOSED','PO'];
         $data['statusPr'] = $statusPr[$data['header']->status-1];
 
         return view("purchaseRequest.edit",$data);
@@ -466,6 +427,62 @@ class PurchaseRequestController extends Controller
         }
     }
 
+    public function approve(Request $request)
+    {
+        $username =  Auth::user()->username;
+        $prNumber = $request->prNumber;
+        $statusLevelApproval = Approval::approvalLevelPosition($this->moduleCode,$prNumber,$username);        
+        // dd($statusLevelApproval);
+        $nextLevel = $statusLevelApproval[0]->next_level;
+        $statusPr = $statusLevelApproval[0]->next_level == $statusLevelApproval[0]->max_level ? '3' :'2';
+
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATED','3'=>'APPROVED','4'=>'RECEIVED','5'=>'CANCELED','6'=>"CLOSE",'7'=>'PO'];
+                
+        DB::beginTransaction();
+        try {
+                $row_affected=DB::table('purchase_request_hdr')
+                ->where('pr_number',$prNumber)
+                ->update(
+                    [
+                        'status' => $statusPr,
+                        'authorized_by' => Auth::user()->username,
+                        'updated_by' => Auth::user()->username,
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]
+                );
+
+                if ($row_affected){
+                    DB::table('approval_history')->insert([
+                        'module_code' => $this->moduleCode,
+                        'module_number' => $prNumber,
+                        'username' => Auth::user()->username,
+                        'approval_order' => $nextLevel,
+                        'approval_date' => date('Y-m-d'),
+                        'status' => 1,
+                        'created_by' => Auth::user()->username,
+                        'updated_by' => Auth::user()->username,
+                        'created_at' => date('Y-m-d H:i:s'),
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]);
+                }
+                
+                DB::commit();
+                $title ="Approve $this->title";
+                $alert  ="success";
+                $message  = "$title $prNumber is successfully Approve-".$nextLevel;
+                \LogActivity::addToLog($title,"username: $username Status $message");
+                return response()->json(array('statusPo' => $statusPr,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'poNumber'=>$poNumber));
+
+        } catch (Exception $e) {
+            DB::rollBack();
+            $title ="Approve $this->title";
+            $alert  ="warning";
+            $message  = "$title $prNumber is failed to Approve-".$nextLevel;
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return response()->json(array('statusPo' => $statusPr,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'poNumber'=>$poNumber));
+        }
+    }
+
     public function destroy(Request $request)
     {
         $id=Crypt::decryptString($request->id);
@@ -566,7 +583,7 @@ class PurchaseRequestController extends Controller
         })
         ->addColumn('status', function ($data) {
             $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary'];
-            $statusPo = ['New','Validated','Authorized','Received','Canceled','Closed','PO'];
+            $statusPo = ['NEW','VALIDATED','APPROVED','RECEIVED','CANCELED','CLOSED','PO'];
             return "<div class='badge ".$badges[$data->status - 1]."'>".$statusPo[$data->status - 1]."</div>";
         })
         ->addColumn('order_type', function ($data) {
@@ -577,7 +594,9 @@ class PurchaseRequestController extends Controller
             }
         })
         ->addColumn('pr_number', function ($data) {
-            return '<a href="'. route('purchaseRequest.show', ['id'=>Crypt::encryptString($data->id)]) .'" ><span>'.$data->pr_number.'</span></a>';
+            $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-danger'];            
+            return '<span style="display: none;">'.$data->id.'</span><a class="badge d-block '.$badges[$data->status - 1].'" name="'.$data->pr_number.'" href="'. route('purchaseRequest.show', ['id'=>Crypt::encryptString($data->id)]) .'" ><span>'.$data->pr_number.'</span></a>';
+            // return '<a href="'. route('purchaseRequest.show', ['id'=>Crypt::encryptString($data->id)]) .'" ><span>'.$data->pr_number.'</span></a>';
         })
         ->rawColumns(['action','order_type','status','pr_number'])
         ->make(true);

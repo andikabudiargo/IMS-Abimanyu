@@ -106,168 +106,117 @@
                     <h4 class="card-title">Article</h4>
                 </div>
                 <div class="card-body">
-                    <div class="container-list-item">
-                        <div class="lebar-list-item">
-                            @include('salesOrder.headerColumn')
-                            <div class="" id="article_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px">
-                                <input type="text" id ="last_row_number" class="d-none" value="{{ count($detail) }}">
-                                @foreach ($detail as $key =>$item)
-                                    <div id="new_row{{ $key }}" class="tanda-baris" >
-                                        <div class="form-row ">
-                                            <div class="col-md-1 col-12">
-                                                <div class="form-group margin-nol">
-                                                    <label class="d-block d-md-none">Status</label>
-                                                    <div class="custom-control custom-switch custom-control-inline">
-                                                        <input type="checkbox" class="custom-control-input soClose" id="status{{ $key }}" name ="status[]" {{  $item->status == '1' ? 'checked' :'' }} disabled/>
-                                                        <label  class="custom-control-label" for="status{{ $key }}"><span id="lblClose_status{{ $key }}">{{  $item->status == '1' ? 'Open' :'Closed' }}</span></label>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-4 col-12">
-                                                <div class="form-group margin-nol">
-                                                    <label for="article_id" class="d-block d-md-none">Article Code</label>
-                                                    <select class="select2 form-control dynamicSelect sku-select-system" id="article_id{{ $key }}" name="article_id[]" data-dependent="article_id" disabled >
-                                                        @foreach($articles as $val)
-                                                            <option value="{{$val->article_code}}|{{$val->group}}|{{$val->qty}}|{{$val->uom1}}" {{$val->article_code ==$item->article_code ? "selected" : ""}} >{{$val->article_alternative_code}} | {{$val->article_desc}}</option>
-                                                        @endforeach
-                                                    </select>
-                                                    <small class="text-muted" ><span id = "group" name="group[]">{{ $item->group }}</span></small></p>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-1 col-12">
-                                                <div class="form-group margin-nol">
-                                                    <label for="qty_stock" class="d-block d-md-none">QTY Stock</label>
-                                                    <input type="text" class="form-control text-right" id = "qty_stock" name="qty_stock[]" value="{{ $item->qty_stock ==0 ? 0 :$item->qty_stock }}" disabled />
-                                                </div>
-                                            </div>
-                                            <div class="col-md-1 col-12">
-                                                <div class="form-group margin-nol">
-                                                    <label for="qty_order" class="d-block d-md-none">QTY Order</label>
-                                                    <div class="input-group">
-                                                        <input type="text" class="form-control numeral-mask text-right" id = "qty_order" name="qty_order[]" value="{{ $item->qty }}" maxlength="9" disabled />
-                                                        <div class="input-group-append">
-                                                            <span class="input-group-text" id ="uom" name="uom[]">{{ $item->uom }}</span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-1 col-12">
-                                                <div class="form-group margin-nol">
-                                                    <label for="price" class="d-block d-md-none">Price</label>
-                                                    <input type="text" class="form-control numeral-mask text-right" id = "price" name="price[]" value="{{ $item->price }}"  maxlength="11" disabled />
-                                                </div>
-                                            </div>
-                                            <div class="col-md-1 col-12">
-                                                <div class="form-group margin-nol">
-                                                    <label for="priceJasa" class="d-block d-md-none">Price Jasa</label>
-                                                    <input type="text" class="form-control numeral-mask text-right" id = "priceJasa" name="priceJasa[]" value="{{ $item->price_service }}" maxlength="11" disabled />
-                                                </div>
-                                            </div>
-                                            <div class="col-md-1 col-12">
-                                                <div class="form-group margin-nol">
-                                                    <label for="totalLine" class="d-block d-md-none">T.Material</label>
-                                                    <input type="text" class="form-control numeral-mask text-right" value="{{ number_format($item->qty * $item->price) }}" id="totalLine" name="totalLine[]" disabled />
-                                                </div>
-                                            </div>
-                                            <div class="col-md-1 col-12">
-                                                <div class="form-group margin-nol">
-                                                    <label for="totalJasa" class="d-block d-md-none">T.Service</label>
-                                                    <input type="text" class="form-control numeral-mask text-right" value="{{ number_format($item->qty * $item->price_service) }}" id="totalJasa" name="totalJasa[]" disabled />
-                                                </div>
-                                            </div>
-                                            <div class="col-md-1 col-12">
-                                                <div class="form-group margin-nol">
-                                                    <label for="totalAll" class="d-block d-md-none">Total</label>
-                                                    <input type="text" class="form-control numeral-mask text-right" value="{{ number_format(($item->qty * $item->price)+($item->qty * $item->price_service)) }}" id="totalAll" name="totalAll[]" disabled />
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <hr class="d-block d-md-none" />
-                                    </div>
-                                @endforeach
+                    <div class="table-responsive main-table">
+                        <table class="table table-bordered w-100" >
+                            <thead class="thead-dark">
+                                <tr>
+                                    <th>#</th>
+                                    <th>Article Code</th>
+                                    <th class="text-right">QTY Stock</th>
+                                    <th class="text-right">QTY Order</th>
+                                    <th class="text-right">Price</th>
+                                    <th class="text-right">Price Jasa</th>
+                                    <th class="text-right">T.Material</th>
+                                    <th class="text-right">T.Service</th>
+                                    <th class="text-right">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            @foreach( $detail as $key =>$val )
+                                <tr>
+                                    <td ></td>
+                                    <td >{{ $val->article }} | {{ $val->article }}</td>
+                                    <td class="text-right">{{ $val->uom_group =='PIECE' ? number_format($val->qty_stock ==0 ? 0 :$val->qty_stock) : number_format($val->qty_stock ==0 ? 0 :$val->qty_stock,$decimalPlaces) }}</td>
+                                    <td class="text-right">{{ $val->uom_group =='PIECE' ? number_format($val->qty) : number_format($val->qty,$decimalPlaces) }} {{ $val->uom }}</td>
+                                    <td class="text-right">{{ number_format($val->price) }}</td>
+                                    <td class="text-right">{{ number_format($val->price_service) }}</td>
+                                    <td class="text-right">{{ number_format($val->qty * $val->price) }}</td>
+                                    <td class="text-right">{{ number_format($val->qty * $val->price_service) }}</td>
+                                    <td class="text-right">{{ number_format(($val->qty * $val->price)+($val->qty * $val->price_service)) }}</td>
+                                </tr>
+                            @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-end mt-75">
+                        <div class="col-md-4">
+                            <span>ROW : {{ number_format($header->sum_row) }}</span> <br>
+                            <span>QTY(s) : {{ number_format($header->sum_qty,$decimalPlaces) }}</span>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="table-responsive">
+                                <table class="table table-bordered w-100">
+                                    <tbody>
+                                        <tr>
+                                            <td>Subtotal</td>
+                                            <td class="text-right">{{ number_format($header->sum_amount) }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td>PPN {{ $header->ppn }}%</td>
+                                            <td class="text-right">{{ number_format($header->sum_ppn) }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td>PPH23</td>
+                                            <td class="text-right">{{ number_format($header->sum_pph23) }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td>NETTO</td>
+                                            <td class="text-right">{{ number_format(($header->sum_amount+$header->sum_ppn)-$header->sum_pph23) }}</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
                     </div>
                     <hr>
-                    <div class="d-flex justify-content-between align-items-end mt-75">
-                        <div class="col-md-4">
-                            <div class="form-group row mb-03">
-                                <label for="totalRow" class="col-sm-4 col-form-label titik-dua tanpa-padding">Row(s)</label>
-                                <div class="col-sm-3">
-                                    <input type="text" class="form-control text-right font-weight-bold" id="totalRow" disabled/>
-                                </div>
-                            </div>
-                            <div class="form-group row mb-03">
-                                <label for="totalQTY" class="col-sm-4 col-form-label titik-dua tanpa-padding">Total QTY</label>
-                                <div class="col-sm-3">
-                                    <input type="text" class="form-control text-right font-weight-bold" id="totalQTY" disabled/>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="form-group row mb-03">
-                                <label for="totalAmount" class="col-sm-4 col-form-label titik-dua tanpa-padding">Bruto</label>
-                                <div class="col-sm-6">
-                                    <input type="text" class="form-control text-right font-weight-bold" id="totalAmount" disabled />
-                                </div>
-                            </div>
-                            <div class="form-group row mb-03">
-                                <label for="totalPPN" class="col-sm-4 col-form-label titik-dua tanpa-padding">PPN <span id="nilaiPPN"></span> </label>
-                                <div class="col-sm-6">
-                                    <input type="text" class="form-control text-right font-weight-bold" id="totalPPN" disabled/>
-                                </div>
-                            </div>
-                            <div class="form-group row mb-03">
-                                <label for="totalPPH" class="col-sm-4 col-form-label titik-dua tanpa-padding">PPH23 <span id="nilaiPPH23"></span> </label>
-                                <div class="col-sm-6">
-                                    <input type="text" class="form-control text-right font-weight-bold" id="totalPPH" disabled/>
-                                </div>
-                            </div>
-                            <div class="form-group row mb-03">
-                                <label for="totalNetto" class="col-sm-4 col-form-label titik-dua tanpa-padding">Netto</label>
-                                <div class="col-sm-6">
-                                    <input type="text" class="form-control text-right font-weight-bold" id="totalNetto" disabled/>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <hr/>
-                    <br/>
                     <div class="form-row">
                         <div class="col-md-12">
                             <a href="{{ route('salesOrders.index') }}" class="btn btn-success">Back</a>
+                            <a href="{{ route('salesOrder.print', ['id'=>Crypt::encryptString($header->id)]) }}" target="_blank" type="button" class="btn btn-primary">
+                                <i data-feather="printer"></i>
+                                <span>{{ __("Print") }}</span>
+                            </a>
                         </div>
                     </div>
                     <br>
                     <hr>
                     <div class="form-row card-statistics">
-                        @foreach($approveHistory as $val)
-                            <div class="statistics-body">
-                                <div class="col-xl-3 col-sm-6 col-12 mb-2 mb-xl-0">
-                                    <div class="media">
-                                        <div class="avatar bg-light-success mr-2">
-                                            <div class="avatar-content">
-                                                <i data-feather="check" class="avatar-icon"></i>
+                        @foreach($approvalHistory as $val)
+                            @if($val->status == true)
+                                <div class="statistics-body">
+                                    <div class="col-xl-3 col-sm-6 col-12 mb-2 mb-xl-0">
+                                        <div class="media">
+                                            <div class="avatar bg-light-success mr-2">
+                                                <div class="avatar-content">
+                                                    <i data-feather="check" class="avatar-icon"></i>
+                                                </div>
                                             </div>
-                                        </div>
-                                        <div class="media-body my-auto">
-                                            <h4 class="font-weight-bolder mb-0">Approve-{{ $val->approval_order }}/{{ $val->approval_number }}</h4>
-                                            <p class="card-text mb-0">{{ $val->name }}</p>
+                                            <div class="media-body my-auto">
+                                                <h4 class="font-weight-bolder mb-0">Approve-{{ $val->approval_order }}</h4>
+                                                <p class="card-text mb-0">{{ $val->name }}</p>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
+                            @else
+                                <div class="statistics-body">
+                                    <div class="col-xl-3 col-sm-6 col-12 mb-2 mb-xl-0">
+                                        <div class="media">
+                                            <div class="avatar bg-light-danger mr-2">
+                                                <div class="avatar-content">
+                                                    <i data-feather="x" class="avatar-icon"></i>
+                                                </div>
+                                            </div>
+                                            <div class="media-body my-auto">
+                                                <h4 class="font-weight-bolder mb-0">Approve-{{ $val->approval_order }}</h4>
+                                                <p class="card-text mb-0">{{ $val->petugas }}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endif
                         @endforeach
                     </div>
-                    <br><br>
-                    {{-- <div class="row">
-                        @foreach($approveHistory as $val)
-                            <div class="col-xl-3 col-sm-6 col-12 mb-2 mb-xl-0">
-                                <h6 class="">Approve-{{ $val->approval_order }}</h6>
-                                <small>{{ $val->name }}</small>
-                            </div>
-                        @endforeach
-                    </div> --}}
                 </div>
             </div>
         </div>
@@ -284,49 +233,18 @@
         margin-bottom: 0.3rem;
     }
     
-    label.titik-dua::after{
-        content : ":"; 
-        position : absolute;
-        right : 1px;
+    .main-table table {
+        counter-reset: rowNumber;
     }
 
-    label.tanpa-padding{
-        padding-top: 0px;
-        padding-bottom: 0px;
+    .main-table table tr > td:first-child{
+        counter-increment: rowNumber;
     }
 
-    input.tanpa-padding{
-        padding: 0;
-    }
-
-
-    @media screen 
-    and (min-device-width: 1200px) 
-    and (max-device-width: 1600px) 
-    and (-webkit-min-device-pixel-ratio: 1) { 
-        .lebar-list-item{
-            width:150%;
-        }
-        .container-list-item{
-            max-width:100%;
-            overflow-x:auto;
-            scrollbar-width: thin;
-            margin-top:7px;
-        }
-    }
-
-    @media only screen and (min-width: 600px)
-    and (max-width: 1200px)
-    {
-        .lebar-list-item{
-            width:200%;
-        }
-        .container-list-item{
-            max-width:100%;
-            overflow-x:auto;
-            scrollbar-width: thin;
-            margin-top:7px;
-        }
+    .main-table table tr td:first-child::before {
+        content: counter(rowNumber);
+        min-width: 1em;
+        margin-right: 0.5em;
     }
 
 

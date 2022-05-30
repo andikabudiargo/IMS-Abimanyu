@@ -20,6 +20,23 @@ class ArticleController extends Controller
         $this->title = "Article";
     }
 
+    public function getTableColoumn(){
+        $kolom=    
+        [
+            ['data'=>'action','name'=>'action','title'=>'action','orderable'=>false, 'searchable'=>false],
+            ['data'=>'article_alternative_code','name'=>'article_alternative_code','title'=>'Code'],
+            ['data'=>'desc','name'=>'article_desc','title'=>'Name'],
+            ['data'=>'cust','name'=>'third_party.nama','title'=>'Custs/Supp'],
+            ['data'=>'costprice','name'=>'costprice','title'=>'Price'],
+            ['data'=>'article_qty','name'=>'article_qty','title'=>'Qty'],
+            ['data'=>'uom','name'=>'uom','title'=>'UOM'],
+            ['data'=>'group','name'=>'group_materials.name','title'=>'Group'],
+            ['data'=>'status','name'=>'status','title'=>'Status'],
+            ['data'=>'note','name'=>'note','title'=>'Note']
+        ];
+        return json_encode($kolom, true);
+    }
+
     public function index(Request $request)
     {
         $data['title'] = $this->title;
@@ -44,6 +61,8 @@ class ArticleController extends Controller
         ->where ('status','=',1)
         ->orderBy('name')
         ->get();
+
+        $data['kolom'] = $this->getTableColoumn();
         
         return view("articles.index",$data);
     }
@@ -535,7 +554,20 @@ class ArticleController extends Controller
         $type = strtolower($request->type);
 
         $data=DB::table('article')
-        ->select('article.*','costprice','article.article_code as art_code','article_alternative_code as code','article_desc as desc','article.uom','quality','note','article.id','group_materials.name as group','third_party.nama as cust','article_stock.article_qty as article_qty','uom.uom_group')
+        ->select('article.*'
+        ,'costprice'
+        ,'article.article_code as art_code'
+        ,'article_alternative_code as code'
+        ,'article_desc as desc'
+        ,'article.uom'
+        ,'quality'
+        ,'note'
+        ,'article.id'
+        ,'group_materials.name as group'
+        ,'third_party.nama as cust'
+        ,'article_stock.article_qty as article_qty'
+        ,'uom.uom_group')
+        // ,DB::raw("case when uom.uom_group = 'PIECE' then TO_CHAR(article_stock.article_qty,'999,999,999') else TO_CHAR(article_stock.article_qty,'999,999,999.99') end as article_qty"))
         ->leftJoin('group_materials', 'group_materials.code', '=', 'article.group_of_material')
         ->leftJoin('third_party', 'third_party.kode', '=', 'article.third_party')
         ->leftJoin('article_stock', 'article_stock.article_code', '=', 'article.article_code')
@@ -548,7 +580,7 @@ class ArticleController extends Controller
             $supp ? $query->where('third_party','ilike','%'.$supp.'%') :'';
             $type ? $query->where('article_alternative_code','ilike',$type.'%') :'';      
         })->orderBy('article_desc')->get();
-        
+       
         return Datatables::of($data)
         ->addColumn('action', function ($data) {
             $buttons = '<div class="d-inline-flex">
@@ -588,7 +620,9 @@ class ArticleController extends Controller
             return $buttons;
         })
         ->addColumn('article_alternative_code', function ($data) {
-            return '<a href="'. route('article.show', ['id'=>Crypt::encryptString($data->id)]) .'" 
+            $badges=['badge-light-danger','badge-light-primary'];
+            return '<span style="display: none;">"'.$data->article_alternative_code.'</span>
+                    <a class="badge d-block '.$badges[$data->status].'" href="'. route('article.show', ['id'=>Crypt::encryptString($data->id)]) .'" 
                         type="button" 
                         style="text-align: left;">
                         <span>'.$data->article_alternative_code.'</span>

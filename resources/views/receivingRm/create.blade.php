@@ -2,7 +2,6 @@
 @section('title', $title)
 @section('content')
 @include('layouts.breadcrumb')
-@include('partials.alert')
 <section id="add-index">
     <div class="row">
         <div class="col-md-12">
@@ -192,34 +191,12 @@
 @endsection
 @section('scripts')
 <script type="text/javascript">
-    let currentDate = todayDate('dd-mm-yyyy');    
-    
+    const currentDate = "{{ $currentDateValue }}";   
     $(document).ready(function(){
-
-        $("#frmAdd").validate({
-            invalidHandler: function(event, validator) {
-            let errors = validator.numberOfInvalids();
-            if (errors) {
-                let message = errors == 1
-                    ? 'You missed 1 field. It has been highlighted'
-                    : 'You missed ' + errors + ' fields. They have been highlighted';
-                $("#alert-message .alert-body").html(message);
-                $("#alert-message").show();
-                $("#alert-message").fadeTo(5000, 500).slideUp(500, function(){
-                    $("#alert-message").slideUp(500);
-                });
-            } else {
-                $("#alert-message").hide();
-            }
-        }
-        }).settings.ignore = "";
-
+        validateFormToast("frmAdd");
         $("#totalRow").val(0);
         $("#totalQTY").val(humanizeNumber(0));
-        $("#totalQtyFree").val(humanizeNumber(0));
         $("#grandTotalQty").val(humanizeNumber(0));
-
-
         $('#statusText').text('New');
         $('#recDate').val(currentDate);
         $('#cmdSave').show();
@@ -255,7 +232,6 @@
     });
 
     $("#cmdSave").click(function(){
-
         if (!$("#frmAdd")[0].checkValidity()){
             $("#frmAdd").submit();
         }else{
@@ -316,27 +292,15 @@
                     dataType: "json",
                     success: function(data) {
                         if (data.status == 0 ){
-                            let message="";
                             for(let i = 0; i < data.message.length; i++) {
-                                message += "-"+data.message[i]+"<br>";                           
+                                show_msg(data.title, data.message[i], data.alert);
                             }
-                            $("#alert-message-success").addClass(data.alert);
-                            $("#alert-message-success .alert-body").html(message);
-                            $("#alert-message-success").show();
-                            $("#alert-message-success").fadeTo(5000, 500).slideUp(500, function(){
-                                $("#alert-message-success").slideUp(500);
-                            });
                             $('#recNumber').attr('disabled','disabled');
                             $('#cmdSave').show();
                             $('#cmdPosting').hide();
 
                         }else{
-                            $("#alert-message-success").addClass(data.alert);
-                            $("#alert-message-success .alert-body").html(data.message);
-                            $("#alert-message-success").show();
-                            $("#alert-message-success").fadeTo(5000, 500).slideUp(500, function(){
-                                $("#alert-message-success").slideUp(500);
-                            });
+                            show_msg(data.title, data.message, data.alert);
                             $('#statusText').text(data.statusRec);
                             $('#recNumber').val(data.recNumber);
                             $('#cmdSave').hide();
@@ -349,12 +313,8 @@
                             $('#docDate').attr('disabled','disabled');
                             $('#recDate').attr('disabled','disabled');
                             $('docNumber').attr('disabled','disabled');
-
                             objQty.attr('disabled','disabled');
                             objUom.attr('disabled','disabled');
-                            objQtyFree.attr('disabled','disabled');
-                            objUomFree.attr('disabled','disabled');
-                            
                         }
                     },
                     error: function(error) {
@@ -369,10 +329,7 @@
 
     $("#cmdPosting").click(function(){
         let objQty= $('input[name="qty_rec[]"]');
-        let objUom= $('select[name="uom[]"]');
-        let objQtyFree= $('input[name="qty_free[]"]');
-        let objUomFree= $('select[name="uomFree[]"]');
-        
+        let objUom= $('select[name="uom[]"]');       
         let recNumber = $('#recNumber').val();            
         $.ajax({
             type: "post",
@@ -383,27 +340,15 @@
             dataType: "json",
             success: function(data) {
                 if (data.status == 0 ){
-                    let message="";
                     for(let i = 0; i < data.message.length; i++) {
-                        message += "-"+data.message[i]+"<br>";                           
+                        show_msg(data.title, data.message[i], data.alert);
                     }
-                    $("#alert-message-success").addClass(data.alert);
-                    $("#alert-message-success .alert-body").html(message);
-                    $("#alert-message-success").show();
-                    $("#alert-message-success").fadeTo(5000, 500).slideUp(500, function(){
-                        $("#alert-message-success").slideUp(500);
-                    });
                     $('#recNumber').attr('disabled','disabled');
                     $('#cmdSave').show();
                     $('#cmdPosting').hide();
 
                 }else{
-                    $("#alert-message-success").addClass(data.alert);
-                    $("#alert-message-success .alert-body").html(data.message);
-                    $("#alert-message-success").show();
-                    $("#alert-message-success").fadeTo(5000, 500).slideUp(500, function(){
-                        $("#alert-message-success").slideUp(500);
-                    });
+                    show_msg(data.title, data.message, data.alert);
                     $('#statusText').text(data.statusRec);
                     $('#cmdSave').hide();
                     $('#deleteButton').hide();
@@ -415,10 +360,7 @@
                     $('#recDate').attr('disabled','disabled');
                     $('docNumber').attr('disabled','disabled');
                     objQty.attr('disabled','disabled');
-                    objUom.attr('disabled','disabled');
-                    objQtyFree.attr('disabled','disabled');
-                    objUomFree.attr('disabled','disabled');
-                    
+                    objUom.attr('disabled','disabled');                    
                 }
             },
             error: function(error) {
@@ -451,8 +393,8 @@
         searchSo('soNumber',value);
     });
 
-    let cloneCount=1;
-    function add_new_row(article,articleCode,articleDesc,qtyPo,uomGroup,uom,price) {
+    let cloneCount=0;
+    function add_new_row(article,articleCode,articleDesc,qtyPo,uomGroup,uom,price,qtyRec) {
         $("#article_row").append($("#new_row").clone().html());
         cloneCount++;
         $("#article_row").find('#baru').attr('id', 'new_row'+ cloneCount);
@@ -463,12 +405,30 @@
         $('#article_id'+ cloneCount).val(articleCode +" - " + articleDesc);
         $("#new_row"+ cloneCount).find('#qty_so').attr('id', 'qty_so'+ cloneCount);
         $('#qty_so'+ cloneCount).val(qtyPo);
+        $("#new_row"+ cloneCount).find('#qty_rec').attr('id', 'qty_rec'+ cloneCount);
+        $('#qty_rec'+ cloneCount).val(qty);
         $("#new_row"+ cloneCount).find('#uom').attr('id', 'uom'+ cloneCount);
+        qtyRec === 0 ? $('#qty_rec'+ cloneCount).attr('disabled','disabled') : '';
+        qtyRec === 0 ? $('#qty_free'+ cloneCount).attr('disabled','disabled') : '';
         listUom('uom'+ cloneCount,uomGroup,uom);
         tombolPanah('qty_rec');
-        mask_thousand_digit(3);
+        mask_thousand_digit(numberOfDecimalDigit);
         hitungTotal();
-        
+        uomChange();
+
+        if ( uomGroup === 'PIECE' ){
+            $('#qty_rec'+ cloneCount).removeClass("numeral-mask-digit");
+            $('#qty_rec'+ cloneCount).addClass("numeral-mask-satuan");
+            $('#qty_so'+ cloneCount).removeClass("numeral-mask-digit");
+            $('#qty_so'+ cloneCount).addClass("numeral-mask-satuan");
+            mask_thousand_satuan();
+        }else{
+            $('#qty_rec'+ cloneCount).removeClass("numeral-mask-satuan");
+            $('#qty_rec'+ cloneCount).addClass("numeral-mask-digit");
+            $('#qty_so'+ cloneCount).removeClass("numeral-mask-satuan");
+            $('#qty_so'+ cloneCount).addClass("numeral-mask-digit");
+            mask_thousand_digit(numberOfDecimalDigit);
+        }
     }
 
     function searchSoDet(value) {
@@ -489,14 +449,14 @@
                         article=result[i].article_code;
                         articleCode=result[i].article_alternative_code;
                         articleDesc=result[i].article_desc;
-                        qtyPo=result[i].qty_order;
+                        qtySo=result[i].qty_order;
+                        qty=qtySo <= 0 ? 0 :'';
                         uomGroup=result[i].uom_group;
                         uom=result[i].uom;
                         price=result[i].price;
-                        add_new_row(article,articleCode,articleDesc,qtyPo,uomGroup,uom,price);
+                        add_new_row(article,articleCode,articleDesc,qtySo,uomGroup,uom,price,qty);
                     }
                 }
-                
             },
             error: function (response) {
                 Swal.fire("Warning","Get detail SO failed","warning");
@@ -511,13 +471,14 @@
 
     function listUom(obj,value,uom) {
       $.ajax({
-        url:"{{ route('receivingRm.list.uom') }}",
+        url:"{{ route('receiving.list.uom') }}",
         method:"GET",
         data:{
             value:value,
         },
         success:function(result){
             $('#'+obj).html(result);
+            $('#'+obj).select2();
             $('#'+obj).val(uom).trigger('change');            
         },
         error: function (response) {
@@ -536,16 +497,7 @@
             let totalQty = qtyRec;
             objTotalQty.eq(indexnya).text(humanizeNumber(totalQty));
             hitungGrandTotal();
-        });    
-
-        objQtyFree.keyup(function() {
-            let indexnya= objQtyRec.index(this);
-            let qtyRec = parseInt(objQtyRec.eq(indexnya).val().replace(/,/gi, '') || 0); 
-            let totalQty = qtyRec;
-            objTotalQty.eq(indexnya).text(humanizeNumber(totalQty));
-            hitungGrandTotal();
-        });
-            
+        });               
     }
 
     function hitungGrandTotal(){
@@ -564,25 +516,25 @@
         $("#grandTotalQty").val(humanizeNumber(grandTotalQty));
     }
 
-    function tombolPanah(objname){
-        // function kalo mau pindah filed dari atas ke bawah atau sebaliknya
-        let obj = $('input[name="'+objname+'[]"]');
-        obj.keyup(function(e) {
-            indexnya= obj.index(this);
-            indexnya=parseInt(indexnya);
-            if (e.keyCode == 38) {
-                //panah atas
-                indexTarget = indexnya-1;
-                obj.eq(indexTarget).focus().select();
-                return false;
+    function uomChange(){
+        // split article with delimiter
+        let objUom= $('#article_row select[name="uom[]"]');
+        let objQty= $('#article_row input[name="qty_rec[]"]');
+
+        objUom.change(function(e){   
+            let objIndex = objUom.index(this);
+            let uomGroup = objUom.eq(objIndex).find(":selected").data("uom-group");
+
+            if ( uomGroup === 'PIECE' ){
+                objQty.eq(objIndex).removeClass("numeral-mask-digit");
+                objQty.eq(objIndex).addClass("numeral-mask-satuan");
+                mask_thousand_satuan();
+            }else{
+                objQty.eq(objIndex).removeClass("numeral-mask-satuan");
+                objQty.eq(objIndex).addClass("numeral-mask-digit");
+                mask_thousand_digit(numberOfDecimalDigit);
             }
-            if (e.keyCode == 40) {
-                //panah bawah
-                indexTarget = indexnya+1;
-                obj.eq(indexTarget).focus().select();
-                return false;
-            }
-        });
+		});
     }
 
     $.ajaxSetup({

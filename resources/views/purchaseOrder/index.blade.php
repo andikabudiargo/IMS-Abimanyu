@@ -169,7 +169,7 @@
         searchStatus:searchStatus,
         orderDate:orderDate
       },
-      orderColumn:[[ 2, 'asc' ]],
+      orderColumn:[[ 1, 'desc' ]],
       excelFileName:'purchase_order'
     });
   }

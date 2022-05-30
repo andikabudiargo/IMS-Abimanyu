@@ -9,9 +9,9 @@
             </div>
             <div class="modal-body">
                 <h5><span class="semi-bold" id='modalArticle'></span></h5>
-                <div class="table-responsive">
-                    <table class="table" id="modalTableData" style="width:100%;">
-                        <thead>
+                <div class="table-responsive main-table">
+                    <table class="table table-bordered w-100" id="modalTableData" >
+                        <thead class="thead-dark">
                             <tr>
                                 <th style="width:5%">#</th>
                                 <th>PO Number</th>
@@ -27,3 +27,19 @@
         </div>
     </div>
 </div>
+
+<style>
+    #modalTableData td {
+        padding-top: 0.1rem;
+        padding-right: 1rem;
+        padding-bottom: 0.1rem;
+        padding-left: 1rem;
+    }
+
+    #modalTableData > .btn {
+        padding-top: 0.4rem;
+        padding-right: 1rem;
+        padding-bottom: 0.4rem;
+        padding-left: 1.1rem;
+    }
+</style>

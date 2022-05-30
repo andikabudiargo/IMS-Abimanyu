@@ -233,16 +233,29 @@
         let objArticle = $('#article_row select[name="article_id[]"]');
         let objUom= $('#article_row span[name="uom[]"]'); 
         let objQty= $('#article_row input[name="qty_order[]"]'); 
-        objArticle.change(function(e){        
+        objArticle.change(function(e){    
             let objIndex = objArticle.index(this);
             let detail = objArticle.eq(objIndex).val();
             let arrDetail = detail.split("|");
+            let uomGroup = objArticle.eq(objIndex).find(":selected").data("uom-group");
+
             objUom.eq(objIndex).text(arrDetail[1]);
             if (detail){
                 setTimeout(() => {
                     objQty.eq(objIndex).focus().select();
                 }, 5);
             }
+
+            if ( uomGroup === 'PIECE' ){
+                objQty.eq(objIndex).removeClass("numeral-mask-digit");
+                objQty.eq(objIndex).addClass("numeral-mask-satuan");
+                mask_thousand_satuan();
+            }else{
+                objQty.eq(objIndex).removeClass("numeral-mask-satuan");
+                objQty.eq(objIndex).addClass("numeral-mask-digit");
+                mask_thousand_digit(numberOfDecimalDigit);
+            }
+
 		});
     }
 

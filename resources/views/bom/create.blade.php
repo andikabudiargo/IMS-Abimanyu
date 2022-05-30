@@ -317,18 +317,18 @@
             objType.eq(objIndex).text(arrDetail[4]);
 
             if ( arrDetail[1] === 'PCS' ){
-                objQty.removeClass("numeral-mask-digit");
-                objQty.addClass("numeral-mask-satuan");
-                console.log('PCS');
+                objQty.eq(objIndex).removeClass("numeral-mask-digit");
+                objQty.eq(objIndex).addClass("numeral-mask-satuan");
+                // console.log('PCS');
                 // $('#'+id_qty).val('');
                 // mask_thousand_digit_by_id(id_qty,0);
                
                 mask_thousand_satuan();
             }else{
                 
-                objQty.removeClass("numeral-mask-satuan");
-                objQty.addClass("numeral-mask-digit");
-                console.log('NON PCS');
+                objQty.eq(objIndex).removeClass("numeral-mask-satuan");
+                objQty.eq(objIndex).addClass("numeral-mask-digit");
+                // console.log('NON PCS');
 
                 mask_thousand_digit(numberOfDecimalDigit);
 

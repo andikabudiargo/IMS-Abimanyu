@@ -79,8 +79,8 @@
       <div class="card-body">
         <div class="row">
             <div class="col-sm-12">
-              <div class="card-datatable table-responsive pt-0">
-                <table id="detailedTable" class="table">
+              <div class="table-responsive">
+                <table id="detailedTable" class="table mb-0">
                   <thead class="thead-light">
                   </thead>
                 </table>
@@ -109,15 +109,6 @@
     });
   });
 
-  let showAlert = "{{ Session::get('alert') }}";
-
-  if ( showAlert ){
-    showList();
-    $("#alert-message-alert").fadeTo(5000, 500).slideUp(500, function(){
-      $("#alert-message-alert").slideUp(500);
-    });
-  }
-
   //refresh di cards
   $('a[data-action="reload"]').on('click', function () {
       showList();
@@ -142,111 +133,34 @@
 
   });
 
-  function showList(searchRec,searchPo,searchInv,searchSupplier,searchStatus,recDate){
-    let dtdom =`<"d-flex justify-content-between align-items-center header-actions mx-1 row mt-75"<"col-lg-12 col-xl-6" l><"col-lg-12 col-xl-6 pl-xl-75 pl-0"<"dt-action-buttons text-xl-right text-lg-left text-md-right text-left d-flex align-items-center justify-content-lg-end align-items-center flex-sm-nowrap flex-wrap mr-1"<"mr-1"f>B>>>t<"d-flex justify-content-between mx-2 row mb-1"<"col-sm-12 col-md-6"i><"col-sm-12 col-md-6"p>>`;
-    let arr_col_print =[1,2,3,4,5,6,7,8,9]; 
-    $(function(){
-      let oTable =$("#detailedTable").DataTable({
-        ajax:
-        {
-          url:'{{ route("receiving.list")}}',
-          data:{
-              searchRec:searchRec,
-              searchPo:searchPo,
-              searchInv:searchInv,
-              searchSupplier:searchSupplier,
-              searchStatus:searchStatus,
-              recDate:recDate
-          }
-        },
-        processing: true,
-        serverSide: true,
-        buttons: true,
-        dom:dtdom,
-        lengthMenu: [
-          [ 10, 25, 50, -1 ],
-          [ '10', '25', '50', 'all' ]
-        ],
-        buttons: [
-          {
-            extend: 'collection',
-            className: 'btn btn-outline-secondary dropdown-toggle mr-2 mt-07',
-            text: feather.icons['share'].toSvg({ class: 'font-small-4 mr-50' }) + 'Export',
-            buttons: [
-              {
-                extend: 'print',
-                text: feather.icons['printer'].toSvg({ class: 'font-small-4 mr-50' }) + 'Print',
-                className: 'dropdown-item',
-                exportOptions: { columns: arr_col_print }
-              },
-              {
-                extend: 'csv',
-                text: feather.icons['file-text'].toSvg({ class: 'font-small-4 mr-50' }) + 'Csv',
-                className: 'dropdown-item',
-                exportOptions: { columns: arr_col_print }
-              },
-              {
-                extend: 'excel',
-                text: feather.icons['file'].toSvg({ class: 'font-small-4 mr-50' }) + 'Excel',
-                className: 'dropdown-item',
-                exportOptions: { columns: arr_col_print }
-              },
-              {
-                extend: 'pdf',
-                text: feather.icons['clipboard'].toSvg({ class: 'font-small-4 mr-50' }) + 'Pdf',
-                className: 'dropdown-item',
-                exportOptions: { columns: arr_col_print }
-              },
-              {
-                extend: 'copy',
-                text: feather.icons['copy'].toSvg({ class: 'font-small-4 mr-50' }) + 'Copy',
-                className: 'dropdown-item',
-                exportOptions: { columns: arr_col_print }
-              }
-            ],
-            init: function (api, node, config) {
-              $(node).removeClass('btn-secondary');
-              $(node).parent().removeClass('btn-group');
-              setTimeout(function () {
-                $(node).closest('.dt-buttons').removeClass('btn-group').addClass('d-inline-flex');
-              }, 50);
-            }
-          },
-        ],
-        language: {
-          paginate: {
-            // remove previous & next text from pagination
-            previous: '&nbsp;',
-            next: '&nbsp;'
-          }
-        },
-        columnDefs: [
-          { width: '10%', targets: 0 },
-        ],
-        drawCallback: function( settings ) {
-          feather.replace({
-                width: 14,
-                height: 14
-          });
-        },
-        order: [[ 1, 'asc' ]],
-        bDestroy: true, //pakai ini supaya bisa di load berulang2
-        // scrollX: true, //pakai ini supaya waktu responsive  bisa di scroll horizontal
-        columns: [
-            { data: 'action', name: 'action',title:'action', orderable: false, searchable: false },
-            { data: 'rec_number', name: 'rec_number',title:'Rec Number' },
-            { data: 'rec_date', name: 'rec_date',title:'Rec Date' },
-            { data: 'inv_number', name: 'inv_number',title:'Invoice Number' },
-            { data: 'inv_date', name: 'inv_date',title:'Inv Date' },
-            { data: 'po_number', name: 'po_number',title:'PO Number' },
-            { data: 'supp_name', name: 'supp_name',title:'Supplier' },
-            { data: 'prepared_by', name: 'prepared_by',title:'Prepared By' },
-            { data: 'authorized_by', name: 'authorized_by',title:'Authorized By' },
-            { data: 'status', name: 'status',title:'Status' },
-        ],
-      });
+  const showList = (searchRec,searchPo,searchInv,searchSupplier,searchStatus,recDate) => {
+    if ($('#detailedTable tr').length >0){
+        let table= $('#detailedTable').DataTable();
+        table.destroy();
+        $('#detailedTable tbody > tr').remove();
+        $("#detailedTable thead > tr").remove();
+    }
+
+    showDataTables({
+      tableId:"detailedTable",
+      route:"{{ route('receiving.list') }}",
+      kolom:{!! $kolom !!},
+      arrColPrint:[1,2,3,4,5,6,7,8,9],
+      columnDefs :[
+        { width: '5%', targets: 0 },
+        { className: 'text-right','targets': [4,5] },
+      ],
+      dataSearch:  {
+        searchRec:searchRec,
+        searchPo:searchPo,
+        searchInv:searchInv,
+        searchSupplier:searchSupplier,
+        searchStatus:searchStatus,
+        recDate:recDate
+      },
+      orderColumn:[[ 1, 'desc' ]],
+      excelFileName:'receiving'
     });
-    //$('div.head-label').html('<h6 class="mb-0">Data Users</h6>');    
   }
 
   $.ajaxSetup({

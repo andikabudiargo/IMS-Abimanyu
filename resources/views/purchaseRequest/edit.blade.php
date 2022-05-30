@@ -129,7 +129,7 @@
                                         <input type="text" id ="maxLevel" name ="maxLevel" class="d-none" value="{{ $approveValidate[0]->max_level }}">
                                         <button class="btn btn-primary" type="button" id="cmdApprove" name="cmdApprove">Approve</button>
                                     @else
-                                        @if(!count($approveHistory))
+                                        @if( !$approveValidate )
                                             <button class="btn btn-primary" type="button" id="cmdUpdate" name="cmdUpdate">Update</button>
                                         @endif
                                     @endif
@@ -312,6 +312,38 @@
         }
     });
     
+    $("#cmdApprove").click(function(){    
+        let prNumber = $('#prNumber').val();
+        $.ajax({
+            type: "post",
+            url: "{{ route('purchaseRequest.approve') }}",
+            data: {
+                prNumber:prNumber
+            },
+            dataType: "json",
+            success: function(data) {
+                if (data.status == 0 ){
+                    let message="";
+                    for(let i = 0; i < data.message.length; i++) {
+                        show_msg(data.title, data.message[i], data.alert);
+                    }
+                    $('#prNumber').attr('disabled','disabled');
+
+                }else{
+                    show_msg(data.title, data.message, data.alert);
+                    $('#prNumber').attr('disabled','disabled');
+                    $('#cmdApprove').attr('disabled','disabled');
+                    $('#addNewRow').attr('disabled','disabled');                       
+                }
+            },
+            error: function(error) {
+                console.log(error);
+            }
+        });
+    });
+
+    
+    
     let cloneCount=$('#last_row_number').val();
     function add_new_row() {
         let poType = $('#poType').val();
@@ -338,11 +370,23 @@
             let objIndex = objArticle.index(this);
             let detail = objArticle.eq(objIndex).val();
             let arrDetail = detail.split("|");
+            let uomGroup = objArticle.eq(objIndex).find(":selected").data("uom-group");
+
             objUom.eq(objIndex).text(arrDetail[1]);
             if (detail){
                 setTimeout(() => {
                     objQty.eq(objIndex).focus().select();
                 }, 5);
+            }
+
+            if ( uomGroup === 'PIECE' ){
+                objQty.eq(objIndex).removeClass("numeral-mask-digit");
+                objQty.eq(objIndex).addClass("numeral-mask-satuan");
+                mask_thousand_satuan();
+            }else{
+                objQty.eq(objIndex).removeClass("numeral-mask-satuan");
+                objQty.eq(objIndex).addClass("numeral-mask-digit");
+                mask_thousand_digit(numberOfDecimalDigit);
             }
 		});
     }

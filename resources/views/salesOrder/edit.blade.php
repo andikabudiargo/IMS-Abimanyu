@@ -244,36 +244,57 @@
                     <div class="form-row">
                         <div class="col-md-12">
                             <a href="{{ route('salesOrders.index') }}" class="btn btn-warning">Back</a>
-                            <a href="{{ route('salesOrder.create') }}" class="btn btn-success">New</a>
-                            @if( $approveValidate ? $approveValidate[0]->validate : '' )
-                                <input type="text" id ="approveLevel" name ="approveLevel" class="d-none" value="{{ $approveValidate[0]->last_approval }}">
+                            <a href="{{ route('salesOrder.print', ['id'=>Crypt::encryptString($header->id)]) }}" target="_blank" type="button" class="btn btn-primary">
+                                <i data-feather="printer"></i>
+                                <span>{{ __("Print") }}</span>
+                            </a>
+                            @if( $approveValidate ? $approveValidate[0]->validate : '')
+                                <input type="text" id ="approveLevel" name ="approveLevel" class="d-none" value="{{ $approveValidate[0]->next_level }}">
+                                <input type="text" id ="maxLevel" name ="maxLevel" class="d-none" value="{{ $approveValidate[0]->max_level }}">
                                 <button class="btn btn-primary" type="button" id="cmdApprove" name="cmdApprove">Approve</button>
                             @else
-                                @if(!count($approveHistory))
+                                @if( strtoupper($statusSo) == 'NEW' )
                                     <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Update</button>
                                 @endif
                             @endif
                         </div>
                     </div>
-                    <br>
                     <hr>
                     <div class="form-row card-statistics">
-                        @foreach($approveHistory as $val)
-                            <div class="statistics-body">
-                                <div class="col-xl-3 col-sm-6 col-12 mb-2 mb-xl-0">
-                                    <div class="media">
-                                        <div class="avatar bg-light-success mr-2">
-                                            <div class="avatar-content">
-                                                <i data-feather="check" class="avatar-icon"></i>
+                        @foreach($approvalHistory as $val)
+                            @if($val->status == true)
+                                <div class="statistics-body">
+                                    <div class="col-xl-3 col-sm-6 col-12 mb-2 mb-xl-0">
+                                        <div class="media">
+                                            <div class="avatar bg-light-success mr-2">
+                                                <div class="avatar-content">
+                                                    <i data-feather="check" class="avatar-icon"></i>
+                                                </div>
                                             </div>
-                                        </div>
-                                        <div class="media-body my-auto">
-                                            <h4 class="font-weight-bolder mb-0">Approve-{{ $val->approval_order }}/{{ $val->approval_number }}</h4>
-                                            <p class="card-text mb-0">{{ $val->name }}</p>
+                                            <div class="media-body my-auto">
+                                                <h4 class="font-weight-bolder mb-0">Approve-{{ $val->approval_order }}</h4>
+                                                <p class="card-text mb-0">{{ $val->name }}</p>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
+                            @else
+                                <div class="statistics-body">
+                                    <div class="col-xl-3 col-sm-6 col-12 mb-2 mb-xl-0">
+                                        <div class="media">
+                                            <div class="avatar bg-light-danger mr-2">
+                                                <div class="avatar-content">
+                                                    <i data-feather="x" class="avatar-icon"></i>
+                                                </div>
+                                            </div>
+                                            <div class="media-body my-auto">
+                                                <h4 class="font-weight-bolder mb-0">Approve-{{ $val->approval_order }}</h4>
+                                                <p class="card-text mb-0">{{ $val->petugas }}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endif
                         @endforeach
                     </div>
                 </div>
@@ -354,6 +375,7 @@
         splitArticle();
         hitungTotal();
         hitungGrandTotal();
+        $('.sku-select-system').select2();
     });
 
     simpanData = (statusSimpan) =>{
@@ -386,16 +408,9 @@
                     let cust=$('#cust').val().split("|");
                     let custName = $('#cust').select2('data')[0].text;
                     let customer=cust[1];
-                
-                    //es6
-                    // let obj = ingredient.find(obj => obj.plu == plu);
-
-                    //jquery
-                    //cek apakah article ada yang double input ato ngk
                     let obj = $.grep(articles, function(obj){
                         return obj.article_code === plu;
                     })[0];
-                    
                     if(obj) {
                         pesan +="Article "+plu+" entered more than once !! <br>"; 
                         flag=1;

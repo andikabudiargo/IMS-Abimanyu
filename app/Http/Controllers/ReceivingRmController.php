@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Crypt;
 use Response;
 use App\Permission;
 use DataTables;
@@ -15,10 +16,32 @@ use AppHelpers;
 
 class ReceivingRmController extends Controller
 {
+    private $title;
+    public function __construct()
+    {
+        $this->title = "Receiving RM";
+    }
+
+    public function getTableColoumn(){
+        $kolom=
+        [
+            ['data'=>'action','name'=>'action','title'=>'action', 'orderable'=> false,'searchable'=>false],
+            ['data'=>'rec_number','name'=>'rec_number','title'=>'Rec Number'],
+            ['data'=>'rec_date','name'=>'rec_date','title'=>'Rec Date'],
+            ['data'=>'inv_number','name'=>'inv_number','title'=>'Invoice Number'],
+            ['data'=>'inv_date','name'=>'inv_date','title'=>'Inv Date'],
+            ['data'=>'po_number','name'=>'po_number','title'=>'PO Number'],
+            ['data'=>'supp_name','name'=>'supp_name','title'=>'Supplier'],
+            ['data'=>'prepared_by','name'=>'prepared_by','title'=>'Prepared By'],
+            ['data'=>'authorized_by','name'=>'authorized_by','title'=>'Authorized By'],
+            ['data'=>'status','name'=>'status','title'=>'Status']
+        ];
+        return json_encode($kolom, true);
+    }
+
     public function index(Request $request)
     {
-        $data['title'] = "Receiving RM";
-
+        $data['title'] = $this->title;
         $data['custs'] = DB::table('third_party')
         ->where ('third_party_type','=','cust')
         ->orderBy('nama')
@@ -31,6 +54,7 @@ class ReceivingRmController extends Controller
         // 4. Cancel
 
         $data['status'] = ['1'=>'Draft','2'=>'Update','3'=>'Posting','4'=>'Cancel'];
+        $data['kolom'] = $this->getTableColoumn();
             
         return view("receivingRm.index",$data);
     }
@@ -58,8 +82,8 @@ class ReceivingRmController extends Controller
 
     public function create(Request $request)
     {
-        $data['title'] = "Create Receiving RM";
-        $data['subtitle'] = "Create Receiving RM";
+        $data['title'] = "Create $this->title";
+        $data['subtitle'] = "Create $this->title";
         
         $data['supps'] = DB::table('third_party')
         ->where ('third_party_type','=','cust')
@@ -84,7 +108,7 @@ class ReceivingRmController extends Controller
                 left join 
                     (select so, article_code,sum(qty) as qty,price from (
                         select *,(select po_number from receiving_hdr where rec_number = a.rec_number) as so from receiving_det a where rec_number in (
-                        select rec_number from receiving_hdr where status = '3')
+                        select rec_number from receiving_hdr where status = '3' and po_number = '$so')
                     ) z
                 group by so, article_code,price) b
                 on a.so_code = b.so and a.article_code = b.article_code
@@ -129,7 +153,7 @@ class ReceivingRmController extends Controller
         });
         
         $validation = Validator::make($request->all(),$messages = [
-            'docNumber'=>'required|iunique:receiving_hdr,docNumber,po_number',
+            'docNumber'=>'required|iunique:receiving_hdr,do_number,po_number',
             'recDate'  => 'required',
             'docDate'  => 'required',
             'soNumber'  => 'required',
@@ -143,8 +167,9 @@ class ReceivingRmController extends Controller
             foreach ($validation->messages()->getMessages() as $field_name => $messages){
                 $error_array[] = $messages;
             }
-            $alert ="alert-danger";
-            return response()->json(array('status' => 0, 'message' => $error_array,'alert' =>$alert));
+            $title="Save $this->title";
+            $alert ="error";
+            return response()->json(array('status' => 0,'title' => $title, 'message' => $error_array,'alert' =>$alert));
         }else{
             $hasilUpdate = AppHelpers::resetCode('REC');
             $recNumber = $this->getLastCode('REC');
@@ -152,6 +177,7 @@ class ReceivingRmController extends Controller
             try {
                     DB::table('receiving_hdr')->insert([
                         'rec_number' => $recNumber,
+                        'do_number' => $docNumber,
                         'inv_number' => $docNumber,
                         'inv_date' => $docDate,
                         'po_number' => $soNumber,
@@ -186,28 +212,30 @@ class ReceivingRmController extends Controller
                     DB::table('receiving_det')->insert($dataSet);
 
                     DB::commit();
-                    $alert  ="alert-success";
-                    $message  = "Rec $recNumber is successfully saved";
-                    $statusRec  = $statusRec;
-                    \LogActivity::addToLog('Rec save ',"username: $username Status $message");
-                    return response()->json(array('statusRec' => $statusRec, 'status' => 1, 'message' => $message,'alert'=>$alert,'recNumber'=>$recNumber));
 
+                    $title = "Save $this->title";
+                    $alert  ="success";
+                    $message  = "$title $recNumber is successfully saved";
+                    $statusRec  = $statusRec;
+                    \LogActivity::addToLog($title,"username: $username Status $message");
+                    return response()->json(array('statusRec' => $statusRec, 'title' => $title, 'status' => 1, 'message' => $message,'alert'=>$alert,'recNumber'=>$recNumber));
             } catch (Exception $e) {
                 DB::rollBack();
-                $alert  ="alert-warning";
-                $message  = "Rec $recNumber is failed to save";
+                $title = "Save $this->title";
+                $alert  ="warning";
+                $message  = "$title $recNumber is failed to save";
                 $statusRec = 'FAILED';
-                \LogActivity::addToLog('Rec save ',"username: $username Status $message");
-                return response()->json(array('statusRec' => $statusRec,'status' => 1, 'message' => $message,'alert'=>$alert,'recNumber'=>$recNumber));
+                \LogActivity::addToLog($title,"username: $username Status $message");
+                return response()->json(array('statusRec' => $statusRec, 'title' => $title, 'status' => 1, 'message' => $message,'alert'=>$alert,'recNumber'=>$recNumber));
             }
         }
     }
 
     public function show(Request $request)
     {
-        $id=$request->id;
-        $data['title'] = "Detil Receiving RM";
-        $data['subtitle'] = "Detil Receiving RM";
+        $id=Crypt::decryptString($request->id);
+        $data['title'] = "Detil $this->title";
+        $data['subtitle'] = "Detil $this->title";
 
         $data['header'] = DB::table('receiving_hdr')
         ->where('id',$id)
@@ -239,9 +267,9 @@ class ReceivingRmController extends Controller
 
     public function edit(Request $request)
     {
-        $id=$request->id;
-        $data['title'] = "Edit Receiving RM";
-        $data['subtitle'] = "Edit Receiving RM";
+        $id=Crypt::decryptString($request->id);
+        $data['title'] = "Edit $this->title";
+        $data['subtitle'] = "Edit $this->title";
 
         $data['header'] = DB::table('receiving_hdr')
         ->where('id',$id)
@@ -321,8 +349,9 @@ class ReceivingRmController extends Controller
             foreach ($validation->messages()->getMessages() as $field_name => $messages){
                 $error_array[] = $messages;
             }
-            $alert ="alert-danger";
-            return response()->json(array('status' => 0, 'message' => $error_array,'alert' =>$alert));
+            $title="Update $this->title";
+            $alert ="error";
+            return response()->json(array('status' => 0,'title' => $title, 'message' => $error_array,'alert' =>$alert));
         }else{
             DB::beginTransaction();
             try {
@@ -377,17 +406,18 @@ class ReceivingRmController extends Controller
                     }
                                                                 
                     DB::commit();
-                    $alert  ="alert-success";
-                    $message  = "Rec $recNumber is successfully updated";
-                    \LogActivity::addToLog('Rec update ',"username: $username Status $message");
-                    return response()->json(array('statusRec' => $statusRec,'status' => 1, 'message' => $message,'alert'=>$alert,'recNumber'=>$recNumber));
-
+                    $title ="Update $this->title";
+                    $alert  ="success";
+                    $message  = "$title $recNumber is successfully updated";
+                    \LogActivity::addToLog($title,"username: $username Status $message");
+                    return response()->json(array('statusRec' => $statusRec,'status' => 1, 'title' => $title,'message' => $message,'alert'=>$alert,'recNumber'=>$recNumber));
             } catch (Exception $e) {
                 DB::rollBack();
-                $alert  ="alert-warning";
-                $message  = "Rec $recNumber is failed to updated";
-                \LogActivity::addToLog('Rec update ',"username: $username Status $message");
-                return response()->json(array('statusRec' => $statusRec,'status' => 1, 'message' => $message,'alert'=>$alert,'recNumber'=>$recNumber));
+                $title ="Update $this->title";
+                $alert  ="warning";
+                $message  = "$title $recNumber is failed to updated";
+                \LogActivity::addToLog($title,"username: $username Status $message");
+                return response()->json(array('statusRec' => $statusRec,'status' => 1, 'title' => $title,'message' => $message,'alert'=>$alert,'recNumber'=>$recNumber));
             }
         }
 
@@ -466,15 +496,17 @@ class ReceivingRmController extends Controller
             DB::select($sqlMovement);
 
             DB::commit();
-            $alert  ="alert-success";
-            $message  = "Posting Rec $recNumber Successfully Posting";
-            \LogActivity::addToLog('Posting Rec ',"username: $username Status $message");
-            return response()->json(array('statusRec' => $statusRec,'status' => 1, 'message' => $message,'alert'=>$alert,'recNumber'=>$recNumber));
+            $title ="Posting $this->title";
+            $alert  ="success";
+            $message  = "$title $recNumber Successfully Posting";
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return response()->json(array('statusRec' => $statusRec,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'recNumber'=>$recNumber));
         }else{
-            $alert  ="alert-warning";
-            $message  = "Posting Rec $recNumber Failed to Posting";
-            \LogActivity::addToLog('Posting Rec ',"username: $username Status $message");
-            return response()->json(array('statusRec' => $statusRec,'status' => 1, 'message' => $message,'alert'=>$alert,'recNumber'=>$recNumber));
+            $title ="Posting $this->title";
+            $alert  ="warning";
+            $message  = "$title $recNumber Failed to Posting";
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return response()->json(array('statusRec' => $statusRec,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'recNumber'=>$recNumber));
         }
     }
 
@@ -503,7 +535,7 @@ class ReceivingRmController extends Controller
         ->update(
             [   
                 'rec_number' => $recNumber."(C)",
-                'inv_number' => $docNumber."(C)",
+                'inv_number' => $docNumber ? $docNumber."(C)" :$docNumber ,
                 'status' => $status,
                 'note' => $note." (Cancel)",
                 'updated_by' => Auth::user()->username,
@@ -522,15 +554,17 @@ class ReceivingRmController extends Controller
                 ]
             );
 
-            $alert  ="alert-success";
-            $message  = "Rec $recNumber Successfully Cancel";
-            \LogActivity::addToLog('Rec cancel ',"username: $username Status $message");
-            return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);  
+            $title ="Cancel $this->title";
+            $alert  ="success";
+            $message  = "$title $recNumber Successfully Cancel";
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return redirect()->back()->with(['alert'=>$alert,'title' => $title,'message'=> $message]);  
         }else{
-            $alert  ="alert-warning";
-            $message  = "Rec $recNumber Failed to Cancel";
-            \LogActivity::addToLog('Rec cancel ',"username: $username Status $message");
-            return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);
+            $title ="Cancel $this->title";
+            $alert  ="warning";
+            $message  = "$title $recNumber Failed to Cancel";
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return redirect()->back()->with(['alert'=>$alert,'title' => $title,'message'=> $message]);
         }
     }
 
@@ -586,8 +620,16 @@ class ReceivingRmController extends Controller
             $filter=" where ".substr($filter,0,-4);
         }
 
-        $data = DB::select("SELECT id,inv_number,rec_number,rec_date,po_number,inv_date,
-        (select concat(kode,'-',nama) from third_party where kode = supplier_id limit 1) as supp_name ,prepared_by,authorized_by,status
+        $data = DB::select("SELECT id
+        ,inv_number
+        ,rec_number
+        ,rec_date
+        ,po_number
+        ,inv_date,
+        (select concat(kode,'-',nama) from third_party where kode = supplier_id limit 1) as supp_name 
+        ,prepared_by
+        ,authorized_by
+        ,status
         from receiving_hdr a $filter");
 
         // $data=DB::select("SELECT *,delivery_date,(select concat(kode,'-',nama) from third_party where kode = supplier_id limit 1) as supp_name,(gross-discount)+ppn as netto from (
@@ -608,17 +650,17 @@ class ReceivingRmController extends Controller
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
             if (($data->status != '3') && ($data->status != '4')){
                 if (Auth::user()->can('receiving-edit')) {
-                $buttons .=         '<a href="'. route('receivingRm.edit', ['id'=>$data->id]) .'" class="dropdown-item">
+                $buttons .=         '<a href="'. route('receivingRm.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                         <i data-feather="file-text"></i>
                                         Edit
                                     </a>';
-                $buttons .=         '<a href="'. route('receivingRm.print', ['id'=>$data->id]) .'" target="_blank" class="dropdown-item">
+                $buttons .=         '<a href="'. route('receivingRm.print', ['id'=>Crypt::encryptString($data->id)]) .'" target="_blank" class="dropdown-item">
                                         <i data-feather="printer"></i>
                                         Print
                                     </a>';
                 }
             }
-            $buttons .=         '<a href="'. route('receivingRm.show', ['id'=>$data->id]) .'" class="dropdown-item">
+            $buttons .=         '<a href="'. route('receivingRm.show', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                     <i data-feather="list"></i>
                                     Detail
                                 </a>';
@@ -630,7 +672,7 @@ class ReceivingRmController extends Controller
                                         class='dropdown-item'
                                         data-toggle='modal'
                                         data-target='#smallModalCancel'
-                                        data-href='". route("receivingRm.destroy", ["id"=>$data->id]) ."'>
+                                        data-href='". route("receivingRm.destroy", ["id"=>Crypt::encryptString($data->id)]) ."'>
                                         <i data-feather='trash-2'></i>
                                         Cancel
                                     </a>";
@@ -641,11 +683,16 @@ class ReceivingRmController extends Controller
 
             return $buttons;
             })
+
+        ->addColumn('rec_number', function ($data) {
+            $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary'];
+            return '<span class="d-none">'.$data->rec_number.'</span><a class="badge d-block '.$badges[$data->status - 1].'" href="'. route('receivingRm.show', ['id'=>Crypt::encryptString($data->id)]) .'" >'.$data->rec_number.'</a>';
+        })
         ->addColumn('status', function ($data) {
             $statusRec = ['Draft','Update','Posting','Cancel'];
             return $statusRec[$data->status - 1];
         })
-        ->rawColumns(['action','status'])
+        ->rawColumns(['action','status','rec_number'])
         ->make(true);
     }
 
@@ -721,8 +768,7 @@ class ReceivingRmController extends Controller
         $output .='<option value=""></option>';            
         foreach ($data as $row){
             $output .='<option value="'.$row->so_code.'">'.$row->so_code.'</option>';            
-        }        
-        
+        }                
         return $output;
     }
 

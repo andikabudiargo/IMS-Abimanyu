@@ -152,7 +152,7 @@
     and (max-device-width: 1600px) 
     and (-webkit-min-device-pixel-ratio: 1) { 
         .lebar-list-item{
-            width:125%;
+            width:150%;
         }
         .container-list-item{
             max-width:100%;
@@ -166,7 +166,7 @@
     and (max-width: 1200px)
     {
         .lebar-list-item{
-            width:150%;
+            width:200%;
         }
         .container-list-item{
             max-width:100%;
@@ -179,9 +179,9 @@
 </style>
 
 <script type="text/javascript">
-    let currentDate = "{{ $currentDate }}";
-    orderDate = $('#orderDate');
-    deliveryDate = $('#deliveryDate');
+    const currentDate = "{{ $currentDateValue }}";
+    const orderDate = $('#orderDate');
+    const deliveryDate = $('#deliveryDate');
     
     if (orderDate.length) {
         orderDate.flatpickr({
@@ -198,8 +198,8 @@
 
     $('#pkp').change(function() {
         if ($(this).is(':checked')) {
-            $('#ppn').val("{{ $attribute['ppn'] }}");
-            $("#nilaiPPN").text("{{ $attribute['ppn'] }}%");
+            $('#ppn').val("{{ $vatValue }}");
+            $("#nilaiPPN").text("{{ $vatValue }}%");
             $('#ppn').removeAttr('disabled');
             hitungGrandTotal();
         }else{
@@ -492,6 +492,37 @@
         }
     }
 
+    declineData = () =>{
+        let poNumber = $('#poNumber').val();
+        $.ajax({
+            type: "get",
+            url: "{{ route('purchaseOrder.decline') }}",
+            data: {
+                poNumber:poNumber,
+            },
+            dataType: "json",
+            success: function(data) {
+                if (data.status == 0 ){
+                    for(let i = 0; i < data.message.length; i++) {
+                        show_msg(data.title, data.message[i], data.alert);
+                    }
+                    $('#poNumber').attr('disabled','disabled');
+                }else{
+                    show_msg(data.title, data.message, data.alert);
+                    $('#poNumber').attr('disabled','disabled');
+                    $('#cmdApprove').attr('disabled','disabled');
+                    $('#cmdUpdate').attr('disabled','disabled');
+                    $('#cmdDecline').attr('disabled','disabled');
+                    $('#addNewRow').attr('disabled','disabled');
+                    $('#poNumber').val(data.poNumber);
+                }
+            },
+            error: function(error) {
+                console.log(error);
+            }
+        });
+    }
+
     function add_new_row() {
         let supplier = $('#supplier');
         let supp = supplier.val();
@@ -594,7 +625,7 @@
                         <td>${data[i].po_number}</td>
                         <td>${data[i].po_date}</td>
                         <td class="text-right">
-                            <a href='javascript:;' type="button" class='btn btn-outline-primary waves-effect' onclick="definePrice('${indexNya}','${data[i].price}');">${humanizeNumber(data[i].price)}</a>
+                            <a href='javascript:;' type="button" class='btn btn-outline-primary btn-block btn-sm waves-effect text-right' onclick="definePrice('${indexNya}','${data[i].price}');">${humanizeNumber(data[i].price)}</a>
                         </td>
                         </tr>`;
                     }
@@ -628,8 +659,6 @@
             let arrDetail = detail.split("|");
             let uomGroup = objArticle.eq(objIndex).find(":selected").data("uom-group");
 
-            console.log(arrDetail[0]+"-"+detailText);
-            
             objListPrice.eq(objIndex).attr("onClick", `listPrice('${arrDetail[0]}','${detailText}','${objIndex}');`);
             objStock.eq(objIndex).val(humanizeNumber(arrDetail[2]||0));
             objUom.eq(objIndex).text(arrDetail[4]);
@@ -647,15 +676,14 @@
             hitungGrandTotal();
 
             if ( uomGroup === 'PIECE' ){
-                objQty.removeClass("numeral-mask-digit");
-                objQty.addClass("numeral-mask-satuan");
+                objQty.eq(objIndex).removeClass("numeral-mask-digit");
+                objQty.eq(objIndex).addClass("numeral-mask-satuan");
                 mask_thousand_satuan();
             }else{
-                objQty.removeClass("numeral-mask-satuan");
-                objQty.addClass("numeral-mask-digit");
+                objQty.eq(objIndex).removeClass("numeral-mask-satuan");
+                objQty.eq(objIndex).addClass("numeral-mask-digit");
                 mask_thousand_digit(numberOfDecimalDigit);
             }
-
 		});
     }
 
@@ -663,9 +691,7 @@
         $('#article_row input[name="newPrice[]"]').eq(indexNya).val(humanizeNumber(hargaNya||0));
         $("#modalListPrice").modal('hide');
     }
-
-    
-
+  
     function hitungTotal(){
         let objQty= $('#article_row input[name="qty_order[]"]');
         let objNewPrice= $('#article_row input[name="newPrice[]"]');
@@ -716,6 +742,10 @@
         $("#totalNetto").val(humanizeNumber((totalAmount+((parseInt(ppn)*totalAmount)/100))-((totalAmount*parseInt(persenDiscount))/100)));
 
     }
+
+    $("input[type='text']").click(function () {
+        $(this).select();
+    });
 
     $.ajaxSetup({
         headers: {

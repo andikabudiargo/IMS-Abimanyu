@@ -13,6 +13,7 @@ use DataTables;
 use DB;
 use PDF;
 use AppHelpers;
+use Approval;
 
 class SalesOrderController extends Controller
 {
@@ -38,12 +39,8 @@ class SalesOrderController extends Controller
         ->get();
 
         $data['types'] = ['NEW','REPEAT'];
+        $data['status'] = ['1'=>'NEW','2'=>'VALIDATED','3'=>'APPROVED','4'=>'RECEIVED','5'=>'CANCELED','6'=>"CLOSED",'7'=>'PAID'];
 
-        // $data['status'] = ['NEW','PROCESS','SENT'];
-
-        $data['status'] = ['1'=>'NEW','2'=>'PROCESS','3'=>'SENT'];
-
-            
         return view("salesOrder.index",$data);
     }
 
@@ -249,6 +246,14 @@ class SalesOrderController extends Controller
         $data['subtitle'] = "Detail $this->title";
 
         $data['header'] = DB::table('sales_order_hdr')
+        ->select('sales_order_hdr.*'
+        ,DB::raw("(select concat(kode,' - ',nama) from third_party where kode = sales_order_hdr.customer_id) as supp_name") 
+        ,DB::raw('(select sum(qty) from sales_order_det where so_code = sales_order_hdr.so_code) as sum_qty') 
+        ,DB::raw('(select count(*) from sales_order_det where so_code = sales_order_hdr.so_code) as sum_row')
+        ,DB::raw('(select round(sum((qty*price) + (qty*price_service))) from sales_order_det where so_code = sales_order_hdr.so_code) as sum_amount')
+        ,DB::raw('(select round(sum(((qty*price) + (qty*price_service))*sales_order_hdr.ppn/100)) from sales_order_det where so_code = sales_order_hdr.so_code) as sum_ppn')
+        ,DB::raw('(select round(sum(((qty*price) + (qty*price_service))*sales_order_hdr.pph23/100)) from sales_order_det where so_code = sales_order_hdr.so_code) as sum_pph23')
+        )
         ->where('id',$id)
         ->get()->first();
 
@@ -257,10 +262,19 @@ class SalesOrderController extends Controller
         $data['detail'] = DB::table('sales_order_det')
         ->leftJoin('article','article.article_code','=','sales_order_det.article_code')
         ->leftJoin('article_stock','article_stock.article_code','=','sales_order_det.article_code')
+        ->leftJoin('uom','uom.code','=','sales_order_det.uom')
         ->where('so_code',$soCode)
-        ->select('sales_order_det'.'.*',DB::raw('round(sales_order_det.qty) as qty'),'article_stock.article_qty as qty_stock', DB::raw('(SELECT name from group_materials where code = group_of_material) as group'))
+        ->select('sales_order_det'.'.*'
+        ,DB::raw('round(sales_order_det.qty) as qty')
+        ,'article_stock.article_qty as qty_stock'
+        ,'uom.uom_group'
+        , DB::raw('(SELECT name from group_materials where code = group_of_material) as group')
+        , DB::raw("concat(article_alternative_code,'-',article_desc) as article")
+        )
         ->orderBy('id')
-        ->get();       
+        ->get();
+
+        // dd($data['detail']);
 
         $data['articles']= DB::table('article') 
         ->leftJoin('article_stock','article_stock.article_code','=','article.article_code')
@@ -286,34 +300,11 @@ class SalesOrderController extends Controller
         ->orderBy('name')
         ->get();
 
-        // $data['approveHistory'] = DB::table('approval_history')
-        // ->leftJoin('users','users.username','approval_history.username')
-        // ->where('module_code',$modulCode)
-        // ->where('module_number',$soCode)
-        // ->orderBy("approval_order")
-        // ->get();
+        $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode,$soCode,$username);
+        $data['approveValidate'] = Approval::approveValidate($this->moduleCode,$soCode,$username);
 
-        $data['approveHistory'] = DB::table('approval_history')
-        ->leftJoin('users','users.username','approval_history.username')
-        ->leftJoin('approval_master','approval_master.module_code','approval_history.module_code')
-        ->where('approval_history.module_code',$this->moduleCode)
-        ->where('module_number',$soCode)
-        ->select('users.name','approval_history.approval_order','approval_master.approval_number')
-        ->orderBy("approval_order")
-        ->get();
-
-        $data['approveValidate'] = DB::select("SELECT username= '$username' as validate,current_level + 1 as next_level,* from (
-        select username,approval_order,
-        (select max(approval_number) from approval_master where module_code = a.module_code ) as max_level,
-        COALESCE((select max(approval_order) from approval_history
-        where module_code = a.module_code
-        and module_number = '".$soCode."'),'0') as current_level
-        from approval_level a 
-        where module_code = '".$this->moduleCode."' and username = '$username') b
-        where approval_order = current_level+1");
-
-
-        $statusSo = ['New','Validated','Approved','Received','Canceled','Closed','Paid'];
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATED','3'=>'APPROVED','4'=>'RECEIVED','5'=>'CANCELED','6'=>"CLOSED",'7'=>'PAID'];
+        $statusSo = ['NEW','VALIDATED','APPROVED','RECEIVED','CANCELED','CLOSED','PAID'];
         $data['statusSo'] = $statusSo[$data['header']->status-1];
 
         return view("salesOrder.show",$data);
@@ -366,48 +357,11 @@ class SalesOrderController extends Controller
         ->orderBy('name')
         ->get();
 
-        $data['approveHistory'] = DB::table('approval_history')
-        ->leftJoin('users','users.username','approval_history.username')
-        ->leftJoin('approval_master','approval_master.module_code','approval_history.module_code')
-        ->where('approval_history.module_code',$this->moduleCode)
-        ->where('module_number',$soCode)
-        ->select('users.name','approval_history.approval_order','approval_master.approval_number')
-        ->orderBy("approval_order")
-        ->get();
+        $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode,$soCode,$username);
+        $data['approveValidate'] = Approval::approveValidate($this->moduleCode,$soCode,$username);
 
-        $data['approveValidate'] = DB::select("SELECT username= '$username' as validate,current_level + 1 as next_level,* from (
-        select username,approval_order,
-        (select max(approval_number) from approval_master where module_code = a.module_code ) as max_level,
-        COALESCE((select max(approval_order) from approval_history
-        where module_code = a.module_code
-        and module_number = '".$soCode."'),'0') as current_level
-        from approval_level a 
-        where module_code = '".$this->moduleCode."' and username = '$username') b
-        where approval_order = current_level+1"); 
-
-        // $data['approveHistory'] = DB::table('approval_history')
-        // ->leftJoin('users','users.username','approval_history.username')
-        // ->where('module_code',$modulCode)
-        // ->where('module_number',$data['header']->so_code)
-        // ->orderBy("approval_order")
-        // ->get();
-
-        // //cari di database apakah approval nya sudah sampe level mana
-        // $data['approveValidate'] = DB::select("SELECT * from 
-        // (SELECT username = '$username' as validate,
-        // case when (select max(approval_order) from approval_history where module_code = '$modulCode' and module_number = '".$data['header']->so_code."') is null then 1
-        // else (select max(approval_order)+1 from approval_history where module_code = '$modulCode' and module_number = '".$data['header']->so_code."') end as last_approval
-        // from approval_level where module_code = '$modulCode' 
-        // and 
-        // approval_order = case when (select max(approval_order) from approval_history where module_code = '$modulCode' and module_number = '".$data['header']->so_code."') is null then 1
-        // else (select max(approval_order)+1 from approval_history where module_code = '$modulCode' and module_number = '".$data['header']->so_code."') end
-        // and 
-        // (select approval_number from approval_master where module_code = '$modulCode') >= case when (select max(approval_order) from approval_history where module_code = 'SO' and module_number = '".$data['header']->so_code."') is null then 1
-        // else (select max(approval_order)+1 from approval_history where module_code = '$modulCode' and module_number = '".$data['header']->so_code."') end
-        // and username = '$username') as oki
-        // where last_approval <= (select approval_number from approval_master where module_code = '$modulCode')");
-
-        $statusSo = ['New','Validated','Approved','Received','Canceled','Closed','Paid'];
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATED','3'=>'APPROVED','4'=>'RECEIVED','5'=>'CANCELED','6'=>"CLOSED",'7'=>'PAID'];
+        $statusSo = ['NEW','VALIDATED','APPROVED','RECEIVED','CANCELED','CLOSED','PAID'];
         $data['statusSo'] = $statusSo[$data['header']->status-1];
 
         return view("salesOrder.edit",$data);
@@ -418,7 +372,7 @@ class SalesOrderController extends Controller
     {
         $id=Crypt::decryptString($request->id);
         $username =  Auth::user()->username;
-        $modulCode = 'SO';
+        $modulCode = $this->moduleCode;
 
         $data['title'] = "Close $this->title";
         $data['subtitle'] = "Close $this->title";
@@ -426,6 +380,8 @@ class SalesOrderController extends Controller
         $data['header'] = DB::table('sales_order_hdr')
         ->where('id',$id)
         ->get()->first();
+
+        $soCode = $data['header']->so_code;
 
         $data['detail'] = DB::table('sales_order_det')
         ->leftJoin('article','article.article_code','=','sales_order_det.article_code')
@@ -441,13 +397,6 @@ class SalesOrderController extends Controller
         ->where('third_party',$data['header']->customer_id)
         ->orderBy('article_desc')
         ->select('article'.'.*', 'article_stock.article_qty as qty','article.uom as uom1','group_materials.name as group')
-        ->get();
-
-        $data['approveHistory'] = DB::table('approval_history')
-        ->leftJoin('users','users.username','approval_history.username')
-        ->where('module_code',$modulCode)
-        ->where('module_number',$data['header']->so_code)
-        ->orderBy("approval_order")
         ->get();
 
         $data['custs'] = DB::table('third_party')
@@ -466,7 +415,11 @@ class SalesOrderController extends Controller
         ->orderBy('name')
         ->get();
 
-        $statusSo = ['New','Validated','Approved','Received','Canceled','Closed','Paid'];
+        $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode,$soCode,$username);
+        $data['approveValidate'] = Approval::approveValidate($this->moduleCode,$soCode,$username);
+
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATED','3'=>'APPROVED','4'=>'RECEIVED','5'=>'CANCELED','6'=>"CLOSED",'7'=>'PAID'];
+        $statusSo = ['NEW','VALIDATED','APPROVED','RECEIVED','CANCELED','CLOSED','PAID'];
         $data['statusSo'] = $statusSo[$data['header']->status-1];
 
         return view("salesOrder.close",$data);
@@ -655,21 +608,20 @@ class SalesOrderController extends Controller
             }
             
             DB::commit();
-            $title ="Update $this->title";
+            $title ="Close $this->title";
             $alert  ="success";
-            $message  = "$title $orderNumber is successfully updated";
+            $message  = "$title $orderNumber is successfully closed";
             \LogActivity::addToLog($title,"username: $username Status $message");
             return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'soNumber'=>$orderNumber));
             
         } catch (Exception $e) {
             DB::rollBack();
-            $title ="Update $this->title";
+            $title ="Close $this->title";
             $alert  ="warning";
-            $message  = "$title $orderNumber is failed to updated";
+            $message  = "$title $orderNumber is failed to close";
             \LogActivity::addToLog($title,"username: $username Status $message");
             return response()->json(array('status' => 0,'title' => $title, 'message' => $message,'alert'=>$alert,'soNumber'=>$orderNumber));
         }
-
     }
 
     public function destroy(Request $request)
@@ -735,16 +687,16 @@ class SalesOrderController extends Controller
                                 <i data-feather="menu"></i>
                             </a>';
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
-            if (Auth::user()->can('salesOrder-edit')) {
+            if (Auth::user()->can( 'salesOrder-edit' and  ($data->status == 3 or $data->status == 2) )) {
             $buttons .=         '<a href="'. route('salesOrder.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                     <i data-feather="file-text"></i>
                                     Edit
                                 </a>';
+            }
             $buttons .=         '<a href="'. route('salesOrder.show', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                     <i data-feather="list"></i>
                                     Detail
                                 </a>';
-            }
 
             if ( $data->status == 3){
             $buttons .=         '<a href="'. route('salesOrder.print', ['id'=>Crypt::encryptString($data->id)]) .'" target="_blank" class="dropdown-item">
@@ -752,13 +704,7 @@ class SalesOrderController extends Controller
                                     Print
                                 </a>';
             }
-            if (Auth::user()->can('salesOrder-delete')) {
-
-            $buttons .=         '<a href="'. route('salesOrder.close', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
-                                    <i data-feather="x-circle"></i>
-                                    Close
-                                </a>';
-
+            if (Auth::user()->can('salesOrder-delete') and  ($data->status == 1 or $data->status == 2 or $data->status == 3)) {
             $buttons .=         "<a href='javascript:;'
                                     id='deleteButton'
                                     class='dropdown-item'
@@ -769,17 +715,25 @@ class SalesOrderController extends Controller
                                     Delete
                                 </a>";
             }
+            if (Auth::user()->can('salesOrder-delete') ) {
+
+                $buttons .=     '<a href="'. route('salesOrder.close', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+                                    <i data-feather="x-circle"></i>
+                                    Close
+                                </a>';
+            }
             $buttons .=     '</div>
                         </div>';
 
             return $buttons;
         })
         ->addColumn('so_code', function ($data) {
-            return '<a href="'. route('salesOrder.show', ['id'=>Crypt::encryptString($data->id)]) .'" ><span>'.$data->so_code.'</span></a>';
+            $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary'];
+            return '<span style="display: none;">"'.$data->so_code.'</span><a class="badge d-block '.$badges[$data->status - 1].'" href="'. route('salesOrder.show', ['id'=>Crypt::encryptString($data->id)]) .'" ><span>'.$data->so_code.'</span></a>';
         })
         ->addColumn('status', function ($data) {
             $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary'];
-            $statusSo = ['New','Validated','Approved','Received','Canceled','Closed','Paid'];
+            $statusSo = ['NEW','VALIDATED','APPROVED','RECEIVED','CANCELED','CLOSED','PAID'];
             return "<div class='badge ".$badges[$data->status - 1]."'>".$statusSo[$data->status - 1]."</div>";
         })
         ->rawColumns(['action','status','so_code'])

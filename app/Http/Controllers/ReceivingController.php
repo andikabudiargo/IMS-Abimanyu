@@ -23,22 +23,33 @@ class ReceivingController extends Controller
         $this->title = "Receiving";
     }
 
+    public function getTableColoumn(){
+        $kolom=
+        [
+            ['data'=>'action','name'=>'action','title'=>'action', 'orderable'=> false,'searchable'=>false],
+            ['data'=>'rec_number','name'=>'rec_number','title'=>'Rec Number'],
+            ['data'=>'rec_date','name'=>'rec_date','title'=>'Rec Date'],
+            ['data'=>'inv_number','name'=>'inv_number','title'=>'Invoice Number'],
+            ['data'=>'inv_date','name'=>'inv_date','title'=>'Inv Date'],
+            ['data'=>'po_number','name'=>'po_number','title'=>'PO Number'],
+            ['data'=>'supp_name','name'=>'supp_name','title'=>'Supplier'],
+            ['data'=>'prepared_by','name'=>'prepared_by','title'=>'Prepared By'],
+            ['data'=>'authorized_by','name'=>'authorized_by','title'=>'Authorized By'],
+            ['data'=>'status','name'=>'status','title'=>'Status']
+        ];
+        return json_encode($kolom, true);
+    }
+
     public function index(Request $request)
     {
         $data['title'] = $this->title;
-
         $data['supps'] = DB::table('third_party')
         ->where ('third_party_type','=','supp')
         ->orderBy('nama')
         ->get();
 
-        // status
-        // 1. Draft
-        // 2. Update
-        // 3. Posting
-        // 4. Cancel
-
-        $data['status'] = ['1'=>'Draft','2'=>'Update','3'=>'Posting','4'=>'Cancel'];
+        $data['status'] = ['1'=>'DRAFT','2'=>'UPDATED','3'=>'POSTED','4'=>'CANCELED'];
+        $data['kolom'] = $this->getTableColoumn();
             
         return view("receiving.index",$data);
     }
@@ -66,8 +77,8 @@ class ReceivingController extends Controller
 
     public function create(Request $request)
     {
-        $data['title'] = "Create Receiving";
-        $data['subtitle'] = "Create Receiving";
+        $data['title'] = "Create $this->title";
+        $data['subtitle'] = "Create $this->title";
         
         $data['supps'] = DB::table('third_party')
         ->where ('third_party_type','=','supp')
@@ -77,29 +88,7 @@ class ReceivingController extends Controller
         return view("receiving.create",$data);
     }
 
-    public function poDetail(Request $request)
-    {
-        $po = $request->value;
-        $data = DB::select("SELECT 
-                a.*,
-                a.article_code,
-                article_alternative_code,
-                article_desc,uom_group, 
-                (COALESCE(a.qty,0)-COALESCE(b.qty,0)) as qty_order
-                from purchase_order_det a
-                left join uom on uom.code=a.uom
-                left join article on article.article_code = a.article_code
-                left join 
-                    (select po, article_code,sum(qty) as qty,price from (
-                        select *,(select po_number from receiving_hdr where rec_number = a.rec_number) as po from receiving_det a where rec_number in (
-                        select rec_number from receiving_hdr where status = '3')
-                    ) z
-                group by po, article_code,price) b
-                on a.po_number = b.po and a.article_code = b.article_code
-                where po_number = '$po'");
-
-        return response()->json($data);
-    }
+  
 
     public function store(Request $request)
     {
@@ -118,11 +107,7 @@ class ReceivingController extends Controller
         $status = '1';
         $authorizedBy = "";
 
-        // status
-        // 1. Draft
-        // 2. Update
-        // 3. Posting
-        // 4. Cancel
+        // $data['status'] = ['1'=>'DRAFT','2'=>'UPDATED','3'=>'POSTED','4'=>'CANCELED'];
         
         $customMessages = [
             'required' => 'The field is required.',
@@ -149,13 +134,13 @@ class ReceivingController extends Controller
         
         $error_array = array();
         $success_output = '';
-        // return $validation;
         if ($validation->fails()){
             foreach ($validation->messages()->getMessages() as $field_name => $messages){
                 $error_array[] = $messages;
             }
-            $alert ="alert-danger";
-            return response()->json(array('status' => 0, 'message' => $error_array,'alert' =>$alert));
+            $title="Save $this->title";
+            $alert ="error";
+            return response()->json(array('status' => 0,'title' => $title, 'message' => $error_array,'alert' =>$alert));
         }else{
             $hasilUpdate = AppHelpers::resetCode('REC');
             $recNumber = $this->getLastCode('REC');
@@ -247,7 +232,8 @@ class ReceivingController extends Controller
         ->orderBy('name')
         ->get();
 
-        $statusRec = ['Draft','Update','Posting','Cancel'];
+        // $data['status'] = ['1'=>'DRAFT','2'=>'UPDATED','3'=>'POSTED','4'=>'CANCELED'];
+        $statusRec = ['DRAFT','UPDATED','POSTED','CANCELED'];
         $data['statusRec'] = $statusRec[$data['header']->status-1];
 
         return view("receiving.show",$data);
@@ -281,7 +267,7 @@ class ReceivingController extends Controller
         ->orderBy('name')
         ->get();
 
-        $statusRec = ['Draft','Update','Posting','Cancel'];
+        $statusRec = ['DRAFT','UPDATED','POSTED','CANCELED'];
         $data['statusRec'] = $statusRec[$data['header']->status-1];
 
         return view("receiving.edit",$data);
@@ -306,11 +292,7 @@ class ReceivingController extends Controller
         $status = '2';
         $authorizedBy = "";
 
-        // status
-        // 1. Draft
-        // 2. Update
-        // 3. Posting
-        // 4. Cancel
+        // $data['status'] = ['1'=>'DRAFT','2'=>'UPDATED','3'=>'POSTED','4'=>'CANCELED'];
 
         $customMessages = [
             'required' => 'The field is required.',
@@ -340,8 +322,9 @@ class ReceivingController extends Controller
             foreach ($validation->messages()->getMessages() as $field_name => $messages){
                 $error_array[] = $messages;
             }
-            $alert ="alert-danger";
-            return response()->json(array('status' => 0, 'message' => $error_array,'alert' =>$alert));
+            $title="Update $this->title";
+            $alert ="error";
+            return response()->json(array('status' => 0,'title' => $title, 'message' => $error_array,'alert' =>$alert));
         }else{
             DB::beginTransaction();
             try {
@@ -420,16 +403,12 @@ class ReceivingController extends Controller
 
     public function posting(Request $request)
     {
-        // status
-        // 1. Draft
-        // 2. Update
-        // 3. Posting
-        // 4. Cancel
+        // $data['status'] = ['1'=>'DRAFT','2'=>'UPDATED','3'=>'POSTED','4'=>'CANCELED'];
 
         $username =  Auth::user()->username;
         $recNumber = $request->recNumber;
         $recType = "NORMAL";
-        $statusRec ="Posting";
+        $statusRec ="POSTED";
         $status = '3';
         $authorizedBy = Auth::user()->username;
 
@@ -507,11 +486,7 @@ class ReceivingController extends Controller
 
     public function destroy(Request $request)
     {
-        // status
-        // 1. Draft
-        // 2. Update
-        // 3. Posting
-        // 4. Cancel
+        // $data['status'] = ['1'=>'DRAFT','2'=>'UPDATED','3'=>'POSTED','4'=>'CANCELED'];
 
         $username =  Auth::user()->username;       
         $id=Crypt::decryptString($request->id);
@@ -530,7 +505,7 @@ class ReceivingController extends Controller
         ->update(
             [   
                 'rec_number' => $recNumber."(C)",
-                'inv_number' => $invNumber."(C)",
+                'inv_number' => $invNumber ? $invNumber."(C)" :$invNumber,
                 'status' => $status,
                 'note' => $note." (Cancel)",
                 'updated_by' => Auth::user()->username,
@@ -565,11 +540,7 @@ class ReceivingController extends Controller
 
     public function list(Request $request)
     {
-        // status:
-        // 1. Draft
-        // 2. Update
-        // 3. Posting
-        // 4. Cancel
+        // $data['status'] = ['1'=>'DRAFT','2'=>'UPDATED','3'=>'POSTED','4'=>'CANCELED'];
 
         $searchRec = strtolower($request->searchRec);
         $searchPo = strtolower($request->searchPo);
@@ -671,11 +642,12 @@ class ReceivingController extends Controller
             return $buttons;
         })
         ->addColumn('rec_number', function ($data) {
-            return '<a href="'. route('receiving.show', ['id'=>Crypt::encryptString($data->id)]) .'" ><span>'.$data->rec_number.'</span></a>';
+            $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary'];
+            return '<span class="d-none">'.$data->id.'</span><a class="badge d-block '.$badges[$data->status - 1].'" href="'. route('receiving.show', ['id'=>Crypt::encryptString($data->id)]) .'" >'.$data->rec_number.'</a>';
         })
         ->addColumn('status', function ($data) {
             $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary'];
-            $statusRec = ['Draft','Update','Posting','Cancel'];
+            $statusRec = ['DRAFT','UPDATED','POSTED','CANCELED'];
             return "<div class='badge ".$badges[$data->status - 1]."'>".$statusRec[$data->status - 1]."</div>";
         })
         ->rawColumns(['action','status','rec_number'])
@@ -686,20 +658,11 @@ class ReceivingController extends Controller
     {
         $id = $request -> id;
 
-        $data['companies']= array(
-            "nama"=> "PT ABIMANYU SEKAR NUSANTARA",
-            "alamat"=> "KP. KARANG MULYA RT 014 RW 005 DESA CIKOPO",
-            "kota" => "KEC. BUNGURSARI KAB. PURWAKARTA JAWA BARAT",
-            "tlp" =>  ""
-        );
-        
-        $data['suppliers']=array(
-            'nama'=>'PT ABIMANYU SEKAR NUSANTARA',
-            'alamat'=>'KP. KARANG MULYA RT 014 RW 005 DESA CIKOPO',
-            'kota' =>'KEC. BUNGURSARI KAB. PURWAKARTA JAWA BARAT',
-            'tlp' => ''
-        );
-        
+        $data['companies']=DB::table('company')
+        ->where('code','ASN')
+        ->select('name as nama', 'address as alamat', DB::RAW('(select region_name from regions where region_code = city::integer)  as kota'),'tlp')
+        ->get()->first();
+                
         $recHdr=DB::table('receiving_hdr')
         ->where('id',$id)
         ->first();
@@ -741,7 +704,7 @@ class ReceivingController extends Controller
         $supp= $request->value;      
         $output="";
 
-        $data= DB::table("receiving_hdr") 
+        $data= DB::table("purchase_order_hdr") 
         ->where("supplier_id",$supp)
         ->where("status","3")
         ->orderBy("po_number")
@@ -751,9 +714,34 @@ class ReceivingController extends Controller
         $output .='<option value=""></option>';            
         foreach ($data as $row){
             $output .='<option value="'.$row->po_number.'">'.$row->po_number.'</option>';            
-        }        
-        
+        }
         return $output;
+    }
+
+    public function poDetail(Request $request)
+    {
+        $po = $request->value;
+        $data = DB::select("SELECT 
+                a.*,
+                a.article_code,
+                article_alternative_code,
+                article_desc,uom_group, 
+                (COALESCE(a.qty,0)-COALESCE(b.qty,0)) as qty_order
+                from purchase_order_det a
+                left join uom on uom.code=a.uom
+                left join article on article.article_code = a.article_code
+                left join 
+                    (select po, article_code,sum(qty) as qty,price from (
+                        select *,(select po_number from receiving_hdr 
+                                   where rec_number = a.rec_number) as po from receiving_det a where rec_number in (
+                                   select rec_number from receiving_hdr where status = '3' and po_number = '$po')
+                    ) z
+                group by po, article_code,price) b
+                on a.po_number = b.po and a.article_code = b.article_code
+                where po_number = '$po'
+                order by a.id");
+
+        return response()->json($data);
     }
 
     public function listUom(Request $request)
@@ -764,14 +752,13 @@ class ReceivingController extends Controller
         $data= DB::table("uom") 
         ->where("uom_group",$uomGroup)
         ->orderBy("code")
-        ->select("code","name")
+        ->select("code","name","uom_group")
         ->get();          
 
         $output .='<option value=""></option>';            
         foreach ($data as $row){
-            $output .='<option value="'.$row->code.'">'.$row->code.'</option>';            
-        }        
-        
+            $output .='<option value="'.$row->code.'" data-uom-group="'.$row->uom_group.'">'.$row->code.'</option>';            
+        }
         return $output;
     }
 }

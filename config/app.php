@@ -178,6 +178,7 @@ return [
         App\Providers\RouteServiceProvider::class,
         Spatie\Permission\PermissionServiceProvider::class,
         App\Providers\LogActivityServiceProvider::class,
+        App\Providers\ApprovalServiceProvider::class,
         Barryvdh\DomPDF\ServiceProvider::class,
         App\Providers\ComposerServiceProvider::class,
 
@@ -235,6 +236,7 @@ return [
         'LogActivity' => App\Helpers\LogActivity::class,
         'AppHelpers' => App\Helpers\AppHelpers::class,
         'PDF' => Barryvdh\DomPDF\Facade::class,
+        'Approval' => App\Helpers\Approval::class,
 
     ],
 

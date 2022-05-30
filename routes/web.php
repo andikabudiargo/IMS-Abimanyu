@@ -226,6 +226,7 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('purchaseOrders/update',['as'=>'purchaseOrder.update','uses'=>'PurchaseOrderController@update']);
 	Route::post('purchaseOrders/delete',['as'=>'purchaseOrder.destroy','uses'=>'PurchaseOrderController@destroy']);
 	Route::post('purchaseOrders/clear',['as'=>'purchaseOrder.clear','uses'=>'PurchaseOrderController@clear']);
+	Route::get('purchaseOrders/decline',['as'=>'purchaseOrder.decline','uses'=>'PurchaseOrderController@decline']);
 	Route::get('purchaseOrders/code/create',['as'=>'purchaseOrder.code.create','uses'=>'PurchaseOrderController@articleCodeCreate']);
 	Route::get('purchaseOrders/print',['as'=>'purchaseOrder.print','uses'=>'PurchaseOrderController@print']);
 	Route::get('purchaseOrders/price/list',['as'=>'purchaseOrder.price.list','uses'=>'PurchaseOrderController@priceList']);
@@ -383,6 +384,7 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('purchaseRequests/delete',['as'=>'purchaseRequest.destroy','uses'=>'PurchaseRequestController@destroy']);
 	Route::get('purchaseRequests/code/create',['as'=>'purchaseRequest.code.create','uses'=>'PurchaseRequestController@articleCodeCreate']);
 	Route::get('purchaseRequests/print',['as'=>'purchaseRequest.print','uses'=>'PurchaseRequestController@print']);
+	Route::post('purchaseRequests/approve',['as'=>'purchaseRequest.approve','uses'=>'PurchaseRequestController@approve']);
 
 	Route::get('boms',['as'=>'boms.index','uses'=>'BomController@index','middleware' => ['permission:bom-index']]);
 	Route::get('boms/create',['as'=>'bom.create','uses'=>'BomController@create','middleware' => ['permission:bom-create']]);

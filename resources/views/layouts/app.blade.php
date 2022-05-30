@@ -47,8 +47,8 @@
     <link rel="stylesheet" type="text/css" href="{{ asset('app-assets/css/bootstrap-extended.css') }}">
     <link rel="stylesheet" type="text/css" href="{{ asset('app-assets/css/colors.css') }}">
     <link rel="stylesheet" type="text/css" href="{{ asset('app-assets/css/components.css') }}">
-    <link rel="stylesheet" type="text/css" href="{{ asset('app-assets/css/themes/dark-layout.css') }}">
-    <link rel="stylesheet" type="text/css" href="{{ asset('app-assets/css/themes/bordered-layout.css') }}">
+    {{-- <link rel="stylesheet" type="text/css" href="{{ asset('app-assets/css/themes/dark-layout.css') }}"> --}}
+    {{-- <link rel="stylesheet" type="text/css" href="{{ asset('app-assets/css/themes/bordered-layout.css') }}"> --}}
     <link rel="stylesheet" type="text/css" href="{{ asset('app-assets/css/themes/semi-dark-layout.css') }}">
     <link rel="stylesheet" type="text/css" href="{{ asset('app-assets/css/plugins/forms/pickers/form-flat-pickr.css') }}">
     <link rel="stylesheet" type="text/css" href="{{ asset('app-assets/css/plugins/forms/pickers/form-pickadate.css') }}">
@@ -64,7 +64,6 @@
     <link rel="stylesheet" type="text/css" href="{{ asset('assets/css/app.css') }}">
     <style>    
     </style>
-
     @yield('styles')
 
 </head>
@@ -96,8 +95,7 @@
     <script src="{{ asset('app-assets/vendors/js/forms/wizard/bs-stepper.min.js') }}"></script>
     <script src="{{ asset('app-assets/vendors/js/forms/validation/jquery.validate.min.js') }}"></script>
     <script src="{{ asset('app-assets/vendors/js/pickers/flatpickr/flatpickr.min.js') }}"></script>
-    <script src="{{ asset('app-assets/vendors/js/forms/cleave/cleave.min.js') }}"></script>
-
+    
     <script src="{{ asset('assets/js/draggable-modal.js') }}"></script>
 
     <script src="{{ asset('app-assets/vendors/js/tables/datatable/jquery.dataTables.min.js') }}"></script>
@@ -154,7 +152,8 @@
             }
         };
 
-        let numberOfDecimalDigit = {{ env('APP_NUMBER_OFF_DECIMAL_DIGIT',2) }}
+        // let numberOfDecimalDigit = {{ env('APP_NUMBER_OFF_DECIMAL_DIGIT',2) }}
+        let numberOfDecimalDigit = {{ $decimalPlaces }};
 
         $("input[type='text']").click(function () {
             $(this).select();

@@ -1,4 +1,9 @@
 <style>
+
+    .mb-03{
+        margin-bottom: 0.3rem;
+    }
+
     .jarak-antar-attr{
         padding-left: 0.3rem;
         margin-bottom: 0.3rem;
@@ -28,6 +33,28 @@
         background-color:#f8f8f8;
         color:black;
     }
+
+    label.tanpa-padding{
+        padding-top: 5px;
+        padding-bottom: 0px;
+    }
+
+    .totalLine{
+        display: block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    label.titik-dua::after{
+        content : ":"; 
+        position : absolute;
+        right : 1px;
+    }
+
+    .margin-nol{
+        margin-bottom:0.5rem;
+    }
     
 </style>
 {{-- table row untuk di clone--}}  
@@ -43,25 +70,137 @@
                         <input type="text" class="form-control-plaintext text-hitam numeral-mask-digit text-right" id = "qty_po" name="qty_po[]" disabled>
                     </td>
                     <td class="isian" style="width: 5%">
-                        <input type="text" class="form-control-plaintext text-hitam numeral-mask-digit text-right" id = "qty_rec" name="qty_rec[]" maxlength="9">
+                        <input type="text" class="form-control-plaintext text-hitam numeral-mask-digit text-right" id = "qty_rec" name="qty_rec[]" maxlength="11">
                     </td>
-                    <td class="isian" style="width: 5%">
+                    <td class="isian" style="width: 8%">
                         <select class="form-control text-hitam" id="uom" name="uom[]">
                         </select>
                     </td>
                     <td class="isian" style="width: 5%">
-                        <input type="text" class="form-control-plaintext text-hitam numeral-mask-digit text-right" id = "qty_free" name="qty_free[]" maxlength="9" />
+                        <input type="text" class="form-control-plaintext text-hitam numeral-mask-digit text-right" id = "qty_free" name="qty_free[]" maxlength="11" />
                     </td>
-                    <td class="isian" style="width: 5%">
+                    <td class="isian" style="width: 8%">
                         <select class="form-control text-hitam" id="uomFree" name="uomFree[]">
                         </select>
                     </td>
                     <td class="isian disabled text-right" style="width: 5%">
-                        <span class="text-hitam text-hitam" id="totalQty" name="totalQty[]"></span>
+                        <span class="text-hitam numeral-mask-digit text-hitam" id="totalQty" name="totalQty[]"></span>
                     </td>
                 </tr>
             </tbody>
         </table>
     </div>
 </div>
-{{-- \.table row --}} 
+{{-- \.table row --}}
+<script type="text/javascript">
+    let currentDate = "{{ $currentDateValue }}";
+
+    function searchPo(obj,value) {
+      $.ajax({
+        url:"{{ route('receiving.list.po') }}",
+        method:"GET",
+        data:{
+            value:value,
+        },
+        success:function(result){
+            $('#'+obj).html(result);
+            $('#'+obj).val('').trigger('change');
+        },
+        error: function (response) {
+            //Error here
+            Swal.fire("Warning","Get list PO failed","warning");
+        }
+      })
+    }
+
+    function searchPoDet(value) {
+        $.ajax({
+            url:"{{ route('receiving.po.det') }}",
+            method:"GET",
+            data:{
+                value:value,
+            },
+            success:function(result){
+                if (cloneCount > 1){
+                    $("#article_row").empty();
+                    cloneCount=1;
+                }
+                
+                if(result.length > 0 ){
+                    for (let i = 0; i < result.length; i++) {
+                        article=result[i].article_code;
+                        articleCode=result[i].article_alternative_code;
+                        articleDesc=result[i].article_desc;
+                        qtyPo=result[i].qty_order;
+                        qty=qtyPo <= 0 ? 0 :'';
+                        uomGroup=result[i].uom_group;
+                        uom=result[i].uom;
+                        price=result[i].price;
+                        add_new_row(article,articleCode,articleDesc,qtyPo,uomGroup,uom,price,qty);
+                    }
+                }
+                
+            },
+            error: function (response) {
+                Swal.fire("Warning","Get detail PO failed","warning");
+            }
+        })
+    }
+
+    function listUom(obj,value,uom) {
+      $.ajax({
+        url:"{{ route('receiving.list.uom') }}",
+        method:"GET",
+        data:{
+            value:value,
+        },
+        success:function(result){
+            $('#'+obj).html(result);
+            $('#'+obj).select2();
+            $('#'+obj).val(uom).trigger('change');            
+        },
+        error: function (response) {
+            Swal.fire("Warning","Get list UOM failed","warning");
+        }
+      })
+    }
+
+    function uomChange(){
+        // split article with delimiter
+        let objUom= $('#article_row select[name="uom[]"]');
+        let objUomFree= $('#article_row select[name="uomFree[]"]');
+        let objQty= $('#article_row input[name="qty_rec[]"]');
+        let objQtyFree= $('#article_row input[name="qty_free[]"]');
+
+        objUom.change(function(e){   
+            let objIndex = objUom.index(this);
+            let uomGroup = objUom.eq(objIndex).find(":selected").data("uom-group");
+
+            if ( uomGroup === 'PIECE' ){
+                objQty.eq(objIndex).removeClass("numeral-mask-digit");
+                objQty.eq(objIndex).addClass("numeral-mask-satuan");
+                mask_thousand_satuan();
+            }else{
+                objQty.eq(objIndex).removeClass("numeral-mask-satuan");
+                objQty.eq(objIndex).addClass("numeral-mask-digit");
+                mask_thousand_digit(numberOfDecimalDigit);
+            }
+		});
+
+        objUomFree.change(function(e){   
+            let objIndex = objUomFree.index(this);
+            let uomGroup = objUomFree.eq(objIndex).find(":selected").data("uom-group");
+
+            if ( uomGroup === 'PIECE' ){
+                objQtyFree.eq(objIndex).removeClass("numeral-mask-digit");
+                objQtyFree.eq(objIndex).addClass("numeral-mask-satuan");
+                mask_thousand_satuan();
+            }else{
+                objQtyFree.eq(objIndex).removeClass("numeral-mask-satuan");
+                objQtyFree.eq(objIndex).addClass("numeral-mask-digit");
+                mask_thousand_digit(numberOfDecimalDigit);
+            }
+		});
+    }
+
+</script>

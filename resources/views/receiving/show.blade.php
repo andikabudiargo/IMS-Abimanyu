@@ -21,7 +21,7 @@
                             @csrf
                             {{-- <input type="text" id="article" name="article" hidden> --}}
                             <div class="form-row">
-                                <div class="form-group col-md-3">
+                                <div class="form-group col-md-4">
                                     <label for="recNumber">Receiving Number</label> <small class="text-muted"> automatic</small>
                                     <input type="text" id="recNumber" name="recNumber" class="form-control text-hitam disabled-el" value="{{ $header->rec_number }}"  disabled />
                                 </div>
@@ -31,7 +31,7 @@
                                 </div>                               
                             </div>
                             <div class="form-row">
-                                <div class="form-group col-md-5">
+                                <div class="form-group col-md-6">
                                     <label class="form-label" for="supplier">Supplier*</label>
                                     <select class="select2 form-control text-hitam" id="supplier" name="supplier" disabled>
                                         <option value="">All</option>
@@ -40,11 +40,21 @@
                                         @endforeach
                                     </select>
                                 </div>
-                                <div class="form-group col-md-4">
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group col-md-3">
                                     <label class="form-label" for="poNumber">PO Number*</label>
                                     <input type="text" id="poNumber" name="poNumber" class="form-control text-hitam disabled-el" value="{{ $header->po_number }}"  disabled />
                                 </div>
+                                <div class="form-group col-md-2">
+                                    <label for="doDate">DO Date*</label>
+                                    <input type="text" id="doDate" name="doDate" class="form-control" value="{{ $header->do_date }}" placeholder="DD-MM-YYYY" required />
+                                </div>                               
                                 <div class="form-group col-md-3">
+                                    <label for="doNumber">DO Number*</label>
+                                    <input type="text" id="doNumber" name="doNumber" class="form-control disabled-el" value="{{ $header->do_number }}" required/>
+                                </div>
+                                <div class="form-group col-md-3 d-none">
                                     <label for="invNumber">Invoice Number</label>
                                     <input type="text" id="invNumber" name="invNumber" class="form-control text-hitam disabled-el" value="{{ $header->inv_number }}" disabled />
                                 </div>
@@ -53,16 +63,6 @@
                                 <div class="form-group col-md-12">
                                     <label class="form-label" for="note">Notes</label>
                                     <textarea type="text" id="note" name="note" class="form-control text-hitam" rows="1" disabled>{{ $header->note }} </textarea>
-                                </div>
-                            </div>
-                            <div class="form-row">
-                                <div class="col-12">
-                                    <div class="form-row">
-                                        <div class="col-12">
-                                            <a href="{{ route('receivings.index') }}" class="btn btn-warning">Back</a>
-                                            <a href="{{ route('receiving.create') }}" class="btn btn-success">New</a>
-                                        </div>
-                                    </div>
                                 </div>
                             </div>
                         </form>
@@ -76,35 +76,7 @@
                     <h4 class="card-title">Article</h4>
                 </div>
                 <div class="card-body">
-                    <div>
-                        <table class="" style="width:98%;table-layout: fixed;">
-                            <tbody>
-                                <tr>
-                                    <td class="" style="width: 25%">
-                                        <label>Article Code</label>
-                                    </td>
-                                    <td class="isian" style="width: 5%">
-                                        <label>Qty PO</label>   
-                                    </td>
-                                    <td class="isian" style="width: 5%">
-                                        <label>Qty</label>
-                                    </td>
-                                    <td class="isian" style="width: 5%">
-                                        <label>UOM</label>
-                                    </td>
-                                    <td class="isian" style="width: 5%">
-                                        <label>Free Goods</label>
-                                    </td>
-                                    <td class="isian" style="width: 5%">
-                                        <label>UOM</label>
-                                    </td>
-                                    <td class="isian" style="width: 5%">
-                                        <label>Total Qty</label>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
+                    @include('receiving.headerColumn')
                     <div class="" id="article_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px">
                         <input type="text" id ="last_row_number" class="d-none" value="">
                     </div>
@@ -136,6 +108,17 @@
                                 <label for="grandTotalQty" class="col-sm-4 col-form-label titik-dua">Grand Total Qty</label>
                                 <div class="col-sm-4">
                                     <input type="text" class="form-control text-right font-weight-bold" id="grandTotalQty" disabled />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="form-row">
+                        <div class="col-12">
+                            <div class="form-row">
+                                <div class="col-12">
+                                    <a href="{{ route('receivings.index') }}" class="btn btn-warning">Back</a>
+                                    {{-- <a href="{{ route('receiving.create') }}" class="btn btn-success">New</a> --}}
                                 </div>
                             </div>
                         </div>
@@ -175,61 +158,12 @@
 @include('receiving.addArticle')
 @endsection
 @section('styles')
-<style>
-
-    textarea {
-        resize: none;
-    }
-
-    .mb-03{
-        margin-bottom: 0.3rem;
-    }
-    
-    label.titik-dua::after{
-        content : ":"; 
-        position : absolute;
-        right : 1px;
-    }
-    td.isian{
-        padding-right:10px;
-        padding-left:10px;
-    }
-
-    td.isian-satu{
-        padding-right:5px;
-        padding-left:15px;
-        width: 25%;border-top: 1px solid #ffffff !important;
-        border-bottom: 1px solid #ffffff !important;
-        border-left: 1px solid #ffffff !important;
-    }
-
-    td.disabled{
-        background-color:#f8f8f8;
-        color:black;
-    }
-
-    label.tanpa-padding{
-        padding-top: 5px;
-        padding-bottom: 0px;
-    }
-
-    .totalLine{
-        display: block;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-
-</style>
 @endsection
 @section('scripts')
 <script type="text/javascript">
-    let currentDate = todayDate('dd-mm-yyyy');  
-    
     $(document).ready(function(){           
         let detail = {!!  $detail !!};
         for(let i=0;i<detail.length;i++){
-            console.log(detail[i].article_code);
             article = detail[i].article_code;
             articleCode = detail[i].article_alternative_code;
             articleDesc = detail[i].article_desc;
@@ -275,9 +209,25 @@
         $("#new_row"+ cloneCount).find('#uomFree').attr('id', 'uomFree'+ cloneCount);
         listUom('uomFree'+ cloneCount,uomGroup,uom,uomFree);
         $('#uomFree'+ cloneCount).attr('disabled','disabled');
-        mask_thousand_digit(3);
-        hitungTotal();
-        hitungGrandTotalLoad();
+        $("#new_row"+ cloneCount).find('#totalQty').attr('id', 'totalQty'+ cloneCount);
+        $('#totalQty'+ cloneCount).text(parseFloat(qty)+parseFloat(qtyFree));
+        mask_thousand_digit(numberOfDecimalDigit);
+        // hitungTotal();
+        // hitungGrandTotalLoad();
+
+        if ( uomGroup === 'PIECE' ){
+            $('#qty_rec'+ cloneCount).removeClass("numeral-mask-digit");
+            $('#qty_rec'+ cloneCount).addClass("numeral-mask-satuan");
+            $('#qty_free'+ cloneCount).removeClass("numeral-mask-digit");
+            $('#qty_free'+ cloneCount).addClass("numeral-mask-satuan");
+            mask_thousand_satuan();
+        }else{
+            $('#qty_rec'+ cloneCount).removeClass("numeral-mask-satuan");
+            $('#qty_rec'+ cloneCount).addClass("numeral-mask-digit");
+            $('#qty_free'+ cloneCount).removeClass("numeral-mask-satuan");
+            $('#qty_free'+ cloneCount).addClass("numeral-mask-digit");
+            mask_thousand_digit(numberOfDecimalDigit);
+        }
     }
 
     function listUom(obj,value,uom,uomSelect) {
@@ -319,7 +269,6 @@
             objTotalQty.eq(indexnya).text(humanizeNumber(totalQty));
             hitungGrandTotal();
         });
-            
     }
 
     function hitungGrandTotal(){
@@ -360,7 +309,6 @@
             objTotalQty.eq(i).text(humanizeNumber(qty+qtyFree));
         }).get();
         grandTotalQty=totalQty+totalQtyFree;
-        
         $("#totalRow").val(objArticle.length);
         $("#totalQTY").val(humanizeNumber(totalQty));
         $("#totalQtyFree").val(humanizeNumber(totalQtyFree));

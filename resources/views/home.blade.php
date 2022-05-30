@@ -42,7 +42,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach($listPo as $val)
+                                @foreach($listPo as $key=>$val)
                                 <tr>
                                     <td>
                                         <div class="d-flex align-items-center">
@@ -81,8 +81,37 @@
                                         </div>
                                     </td> --}}
                                     <td>
+                                        <a class="btn btn-outline-info btn-sm" 
+                                            id="cmdDetail{{ $key }}" 
+                                            name="cmdDetail{{ $key }}" 
+                                            href="{{ route('purchaseOrder.edit', ['id'=>Crypt::encryptString($val->id)]) }}"> 
+                                            <i data-feather='list'></i>
+                                            Detail
+                                        </a>
+                                        <a href='javascript:;'
+                                            onclick="action(this)"
+                                            id = 'btnDecline{{ $key }}'
+                                            class="btn btn-outline-danger btn-sm"
+                                            data-key = '{{ $key }}'
+                                            data-doc-number='{{ $val->po_number }}'
+                                            data-url='{{ route("purchaseOrder.approve", ["poNumber"=>$val->po_number]) }}'>
+                                            <i data-feather='x-circle'></i>
+                                            Decline
+                                        </a>
+                                        <a href='javascript:;'
+                                            onclick="action(this)"
+                                            id = 'button{{ $key }}'
+                                            class="btn btn-outline-success btn-sm"
+                                            data-key = '{{ $key }}'
+                                            data-doc-number='{{ $val->po_number }}'
+                                            data-url='{{ route("purchaseOrder.approve", ["poNumber"=>$val->po_number]) }}'>
+                                            <i data-feather='check-circle'></i>
+                                            Approve
+                                        </a>
                                         {{-- @can('purchaseOrder-authorize') --}}
-                                            <a href="{{ route('purchaseOrder.show', ['id'=>$val->id]) }}" class="btn btn-primary">Approve</a>
+                                            {{-- <a href="{{ route('purchaseOrder.show', ['id'=>$val->id]) }}" class="btn btn-primary">Approve</a>
+                                            <a href="{{ route('purchaseOrder.show', ['id'=>$val->id]) }}" class="btn btn-primary">Detail</a>
+                                            <a href="{{ route('purchaseOrder.show', ['id'=>$val->id]) }}" class="btn btn-primary">Decline</a> --}}
                                         {{-- @endcan --}}
                                     </td>
                                 </tr>

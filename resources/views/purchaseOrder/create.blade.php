@@ -44,7 +44,7 @@
                                 <div class="form-group col-md-5">
                                     <label class="form-label" for="supplier">Supplier*</label>
                                     <select class="select2 form-control" id="supplier" name="supplier" required>
-                                        <option value="">All</option>
+                                        <option value=""></option>
                                         @foreach($supps as $val)
                                             <option value="{{$val->kode}}" >{{$val->kode}} - {{$val->nama}}</option>
                                         @endforeach
@@ -52,7 +52,7 @@
                                 </div>
                                 <div class="form-group col-md-1">
                                     <label class="form-label" for="term">Term</label>
-                                    <input type="text" class="form-control angka text-right" id = "term" name="term" value="{{ $term }}" maxlength="4" />
+                                    <input type="text" class="form-control angka text-right" id = "term" name="term" value="{{ $termValue }}" maxlength="4" />
                                 </div>
                                 <div class="form-group col-md-1 d-flex align-items-end" >
                                     <div class="custom-control custom-checkbox">

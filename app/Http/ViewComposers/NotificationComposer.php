@@ -29,6 +29,23 @@ class NotificationComposer
         ) as Oki
         where berhak_approve-1 = sudah_approve");
 
+        // $lists['listSo2'] = DB::select("SELECT * from (
+        // select 
+        // id
+        // ,so_code
+        // ,so_date
+        // ,status
+        // ,'$username' as username
+        // ,coalesce((select max(approval_order) from approval_history where module_code ='SO' and module_number =a.po_number),0) as current_level
+        // ,(select approval_number from approval_master where module_code = 'SO') as max_level
+        // ,coalesce((select min(approval_order) from approval_level where username = '$username' and module_code = 'PO'),0) as berhak_approve
+        // ,(SELECT sum(qty*price) from purchase_order_det where po_number = a.po_number) as po_amount
+        // ,(select nama from third_party where kode = supplier_id) as supplier_name
+        // from sales_order_hdr a
+        // where status not in ('3','4','5','6','7','8')
+        // ) as Oki
+        // where current_level+1 = berhak_approve");
+
         $lists['listPo2'] = DB::select("SELECT * from (
         select 
             id

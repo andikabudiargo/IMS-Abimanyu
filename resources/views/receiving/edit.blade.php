@@ -19,40 +19,39 @@
                     <div class="card-body">
                         <form id="frmAdd" name="frmAdd" autocomplete="off">
                             @csrf
-                            {{-- <input type="text" id="article" name="article" hidden> --}}
                             <div class="form-row">
-                                <div class="form-group col-md-3">
+                                <div class="form-group col-md-4">
                                     <label for="recNumber">Receiving Number</label> <small class="text-muted"> automatic</small>
                                     <input type="text" id="recNumber" name="recNumber" class="form-control text-hitam disabled-el" value="{{ $header->rec_number }}"  disabled />
                                 </div>
                                 <div class="form-group col-md-2">
                                     <label for="recDate">Receiving Date*</label>
-                                    <input type="text" id="recDate" name="recDate" class="form-control" placeholder="DD-MM-YYYY" value="{{ $header->rec_date }}" required />
+                                    <input type="text" id="recDate" name="recDate" class="form-control" placeholder="DD-MM-YYYY" value="{{ $header->rec_date }}" required disabled/>
                                 </div>                               
                             </div>
                             <div class="form-row">
-                                <div class="form-group col-md-4">
+                                <div class="form-group col-md-6">
                                     <label class="form-label" for="supplier">Supplier*</label>
                                     <select class="select2 form-control" id="supplier" name="supplier" required disabled>
-                                        <option value="">All</option>
+                                        <option value=""></option>
                                         @foreach($supps as $val)
                                             <option value="{{$val->kode}}" {{$val->kode == $header->supplier_id ? "selected" : ""}} >{{$val->kode}} - {{$val->nama}}</option>
                                         @endforeach
                                     </select>
                                 </div>
+                            </div>
+                            <div class="form-row">
                                 <div class="form-group col-md-3">
                                     <label class="form-label" for="poNumber">PO Number*</label>
                                     <input type="text" id="poNumber" name="poNumber" class="form-control text-hitam disabled-el" value="{{ $header->po_number }}"  disabled />
                                 </div>
-                            </div>
-                            <div class="form-row">
                                 <div class="form-group col-md-2">
                                     <label for="doDate">DO Date*</label>
-                                    <input type="text" id="doDate" name="doDate" class="form-control" placeholder="DD-MM-YYYY" required />
+                                    <input type="text" id="doDate" name="doDate" class="form-control" value="{{ $header->do_date }}" placeholder="DD-MM-YYYY" required />
                                 </div>                               
                                 <div class="form-group col-md-3">
                                     <label for="doNumber">DO Number*</label>
-                                    <input type="text" id="doNumber" name="doNumber" class="form-control disabled-el" required/>
+                                    <input type="text" id="doNumber" name="doNumber" class="form-control disabled-el" value="{{ $header->do_number }}" required/>
                                 </div>
                                 <div class="form-group col-md-2 d-none">
                                     <label for="invDate">Invoice Date*</label>
@@ -69,35 +68,6 @@
                                     <textarea type="text" id="note" name="note" class="form-control" rows="1" >{{ $header->note }} </textarea>
                                 </div>
                             </div>
-                            <div class="form-row">
-                                <div class="col-12">
-                                    <div class="form-row">
-                                        <div class="col-12">
-                                            <a href="{{ route('receivings.index') }}" class="btn btn-success">Back</a>
-                                            <a href="{{ route('receiving.create') }}" class="btn btn-success">New</a>
-                                            @if( $header->status != '3' && $header->status != '4')
-                                                @can('receiving-delete')
-                                                    <a href='javascript:;'
-                                                        id='deleteButton'
-                                                        class='btn btn-warning'
-                                                        data-toggle='modal'
-                                                        data-target='#smallModalCancel'
-                                                        data-href='{{ route("receiving.destroy", ["id"=>$header->id]) }}'>
-                                                        Cancel
-                                                    </a>
-                                                @endcan
-
-                                                <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Update</button>
-                                                @can('receiving-posting')
-                                                    <button class="btn btn-primary" type="button" id="cmdPosting" name="cmdPosting">Posting</button>
-                                                @endcan
-
-                                            @endif
-                                            
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
                         </form>
                     </div>
                 </div>
@@ -109,67 +79,9 @@
                     <h4 class="card-title">Article</h4>
                 </div>
                 <div class="card-body">
-                    <div>
-                        <table class="" style="width:98%;table-layout: fixed;">
-                            <tbody>
-                                <tr>
-                                    <td class="" style="width: 25%">
-                                        <label>Article Code</label>
-                                    </td>
-                                    <td class="isian" style="width: 5%">
-                                        <label>Qty PO</label>   
-                                    </td>
-                                    <td class="isian" style="width: 5%">
-                                        <label>Qty</label>
-                                    </td>
-                                    <td class="isian" style="width: 5%">
-                                        <label>UOM</label>
-                                    </td>
-                                    <td class="isian" style="width: 5%">
-                                        <label>Free Goods</label>
-                                    </td>
-                                    <td class="isian" style="width: 5%">
-                                        <label>UOM</label>
-                                    </td>
-                                    <td class="isian" style="width: 5%">
-                                        <label>Total Qty</label>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
+                    @include('receiving.headerColumn')
                     <div class="" id="article_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px">
                         <input type="text" id ="last_row_number" class="d-none" value="{{ count($detail) }}">
-                        {{-- @foreach ($detail as $key =>$item)
-                            <div id="new_row{{ $key }}" class="tanda-baris" >
-                                <table class="table-bordered" style="width: 98%;table-layout: fixed;">
-                                    <tbody>
-                                        <tr>
-                                            <td class="isian disabled" style="width: 25%">
-                                                <input type="text" class="form-control-plaintext text-hitam" id="article_id{{ $key }}" name="article_id[]" data-code="{{ $item->article_code }}" data-uom="{{ $item->uom_rec }}" value= "{{ $item->article_alternative_code  }} - {{ $item->article_desc }}" disabled>
-                                            </td>
-                                            <td class="isian" style="width: 5%">
-                                                <input type="text" class="form-control-plaintext numeral-mask-digit text-right" id = "qty_rec" name="qty_rec[]" value= "{{ $item->qty_rec  }}" maxlength="9">
-                                            </td>
-                                            <td class="isian" style="width: 5%">
-                                                <select class="form-control" id="uom" name="uom[]">
-                                                </select>
-                                            </td>
-                                            <td class="isian" style="width: 5%">
-                                                <input type="text" class="form-control-plaintext numeral-mask-digit text-right" id = "qty_free" name="qty_free[]" maxlength="9" />
-                                            </td>
-                                            <td class="isian" style="width: 5%">
-                                                <select class="form-control" id="uomFree" name="uomFree[]">
-                                                </select>
-                                            </td>
-                                            <td class="isian disabled text-right" style="width: 5%">
-                                                <span class="text-hitam" id="totalQty" name="totalQty[]"></span>
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        @endforeach --}}
                     </div>
                     <div class="d-flex justify-content-between align-items-end mt-75 ml-75">
                     </div>
@@ -203,95 +115,47 @@
                             </div>
                         </div>
                     </div>
+                    <hr>
+                    <div class="form-row">
+                        <div class="col-12">
+                            <div class="form-row">
+                                <div class="col-12">
+                                    <a href="{{ route('receivings.index') }}" class="btn btn-success">Back</a>
+                                    <a href="{{ route('receiving.create') }}" class="btn btn-success">New</a>
+                                    @if( $header->status != '3' && $header->status != '4')
+                                        @can('receiving-delete')
+                                            <a href='javascript:;'
+                                                id='deleteButton'
+                                                class='btn btn-warning'
+                                                data-toggle='modal'
+                                                data-target='#smallModalCancel'
+                                                data-href='{{ route("receiving.destroy", ["id"=>Crypt::encryptString($header->id)]) }}'>
+                                                Cancel
+                                            </a>
+                                        @endcan
+                                        <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Update</button>
+                                        @can('receiving-posting')
+                                            <button class="btn btn-primary" type="button" id="cmdPosting" name="cmdPosting">Posting</button>
+                                        @endcan
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </section>
-<div class="modal fade text-left bisa-geser" id="modalListPrice" tabindex="-1" role="dialog" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h4>List price</h4>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body">
-                <h5><span class="semi-bold" id='modalArticle'></span></h5>
-                <div class="table-responsive">
-                    <table class="table" id='modalTableData'>
-                        <thead>
-                            <tr>
-                                <td>PO Number</td>
-                                <td>Date</td>
-                                <td>Price</td>
-                            </tr>
-                        </thead>
-                        <tbody></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
 @include('receiving.addArticle')
 @include('partials.delete-modal')
 @endsection
 @section('styles')
-<style>
-
-    textarea {
-        resize: none;
-    }
-
-    .mb-03{
-        margin-bottom: 0.3rem;
-    }
-    
-    label.titik-dua::after{
-        content : ":"; 
-        position : absolute;
-        right : 1px;
-    }
-    td.isian{
-        padding-right:10px;
-        padding-left:10px;
-    }
-
-    td.isian-satu{
-        padding-right:5px;
-        padding-left:15px;
-        width: 25%;border-top: 1px solid #ffffff !important;
-        border-bottom: 1px solid #ffffff !important;
-        border-left: 1px solid #ffffff !important;
-    }
-
-    td.disabled{
-        background-color:#f8f8f8;
-        color:black;
-    }
-
-    label.tanpa-padding{
-        padding-top: 5px;
-        padding-bottom: 0px;
-    }
-
-    .totalLine{
-        display: block;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-
-</style>
 @endsection
 @section('scripts')
 <script type="text/javascript">
-    let currentDate = todayDate('dd-mm-yyyy');  
-    
     $(document).ready(function(){          
-
+        validateFormToast("frmAdd");
         let href;
         $(document).on('click', '#deleteButton', function(event) {
             event.preventDefault();
@@ -312,9 +176,9 @@
             qtyFree =  detail[i].qty_free;
             uomFree =  detail[i].uom_free;
             price =  detail[i].price;
+            uom_group = detail[i].uom_group;
             add_new_row(article,articleCode,articleDesc,qtyPo,uomGroup,uom,qty,uomQty,qtyFree,uomFree,price);
         }
-            
     });
 
     invDate = $('#invDate');
@@ -371,6 +235,11 @@
                     let qtyFree=objQtyFree.eq(i).val().replace(/,/gi, '') || 0;
                     let qtyFreeUom=objUom.eq(i).val() || articleUom;
                     
+                    if ( (qty > qtyPo) && (qty != 0)  ){
+                        pesan +=`Articles : ${article} QTY Rec > QTY PO <br>`; 
+                        flag=1;
+                    }
+
                     articles.push({
                         "article_code":articleCode,
                         "qty":qty,
@@ -384,6 +253,11 @@
 
             if (articles.length == 0){
                 pesan +="Articles must be filled in completely <br>"; 
+                flag=1;
+            }
+
+            if ( $("#grandTotalQty").val() == 0 ){
+                pesan +="Total Qty cannot be 0 <br>"; 
                 flag=1;
             }
 
@@ -446,6 +320,10 @@
     });
 
     $("#cmdPosting").click(function(){
+        let objQty= $('input[name="qty_rec[]"]');
+        let objUom= $('select[name="uom[]"]');
+        let objQtyFree= $('input[name="qty_free[]"]');
+        let objUomFree= $('select[name="uomFree[]"]');
         
         let recNumber = $('#recNumber').val();            
         $.ajax({
@@ -457,35 +335,29 @@
             dataType: "json",
             success: function(data) {
                 if (data.status == 0 ){
-                    let message="";
                     for(let i = 0; i < data.message.length; i++) {
-                        message += "-"+data.message[i]+"<br>";                           
+                        show_msg(data.title, data.message[i], data.alert);
                     }
-                    $("#alert-message-success").addClass(data.alert);
-                    $("#alert-message-success .alert-body").html(message);
-                    $("#alert-message-success").show();
-                    $("#alert-message-success").fadeTo(5000, 500).slideUp(500, function(){
-                        $("#alert-message-success").slideUp(500);
-                    });
                     $('#recNumber').attr('disabled','disabled');
                     $('#cmdSave').show();
                     $('#cmdPosting').hide();
 
                 }else{
-                    $("#alert-message-success").addClass(data.alert);
-                    $("#alert-message-success .alert-body").html(data.message);
-                    $("#alert-message-success").show();
-                    $("#alert-message-success").fadeTo(5000, 500).slideUp(500, function(){
-                        $("#alert-message-success").slideUp(500);
-                    });
+                    show_msg(data.title, data.message, data.alert);
                     $('#statusText').text(data.statusRec);
                     $('#cmdSave').hide();
                     $('#deleteButton').hide();
                     $('#cmdPosting').hide();
                     $('#recNumber').attr('disabled','disabled');
                     $('#poNumber').attr('disabled','disabled');
-                    $('#addNewRow').attr('disabled','disabled');
-                    
+                    $('#supplier').attr('disabled','disabled');
+                    $('#invDate').attr('disabled','disabled');
+                    $('#recDate').attr('disabled','disabled');
+                    $('#invNumber').attr('disabled','disabled');
+                    objQty.attr('disabled','disabled');
+                    objUom.attr('disabled','disabled');
+                    objQtyFree.attr('disabled','disabled');
+                    objUomFree.attr('disabled','disabled');                    
                 }
             },
             error: function(error) {
@@ -496,7 +368,7 @@
         
     });
     
-    let cloneCount=1;
+    let cloneCount=0;
     function add_new_row(article,articleCode,articleDesc,qtyPo,uomGroup,uom,qty,uomQty,qtyFree,uomFree,price) {
         $("#article_row").append($("#new_row").clone().html());
         cloneCount++;
@@ -518,9 +390,24 @@
         listUom('uomFree'+ cloneCount,uomGroup,uom,uomFree);
         tombolPanah('qty_rec');
         tombolPanah('qty_free');
-        mask_thousand_digit(3);
+        mask_thousand_digit(numberOfDecimalDigit);
         hitungTotal();
         hitungGrandTotalLoad();
+
+        if ( uomGroup === 'PIECE' ){
+            $('#qty_rec'+ cloneCount).removeClass("numeral-mask-digit");
+            $('#qty_rec'+ cloneCount).addClass("numeral-mask-satuan");
+            $('#qty_free'+ cloneCount).removeClass("numeral-mask-digit");
+            $('#qty_free'+ cloneCount).addClass("numeral-mask-satuan");
+            mask_thousand_satuan();
+        }else{
+            $('#qty_rec'+ cloneCount).removeClass("numeral-mask-satuan");
+            $('#qty_rec'+ cloneCount).addClass("numeral-mask-digit");
+            $('#qty_free'+ cloneCount).removeClass("numeral-mask-satuan");
+            $('#qty_free'+ cloneCount).addClass("numeral-mask-digit");
+            mask_thousand_digit(numberOfDecimalDigit);
+        }
+
     }
 
     function listUom(obj,value,uom,uomSelect) {

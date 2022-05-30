@@ -106,7 +106,7 @@
                                         class="btn btn-outline-danger btn-sm"
                                         data-key = '{{ $key }}'
                                         data-doc-number='{{ $val->po_number }}'
-                                        data-url='{{ route("purchaseOrder.approve", ["poNumber"=>$val->po_number]) }}'>
+                                        data-url='{{ route("purchaseOrder.decline", ["poNumber"=>$val->po_number]) }}'>
                                         <i data-feather='x-circle'></i>
                                         Decline
                                     </a>

@@ -279,12 +279,14 @@ class DependentController extends Controller
             ->get();          
 
         }elseif($dependent =='article_pr'){
-            $data= DB::table($table) 
+            $data= DB::table($table)
+            ->leftJoin('uom','uom.code','=',$table.'.uom')
             ->whereNotIn('article_type',['FG'])
             ->orderBy($order)
             ->get();
         }elseif($dependent =='article_pr_sub'){
-            $data= DB::table($table) 
+            $data= DB::table($table)
+            ->leftJoin('uom','uom.code','=',$table.'.uom')
             ->whereIn('article_type',['FG'])
             ->orderBy($order)
             ->get();
@@ -353,9 +355,9 @@ class DependentController extends Controller
             if($dependent =='article_id'){
                 $output .='<option value="'.$row->$value.'|'.$row->group.'|'.$row->qty.'|'.$row->uom1.'|'.$row->costprice.'" data-uom-group="'.$row->uom_group.'">'.$row->$value2.'-'. $row->$name.'</option>';
             }elseif($dependent =='article_pr'){
-                $output .='<option value="'.$row->article_code.'|'.$row->uom.'|'.$row->third_party.'|'.$row->dept.'">'.$row->article_alternative_code.' - '. $row->article_desc.'</option>';
+                $output .='<option value="'.$row->article_code.'|'.$row->uom.'|'.$row->third_party.'|'.$row->dept.'" data-uom-group="'.$row->uom_group.'">'.$row->article_alternative_code.' - '. $row->article_desc.'</option>';
             }elseif($dependent =='article_pr_sub'){
-                $output .='<option value="'.$row->article_code.'|'.$row->uom.'|'.$row->third_party.'|'.$row->dept.'">'.$row->article_alternative_code.' - '. $row->article_desc.'</option>';
+                $output .='<option value="'.$row->article_code.'|'.$row->uom.'|'.$row->third_party.'|'.$row->dept.'" data-uom-group="'.$row->uom_group.'">'.$row->article_alternative_code.' - '. $row->article_desc.'</option>';
             }elseif($dependent =='article_wos'){
                 $output .='<option value="'.$row->article_code.'|'.$row->uom.'|'.$row->third_party.'|'.$row->dept.'|'.$row->article_rm.'|'.$row->qty_rm.'">'.$row->article_alternative_code.' - '. $row->article_desc.'</option>';
             }elseif($dependent =='article_sub_rm'){

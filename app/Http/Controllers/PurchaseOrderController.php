@@ -13,6 +13,7 @@ use DataTables;
 use DB;
 use PDF;
 use AppHelpers;
+use Approval;
 
 class PurchaseOrderController extends Controller
 {
@@ -135,14 +136,6 @@ class PurchaseOrderController extends Controller
         ->orderBy('name')
         ->get();
 
-        $data['term'] = '30';
-
-        $data['attribute'] = DB::table('attributes')
-        ->where('attr_name','main')
-        ->pluck('attr_value','attr_code');
-
-        $data['currentDate'] = date('d-m-Y');
-
         return view("purchaseOrder.create",$data);
     }
 
@@ -167,7 +160,7 @@ class PurchaseOrderController extends Controller
         $status = '1';
         $poLeadCode = $poType=='std' ? 'PO' : 'POSUB'; 
 
-        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'RECEIVED','5'=>'CANCELED','6'=>'CLOSED','7'=>'RVISED','8'=>'DECLINE'];
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'RECEIVED','5'=>'CANCELED','6'=>'CLOSED','7'=>'REVISED','8'=>'DECLINE'];
 
         $messages = [
             'required' => 'The field is required.',
@@ -329,41 +322,16 @@ class PurchaseOrderController extends Controller
             ,DB::raw('concat(article_alternative_code,article_desc) as article')
         )
         ->orderBy('id')
-        ->get();        
-
-        $data['approveHistory'] = DB::table('approval_history')
-        ->leftJoin('users','users.username','approval_history.username')
-        ->leftJoin('approval_master','approval_master.module_code','approval_history.module_code')
-        ->where('approval_history.module_code',$this->moduleCode)
-        ->where('module_number',$poNumber)
-        ->select('users.name','approval_history.approval_order','approval_master.approval_number')
-        ->orderBy("approval_order")
         ->get();
 
-        $data['approveLevel'] = DB::table('approval_level')
-        ->leftJoin('users','users.username','approval_level.username')
-        ->where('module_code',$this->moduleCode)
-        ->select('approval_level.*','users.name')
-        ->orderBy('approval_order','asc')
-        ->get();
-
-        $data['approveValidate'] = DB::select("SELECT username= '$username' as validate,current_level + 1 as next_level,* from (
-        select username,approval_order,
-        (select max(approval_number) from approval_master where module_code = a.module_code ) as max_level,
-        COALESCE((select max(approval_order) from approval_history
-        where module_code = a.module_code
-        and module_number = '".$poNumber."'),'0') as current_level
-        from approval_level a 
-        where module_code = '".$this->moduleCode."' and username = '$username') b
-        where approval_order = current_level+1");
+        $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode,$poNumber,$username);
+        $data['approveValidate'] = Approval::approveValidate($this->moduleCode,$poNumber,$username);
 
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'RECEIVED','5'=>'CANCELED','6'=>'CLOSED','7'=>'RVISED','8'=>'DECLINE'];
-        $approvLevel  = $data['approveValidate'] ? 'APPROVED-'.$data['approveValidate'][0]->current_level.'/'.$data['approveValidate'][0]->max_level : 'APPROVED';
-        $statusPo = ['NEW','VALIDATED',$approvLevel,'RECEIVED','CANCELED','CLOSED','REVISED','DECLINE'];
+        $statusPo = ['NEW','VALIDATED','APPROVED','RECEIVED','CANCELED','CLOSED','REVISED','DECLINE'];
         $data['statusPo'] = $statusPo[$data['headers'][0]->status-1];
         
-        return view("purchaseOrder.show",$data);
-        
+        return view("purchaseOrder.show",$data);        
     }
 
     public function detail(Request $request)
@@ -391,7 +359,7 @@ class PurchaseOrderController extends Controller
     }
     public function showEdit($key)
     {
-        $id=$key;
+        $id=Crypt::decryptString($key);
         $username =  Auth::user()->username;
         $data['title'] = "Edit $this->title";
         $data['subtitle'] = "Edit $this->title";
@@ -400,9 +368,6 @@ class PurchaseOrderController extends Controller
         // ->leftJoin('purchase_request_det','purchase_order_hdr.po_number','purchase_request_det.po_number')
         ->where('purchase_order_hdr.id',$id)
         ->get()->first();
-
-        // $poNumber = explode("-",$data['header']->origin_po_number);
-        // $poNumber = $poNumber[0].'-'.$poNumber[1];
 
         $poNumber = $data['header']->po_number;
         
@@ -462,58 +427,33 @@ class PurchaseOrderController extends Controller
         ->orderBy('name')
         ->get();
 
-        $data['approveHistory'] = DB::table('approval_history')
-        ->leftJoin('users','users.username','approval_history.username')
-        ->leftJoin('approval_master','approval_master.module_code','approval_history.module_code')
-        ->where('approval_history.module_code',$this->moduleCode)
-        ->where('module_number',$poNumber)
-        ->select('users.name','approval_history.approval_order','approval_master.approval_number')
-        ->orderBy("approval_order")
-        ->get();
-
-        $data['approveLevel'] = DB::table('approval_level')
-        ->leftJoin('users','users.username','approval_level.username')
-        ->where('module_code',$this->moduleCode)
-        ->select('approval_level.*','users.name')
-        ->orderBy('approval_order','asc')
-        ->get();
-
-        $data['approveValidate'] = DB::select("SELECT username= '$username' as validate,current_level + 1 as next_level,* from (
-        select username,approval_order,
-        (select max(approval_number) from approval_master where module_code = a.module_code ) as max_level,
-        COALESCE((select max(approval_order) from approval_history
-        where module_code = a.module_code
-        and module_number = '".$poNumber."'),'0') as current_level
-        from approval_level a 
-        where module_code = '".$this->moduleCode."' and username = '$username') b
-        where approval_order = current_level+1"); 
-    
+        $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode,$poNumber,$username);
+        $data['approveValidate'] = Approval::approveValidate($this->moduleCode,$poNumber,$username);
+                   
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'RECEIVED','5'=>'CANCELED','6'=>'CLOSED','7'=>'REVISED','8'=>'DECLINE'];
-        $approvLevel  = $data['approveValidate'] ? 'APPROVED-'.$data['approveValidate'][0]->current_level.'/'.$data['approveValidate'][0]->max_level : 'APPROVED';
-        $statusPo = ['NEW','VALIDATED',$approvLevel,'RECEIVED','CANCELED','CLOSED','REVISED','DECLINE'];
+        $statusPo = ['NEW','VALIDATED','APPROVED','RECEIVED','CANCELED','CLOSED','REVISED','DECLINE'];
         $data['statusPo'] = $statusPo[$data['header']->status-1];
 
-        $data['attribute'] = DB::table('attributes')
-        ->where('attr_name','main')
-        ->pluck('attr_value','attr_code');
-
-        $data['currentDate'] = date('d-m-Y');
         return view("purchaseOrder.edit",$data);
     }
 
     public function edit(Request $request)
     {
-        $id=Crypt::decryptString($request->id);
-        return $this->showEdit($id);
+        return $this->showEdit($request->id);
     }
 
     public function revision(Request $request){
         $username =  Auth::user()->username;
-        $id=$request->id;
-        $poOrigin = $request->poNumber;
-        $numRevision = $request->numRevision ? $request->numRevision +1 : 1 ;
+        $id=Crypt::decryptString($request->id);
+        $poOrigin=DB::table('purchase_order_hdr')->where('id',$id)->value('po_number');
+        $numRevision = $request->nR ? $request->nR +1 : 1 ;
         $poNew = $poOrigin.'-R'.$numRevision;
-        
+        $checkNewPo=DB::table('purchase_order_hdr')->where('po_number',$poNew)->count();
+
+        if ($checkNewPo > 0){
+            $poNew = $poOrigin.'-R'.$numRevision+1;
+        } 
+                
         $sqlHdr = "INSERT into purchase_order_hdr 
         (
             po_number,
@@ -619,6 +559,7 @@ class PurchaseOrderController extends Controller
             ->update(
                 [
                     'num_revision' => $numRevision,
+                    'status' => '1',
                     'revised_by'=>Auth::user()->username,
                     'revised_at'=> date('Y-m-d H:i:s'),
                     'updated_by' => Auth::user()->username,
@@ -626,27 +567,26 @@ class PurchaseOrderController extends Controller
                 ]
             );
 
-            // DB::table('purchase_request_det')
-            // ->where('po_number',$poOrigin)
-            // ->update(
-            //     [
-            //         'po_number' => $poNew,
-            //         'updated_by' => Auth::user()->username,
-            //         'updated_at' => date('Y-m-d H:i:s')
-            //     ]
-            // );
-
-            // $idBaru = DB::table('purchase_order_hdr')->where('po_number',$poNew)->value('id');
+            DB::table('approval_history')
+            ->where('module_number',$poOrigin)
+            ->update(
+                [
+                    'module_number' => $poNew,
+                    'status' => '0',
+                    'updated_by' => Auth::user()->username,
+                    'updated_at' => date('Y-m-d H:i:s')
+                ]
+            );
             
             $title ="Save $this->title";
             $alert  ="success";
             $message  = "$title Revison PO: $poOrigin to $poNew is successfully saved";
             \LogActivity::addToLog($title,"username: $username Status $message");
-            return $this->showEdit($id);
+            return $this->showEdit(Crypt::encryptString($id));
         }else{
             $title ="Save $this->title";
             $alert  ="warning";
-            $message  = "$title Revison PO: $poOrigin to $poNew is successfully failed";
+            $message  = "$title Revison PO: $poOrigin to $poNew is failed to save";
             \LogActivity::addToLog($title,"username: $username Status $message");
             return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);
         }
@@ -855,20 +795,9 @@ class PurchaseOrderController extends Controller
     {
         $username =  Auth::user()->username;
         $poNumber = $request->poNumber;
-
-        $statusDB = DB::select("SELECT max_level,current_level,next_level from
-        (select 
-        (select approval_number from approval_master where module_code = 'PO') as max_level 
-        ,coalesce(max(approval_order),0) as current_level
-        ,coalesce(max(approval_order),0)+1 as next_level
-        from approval_history 
-        where module_code ='".$this->moduleCode."'
-        and module_number = '$poNumber'
-        ) as oki
-        where  next_level in (select approval_order from approval_level where module_code = 'PO' and username = '$username')");
-        
-        $nextLevel = $statusDB[0]->next_level;
-        $statusPo = $statusDB[0]->next_level == $statusDB[0]->max_level ? '3' :'2';
+        $statusLevelApproval = Approval::approvalLevelPosition($this->moduleCode,$poNumber,$username);        
+        $nextLevel = $statusLevelApproval[0]->next_level;
+        $statusPo = $statusLevelApproval[0]->next_level == $statusLevelApproval[0]->max_level ? '3' :'2';
                 
         DB::beginTransaction();
         try {
@@ -906,9 +835,61 @@ class PurchaseOrderController extends Controller
 
         } catch (Exception $e) {
             DB::rollBack();
-            $title ="Autorized $this->title";
+            $title ="Approve $this->title";
             $alert  ="warning";
             $message  = "$title $poNumber is failed to Approve-".$nextLevel;
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return response()->json(array('statusPo' => $statusPo,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'poNumber'=>$poNumber));
+        }
+    }
+
+    public function decline(Request $request)
+    {
+        $username =  Auth::user()->username;
+        $poNumber = $request->poNumber;
+        $statusLevelApproval = Approval::approvalLevelPosition($this->moduleCode,$poNumber,$username);        
+        $nextLevel = $statusLevelApproval[0]->next_level;
+        $statusPo = '8';
+                
+        DB::beginTransaction();
+        try {
+                $row_affected=DB::table('purchase_order_hdr')
+                ->where('po_number',$poNumber)
+                ->update(
+                    [
+                        'status' => $statusPo,
+                        'authorized_by' => Auth::user()->username,
+                        'authorized_at' => date('Y-m-d H:i:s')
+                    ]
+                );
+
+                if ($row_affected){
+                    DB::table('approval_history')->insert([
+                        'module_code' => $this->moduleCode,
+                        'module_number' => $poNumber,
+                        'username' => Auth::user()->username,
+                        'approval_order' => $nextLevel,
+                        'approval_date' => date('Y-m-d'),
+                        'status' => 0,
+                        'created_by' => Auth::user()->username,
+                        'updated_by' => Auth::user()->username,
+                        'created_at' => date('Y-m-d H:i:s'),
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]);
+                }
+                
+                DB::commit();
+                $title ="Decline $this->title";
+                $alert  ="success";
+                $message  = "$title $poNumber is successfully decline";
+                \LogActivity::addToLog($title,"username: $username Status $message");
+                return response()->json(array('statusPo' => $statusPo,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'poNumber'=>$poNumber));
+
+        } catch (Exception $e) {
+            DB::rollBack();
+            $title ="Decline $this->title";
+            $alert  ="warning";
+            $message  = "$title $poNumber is failed to decline";
             \LogActivity::addToLog($title,"username: $username Status $message");
             return response()->json(array('statusPo' => $statusPo,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'poNumber'=>$poNumber));
         }
@@ -919,7 +900,7 @@ class PurchaseOrderController extends Controller
         $username =  Auth::user()->username;       
         $id=Crypt::decryptString($request->id);
         $po_number = DB::table('purchase_order_hdr')->where('id',$id)->where('status','1')->value('po_number');
-        $rowAffected = DB::table('purchase_order_hdr')->where('id',$id)->delete();
+        $rowAffected = DB::table('purchase_order_hdr')->where('id',$id)->where('status','1')->delete();
         if($rowAffected>0){
             DB::table('purchase_order_det')->where('po_number',$po_number)->delete();
             $title ="Delete $this->title";
@@ -941,31 +922,36 @@ class PurchaseOrderController extends Controller
     {
         //memutihkan PO supaya tidak bisa di pakai lagi
         //status PO jadi closed
+        $username =  Auth::user()->username;       
+        $id=Crypt::decryptString($request->id);
+        $po_number = DB::table('purchase_order_hdr')->where('id',$id)->value('po_number');
+        $status = '6';
         DB::beginTransaction();
         try {
                 $row_affected=DB::table('purchase_order_hdr')
-                ->where('po_number',$poNumber)
+                ->where('id',$id)
                 ->update(
                     [
                         'status' => $status,
-                        'validate_by' => Auth::user()->username,
                         'updated_by' => Auth::user()->username,
                         'updated_at' => date('Y-m-d H:i:s')
                     ]
                 );
                 
                 DB::commit();
-                $alert  ="alert-success";
-                $message  = "PO $poNumber is successfully Cleared";
-                \LogActivity::addToLog('PO update ',"username: $username Status $message");
-                return response()->json(array('statusPo' => $statusPo,'status' => 1, 'message' => $message,'alert'=>$alert,'poNumber'=>$poNumber));
+                $title ="Clear $this->title";
+                $alert  ="success";
+                $message  = "$title $po_number Successfully Closed";
+                \LogActivity::addToLog($title,"username: $username Status $message");
+                return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);
 
         } catch (Exception $e) {
             DB::rollBack();
-            $alert  ="alert-warning";
-            $message  = "PO $poNumber is failed to Clear";
-            \LogActivity::addToLog('PO update ',"username: $username Status $message");
-            return response()->json(array('statusPo' => $statusPo,'status' => 1, 'message' => $message,'alert'=>$alert,'poNumber'=>$poNumber));
+            $title ="Clear $this->title";
+            $alert  ="warning";
+            $message  = "$title $po_number Failed to Close";
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);
         }
 
     }
@@ -978,6 +964,7 @@ class PurchaseOrderController extends Controller
         ->where('article_code',$articleCode)
         ->select('purchase_order_det.po_number','po_date','price', 'purchase_order_hdr.created_at')
         ->orderBy('po_date','desc')
+        ->where('status','<>','7')
         ->limit(10)
         ->get();
 
@@ -1021,7 +1008,8 @@ class PurchaseOrderController extends Controller
         }
 
         $data=DB::select("SELECT *,oki.id as idku,
-        case when uom_group = 'PIECE' then TO_CHAR(qtyku,'999,999,999') when uom_group <> 'PIECE' then TO_CHAR(qtyku,'999,999,999.99') end as qty,
+        -- case when uom_group = 'PIECE' then TO_CHAR(qtyku,'999,999,999') when uom_group <> 'PIECE' then TO_CHAR(qtyku,'999,999,999.999') end as qty,
+        qtyku as qty,
         TO_CHAR(grossku,'999,999,999') as gross,
         TO_CHAR(discountku,'999,999,999') as discount,
         TO_CHAR(ppnku,'999,999,999') as ppn,
@@ -1051,7 +1039,6 @@ class PurchaseOrderController extends Controller
                 termin,
                 authorized_by,
                 validate_by,
-                uom,
                 sum(qty) as qtyku,
                 sum(qty*price) as grossku,
                 sum(discount) as discountku,
@@ -1062,11 +1049,9 @@ class PurchaseOrderController extends Controller
             left join purchase_order_hdr b
             on a.po_number = b.po_number    
             $filter
-            group by b.id,a.po_number,supplier_id,po_date,delivery_date,pkp,termin,authorized_by,validate_by,b.created_by,uom,b.status,b.num_revision
+            group by b.id,a.po_number,supplier_id,po_date,delivery_date,pkp,termin,authorized_by,validate_by,b.created_by,b.status,b.num_revision
         ) as oki
-        left join uom c
-        on oki.uom = c.code
-        order by oki.id");
+        order by oki.id desc");
 
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'RECEIVED','5'=>'CANCELED','6'=>'CLOSED','7'=>'REVISED','8'=>'DECLINE'];
     
@@ -1078,7 +1063,7 @@ class PurchaseOrderController extends Controller
                             </a>';
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
             
-            if ( $data->statusku == '1' && $data->status != '3' ){
+            if ( $data->statusku and ($data->status == '2' or $data->status == '1') ){
                 if (Auth::user()->can('purchaseOrder-authorize')) {
                 $buttons .=         '<a href="'. route('purchaseOrder.edit', ['id'=>Crypt::encryptString($data->idku)]) .'" class="dropdown-item">
                                         <i data-feather="file-text"></i>
@@ -1086,18 +1071,7 @@ class PurchaseOrderController extends Controller
                                     </a>';
                 }
             }
-
-            // if ( $data->status == '1' ){
-            //     if (Auth::user()->can('purchaseOrder-validate')) {
-            //     $buttons .=         '<a href="'. route('purchaseOrder.show', ['id'=>Crypt::encryptString($data->idku)]) .'" class="dropdown-item">
-            //                             <i data-feather="file-text"></i>
-            //                             <span>'. __("Validate") .'</span>
-            //                         </a>';
-            //     }
-            // }
-
-
-            if ( $data->status == '1' ){
+            if ( $data->status == '1' or $data->status == '2' ){
                 if (Auth::user()->can('purchaseOrder-edit')) {
                 $buttons .=         '<a href="'. route('purchaseOrder.edit', ['id'=>Crypt::encryptString($data->idku)]) .'" class="dropdown-item">
                                         <i data-feather="file-text"></i>
@@ -1107,7 +1081,7 @@ class PurchaseOrderController extends Controller
             }
             if (($data->status == '2') || ($data->status == '3') ){
                 if (Auth::user()->can('purchaseOrder-revision')) {
-                    $buttons .=         '<a href="'. route('purchaseOrder.revision', ['id'=>$data->idku,'poNumber'=>$data->po_number,'numRevision'=>$data->num_revision]) .'" class="dropdown-item">
+                    $buttons .=         '<a href="'. route('purchaseOrder.revision', ['id'=>Crypt::encryptString($data->idku),'nR'=>$data->num_revision]) .'" class="dropdown-item">
                                             <i data-feather="copy"></i>
                                             <span>'. __("Revision") .'</span>
                                         </a>';
@@ -1124,6 +1098,23 @@ class PurchaseOrderController extends Controller
                                     <span>'. __("Detail") .'</span>
                                 </a>';
 
+            if ( $data->status == '1' or $data->status == '2' or $data->status == '3' ){
+                if (Auth::user()->can('purchaseOrder-delete')) {
+                    $buttons .="<a href='javascript:;'
+                    class='dropdown-item' 
+                    data-size='sm'
+                    data-ajax-delete='true'
+                    data-confirm='Are You Sure want to Close?|This action can not be undone. Do you want to continue?' 
+                    data-confirm-yes='document.getElementById(\""."delete-form-".$data->idku."\").submit();'
+                    data-modal-id='".$data->idku."'
+                    id='deleteButton'
+                    data-url='". route('purchaseOrder.clear', ['id'=>Crypt::encryptString($data->idku)]) ."'>
+                    <i data-feather='x' class='feather-14-red'></i>
+                    <span>". __('Close') ."</span>
+                    </a>";
+                }
+            }
+
             if ( $data->status == '1' ){
                 if (Auth::user()->can('purchaseOrder-delete')) {
                     $buttons .=         "<a href='javascript:;'
@@ -1131,8 +1122,8 @@ class PurchaseOrderController extends Controller
                                         data-size='sm'
                                         data-ajax-delete='true'
                                         data-confirm='Are You Sure want to Delete?|This action can not be undone. Do you want to continue?' 
-                                        data-confirm-yes='document.getElementById(\""."delete-form-".$data->id."\").submit();'
-                                        data-modal-id='".$data->id."'
+                                        data-confirm-yes='document.getElementById(\""."delete-form-".$data->idku."\").submit();'
+                                        data-modal-id='".$data->idku."'
                                         id='deleteButton'
                                         data-url='". route('purchaseOrder.destroy', ['id'=>Crypt::encryptString($data->idku)]) ."'>
                                         <i data-feather='trash-2' class='feather-14-red'></i>
@@ -1147,7 +1138,10 @@ class PurchaseOrderController extends Controller
             return $buttons;
         })
         ->addColumn('po_number', function ($data) {
-            return '<a href="'. route('purchaseOrder.show', ['id'=>Crypt::encryptString($data->idku)]) .'" ><span>'.$data->po_number.'</span></a>';
+            $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-danger'];            
+            $statusPo = ['NEW','VALIDATED','APPROVED','RECEIVED','CANCELED','CLOSED','REVISED','DECLINE'];
+            // return '<div class="badge d-block '.$badges[$data->status - 1].'"><a name="'.$data->po_number.'" href="'. route('purchaseOrder.show', ['id'=>Crypt::encryptString($data->idku)]) .'" ><span>'.$data->po_number.'</span></a></div>';
+            return '<span style="display: none;">'.$data->po_number.'</span><a class="badge d-block '.$badges[$data->status - 1].'" name="'.$data->po_number.'" href="'. route('purchaseOrder.show', ['id'=>Crypt::encryptString($data->idku)]) .'" ><span>'.$data->po_number.'</span></a>';
         })
         ->addColumn('status', function ($data) {
             $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-danger'];            
