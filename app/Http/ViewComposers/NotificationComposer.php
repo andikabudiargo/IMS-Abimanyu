@@ -19,15 +19,15 @@ class NotificationComposer
         // ->orderBy('id')
         // ->get();
 
-        $lists['listSo2'] = DB::select("SELECT * from (
-        select id,so_code,so_date,'$username' as username,
-        coalesce((select max(approval_order) from approval_history where module_code = 'SO' and module_number = so_code),0) as sudah_approve,
-        coalesce((select approval_order from approval_level where username = '$username' and module_code = 'SO'),0) as berhak_approve,
-        (select nama from third_party where kode = customer_id) as customer_name
-        from sales_order_hdr 
-        --where status <> '3'
-        ) as Oki
-        where berhak_approve-1 = sudah_approve");
+        // $lists['listSo2'] = DB::select("SELECT * from (
+        // select id,so_code,so_date,'$username' as username,
+        // coalesce((select max(approval_order) from approval_history where module_code = 'SO' and module_number = so_code),0) as sudah_approve,
+        // coalesce((select approval_order from approval_level where username = '$username' and module_code = 'SO'),0) as berhak_approve,
+        // (select nama from third_party where kode = customer_id) as customer_name
+        // from sales_order_hdr 
+        // --where status <> '3'
+        // ) as Oki
+        // where berhak_approve-1 = sudah_approve");
 
         // $lists['listSo2'] = DB::select("SELECT * from (
         // select 
