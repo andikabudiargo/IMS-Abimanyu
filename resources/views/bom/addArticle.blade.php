@@ -23,7 +23,9 @@
             <div class="col-md-1 col-12">
                 <div class="form-group">
                     <label for="uom" class="d-block d-md-none">Uom</label>
-                    <span class="" id = "uom" name="uom[]"></span>
+                    <select class="form-control" id="uom" name="uom[]">
+                    </select>
+                    {{-- <span class="" id = "uom" name="uom[]"></span> --}}
                 </div>
             </div>
             <div class="col-md-2 col-12">

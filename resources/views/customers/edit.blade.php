@@ -350,11 +350,12 @@
                 change_active = 'yes';
             }, 2000);
         }
-        
-        '{{ Request::old('provinsi', $customers->efaktur_provinsi) }}' ? changeselect('provinsi',0,'{{ Request::old('provinsi',$customers->efaktur_provinsi) }}') : '';   
-        '{{ Request::old('kota',$customers->efaktur_kota) }}' ? changeselect('kota','{{ Request::old('provinsi',$customers->efaktur_provinsi) }}','{{ Request::old('kota',$customers->efaktur_kota) }}') : '';
-        '{{ Request::old('kecamatan',$customers->efaktur_kecamatan) }}' ? changeselect('kecamatan','{{ Request::old('kota',$customers->efaktur_kota) }}','{{ Request::old('kecamatan',$customers->efaktur_kecamatan) }}') : '';
-        '{{ Request::old('kelurahan',$customers->efaktur_kelurahan) }}' ? changeselect('kelurahan','{{ Request::old('kecamatan',$customers->efaktur_kecamatan) }}','{{ Request::old('kelurahan',$customers->efaktur_kelurahan) }}') : '';
+
+        '{{ Request::old('provinsi', $customers ? $customers->provinsi :'') }}' ? changeselect('provinsi',0,'{{ Request::old('provinsi',$customers ? $customers->provinsi : '') }}') : ''; 
+        '{{ Request::old('kota', $customers ? $customers->kota :'') }}' ? changeselect('kota','{{ Request::old('provinsi',$customers ? $customers->provinsi : '') }}','{{ Request::old('kota',$customers ? $customers->kota : '') }}') : '';
+        '{{ Request::old('kecamatan', $customers ? $customers->kecamatan :'') }}' ? changeselect('kecamatan','{{ Request::old('kota',$customers ? $customers->kota : '') }}','{{ Request::old('kecamatan',$customers ? $customers->kecamatan : '') }}') : '';
+        '{{ Request::old('kelurahan', $customers ? $customers->kelurahan :'') }}' ? changeselect('kelurahan','{{ Request::old('kecamatan',$customers ? $customers->kecamatan : '') }}','{{ Request::old('kelurahan',$customers ? $customers->kelurahan : '') }}') : '';
+
     });
 
     $("#cmdSave").click(function(){       

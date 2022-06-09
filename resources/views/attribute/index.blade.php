@@ -31,6 +31,7 @@
                                     <option value="1" {{ old('decimalPLaces',$attribute['decimalPlaces'] == '1'  ? "selected" : "") }}>1</option>
                                     <option value="2" {{ old('decimalPLaces',$attribute['decimalPlaces'] == '2'  ? "selected" : "") }}>2</option>
                                     <option value="3" {{ old('decimalPLaces',$attribute['decimalPlaces'] == '3'  ? "selected" : "") }}>3</option>
+                                    <option value="4" {{ old('decimalPLaces',$attribute['decimalPlaces'] == '4'  ? "selected" : "") }}>4</option>
                                 </select>
                             </div>
                         </div>

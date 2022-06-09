@@ -220,7 +220,11 @@ class DependentController extends Controller
             ->leftJoin('uom','uom.code','=',$table.'.uom')
             // ->whereNotIn('article_type',['FG'])
             ->orderBy($order)
-            ->select($table.'.*', 'article_types.name as type_name','uom.uom_group')
+            ->select($table.'.*'
+            ,'article_types.name as type_name'
+            ,'uom.uom_group'
+            ,DB::RAW("(select string_agg(unit_to,',' order by unit_from) as uom_member from uom_con where unit_from = $table.uom)")
+            )
             ->get();
         }elseif($dependent =='searchFromPr'){
             $data= DB::table($table) 
@@ -363,7 +367,7 @@ class DependentController extends Controller
             }elseif($dependent =='article_sub_rm'){
                 $output .='<option value="'.$row->article_code.'|'.$row->uom.'|'.$row->third_party.'|'.$row->dept.'">'.$row->article_alternative_code.' - '. $row->article_desc.'</option>';
             }elseif($dependent =='article_bom'){
-                $output .='<option value="'.$row->article_code.'|'.$row->uom.'|'.$row->costprice.'|'.$row->article_type.'|'.$row->type_name.'" data-uom-group="'.$row->uom_group.'">'.$row->article_alternative_code.' - '. $row->article_desc.'</option>';
+                $output .='<option value="'.$row->article_code.'|'.$row->uom.'|'.$row->costprice.'|'.$row->article_type.'|'.$row->type_name.'" data-uom-group="'.$row->uom_group.'" data-uom-member="'.$row->uom_member.'">'.$row->article_alternative_code.' - '. $row->article_desc.'</option>';
             }elseif($dependent =='searchFromPr'){
                 $output .='<option value="'.$row->article_code.'|'.$row->group.'|'.$row->qty_stock.'|'.$row->qty.'|'.$row->uom1.'|'.$row->costprice.'|'.$row->last_price.'" data-uom-group="'.$row->uom_group.'">'.$row->article_alternative_code.' - '. $row->article_desc.'</option>';
             }elseif($dependent =='searchFromPr_sub'){

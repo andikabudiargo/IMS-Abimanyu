@@ -31,6 +31,7 @@
                                     <select class="select2 form-control" id="poType" name="poType" required>
                                         <option value="std">Standard</option>
                                         <option value="sub">Subcontracting</option>
+                                        <option value="tso">Target SO</option>
                                     </select>
                                 </div>
                                 <div class="form-group col-md-2">

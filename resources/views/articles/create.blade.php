@@ -67,7 +67,7 @@
                             </div>
                         </div>
                         <div class="form-row">
-                            <div class="form-group col-md-6">
+                            <div class="form-group col-md-6 d-none">
                                 <label for="price">Price</label>
                                 <input type="text" id="price" name="price" class="form-control numeral-mask text-right" value="{{ old('price') }}" maxlength="12"/>
                             </div>
@@ -79,6 +79,29 @@
                                         <option value="{{$val->code}}" {{ $val->code == old("uom") ? "selected" : ""}} >{{$val->code}} - {{$val->name}}</option>
                                     @endforeach
                                 </select>
+                            </div>
+                            <div class="form-group col-md-6">
+                                <label class="form-label" for="otherUom">Other Unit</label>
+                                <select class="select2 form-control" id="otherUom" name="otherUom" multiple>
+                                    <option value=""></option>
+                                    @foreach($uoms as $val)
+                                        <option value="{{$val->code}}" {{ $val->code == old("otherUom") ? "selected" : ""}} >{{$val->code}} - {{$val->name}}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="col-6">
+                                <div class="form-group">
+                                    <label for="safetyStock">Safety Stock</label>
+                                    <input type="text" id="safetyStock" name="safetyStock" class="form-control numeral-mask" value="{{ old('safetyStock') }}" maxlength="10"/>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="form-group">
+                                    <label for="minimumPackage">Minimum package</label>
+                                    <input type="text" id="minimumPackage" name="minimumPackage" class="form-control numeral-mask" value="{{ old('minimumPackage') }}" maxlength="10"/>
+                                </div>
                             </div>
                         </div>
                         <div class="form-row">

@@ -305,35 +305,40 @@
     function splitArticle(){
         // split article with delimiter |
         let objArticle = $('#article_row select[name="article_id[]"]');
-        let objUom= $('#article_row span[name="uom[]"]'); 
+        // let objUom= $('#article_row span[name="uom[]"]'); 
         let objType= $('#article_row span[name="type[]"]'); 
         let objQty = $('input[name="qtyBom[]"]');
+        let objUom = $('select[name="uom[]"]');
         
         objArticle.change(function(e){        
             let objIndex = objArticle.index(this);
             let detail = objArticle.eq(objIndex).val();
             let arrDetail = detail.split("|");
+            let uomGroup = objArticle.eq(objIndex).find(":selected").data("uom-group");
+            let uomMember = objArticle.eq(objIndex).find(":selected").data("uom-member");
             objUom.eq(objIndex).text(arrDetail[1]);
             objType.eq(objIndex).text(arrDetail[4]);
+            let uomOption="";
+            if (uomMember){
+                let arrUomMember = uomMember.split(',');
+                $.each(arrUomMember, function(index, val) {
+                    uomOption +=`<option>${val}</option>`;
+                });
+                
+            }else{
+                uomOption +=`<option>${arrDetail[1]}</option>`;
+            }
 
-            if ( arrDetail[1] === 'PCS' ){
+            objUom.html(uomOption);
+                        
+            if ( uomGroup === 'PIECE' ){
                 objQty.eq(objIndex).removeClass("numeral-mask-digit");
-                objQty.eq(objIndex).addClass("numeral-mask-satuan");
-                // console.log('PCS');
-                // $('#'+id_qty).val('');
-                // mask_thousand_digit_by_id(id_qty,0);
-               
+                objQty.eq(objIndex).addClass("numeral-mask-satuan");               
                 mask_thousand_satuan();
             }else{
-                
                 objQty.eq(objIndex).removeClass("numeral-mask-satuan");
                 objQty.eq(objIndex).addClass("numeral-mask-digit");
-                // console.log('NON PCS');
-
                 mask_thousand_digit(numberOfDecimalDigit);
-
-                // $('#'+id_qty).val('');
-                // mask_thousand_digit_by_id(id_qty,numberOfDecimalDigit);
             }
 
             if (detail){

@@ -118,7 +118,7 @@
             <li class="{{ \Request::segment(1) == 'invoice' ? 'active' : '' }} " >
               <a class="d-flex align-items-center" href="{{ route('invoice.index') }}">
                 <i data-feather="circle"></i>
-                <span class="menu-item text-truncate" data-i18n="Input">Invoice</span>
+                <span class="menu-item text-truncate" data-i18n="Input">Invoice Customer</span>
               </a>
             </li>
 
@@ -314,7 +314,7 @@
             <li class="{{ \Request::segment(1) == 'aps'  ? 'active' : '' }}">
               <a class="d-flex align-items-center" href="{{ route('aps.index') }}">
                 <i data-feather="circle"></i>
-                <span class="menu-item text-truncate" data-i18n="Input">Input Invoice</span>
+                <span class="menu-item text-truncate" data-i18n="Input">Invoice Supplier</span>
               </a>
             </li>
             @endcan
