@@ -193,7 +193,7 @@
     let currentDate = todayDate('dd-mm-yyyy');    
     $(document).ready(function(){           
         validateForm('frmAdd');
-        mask_thousand_digit(2);
+        mask_thousand_digit(numberOfDecimalDigit);
         isiDetailHeader();
         // tombolPanah('qtyBom');
         splitArticle();
@@ -231,6 +231,7 @@
             let bomNumber = $('#bomNumber').val();
             let objArticle = $("#article_row select[name='article_id[]']");
             let objQty = $('input[name="qtyBom[]"]');
+            let objUom = $('article_row select[name="uom[]"]');
             let articleCode1 = $('#articleCode').val().split("|");
             articleCode = articleCode1[0];
             let uom = articleCode1[1];
@@ -253,7 +254,7 @@
                     let article=$this.val().split("|");
                     let articleName=$this.select2('data')[0].text;
                     let plu=article[0];
-                    let uom=article[1];
+                    let uom=objUom.eq(i).val();
                     let type=article[3];
                     let qty=objQty.eq(i).val().replace(/,/gi, '') || 0;
 

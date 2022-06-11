@@ -171,7 +171,7 @@
 <script type="text/javascript">
     let currentDate = todayDate('dd-mm-yyyy');    
     $(document).ready(function(){           
-        mask_thousand_digit(2);
+        mask_thousand_digit(numberOfDecimalDigit);
         $('.sku-select-system').select2();
     });
        

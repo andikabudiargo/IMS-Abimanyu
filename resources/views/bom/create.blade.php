@@ -150,7 +150,7 @@
         
     $(document).ready(function(){     
         validateFormToast("frmAdd");
-        mask_thousand_digit(2);
+        mask_thousand_digit(numberOfDecimalDigit);
     });
         
     $("#cmdCancel,#cmdNew").click(function(){
@@ -159,15 +159,14 @@
     });
 
     $("#cmdSave").click(function(){     
-
         if (!$("#frmAdd")[0].checkValidity()){
             $("#frmAdd").submit();
         }else{
-
             $('.disabled-el').removeAttr('disabled');
             // ambil semua data article
             let objArticle = $("#article_row select[name='article_id[]']");
-            let objQty = $('input[name="qtyBom[]"]');
+            let objQty = $('article_row input[name="qtyBom[]"]');
+            let objUom = $('article_row select[name="uom[]"]');
             let articleCode1 = $('#articleCode').val().split("|");
             articleCode = articleCode1[0];
             let uom = articleCode1[1];
@@ -190,18 +189,12 @@
                     let article=$this.val().split("|");
                     let articleName=$this.select2('data')[0].text;
                     let plu=article[0];
-                    let uom=article[1];
+                    let uom=objUom.eq(i).val();
                     let type=article[3];
                     let qty=objQty.eq(i).val().replace(/[^0-9]/gi, '') || 0;
                                 
                     //es6
-                    // let obj = ingredient.find(obj => obj.plu == plu);
-
-                    //jquery
-                    //cek apakah article ada yang double input ato ngk
-                    let obj = $.grep(articles, function(obj){
-                        return obj.article_code === plu;
-                    })[0];
+                    let obj = ingredient.find(obj => obj.plu == plu);
                     
                     if(obj) {
                         pesan +="Article "+articleName+" entered more than once !! <br>"; 
@@ -330,16 +323,17 @@
             }
 
             objUom.html(uomOption);
-                        
-            if ( uomGroup === 'PIECE' ){
-                objQty.eq(objIndex).removeClass("numeral-mask-digit");
-                objQty.eq(objIndex).addClass("numeral-mask-satuan");               
-                mask_thousand_satuan();
-            }else{
-                objQty.eq(objIndex).removeClass("numeral-mask-satuan");
-                objQty.eq(objIndex).addClass("numeral-mask-digit");
-                mask_thousand_digit(numberOfDecimalDigit);
-            }
+            
+            //jangan di filter dulu karena untuk qty BOM bisa pake Koma
+            // if ( uomGroup === 'PIECE' ){
+            //     objQty.eq(objIndex).removeClass("numeral-mask-digit");
+            //     objQty.eq(objIndex).addClass("numeral-mask-satuan");               
+            //     mask_thousand_satuan();
+            // }else{
+            //     objQty.eq(objIndex).removeClass("numeral-mask-satuan");
+            //     objQty.eq(objIndex).addClass("numeral-mask-digit");
+            //     mask_thousand_digit(numberOfDecimalDigit);
+            // }
 
             if (detail){
                 setTimeout(() => {

@@ -87,6 +87,20 @@
                             </div>
                         </div>
                         <div class="form-row">
+                            <div class="col-6">
+                                <div class="form-group">
+                                    <label for="safetyStock">Safety Stock</label>
+                                    <input type="text" id="safetyStock" name="safetyStock" class="form-control numeral-mask" value="{{ old('safetyStock',$article->safety_stock ? $article->safety_stock : 0 ) }}" maxlength="10"/>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="form-group">
+                                    <label for="minimumPackage">Minimum package</label>
+                                    <input type="text" id="minimumPackage" name="minimumPackage" class="form-control numeral-mask" value="{{ old('minimumPackage',$article->min_package ? $article->min_package : 1) }}" maxlength="10"/>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-row">
                             <div class="form-group col-md-12">
                                 <label class="form-label" for="note">Notes</label>
                                 <textarea type="text" id="note" name="note" class="form-control" rows="3" maxlength="100">{{ old('note',$article->note) }}</textarea>

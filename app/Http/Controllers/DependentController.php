@@ -198,6 +198,18 @@ class DependentController extends Controller
                 $default='';
                 $defaulttxt='Choose Account';
                 break;
+            case 'tsoArticle': 
+                $table='article';
+                $field ='third_party';
+                $field2 ='article_type';
+                $type = $type;
+                $order ='article_desc';
+                $value ='article_code';
+                $value2 ='article_alternative_code';
+                $name  ='article_desc';
+                $default='';
+                $defaulttxt='Choose article';
+                break;
             break;
                 default:
                     $table='';
@@ -345,6 +357,13 @@ class DependentController extends Controller
             $data= DB::table($table) 
             ->orderBy($order)
             ->get();
+        }elseif($dependent =='tsoArticle'){
+            $data= DB::table($table)
+            ->leftJoin('uom','uom.code','=',$table.'.uom')
+            ->where($field,$code)
+            ->whereIn('article_type',['FG'])
+            ->orderBy($order)
+            ->get();
         }else{
             $data= DB::table($table) 
             ->where($field,$code)
@@ -378,6 +397,8 @@ class DependentController extends Controller
                 $output .='<option value="'.$row->code.'|'.$row->uom_group.'">'.$row->code.' - '.$row->name.'</option>';
             }elseif($dependent =='account'){
                 $output .='<option value="'.$row->account.'">'.$row->account.' - '.$row->description.'</option>';
+            }elseif($dependent =='tsoArticle'){
+                $output .="<option value='$row->article_code' data-uom-group ='$row->uom_group' data-uom ='$row->uom'>$row->article_alternative_code - $row->article_desc</option>";
             }else{
                 $output .='<option value="'.$row->$value.'">'.$row->$name.'</option>';
             }

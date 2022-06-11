@@ -25,7 +25,6 @@
                     <label for="uom" class="d-block d-md-none">Uom</label>
                     <select class="form-control" id="uom" name="uom[]">
                     </select>
-                    {{-- <span class="" id = "uom" name="uom[]"></span> --}}
                 </div>
             </div>
             <div class="col-md-2 col-12">

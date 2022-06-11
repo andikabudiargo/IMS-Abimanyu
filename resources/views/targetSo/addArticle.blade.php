@@ -2,63 +2,33 @@
 <div id="new_row" name="new_row[]" class="d-none">
     <div id="baru" class="tanda-baris" >
         <div class="form-row d-flex align-items-center">
-            <div class="col-md-2 col-12">
+            <div class="col-md-6 col-12">
                 <div class="form-group margin-nol">
-                    <label for="pRequest" class="d-block d-md-none">Purchase Request</label>
-                    <select class="dynamicSelect form-control" id="pRequest" name="pRequest[]" data-dependent="pRequest">
+                    <label for="articleId" class="d-block d-md-none">Article</label>
+                    <select class="form-control" id="articleId" name="articleId[]" data-dependent="articleId">
                     </select>
-                </div>
-            </div>
-            <div class="col-md-3 col-12">
-                <div class="form-group margin-nol">
-                    <label for="article_id" class="d-block d-md-none">Article</label>
-                    <select class="dynamicSelect form-control" id="article_id" name="article_id[]" data-dependent="article_id">
-                    </select>
-                </div>
-            </div>
-            <div class="col-md-1 col-12">
-                <div class="form-group margin-nol">
-                    <label for="qty_stock" class="d-block d-md-none">Stock</label>
-                    <input type="text" class="form-control numeral-mask-satuan text-right" id = "qty_stock" name="qty_stock[]" disabled>
-                </div>
-            </div>
-            <div class="col-md-1 col-12">
-                <div class="form-group margin-nol">
-                    <label for="qty_order" class="d-block d-md-none">QTY Order</label>
-                    <div class="input-group input-group-merge">
-                        <input type="text" class="form-control numeral-mask-satuan text-right" id = "qty_order" name="qty_order[]" maxlength="9" />
-                        <div class="input-group-append">
-                            <span class="input-group-text" id ="uom" name="uom[]"></span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-1 col-12 d-none">
-                <div class="form-group margin-nol">
-                    <label for="price" class="d-block d-md-none">Price</label>
-                    <input type="text" class="form-control numeral-mask text-right" id= "price" name="price[]"  maxlength="11">
                 </div>
             </div>
             <div class="col-md-2 col-12">
                 <div class="form-group margin-nol">
-                    <label for="price" class="d-block d-md-none">Price</label>
+                    <label for="qtyTarget" class="d-block d-md-none">QTY Target</label>
                     <div class="input-group input-group-merge">
-                        <input type="text" class="form-control numeral-mask text-right" id = "newPrice" name="newPrice[]"  maxlength="11">
+                        <input type="text" class="form-control numeral-mask-satuan text-right" id = "qtyTarget" name="qtyTarget[]" maxlength="9" />
                         <div class="input-group-append">
-                            <span class="input-group-text cursor-pointer">
-                                <a onmouseover="this.style.cursor='pointer'" id="listPrice" name="listPrice[]" data-toggle="tooltip" data-placement="right" title="List Price">
-                                    <i data-feather="info" class="feather-24">
-                                    </i>
-                                </a>
-                            </span>
+                            <span class="input-group-text" id ="uomTarget" name="uomTarget[]"></span>
                         </div>
                     </div>
                 </div>
             </div>
             <div class="col-md-2 col-12">
                 <div class="form-group margin-nol">
-                    <label for="totalLine" class="d-block d-md-none">Total</label>
-                    <input type="text" class="form-control numeral-mask text-right" id="totalLine" name="totalLine[]" disabled>
+                    <label for="qtyForcast" class="d-block d-md-none">QTY Forcast</label>
+                    <div class="input-group input-group-merge">
+                        <input type="text" class="form-control numeral-mask-satuan text-right" id = "qtyForcast" name="qtyForcast[]" maxlength="9" />
+                        <div class="input-group-append">
+                            <span class="input-group-text" id ="uomForcast" name="uomForcast[]"></span>
+                        </div>
+                    </div>
                 </div>
             </div>
             <div class="col-md-1 col-12">
@@ -77,27 +47,15 @@
 <div id="new_row_show" name="new_row_show[]" class="d-none">
     <div id="baru_show">
         <div class="form-row d-flex align-items-center">
+            <div class="col-md-6 col-12">
+                <div class="form-group margin-nol">
+                    <label for="articleId" class="d-block d-md-none">Article</label>
+                    <input type="text" class="form-control" id="articleIdShow" name="articleIdShow[]" disabled>
+                </div>
+            </div>
             <div class="col-md-2 col-12">
                 <div class="form-group margin-nol">
-                    <label for="pRequestShow" class="d-block d-md-none">Purchase Request</label>
-                    <input type="text" class="form-control" id="pRequestShow" name="pRequestShow[]" disabled>
-                </div>
-            </div>
-            <div class="col-md-3 col-12">
-                <div class="form-group margin-nol">
-                    <label for="article_id" class="d-block d-md-none">Article</label>
-                    <input type="text" class="form-control" id="article_idShow" name="article_idShow[]" disabled>
-                </div>
-            </div>
-            <div class="col-md-1 col-12">
-                <div class="form-group margin-nol">
-                    <label for="qty_stockShow" class="d-block d-md-none">Stock</label>
-                    <input type="text" class="form-control numeral-mask-satuan text-right" id = "qty_stockShow" name="qty_stockShow[]" disabled>
-                </div>
-            </div>
-            <div class="col-md-1 col-12">
-                <div class="form-group margin-nol">
-                    <label for="qty_orderShow" class="d-block d-md-none">QTY Order</label>
+                    <label for="qty_orderShow" class="d-block d-md-none">QTY Target</label>
                     <div class="input-group input-group-merge">
                         <input type="text" class="form-control numeral-mask-satuan text-right" id = "qty_orderShow" name="qty_orderShow[]" maxlength="9" />
                         <div class="input-group-append">
@@ -106,16 +64,15 @@
                     </div>
                 </div>
             </div>
-            <div class="col-md-1 col-12 d-none">
-                <div class="form-group margin-nol">
-                    <label for="priceShow" class="d-block d-md-none">Price</label>
-                    <input type="text" class="form-control numeral-mask text-right" id= "priceShow" name="priceShow[]"  maxlength="11">
-                </div>
-            </div>
             <div class="col-md-2 col-12">
                 <div class="form-group margin-nol">
-                    <label for="totalLineShow" class="d-block d-md-none">Total</label>
-                    <input type="text" class="form-control numeral-mask text-right" id="totalLineShow" name="totalLineShow[]" disabled>
+                    <label for="qty_orderShow" class="d-block d-md-none">QTY Forcast</label>
+                    <div class="input-group input-group-merge">
+                        <input type="text" class="form-control numeral-mask-satuan text-right" id = "qty_orderShow" name="qty_orderShow[]" maxlength="9" />
+                        <div class="input-group-append">
+                            <span class="input-group-text" id ="uomShow" name="uomShow[]"></span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -188,40 +145,12 @@
             dateFormat: "d-m-Y",
         });
     }
-
-    if (deliveryDate.length) {
-        deliveryDate.flatpickr({
-            dateFormat: "d-m-Y",
-            minDate: currentDate
-        });
-    }
-
-    $('#pkp').change(function() {
-        if ($(this).is(':checked')) {
-            $('#ppn').val("{{ $vatValue }}");
-            $("#nilaiPPN").text("{{ $vatValue }}%");
-            $('#ppn').removeAttr('disabled');
-            hitungGrandTotal();
-        }else{
-            $('#ppn').val(0);
-            $('#ppn').attr('disabled','disabled');
-            hitungGrandTotal();
-        }
-    });
-    
-    $('#persenDiscount,#ppn').on('keyup', function() {
-        hitungGrandTotal();
-    })
-
+  
     function reloadPage(){
         window.location.reload();
     }
 
-    $("#cmdCancel").click(function(){
-        reloadPage();
-    });
-
-    $("#cmdNew").click(function(){
+    $("#cmdCancel,#cmdNew").click(function(){
         reloadPage();
     });
 
@@ -240,7 +169,7 @@
             let flag=0; 
             let pesan="";
 
-            $("#article_row select[name='article_id[]']").map(function(i) {  
+            $("#article_row select[name='articleId[]']").map(function(i) {  
                 let $this=$(this);
                 if ($this.val()){
                     let article=$this.val().split("|");
@@ -251,9 +180,9 @@
                     let price=objPrice.eq(i).val().replace(/[^0-9]/gi, '') || 0;
                     let pRequest=objpr.eq(i).val();
                     let uom=objUom.eq(i).text();
-                    let supp=$('#supplier').val();
-                    let suppName = $('#supplier').select2('data')[0].text;
-                    let supplier=supp;
+                    let cust=$('#customer').val();
+                    let custName = $('#customer').select2('data')[0].text;
+                    let customer=cust;
                 
                     //es6
                     // let obj = ingredient.find(obj => obj.plu == plu);
@@ -300,7 +229,7 @@
                 let poType = $('#poType').val();
                 let deliveryDate = $('#deliveryDate').val();
                 let currency = $('#currency').val();
-                let supp = $('#supplier').val();
+                let cust = $('#customer').val();
                 let term = $('#term').val() || 0;
                 let kurs = $('#kurs').val() || 1;
                 let ppn = $('#ppn').val().replace(/[^0-9]/gi, '') || 0;
@@ -321,7 +250,7 @@
                         poType:poType,
                         deliveryDate:deliveryDate,
                         currency:currency,                
-                        supplier:supp,
+                        customer:cust,
                         tax:tax,
                         ppn:ppn,
                         term:term,
@@ -371,7 +300,7 @@
             let flag=0; 
             let pesan="";
             
-            $("#article_row select[name='article_id[]']").map(function(i) {  
+            $("#article_row select[name='articleId[]']").map(function(i) {  
                 let $this=$(this);
                 if ($this.val()){
                     let article=$this.val().split("|");
@@ -382,9 +311,9 @@
                     let price=objPrice.eq(i).val().replace(/[^0-9]/gi, '') || 0;
                     let pRequest=objpr.eq(i).val();
                     let uom=objUom.eq(i).text();
-                    let supp=$('#supplier').val();
-                    let suppName = $('#supplier').select2('data')[0].text;
-                    let supplier=supp;
+                    let cust=$('#customer').val();
+                    let custName = $('#customer').select2('data')[0].text;
+                    let customer=cust;
                 
                     //es6
                     // let obj = ingredient.find(obj => obj.plu == plu);
@@ -429,7 +358,7 @@
                 let poType = $('#poType').val();
                 let deliveryDate = $('#deliveryDate').val();
                 let currency = $('#currency').val();
-                let supp = $('#supplier').val();
+                let cust = $('#customer').val();
                 let term = $('#term').val()||0;
                 let kurs = $('#kurs').val()||1;
                 let ppn = $('#ppn').val().replace(/[^0-9]/gi, '') || 0;
@@ -452,7 +381,7 @@
                         poType:poType,
                         deliveryDate:deliveryDate,
                         currency:currency,                
-                        supplier:supp,
+                        customer:cust,
                         tax:tax,
                         ppn:ppn,
                         term:term,
@@ -492,106 +421,39 @@
         }
     }
 
-    declineData = () =>{
-        let poNumber = $('#poNumber').val();
-        $.ajax({
-            type: "get",
-            url: "{{ route('purchaseOrder.decline') }}",
-            data: {
-                poNumber:poNumber,
-            },
-            dataType: "json",
-            success: function(data) {
-                if (data.status == 0 ){
-                    for(let i = 0; i < data.message.length; i++) {
-                        show_msg(data.title, data.message[i], data.alert);
-                    }
-                    $('#poNumber').attr('disabled','disabled');
-                }else{
-                    show_msg(data.title, data.message, data.alert);
-                    $('#poNumber').attr('disabled','disabled');
-                    $('#cmdApprove').attr('disabled','disabled');
-                    $('#cmdUpdate').attr('disabled','disabled');
-                    $('#cmdDecline').attr('disabled','disabled');
-                    $('#addNewRow').attr('disabled','disabled');
-                    $('#poNumber').val(data.poNumber);
-                }
-            },
-            error: function(error) {
-                console.log(error);
-            }
-        });
-    }
-
     function add_new_row() {
-        let supplier = $('#supplier');
-        let supp = supplier.val();
+        let customer = $('#customer');
+        let cust = customer.val();
         let poType = $('#poType').val();
-        if (supp){            
+        if (cust){            
             $("#article_row").append($("#new_row").clone().html());
             cloneCount++;
             $("#article_row").find('#baru').attr('id', 'new_row'+ cloneCount);
-            $("#new_row"+ cloneCount).find('#article_id').attr('id', 'article_id'+ cloneCount);
-            $("#new_row"+ cloneCount).find('#pRequest').attr('id', 'pRequest'+ cloneCount);
-            poType =='std' ? changeselect('pRequest','pRequest'+ cloneCount,supp,'') : changeselect('pRequest_sub','pRequest'+ cloneCount,supp,'');
-            // changeselect('pRequest','pRequest'+ cloneCount,supp,'');
-            $("#article_id"+cloneCount).select2();
-            $("#pRequest"+cloneCount).select2();
+            $("#new_row"+ cloneCount).find('#articleId').attr('id', 'articleId'+ cloneCount);
+            changeselect('tsoArticle','articleId'+ cloneCount,cust,'');
+            $("#articleId"+cloneCount).select2();
             $('#remove_button').tooltip();
-            tombolPanah('qty_order');
-            tombolPanah('newPrice');
-            activate_angka();
-            mask_thousand();
-            // splitArticle();
-            isiListArticle();
+            tombolPanah('qtyTarget','','qtyForcast');
+            tombolPanah('qtyForcast','qtyTarget','');
+            mask_thousand_satuan();
+            splitArticle();
             hitungTotal();
             hitungGrandTotal();
             $('[data-toggle="tooltip"]').tooltip();
         }else{
             Swal.fire({
                 title: 'Warning',
-                text: "Choose supplier",
+                text: "Choose customer",
                 icon: 'warning',
                 confirmButtonColor: '#3085d6',
                 confirmButtonText: 'OK'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    supplier.select2('open');
+                    customer.select2('open');
                 }
             })
         }
     };
-
-    function isiListArticle(){
-        // split article with delimiter |
-        let objPrequest = $('#article_row select[name="pRequest[]"]');
-        objPrequest.change(function(e){        
-            let objIndex = objPrequest.index(this);
-            let prNumber = objPrequest.eq(objIndex).val();
-            let supp = $('#supplier').val();
-            let poType = $('#poType').val();
-            poType =='std' ? changeSelectArticle('searchFromPr',objIndex,supp,prNumber) : changeSelectArticle('searchFromPr_sub',objIndex,supp,prNumber);
-            splitArticle();
-		});
-    }
-
-    function changeSelectArticle(dependent,objIndex,value,prNumber) {
-        let objArticle = $('#article_row select[name="article_id[]"]');
-        $.ajax({
-            url:"{{route('dynamic.dependent')}}",
-            method:"POST",
-            data:{
-                value:value,
-                prNumber:prNumber,
-                dependent:dependent
-            },
-            success:function(result){
-                objArticle.eq(objIndex).html(result);
-                objArticle.eq(objIndex).select2();
-                // objArticle.eq(objIndex).trigger('change');
-            }
-        })
-    }
 
     function changeselect(dependent,obj,value,type) {
       $.ajax({
@@ -608,139 +470,51 @@
         }
       })
     }
-
-    function listPrice(article,desc,indexNya){
-        $("#modalTableData tbody> tr").remove();
-        $.ajax({
-            dataType: 'json',
-            type:'GET',
-            url: "{{ route('purchaseOrder.price.list') }}",
-            data: { article:article },
-            success: function(data) {
-                if(data.length > 0 ){
-                    let html = '';
-                    for(let i=0;i<data.length;i++){
-                        html += `<tr>
-                        <td>${i+1}</td>
-                        <td>${data[i].po_number}</td>
-                        <td>${data[i].po_date}</td>
-                        <td class="text-right">
-                            <a href='javascript:;' type="button" class='btn btn-outline-primary btn-block btn-sm waves-effect text-right' onclick="definePrice('${indexNya}','${data[i].price}');">${humanizeNumber(data[i].price)}</a>
-                        </td>
-                        </tr>`;
-                    }
-                    $('#modalTableData tbody').append(html);
-                }                
-            },
-            error: function(data) {
-                swal.fire("Warning","Error data","warning");
-            }
-        });
-        $('#modalArticle').text(desc);
-        $('#modalListPrice').modal('show'); 
-    }
-
+   
     function splitArticle(){
-        // split article with delimiter |
-        let objArticle = $('#article_row select[name="article_id[]"]');
-        let objStock= $('#article_row input[name="qty_stock[]"]');
-        let objUom= $('#article_row span[name="uom[]"]'); 
-        let objQty= $('#article_row input[name="qty_order[]"]');
-        let objPrice= $('#article_row input[name="price[]"]');
-        let objNewPrice= $('#article_row input[name="newPrice[]"]');
-        let objListPrice= $('#article_row a[name="listPrice[]"]');
-        let objTotal= $('#article_row input[name="totalLine[]"]');
+        let objArticle = $('#article_row select[name="articleId[]"]');
+        let objQtyTarget= $('#article_row input[name="qtyTarget[]"]'); 
+        let objUomTarget= $('#article_row span[name="uomTarget[]"]'); 
+        let objUomForcast= $('#article_row span[name="uomForcast[]"]'); 
         objArticle.change(function(e){   
-            //     0            1           2         3       4        5             6
-            // article_code.'|'group.'|'qty_stock.'|'qty.'|'uom1.'|'costprice.'|'last_price.'"
             let objIndex = objArticle.index(this);
-            let detail = objArticle.eq(objIndex).val();
-            let detailText = objArticle.eq(objIndex).select2('data')[0].text;
-            let arrDetail = detail.split("|");
             let uomGroup = objArticle.eq(objIndex).find(":selected").data("uom-group");
-
-            objListPrice.eq(objIndex).attr("onClick", `listPrice('${arrDetail[0]}','${detailText}','${objIndex}');`);
-            objStock.eq(objIndex).val(humanizeNumber(arrDetail[2]||0));
-            objUom.eq(objIndex).text(arrDetail[4]);
-            objQty.eq(objIndex).val(humanizeNumber(arrDetail[3]||0));
-            objPrice.eq(objIndex).val(humanizeNumber(arrDetail[5]||0));
-            objNewPrice.eq(objIndex).val(humanizeNumber(arrDetail[6]||0));
-            objArticle.eq(objIndex).select2('open');
-            if (detail){
+            objUomTarget.eq(objIndex).text(objArticle.eq(objIndex).find(":selected").data("uom"));
+            objUomForcast.eq(objIndex).text(objArticle.eq(objIndex).find(":selected").data("uom"));
+            if (uomGroup){
                 setTimeout(() => {
-                    objQty.eq(objIndex).focus().select();
+                    objQtyTarget.eq(objIndex).focus().select();
                 }, 5);
-            }
-
-            objTotal.eq(objIndex).val(humanizeNumber((arrDetail[3]||0)*(arrDetail[6]||0)));
-            hitungGrandTotal();
-
-            if ( uomGroup === 'PIECE' ){
-                objQty.eq(objIndex).removeClass("numeral-mask-digit");
-                objQty.eq(objIndex).addClass("numeral-mask-satuan");
-                mask_thousand_satuan();
-            }else{
-                objQty.eq(objIndex).removeClass("numeral-mask-satuan");
-                objQty.eq(objIndex).addClass("numeral-mask-digit");
-                mask_thousand_digit(numberOfDecimalDigit);
             }
 		});
     }
 
-    definePrice = (indexNya,hargaNya) =>{
-        $('#article_row input[name="newPrice[]"]').eq(indexNya).val(humanizeNumber(hargaNya||0));
-        $("#modalListPrice").modal('hide');
-    }
-  
-    function hitungTotal(){
-        let objQty= $('#article_row input[name="qty_order[]"]');
-        let objNewPrice= $('#article_row input[name="newPrice[]"]');
-        let objTotal= $('#article_row input[name="totalLine[]"]');
-        
-        objQty.keyup(function() {
-            let indexnya= objQty.index(this);
-            let qty = objQty.eq(indexnya).val().replace(/,/gi, '') || 0; 
-            let newPrice = objNewPrice.eq(indexnya).val().replace(/[^0-9]/gi, '') ||0;
-            let total = qty*newPrice;
-            objTotal.eq(indexnya).val(humanizeNumber(total));
+    hitungTotal = () => {
+        let objQtyTarget= $('#article_row input[name="qtyTarget[]"]');
+        let objQtyForcast= $('#article_row input[name="qtyForcast[]"]');
+        objQtyTarget.keyup(function() {
             hitungGrandTotal();
         });    
-
-        objNewPrice.keyup(function() {
-            let indexnya= objNewPrice.index(this);
-            let qty = objQty.eq(indexnya).val().replace(/,/gi, '') || 0; 
-            let newPrice = objNewPrice.eq(indexnya).val().replace(/[^0-9]/gi, '')||0;
-            let total = qty*newPrice;
-            objTotal.eq(indexnya).val(humanizeNumber(total));
+        objQtyForcast.keyup(function() {
             hitungGrandTotal();
         });    
     }
-
-    function hitungGrandTotal(){
-        let objArticle = $('#article_row select[name="article_id[]"]');
+      
+    hitungGrandTotal = ()=>{
+        let objArticle = $('#article_row select[name="articleId[]"]');
         let objQtyTiw= $('#article_row input[name="qty_order[]"]');
-        let objQTY= $('#article_row input[name="qty_order[]"]');
-        let objNewPrice= $('#article_row input[name="newPrice[]"]');
-        let persenDiscount = $('#persenDiscount').val() || 0;
-        let ppn= $('#ppn').val();
-        let totalQty= 0;
-        let totalAmount=0
-
-        let qty = objQTY.map(function(){return $(this).val();}).get();
-        let price = objNewPrice.map(function(){return $(this).val();}).get();
-        
-        totalQty = sumFromArray(qty);
-        totalAmount = sumFromArray(qty,price);
-
+        let objQTYTarget= $('#article_row input[name="qtyTarget[]"]');
+        let objQTYForcast= $('#article_row input[name="qtyForcast[]"]');
+        let totalQtyTarget= 0;
+        let totalQtyForcast= 0;
+        let qtyTarget = objQTYTarget.map(function(){return $(this).val();}).get();
+        let qtyForcast = objQTYForcast.map(function(){return $(this).val();}).get();
+        totalQtyTarget = sumFromArray(qtyTarget);
+        totalQtyForcast = sumFromArray(qtyForcast);
+        objArticle.length>0 ?$('#customer').attr('disabled','disabled'):$('#customer').removeAttr('disabled');
         $("#totalRow").val(objArticle.length);
-        $("#nilaiPPN").text(ppn+"%");
-        $("#totalQTY").val(humanizeNumber(totalQty));
-        $("#totalAmount").val(humanizeNumber(totalAmount));
-        $("#totalDiscount").val(humanizeNumber((totalAmount*parseInt(persenDiscount))/100));
-        $("#totalPPN").val(humanizeNumber((parseInt(ppn)*totalAmount)/100));
-        $("#totalPPH").val(0);
-        $("#totalNetto").val(humanizeNumber((totalAmount+((parseInt(ppn)*totalAmount)/100))-((totalAmount*parseInt(persenDiscount))/100)));
-
+        $("#totalQtyTarget").val(humanizeNumber(totalQtyTarget));
+        $("#totalQtyForcast").val(humanizeNumber(totalQtyForcast));
     }
 
     $("input[type='text']").click(function () {

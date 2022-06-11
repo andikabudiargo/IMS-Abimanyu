@@ -584,11 +584,12 @@
 
 
     // tombol panah atas bawah, untuk pindah antar field
-    function tombolPanah(objname){
+    function tombolPanah(objname,objnameKiri,objnameKanan){
         // function kalo mau pindah filed dari atas ke bawah atau sebaliknya
         let obj = $('input[name="'+objname+'[]"]');
+        let objKanan = objnameKanan ? $('input[name="'+objnameKanan+'[]"]') : '';
+        let objKiri = objnameKiri ? $('input[name="'+objnameKiri+'[]"]') : '';
         let indexnya,indexTarget;
-        let jumObj =  obj.length;
         obj.keyup(function(e) {
             indexnya= obj.index(this);
             indexnya=parseInt(indexnya);
@@ -604,6 +605,21 @@
                 obj.eq(indexTarget).focus().select();
                 return false;
             }
+            if (e.keyCode == 39) {
+                //panah kanan
+                if(objnameKanan){
+                    objKanan.eq(indexnya).focus().select();
+                }
+                return false;
+            }
+            if (e.keyCode == 37) {
+                //panah kiri
+                if(objnameKiri){
+                    objKiri.eq(indexnya).focus().select();
+                }
+                return false;
+            }
+            
         });
     }
 

@@ -30,6 +30,8 @@ class ArticleController extends Controller
             ['data'=>'costprice','name'=>'costprice','title'=>'Price'],
             ['data'=>'article_qty','name'=>'article_qty','title'=>'Qty'],
             ['data'=>'uom','name'=>'uom','title'=>'UOM'],
+            ['data'=>'safety_stock','name'=>'safety_stock','title'=>'Safety Stock'],
+            ['data'=>'min_package','name'=>'min_package','title'=>'Min Package'],
             ['data'=>'group','name'=>'group_materials.name','title'=>'Group'],
             ['data'=>'status','name'=>'status','title'=>'Status'],
             ['data'=>'note','name'=>'note','title'=>'Note']
@@ -171,7 +173,7 @@ class ArticleController extends Controller
     {
         // Dump, Die, Debug Fungsinya untuk nge-debug hasil dari submit
         // ddd($request);
-        
+
         $username =  Auth::user()->username;
         $type = $request->articleType;
         $cust = $request->cust;
@@ -180,6 +182,8 @@ class ArticleController extends Controller
         $uom = $request->uom;
         $price = $request->price;
         $price = $price ? str_replace(",","",$price) : $price;
+        $safetyStock = $request->safetyStock;
+        $minimumPackage = $request->minimumPackage;
         $note = $request->note;
         $files = $request->files;
         $status = '1';
@@ -202,7 +206,8 @@ class ArticleController extends Controller
 
         $rule = [
             'nama'=>'required',
-            'articleType'=>'required'
+            'articleType'=>'required',
+            'minimumPackage'=>'required'
         ];
 
         $this->validate($request,$rule,$messages);
@@ -222,6 +227,8 @@ class ArticleController extends Controller
                     'third_party' => $cust[0],
                     'note' => $note,
                     'uom' => $uom,
+                    'safety_stock' => $safetyStock,
+                    'min_package' => $minimumPackage,
                     'costprice' => $price,
                     'status' => $status,
                     'color_code' => $colorCode,
@@ -286,7 +293,7 @@ class ArticleController extends Controller
         
         $data['article'] = DB::table('article')
         ->where('id',$id)
-        ->get(['article_code','costprice','article_alternative_code as code','article_desc as desc','uom','quality','note','id','group_of_material as group','third_party as cust','quality','status','article_type','imgfile','color_code','variant'])->first();
+        ->get(['article_code','costprice','article_alternative_code as code','article_desc as desc','uom','quality','note','id','group_of_material as group','third_party as cust','quality','status','article_type','imgfile','color_code','variant','safety_stock','min_package'])->first();
 
         $data['images'] = DB::table('images')
         ->where('key',$data['article']->article_code)
@@ -334,7 +341,7 @@ class ArticleController extends Controller
         
         $data['article'] = DB::table('article')
         ->where('id',$id)
-        ->get(['article_code','costprice','article_alternative_code as code','article_desc as desc','uom','quality','note','id','group_of_material as group','third_party as cust','quality','status','article_type','imgfile','color_code','variant'])->first();
+        ->get(['article_code','costprice','article_alternative_code as code','article_desc as desc','uom','quality','note','id','group_of_material as group','third_party as cust','quality','status','article_type','imgfile','color_code','variant','safety_stock','min_package'])->first();
 
         $data['images'] = DB::table('images')
         ->where('key',$data['article']->article_code)
@@ -383,6 +390,8 @@ class ArticleController extends Controller
         $uom = $request->uom;
         $price = $request->price;
         $price = $price ? str_replace(",","",$price) : $price;
+        $safetyStock = $request->safetyStock;
+        $minimumPackage = $request->minimumPackage;
         $note = $request->note;
         $files = $request->files;
         $fileDihapus = $request->fileDihapus;
@@ -415,6 +424,8 @@ class ArticleController extends Controller
                         'third_party' => $cust[0],
                         'note' => $note,
                         'uom' => $uom,
+                        'safety_stock' => $safetyStock,
+                        'min_package' => $minimumPackage,
                         'costprice' => $price,
                         'status' => $status,
                         'color_code' => $colorCode,
@@ -566,6 +577,8 @@ class ArticleController extends Controller
         ,'group_materials.name as group'
         ,'third_party.nama as cust'
         ,'article_stock.article_qty as article_qty'
+        ,'safety_stock'
+        ,'min_package'
         ,'uom.uom_group')
         // ,DB::raw("case when uom.uom_group = 'PIECE' then TO_CHAR(article_stock.article_qty,'999,999,999') else TO_CHAR(article_stock.article_qty,'999,999,999.99') end as article_qty"))
         ->leftJoin('group_materials', 'group_materials.code', '=', 'article.group_of_material')
@@ -677,4 +690,5 @@ class ArticleController extends Controller
         $data = DB::select($sqlku);
         return Datatables::of($data)->make(true);
     }
+    
 }

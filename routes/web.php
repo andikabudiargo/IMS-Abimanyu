@@ -232,6 +232,23 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('purchaseOrders/price/list',['as'=>'purchaseOrder.price.list','uses'=>'PurchaseOrderController@priceList']);
 	Route::get('purchaseOrders/revision',['as'=>'purchaseOrder.revision','uses'=>'PurchaseOrderController@revision','middleware' => ['permission:purchaseOrder-revision']]);
 	Route::get('purchaseOrders/approve',['as'=>'purchaseOrder.approve','uses'=>'PurchaseOrderController@approve']);
+
+	Route::get('targetSo',['as'=>'targetSo.index','uses'=>'TargetSoController@index','middleware' => ['permission:purchaseOrder-index']]);
+	Route::get('targetSo/create',['as'=>'targetSo.create','uses'=>'TargetSoController@create','middleware' => ['permission:targetSo-create']]);
+	Route::post('targetSo/store',['as'=>'targetSo.store','uses'=>'TargetSoController@store']);
+	Route::get('targetSo/list',['as'=>'targetSo.list','uses'=>'TargetSoController@list']);
+	Route::get('targetSo/list/detail',['as'=>'targetSo.list.detail','uses'=>'TargetSoController@listDetail']);
+	Route::get('targetSo/show',['as'=>'targetSo.show','uses'=>'TargetSoController@show']);
+	Route::get('targetSo/edit',['as'=>'targetSo.edit','uses'=>'TargetSoController@edit','middleware' => ['permission:targetSo-edit']]);
+	Route::post('targetSo/update',['as'=>'targetSo.update','uses'=>'TargetSoController@update']);
+	Route::post('targetSo/delete',['as'=>'targetSo.destroy','uses'=>'TargetSoController@destroy']);
+	Route::post('targetSo/clear',['as'=>'targetSo.clear','uses'=>'TargetSoController@clear']);
+	Route::get('targetSo/decline',['as'=>'targetSo.decline','uses'=>'TargetSoController@decline']);
+	Route::get('targetSo/code/create',['as'=>'targetSo.code.create','uses'=>'TargetSoController@articleCodeCreate']);
+	Route::get('targetSo/print',['as'=>'targetSo.print','uses'=>'TargetSoController@print']);
+	Route::get('targetSo/price/list',['as'=>'targetSo.price.list','uses'=>'TargetSoController@priceList']);
+	Route::get('targetSo/revision',['as'=>'targetSo.revision','uses'=>'TargetSoController@revision','middleware' => ['permission:targetSo-revision']]);
+	Route::get('targetSo/approve',['as'=>'targetSo.approve','uses'=>'TargetSoController@approve']);
 	
 	Route::get('receivings',['as'=>'receivings.index','uses'=>'ReceivingController@index','middleware' => ['permission:receiving-index']]);
 	Route::get('receivings/create',['as'=>'receiving.create','uses'=>'ReceivingController@create','middleware' => ['permission:receiving-create']]);

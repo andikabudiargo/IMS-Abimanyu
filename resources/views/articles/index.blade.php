@@ -183,7 +183,7 @@
       arrColPrint:[1,2,3,4,5,6,7,8,9],
       columnDefs :[
         { width: '5%', targets: 0 },
-        { className: 'text-right','targets': [ 4,5 ] },
+        { className: 'text-right','targets': [ 4,5,7,8 ] },
       ],
       dataSearch:  {
         name:name,
@@ -203,14 +203,7 @@
     $('#mdlmovement').modal('show');
     $('#mdlartikel').text('|'+artikelAlternativeCode+'-'+artDesc);
 
-    let dtdom ='<"d-flex justify-content-between align-items-center header-actions mx-1 row mt-75"' +
-        '<"col-lg-12 col-xl-6" l>' +
-        '<"col-lg-12 col-xl-6 pl-xl-75 pl-0"<"dt-action-buttons text-xl-right text-lg-left text-md-right text-left d-flex align-items-center justify-content-lg-end align-items-center flex-sm-nowrap flex-wrap mr-1"<"mr-1"f>B>>' +
-        '>t' +
-        '<"d-flex justify-content-between mx-2 row mb-1"' +
-        '<"col-sm-12 col-md-6"i>' +
-        '<"col-sm-12 col-md-6"p>' +
-        '>';
+    let dtdom = dtdomGlob;
     let arr_col_print =[2,3,4,5,6,7]; 
     $(function(){
       let oTable =$("#mdlmovetable").DataTable({
@@ -283,10 +276,7 @@
           }
         },
         columnDefs: [
-          { className: 'dt-right', 'targets': [ 4 ] },
-          { className: 'dt-right', 'targets': [ 5 ] },
-          { className: 'dt-right', 'targets': [ 6 ] },
-          { className: 'dt-right', 'targets': [ 7 ] }
+          { className: 'dt-right', 'targets': [ 4,5,6,7 ] },
         ],
         order: [[ 2, 'asc' ]],
         bDestroy: true, //pakai ini supaya bisa di load berulang2

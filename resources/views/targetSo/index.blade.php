@@ -46,8 +46,8 @@
             <div class="form-row">
                 <div class="col-12"> 
                     <button type="button" class="btn btn-primary" id ="btnSearch" name="btnSearch">Search</button>
-                    @can('purchaseOrder-create')
-                    <a href="{{ route('purchaseOrder.create') }}" class="btn btn-info"><i class="fa fa-plus"></i> Create</a>
+                    @can('targetSo-create')
+                    <a href="{{ route('targetSo.create') }}" class="btn btn-info"><i class="fa fa-plus"></i> Create</a>
                     @endcan
                 </div>
             </div>
@@ -156,7 +156,7 @@
     }
     showDataTables({
       tableId:"detailedTable",
-      route:"{{ route('purchaseOrder.list') }}",
+      route:"{{ route('targetSo.list') }}",
       kolom:{!! $kolom !!},
       arrColPrint:[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16],
       columnDefs :[
@@ -183,7 +183,7 @@
     }
     showDataTables({
       tableId:"detailedTable",
-      route:"{{ route('purchaseOrder.list.detail') }}",
+      route:"{{ route('targetSo.list.detail') }}",
       kolom:{!! $kolomDetail !!},
       arrColPrint:[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27],
       columnDefs :[

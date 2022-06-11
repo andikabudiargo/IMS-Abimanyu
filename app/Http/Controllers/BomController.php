@@ -437,10 +437,10 @@ class BomController extends Controller
                                     <i data-feather="file-text"></i>
                                     Edit
                                 </a>';
-            // $buttons .=         '<a href="'. route('bom.print', ['id'=>$data->id]) .'" target="_blank" class="dropdown-item">
-            //                         <i data-feather="printer"></i>
-            //                         Print
-            //                     </a>';
+            $buttons .=         '<a href="'. route('bom.print', ['id'=>Crypt::encryptString($data->id)]) .'" target="_blank" class="dropdown-item">
+                                    <i data-feather="printer"></i>
+                                    Print
+                                </a>';
             }
             $buttons .=         '<a href="'. route('bom.show', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                     <i data-feather="list"></i>
@@ -479,57 +479,33 @@ class BomController extends Controller
 
     public function print(Request $request)
     {
-        $id = $request -> id;
-
-        $data['companies']= array(
-            "nama"=> "PT ABIMANYU SEKAR NUSANTARA",
-            "alamat"=> "KP. KARANG MULYA RT 014 RW 005 DESA CIKOPO",
-            "kota" => "KEC. BUNGURSARI KAB. PURWAKARTA JAWA BARAT",
-            "tlp" =>  ""
-        );
+        $id=Crypt::decryptString($request->id);
         
-        $data['suppliers']=array(
-            'nama'=>'PT ABIMANYU SEKAR NUSANTARA',
-            'alamat'=>'KP. KARANG MULYA RT 014 RW 005 DESA CIKOPO',
-            'kota' =>'KEC. BUNGURSARI KAB. PURWAKARTA JAWA BARAT',
-            'tlp' => ''
-        );
-        
-        $poHdr=DB::table('bom_hdr')
-        ->where('id',$id)
+        $data['bomHdr']=DB::table('bom_hdr')
+        ->leftJoin('third_party','third_party.kode','bom_hdr.customer')
+        ->leftJoin('article','article.article_code','bom_hdr.article_code')
+        ->where('bom_hdr.id',$id)
         ->first();
 
-        $bomNumber=$poHdr -> po_number;
-       
+        $bomNumber=$data['bomHdr']->bom_code;
 
+        $data['title'] = "$bomNumber";
+       
         $data['details']=DB::table('bom_det')
         ->leftJoin('article','article.article_code','bom_det.article_code')
-        ->where('po_number',$bomNumber)
+        ->where('bom_code',$bomNumber)
         ->get();
 
-        $data['totals']=DB::select("SELECT *,(gross-discount)+ppn as netto from (
-            select a.po_number,authorized_by,prepared_by,sum(qty) as qty,sum(qty*price) as gross,sum(discount) as discount,sum(a.ppn) as ppn from bom_det a
-            left join bom_hdr b
-            on a.po_number = b.po_number 
-            where a.po_number = '$bomNumber'
-            group by a.po_number,authorized_by,prepared_by) as oki");
 
-        $data['suppliers']=DB::table('third_party')
-        ->where('kode',$poHdr -> supplier_id)
-        ->get();
-
-        $data['keterangan']=$poHdr -> note;
-        $data['prNumber'] =$bomNumber;
-        $data['poDate'] =$poHdr -> po_date;
-        $data['poTerm'] =$poHdr -> termin;
-        $data['poDelDate'] =$poHdr -> delivery_date;
+        $data['keterangan']=$data['bomHdr'] -> note;
+        $data['bomNumber'] =$bomNumber;
         
         $data['status'] ='1';
-        $data['no'] =1;
+        $data['no'] =0;
 
         view()->share($data);
 
-        $pdf = PDF::loadView('bom.print');
+        $pdf = PDF::loadView('bom.print')->setPaper([0, 0, 595.28, 841.89], 'portrait');
         return $pdf->stream("PO_$bomNumber.pdf");
 
     }
