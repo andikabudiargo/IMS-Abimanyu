@@ -5,7 +5,7 @@
             <a class="navbar-brand" href="{{route('home')}}">
               <span class="brand-logo">
                 <div class="brand-wrapper">
-                  <img src="{{asset('app-assets/images/logo/looping_icon1.ico')}}" alt="logo" class="logo" >
+                  <img src="{{asset('app-assets/images/logo/looping_icon.ico')}}" alt="logo" class="logo" >
                 </div>
               </span>
               <h2 class="brand-text">IMS</h2>
