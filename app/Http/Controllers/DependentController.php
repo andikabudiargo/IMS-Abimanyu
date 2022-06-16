@@ -109,6 +109,18 @@ class DependentController extends Controller
                 $default='';
                 $defaulttxt='Choose article';
                 break;
+            case 'article_pr_rm': 
+                $table='article';
+                $field ='third_party';
+                $field2 ='article_type';
+                $type = $type;
+                $order ='article_desc';
+                $value ='article_code';
+                $value2 ='article_alternative_code';
+                $name  ='article_desc';
+                $default='';
+                $defaulttxt='Choose article';
+                break;
             case 'article_wos': 
                 $table='article';
                 $field ='third_party';
@@ -198,7 +210,27 @@ class DependentController extends Controller
                 $default='';
                 $defaulttxt='Choose Account';
                 break;
+            case 'tso_list': 
+                $table='target_order_hdr';
+                $order ='tso_code';
+                $name  ='tso_code';
+                $value ='tso_code';
+                $default='';
+                $defaulttxt='Choose TSO';
+                break;
             case 'tsoArticle': 
+                $table='article';
+                $field ='third_party';
+                $field2 ='article_type';
+                $type = $type;
+                $order ='article_desc';
+                $value ='article_code';
+                $value2 ='article_alternative_code';
+                $name  ='article_desc';
+                $default='';
+                $defaulttxt='Choose article';
+                break;
+            case 'trArticle': 
                 $table='article';
                 $field ='third_party';
                 $field2 ='article_type';
@@ -214,7 +246,6 @@ class DependentController extends Controller
                 default:
                     $table='';
         }
-                
 
         if($dependent =='article_id'){
             $data= DB::table($table) 
@@ -306,6 +337,12 @@ class DependentController extends Controller
             ->whereIn('article_type',['FG'])
             ->orderBy($order)
             ->get();
+        }elseif($dependent =='article_pr_rm'){
+            $data= DB::table($table)
+            ->leftJoin('uom','uom.code','=',$table.'.uom')
+            ->whereIn('article_type',['RM'])
+            ->orderBy($order)
+            ->get();
         }elseif($dependent =='article_wos'){
 
             $data=DB::select("SELECT *,(select article_qty from article_stock where article_code = z.article_code_rm) as qty_rm from (
@@ -364,6 +401,20 @@ class DependentController extends Controller
             ->whereIn('article_type',['FG'])
             ->orderBy($order)
             ->get();
+        }elseif($dependent =='trArticle'){
+            $data= DB::table($table) 
+            ->leftJoin('uom','uom.code','=',$table.'.uom')
+            // ->whereNotIn('article_type',['FG'])
+            ->orderBy($order)
+            ->select($table.'.*'
+            ,'uom.uom_group'
+            ,DB::RAW("(select string_agg(unit_to,',' order by unit_from) as uom_member from uom_con where unit_from = $table.uom)")
+            )
+            ->get();
+        }elseif($dependent =='tso_list'){
+            $data= DB::table($table)
+            ->orderBy($order)
+            ->get();
         }else{
             $data= DB::table($table) 
             ->where($field,$code)
@@ -378,15 +429,17 @@ class DependentController extends Controller
             if($dependent =='article_id'){
                 $output .='<option value="'.$row->$value.'|'.$row->group.'|'.$row->qty.'|'.$row->uom1.'|'.$row->costprice.'" data-uom-group="'.$row->uom_group.'">'.$row->$value2.'-'. $row->$name.'</option>';
             }elseif($dependent =='article_pr'){
-                $output .='<option value="'.$row->article_code.'|'.$row->uom.'|'.$row->third_party.'|'.$row->dept.'" data-uom-group="'.$row->uom_group.'">'.$row->article_alternative_code.' - '. $row->article_desc.'</option>';
+                $output .='<option value="'.$row->article_code.'" data-detail="'.$row->article_code.'|'.$row->uom.'|'.$row->third_party.'|'.$row->dept.'" data-uom-group="'.$row->uom_group.'">'.$row->article_alternative_code.' - '. $row->article_desc.'</option>';
             }elseif($dependent =='article_pr_sub'){
-                $output .='<option value="'.$row->article_code.'|'.$row->uom.'|'.$row->third_party.'|'.$row->dept.'" data-uom-group="'.$row->uom_group.'">'.$row->article_alternative_code.' - '. $row->article_desc.'</option>';
+                $output .='<option value="'.$row->article_code.'" data-detail="'.$row->article_code.'|'.$row->uom.'|'.$row->third_party.'|'.$row->dept.'" data-uom-group="'.$row->uom_group.'">'.$row->article_alternative_code.' - '. $row->article_desc.'</option>';
+            }elseif($dependent =='article_pr_rm'){
+                $output .='<option value="'.$row->article_code.'" data-detail="'.$row->article_code.'|'.$row->uom.'|'.$row->third_party.'|'.$row->dept.'" data-uom-group="'.$row->uom_group.'">'.$row->article_alternative_code.' - '. $row->article_desc.'</option>';
             }elseif($dependent =='article_wos'){
                 $output .='<option value="'.$row->article_code.'|'.$row->uom.'|'.$row->third_party.'|'.$row->dept.'|'.$row->article_rm.'|'.$row->qty_rm.'">'.$row->article_alternative_code.' - '. $row->article_desc.'</option>';
             }elseif($dependent =='article_sub_rm'){
                 $output .='<option value="'.$row->article_code.'|'.$row->uom.'|'.$row->third_party.'|'.$row->dept.'">'.$row->article_alternative_code.' - '. $row->article_desc.'</option>';
             }elseif($dependent =='article_bom'){
-                $output .='<option value="'.$row->article_code.'|'.$row->uom.'|'.$row->costprice.'|'.$row->article_type.'|'.$row->type_name.'" data-uom-group="'.$row->uom_group.'" data-uom-member="'.$row->uom_member.'">'.$row->article_alternative_code.' - '. $row->article_desc.'</option>';
+                $output .='<option value="'.$row->article_code.'" data-detail="'.$row->article_code.'|'.$row->uom.'|'.$row->costprice.'|'.$row->article_type.'|'.$row->type_name.'" data-uom-group="'.$row->uom_group.'" data-uom-member="'.$row->uom_member.'">'.$row->article_alternative_code.' - '. $row->article_desc.'</option>';
             }elseif($dependent =='searchFromPr'){
                 $output .='<option value="'.$row->article_code.'|'.$row->group.'|'.$row->qty_stock.'|'.$row->qty.'|'.$row->uom1.'|'.$row->costprice.'|'.$row->last_price.'" data-uom-group="'.$row->uom_group.'">'.$row->article_alternative_code.' - '. $row->article_desc.'</option>';
             }elseif($dependent =='searchFromPr_sub'){
@@ -399,6 +452,8 @@ class DependentController extends Controller
                 $output .='<option value="'.$row->account.'">'.$row->account.' - '.$row->description.'</option>';
             }elseif($dependent =='tsoArticle'){
                 $output .="<option value='$row->article_code' data-uom-group ='$row->uom_group' data-uom ='$row->uom'>$row->article_alternative_code - $row->article_desc</option>";
+            }elseif($dependent =='trArticle'){
+                $output .="<option value='$row->article_code' data-uom-member='".$row->uom_member."' data-uom-group ='$row->uom_group' data-uom ='$row->uom'>$row->article_alternative_code - $row->article_desc</option>";
             }else{
                 $output .='<option value="'.$row->$value.'">'.$row->$name.'</option>';
             }

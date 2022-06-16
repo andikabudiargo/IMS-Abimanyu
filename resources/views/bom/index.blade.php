@@ -207,6 +207,7 @@
             { data: 'action', name: 'action',title:'action', orderable: false, searchable: false },
             { data: 'bom_code', name: 'bom_code',title:'BOM Code' },
             { data: 'customer', name: 'customer',title:'Customer' },
+            { data: 'num_revision', name: 'num_revision',title:'Revision' },
             { data: 'article_des', name: 'article_des',title:'Article' },
             { data: 'group_of_material', name: 'group_of_material',title:'Group' },
             { data: 'status', name: 'status',title:'Status' },

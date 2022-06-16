@@ -131,8 +131,23 @@ class PurchaseRequestController extends Controller
         $note = $request->note;
         $status = '1';
         $print_seq = 0;
-        $poLeadCode = $orderType=='std' ? 'PR' : 'PRSUB'; 
-
+        switch ($orderType) { 
+            case 'std':
+                $poLeadCode = 'PR';
+                break;
+            case 'sub':
+                $poLeadCode = 'PRSUB';
+                break;
+            case 'tso':
+                $poLeadCode = 'PRTSO';
+                break;
+            case 'rm':
+                $poLeadCode = 'PRRM';
+            break;
+            default:
+            $poLeadCode = 'PR';
+        }
+        
         $messages = [
             'required' => 'The field is required.',
             'unique' => 'The code has already been taken', 
@@ -416,7 +431,7 @@ class PurchaseRequestController extends Controller
                     return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'prNumber'=>$prNumber));
 
             } catch (Exception $e) {
-                DB::rollBack();
+                
                 DB::rollBack();
                 $title ="Save $this->title";
                 $alert  ="warning";
@@ -587,11 +602,22 @@ class PurchaseRequestController extends Controller
             return "<div class='badge ".$badges[$data->status - 1]."'>".$statusPo[$data->status - 1]."</div>";
         })
         ->addColumn('order_type', function ($data) {
-            if ($data->order_type == 'std'){
-                return "<div class='badge badge-primary'>Standar</div>";
-            }else{
-                return "<div class='badge badge-info'>Subcontract</div>";
-            }
+            switch($data->order_type) {
+                case 'std':
+                    return "<div class='badge badge-primary'>Standar</div>";
+                    break;
+                case 'rm':
+                    return "<div class='badge badge-info'>Raw Material</div>";
+                    break;
+                case 'tso':
+                    return "<div class='badge badge-success'>Target SO</div>";
+                    break;
+                case 'sub':
+                    return "<div class='badge badge-warning'>Subcontract</div>";
+                    break;
+                default:
+                    return "<div class='badge badge-primary'>Standar</div>";
+            } 
         })
         ->addColumn('pr_number', function ($data) {
             $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-danger'];            
@@ -715,5 +741,91 @@ class PurchaseRequestController extends Controller
         $pdf = PDF::loadView('purchaseRequest.print');
         return $pdf->stream("PO_$prNumber.pdf");
 
+    }
+
+    public function articleTso(Request $request)
+    {
+        $tsoCode = $request->tsoCode;
+        $articles = DB::table('target_order_det')
+        ->where('tso_code',$tsoCode)
+        ->get();
+
+        $dataSet = [];
+        $randomCode = rand();
+        foreach ($articles as $val) {
+            $dataSet[] = [
+                'code' => $randomCode,
+                'article_code' => $val->article_code,
+                // 'qty' => $val->qty_target,  // pakai yanbg ini atau pakai yang forcast
+                'qty' => $val->qty_forcast
+            ];
+        }
+
+        DB::table('production_detail_temp')->insert($dataSet);
+
+        $data=DB::select("SELECT 
+        article_code_det as article_code
+        ,min_package 
+        ,sum(qty_order * qty_bom) as total
+        ,ceil(sum(qty_order * qty_bom)/min_package) * min_package as grand_total
+        ,uom_order as uom 
+        from(
+        select 
+        bom_det.article_code as article_code_det
+        ,production_detail_temp.qty as qty_order
+        ,production_detail_temp.uom as uom_order
+        ,bom_det.qty * coalesce((select unit_factor from uom_con where unit_from = bom_det.uom and unit_to = production_detail_temp.uom),1) as qty_bom
+        ,bom_det.uom as uom_bom
+        ,bom_hdr.article_code 
+        ,coalesce((select unit_factor from uom_con where unit_from = bom_det.uom and unit_to = production_detail_temp.uom),1) as factor_qty
+        ,(select min_package from article where article_code = bom_det.article_code) as min_package 
+        from production_detail_temp
+        left join bom_hdr on bom_hdr.article_code=production_detail_temp.article_code
+        join bom_det on  bom_det.bom_code = bom_hdr.bom_code
+        where production_detail_temp.code ='$randomCode'
+        and bom_hdr.status = '3'
+        ) a
+        group by article_code_det,uom_order,min_package
+        order by article_code_det
+        ");
+
+        // $data=DB::select("SELECT 
+        //     article.article_code
+        //     ,article_alternative_code
+        //     ,article_desc
+        //     ,article.uom
+        //     ,qty,qty_proses
+        //     ,qty_total
+        //     ,article.article_type
+        //     ,min_package
+        //     ,qty_total/min_package as total_baru
+        //     ,ceil(qty_total/min_package) as round
+        //     ,ceil(qty_total/min_package) * min_package  as grand_total
+        //     ,(select name from article_types where code = article.article_type) as kelompok 
+        //     from (
+        //     select article_code,sum(oki.qty) as qty
+        //         ,sum(mari.qty) as qty_proses
+        //         ,sum(oki.qty*mari.qty) as qty_total 
+        //         from (
+        //         select * from bom_det where bom_code in (
+        //         select bom_code from bom_hdr 
+        //             left join production_detail_temp on bom_hdr.article_code = production_detail_temp.article_code
+        //             where bom_hdr.article_code in (select article_code from production_detail_temp))) oki
+        //             left join(
+        //                 select bom_code,qty from bom_hdr 
+        //                 left join production_detail_temp on bom_hdr.article_code = production_detail_temp.article_code
+        //                 where bom_hdr.article_code in (select article_code from production_detail_temp where code  = '$randomCode' )
+        //             ) mari
+        //             on oki.bom_code= mari.bom_code
+        //                 group by article_code) so
+        //         left join article on article.article_code = so.article_code");
+
+        if ($data){
+            DB::table('production_detail_temp')
+                ->where('code',$randomCode)
+                ->delete();
+        }
+        
+        return response()->json($data);                        
     }
 }

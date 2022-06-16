@@ -7,12 +7,7 @@
         <div class="col-md-12">
             <div class="card">
                 <div class="card-header">
-                    <div class="form-group row">
-                        <label for="bomNumber" class="col-sm-4 col-form-label col-form-label-sm">BOM Number</label>
-                        <div class="col-md-8">
-                            <input type="text" id="bomNumber" name="bomNumber" class="form-control form-control-sm" value="{{ $header->bom_code }}" disabled />
-                        </div>
-                    </div>                    
+                    <h4 class="card-title">Status: {{ $statusBom }}</h4>
                     <div class="heading-elements">
                         <ul class="list-inline mb-0">
                             <li><a data-action="collapse"><i data-feather="chevron-down"></i></a></li>
@@ -25,12 +20,17 @@
                             @csrf
                             <input type="text" id="article" name="article" hidden>
                             <div class="form-row">
-                                <div class="form-group col-md-6">
+                                <div class="form-group col-md-3">
+                                    <label for="bomNumber" class="form-label">BOM Number</label>
+                                    <input type="text" id="bomNumber" name="bomNumber" class="form-control form-control-sm" value="{{ $header->bom_code }}" disabled />
+                                </div>
+                            </div>  
+                            <div class="form-row">
+                                <div class="form-group col-md-5">
                                     <label class="form-label" for="articleCode">Article*</label>
                                     <select class="select2 form-control" id="articleCode" name="articleCode" disabled>
-                                        <option value="">All</option>
                                         @foreach($articleHeader as $val)
-                                            <option value="{{ $val->article_code }}|{{ $val->uom }}|{{ $val->cust_name }}|{{ $val->group }}|{{ $val->third_party }}|{{ $val->group_of_material }}" {{$val->article_code == old("articleCode",$header->article_code) ? "selected" : ""}}>{{ $val->article_alternative_code }} - {{ $val->article_desc }}</option>
+                                            <option value="{{ $val->article_code }}" data-detail ="{{ $val->article_code }}|{{ $val->uom }}|{{ $val->cust_name }}|{{ $val->group }}|{{ $val->third_party }}|{{ $val->group_of_material }}" {{$val->article_code == old("articleCode",$header->article_code) ? "selected" : ""}}>{{ $val->article_alternative_code }} - {{ $val->article_desc }}</option>
                                         @endforeach
                                     </select>
                                 </div>
@@ -72,7 +72,7 @@
                                 </div>
                             </div>
                             <div class="form-row">
-                                <div class="form-group col-md-12">
+                                <div class="form-group col-md-8">
                                     <label class="form-label" for="note">Notes</label>
                                     <textarea type="text" id="note" name="note" class="form-control" rows="1" >{{ old('note',$header->note) }}</textarea>
                                 </div>
@@ -89,90 +89,73 @@
                     <h4 class="card-title">Article</h4>
                 </div>
                 <div class="card-body">
-                    <div class="form-row">
-                        <div class="col-md-6 col-12 d-none d-md-block">
-                            <div class="form-group">
-                                <label class="d-none d-md-block">Article Code</label>
-                            </div>
-                        </div>
-                        <div class="col-md-2 col-12 d-none d-md-block">
-                            <div class="form-group">
-                                <label class="d-none d-md-block text-right">QTY</label>
-                            </div>
-                        </div>
-                        <div class="col-md-1 col-12 d-none d-md-block">
-                            <div class="form-group">
-                                <label class="d-none d-md-block">Uom</label>
-                            </div>
-                        </div>
-                        <div class="col-md-2 col-12 d-none d-md-block">
-                            <div class="form-group">
-                                <label class="d-none d-md-block">Type</label>
-                            </div>
-                        </div>
-                        <div class="col-md-1 col-12 d-none d-md-block">
-                            <div class="form-group">
-                                <label class="d-none d-md-block">-</label>
-                            </div>
-                        </div>
-                    </div>
+                    @include('bom.headerColumn')
                     <div class="" id="article_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;">
-                        <input type="text" id ="last_row_number" class="d-none" value="{{ count($detail) }}">
-                        @foreach ($detail as $key =>$item)
-                            <div id="new_row{{ $key }}" class="tanda-baris barisDetail" >
-                                <div class="form-row d-flex align-items-center">
-                                    <div class="col-md-6 col-12">
-                                        <div class="form-group margin-nol">
-                                            <select class="form-control sku-select-system" id="article_id{{ $key }}" name="article_id[]" >
-                                                @foreach($articles as $val)
-                                                    <option value="{{ $val->article_code }}|{{ $val->uom }}|{{ $val->costprice }}|{{ $val->article_type }}|{{ $val->type_name }}" data-uom-group={{ $val->uom_group }} {{ $val->article_code == $item->article_code ? "selected" : "" }}>{{$val->article_code}} - {{$val->article_desc}}</option>
-                                                @endforeach
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-2 col-12">
-                                        <div class="form-group margin-nol">
-                                            <label for="qty_stock" class="d-block d-md-none">QTY</label>
-                                            <input type="text" class="form-control text-right tombol-panah" data-nama-el-kiri="article_id" data-type-el-kiri="select" data-uom-group={{ $item->uom_group }} id = "qtyBom{{ $key }}" name="qtyBom[]" value="{{ $item->uom_group =='PIECE' ? $item->qty*1 : $item->qty }}" maxlength="6" />
-                                        </div>
-                                    </div>
-                                    <div class="col-md-1 col-12">
-                                        <div class="form-group margin-nol">
-                                            <label for="uom" class="d-block d-md-none">Uom</label>
-                                            <span class="" id = "uom" name="uom[]">{{ $item->uom }}</span>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-2 col-12">
-                                        <div class="form-group margin-nol">
-                                            <label for="uom" class="d-block d-md-none">Type</label>
-                                            <span class="" id = "type" name="type[]">{{ $item->type_name }}</span>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-1 col-12">
-                                        <div class="form-group margin-nol">
-                                            <a onmouseover="this.style.cursor='pointer'" onclick="$(this).parents('.tanda-baris').remove();">
-                                                <i data-feather="trash-2" class="remove_button feather-24">
-                                                </i>
-                                            </a>
-                                        </div>
-                                    </div>
-                                </div>
-                                <hr class="d-block d-md-none" />
-                            </div>
-                        @endforeach
                     </div>
                     <div class="d-flex justify-content-between align-items-end mt-75">
-                        <button class="btn btn-primary btn-prev" type="button" id="addNewRow" onclick="add_new_row();">
-                            <i data-feather="plus" class="align-middle mr-sm-25 mr-0"></i>
-                            <span class="align-middle d-sm-inline-block d-none">Add Article</span>
-                        </button>
+                        {{-- @if( !$approveValidate && $statusBom =='NEW') --}}
+                            <button class="btn btn-primary btn-prev" type="button" id="addNewRow" onclick="add_new_row();">
+                                <i data-feather="plus" class="align-middle mr-sm-25 mr-0"></i>
+                                <span class="align-middle d-sm-inline-block d-none">Add Article</span>
+                            </button>
+                        {{-- @endif --}}
                     </div>
                     <hr>
                     <div class="form-row">
-                        <div class="col-md-12 col-12">
-                            <a href="{{ route('boms.index') }}" class="btn btn-success">Back</a>
-                            <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Update</button>
+                        <div class="col-md-12">
+                            <div class="form-row">
+                                <div class="col-md-12">
+                                    <a href="{{ route('boms.index') }}" class="btn btn-warning">Back</a>
+                                    @if( $approveValidate ? $approveValidate[0]->validate : '')
+                                        <input type="text" id ="approveLevel" name ="approveLevel" class="d-none" value="{{ $approveValidate[0]->next_level }}">
+                                        <input type="text" id ="maxLevel" name ="maxLevel" class="d-none" value="{{ $approveValidate[0]->max_level }}">
+                                        <button class="btn btn-primary" type="button" id="cmdApprove" name="cmdApprove">Approve</button>
+                                    @else
+                                        @if( !$approveValidate && $statusBom =='NEW')
+                                            <button class="btn btn-primary" type="button" id="cmdUpdate" name="cmdUpdate">Update</button>
+                                        @endif
+                                    @endif
+                                </div>
+                            </div>
                         </div>
+                    </div>
+                    <hr>
+                    <div class="form-row card-statistics">
+                        @foreach($approvalHistory as $val)
+                            @if($val->status == true)
+                                <div class="statistics-body">
+                                    <div class="col-xl-3 col-sm-6 col-12 mb-2 mb-xl-0">
+                                        <div class="media">
+                                            <div class="avatar bg-light-success mr-2">
+                                                <div class="avatar-content">
+                                                    <i data-feather="check" class="avatar-icon"></i>
+                                                </div>
+                                            </div>
+                                            <div class="media-body my-auto">
+                                                <h4 class="font-weight-bolder mb-0">Approve-{{ $val->approval_order }}</h4>
+                                                <p class="card-text mb-0">{{ $val->name }}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            @else
+                                <div class="statistics-body">
+                                    <div class="col-xl-3 col-sm-6 col-12 mb-2 mb-xl-0">
+                                        <div class="media">
+                                            <div class="avatar bg-light-danger mr-2">
+                                                <div class="avatar-content">
+                                                    <i data-feather="x" class="avatar-icon"></i>
+                                                </div>
+                                            </div>
+                                            <div class="media-body my-auto">
+                                                <h4 class="font-weight-bolder mb-0">Approve-{{ $val->approval_order }}</h4>
+                                                <p class="card-text mb-0">{{ $val->petugas }}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endif
+                        @endforeach
                     </div>
                 </div>
             </div>
@@ -190,7 +173,8 @@
 @endsection
 @section('scripts')
 <script type="text/javascript">
-    let currentDate = todayDate('dd-mm-yyyy');    
+    let currentDate = "{{ $currentDateValue }}";
+    const approveBtn = document.querySelector('#cmdApprove'); 
     $(document).ready(function(){           
         validateForm('frmAdd');
         mask_thousand_digit(numberOfDecimalDigit);
@@ -199,7 +183,25 @@
         splitArticle();
         setMasking();
         $('.sku-select-system').select2();
+
+
+        let detail = {!!  $detail !!};
+        for(let i=0;i<detail.length;i++){
+            article = detail[i].article_code;
+            qty = detail[i].qty;
+            uom =  detail[i].uom;
+            typeName = detail[i].type_name;
+            uomMember = detail[i].uom_member;
+            add_new_row_edit(article,qty,uom,typeName,uomMember);
+        }
+
     });
+
+    if (approveBtn) {
+        approveBtn.addEventListener('click',() =>{
+            approve();
+        },{ once:true});
+    }
 
     $("#cmdCancel,#cmdNew").click(function(){
         $('#bomNumber').val('');
@@ -220,24 +222,22 @@
         });
     }
 
-    $("#cmdSave").click(function(){  
+    $("#cmdUpdate").click(function(){  
         
         if (!$("#frmAdd")[0].checkValidity()){
             $("#frmAdd").submit();
         }else{
-
             $('.disabled-el').removeAttr('disabled');
             // ambil semua data article
             let bomNumber = $('#bomNumber').val();
             let objArticle = $("#article_row select[name='article_id[]']");
-            let objQty = $('input[name="qtyBom[]"]');
-            let objUom = $('article_row select[name="uom[]"]');
-            let articleCode1 = $('#articleCode').val().split("|");
-            articleCode = articleCode1[0];
+            let objQty = $('#article_row input[name="qtyBom[]"]');
+            let objUom = $('#article_row select[name="uom[]"]');
+            let articleCode = $('#articleCode').val();
+            let articleCode1 = $('#articleCode').find(":selected").data("detail").split("|");
             let uom = articleCode1[1];
             let group = articleCode1[5];
             let customer  = articleCode1[4];
-
             let tag = $('#tag').val().replace(/,/gi, '') || 0;
             let passRate = $('#passRate').val().replace(/,/gi, '') || 0;
             let passThru = $('#passThru').val().replace(/,/gi, '') || 0;
@@ -251,22 +251,14 @@
             objArticle.map(function(i) {  
                 let $this=$(this);
                 if ($this.val()){
-                    let article=$this.val().split("|");
                     let articleName=$this.select2('data')[0].text;
-                    let plu=article[0];
+                    let plu=$this.val();
                     let uom=objUom.eq(i).val();
-                    let type=article[3];
+                    let detail = $this.find(":selected").data("detail").split("|");
+                    let type=detail[4];
                     let qty=objQty.eq(i).val().replace(/,/gi, '') || 0;
 
-                    //es6
-                    // let obj = ingredient.find(obj => obj.plu == plu);
-
-                    //jquery
-                    //cek apakah article ada yang double input ato ngk
-
-                    let obj = $.grep(articles, function(obj){
-                        return obj.article_code === plu;
-                    })[0];
+                    let obj = articles.find(obj => obj.plu == plu);
                     
                     if(obj) {
                         pesan +="Article "+articleName+" entered more than once !! <br>"; 
@@ -282,6 +274,8 @@
                             });
                         }
                     } 
+
+                    console.log(articles);
                 
                     if (qty == 0){
                         pesan +="QTY of items "+ articleName +" cannot be 0 <br>"; 
@@ -350,14 +344,45 @@
     }
 
     $("#articleCode").change(function(){
+        $("#articleCode").change(function(){
         let $this = $(this);
-        let detail = $this.val().split("|");
+        let detail = $this.find(":selected").data("detail").split("|");
         $('#uom').val(detail[1]);
         $('#customer').val(detail[2]);
-        $('#group').val(detail[3]);
+        $('#group').val(detail[5]);
     })
-   
-    let cloneCount={{ count($detail)-1 }};
+    })
+
+    let cloneCount=1;
+    add_new_row_edit = (article,qty,uom,typeName,uomMember)=>{
+        $("#article_row").append($("#new_row").clone().html());
+        cloneCount++;
+        $("#article_row").find('#baru').attr('id', 'new_row'+ cloneCount);
+        $("#new_row"+ cloneCount).find('#article_id').attr('id', 'article_id'+ cloneCount);
+        changeselect('article_bom','article_id'+ cloneCount,article);
+        $("#new_row"+ cloneCount).find('#qtyBom').attr('id', 'qtyBom'+ cloneCount);
+        $("#qtyBom"+ cloneCount).val(qty);
+        $("#new_row"+ cloneCount).find('#type').attr('id', 'type'+ cloneCount);
+        $("#type"+ cloneCount).text(typeName);
+        $("#article_id"+cloneCount).select2();
+        let uomOption="";
+        if (uomMember){
+            let arrUomMember = uomMember.split(',');
+            $.each(arrUomMember, function(index, val) {
+                uomOption +=`<option>${val}</option>`;
+            });
+        }else{
+            if(uom){
+                uomOption +=`<option>${uom}</option>`;
+            }
+        }
+        $("#new_row"+ cloneCount).find('#uom').attr('id', 'uom'+ cloneCount);
+        $("#uom"+ cloneCount).html(uomOption);
+        $("#uom"+ cloneCount).val(uom).trigger('change');
+        $('#remove_button').tooltip();
+        tombolPanah('qtyBom');
+    }
+
     function add_new_row() {
         $("#article_row").append($("#new_row").clone().html());
         cloneCount++;
@@ -367,44 +392,62 @@
         $("#new_row"+ cloneCount).find('#qtyBom').attr('id', 'qtyBom'+ cloneCount);
         $("#article_id"+cloneCount).select2();
         $('#remove_button').tooltip();
-        // tombolPanah('qtyBom');
-        splitArticle('new');
+        tombolPanah('qtyBom');
+        splitArticle();
     };
 
     function splitArticle(){
         // split article with delimiter |
         let objArticle = $('#article_row select[name="article_id[]"]');
-        let objUom= $('#article_row span[name="uom[]"]'); 
+        let objUom= $('#article_row select[name="uom[]"]'); 
         let objType= $('#article_row span[name="type[]"]'); 
         let objQty = $('#article_row input[name="qtyBom[]"]');
         objArticle.change(function(e){
             let objIndex = objArticle.index(this);
-            let detail = objArticle.eq(objIndex).val();
+            let article = objArticle.eq(objIndex).val();
+            let detail="";
+            if (article){
+                detail = objArticle.eq(objIndex).find(":selected").data("detail");
+            }            
+            let arrDetail = detail.split("|");
+            let uomMember = objArticle.eq(objIndex).find(":selected").data("uom-member");
             let uomGroup = objArticle.eq(objIndex).find(":selected").data("uom-group");
-            if (detail){
-                let arrDetail = detail.split("|");
-                objUom.eq(objIndex).text(arrDetail[1]);
-                let id_qty = objQty.eq(objIndex).prop('id');
-                
-                if ( uomGroup === 'PIECE' ){
-                    $('#'+id_qty).val('');
-                    mask_thousand_digit_by_id(id_qty,0);
-                }else{
-                    $('#'+id_qty).val('');
-                    mask_thousand_digit_by_id(id_qty,numberOfDecimalDigit);
+            objType.eq(objIndex).text(arrDetail[4]);
+            let uomOption="";
+            if (uomMember){
+                let arrUomMember = uomMember.split(',');
+                $.each(arrUomMember, function(index, val) {
+                    uomOption +=`<option>${val}</option>`;
+                });
+            }else{
+                if(arrDetail[1]){
+                    uomOption +=`<option>${arrDetail[1]}</option>`;
                 }
-        
-                objType.eq(objIndex).text(arrDetail[4]);
-                if (detail){
-                    setTimeout(() => {
-                        objQty.eq(objIndex).focus().select();
-                    }, 5);
-                }    
             }
+            objUom.eq(objIndex).html(uomOption);
+            objUom.eq(objIndex).val(arrDetail[1]).trigger('change');
+
+            //jangan di filter dulu karena untuk qty BOM bisa pake Koma
+            // if ( uomGroup === 'PIECE' ){
+            //     objQty.eq(objIndex).removeClass("numeral-mask-digit");
+            //     objQty.eq(objIndex).addClass("numeral-mask-satuan");               
+            //     mask_thousand_satuan();
+            // }else{
+            //     objQty.eq(objIndex).removeClass("numeral-mask-satuan");
+            //     objQty.eq(objIndex).addClass("numeral-mask-digit");
+            //     mask_thousand_digit(numberOfDecimalDigit);
+            // }
+
+            if (detail){
+                setTimeout(() => {
+                    objQty.eq(objIndex).focus().select();
+                }, 5);
+            }
+            
         });
     }
 
-    function changeselect(dependent,obj) {
+    function changeselect(dependent,obj,value) {
       $.ajax({
         url:"{{ route('dynamic.dependent') }}",
         method:"POST",
@@ -413,9 +456,39 @@
         },
         success:function(result){
             $('#'+obj).html(result);
-            $('#'+obj).val('').trigger('change');
+            $('#'+obj).val(value).trigger('change');
         }
       })
+    }
+
+    approve = () =>{    
+        let bomNumber = $('#bomNumber').val();
+        $.ajax({
+            type: "post",
+            url: "{{ route('bom.approve') }}",
+            data: {
+                bomNumber:bomNumber
+            },
+            dataType: "json",
+            success: function(data) {
+                if (data.status == 0 ){
+                    let message="";
+                    for(let i = 0; i < data.message.length; i++) {
+                        show_msg(data.title, data.message[i], data.alert);
+                    }
+                    $('#bomNumber').attr('disabled','disabled');
+                }else{
+                    show_msg(data.title, data.message, data.alert);
+                    $('#bomNumber').attr('disabled','disabled');
+                    $('#cmdApprove').attr('disabled','disabled');
+                    $('#addNewRow').attr('disabled','disabled');      
+                    window.location.reload();                 
+                }
+            },
+            error: function(error) {
+                console.log(error);
+            }
+        });
     }
     
     $.ajaxSetup({

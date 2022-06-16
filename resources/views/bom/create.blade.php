@@ -7,12 +7,7 @@
         <div class="col-md-12">
             <div class="card">
                 <div class="card-header">
-                    <div class="form-group row">
-                        <label for="bomNumber" class="col-sm-4 col-form-label col-form-label-sm">BOM Number</label>
-                        <div class="col-md-8">
-                            <input type="text" id="bomNumber" name="bomNumber" class="form-control form-control-sm disabled-el" disabled />
-                        </div>
-                    </div>                    
+                    <h4 class="card-title">Status: NEW</h4>
                     <div class="heading-elements">
                         <ul class="list-inline mb-0">
                             <li><a data-action="collapse"><i data-feather="chevron-down"></i></a></li>
@@ -25,12 +20,18 @@
                             @csrf
                             <input type="text" id="article" name="article" hidden>
                             <div class="form-row">
+                                <div class="form-group col-md-3">
+                                    <label for="bomNumber" class="form-label">BOM Number</label>
+                                    <input type="text" id="bomNumber" name="bomNumber" class="form-control form-control-sm disabled-el" disabled />
+                                </div>
+                            </div>
+                            <div class="form-row">
                                 <div class="form-group col-md-5">
                                     <label class="form-label" for="articleCode">Article*</label>
                                     <select class="select2 form-control" id="articleCode" name="articleCode" required>
                                         <option value=""></option>
                                         @foreach($articles as $val)
-                                            <option value="{{ $val->article_code }}|{{ $val->uom }}|{{ $val->cust_name }}|{{ $val->group }}|{{ $val->third_party }}|{{ $val->group_of_material }}" {{ $val->article_code == old("articleCode") ? "selected" : ""}} >{{ $val->article_alternative_code }} - {{ $val->article_desc }}</option>
+                                            <option value="{{ $val->article_code }}" data-detail ="{{ $val->article_code }}|{{ $val->uom }}|{{ $val->cust_name }}|{{ $val->group }}|{{ $val->third_party }}|{{ $val->group_of_material }}" {{ $val->article_code == old("articleCode") ? "selected" : ""}} >{{ $val->article_alternative_code }} - {{ $val->article_desc }}</option>
                                         @endforeach
                                     </select>
                                 </div>
@@ -42,22 +43,22 @@
                                     <label for="group">Group of material</label>
                                     <input type="text" id="group" name="group" class="form-control disabled-el"  disabled />
                                 </div>
-                                <div class="form-group col-md-2">
+                                <div class="form-group col-md-1">
                                     <label for="uom">UOM</label>
                                     <input type="text" id="uom" name="uom" class="form-control disabled-el"  disabled />
                                 </div>
                             </div>
                             <div class="form-row">
                                 <div class="form-group col-md-2">
-                                    <label for="tag">Tag</label>
+                                    <label for="tag">Tag*</label>
                                     <input type="text" id="tag" name="tag" value="{{ old('tag') }}" class="form-control numeral-mask-digit" maxlength="5" required/>
                                 </div>
                                 <div class="form-group col-md-2">
-                                    <label for="passRate">Pass Rate</label>
+                                    <label for="passRate">Pass Rate*</label>
                                     <input type="text" id="passRate" name="passRate" value="{{ old('passRate') }}" class="form-control numeral-mask-digit" maxlength="5" required/>
                                 </div>
                                 <div class="form-group col-md-2">
-                                    <label for="passThru">Pass trough</label>
+                                    <label for="passThru">Pass trough*</label>
                                     <div class="input-group input-group-merge">
                                         <input type="text" id="passThru" name="passThru" value="{{ old('passThru') }}" class="form-control numeral-mask-digit" maxlength="5" required/>
                                         <div class="input-group-append">
@@ -76,7 +77,6 @@
                                     <textarea type="text" id="note" name="note" class="form-control" rows="1" >{{ old('note') }}</textarea>
                                 </div>
                             </div>
-                            
                         </form>
                     </div>
                 </div>
@@ -88,33 +88,7 @@
                     <h4 class="card-title">Article</h4>
                 </div>
                 <div class="card-body">
-                    <div class="form-row">
-                        <div class="col-md-6 col-12 d-none d-md-block">
-                            <div class="form-group">
-                                <label class="d-none d-md-block">Article Code</label>
-                            </div>
-                        </div>
-                        <div class="col-md-2 col-12 d-none d-md-block">
-                            <div class="form-group">
-                                <label class="d-none d-md-block">QTY</label>
-                            </div>
-                        </div>
-                        <div class="col-md-1 col-12 d-none d-md-block">
-                            <div class="form-group">
-                                <label class="d-none d-md-block">Uom</label>
-                            </div>
-                        </div>
-                        <div class="col-md-2 col-12 d-none d-md-block">
-                            <div class="form-group">
-                                <label class="d-none d-md-block">Type</label>
-                            </div>
-                        </div>
-                        <div class="col-md-1 col-12 d-none d-md-block">
-                            <div class="form-group">
-                                <label class="d-none d-md-block">-</label>
-                            </div>
-                        </div>
-                    </div>
+                    @include('bom.headerColumn')
                     <div class="" id="article_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px">
                         <input type="text" id ="last_row_number" class="d-none" value="0">
                     </div>
@@ -165,14 +139,13 @@
             $('.disabled-el').removeAttr('disabled');
             // ambil semua data article
             let objArticle = $("#article_row select[name='article_id[]']");
-            let objQty = $('article_row input[name="qtyBom[]"]');
-            let objUom = $('article_row select[name="uom[]"]');
-            let articleCode1 = $('#articleCode').val().split("|");
-            articleCode = articleCode1[0];
+            let objQty = $('#article_row input[name="qtyBom[]"]');
+            let objUom = $('#article_row select[name="uom[]"]');
+            let articleCode = $('#articleCode').val();
+            articleCode1 = $('#articleCode').find(":selected").data("detail").split("|");
             let uom = articleCode1[1];
             let group = articleCode1[5];
             let customer  = articleCode1[4];
-
             let tag = $('#tag').val().replace(/,/gi, '') || 0;
             let passRate = $('#passRate').val().replace(/,/gi, '') || 0;
             let passThru = $('#passThru').val().replace(/,/gi, '') || 0;
@@ -186,15 +159,15 @@
             objArticle.map(function(i) {  
                 let $this=$(this);
                 if ($this.val()){
-                    let article=$this.val().split("|");
                     let articleName=$this.select2('data')[0].text;
-                    let plu=article[0];
+                    let plu=$this.val();
                     let uom=objUom.eq(i).val();
-                    let type=article[3];
+                    let detail = $this.find(":selected").data("detail").split("|");
+                    let type=detail[4];
                     let qty=objQty.eq(i).val().replace(/[^0-9]/gi, '') || 0;
-                                
+                               
                     //es6
-                    let obj = ingredient.find(obj => obj.plu == plu);
+                    let obj = articles.find(obj => obj.plu == plu);
                     
                     if(obj) {
                         pesan +="Article "+articleName+" entered more than once !! <br>"; 
@@ -275,10 +248,10 @@
 
     $("#articleCode").change(function(){
         let $this = $(this);
-        let detail = $this.val().split("|");
+        let detail = $this.find(":selected").data("detail").split("|");
         $('#uom').val(detail[1]);
         $('#customer').val(detail[2]);
-        $('#group').val(detail[3]);
+        $('#group').val(detail[5]);
     })
 
     let cloneCount=1;
@@ -288,8 +261,10 @@
         $("#article_row").find('#baru').attr('id', 'new_row'+ cloneCount);
         $("#new_row"+ cloneCount).find('#article_id').attr('id', 'article_id'+ cloneCount);
         $("#new_row"+ cloneCount).find('#qtyBom').attr('id', 'qtyBom'+ cloneCount);
+        $("#new_row"+ cloneCount).find('#uom').attr('id', 'uom'+ cloneCount);
         changeselect('article_bom','article_id'+ cloneCount);
         $("#article_id"+cloneCount).select2();
+        $("#uom"+cloneCount).select2();
         $('#remove_button').tooltip();
         tombolPanah('qtyBom');
         splitArticle('new');
@@ -298,18 +273,20 @@
     function splitArticle(){
         // split article with delimiter |
         let objArticle = $('#article_row select[name="article_id[]"]');
-        // let objUom= $('#article_row span[name="uom[]"]'); 
         let objType= $('#article_row span[name="type[]"]'); 
-        let objQty = $('input[name="qtyBom[]"]');
-        let objUom = $('select[name="uom[]"]');
+        let objQty = $('#article_row input[name="qtyBom[]"]');
+        let objUom = $('#article_row select[name="uom[]"]');
         
         objArticle.change(function(e){        
             let objIndex = objArticle.index(this);
-            let detail = objArticle.eq(objIndex).val();
+            let article = objArticle.eq(objIndex).val();
+            let detail="";
+            if (article){
+                detail = objArticle.eq(objIndex).find(":selected").data("detail");
+            }
             let arrDetail = detail.split("|");
             let uomGroup = objArticle.eq(objIndex).find(":selected").data("uom-group");
             let uomMember = objArticle.eq(objIndex).find(":selected").data("uom-member");
-            objUom.eq(objIndex).text(arrDetail[1]);
             objType.eq(objIndex).text(arrDetail[4]);
             let uomOption="";
             if (uomMember){
@@ -317,12 +294,13 @@
                 $.each(arrUomMember, function(index, val) {
                     uomOption +=`<option>${val}</option>`;
                 });
-                
             }else{
-                uomOption +=`<option>${arrDetail[1]}</option>`;
+                if(arrDetail[1]){
+                    uomOption +=`<option>${arrDetail[1]}</option>`;
+                }
             }
-
-            objUom.html(uomOption);
+            objUom.eq(objIndex).html(uomOption);
+            objUom.eq(objIndex).val(arrDetail[1]).trigger('change');
             
             //jangan di filter dulu karena untuk qty BOM bisa pake Koma
             // if ( uomGroup === 'PIECE' ){

@@ -652,6 +652,7 @@
     let changeSelect = (opt) => {
         opt = $.extend({
             dependent:"",
+            value:"",
             obj:"",
             url:""
         }, opt);
@@ -664,7 +665,7 @@
             },
             success:function(result){
                 $('#'+opt.obj).html(result);
-                $('#'+opt.obj).val('').trigger('change');
+                $('#'+opt.obj).val(opt.value).trigger('change');
             }
         })
     }

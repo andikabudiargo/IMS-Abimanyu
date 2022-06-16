@@ -233,7 +233,7 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('purchaseOrders/revision',['as'=>'purchaseOrder.revision','uses'=>'PurchaseOrderController@revision','middleware' => ['permission:purchaseOrder-revision']]);
 	Route::get('purchaseOrders/approve',['as'=>'purchaseOrder.approve','uses'=>'PurchaseOrderController@approve']);
 
-	Route::get('targetSo',['as'=>'targetSo.index','uses'=>'TargetSoController@index','middleware' => ['permission:purchaseOrder-index']]);
+	Route::get('targetSo',['as'=>'targetSo.index','uses'=>'TargetSoController@index','middleware' => ['permission:targetSo-index']]);
 	Route::get('targetSo/create',['as'=>'targetSo.create','uses'=>'TargetSoController@create','middleware' => ['permission:targetSo-create']]);
 	Route::post('targetSo/store',['as'=>'targetSo.store','uses'=>'TargetSoController@store']);
 	Route::get('targetSo/list',['as'=>'targetSo.list','uses'=>'TargetSoController@list']);
@@ -242,12 +242,12 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('targetSo/edit',['as'=>'targetSo.edit','uses'=>'TargetSoController@edit','middleware' => ['permission:targetSo-edit']]);
 	Route::post('targetSo/update',['as'=>'targetSo.update','uses'=>'TargetSoController@update']);
 	Route::post('targetSo/delete',['as'=>'targetSo.destroy','uses'=>'TargetSoController@destroy']);
-	Route::post('targetSo/clear',['as'=>'targetSo.clear','uses'=>'TargetSoController@clear']);
-	Route::get('targetSo/decline',['as'=>'targetSo.decline','uses'=>'TargetSoController@decline']);
+	// Route::post('targetSo/clear',['as'=>'targetSo.clear','uses'=>'TargetSoController@clear']);
+	// Route::get('targetSo/decline',['as'=>'targetSo.decline','uses'=>'TargetSoController@decline']);
 	Route::get('targetSo/code/create',['as'=>'targetSo.code.create','uses'=>'TargetSoController@articleCodeCreate']);
-	Route::get('targetSo/print',['as'=>'targetSo.print','uses'=>'TargetSoController@print']);
-	Route::get('targetSo/price/list',['as'=>'targetSo.price.list','uses'=>'TargetSoController@priceList']);
-	Route::get('targetSo/revision',['as'=>'targetSo.revision','uses'=>'TargetSoController@revision','middleware' => ['permission:targetSo-revision']]);
+	// Route::get('targetSo/print',['as'=>'targetSo.print','uses'=>'TargetSoController@print']);
+	// Route::get('targetSo/price/list',['as'=>'targetSo.price.list','uses'=>'TargetSoController@priceList']);
+	// Route::get('targetSo/revision',['as'=>'targetSo.revision','uses'=>'TargetSoController@revision','middleware' => ['permission:targetSo-revision']]);
 	Route::get('targetSo/approve',['as'=>'targetSo.approve','uses'=>'TargetSoController@approve']);
 	
 	Route::get('receivings',['as'=>'receivings.index','uses'=>'ReceivingController@index','middleware' => ['permission:receiving-index']]);
@@ -402,6 +402,7 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('purchaseRequests/code/create',['as'=>'purchaseRequest.code.create','uses'=>'PurchaseRequestController@articleCodeCreate']);
 	Route::get('purchaseRequests/print',['as'=>'purchaseRequest.print','uses'=>'PurchaseRequestController@print']);
 	Route::post('purchaseRequests/approve',['as'=>'purchaseRequest.approve','uses'=>'PurchaseRequestController@approve']);
+	Route::get('purchaseRequests/article/tso',['as'=>'purchaseRequest.article.tso','uses'=>'PurchaseRequestController@articleTso']);
 
 	Route::get('boms',['as'=>'boms.index','uses'=>'BomController@index','middleware' => ['permission:bom-index']]);
 	Route::get('boms/create',['as'=>'bom.create','uses'=>'BomController@create','middleware' => ['permission:bom-create']]);
@@ -410,9 +411,11 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('boms/show',['as'=>'bom.show','uses'=>'BomController@show']);
 	Route::get('boms/edit',['as'=>'bom.edit','uses'=>'BomController@edit','middleware' => ['permission:bom-edit']]);
 	Route::post('boms/update',['as'=>'bom.update','uses'=>'BomController@update']);
+	Route::post('boms/approve',['as'=>'bom.approve','uses'=>'BomController@approve']);
 	Route::post('boms/delete',['as'=>'bom.destroy','uses'=>'BomController@destroy']);
 	Route::get('boms/code/create',['as'=>'bom.code.create','uses'=>'BomController@articleCodeCreate']);
 	Route::get('boms/print',['as'=>'bom.print','uses'=>'BomController@print']);
+	Route::get('boms/revision',['as'=>'bom.revision','uses'=>'BomController@revision','middleware' => ['permission:bom-revision']]);
 
 	Route::get('deliveryPlan/create',['as'=>'deliveryPlan.create','uses'=>'DeliveryPlanController@create','middleware' => ['permission:workingOrder-create']]);
 	Route::get('deliveryPlan/generate',['as'=>'deliveryPlan.generate','uses'=>'DeliveryPlanController@generatePlan']);
@@ -484,6 +487,23 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('approval/edit/level',['as'=>'approval.edit.level','uses'=>'ApprovalController@editLevel','middleware' => ['permission:approval-edit']]);
 	Route::post('approval/update/level',['as'=>'approval.update.level','uses'=>'ApprovalController@updateLevel']);
 	Route::post('approval/delete/level',['as'=>'approval.destroy.level','uses'=>'ApprovalController@destroyLevel']);
+
+	Route::get('warehouse',['as'=>'warehouse.index','uses'=>'WarehouseController@index','middleware' => ['permission:warehouse-index']]);
+	// Route::get('warehouse/create',['as'=>'warehouse.create','uses'=>'WarehouseController@create','middleware' => ['permission:warehouse-create']]);
+	Route::get('warehouse/transferIn',['as'=>'warehouse.transferIn','uses'=>'WarehouseController@transferIn','middleware' => ['permission:warehouse-create']]);
+	Route::get('warehouse/transferOut',['as'=>'warehouse.transferOut','uses'=>'WarehouseController@transferOut','middleware' => ['permission:warehouse-create']]);
+	Route::post('warehouse/store',['as'=>'warehouse.store','uses'=>'WarehouseController@store']);
+	Route::get('warehouse/list',['as'=>'warehouse.list','uses'=>'WarehouseController@list']);
+	Route::get('warehouse/list/detail',['as'=>'warehouse.list.detail','uses'=>'WarehouseController@listDetail']);
+	Route::get('warehouse/show',['as'=>'warehouse.show','uses'=>'WarehouseController@show']);
+	Route::get('warehouse/edit',['as'=>'warehouse.edit','uses'=>'WarehouseController@edit','middleware' => ['permission:warehouse-edit']]);
+	Route::post('warehouse/update',['as'=>'warehouse.update','uses'=>'WarehouseController@update']);
+	Route::post('warehouse/delete',['as'=>'warehouse.destroy','uses'=>'WarehouseController@destroy']);
+	Route::get('warehouse/code/create',['as'=>'warehouse.code.create','uses'=>'WarehouseController@articleCodeCreate']);
+	Route::get('warehouse/approve',['as'=>'warehouse.approve','uses'=>'WarehouseController@approve']);
+	Route::get('warehouse/posting',['as'=>'warehouse.posting','uses'=>'WarehouseController@posting']);
+	Route::get('warehouse/article',['as'=>'warehouse.article','uses'=>'WarehouseController@article','middleware' => ['permission:warehouse-index']]);
+	Route::get('warehouse/articles/list',['as'=>'warehouse.article.list','uses'=>'WarehouseController@listArticle']);
 
 	Route::post('dynamic/dependent',['as'=>'dynamic.dependent','uses'=>'DependentController@dependentFetch']);
 

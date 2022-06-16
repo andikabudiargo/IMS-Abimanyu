@@ -15,24 +15,23 @@ use PDF;
 use AppHelpers;
 use Approval;
 
-class TargetSoController extends Controller
+class WarehouseController extends Controller
 {
     private $title;
     private $moduleCode;
     public function __construct()
     {
-        $this->title = "Target SO";
-        $this->moduleCode = "TSO";
+        $this->title = "WH";
+        $this->moduleCode = "WH";
     }
 
     public function getTableColoumn(){
         $kolom=
         [
             ['data'=>'action','name'=>'action','title'=>'action','orderable'=> false,'searchable'=>false],
-            ['data'=>'tso_code','name'=>'tso_code','title'=>'TSO Code'],
-            ['data'=>'tso_name','name'=>'tso_name','title'=>'Name'],
-            ['data'=>'tso_date','name'=>'tso_date','title'=>'Date'],
-            ['data'=>'customer','name'=>'customer','title'=>'Customer'],
+            ['data'=>'tr_number','name'=>'tr_number','title'=>'Tr Number'],
+            ['data'=>'tr_date','name'=>'tr_date','title'=>'Date'],
+            ['data'=>'tr_type','name'=>'tr_type','title'=>'Type'],
             ['data'=>'status','name'=>'status','title'=>'Status'],
             ['data'=>'note','name'=>'note','title'=>'Note']
         ];
@@ -42,22 +41,69 @@ class TargetSoController extends Controller
     public function getTableColoumnDetail(){
         $kolom=
         [
-            ['data'=>'tso_code','name'=>'tso_code','title'=>'TSO Code'],
-            ['data'=>'tso_name','name'=>'tso_name','title'=>'Name'],
-            ['data'=>'tso_date','name'=>'tso_date','title'=>'Date'],
-            ['data'=>'customer','name'=>'customer','title'=>'Customer'],
+            ['data'=>'tr_number','name'=>'tr_number','title'=>'TSO Code'],
+            ['data'=>'tr_date','name'=>'tr_date','title'=>'Date'],
             ['data'=>'article_desc','name'=>'article_desc','title'=>'Article desc'],
-            ['data'=>'qty_target','name'=>'qty_target','title'=>'Qty Target'],
-            ['data'=>'qty_forcast','name'=>'qty_forcast','title'=>'Qty Forcast'],
-            ['data'=>'qty_actual','name'=>'qty_actual','title'=>'Qty Actual'],
+            ['data'=>'qty','name'=>'qty','title'=>'Qty Target'],
             ['data'=>'uom','name'=>'uom','title'=>'UOM'],
-            // ['data'=>'approval_by','name'=>'approval_by','title'=>'Approved By'],
+            ['data'=>'note','name'=>'note','title'=>'Note'],
+            ['data'=>'status','name'=>'status','title'=>'Status'],
             ['data'=>'created_by','name'=>'created_by','title'=>'Created By'],
             ['data'=>'created_at','name'=>'created_at','title'=>'Created Date'],
             ['data'=>'updated_by','name'=>'updated_by','title'=>'Updated By'],
-            ['data'=>'updated_at','name'=>'updated_at','title'=>'Updated Date'],
+            ['data'=>'updated_at','name'=>'updated_at','title'=>'Updated Date']
+            
         ];
         return json_encode($kolom, true);
+    }
+
+    public function getTableColoumnArticle(){
+        $kolom=    
+        [
+            ['data'=>'action','name'=>'action','title'=>'action','orderable'=>false, 'searchable'=>false],
+            ['data'=>'article_alternative_code','name'=>'article_alternative_code','title'=>'Code'],
+            ['data'=>'desc','name'=>'article_desc','title'=>'Name'],
+            ['data'=>'cust','name'=>'third_party.nama','title'=>'Custs/Supp'],
+            ['data'=>'costprice','name'=>'costprice','title'=>'Price'],
+            ['data'=>'article_qty','name'=>'article_qty','title'=>'Qty'],
+            ['data'=>'uom','name'=>'uom','title'=>'UOM'],
+            ['data'=>'safety_stock','name'=>'safety_stock','title'=>'Safety Stock'],
+            ['data'=>'min_package','name'=>'min_package','title'=>'Min Package'],
+            ['data'=>'group','name'=>'group_materials.name','title'=>'Group'],
+            ['data'=>'status','name'=>'status','title'=>'Status'],
+            ['data'=>'note','name'=>'note','title'=>'Note']
+        ];
+        return json_encode($kolom, true);
+    }
+
+    public function article(Request $request)
+    {
+        $data['title'] = "$this->title Article";
+
+        $data['types'] = DB::table('article_types')
+        ->where ('status','=',1)
+        ->orderBy('name')
+        ->get();
+
+        $data['custs'] = DB::table('third_party')
+        ->where ('third_party_type','=','cust')
+        ->orderBy('nama')
+        ->get();
+
+    
+        $data['supps'] = DB::table('third_party')
+        ->where ('third_party_type','=','supp')
+        ->orderBy('nama')
+        ->get();        
+
+        $data['groups'] = DB::table('group_materials')
+        ->where ('status','=',1)
+        ->orderBy('name')
+        ->get();
+
+        $data['kolom'] = $this->getTableColoumnArticle();
+        
+        return view("warehouse.article",$data);
     }
 
     public function index(Request $request)
@@ -65,16 +111,11 @@ class TargetSoController extends Controller
         $data['title'] = "$this->title";
         $data['kolom'] = $this->getTableColoumn();
         $data['kolomDetail'] = $this->getTableColoumnDetail();
-        $data['customer'] = DB::table('third_party')
-        ->where ('third_party_type','=','cust')
-        ->orderBy('nama')
-        ->get();
-
-        $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','5'=>'CANCELED'];
-
-        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'RECEIVED','5'=>'CANCELED','6'=>'CLOSED','7'=>'REVISED','8'=>'DECLINE'];
+        
+        $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED'];
+        $data['type'] = ['TRIN'=>'TRANSFER IN','TROUT'=>'TRANSFER OUT'];
             
-        return view("targetSo.index",$data);
+        return view("warehouse.index",$data);
     }
 
     public function getLastCode($key)
@@ -98,29 +139,160 @@ class TargetSoController extends Controller
         return $poNumber;
     }
 
-    public function create(Request $request)
+    public function transferIn(Request $request)
     {
-        $data['title'] = "Create $this->title";
-        $data['subtitle'] = "Create $this->title";
-        
-        $data['custs'] = DB::table('third_party')
-        ->where ('third_party_type','=','cust')
-        ->orderBy('nama')
-        ->get();
+        $data['title'] = "$this->title Transfer In";
+        $data['subtitle'] = "$this->title  Transfer In";
+    
+        return view("warehouse.transferIn",$data);
+    }
 
-        return view("targetSo.create",$data);
+    public function transferOut(Request $request)
+    {
+        $data['title'] = "$this->title  Transfer Out";
+        $data['subtitle'] = "$this->title  Transfer Out";
+        
+        return view("warehouse.transferOut",$data);
+    }
+
+    
+    public function posting(Request $request)
+    {
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED'];
+
+        $username =  Auth::user()->username;
+        $trNumber = $request->trNumber;
+        $trType = $request->trType;
+        $statusRec ="POSTED";
+        $status = '4';
+        $authorizedBy = Auth::user()->username;
+
+        if ($trType =='TRIN'){
+            // Update stock kalo article nya udah ada
+            $sqlUpdate = "UPDATE warehouse_stock a set article_qty = COALESCE(a.article_qty,0) + COALESCE(b.qty,0)
+            from (
+            select art_code, (qty*factor_qty) as qty from 
+            (
+                select *,article.article_code as art_code,(select unit_factor from uom_con where unit_from = o.uom_tr and unit_to = article.uom) as factor_qty  from (
+                select *,uom as uom_tr from transfer_det where tr_number in (
+                select tr_number from transfer_hdr where tr_number = '$trNumber' and (status != '3' and status != '4'))) o
+                left join article on article.article_code = o.article_code
+            ) c
+            ) b
+            where a.article_code=b.art_code";
+
+            //Insert ke stock kalo article nya belum ada
+            $sqlInsert = "INSERT into warehouse_stock (site_code,article_code,dept_code,location_number,article_qty,uom)
+            select 'HO',art_code,article_type,'00',(qty*factor_qty) as qty,uom_tr from 
+            (
+                select *,article.article_code as art_code,(select unit_factor from uom_con where unit_from = z.uom_tr and unit_to = article.uom) as factor_qty from (
+                select *,uom as uom_tr from transfer_det where tr_number in (
+                select tr_number from transfer_hdr where tr_number = '$trNumber' and (status != '3' and status != '4'))) z
+                left join article on article.article_code = z.article_code
+                where article.article_code not in (select article_code from warehouse_stock)
+            ) y";
+
+            //Insert into table movement
+            $sqlMovement = "INSERT into warehouse_movement
+            (movement_date,artikel_code,artikel_desc,movement_min,movement_plus,movement_price,movement_transnno,movement_type,movement_desc)
+            select 
+            now()::timestamp::date,
+            article_code,
+            (select concat(article_alternative_code,'-',article_desc) from article where article_code = a.article_code) as article_desc,
+            0,
+            qty,
+            price,
+            tr_number,
+            '$trType',
+            (select tr_number from transfer_hdr where tr_number=a.tr_number) as tr from transfer_det a where tr_number in (
+            select tr_number from transfer_hdr where tr_number = '$trNumber' and status = '4' and qty <> 0)";
+        }
+
+        if ($trType =='TROUT'){
+            // Update stock kalo article nya udah ada
+            $sqlUpdate = "UPDATE warehouse_stock a set article_qty = COALESCE(a.article_qty,0) - COALESCE(b.qty,0)
+            from (
+            select art_code, (qty*factor_qty) as qty from 
+            (
+                select *,article.article_code as art_code,(select unit_factor from uom_con where unit_from = o.uom_tr and unit_to = article.uom) as factor_qty from (
+                select *,uom as uom_tr from transfer_det where tr_number in (
+                select tr_number from transfer_hdr where tr_number = '$trNumber' and (status != '3' and status != '4'))) o
+                left join article on article.article_code = o.article_code
+            ) c
+            ) b
+            where a.article_code=b.art_code";
+
+            //Insert ke stock kalo article nya belum ada
+            $sqlInsert = "INSERT into warehouse_stock (site_code,article_code,dept_code,location_number,article_qty,uom)
+            select 'HO',art_code,article_type,'00',(qty*factor_qty) as qty,uom_tr from 
+            (
+                select *,article.article_code as art_code,(select unit_factor from uom_con where unit_from = z.uom_tr and unit_to = article.uom) as factor_qty from (
+                select *,uom as uom_tr from transfer_det where tr_number in (
+                select tr_number from transfer_hdr where tr_number = '$trNumber' and (status != '3' and status != '4'))) z
+                left join article on article.article_code = z.article_code
+                where article.article_code not in (select article_code from warehouse_stock)
+            ) y";
+
+            //Insert into table movement
+            $sqlMovement = "INSERT into warehouse_movement
+            (movement_date,artikel_code,artikel_desc,movement_min,movement_plus,movement_price,movement_transnno,movement_type,movement_desc)
+            select 
+            now()::timestamp::date,
+            article_code,
+            (select concat(article_alternative_code,'-',article_desc) from article where article_code = a.article_code) as article_desc,
+            qty,
+            0,
+            price,
+            tr_number,
+            '$trType',
+            (select tr_number from transfer_hdr where tr_number=a.tr_number) as tr from transfer_det a where tr_number in (
+            select tr_number from transfer_hdr where tr_number = '$trNumber' and status = '4' and qty <> 0)";
+        }
+    
+        DB::select($sqlUpdate);
+        $rowAffected = DB::select($sqlInsert);
+        
+        if ($rowAffected > 0){
+            DB::table('transfer_hdr')
+            ->where('tr_number',$trNumber)
+            ->update(
+                [   
+                    'status' => $status,
+                    // 'authorized_by' => $authorizedBy,
+                    // 'authorized_at' => date('Y-m-d H:i:s'),
+                    'updated_by' => Auth::user()->username,
+                    'updated_at' => date('Y-m-d H:i:s')
+                ]
+            );
+
+            DB::select($sqlMovement);
+
+            DB::commit();
+            $title ="Posting $this->title";
+            $alert  ="success";
+            $message  = "$title $trNumber Successfully Posted";
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);
+            // return response()->json(array('statusRec' => $statusRec,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'trNumber'=>$trNumber));
+        }else{
+            $title ="Posting $this->title";
+            $alert  ="warning";
+            $message  = "$title $trNumber Failed to Posting";
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);
+            // return response()->json(array('statusRec' => $statusRec,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'trNumber'=>$trNumber));
+        }
     }
 
     public function store(Request $request)
     {
         $username =  Auth::user()->username;
         $articles = json_decode($request->articles);
-        $tsoDate = $request->tsoDate;
-        $tsoName = $request->tsoName;
-        $customer = $request->customer;
+        $trDate = $request->trDate;
+        $trType = $request->trType;
         $note = $request->note;
         $status = '1';
-        $poLeadCode = $this->moduleCode; 
+        $poLeadCode = $trType; 
 
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','5'=>'CANCELED'];
 
@@ -137,9 +309,7 @@ class TargetSoController extends Controller
         });
 
         $validation = Validator::make($request->all(),$messages = [
-            // 'tsoCode'=>'required|unique:purchase_order_hdr,po_number',
-            'tsoName'  => 'required',
-            'customer'  => 'required',
+            'trDate'  => 'required'
         ]);
         
         $error_array = array();
@@ -156,15 +326,14 @@ class TargetSoController extends Controller
 
         }else{
             $hasilUpdate = AppHelpers::resetCode($poLeadCode);
-            $tsoCode = $this->getLastCode($poLeadCode);
+            $trNumber = $this->getLastCode($poLeadCode);
             DB::beginTransaction();
             try {
-                    DB::table('target_order_hdr')->insert([
-                        'tso_code' => $tsoCode,
-                        'origin_tso_code'=>$tsoCode,
-                        'tso_name' => $tsoName ,
-                        'tso_date' => $tsoDate,
-                        'customer_id' => $customer,
+                    DB::table('transfer_hdr')->insert([
+                        'tr_number' => $trNumber,
+                        'ref_number' => '' ,
+                        'tr_date' => $trDate,
+                        'tr_type' => $trType,
                         'status' => $status,
                         'note' => $note,
                         'created_by' => Auth::user()->username,
@@ -176,32 +345,31 @@ class TargetSoController extends Controller
                     $dataSet = [];
                     foreach ($articles as $val) {
                         $dataSet[] = [
-                            'tso_code' => $tsoCode,
+                            'tr_number' => $trNumber,
                             'article_code' => $val->article_code,
-                            'qty_target' => $val->qtyTarget,
-                            'qty_forcast' => $val->qtyForcast,
+                            'qty' => $val->qty,
                             'uom' => $val->uom,
                             'created_by' => Auth::user()->username,
                             'created_at' => date('Y-m-d H:i:s'),
                         ];
                     }
 
-                    DB::table('target_order_det')->insert($dataSet);
+                    DB::table('transfer_det')->insert($dataSet);
 
                     DB::commit();
                     $title ="Save $this->title";
                     $alert  ="success";
-                    $message  = "$title $tsoCode is successfully saved";
+                    $message  = "$title $trNumber is successfully saved";
                     \LogActivity::addToLog($title,"username: $username Status $message");
-                    return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'tsoCode'=>$tsoCode));
+                    return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'trNumber'=>$trNumber));
 
             } catch (Exception $e) {
                 DB::rollBack();
                 $title ="Save $this->title";
                 $alert  ="warning";
-                $message  = "$title $tsoCode is failed to save";
+                $message  = "$title $trNumber is failed to save";
                 \LogActivity::addToLog($title,"username: $username Status $message");
-                return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'tsoCode'=>$tsoCode));
+                return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'trNumber'=>$trNumber));
 
             }
         }
@@ -214,65 +382,66 @@ class TargetSoController extends Controller
         $data['title'] = "Detail $this->title";
         $data['subtitle'] = "Detail $this->title";
 
-        $data['headers'] = DB::table('target_order_hdr')
-        ->leftJoin('third_party','third_party.kode','target_order_hdr.customer_id')
-        ->select('target_order_hdr.*'
+        $data['headers'] = DB::table('transfer_hdr')
+        ->leftJoin('third_party','third_party.kode','transfer_hdr.customer_id')
+        ->select('transfer_hdr.*'
         ,DB::raw("concat(third_party.kode,'-',third_party.nama) as customer")
-        ,DB::raw('(select count(*) from target_order_det where tso_code = target_order_hdr.tso_code) as sum_row'))
-        ->where('origin_tso_code', function($query) use ($id){
-            $query->select('tso_code')->from('target_order_hdr')->where('id',$id);
+        ,DB::raw('(select count(*) from transfer_det where tr_number = transfer_hdr.tr_number) as sum_row'))
+        ->where('origin_tr_number', function($query) use ($id){
+            $query->select('tr_number')->from('transfer_hdr')->where('id',$id);
         })
         ->get();
 
-        $tsoCode = $data['headers'][0]->tso_code;
+        $trNumber = $data['headers'][0]->tr_number;
         $customer = $data['headers'][0]->customer_id;
                 
-        $data['details'] = DB::table('target_order_det')
-        ->whereIn('target_order_det.tso_code', function($query) use ($tsoCode){
-            $query->select('tso_code')->from('target_order_hdr')->where('origin_tso_code',$tsoCode);
+        $data['details'] = DB::table('transfer_det')
+        ->whereIn('transfer_det.tr_number', function($query) use ($trNumber){
+            $query->select('tr_number')->from('transfer_hdr')->where('origin_tr_number',$trNumber);
         })
-        ->leftJoin('article','article.article_code','=','target_order_det.article_code')
-        ->leftJoin('uom','uom.code','target_order_det.uom')
-        ->where('target_order_det.tso_code',$tsoCode)
-        ->select('target_order_det'.'.*'
+        ->leftJoin('article','article.article_code','=','transfer_det.article_code')
+        ->leftJoin('uom','uom.code','transfer_det.uom')
+        ->where('transfer_det.tr_number',$trNumber)
+        ->select('transfer_det'.'.*'
         ,'uom.uom_group as uom_group'
         ,DB::raw("concat(article.article_alternative_code,'-',article.article_desc) as article"))
         ->orderBy('id')
         ->get();
 
-        $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode,$tsoCode,$username);
-        $data['approveValidate'] = Approval::approveValidate($this->moduleCode,$tsoCode,$username);
+        $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode,$trNumber,$username);
+        $data['approveValidate'] = Approval::approveValidate($this->moduleCode,$trNumber,$username);
                    
-        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'','5'=>'CANCELED'];
-        $statusTso = ['NEW','VALIDATED','APPROVED','','CANCELED'];
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED'];
+        $statusTso = ['NEW','VALIDATED','APPROVED','POSTED','CANCELED'];
         $data['statusTso'] = $statusTso[$data['headers'][0]->status-1];
         
-        return view("targetSo.show",$data);        
+        return view("warehouse.show",$data);        
     }
 
     public function detail(Request $request)
     {
-        $poNumber=$request->poNumber;
-        $detail = DB::table('purchase_order_det')
-        ->leftJoin('article','article.article_code','=','purchase_order_det.article_code')
-        ->leftJoin('article_stock','article_stock.article_code','=','purchase_order_det.article_code')
-        ->leftJoin('purchase_request_det', function($join) {
-            $join->on('purchase_request_det.po_number','purchase_order_det.po_number')
-            ->on('purchase_request_det.article_code','purchase_order_det.article_code');
-        })
-        ->leftJoin('uom','uom.code','=','purchase_order_det.uom')
-        ->where('purchase_order_det.po_number',$poNumber)
-        ->select('purchase_order_det'.'.*'
-            ,'purchase_order_det.pr_number'
-            ,'article_stock.article_qty as qty_stock'
-            ,'uom.uom_group'
-            , DB::raw('(SELECT name from group_materials where code = group_of_material) as group'))
-        ->orderBy('id')
-        ->get();
+        // $poNumber=$request->poNumber;
+        // $detail = DB::table('purchase_order_det')
+        // ->leftJoin('article','article.article_code','=','purchase_order_det.article_code')
+        // ->leftJoin('warehouse_stock','warehouse_stock.article_code','=','purchase_order_det.article_code')
+        // ->leftJoin('purchase_request_det', function($join) {
+        //     $join->on('purchase_request_det.po_number','purchase_order_det.po_number')
+        //     ->on('purchase_request_det.article_code','purchase_order_det.article_code');
+        // })
+        // ->leftJoin('uom','uom.code','=','purchase_order_det.uom')
+        // ->where('purchase_order_det.po_number',$poNumber)
+        // ->select('purchase_order_det'.'.*'
+        //     ,'purchase_order_det.pr_number'
+        //     ,'warehouse_stock.article_qty as qty_stock'
+        //     ,'uom.uom_group'
+        //     , DB::raw('(SELECT name from group_materials where code = group_of_material) as group'))
+        // ->orderBy('id')
+        // ->get();
 
         return response()->json(array('status' => 0, 'data' => $detail));
 
     }
+
     public function showEdit($key)
     {
         $id=Crypt::decryptString($key);
@@ -280,13 +449,13 @@ class TargetSoController extends Controller
         $data['title'] = "Edit $this->title";
         $data['subtitle'] = "Edit $this->title";
 
-        $data['header'] = DB::table('target_order_hdr')
-        ->leftJoin('third_party','third_party.kode','target_order_hdr.customer_id')
-        ->select('target_order_hdr.*',DB::raw("concat(third_party.kode,'-',third_party.nama) as customer"))
-        ->where('target_order_hdr.id',$id)
+        $data['header'] = DB::table('transfer_hdr')
+        ->leftJoin('third_party','third_party.kode','transfer_hdr.customer_id')
+        ->select('transfer_hdr.*',DB::raw("concat(third_party.kode,'-',third_party.nama) as customer"))
+        ->where('transfer_hdr.id',$id)
         ->get()->first();
 
-        $tsoCode = $data['header']->tso_code;
+        $trNumber = $data['header']->tr_number;
         $customer = $data['header']->customer_id;
 
         $data['articles'] = DB::table('article')
@@ -296,21 +465,21 @@ class TargetSoController extends Controller
             ->orderBy('article_desc')
             ->get();
                 
-        $data['details'] = DB::table('target_order_det')
-        ->leftJoin('article','article.article_code','=','target_order_det.article_code')
-        ->where('target_order_det.tso_code',$tsoCode)
-        ->select('target_order_det'.'.*')
+        $data['details'] = DB::table('transfer_det')
+        ->leftJoin('article','article.article_code','=','transfer_det.article_code')
+        ->where('transfer_det.tr_number',$trNumber)
+        ->select('transfer_det'.'.*')
         ->orderBy('id')
         ->get();
 
-        $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode,$tsoCode,$username);
-        $data['approveValidate'] = Approval::approveValidate($this->moduleCode,$tsoCode,$username);
+        $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode,$trNumber,$username);
+        $data['approveValidate'] = Approval::approveValidate($this->moduleCode,$trNumber,$username);
                    
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'','5'=>'CANCELED'];
-        $statusTso = ['NEW','VALIDATED','APPROVED','','CANCELED'];
+        $statusTso = ['NEW','VALIDATED','APPROVED','POSTED','CANCELED'];
         $data['statusPo'] = $statusTso[$data['header']->status-1];
 
-        return view("targetSo.edit",$data);
+        return view("warehouse.edit",$data);
     }
 
     public function edit(Request $request)
@@ -459,7 +628,7 @@ class TargetSoController extends Controller
     //         $message  = "$title Revison PO: $poOrigin to $poNew is successfully saved";
     //         \LogActivity::addToLog($title,"username: $username Status $message");
     //         // return $this->showEdit(Crypt::encryptString($id));
-    //         return redirect()->route('targetSo.edit', ['id'=>Crypt::encryptString($data->id)]);
+    //         return redirect()->route('warehouse.edit', ['id'=>Crypt::encryptString($data->id)]);
     //     }else{
     //         $title ="Save $this->title";
     //         $alert  ="warning";
@@ -475,8 +644,8 @@ class TargetSoController extends Controller
 
         $username =  Auth::user()->username;
         $articles = json_decode($request->articles);
-        $tsoCode = $request->tsoCode;
-        $tsoDate = $request->tsoDate;
+        $trNumber = $request->trNumber;
+        $trDate = $request->trDate;
         $tsoName = $request->tsoName;
         $customer = $request->customer;
         $note = $request->note;
@@ -490,7 +659,7 @@ class TargetSoController extends Controller
             $status = '1';
         }       
 
-        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'RECEIVED','5'=>'CANCELED','6'=>'CLOSED','7'=>'REVISED','8'=>'DECLINE'];
+        
         
         $messages = [
             'required' => 'The field is required.',
@@ -505,7 +674,7 @@ class TargetSoController extends Controller
         });
 
         $validation = Validator::make($request->all(),$messages = [
-            'tsoDate'  => 'required',
+            'trDate'  => 'required',
             'tsoName'  => 'required',
             'customer'  => 'required',
 
@@ -525,11 +694,11 @@ class TargetSoController extends Controller
         }else{
             DB::beginTransaction();
             try {
-                    $row_affected=DB::table('target_order_hdr')
-                    ->where('tso_code',$tsoCode)
+                    $row_affected=DB::table('transfer_hdr')
+                    ->where('tr_number',$trNumber)
                     ->update(
                         [
-                            'tso_code' => $tsoCode,
+                            'tr_number' => $trNumber,
                             'tso_name' => $tsoName ,
                             'status' => $status,
                             'note' => $note,
@@ -540,27 +709,27 @@ class TargetSoController extends Controller
                     $dataset=[];
                     foreach ($articles as $val) {
                         $dataSet[] = [
-                            $tsoCode.$val->article_code
+                            $trNumber.$val->article_code
                         ];
                         
                     }
 
-                    //Delete kalo article tidak ada di po $tsoCode dan article nya $val->article_code
+                    //Delete kalo article tidak ada di po $trNumber dan article nya $val->article_code
                     //berdasarkan 2 kondisi
-                    DB::table('target_order_det')
-                        ->whereNotIn(DB::raw("CONCAT(tso_code,article_code)"),$dataSet)
-                        ->where('tso_code',$tsoCode)
+                    DB::table('transfer_det')
+                        ->whereNotIn(DB::raw("CONCAT(tr_number,article_code)"),$dataSet)
+                        ->where('tr_number',$trNumber)
                         ->delete();
                                   
                     foreach ($articles as $val) {
-                        DB::table('target_order_det')
+                        DB::table('transfer_det')
                         ->updateOrInsert(
-                            ['tso_code' => $tsoCode,'article_code' => $val->article_code],
+                            ['tr_number' => $trNumber,'article_code' => $val->article_code],
                             [
-                            'tso_code' => $tsoCode,
+                            'tr_number' => $trNumber,
                             'article_code' => $val->article_code,
-                            'qty_target' => $val->qtyTarget,
-                            'qty_forcast' => $val->qtyForcast,
+                            'qty' => $val->qty,
+                            
                             'uom' => $val->uom,
                             'created_by' => Auth::user()->username,
                             'created_at' => date('Y-m-d H:i:s'),
@@ -571,7 +740,7 @@ class TargetSoController extends Controller
                     if ( $statusSimpan == 'approve' ){
                         DB::table('approval_history')->insert([
                             'module_code' => $this->moduleCode,
-                            'module_number' => $tsoCode,
+                            'module_number' => $trNumber,
                             'username' => Auth::user()->username,
                             'approval_order' => $approveLevel,
                             'approval_date' => date('Y-m-d'),
@@ -587,17 +756,17 @@ class TargetSoController extends Controller
 
                     $title ="Save $this->title";
                     $alert  ="success";
-                    $message  = "$title $tsoCode is successfully updated";
+                    $message  = "$title $trNumber is successfully updated";
                     \LogActivity::addToLog($title,"username: $username Status $message");
-                    return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'tsoCode'=>$tsoCode));
+                    return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'trNumber'=>$trNumber));
 
             } catch (Exception $e) {
                 DB::rollBack();
                 $title ="Save $this->title";
                 $alert ="warning";
-                $message  = "$title $tsoCode is failed to updated";
+                $message  = "$title $trNumber is failed to updated";
                 \LogActivity::addToLog($title,"username: $username Status $message");
-                return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'prNumber'=>$tsoCode));
+                return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'prNumber'=>$trNumber));
             }
         }
 
@@ -606,15 +775,15 @@ class TargetSoController extends Controller
     public function approve(Request $request)
     {
         $username =  Auth::user()->username;
-        $tsoCode = $request->tsoCode;
-        $statusLevelApproval = Approval::approvalLevelPosition($this->moduleCode,$tsoCode,$username);        
+        $trNumber = $request->trNumber;
+        $statusLevelApproval = Approval::approvalLevelPosition($this->moduleCode,$trNumber,$username);        
         $nextLevel = $statusLevelApproval[0]->next_level;
         $statusTso = $statusLevelApproval[0]->next_level == $statusLevelApproval[0]->max_level ? '3' :'2';
                 
         DB::beginTransaction();
         try {
-                $row_affected=DB::table('target_order_hdr')
-                ->where('tso_code',$tsoCode)
+                $row_affected=DB::table('transfer_hdr')
+                ->where('tr_number',$trNumber)
                 ->update(
                     [
                         'status' => $statusTso,
@@ -626,7 +795,7 @@ class TargetSoController extends Controller
                 if ($row_affected){
                     DB::table('approval_history')->insert([
                         'module_code' => $this->moduleCode,
-                        'module_number' => $tsoCode,
+                        'module_number' => $trNumber,
                         'username' => Auth::user()->username,
                         'approval_order' => $nextLevel,
                         'approval_date' => date('Y-m-d'),
@@ -641,17 +810,17 @@ class TargetSoController extends Controller
                 DB::commit();
                 $title ="Approve $this->title";
                 $alert  ="success";
-                $message  = "$title $tsoCode is successfully Approve-".$nextLevel;
+                $message  = "$title $trNumber is successfully Approve-".$nextLevel;
                 \LogActivity::addToLog($title,"username: $username Status $message");
-                return response()->json(array('statusPo' => $statusTso,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'tsoCode'=>$tsoCode));
+                return response()->json(array('statusPo' => $statusTso,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'trNumber'=>$trNumber));
 
         } catch (Exception $e) {
             DB::rollBack();
             $title ="Approve $this->title";
             $alert  ="warning";
-            $message  = "$title $tsoCode is failed to Approve-".$nextLevel;
+            $message  = "$title $trNumber is failed to Approve-".$nextLevel;
             \LogActivity::addToLog($title,"username: $username Status $message");
-            return response()->json(array('statusPo' => $statusTso,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'tsoCode'=>$tsoCode));
+            return response()->json(array('statusPo' => $statusTso,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'trNumber'=>$trNumber));
         }
     }
 
@@ -695,7 +864,7 @@ class TargetSoController extends Controller
     //             $alert  ="success";
     //             $message  = "$title $poNumber is successfully decline";
     //             \LogActivity::addToLog($title,"username: $username Status $message");
-    //             return response()->json(array('statusPo' => $statusTso,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'tsoCode'=>$poNumber));
+    //             return response()->json(array('statusPo' => $statusTso,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'trNumber'=>$poNumber));
 
     //     } catch (Exception $e) {
     //         DB::rollBack();
@@ -703,7 +872,7 @@ class TargetSoController extends Controller
     //         $alert  ="warning";
     //         $message  = "$title $poNumber is failed to decline";
     //         \LogActivity::addToLog($title,"username: $username Status $message");
-    //         return response()->json(array('statusPo' => $statusTso,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'tsoCode'=>$poNumber));
+    //         return response()->json(array('statusPo' => $statusTso,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'trNumber'=>$poNumber));
     //     }
     // }
 
@@ -711,15 +880,15 @@ class TargetSoController extends Controller
     {
         $username =  Auth::user()->username;       
         $id=Crypt::decryptString($request->id);
-        $tsoCode = DB::table('target_order_hdr')->where('id',$id)->where('status','1')->first();
-        $tsoCode = $tsoCode->tso_code;
-        $tsoStatus = $tsoCode->status;
+        $trNumber = DB::table('transfer_hdr')->where('id',$id)->where('status','1')->first();
+        $trNumber = $trNumber->tr_number;
+        $tsoStatus = $trNumber->status;
         if ($tsoStatus == 1){
-            $rowAffected = DB::table('target_order_hdr')->where('id',$id)->where('status','1')->delete();
+            $rowAffected = DB::table('transfer_hdr')->where('id',$id)->where('status','1')->delete();
         }else{
             // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','','5'=>'CANCELED'];
-            $row_affected=DB::table('target_order_hdr')
-            ->where('tso_code',$tsoCode)
+            $row_affected=DB::table('transfer_hdr')
+            ->where('tr_number',$trNumber)
             ->update(
                 [
                     'status' => '3',
@@ -729,16 +898,16 @@ class TargetSoController extends Controller
             );
         }
         if($rowAffected>0){
-            DB::table('target_order_det')->where('po_number',$tsoCode)->delete();
+            DB::table('transfer_det')->where('po_number',$trNumber)->delete();
             $title ="Delete $this->title";
             $alert  ="success";
-            $message  = "$title $tsoCode Successfully Deleted";
+            $message  = "$title $trNumber Successfully Deleted";
             \LogActivity::addToLog($title,"username: $username Status $message");
             return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);  
         }else{
             $title ="Delete $this->title";
             $alert  ="warning";
-            $message  = "$title $tsoCode Failed to Delete";
+            $message  = "$title $trNumber Failed to Delete";
             \LogActivity::addToLog($title,"username: $username Status $message");
             return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);
         }
@@ -801,30 +970,26 @@ class TargetSoController extends Controller
     public function list(Request $request)
     {
         $username = Auth::user()->username;
-        $searchTso = strtolower($request->searchTso);
-        $searchCustomer = $request->searchCustomer;
+        $searchTr = strtolower($request->searchTr);
+        $searchType = $request->searchType;
         $searchStatus = $request->searchStatus;
-        $tsoDate = $request->tsoDate;
+        $trDate = $request->trDate;
         $fromDate ="";
         $toDate = "";
-        if ($tsoDate){
-            $date = explode("to",$tsoDate);
+        if ($trDate){
+            $date = explode("to",$trDate);
             $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
             $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
         }
 
-        $data = DB::table('target_order_hdr')
-        ->leftJoin('third_party','third_party.kode','target_order_hdr.customer_id')
-        ->where(function ($query) use ($searchTso,$searchStatus,$tsoDate,$fromDate,$toDate,$searchCustomer) {
-            $searchCustomer ? $query->where('customer_id',$searchCustomer) : '';
-            $searchTso ? $query->where('tso_code','ilike','%'.$searchTso.'%') : '';
-            $searchStatus ? $query->where('target_order_hdr.status',$searchStatus) : '';
-            $tsoDate ? $query->whereBetween(DB::raw("to_date(tso_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
+        $data = DB::table('transfer_hdr')
+        ->where(function ($query) use ($searchTr,$searchStatus,$trDate,$fromDate,$toDate,$searchType) {
+            $searchType ? $query->where('tr_type',$searchType) : '';
+            $searchTr ? $query->where('tr_number','ilike','%'.$searchTr.'%') : '';
+            $searchStatus ? $query->where('status',$searchStatus) : '';
+            $trDate ? $query->whereBetween(DB::raw("to_date(tr_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
         })
-        ->select('target_order_hdr.*'
-        ,'third_party.nama as customer'
-        )
-        ->orderBy('target_order_hdr.id')
+        ->orderBy('id')
         ->get(); 
        
         return Datatables::of($data)
@@ -836,16 +1001,26 @@ class TargetSoController extends Controller
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
             
             if ( $data->status == '2' or $data->status == '1') {
-                if (Auth::user()->can('purchaseOrder-authorize')) {
-                $buttons .=         '<a href="'. route('targetSo.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
-                                        <i data-feather="file-text"></i>
-                                        <span>'. __("Approve") .'</span>
-                                    </a>';
-                }
+                // if (Auth::user()->can('purchaseOrder-authorize')) {
+                // $buttons .=         '<a href="'. route('warehouse.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+                //                         <i data-feather="file-text"></i>
+                //                         <span>'. __("Approve") .'</span>
+                //                     </a>';
+                // }
             }
+
+            if ( $data->status == '2' or $data->status == '1') {
+                // if (Auth::user()->can('purchaseOrder-authorize')) {
+                $buttons .=         '<a href="'. route('warehouse.posting', ['trNumber'=>$data->tr_number,'trType'=>$data->tr_type]) .'" class="dropdown-item">
+                                        <i data-feather="check"></i>
+                                        <span>'. __("Posting") .'</span>
+                                    </a>';
+                // }
+            }
+            
             if ( $data->status == '1' or $data->status == '2' ){
                 if (Auth::user()->can('purchaseOrder-edit')) {
-                $buttons .=         '<a href="'. route('targetSo.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+                $buttons .=         '<a href="'. route('warehouse.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                         <i data-feather="file-text"></i>
                                         <span>'. __("Edit") .'</span>
                                     </a>';
@@ -853,22 +1028,22 @@ class TargetSoController extends Controller
             }
             // if (($data->status == '2') || ($data->status == '3') ){
             //     if (Auth::user()->can('purchaseOrder-revision')) {
-            //         $buttons .=         '<a href="'. route('targetSo.revision', ['id'=>Crypt::encryptString($data->id),'nR'=>$data->num_revision]) .'" class="dropdown-item">
+            //         $buttons .=         '<a href="'. route('warehouse.revision', ['id'=>Crypt::encryptString($data->id),'nR'=>$data->num_revision]) .'" class="dropdown-item">
             //                                 <i data-feather="copy"></i>
             //                                 <span>'. __("Revision") .'</span>
             //                             </a>';
             //     }
             // }
             
-            // $buttons .=         '<a href="'. route('targetSo.print', ['id'=>Crypt::encryptString($data->id)]) .'" target="_blank" class="dropdown-item">
+            // $buttons .=         '<a href="'. route('warehouse.print', ['id'=>Crypt::encryptString($data->id)]) .'" target="_blank" class="dropdown-item">
             //                         <i data-feather="printer"></i>
             //                         <span>'. __("Print") .'</span>
             //                     </a>';
             
-            $buttons .=         '<a href="'. route('targetSo.show', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
-                                    <i data-feather="list"></i>
-                                    <span>'. __("Detail") .'</span>
-                                </a>';
+            // $buttons .=         '<a href="'. route('warehouse.show', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+            //                         <i data-feather="list"></i>
+            //                         <span>'. __("Detail") .'</span>
+            //                     </a>';
 
             // if ( $data->status == '1' or $data->status == '2' or $data->status == '3' ){
             //     if (Auth::user()->can('purchaseOrder-delete')) {
@@ -880,7 +1055,7 @@ class TargetSoController extends Controller
             //         data-confirm-yes='document.getElementById(\""."delete-form-".$data->id."\").submit();'
             //         data-modal-id='".$data->id."'
             //         id='deleteButton'
-            //         data-url='". route('targetSo.clear', ['id'=>Crypt::encryptString($data->id)]) ."'>
+            //         data-url='". route('warehouse.clear', ['id'=>Crypt::encryptString($data->id)]) ."'>
             //         <i data-feather='x' class='feather-14-red'></i>
             //         <span>". __('Close') ."</span>
             //         </a>";
@@ -888,20 +1063,20 @@ class TargetSoController extends Controller
             // }
 
             if ( $data->status == '1' ){
-                if (Auth::user()->can('purchaseOrder-delete')) {
-                    $buttons .=         "<a href='javascript:;'
-                                        class='dropdown-item' 
-                                        data-size='sm'
-                                        data-ajax-delete='true'
-                                        data-confirm='Are You Sure want to Delete?|This action can not be undone. Do you want to continue?' 
-                                        data-confirm-yes='document.getElementById(\""."delete-form-".$data->id."\").submit();'
-                                        data-modal-id='".$data->id."'
-                                        id='deleteButton'
-                                        data-url='". route('targetSo.destroy', ['id'=>Crypt::encryptString($data->id)]) ."'>
-                                        <i data-feather='trash-2' class='feather-14-red'></i>
-                                        <span>". __('Delete') ."</span>
-                                    </a>";
-                }
+                // if (Auth::user()->can('purchaseOrder-delete')) {
+                //     $buttons .=         "<a href='javascript:;'
+                //                         class='dropdown-item' 
+                //                         data-size='sm'
+                //                         data-ajax-delete='true'
+                //                         data-confirm='Are You Sure want to Delete?|This action can not be undone. Do you want to continue?' 
+                //                         data-confirm-yes='document.getElementById(\""."delete-form-".$data->id."\").submit();'
+                //                         data-modal-id='".$data->id."'
+                //                         id='deleteButton'
+                //                         data-url='". route('warehouse.destroy', ['id'=>Crypt::encryptString($data->id)]) ."'>
+                //                         <i data-feather='trash-2' class='feather-14-red'></i>
+                //                         <span>". __('Delete') ."</span>
+                //                     </a>";
+                // }
             }
 
             $buttons .=     '</div>
@@ -909,68 +1084,142 @@ class TargetSoController extends Controller
 
             return $buttons;
         })
-        ->addColumn('tso_code', function ($data) {
+        ->addColumn('tr_number', function ($data) {
             $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-danger'];            
-            $statusTso = ['NEW','VALIDATED','APPROVED','','CANCELED'];
+            $statusTso = ['NEW','VALIDATED','APPROVED','POSTED','CANCELED'];
             // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','','5'=>'CANCELED'];
-            return '<span style="display: none;">'.$data->tso_code.'</span><a class="text-left badge d-block '.$badges[$data->status - 1].'" name="'.$data->tso_code.'" href="'. route('targetSo.show', ['id'=>Crypt::encryptString($data->id)]) .'" ><span>'.$data->tso_code.'</span></a>';
+            return '<span style="display: none;">'.$data->tr_number.'</span><a class="text-left badge d-block '.$badges[$data->status - 1].'" name="'.$data->tr_number.'" href="'. route('warehouse.show', ['id'=>Crypt::encryptString($data->id)]) .'" ><span>'.$data->tr_number.'</span></a>';
         })
         ->addColumn('status', function ($data) {
             $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-danger'];            
-            $statusTso = ['NEW','VALIDATED','APPROVED','','CANCELED'];
+            $statusTso = ['NEW','VALIDATED','APPROVED','POSTED','CANCELED'];
             return "<div class='badge ".$badges[$data->status - 1]."'>".$statusTso[$data->status - 1]."</div>";
         })
-        ->rawColumns(['action','status','tso_code'])
+        ->rawColumns(['action','status','tr_number'])
         ->make(true);
     }
 
     public function listDetail(Request $request)
     {
-
-        $searchTso = strtolower($request->searchTso);
+        $searchTr = strtolower($request->searchTr);
         $username = Auth::user()->username;
-        $searchCustomer = $request->searchCustomer;
+        $searchType = $request->searchType;
         $searchStatus = $request->searchStatus;
-        $tsoDate = $request->tsoDate;
+        $trDate = $request->trDate;
         $fromDate ="";
         $toDate = "";
         
-        if ($tsoDate){
-            $date = explode("to",$tsoDate);
+        if ($trDate){
+            $date = explode("to",$trDate);
             $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
             $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
         }
 
-        $data = DB::table('target_order_det')
-        ->leftJoin('target_order_hdr','target_order_hdr.tso_code','target_order_det.tso_code')
-        ->leftJoin('article','article.article_code','target_order_det.article_code')
-        ->leftJoin('third_party','third_party.kode','target_order_hdr.customer_id')
-        ->leftJoin('uom','uom.code','target_order_det.uom')
-        ->where(function ($query) use ($searchTso,$searchStatus,$tsoDate,$fromDate,$toDate,$searchCustomer) {
-            $searchCustomer ? $query->where('customer_id',$searchCustomer) : '';
-            $searchTso ? $query->where('tso_code','ilike','%'.$searchTso.'%') : '';
-            $searchStatus ? $query->where('target_order_hdr.status',$searchStatus) : '';
-            $tsoDate ? $query->whereBetween(DB::raw("to_date(tso_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
+        $data = DB::table('transfer_det')
+        ->leftJoin('transfer_hdr','transfer_hdr.tr_number','transfer_det.tr_number')
+        ->leftJoin('article','article.article_code','transfer_det.article_code')
+        ->leftJoin('uom','uom.code','transfer_det.uom')
+        ->where(function ($query) use ($searchTr,$searchStatus,$trDate,$fromDate,$toDate,$searchType) {
+            $searchType ? $query->where('tr_type',$searchType) : '';
+            $searchTr ? $query->where('tr_number','ilike','%'.$searchTr.'%') : '';
+            $searchStatus ? $query->where('transfer_hdr.status',$searchStatus) : '';
+            $trDate ? $query->whereBetween(DB::raw("to_date(tr_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
         })
-        ->select('target_order_det.*'
-        ,'target_order_hdr.*'
+        ->select('transfer_det.*'
+        ,'transfer_hdr.*'
         ,'article_alternative_code'
         ,'article.article_desc'
-        ,'third_party.nama as customer'
         ,'uom_group'
-        ,DB::raw("case when uom_group = 'PIECE' then TO_CHAR(qty_target,'999,999,999') when uom_group <> 'PIECE' then TO_CHAR(qty_target,'999,999,999.999') end as qty_target")
-        ,DB::raw("case when uom_group = 'PIECE' then TO_CHAR(qty_forcast,'999,999,999') when uom_group <> 'PIECE' then TO_CHAR(qty_forcast,'999,999,999.999') end as qty_forcast")
+        // ,DB::raw("case when uom_group = 'PIECE' then TO_CHAR(qty,'999,999,999') when uom_group <> 'PIECE' then TO_CHAR(qty,'999,999,999.999') end as qty")
         )
-        ->orderBy('target_order_det.id')
+        ->orderBy('transfer_det.id')
         ->get(); 
        
         return Datatables::of($data)
         ->addColumn('status', function ($data) {
             $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-danger'];            
-            $statusTso = ['NEW','VALIDATED','APPROVED'];
+            $statusTso = ['NEW','VALIDATED','POSTED','APPROVED'];
             return "<div class='badge ".$badges[$data->status - 1]."'>".$statusTso[$data->status - 1]."</div>";
         })
         ->rawColumns(['status'])
+        ->make(true);
+    }
+
+    public function listArticle(Request $request)
+    {
+        $code = strtolower($request->code);
+        $name = strtolower($request->name);
+        $group = strtolower($request->group);
+        $cust = strtolower($request->cust);
+        $supp = strtolower($request->supp);
+        $type = strtolower($request->type);
+
+        $data=DB::table('article')
+        ->select('article.*'
+        ,'costprice'
+        ,'article.article_code as art_code'
+        ,'article_alternative_code as code'
+        ,'article_desc as desc'
+        ,'article.uom'
+        ,'quality'
+        ,'note'
+        ,'article.id'
+        ,'group_materials.name as group'
+        ,'third_party.nama as cust'
+        ,'warehouse_stock.article_qty as article_qty'
+        ,'safety_stock'
+        ,'min_package'
+        ,'uom.uom_group')
+        // ,DB::raw("case when uom.uom_group = 'PIECE' then TO_CHAR(warehouse_stock.article_qty,'999,999,999') else TO_CHAR(warehouse_stock.article_qty,'999,999,999.99') end as article_qty"))
+        ->leftJoin('group_materials', 'group_materials.code', '=', 'article.group_of_material')
+        ->leftJoin('third_party', 'third_party.kode', '=', 'article.third_party')
+        ->leftJoin('warehouse_stock', 'warehouse_stock.article_code', '=', 'article.article_code')
+        ->leftJoin('uom','uom.code','article.uom')
+        ->where(function ($query) use ($code,$name,$group,$cust,$supp,$type) {
+            $code ? $query->where('article_alternative_code','ilike','%'.$code.'%') :'';
+            $name ? $query->where('article_desc','ilike','%'.$name.'%') :'';
+            $group ? $query->where('group_of_material','ilike','%'.$group.'%') :'';
+            $cust ? $query->where('third_party','ilike','%'.$cust.'%') :'';
+            $supp ? $query->where('third_party','ilike','%'.$supp.'%') :'';
+            $type ? $query->where('article_alternative_code','ilike',$type.'%') :'';      
+        })->orderBy('article_desc')->get();
+       
+        return Datatables::of($data)
+        ->addColumn('action', function ($data) {
+            $buttons = '<div class="d-inline-flex">
+                            <a class="pr-1 dropdown-toggle hide-arrow" data-toggle="dropdown">
+                                <i data-feather="menu"></i>
+                            </a>';
+            $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
+        
+            $buttons .=         '<a href="javascript:;" onclick="movement(\''.$data->art_code.'\',\''.$data->code.'\',\''.$data->desc.'\')" class="dropdown-item">
+                                    <i data-feather="activity"></i>
+                                    Movement
+                                </a>';
+            $buttons .=     '</div>
+                        </div>';
+
+            return $buttons;
+        })
+        ->addColumn('article_alternative_code', function ($data) {
+            $badges=['badge-light-danger','badge-light-primary'];
+            return '<span style="display: none;">"'.$data->article_alternative_code.'</span>
+                    <a class="badge d-block '.$badges[$data->status].'" href="'. route('article.show', ['id'=>Crypt::encryptString($data->id)]) .'" 
+                        type="button" 
+                        style="text-align: left;">
+                        <span>'.$data->article_alternative_code.'</span>
+                    </a>';
+        })
+        ->addColumn('article_qty', function ($data) {
+            $artilceQty = $data->uom_group =='PIECE' ? number_format($data->article_qty) : number_format($data->article_qty,3);
+            return $data->article_qty < 0 ? "<div class='text-red'>$artilceQty</div>" : "<div class='text-hitam'>$artilceQty</div>";
+        })
+        ->addColumn('status', function ($data) {
+            $badges=['badge-light-danger','badge-light-primary'];
+            $statusCode = ['Freeze','Active'];
+            return "<div class='badge badge-pill ".$badges[$data->status]."'>".$statusCode[$data->status]."</div>";
+        })
+        ->rawColumns(['action','article_alternative_code','status','article_qty'])
         ->make(true);
     }
 
@@ -987,18 +1236,18 @@ class TargetSoController extends Controller
     //     ->where('id',$id)
     //     ->first();
 
-    //     $poNumber=$poHdr -> tso_code;
+    //     $poNumber=$poHdr -> tr_number;
     
     //     $data['details']=DB::table('purchase_order_det')
     //     ->leftJoin('article','article.article_code','purchase_order_det.article_code')
-    //     ->where('tso_code',$poNumber)
+    //     ->where('tr_number',$poNumber)
     //     ->get();
 
     //     $data['totals']=DB::select("SELECT *,(gross-discount)+ppn as netto from (
-    //         select a.tso_code,authorized_by,validate_by,sum(qty) as qty,sum(qty*price) as gross,sum(discount) as discount,sum(qty*price*b.ppn/100) as ppn from purchase_order_det a
+    //         select a.tr_number,authorized_by,validate_by,sum(qty) as qty,sum(qty*price) as gross,sum(discount) as discount,sum(qty*price*b.ppn/100) as ppn from purchase_order_det a
     //         left join purchase_order_hdr b
-    //         on a.tso_code = b.tso_code 
-    //         where a.tso_code = '$poNumber'
+    //         on a.tr_number = b.tr_number 
+    //         where a.tr_number = '$poNumber'
     //         group by a.po_number,authorized_by,validate_by) as oki");
 
     //     $data['suppliers']=DB::table('third_party')
@@ -1024,7 +1273,7 @@ class TargetSoController extends Controller
 
     //     view()->share($data);
 
-    //     $pdf = PDF::loadView('targetSo.print');
+    //     $pdf = PDF::loadView('warehouse.print');
     //     return $pdf->stream("PO_$poNumber.pdf");
 
     // }

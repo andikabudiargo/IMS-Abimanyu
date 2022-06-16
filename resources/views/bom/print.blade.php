@@ -6,7 +6,7 @@
 <style type="text/css">
 
     @page { margin: 10px; }
-    body { margin: 10px; }
+    body { margin: 10px;border: 1px solid black; }
 
     * {
         font-family: Verdana, Arial, sans-serif;
@@ -24,10 +24,7 @@
         font-weight: bold;
     }
 
-    table {
-        width: 100%;
-    }
-
+   
     th {
         height: 30px;
     }
@@ -47,6 +44,10 @@
     }
 
     .font-10 {
+        font-size: 10px;
+    }
+
+    .font-9 {
         font-size: 9px;
     }
 
@@ -58,8 +59,9 @@
         padding : 0 2px 0 2px;
     }
 
-    .detail-padding{
+    .detail-padding-bawah{
         padding : 0 5px 0 5px;
+        border:none;
     }
 
     .h-tengah{
@@ -79,13 +81,12 @@
 
     footer {
         position: fixed; 
-        bottom: 10px; 
-        left: 0px; 
-        right: 0px;
-        height: 100px; 
+        bottom: 5px; 
+        left: 10px; 
+        right: 10px;
+        height: 180px; 
     }
 </style>
-
 </head>
 <body>
 {{-- @if($status == "B")
@@ -148,36 +149,47 @@
     </table>
 
     <footer>
+        <h4 class="font-9" style="padding-left:10px;">Note:"BOM sudah termasuk allowance 10%</h4>
+        {{-- <h4 class="font-9" style="padding-left:10px;">No Revisi:</h4>
+        <h4 class="font-9" style="padding-left:10px;">Engineering:</h4> --}}
+        <table style="border:none;">
+            <tr>
+                <td align="Left" class="detail-padding-bawah">No Revisi</td>
+                <td align="Left" class="detail-padding-bawah">:00</td>
+            </tr>
+            <tr>
+                <td align="left" class="detail-padding-bawah">Enginering</td>
+                <td align="left" class="detail-padding-bawah">:10 Juni 2022</td>
+            </tr>
+        </table>
         <table width="100%" border="0">
             <tr>
-                <td align="center">Approve1</td>
-                <td align="center">Approve2</td>
-                <td align="center">Approve3</td>
-                <td align="center">Approve4</td>
-                <td align="center">Approve5</td>
-                <td align="center">Approve6</td>
+                <td width="10%" align="center">Prepared By</td>
+                <td width="10%" align="center">Checked By</td>
+                <td width="10%" align="center">Approved By</td>
+                <td width="10%" align="center">Produksi</td>
+                <td width="10%" align="center">PPIC</td>
+                <td width="10%" align="center">Marketing</td>
             </tr>
             <tr>
-                <td align="center" rowspan="2"></td>
-                <td align="center" rowspan="2"></td>
-                <td align="center" rowspan="2"></td>
-                <td align="center" rowspan="2"></td>
-                <td align="center" rowspan="2"></td>
-                <td align="center" rowspan="2"></td>
+                <td align="center" style="height: 40px;"></td>
+                <td align="center" style="height: 40px;"></td>
+                <td align="center" style="height: 40px;"></td>
+                <td align="center" style="height: 40px;"></td>
+                <td align="center" style="height: 40px;"></td>
+                <td align="center" style="height: 40px;"></td>
             </tr>
             <tr>
-            </tr>
-            <tr>
-                <td align="center">( ________ )</td>
-                <td align="center">( ________ )</td>
-                <td align="center">( ________ )</td>
-                <td align="center">( ________ )</td>
-                <td align="center">( ________ )</td>
-                <td align="center">( ________ )</td>
+                @foreach($approvalHistory as $val)
+                    @if($val->status == true)
+                        <td align="center">{{ $val->name }}</td>
+                    @else
+                        <td align="center"></td>
+                    @endif
+                @endforeach
             </tr>
         </table> 
     </footer>
-
     
 {{-- @if($poNumber == "oki")
 </div>

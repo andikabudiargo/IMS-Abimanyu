@@ -10,25 +10,22 @@
                 </div>
             </div>
             <div class="col-md-2 col-12">
-                <div class="form-group margin-nol">
-                    <label for="qtyTarget" class="d-block d-md-none">QTY Target</label>
-                    <div class="input-group input-group-merge">
-                        <input type="text" class="form-control numeral-mask-satuan text-right" id = "qtyTarget" name="qtyTarget[]" maxlength="9" />
-                        <div class="input-group-append">
-                            <span class="input-group-text" id ="uomTarget" name="uomTarget[]"></span>
-                        </div>
-                    </div>
+                <div class="form-group">
+                    <label for="qty" class="d-block d-md-none">QTY</label>
+                    <input type="text" class="form-control numeral-mask-digit text-right tombol-panah" id ="qty" name="qty[]" maxlength="10" />
+                </div>
+            </div>
+            <div class="col-md-1 col-12">
+                <div class="form-group">
+                    <label for="uom" class="d-block d-md-none">Uom</label>
+                    <select class="form-control" id="uom" name="uom[]">
+                    </select>
                 </div>
             </div>
             <div class="col-md-2 col-12">
                 <div class="form-group margin-nol">
-                    <label for="qtyForcast" class="d-block d-md-none">QTY Forcast</label>
-                    <div class="input-group input-group-merge">
-                        <input type="text" class="form-control numeral-mask-satuan text-right" id = "qtyForcast" name="qtyForcast[]" maxlength="9" />
-                        <div class="input-group-append">
-                            <span class="input-group-text" id ="uomForcast" name="uomForcast[]"></span>
-                        </div>
-                    </div>
+                    <label for="note" class="d-block d-md-none">Note</label>
+                    <input type="text" class="form-control" id = "note" name="note[]"  maxlength="150">
                 </div>
             </div>
             <div class="col-md-1 col-12">
@@ -55,9 +52,9 @@
             </div>
             <div class="col-md-2 col-12">
                 <div class="form-group margin-nol">
-                    <label for="qty_orderShow" class="d-block d-md-none">QTY Target</label>
+                    <label for="qtyShow" class="d-block d-md-none">QTY</label>
                     <div class="input-group input-group-merge">
-                        <input type="text" class="form-control numeral-mask-satuan text-right" id = "qty_orderShow" name="qty_orderShow[]" maxlength="9" />
+                        <input type="text" class="form-control numeral-mask-satuan text-right" id = "qtyShow" name="qtyShow[]" maxlength="9" />
                         <div class="input-group-append">
                             <span class="input-group-text" id ="uomShow" name="uomShow[]"></span>
                         </div>
@@ -66,13 +63,8 @@
             </div>
             <div class="col-md-2 col-12">
                 <div class="form-group margin-nol">
-                    <label for="qty_orderShow" class="d-block d-md-none">QTY Forcast</label>
-                    <div class="input-group input-group-merge">
-                        <input type="text" class="form-control numeral-mask-satuan text-right" id = "qty_orderShow" name="qty_orderShow[]" maxlength="9" />
-                        <div class="input-group-append">
-                            <span class="input-group-text" id ="uomShow" name="uomShow[]"></span>
-                        </div>
-                    </div>
+                    <label for="noteShow" class="d-block d-md-none">Note</label>
+                    <input type="text" class="form-control" id = "noteShow" name="noteShow[]"  maxlength="150">
                 </div>
             </div>
         </div>
@@ -137,11 +129,10 @@
 
 <script type="text/javascript">
     const currentDate = "{{ $currentDateValue }}";
-    const orderDate = $('#orderDate');
-    const deliveryDate = $('#deliveryDate');
+    const trDate = $('#trDate');
     
-    if (orderDate.length) {
-        orderDate.flatpickr({
+    if (trDate.length) {
+        trDate.flatpickr({
             dateFormat: "d-m-Y",
         });
     }
@@ -154,14 +145,14 @@
         reloadPage();
     });
 
-    simpanData = () => {
+    simpanData = (trType) => {
+        
         if (!$("#frmAdd")[0].checkValidity()){
             $("#frmAdd").submit();
         }else{ 
             $('.disabled-el').removeAttr('disabled');
-            // ambil semua data article
-            let objQtyTarget= $('#article_row input[name="qtyTarget[]"]');
-            let objQtyForcast= $('#article_row input[name="qtyForcast[]"]');
+            let objQty= $('#article_row input[name="qty[]"]');
+            let objUom= $('#article_row select[name="uom[]"]');
             let objNote= $('#article_row input[name="note[]"]');
             let articles = []; 
             let flag=0; 
@@ -172,10 +163,9 @@
                 if ($this.val()){
                     let articleName=$this.select2('data')[0].text;
                     let plu=$this.val();
-                    let qtyTarget=objQtyTarget.eq(i).val().replace(/,/gi,'')||0;
-                    let qtyForcast=objQtyForcast.eq(i).val().replace(/,/gi,'')||0;
+                    let qty=objQty.eq(i).val().replace(/,/gi,'')||0;
                     let note=objNote.eq(i).val();
-                    let uom=$this.eq(i).find(":selected").data("uom")||'PCS';
+                    let uom=objUom.eq(i).val();
                 
                     // es6
                     let obj = articles.find(obj => obj.plu == plu);
@@ -184,18 +174,17 @@
                         pesan +="Article "+articleName+" entered more than once !! <br>"; 
                         flag=1;
                     } else {
-                        if ((plu!=='') && (qtyTarget > 0) && (qtyForcast > 0)){
+                        if ((plu!=='') && (qty > 0)){
                             articles.push({
                                 "article_code":plu,
-                                "qtyTarget":qtyTarget,
-                                "qtyForcast":qtyForcast,
+                                "qty":qty,
                                 "uom":uom,
-                                // "note":note
+                                "note":note
                             });
                         }
                     } 
                 
-                    if (qtyTarget == 0 || qtyForcast == 0){
+                    if (qty == 0 ){
                         pesan +="QTY of items "+ articleName +" cannot be 0 <br>"; 
                         flag=1;
                     }
@@ -208,18 +197,15 @@
                 flag=1;
             }
             if (flag==0){
-                let tsoDate = $('#tsoDate').val();
-                let tsoName = $('#tsoName').val();
-                let customer = $('#customer').val();
+                let trDate = $('#trDate').val();
                 let note = $('#note').val();
                 $.ajax({
                     type: "post",
-                    url: "{{ route('targetSo.store') }}",
+                    url: "{{ route('warehouse.store') }}",
                     data: {
                         articles:JSON.stringify(articles),
-                        tsoDate:tsoDate,
-                        tsoName:tsoName,
-                        customer:customer,
+                        trDate:trDate,
+                        trType:trType,
                         note:note
                     },
                     dataType: "json",
@@ -228,12 +214,13 @@
                             for(let i = 0; i < data.message.length; i++) {
                                 show_msg(data.title, data.message[i], data.alert);
                             }
-                            $('#tsoCode').attr('disabled','disabled');
+                            $('#trNumber').attr('disabled','disabled');
                         }else{
                             show_msg(data.title, data.message, data.alert);
-                            $('#tsoCode').attr('disabled','disabled');
+                            $('#trNumber').attr('disabled','disabled');
                             $('#addNewRow').attr('disabled','disabled');
-                            $('#tsoCode').val(data.tsoCode);
+                            $('#cmdSave').attr('disabled','disabled');
+                            $('#trNumber').val(data.trNumber);
                         }
                     },
                     error: function(error) {
@@ -252,8 +239,8 @@
             $("#frmAdd").submit();
         }else{  
             $('.disabled-el').removeAttr('disabled');
-            let objQtyTarget= $('#article_row input[name="qtyTarget[]"]');
-            let objQtyForcast= $('#article_row input[name="qtyForcast[]"]');
+            let objQty= $('#article_row input[name="qty[]"]');
+            
             let objUom= $('#article_row span[name="uom[]"]');
             let objNote= $('#article_row input[name="note[]"]');
             let articles = []; 
@@ -265,8 +252,8 @@
                 if ($this.val()){
                     let articleName=$this.select2('data')[0].text;
                     let plu=$this.val();
-                    let qtyTarget=objQtyTarget.eq(i).val().replace(/,/gi,'')||0;
-                    let qtyForcast=objQtyForcast.eq(i).val().replace(/,/gi,'')||0;
+                    let qty=objQty.eq(i).val().replace(/,/gi,'')||0;
+                    
                     let note=objNote.eq(i).val();
                     let uom=objUom.eq(i).text();
                 
@@ -277,18 +264,17 @@
                         pesan +="Article "+articleName+" entered more than once !! <br>"; 
                         flag=1;
                     } else {
-                        if ((plu!=='') && (qtyTarget > 0) && (qtyForcast > 0)){
+                        if ((plu!=='') && (qty > 0)){
                             articles.push({
                                 "article_code":plu,
-                                "qtyTarget":qtyTarget,
-                                "qtyForcast":qtyForcast,
+                                "qty":qty,
                                 "uom":uom,
-                                // "note":note
+                                "note":note
                             });
                         }
                     } 
                 
-                    if (qtyTarget == 0 || qtyForcast == 0){
+                    if (qty == 0 ){
                         pesan +="QTY of items "+ articleName +" cannot be 0 <br>"; 
                         flag=1;
                     }
@@ -302,7 +288,7 @@
             }
 
             if (flag==0){
-                let tsoDate = $('#tsoDate').val();
+                let trDate = $('#trDate').val();
                 let tsoName = $('#tsoName').val();
                 let customer = $('#customer').val();
                 let tsoCode = $('#tsoCode').val();
@@ -313,7 +299,7 @@
                     data: {
                         articles:JSON.stringify(articles),
                         tsoCode:tsoCode,
-                        tsoDate:tsoDate,
+                        trDate:trDate,
                         tsoName:tsoName,
                         customer:customer,
                         statusSimpan:statusSimpan,
@@ -344,80 +330,71 @@
     }
 
     function add_new_row() {
-        let customer = $('#customer');
-        let cust = customer.val();
-        let poType = $('#poType').val();
-        if (cust){            
             $("#article_row").append($("#new_row").clone().html());
             cloneCount++;
             $("#article_row").find('#baru').attr('id', 'new_row'+ cloneCount);
             $("#new_row"+ cloneCount).find('#articleId').attr('id', 'articleId'+ cloneCount);
-            changeselect('tsoArticle','articleId'+ cloneCount,cust,'');
+            changeselect('trArticle','articleId'+ cloneCount);
             $("#articleId"+cloneCount).select2();
             $('#remove_button').tooltip();
-            tombolPanah('qtyTarget','','qtyForcast');
-            tombolPanah('qtyForcast','qtyTarget','');
+            tombolPanah('qty','','uom');
+            tombolPanah('uom','qty','');
             mask_thousand_satuan();
             splitArticle();
             hitungTotal();
             hitungGrandTotal();
             $('[data-toggle="tooltip"]').tooltip();
-        }else{
-            Swal.fire({
-                title: 'Warning',
-                text: "Choose customer",
-                icon: 'warning',
-                confirmButtonColor: '#3085d6',
-                confirmButtonText: 'OK'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    customer.select2('open');
-                }
-            })
-        }
     };
 
-    function changeselect(dependent,obj,value,type) {
+    function changeselect(dependent,obj) {
       $.ajax({
         url:"{{route('dynamic.dependent')}}",
         method:"POST",
         data:{
-            value:value,
-            type:type,
             dependent:dependent
         },
         success:function(result){
             $('#'+obj).html(result);
-            // $('#'+obj).val('').trigger('change');
+            $('#'+obj).val('').trigger('change');
         }
       })
     }
    
     function splitArticle(){
         let objArticle = $('#article_row select[name="articleId[]"]');
-        let objQtyTarget= $('#article_row input[name="qtyTarget[]"]'); 
-        let objUomTarget= $('#article_row span[name="uomTarget[]"]'); 
-        let objUomForcast= $('#article_row span[name="uomForcast[]"]'); 
+        let objQty= $('#article_row input[name="qty[]"]'); 
+        let objUom= $('#article_row select[name="uom[]"]'); 
         objArticle.change(function(e){   
             let objIndex = objArticle.index(this);
             let uomGroup = objArticle.eq(objIndex).find(":selected").data("uom-group");
-            objUomTarget.eq(objIndex).text(objArticle.eq(objIndex).find(":selected").data("uom"));
-            objUomForcast.eq(objIndex).text(objArticle.eq(objIndex).find(":selected").data("uom"));
+            let uomMember = objArticle.eq(objIndex).find(":selected").data("uom-member");
+            let uom = objArticle.eq(objIndex).find(":selected").data("uom");
+
+            let uomOption="";
+            if (uomMember){
+                let arrUomMember = uomMember.split(',');
+                $.each(arrUomMember, function(index, val) {
+                    uomOption +=`<option>${val}</option>`;
+                });
+            }else{
+                if(uom){
+                    uomOption +=`<option>${uom}</option>`;
+                }
+            }
+            objUom.eq(objIndex).html(uomOption);
+            objUom.eq(objIndex).val(uom).trigger('change');
+
             if (uomGroup){
                 setTimeout(() => {
-                    objQtyTarget.eq(objIndex).focus().select();
+                    objQty.eq(objIndex).focus().select();
                 }, 5);
             }
 		});
     }
 
     hitungTotal = () => {
-        let objQtyTarget= $('#article_row input[name="qtyTarget[]"]');
-        let objQtyForcast= $('#article_row input[name="qtyForcast[]"]');
-        objQtyTarget.keyup(function() {
-            hitungGrandTotal();
-        });    
-        objQtyForcast.keyup(function() {
+        let objQty= $('#article_row input[name="qty[]"]');
+        objQty.keyup(function() {
             hitungGrandTotal();
         });    
     }
@@ -425,18 +402,12 @@
     hitungGrandTotal = ()=>{
         let objArticle = $('#article_row select[name="articleId[]"]');
         let objQtyTiw= $('#article_row input[name="qty_order[]"]');
-        let objQTYTarget= $('#article_row input[name="qtyTarget[]"]');
-        let objQTYForcast= $('#article_row input[name="qtyForcast[]"]');
-        let totalQtyTarget= 0;
-        let totalQtyForcast= 0;
-        let qtyTarget = objQTYTarget.map(function(){return $(this).val();}).get();
-        let qtyForcast = objQTYForcast.map(function(){return $(this).val();}).get();
-        totalQtyTarget = sumFromArray(qtyTarget);
-        totalQtyForcast = sumFromArray(qtyForcast);
-        objArticle.length>0 ?$('#customer').attr('disabled','disabled'):$('#customer').removeAttr('disabled');
+        let objQTY= $('#article_row input[name="qty[]"]');
+        let totalQty= 0;
+        let qty = objQTY.map(function(){return $(this).val();}).get();
+        totalQty = sumFromArray(qty);
         $("#totalRow").val(objArticle.length);
-        $("#totalQtyTarget").val(humanizeNumber(totalQtyTarget));
-        $("#totalQtyForcast").val(humanizeNumber(totalQtyForcast));
+        $("#totalQty").val(humanizeNumber(totalQty));
     }
 
     $("input[type='text']").click(function () {

@@ -582,7 +582,8 @@ class PurchaseOrderController extends Controller
             $alert  ="success";
             $message  = "$title Revison PO: $poOrigin to $poNew is successfully saved";
             \LogActivity::addToLog($title,"username: $username Status $message");
-            return $this->showEdit(Crypt::encryptString($id));
+            return redirect()->route('purchaseOrder.edit', ['id'=>Crypt::encryptString($data->id)]);
+            // return $this->showEdit(Crypt::encryptString($id));
         }else{
             $title ="Save $this->title";
             $alert  ="warning";
@@ -1325,7 +1326,7 @@ class PurchaseOrderController extends Controller
         $data['poDelDate'] =$poHdr -> delivery_date;
         
         $data['status'] = $poHdr->status;
-        $data['no'] =1;
+        $data['no'] =0;
 
         // $poNumber = 'PO-ASN/2022/V/8';
 

@@ -58,7 +58,7 @@ class ApprovalController extends Controller
     {
         $data['users']=User::pluck('name','username');
         $data['approvals']=ApprovalMaster::pluck('module_name','module_code');
-        $data['orders']=['1'=>'1','2'=>'2','3'=>'3','4'=>'4','5'=>'5'];
+        $data['orders']=['1'=>'1','2'=>'2','3'=>'3','4'=>'4','5'=>'5','6'=>'6'];
         return view('approval.create',$data);
     }
 

@@ -2,7 +2,7 @@
 @section('title', $title)
 @section('content')
 @include('layouts.breadcrumb')
-<section id="article-index">
+<section id="purchase-index">
   <div class="card">
     <div class="card-header">  
       <h4 class="card-title">Filter</h4>
@@ -17,25 +17,24 @@
         <form class="needs-validation" novalidate>
             <div class="form-row">
               <div class="form-group col-md-3"> 
-                <label for="searchPr">Request Number</label>
-                <input type="text" class="form-control text-uppercase" id="searchPr" name="searchPr" placeholder=""  />
+                <label for="searchTr">Transfer Number</label>
+                <input type="text" class="form-control text-uppercase" id="searchTr" name="searchTr" placeholder=""  />
               </div>
-              <div class="col-md-3 form-group">
-                <label for="requestDate">Date</label>
-                <input type="text" id="requestDate" name="requestDate" class="form-control flatpickr-range" placeholder="YYYY-MM-DD to YYYY-MM-DD" />
-              </div>
-              <div class="form-group col-md-2">
-                <label class="form-label" for="orderType">PO Type*</label>
-                <select class="select2 form-control" id="orderType" name="orderType" required>
-                      <option value="">All</option>
-                      <option value="std">Standard</option>
-                      {{-- <option value="sub">Subcontracting</option> --}}
-                      <option value="tso">Target SO</option>
-                      <option value="rm">Raw Material</option>
+              <div class="form-group col-md-3"> 
+                <label class="form-label" for="searchType">Transfer Type</label>
+                <select class="select2 form-control" id="searchType" name="searchType">
+                  <option value="">All</option>
+                    @foreach($type as $key => $val)
+                        <option value="{{$key}}">{{$val}}</option>
+                    @endforeach
                 </select>
               </div>
+              <div class="col-md-3 form-group">
+                <label for="trDate">Date</label>
+                <input type="text" id="trDate" name="trDate" class="form-control flatpickr-range" placeholder="YYYY-MM-DD to YYYY-MM-DD" />
+              </div>
               <div class="form-group col-md-2"> 
-                <label class="form-label" for="searchStatus">Request Status</label>
+                <label class="form-label" for="searchStatus">Order Status</label>
                 <select class="select2 form-control" id="searchStatus" name="searchStatus">
                     <option value="">All</option>
                     @foreach($status as $index=>$val)
@@ -47,9 +46,6 @@
             <div class="form-row">
                 <div class="col-12"> 
                     <button type="button" class="btn btn-primary" id ="btnSearch" name="btnSearch">Search</button>
-                    @can('purchaseRequest-create')
-                    <a href="{{ route('purchaseRequest.create') }}" class="btn btn-info"><i class="fa fa-plus"></i> Create</a>
-                    @endcan
                 </div>
             </div>
         </form>
@@ -57,7 +53,7 @@
     </div>
   </div>
 </section>
-<section id="table-article">
+<section id="table-purchase">
   <div class="card">
     <div class="card-header">
       <h4 class="card-title"> @yield('title') List</h4>
@@ -94,10 +90,10 @@
 @section('scripts')
 <script type="text/javascript">
 
-  let searchPr = document.querySelector("#searchPr");
-  let orderType = document.querySelector("#orderType"); 
+  let searchTr = document.querySelector("#searchTr");
+  let searchType = document.querySelector("#searchType"); 
   let searchStatus = document.querySelector("#searchStatus");
-  let requestDate = document.querySelector("#requestDate");
+  let trDate = document.querySelector("#trDate");
   let search = document.querySelector('#btnSearch');
   let refresh = document.querySelector('a[data-action="reload"]');
   let rangePickr = document.querySelector('.flatpickr-range');
@@ -108,7 +104,7 @@
     btnSummary.style.display = "none";
     btnDetail.style.display = "none";
   });
-  
+
   initDatePicker(rangePickr,{
     minDate: "01/01/2010",
     maxDate: "31/12/2030",
@@ -116,32 +112,39 @@
     mode: "range"
   });
 
+  // if (rangePickr.length) {
+  //   rangePickr.flatpickr({
+  //     dateFormat: "d-m-Y",
+  //     mode: 'range'
+  //   });
+  // }
+
   //refresh di cards
   refresh.addEventListener("click",function(){
     btnDetail.style.display = "block";
     btnSummary.style.display = "none";
-    showList(searchPr.value,orderType.value,searchStatus.value,requestDate.value);
+    showList(searchTr.value,searchType.value,searchStatus.value,trDate.value);
   })
 
-  search.addEventListener("click", function(){
+  search.addEventListener("click", function(){ 
     btnDetail.style.display = "block";
     btnSummary.style.display = "none";
-    showList(searchPr.value,orderType.value,searchStatus.value,requestDate.value);
+    showList(searchTr.value,searchType.value,searchStatus.value,trDate.value);
   });
 
   btnSummary.addEventListener("click", function(){
     btnSummary.style.display = "none";
     btnDetail.style.display = "block";
-    showList(searchPr.value,orderType.value,searchStatus.value,requestDate.value);;
+    showList(searchTr.value,searchType.value,searchStatus.value,trDate.value);
   });
   
   btnDetail.addEventListener("click", function(){
     btnSummary.style.display = "block";
     btnDetail.style.display = "none";
-    showListDetail(searchPr.value,orderType.value,searchStatus.value,requestDate.value);
+    showListDetail(searchTr.value,searchType.value,searchStatus.value,trDate.value);
   });
 
-  const showList = (searchPr,orderType,searchStatus,requestDate) => {
+  const showList = (searchTr,searchType,searchStatus,trDate) => {
     if ($('#detailedTable tr').length >0){
         let table= $('#detailedTable').DataTable();
         table.destroy();
@@ -150,24 +153,24 @@
     }
     showDataTables({
       tableId:"detailedTable",
-      route:"{{ route("purchaseRequest.list") }}",
+      route:"{{ route('warehouse.list') }}",
       kolom:{!! $kolom !!},
-      arrColPrint:[1,2,3,4,5,6,7,8,9,10],
+      arrColPrint:[1,2,3,4,5],
       columnDefs :[
         { width: '5%', targets: 0 },
       ],
       dataSearch:  {
-        searchPr:searchPr,
-        orderType:orderType,
+        searchTr:searchTr,
+        searchType:searchType,
         searchStatus:searchStatus,
-        requestDate:requestDate
+        trDate:trDate
       },
       orderColumn:[[ 1, 'desc' ]],
-      excelFileName:'purchase_request'
+      excelFileName:'transfer_in_out'
     });
   }
 
-  const showListDetail = (searchPr,orderType,searchStatus,requestDate) => {
+  const showListDetail = (searchTr,searchType,searchStatus,trDate) => {
     if ($('#detailedTable tr').length >0){
         let table= $('#detailedTable').DataTable();
         table.destroy();
@@ -176,32 +179,29 @@
     }
     showDataTables({
       tableId:"detailedTable",
-      route:"{{ route('purchaseRequest.list.detail') }}",
+      route:"{{ route('warehouse.list.detail') }}",
       kolom:{!! $kolomDetail !!},
-      arrColPrint:[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18],
+      arrColPrint:[0,1,2,3,4,5,6,7,8,10],
       columnDefs :[
         { width: '5%', targets: 0 },
-        { className: 'text-right','targets': [4,5] },
+        { className: 'text-right','targets': [ 3] },
       ],
       dataSearch:  {
-        searchPr:searchPr,
-        orderType:orderType,
+        searchTr:searchTr,
+        searchType:searchType,
         searchStatus:searchStatus,
-        requestDate:requestDate
+        trDate:trDate
       },
-      // orderColumn:[[ 2, 'asc' ]],
-      excelFileName:'purchase_request'
+      orderColumn:[[ 2, 'asc' ]],
+      excelFileName:'transfer_in_out'
     });
   }
-
+ 
   $.ajaxSetup({
     headers: {
         'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
     }
   });
-
-
-  
     
 </script>
 @endsection

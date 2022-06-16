@@ -21,29 +21,12 @@
                             <input type="text" id="article" name="article" hidden>
                             <div class="form-row">
                                 <div class="form-group col-md-3">
-                                    <label for="tsoCode">Target SO Number</label> <small class="text-muted"> automatic</small>
-                                    <input type="text" id="tsoCode" name="tsoCode" class="form-control disabled-el"  disabled />
+                                    <label for="trNumber">Transfer In Number</label> <small class="text-muted"> automatic</small>
+                                    <input type="text" id="trNumber" name="trNumber" class="form-control disabled-el" disabled />
                                 </div>
                                 <div class="form-group col-md-2">
-                                    <label for="tsoDate">Date*</label>
-                                    <input type="text" id="tsoDate" name="tsoDate" class="form-control" placeholder="DD-MM-YYYY" required />
-                                </div>
-                            </div>
-                            <div class="form-row">
-                                <div class="form-group col-md-5">
-                                    <label for="tsoName">Target SO Name*</label>
-                                    <input type="text" id="tsoName" name="tsoName" class="form-control" required/>
-                                </div>
-                            </div>
-                            <div class="form-row">
-                                <div class="form-group col-md-5">
-                                    <label class="form-label" for="customer">Customer*</label>
-                                    <select class="select2 form-control" id="customer" name="customer" required>
-                                        <option value=""></option>
-                                        @foreach($custs as $val)
-                                            <option value="{{$val->kode}}" >{{$val->kode}} - {{$val->nama}}</option>
-                                        @endforeach
-                                    </select>
+                                    <label for="trDate">Date*</label>
+                                    <input type="text" id="trDate" name="trDate" class="form-control" placeholder="DD-MM-YYYY" required disabled/>
                                 </div>
                             </div>
                             <div class="form-row">
@@ -65,7 +48,7 @@
                 <div class="card-body" >
                     <div class="container-list-item">
                         <div class="lebar-list-item">
-                            @include('targetSo.headerColumn')
+                            @include('warehouse.headerColumn')
                             <div class="" id="article_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;">
                                 <input type="text" id ="last_row_number" class="d-none" value="0">
                             </div>
@@ -89,15 +72,9 @@
                         </div>
                         <div class="col-md-5">
                             <div class="form-group row mb-03">
-                                <label for="totalAmount" class="col-sm-3 col-form-label titik-dua">Total QTY Target</label>
+                                <label for="totalQty" class="col-sm-3 col-form-label titik-dua">Total QTY</label>
                                 <div class="col-sm-6">
-                                    <input type="text" class="form-control text-right font-weight-bold" id="totalQtyTarget" disabled />
-                                </div>
-                            </div>
-                            <div class="form-group row mb-03">
-                                <label for="totalAmount" class="col-sm-3 col-form-label titik-dua">Total QTY Forcast</label>
-                                <div class="col-sm-6">
-                                    <input type="text" class="form-control text-right font-weight-bold" id="totalQtyForcast" disabled />
+                                    <input type="text" class="form-control text-right font-weight-bold" id="totalQty" disabled />
                                 </div>
                             </div>
                         </div>
@@ -105,8 +82,8 @@
                     <hr>
                     <div class="form-row mt-75">
                         <div class="col-md-12">
-                            <button class="btn btn-success" type="reset" id="cmdNew" name="cmdCancel">New</button>
-                            <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Save</button>
+                            <button class="btn btn-success" type="reset" id="cmdNew" name="cmdCancel" data-trType="TROUT">New</button>
+                            <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave" data-trType="TROUT">Save</button>
                         </div>
                     </div>
                 </div>
@@ -120,16 +97,18 @@
 </style>
 @endsection
 @section('scripts')
-@include('targetSo.addArticle')
+@include('warehouse.addArticle')
 <script type="text/javascript">
     let cloneCount=1;
     document.querySelector('#cmdSave').addEventListener('click',() =>{
-        simpanData();
+        let element = document.getElementById('cmdSave');
+        let trType = element.getAttribute('data-trType');
+        simpanData(trType);
     });
 
     $(document).ready(function(){           
         validateFormToast("frmAdd");
-        $('#tsoDate').val(currentDate);
+        $('#trDate').val(currentDate);
     });
 </script>
 @endsection

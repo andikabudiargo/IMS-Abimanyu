@@ -19,7 +19,7 @@
                             </div>
                             <div class="form-group col-md-12">
                                 <label>Username</label>
-                                {!! Form::text('username', null, array('placeholder' => 'username','class' => 'form-control','required')) !!}
+                                {!! Form::text('username', null, array('placeholder' => 'username','class' => 'form-control','required','maxlength'=>10)) !!}
                             </div>
                             <div class="form-group col-md-12">
                                 <label>Password</label>

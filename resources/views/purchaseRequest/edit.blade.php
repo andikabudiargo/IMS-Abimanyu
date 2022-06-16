@@ -30,6 +30,10 @@
                                 <div class="form-group col-md-2">
                                     <label class="form-label" for="poType">PO Type*</label>
                                     <select class="select2 form-control" id="poType" name="poType" required>
+                                        <option value="std">Standard</option>
+                                        {{-- <option value="sub">Subcontracting</option> --}}
+                                        <option value="tso">Target SO</option>
+                                        <option value="rm">Raw Material</option>
                                         <option value="std" {{ $header->order_type == 'std' ? "selected" : ""}}>Standard</option>
                                         <option value="sub" {{ $header->order_type == 'sub' ? "selected" : ""}}>Subcontracting</option>
                                     </select>
@@ -54,7 +58,6 @@
                                     <textarea type="text" id="note" name="note" class="form-control" rows="1" >{{ $header->note }}</textarea>
                                 </div>
                             </div>
-                            
                         </form>
                     </div>
                 </div>

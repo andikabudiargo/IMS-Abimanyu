@@ -5,7 +5,7 @@
             <a class="navbar-brand" href="{{route('home')}}">
               <span class="brand-logo">
                 <div class="brand-wrapper">
-                  <img src="{{asset('app-assets/images/logo/looping_icon.ico')}}" alt="logo" class="logo" >
+                  <img src="{{asset('app-assets/images/logo/looping_icon1.ico')}}" alt="logo" class="logo" >
                 </div>
               </span>
               <h2 class="brand-text">IMS</h2>
@@ -191,6 +191,47 @@
               <a class="d-flex align-items-center" href="{{ route('receivingsRm.index') }}">
                 <i data-feather="circle"></i>
                 <span class="menu-item text-truncate" data-i18n="Input">Receiving RM</span>
+              </a>
+            </li>
+            @endcan
+          </ul>
+        </li>
+        <li class=" {{ in_array(\Request::segment(1), ['receivings','receivingsRm']) ? 'active' : '' }} nav-item">
+          <a class="d-flex align-items-center" href="javascript:void(0);">
+            <i data-feather='box'></i>
+            <span class="menu-title text-truncate" data-i18n="Form Elements">Warehouse
+            </span>
+          </a>
+          <ul class="menu-content">
+            @can('warehouse-index')
+            <li class="{{ \Request::is(['warehouse']) ? 'active' : '' }}">
+              <a class="d-flex align-items-center" href="{{ route('warehouse.index') }}">
+                <i data-feather="circle"></i>
+                <span class="menu-item text-truncate" data-i18n="Input">Warehouse</span>
+              </a>
+            </li>
+            @endcan
+            @can('warehouse-index')
+            <li class="{{ \Request::is(['warehouse/article']) ? 'active' : '' }}">
+              <a class="d-flex align-items-center" href="{{ route('warehouse.article') }}">
+                <i data-feather="circle"></i>
+                <span class="menu-item text-truncate" data-i18n="Input">Stock</span>
+              </a>
+            </li>
+            @endcan
+            @can('warehouse-index')
+            <li class="{{ \Request::is(['warehouse/transferIn']) ? 'active' : '' }}">
+              <a class="d-flex align-items-center" href="{{ route('warehouse.transferIn') }}">
+                <i data-feather="circle"></i>
+                <span class="menu-item text-truncate" data-i18n="Input">Transfer in</span>
+              </a>
+            </li>
+            @endcan
+            @can('warehouse-index')
+            <li class="{{ \Request::is(['warehouse/transferOut']) ? 'active' : '' }}">
+              <a class="d-flex align-items-center" href="{{ route('warehouse.transferOut') }}">
+                <i data-feather="circle"></i>
+                <span class="menu-item text-truncate" data-i18n="Input">Transfer out</span>
               </a>
             </li>
             @endcan

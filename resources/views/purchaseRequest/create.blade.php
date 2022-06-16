@@ -30,8 +30,9 @@
                                     <label class="form-label" for="poType">PO Type*</label>
                                     <select class="select2 form-control" id="poType" name="poType" required>
                                         <option value="std">Standard</option>
-                                        <option value="sub">Subcontracting</option>
+                                        {{-- <option value="sub">Subcontracting</option> --}}
                                         <option value="tso">Target SO</option>
+                                        <option value="rm">Raw Material</option>
                                     </select>
                                 </div>
                                 <div class="form-group col-md-2">
@@ -45,6 +46,13 @@
                                         @foreach($depts as $val)
                                             <option value="{{$val->code}}" >{{$val->code}} - {{$val->name}}</option>
                                         @endforeach
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-row" id="tsoBox">
+                                <div class="form-group col-md-7">
+                                    <label class="form-label" for="tsoNumber">Target SO Number</label>
+                                    <select class="select2 form-control" id="tsoNumber" name="tsoNumber">
                                     </select>
                                 </div>
                             </div>
@@ -96,11 +104,16 @@
 @endsection
 @section('scripts')
 <script type="text/javascript">
-    let orderDate = $('#orderDate');
     let cloneCount=1;
+    let orderDate = $('#orderDate');
+    let objPoType = $('#poType');
+    let objTsoBox = $('#tsoBox');
+    let objTsoNumber = $('#tsoNumber');
+    
     $(document).ready(function(){           
         validateFormToast("frmAdd");
         $('#orderDate').val("{{ $currentDate }}");
+        objTsoBox.hide();
     });
     
     if (orderDate.length) {
@@ -108,6 +121,46 @@
             dateFormat: "d-m-Y",
         });
     }
+
+    objPoType.change(function(e){
+        let potype=$(this).val();
+        objTsoBox.hide();
+        if (potype ==='tso'){
+            objTsoBox.show();
+            dependent = 'tso_list'
+            changeSelect({
+                dependent:dependent,
+                obj:'tsoNumber',
+                url:"{{ route('dynamic.dependent') }}"            
+            });
+        }
+    });
+
+    objTsoNumber.change(function(e){
+        let tsoCode = $(this).val();    
+        if (tsoCode){        
+            $.ajax({
+                type: "GET",
+                url: "{{ route('purchaseRequest.article.tso') }}",
+                data: {
+                    tsoCode:tsoCode
+                },
+                dataType: "json",
+                success: function(data) {
+                    if (data){
+                        for(let i=0;i<data.length;i++){
+                            add_new_row_sto(data[i].article_code,data[i].grand_total,data[i].uom,'');
+                        }
+                    }
+                },
+                error: function(error) {
+                    console.log(error);
+                }
+            });
+        }
+
+        // add_new_row_sto(article,qty,note);
+    }); 
     
     $("#cmdCancel,#cmdNew").click(function(){
         reloadPage();
@@ -131,11 +184,12 @@
             $("#article_row select[name='article_id[]']").map(function(i) {  
                 let $this=$(this);
                 if ($this.val()){
-                    let article=$this.val().split("|");
+                    console.log($this.val());
+                    let article=$this.find(":selected").data("detail").split('|');
                     let articleName=$this.select2('data')[0].text;
-                    let plu=article[0];
+                    let plu=$this.val();
                     let supp=article[2];
-                    let uom=article[1];
+                    let uom=objUom.eq(i).text();
                     let qty=objQty.eq(i).val().replace(/,/gi, '') || 0;
                     let note=objNote.eq(i).val();
                             
@@ -157,7 +211,7 @@
                             });
                         }
                     } 
-                    if (qty == 0){
+                    if ( qty == 0 ){
                         pesan +="QTY of items "+ articleName +" cannot be 0 <br>"; 
                         flag=1;
                     }
@@ -213,14 +267,53 @@
         }
     });
 
-    
-    function add_new_row() {
+    add_new_row_sto = (articleCode,qty,uom,note) => {
         let poType = $('#poType').val();
         $("#article_row").append($("#new_row").clone().html());
         cloneCount++;
         $("#article_row").find('#baru').attr('id', 'new_row'+ cloneCount);
         $("#new_row"+ cloneCount).find('#article_id').attr('id', 'article_id'+ cloneCount);
-        poType =='std' ? changeselect('article_pr','article_id'+ cloneCount) : changeselect('article_pr_sub','article_id'+ cloneCount);
+        $("#new_row"+ cloneCount).find('#qty_order').attr('id', 'qty_order'+ cloneCount);
+        $("#new_row"+ cloneCount).find('#note').attr('id', 'note'+ cloneCount);
+        $("#new_row"+ cloneCount).find('#uom').attr('id', 'uom'+ cloneCount);
+        changeselect('article_pr','article_id'+ cloneCount,articleCode);
+        $('#qty_order'+ cloneCount).val(qty);
+        $('#note'+ cloneCount).val(note);
+        $('#uom'+ cloneCount).text(uom);       
+        $('#article_id'+ cloneCount).attr('disabled','disabled');
+        $('#qty_order'+ cloneCount).attr('disabled','disabled');
+        $("#article_id"+cloneCount).select2();
+        $('#remove_button').tooltip();
+        tombolPanah('qty_order');
+        activate_angka();
+        mask_thousand();
+        splitArticle();
+    };
+    
+    add_new_row = () => {
+        let poType = $('#poType').val();
+        $("#article_row").append($("#new_row").clone().html());
+        cloneCount++;
+        $("#article_row").find('#baru').attr('id', 'new_row'+ cloneCount);
+        $("#new_row"+ cloneCount).find('#article_id').attr('id', 'article_id'+ cloneCount);
+        let depentName;
+        switch(poType) {
+        case 'std':
+            depentName = 'article_pr';
+            break;
+        case 'sub':
+            depentName = 'article_pr_sub';
+            break;
+        case 'tso':
+            depentName = 'article_pr';
+            break;
+        case 'rm':
+            depentName = 'article_pr_rm';
+            break;
+        default:
+            depentName = 'article_pr';
+        } 
+        changeselect(depentName,'article_id'+ cloneCount);
         $("#article_id"+cloneCount).select2();
         $('#remove_button').tooltip();
         tombolPanah('qty_order');
@@ -236,7 +329,7 @@
         let objQty= $('#article_row input[name="qty_order[]"]'); 
         objArticle.change(function(e){    
             let objIndex = objArticle.index(this);
-            let detail = objArticle.eq(objIndex).val();
+            let detail = objArticle.eq(objIndex).find(":selected").data("detail");
             let arrDetail = detail.split("|");
             let uomGroup = objArticle.eq(objIndex).find(":selected").data("uom-group");
 
@@ -260,10 +353,11 @@
 		});
     }
 
-    function changeselect(dependent,obj){
+    function changeselect(dependent,obj,value){
         changeSelect({
             dependent:dependent,
             obj:obj,
+            value:value,
             url:"{{ route('dynamic.dependent') }}"            
         });
     }
