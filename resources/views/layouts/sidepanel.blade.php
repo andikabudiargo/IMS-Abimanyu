@@ -92,7 +92,7 @@
             </li>
           </ul>
         </li>
-        <li class=" {{ in_array(\Request::segment(1), ['salesOrders','customers','invoice']) ? 'active' : '' }} nav-item">
+        <li class=" {{ in_array(\Request::segment(1), ['salesOrders','customers']) ? 'active' : '' }} nav-item">
           <a class="d-flex align-items-center" href="javascript:void(0);">
             <i data-feather='layers'></i>
             <span class="menu-title text-truncate" data-i18n="Form Elements">Sales
@@ -115,12 +115,12 @@
               </a>
             </li>
             @endcan
-            <li class="{{ \Request::segment(1) == 'invoice' ? 'active' : '' }} " >
+            {{-- <li class="{{ \Request::segment(1) == 'invoice' ? 'active' : '' }} " >
               <a class="d-flex align-items-center" href="{{ route('invoice.index') }}">
                 <i data-feather="circle"></i>
                 <span class="menu-item text-truncate" data-i18n="Input">Invoice Customer</span>
               </a>
-            </li>
+            </li> --}}
 
             {{-- <li class="{{ \Request::segment(1) == 'stockTake' ? 'active' : '' }} disabled">
               <a class="d-flex align-items-center" href="{{ route('articles.index') }} ">
@@ -350,7 +350,7 @@
             @endcan --}}
           </ul>
         </li>
-        <li class=" {{ in_array(\Request::segment(1), ['aps','banks','pettyCash','proforma','bankReceipt']) ? 'active' : '' }} nav-item">
+        <li class=" {{ in_array(\Request::segment(1), ['aps','banks','pettyCash','proforma','bankReceipt','invoice']) ? 'active' : '' }} nav-item">
           <a class="d-flex align-items-center" href="javascript:void(0);">
             <i data-feather="dollar-sign"></i>
             <span class="menu-title text-truncate" data-i18n="Form Elements">Finance
@@ -373,6 +373,12 @@
               </a>
             </li>
             @endcan
+            <li class="{{ \Request::segment(1) == 'invoice' ? 'active' : '' }} " >
+              <a class="d-flex align-items-center" href="{{ route('invoice.index') }}">
+                <i data-feather="circle"></i>
+                <span class="menu-item text-truncate" data-i18n="Input">Invoice Customer</span>
+              </a>
+            </li>
             {{-- @can('finance-index')
             <li class="{{ \Request::segment(1) == 'aps'  ? 'active' : '' }}">
               <a class="d-flex align-items-center" href="{{ route('aps.index') }}">
