@@ -210,7 +210,7 @@
             if (flag==0){
                 let tsoDate = $('#tsoDate').val();
                 let tsoName = $('#tsoName').val();
-                // let customer = $('#customer').val();
+                let customer = "none";
                 let note = $('#note').val();
                 $.ajax({
                     type: "post",
@@ -219,7 +219,7 @@
                         articles:JSON.stringify(articles),
                         tsoDate:tsoDate,
                         tsoName:tsoName,
-                        // customer:customer,
+                        customer:customer,
                         note:note
                     },
                     dataType: "json",
@@ -304,7 +304,7 @@
             if (flag==0){
                 let tsoDate = $('#tsoDate').val();
                 let tsoName = $('#tsoName').val();
-                // let customer = $('#customer').val();
+                let customer = "none";
                 let tsoCode = $('#tsoCode').val();
                 let note = $('#note').val();
                 $.ajax({
@@ -315,7 +315,7 @@
                         tsoCode:tsoCode,
                         tsoDate:tsoDate,
                         tsoName:tsoName,
-                        // customer:customer,
+                        customer:customer,
                         statusSimpan:statusSimpan,
                         note:note
                     },
