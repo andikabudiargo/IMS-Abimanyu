@@ -291,7 +291,7 @@ class TargetSoController extends Controller
 
         $data['articles'] = DB::table('article')
             ->leftJoin('uom','uom.code','=','article.uom')
-            ->where('third_party',$customer)
+            // ->where('third_party',$customer)
             ->whereIn('article_type',['FG'])
             ->orderBy('article_desc')
             ->get();
