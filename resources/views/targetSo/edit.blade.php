@@ -35,12 +35,12 @@
                                     <input type="text" id="tsoName" name="tsoName" class="form-control" value="{{ $header->tso_name }}" required />
                                 </div>
                             </div>
-                            <div class="form-row">
+                            {{-- <div class="form-row">
                                 <div class="form-group col-md-5">
                                     <label class="form-label" for="customer">Customer*</label>
                                     <input type="text" id="customer" name="customer" class="form-control" value="{{ $header->customer }}" required />
                                 </div>
-                            </div>
+                            </div> --}}
                             <div class="form-row">
                                 <div class="form-group col-md-5">
                                     <label class="form-label" for="note">Notes</label>

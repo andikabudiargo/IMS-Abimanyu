@@ -210,7 +210,7 @@
             if (flag==0){
                 let tsoDate = $('#tsoDate').val();
                 let tsoName = $('#tsoName').val();
-                let customer = $('#customer').val();
+                // let customer = $('#customer').val();
                 let note = $('#note').val();
                 $.ajax({
                     type: "post",
@@ -219,7 +219,7 @@
                         articles:JSON.stringify(articles),
                         tsoDate:tsoDate,
                         tsoName:tsoName,
-                        customer:customer,
+                        // customer:customer,
                         note:note
                     },
                     dataType: "json",
@@ -304,7 +304,7 @@
             if (flag==0){
                 let tsoDate = $('#tsoDate').val();
                 let tsoName = $('#tsoName').val();
-                let customer = $('#customer').val();
+                // let customer = $('#customer').val();
                 let tsoCode = $('#tsoCode').val();
                 let note = $('#note').val();
                 $.ajax({
@@ -315,7 +315,7 @@
                         tsoCode:tsoCode,
                         tsoDate:tsoDate,
                         tsoName:tsoName,
-                        customer:customer,
+                        // customer:customer,
                         statusSimpan:statusSimpan,
                         note:note
                     },
@@ -344,8 +344,8 @@
     }
 
     function add_new_row() {
-        let customer = $('#customer');
-        let cust = customer.val();
+        // let customer = $('#customer');
+        // let cust = customer.val();
         let poType = $('#poType').val();
         // if (cust){            
             $("#article_row").append($("#new_row").clone().html());
@@ -433,7 +433,7 @@
         let qtyForcast = objQTYForcast.map(function(){return $(this).val();}).get();
         totalQtyTarget = sumFromArray(qtyTarget);
         totalQtyForcast = sumFromArray(qtyForcast);
-        objArticle.length>0 ?$('#customer').attr('disabled','disabled'):$('#customer').removeAttr('disabled');
+        // objArticle.length>0 ?$('#customer').attr('disabled','disabled'):$('#customer').removeAttr('disabled');
         $("#totalRow").val(objArticle.length);
         $("#totalQtyTarget").val(humanizeNumber(totalQtyTarget));
         $("#totalQtyForcast").val(humanizeNumber(totalQtyForcast));

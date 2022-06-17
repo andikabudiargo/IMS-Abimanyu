@@ -52,12 +52,12 @@
                                                 <input type="text" id="tsoName" name="tsoName" class="form-control" value="{{ $header2->tso_name }}" disabled />
                                             </div>
                                         </div>
-                                        <div class="form-row">
+                                        {{-- <div class="form-row">
                                             <div class="form-group col-md-5">
                                                 <label class="form-label" for="customer">Customer*</label>
                                                 <input type="text" id="customer" name="customer" class="form-control" value="{{ $header2->customer }}" disabled />
                                             </div>
-                                        </div>
+                                        </div> --}}
                                         <div class="form-row">
                                             <div class="form-group col-md-5">
                                                 <label class="form-label" for="note">Notes</label>
