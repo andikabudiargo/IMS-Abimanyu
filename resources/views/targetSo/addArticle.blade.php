@@ -109,7 +109,7 @@
     and (max-device-width: 1600px) 
     and (-webkit-min-device-pixel-ratio: 1) { 
         .lebar-list-item{
-            width:150%;
+            width:110%;
         }
         .container-list-item{
             max-width:100%;
@@ -347,12 +347,12 @@
         let customer = $('#customer');
         let cust = customer.val();
         let poType = $('#poType').val();
-        if (cust){            
+        // if (cust){            
             $("#article_row").append($("#new_row").clone().html());
             cloneCount++;
             $("#article_row").find('#baru').attr('id', 'new_row'+ cloneCount);
             $("#new_row"+ cloneCount).find('#articleId').attr('id', 'articleId'+ cloneCount);
-            changeselect('tsoArticle','articleId'+ cloneCount,cust,'');
+            changeselect('tsoArticle','articleId'+ cloneCount,'','');
             $("#articleId"+cloneCount).select2();
             $('#remove_button').tooltip();
             tombolPanah('qtyTarget','','qtyForcast');
@@ -362,19 +362,19 @@
             hitungTotal();
             hitungGrandTotal();
             $('[data-toggle="tooltip"]').tooltip();
-        }else{
-            Swal.fire({
-                title: 'Warning',
-                text: "Choose customer",
-                icon: 'warning',
-                confirmButtonColor: '#3085d6',
-                confirmButtonText: 'OK'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    customer.select2('open');
-                }
-            })
-        }
+        // }else{
+        //     Swal.fire({
+        //         title: 'Warning',
+        //         text: "Choose customer",
+        //         icon: 'warning',
+        //         confirmButtonColor: '#3085d6',
+        //         confirmButtonText: 'OK'
+        //     }).then((result) => {
+        //         if (result.isConfirmed) {
+        //             customer.select2('open');
+        //         }
+        //     })
+        // }
     };
 
     function changeselect(dependent,obj,value,type) {

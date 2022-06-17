@@ -92,7 +92,7 @@
             </li>
           </ul>
         </li>
-        <li class=" {{ in_array(\Request::segment(1), ['salesOrders','customers']) ? 'active' : '' }} nav-item">
+        <li class=" {{ in_array(\Request::segment(1), ['salesOrders','customers','targetSo']) ? 'active' : '' }} nav-item">
           <a class="d-flex align-items-center" href="javascript:void(0);">
             <i data-feather='layers'></i>
             <span class="menu-title text-truncate" data-i18n="Form Elements">Sales
@@ -104,6 +104,14 @@
               <a class="d-flex align-items-center" href="{{ route('salesOrders.index') }}">
                 <i data-feather="circle"></i>
                 <span class="menu-item text-truncate" data-i18n="Input">Sales Order</span>
+              </a>
+            </li>
+            @endcan
+            @can('targetSo-index')
+            <li class="{{ \Request::segment(1) == 'targetSo' ? 'active' : '' }}">
+              <a class="d-flex align-items-center" href="{{ route('targetSo.index') }}">
+                <i data-feather="circle"></i>
+                <span class="menu-item text-truncate" data-i18n="Input">Target SO</span>
               </a>
             </li>
             @endcan
@@ -137,14 +145,7 @@
             </span>
           </a>
           <ul class="menu-content">
-            @can('targetSo-index')
-            <li class="{{ \Request::segment(1) == 'targetSo' ? 'active' : '' }}">
-              <a class="d-flex align-items-center" href="{{ route('targetSo.index') }}">
-                <i data-feather="circle"></i>
-                <span class="menu-item text-truncate" data-i18n="Input">Target SO</span>
-              </a>
-            </li>
-            @endcan
+            
             @can('purchaseRequest-index')
             <li class="{{ \Request::segment(1) == 'purchaseRequests' ? 'active' : '' }}">
               <a class="d-flex align-items-center" href="{{ route('purchaseRequests.index') }}">
