@@ -169,6 +169,12 @@
               </a>
             </li>
             @endcan
+            <li class="{{ \Request::segment(1) == 'stockTake' ? 'active' : '' }} disabled">
+              <a class="d-flex align-items-center" href="{{ route('articles.index') }} ">
+                <i data-feather="circle"></i>
+                <span class="menu-item text-truncate" data-i18n="Input">Delivery Instruction</span>
+              </a>
+            </li>
           </ul>
         </li>
         <li class=" {{ in_array(\Request::segment(1), ['receivings','receivingsRm']) ? 'active' : '' }} nav-item">
@@ -196,7 +202,7 @@
             @endcan
           </ul>
         </li>
-        <li class=" {{ in_array(\Request::segment(1), ['receivings','receivingsRm']) ? 'active' : '' }} nav-item">
+        <li class=" {{ in_array(\Request::segment(1), ['warehouse']) ? 'active' : '' }} nav-item">
           <a class="d-flex align-items-center" href="javascript:void(0);">
             <i data-feather='box'></i>
             <span class="menu-title text-truncate" data-i18n="Form Elements">Warehouse
