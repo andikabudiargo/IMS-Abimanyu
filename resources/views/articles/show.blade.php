@@ -91,7 +91,7 @@
                             <div class="col-6">
                                 <div class="form-group">
                                     <label for="safetyStock">Safety Stock</label>
-                                    <input type="text" id="safetyStock" name="safetyStock" class="form-control numeral-mask" value="{{ old('safetyStock',$article->safety_stock)) }}" maxlength="10"/>
+                                    <input type="text" id="safetyStock" name="safetyStock" class="form-control numeral-mask" value="{{ old('safetyStock',$article->safety_stock) }}" maxlength="10"/>
                                 </div>
                             </div>
                             <div class="col-6">
