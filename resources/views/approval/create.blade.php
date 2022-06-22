@@ -21,6 +21,6 @@
 </div>
 <div class="modal-footer pr-0">
     <button type="button" class="btn btn-success" data-dismiss="modal">{{__('Cancel')}}</button>
-    {{Form::submit(__('Create'),array('class'=>'btn btn-primary'))}}
+    {{Form::submit(__('Save'),array('class'=>'btn btn-primary'))}}
 </div>
 {{Form::close()}}

@@ -37,12 +37,11 @@
                                     <th>PO Date</th>
                                     <th>Amount</th>
                                     <th>Created By</th>
-                                    {{-- <th>Validate By</th> --}}
                                     <th>Action</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach($listPo as $key=>$val)
+                                @foreach($listPoHome as $key=>$val)
                                 <tr>
                                     <td>
                                         <div class="d-flex align-items-center">
@@ -73,46 +72,136 @@
                                             </div>
                                         </div>
                                     </td>
-                                    {{-- <td>
-                                        <div class="d-flex align-items-center">
-                                            <div>
-                                                <div class="font-weight-bolder">{{ $val->validate_by }}</div>
-                                            </div>
-                                        </div>
-                                    </td> --}}
                                     <td>
                                         <a class="btn btn-outline-info btn-sm" 
-                                            id="cmdDetail{{ $key }}" 
-                                            name="cmdDetail{{ $key }}" 
+                                            id="cmdDetailPoHome{{ $key }}" 
+                                            name="cmdDetailPoHome{{ $key }}" 
                                             href="{{ route('purchaseOrder.edit', ['id'=>Crypt::encryptString($val->id)]) }}"> 
                                             <i data-feather='list'></i>
                                             Detail
                                         </a>
                                         <a href='javascript:;'
                                             onclick="action(this)"
-                                            id = 'btnDecline{{ $key }}'
-                                            class="btn btn-outline-danger btn-sm"
-                                            data-key = '{{ $key }}'
-                                            data-doc-number='{{ $val->po_number }}'
-                                            data-url='{{ route("purchaseOrder.approve", ["poNumber"=>$val->po_number]) }}'>
+                                            id = 'btnDeclinePoHome{{ $key }}'
+                                            class="btn btn-outline-danger btn-sm  buttonPoDecline-{{ $val->id }}"
+                                            data-id-class-decline = "buttonPoDecline-{{ $val->id }}"
+                                            data-id-class = "buttonPo-{{ $val->id }}"
+                                            data-doc-number='{{ $val->bom_code }}'
+                                            data-url='{{ route("purchaseOrder.decline", ["poNumber"=>$val->po_number]) }}'>
                                             <i data-feather='x-circle'></i>
                                             Decline
                                         </a>
                                         <a href='javascript:;'
                                             onclick="action(this)"
-                                            id = 'button{{ $key }}'
+                                            id = 'buttonPoHome{{ $key }}'
                                             class="btn btn-outline-success btn-sm"
-                                            data-key = '{{ $key }}'
+                                            data-id-class-decline = "buttonPoDecline-{{ $val->id }}"
+                                            data-id-class = "buttonPo-{{ $val->id }}"
                                             data-doc-number='{{ $val->po_number }}'
                                             data-url='{{ route("purchaseOrder.approve", ["poNumber"=>$val->po_number]) }}'>
                                             <i data-feather='check-circle'></i>
                                             Approve
                                         </a>
-                                        {{-- @can('purchaseOrder-authorize') --}}
-                                            {{-- <a href="{{ route('purchaseOrder.show', ['id'=>$val->id]) }}" class="btn btn-primary">Approve</a>
-                                            <a href="{{ route('purchaseOrder.show', ['id'=>$val->id]) }}" class="btn btn-primary">Detail</a>
-                                            <a href="{{ route('purchaseOrder.show', ['id'=>$val->id]) }}" class="btn btn-primary">Decline</a> --}}
-                                        {{-- @endcan --}}
+                                    </td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!--/ Company Table Card -->
+    </div>
+    <div class="form-row">
+        <!-- Company Table Card -->
+        <div class="col-lg-12 col-12">
+            <div class="card">
+                <div class="card-header">BOM that must be approve </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Customer</th>
+                                    <th>Bom Number</th>
+                                    <th>Article FG</th>
+                                    <th>Article RM</th>
+                                    <th>Approved</th>
+                                    <th>Created By</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($listBomHome as $key=>$val)
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div>
+                                                <div class="font-weight-bolder">{{ $val->customer_name }}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div>
+                                                <div class="font-weight-bolder">{{ $val->bom_code }}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div>
+                                                <div class="font-weight-bolder">{{ $val->article_fg }}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div>
+                                                <div class="font-weight-bolder">{{ $val->article_rm }}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="text-right">
+                                        #Approved: {{ $val->current_level }} of {{ $val->max_level }}
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div>
+                                                <div class="font-weight-bolder">{{ $val->created_by }}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <a class="btn btn-outline-info btn-sm" 
+                                            id="cmdDetailBomHome{{ $key }}" 
+                                            name="cmdDetailBomHome{{ $key }}" 
+                                            href="{{ route('bom.show', ['id'=>Crypt::encryptString($val->id)]) }}"> 
+                                            <i data-feather='list'></i>
+                                            Detail
+                                        </a>
+                                        {{-- <a href='javascript:;'
+                                            onclick="action(this)"
+                                            id = 'btnDeclineBomHome{{ $key }}'
+                                            class="btn btn-outline-danger btn-sm  buttonBomDecline-{{ $val->id }}"
+                                            data-id-class-decline = "buttonBomDecline-{{ $val->id }}"
+                                            data-id-class = "buttonBom-{{ $val->id }}"
+                                            data-doc-number='{{ $val->bom_code }}'
+                                            data-url='{{ route("bom.approve", ["bomNumber"=>$val->bom_code]) }}'>
+                                            <i data-feather='x-circle'></i>
+                                            Decline
+                                        </a> --}}
+                                        <a href='javascript:;'
+                                            onclick="action(this)"
+                                            id = 'buttonBomHome{{ $key }}'
+                                            class="btn btn-outline-success btn-sm buttonBom-{{ $val->id }}"
+                                            data-id-class = "buttonBom-{{ $val->id }}"
+                                            data-doc-number='{{ $val->bom_code }}'
+                                            data-url='{{ route("bom.approve", ["bomNumber"=>$val->bom_code]) }}'>
+                                            <i data-feather='check-circle'></i>
+                                            Approve
+                                        </a>
                                     </td>
                                 </tr>
                                 @endforeach

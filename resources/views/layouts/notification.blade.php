@@ -1,7 +1,7 @@
 <li class="nav-item dropdown dropdown-notification mr-25">
     <a class="nav-link" href="javascript:void(0);" data-toggle="dropdown">
         <i class="ficon" data-feather="bell"></i>
-        <span class="badge badge-pill badge-danger badge-up">{!! count($listSo2) + count($listPo2) !!}</span>
+        <span class="badge badge-pill badge-danger badge-up">{!! count($listSo2) + count($listPoNotif) + count($listBomNotif) !!}</span>
     </a>
     <ul class="dropdown-menu dropdown-menu-media dropdown-menu-right">
         @if( count($listSo2)>0 )
@@ -60,15 +60,15 @@
                 </div> --}}
             </li>
         @endif
-        @if( count($listPo2)>0 )
+        @if( count($listPoNotif)>0 )
             <li class="dropdown-menu-header">
                 <div class="dropdown-header d-flex">
                     <h4 class="notification-title mb-0 mr-auto">PO needs to be approved </h4>
-                    <div class="badge badge-pill badge-light-primary">{!! count($listPo2) !!} New</div>
+                    <div class="badge badge-pill badge-light-primary">{!! count($listPoNotif) !!} New</div>
                 </div>
             </li>   
             <li class="scrollable-container media-list">
-                @foreach($listPo2 as $key=>$val)
+                @foreach($listPoNotif as $key=>$val)
                     {{-- <a class="d-flex" href="{{ route('purchaseOrder.edit', ['id'=>Crypt::encryptString($val->id)]) }}"> --}}
                         <div class="media d-flex align-items-start">
                             <div class="media-left">
@@ -96,15 +96,19 @@
                                     </p>
                                 </div>
                                 <div class="col-12 mt-50">
-                                    <a class="btn btn-outline-info btn-sm" id="cmdDetail{{ $key }}" name="cmdDetail{{ $key }}" href="{{ route('purchaseOrder.edit', ['id'=>Crypt::encryptString($val->id)]) }}"> 
+                                    <a class="btn btn-outline-info btn-sm" 
+                                        id="cmdDetailPo{{ $key }}" 
+                                        name="cmdDetailPo{{ $key }}" 
+                                        href="{{ route('purchaseOrder.edit', ['id'=>Crypt::encryptString($val->id)]) }}"> 
                                         <i data-feather='list'></i>
                                         Detail
                                     </a>
                                     <a href='javascript:;'
                                         onclick="action(this)"
-                                        id = 'btnDecline{{ $key }}'
-                                        class="btn btn-outline-danger btn-sm"
-                                        data-key = '{{ $key }}'
+                                        id = 'btnDeclinePo{{ $key }}'
+                                        class="btn btn-outline-danger btn-sm  buttonPoDecline-{{ $val->id }}"
+                                        data-id-class-decline = "buttonPoDecline-{{ $val->id }}"
+                                        data-id-class = "buttonPo-{{ $val->id }}"
                                         data-doc-number='{{ $val->po_number }}'
                                         data-url='{{ route("purchaseOrder.decline", ["poNumber"=>$val->po_number]) }}'>
                                         <i data-feather='x-circle'></i>
@@ -112,11 +116,89 @@
                                     </a>
                                     <a href='javascript:;'
                                         onclick="action(this)"
-                                        id = 'button{{ $key }}'
-                                        class="btn btn-outline-success btn-sm"
-                                        data-key = '{{ $key }}'
+                                        id = 'buttonPo{{ $key }}'
+                                        class="btn btn-outline-success btn-sm buttonPo-{{ $val->id }}"
+                                        data-id-class = "buttonPo-{{ $val->id }}"
+                                        data-id-class-decline = "buttonPoDecline-{{ $val->id }}"
                                         data-doc-number='{{ $val->po_number }}'
                                         data-url='{{ route("purchaseOrder.approve", ["poNumber"=>$val->po_number]) }}'>
+                                        <i data-feather='check-circle'></i>
+                                        Approve
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        
+                    {{-- </a> --}}
+                @endforeach
+            </li>
+            {{-- <li class="dropdown-menu-footer">
+                <a class="btn btn-primary btn-block" data-toggle="dropdown" href="javascript:void(0)">Close</a>
+            </li> --}}
+        @endif
+
+        @if( count($listBomNotif)>0 )
+            <li class="dropdown-menu-header">
+                <div class="dropdown-header d-flex">
+                    <h4 class="notification-title mb-0 mr-auto">BOM needs to be approved </h4>
+                    <div class="badge badge-pill badge-light-primary">{!! count($listBomNotif) !!} New</div>
+                </div>
+            </li>   
+            <li class="scrollable-container media-list">
+                @foreach($listBomNotif as $key=>$val)
+                    {{-- <a class="d-flex" href="{{ route('purchaseOrder.edit', ['id'=>Crypt::encryptString($val->id)]) }}"> --}}
+                        <div class="media d-flex align-items-start">
+                            <div class="media-left">
+                                <div class="avatar">
+                                    <div class="avatar-content">BOM</div>
+                                    {{--  <img src="{{ asset('app-assets/images/icons/file-icons/document.png') }}" alt="avatar" width="32" height="32"> --}}
+                                </div>
+                            </div>
+                            <div class="media-body">
+                                <div class="col-12">
+                                    <p class="media-heading">
+                                        <span class="font-weight-bolder">{{ $val->bom_code }}</span>
+                                    </p>
+                                    <p class="media-heading">
+                                        <small class="notification-text">Article FG: {{ $val->article_fg }}</small>
+                                    </p>
+                                    <p class="media-heading">
+                                        <small class="notification-text">Article RM: {{ $val->article_rm }}</small>
+                                    </p>
+                                    <p class="media-heading">
+                                        <small class="notification-text">Supplier: {{ $val->customer_name }}</small>
+                                    </p>
+                                    <p class="media-heading">
+                                        <small class="notification-text">#Approved: {{ $val->current_level }} of {{ $val->max_level }}</small>
+                                    </p>
+                                </div>
+                                <div class="col-12 mt-50">
+                                    <a class="btn btn-outline-info btn-sm" 
+                                        id="cmdDetailBom{{ $key }}" 
+                                        name="cmdDetailBom{{ $key }}" 
+                                        href="{{ route('bom.show', ['id'=>Crypt::encryptString($val->id)]) }}"> 
+                                        <i data-feather='list'></i>
+                                        Detail
+                                    </a>
+                                    {{-- <a href='javascript:;'
+                                        onclick="action(this)"
+                                        id = 'btnDeclineBom{{ $key }}'
+                                        class="btn btn-outline-danger btn-sm  buttonBomDecline-{{ $val->id }}"
+                                        data-id-class-decline = "buttonBomDecline-{{ $val->id }}"
+                                        data-id-class = "buttonBom-{{ $val->id }}"
+                                        data-doc-number='{{ $val->bom_code }}'
+                                        data-url='{{ route("bom.approve", ["bomNumber"=>$val->bom_code]) }}'>
+                                        <i data-feather='x-circle'></i>
+                                        Decline
+                                    </a> --}}
+                                    <a href='javascript:;'
+                                        onclick="action(this)"
+                                        id = 'buttonBom{{ $key }}'
+                                        class="btn btn-outline-success btn-sm buttonBom-{{ $val->id }}"
+                                        data-id-class = "buttonBom-{{ $val->id }}"
+                                        data-id-class-decline = "buttonBomDecline-{{ $val->id }}"
+                                        data-doc-number='{{ $val->bom_code }}'
+                                        data-url='{{ route("bom.approve", ["bomNumber"=>$val->bom_code]) }}'>
                                         <i data-feather='check-circle'></i>
                                         Approve
                                     </a>
@@ -136,53 +218,42 @@
 
 
 <script type="text/javascript">
-
     action=(me)=>{
         let meId=me.getAttribute('id'),    
         meDocNumber=me.getAttribute("data-doc-number"),
         meUrl=me.getAttribute("data-url"),
-        meKey= me.getAttribute("data-key");
-
+        meClassId = me.getAttribute("data-id-class");
+        meClassIdDecline = me.getAttribute("data-id-class-decline");
+        
         fetch(meUrl, {
             method: "GET",
             headers: {"Content-type": "application/json;charset=UTF-8"}
         })
         .then(response => response.json())
         .then((responseData) => {
-            // console.log(responseData);
-            // return responseData;
-            document.getElementById("btnDecline"+meKey).classList.add('d-none')
-            document.getElementById(meId).classList.add('d-none')
+            const ele = document.getElementsByClassName(meClassId);
+            if (ele){
+                for (let i=0; i< ele.length; i++ ) {
+                    const idButtoHide = document.getElementById(ele[i].id);
+                    if (idButtoHide){
+                        idButtoHide.classList.add('d-none');
+                    }
+                }
+            }
+            
+            const eleDecline = document.getElementsByClassName(meClassIdDecline);
+            if (eleDecline){
+                for (let i=0; i< eleDecline.length; i++ ) {
+                    const idButtoHideDecline = document.getElementById(eleDecline[i].id);
+                    if (idButtoHideDecline){
+                        idButtoHideDecline.classList.add('d-none');
+                    }
+                }
+            }
+
+            show_msg(responseData.title, responseData.message, responseData.alert);
         })
         .catch(err => console.log(err));
     }
-
-    // $(document).on('click', 'a[data-ajax-approve="true"]', function () {
-    //     console.log("oki");
-    //     let me = $(this),
-    //         me_doc_number = me.data('doc-number'),
-    //         me_href = me.data('url'),
-    //         me_id = me.attr('id');
-    //         console.log(me_doc_number);
-    // });
-
-    // let username = "{{ Auth::user()->name }}";
-    // getNotification = () => {
-    //     $.ajax({
-    //         url:"{{ route('dynamic.dependent') }}",
-    //         method:"POST",
-    //         cache: false,
-    //         data:{
-    //             value:value,
-    //             type:type,
-    //             dependent:dependent
-    //         },
-    //         success:function(result){
-                
-    //         }
-    //     })
-    // }
-    
-    // getNotification();
 
 </script>

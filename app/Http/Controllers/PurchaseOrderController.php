@@ -1067,7 +1067,7 @@ class PurchaseOrderController extends Controller
             if ( $data->statusku and ($data->status == '2' or $data->status == '1') ){
                 if (Auth::user()->can('purchaseOrder-authorize')) {
                 $buttons .=         '<a href="'. route('purchaseOrder.edit', ['id'=>Crypt::encryptString($data->idku)]) .'" class="dropdown-item">
-                                        <i data-feather="file-text"></i>
+                                        <i data-feather="check"></i>
                                         <span>'. __("Approve") .'</span>
                                     </a>';
                 }

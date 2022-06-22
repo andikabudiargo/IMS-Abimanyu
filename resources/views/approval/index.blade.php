@@ -127,7 +127,7 @@
         name:name,
         code:code
       },
-      orderColumn:[[1,'asc'],[4,'asc']],
+      orderColumn:[[1,'asc'],[2,'asc'],[4,'asc']],
       excelFileName:'Approval_level'
     });
   }

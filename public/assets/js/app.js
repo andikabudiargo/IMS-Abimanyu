@@ -15,7 +15,7 @@
         }
         setTimeout(function () {
             $(".loading-spinner-container").removeClass("-show");
-        }, 1000);
+        }, 500);
     });
     // end spinner
 

@@ -20,12 +20,21 @@
                 <label for="searchBom">Bom Number</label>
                 <input type="text" class="form-control text-uppercase" id="searchBom" name="searchBom" placeholder=""  />
               </div>
-              <div class="form-group col-md-5">
-                <label class="form-label" for="articleCode">Article*</label>
+              <div class="form-group col-md-6">
+                <label class="form-label" for="articleCode">Article FG</label>
                 <select class="select2 form-control" id="articleCode" name="articleCode" required>
                     <option value="">All</option>
                     @foreach($articles as $val)
                         <option value="{{ $val->article_code }}" >{{ $val->article_alternative_code }} - {{ $val->article_desc }}</option>
+                    @endforeach
+                </select>
+              </div>
+              <div class="form-group col-md-3">
+                <label class="form-label" for="status">Status</label>
+                <select class="select2 form-control" id="status" name="status" required>
+                    <option value="">All</option>
+                    @foreach($status as $key=>$val)
+                        <option value="{{ $key }}" >{{ $val }}</option>
                     @endforeach
                 </select>
               </div>
@@ -70,7 +79,6 @@
     </div>
   </div>
 </section>
-@include('partials.delete-modal')
 @endsection
 @section('styles')
 <style>
@@ -78,149 +86,46 @@
 @endsection
 @section('scripts')
 <script type="text/javascript">
+  let searchBom = $("#searchBom");
+  let articleCode = $("#articleCode");
+  let status = $("#status");
+  
   $(document).ready(function(){    
-    $(document).on('click', '#deleteButton', function(event) {
-        event.preventDefault();
-        let href = $(this).data('href');
-        $('#modalConfirmation').attr("action", href);
-    });
+
   });
-
-  let showAlert = "{{ Session::get('alert') }}";
-
-  if ( showAlert ){
-    showList();
-    $("#alert-message-alert").fadeTo(5000, 500).slideUp(500, function(){
-      $("#alert-message-alert").slideUp(500);
-    });
-  }
 
   //refresh di cards
   $('a[data-action="reload"]').on('click', function () {
-    let searchBom = $("#searchBom").val();
-    let articleCode = $("#articleCode").val();
-    showList(searchBom,articleCode);
+    showList(searchBom.val(),articleCode.val(),status.val());
   });
-
-  rangePickr = $('.flatpickr-range');
-  if (rangePickr.length) {
-    rangePickr.flatpickr({
-      dateFormat: "d-m-Y",
-      mode: 'range'
-    });
-  }
 
   $("#btnSearch").click(function(e){
-    let searchBom = $("#searchBom").val();
-    let articleCode = $("#articleCode").val();
-    showList(searchBom,articleCode);
-
+    showList(searchBom.val(),articleCode.val(),status.val());
   });
 
-  function showList(searchBom,articleCode){
-    let dtdom ='<"d-flex justify-content-between align-items-center header-actions mx-1 row mt-75" <"col-lg-12 col-xl-6" l><"col-lg-12 col-xl-6 pl-xl-75 pl-0"<"dt-action-buttons text-xl-right text-lg-left text-md-right text-left d-flex align-items-center justify-content-lg-end align-items-center flex-sm-nowrap flex-wrap mr-1"<"mr-1"f>B>>>t<"d-flex justify-content-between mx-2 row mb-1"<"col-sm-12 col-md-6"i><"col-sm-12 col-md-6"p>>';
-    let arr_col_print =[1,2,3,4,5,6,7,8,9]; 
-    $(function(){
-      let oTable =$("#detailedTable").DataTable({
-        ajax:
-        {
-          url:'{{ route("bom.list")}}',
-          data:{
-              searchBom:searchBom,
-              articleCode:articleCode,
-          }
-        },
-        processing: true,
-        serverSide: true,
-        buttons: true,
-        dom:dtdom,
-        lengthMenu: [
-          [ 10, 25, 50, -1 ],
-          [ '10', '25', '50', 'all' ]
-        ],
-        buttons: [
-          {
-            extend: 'collection',
-            className: 'btn btn-outline-secondary dropdown-toggle mt-07',
-            text: feather.icons['share'].toSvg({ class: 'font-small-4 mr-50' }) + 'Export',
-            buttons: [
-              {
-                extend: 'print',
-                text: feather.icons['printer'].toSvg({ class: 'font-small-4 mr-50' }) + 'Print',
-                className: 'dropdown-item',
-                exportOptions: { columns: arr_col_print }
-              },
-              {
-                extend: 'csv',
-                text: feather.icons['file-text'].toSvg({ class: 'font-small-4 mr-50' }) + 'Csv',
-                className: 'dropdown-item',
-                exportOptions: { columns: arr_col_print }
-              },
-              {
-                extend: 'excel',
-                text: feather.icons['file'].toSvg({ class: 'font-small-4 mr-50' }) + 'Excel',
-                className: 'dropdown-item',
-                exportOptions: { columns: arr_col_print }
-              },
-              {
-                extend: 'pdf',
-                text: feather.icons['clipboard'].toSvg({ class: 'font-small-4 mr-50' }) + 'Pdf',
-                className: 'dropdown-item',
-                exportOptions: { columns: arr_col_print }
-              },
-              {
-                extend: 'copy',
-                text: feather.icons['copy'].toSvg({ class: 'font-small-4 mr-50' }) + 'Copy',
-                className: 'dropdown-item',
-                exportOptions: { columns: arr_col_print }
-              }
-            ],
-            init: function (api, node, config) {
-              $(node).removeClass('btn-secondary');
-              $(node).parent().removeClass('btn-group');
-              setTimeout(function () {
-                $(node).closest('.dt-buttons').removeClass('btn-group').addClass('d-inline-flex');
-              }, 50);
-            }
-          },
-        ],
-        language: {
-          paginate: {
-            // remove previous & next text from pagination
-            previous: '&nbsp;',
-            next: '&nbsp;'
-          }
-        },
-        columnDefs: [
-          { width: '5%', targets: 0 },
-        ],
-        drawCallback: function( settings ) {
-          feather.replace({
-                width: 14,
-                height: 14
-          });
-        },
-        order: [[ 1, 'asc' ]],
-        bDestroy: true, //pakai ini supaya bisa di load berulang2
-        // scrollX: true, //pakai ini supaya waktu responsive  bisa di scroll horizontal
-        columns: [
-            { data: 'action', name: 'action',title:'action', orderable: false, searchable: false },
-            { data: 'bom_code', name: 'bom_code',title:'BOM Code' },
-            { data: 'customer', name: 'customer',title:'Customer' },
-            { data: 'num_revision', name: 'num_revision',title:'Revision' },
-            { data: 'article_des', name: 'article_des',title:'Article' },
-            { data: 'group_of_material', name: 'group_of_material',title:'Group' },
-            { data: 'status', name: 'status',title:'Status' },
-            { data: 'created_by', name: 'created_by',title:'Created By' },
-            { data: 'created_at', name: 'created_at',title:'Created At' },
-            { data: 'updated_by', name: 'updated_by',title:'Updated By' },
-            { data: 'updated_at', name: 'updated_at',title:'Updated At' },
-            
-        ],
-      });
+  const showList = (searchBom,articleCode,status) => {
+    if ($('#detailedTable tr').length >0){
+        let table= $('#detailedTable').DataTable();
+        table.destroy();
+        $('#detailedTable tbody > tr').remove();
+        $("#detailedTable thead > tr").remove();
+    }
+    showDataTables({
+      tableId:"detailedTable",
+      route:"{{ route('bom.list') }}",
+      kolom:{!! $kolom !!},
+      arrColPrint:[1,2,3,4,5,6,7,8,9,10,11],
+      columnDefs :[
+        { width: '5%', targets: 0 },
+      ],
+      dataSearch:  {
+        searchBom:searchBom,
+        articleCode:articleCode,
+        status:status
+      },
+      orderColumn:[[ 1, 'desc' ]],
+      excelFileName:'bom'
     });
-    //$('div.head-label').html('<h6 class="mb-0">Data Users</h6>');
-    
   }
 
   $.ajaxSetup({

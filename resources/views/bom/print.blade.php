@@ -111,7 +111,7 @@
             <td valign="" width="3%" class="font-10 header-padding">Model</td>
             <td valign="" width="10%" class="font-10 header-padding"></td>
             <td valign="" width="4%" class="font-10 header-padding">No Revisi</td>
-            <td valign="" width="5%" class="font-10 header-padding"></td>
+            <td valign="" width="5%" class="font-10 header-padding">{{ $bomHdr->num_revision }}</td>
         </tr>
         <tr>
             <td valign="" class="font-10 header-padding">Part No</td>

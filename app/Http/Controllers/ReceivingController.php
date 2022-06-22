@@ -749,8 +749,10 @@ class ReceivingController extends Controller
         $uomGroup = $request->value;      
         $output="";
 
-        $data= DB::table("uom") 
-        ->where("uom_group",$uomGroup)
+        $data= DB::table("uom")
+        ->where(function ($query) use ($uomGroup) {
+            $uomGroup ? $query->where('uom_group',$uomGroup) : '';
+        })
         ->orderBy("code")
         ->select("code","name","uom_group")
         ->get();          

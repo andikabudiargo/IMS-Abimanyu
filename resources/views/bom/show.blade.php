@@ -43,20 +43,20 @@
                                         </div>  
                                         <div class="form-row">
                                             <div class="form-group col-md-5">
-                                                <label class="form-label" for="articleCode">Article*</label>
+                                                <label class="form-label" for="articleCode">Article Finish Goods</label>
                                                 <input type="text" id="customer" name="customer" class="form-control" value="{{ $header2->article }}"disabled />
-                                                {{-- <select class="select2 form-control" id="articleCode" name="articleCode" disabled>
-                                                    <option value="">All</option>
-                                                    @foreach($articleHeader as $val)
-                                                        <option value="{{ $header2->article_code }}|{{ $header2->uom }}|{{ $header2->cust_name }}|{{ $header2->group }}|{{ $header2->third_party }}|{{ $header2->group_of_material }}" {{$header2->article_code == old("articleCode",$header->article_code) ? "selected" : ""}}>{{ $header2->article_alternative_code }} - {{ $header2->article_desc }}</option>
-                                                    @endforeach
-                                                </select> --}}
                                             </div>
-                                            <div class="form-group col-md-3">
+                                            <div class="form-group col-md-5">
+                                                <label class="form-label" for="articleCodeRm">Article Raw material*</label>
+                                                <input type="text" id="articleCodeRm" name="articleCodeRm" value="{{ old('articleCodeRm',$header->article_rm) }}" class="form-control" disabled />
+                                            </div>
+                                        </div>
+                                        <div class="form-row">
+                                            <div class="form-group col-md-5">
                                                 <label for="customer">Customer</label>
                                                 <input type="text" id="customer" name="customer" value="{{ $header2->cust_name }}"class="form-control" disabled />
                                             </div>
-                                            <div class="form-group col-md-2">
+                                            <div class="form-group col-md-4">
                                                 <label for="group">Group of material</label>
                                                 <input type="text" id="group" name="group" class="form-control" disabled />
                                             </div>
@@ -105,7 +105,8 @@
                                                     <th>#</th>
                                                     <th>Article Code</th>
                                                     <th class="text-right">QTY</th>
-                                                    <th class="text-right">Type</th>
+                                                    <th >Uom Con.</th>
+                                                    <th >Type</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -114,8 +115,8 @@
                                                     <tr>
                                                         <td ></td>
                                                         <td >{{ $item->article }}</td>
-                                                        {{-- <td class="text-right">{{ $item->uom_group =='PIECE' ? number_format($item->qty) : number_format($item->qty,3) }} {{ $item->uom }}</td> --}}
-                                                        <td class="text-right">{{ number_format($item->qty,4) }} {{ $item->uom }}</td>
+                                                        <td class="text-right">{{ number_format($item->qty,$decimalPlaces) }} {{ $item->uom }}</td>
+                                                        <td > {{ $item->uom_con }}</td>
                                                         <td >{{ $item->article_type }}</td>
                                                     </tr>
                                                 @endif
@@ -145,89 +146,50 @@
                                 </div>
                             @endforeach
                         </div>
-                        
-                        
+                        <hr>
+                        <div class="form-row card-statistics">
+                            @foreach($approvalHistory as $val)
+                                @if($val->status == true)
+                                    <div class="statistics-body">
+                                        <div class="col-xl-3 col-sm-6 col-12 mb-2 mb-xl-0">
+                                            <div class="media">
+                                                <div class="avatar bg-light-success mr-2">
+                                                    <div class="avatar-content">
+                                                        <i data-feather="check" class="avatar-icon"></i>
+                                                    </div>
+                                                </div>
+                                                <div class="media-body my-auto">
+                                                    <h4 class="font-weight-bolder mb-0">Approve-{{ $val->approval_order }}</h4>
+                                                    <p class="card-text mb-0">{{ $val->name }}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                @else
+                                    <div class="statistics-body">
+                                        <div class="col-xl-3 col-sm-6 col-12 mb-2 mb-xl-0">
+                                            <div class="media">
+                                                <div class="avatar bg-light-danger mr-2">
+                                                    <div class="avatar-content">
+                                                        <i data-feather="x" class="avatar-icon"></i>
+                                                    </div>
+                                                </div>
+                                                <div class="media-body my-auto">
+                                                    <h4 class="font-weight-bolder mb-0">Approve-{{ $val->approval_order }}</h4>
+                                                    <p class="card-text mb-0">{{ $val->petugas }}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                @endif
+                            @endforeach
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-        {{-- <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <h4 class="card-title">Article</h4>
-                </div>
-                <div class="card-body">
-                    <div class="form-row">
-                        <div class="col-md-6 col-12 d-none d-md-block">
-                            <div class="form-group">
-                                <label class="d-none d-md-block">Article Code</label>
-                            </div>
-                        </div>
-                        <div class="col-md-2 col-12 d-none d-md-block">
-                            <div class="form-group">
-                                <label class="d-none d-md-block text-right">QTY</label>
-                            </div>
-                        </div>
-                        <div class="col-md-1 col-12 d-none d-md-block">
-                            <div class="form-group">
-                                <label class="d-none d-md-block">Uom</label>
-                            </div>
-                        </div>
-                        <div class="col-md-2 col-12 d-none d-md-block">
-                            <div class="form-group">
-                                <label class="d-none d-md-block">Type</label>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="" id="article_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;">
-                        <input type="text" id ="last_row_number" class="d-none" value="{{ count($detail) }}">
-                        @foreach ($detail as $key =>$item)
-                            <div id="new_row{{ $key }}" class="tanda-baris barisDetail" >
-                                <div class="form-row d-flex align-items-center">
-                                    <div class="col-md-6 col-12">
-                                        <div class="form-group margin-nol">
-                                            <select class="form-control sku-select-system" id="article_id{{ $key }}" name="article_id[]" disabled>
-                                                @foreach($articles as $val)
-                                                    <option value="{{ $header2->article_code }}|{{ $header2->uom }}|{{ $header2->costprice }}|{{ $header2->article_type }}|{{ $header2->type_name }}" data-uom-group={{ $header2->uom_group }} {{ $header2->article_code == $item->article_code ? "selected" : "" }}>{{$header2->article_code}} - {{$header2->article_desc}}</option>
-                                                @endforeach
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-2 col-12">
-                                        <div class="form-group margin-nol">
-                                            <label for="qty_stock" class="d-block d-md-none">QTY</label>
-                                            <input type="text" class="form-control text-right tombol-panah" data-nama-el-kiri="article_id" data-type-el-kiri="select" data-uom-group={{ $item->uom_group }} id = "qtyBom{{ $key }}" name="qtyBom[]" value="{{ $item->uom_group =='PIECE' ? $item->qty*1 : $item->qty }}" maxlength="6" disabled/>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-1 col-12">
-                                        <div class="form-group margin-nol">
-                                            <label for="uom" class="d-block d-md-none">Uom</label>
-                                            <span class="" id = "uom" name="uom[]">{{ $item->uom }}</span>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-2 col-12">
-                                        <div class="form-group margin-nol">
-                                            <label for="uom" class="d-block d-md-none">Type</label>
-                                            <span class="" id = "type" name="type[]">{{ $item->type_name }}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <hr class="d-block d-md-none" />
-                            </div>
-                        @endforeach
-                    </div>
-                    <hr>
-                    <div class="form-row">
-                        <div class="col-md-12 col-12">
-                            <a href="{{ route('boms.index') }}" class="btn btn-success">Back</a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div> --}}
     </div>
 </section>
-@include('bom.addArticle')
 @endsection
 @section('styles')
 <style>
@@ -251,6 +213,7 @@
 </style>
 @endsection
 @section('scripts')
+@include('bom.addArticle')
 <script type="text/javascript">
     let currentDate = todayDate('dd-mm-yyyy');    
     $(document).ready(function(){           

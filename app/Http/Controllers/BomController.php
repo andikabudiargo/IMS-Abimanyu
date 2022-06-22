@@ -27,10 +27,29 @@ class BomController extends Controller
         $this->decimalPlaces = config('globalParam.decimal');
     }
 
+    public function getTableColoumn(){
+        $kolom=
+        [
+            ['data'=>'action','name'=>'action','title'=>'action','orderable'=>false,'searchable'=>false],
+            ['data'=>'bom_code','name'=>'bom_code','title'=>'BOM Code'],
+            ['data'=>'customer','name'=>'customer','title'=>'Customer'],
+            ['data'=>'num_revision','name'=>'num_revision','title'=>'Revision'],
+            ['data'=>'article_des','name'=>'article_des','title'=>'Article'],
+            ['data'=>'group_of_material','name'=>'group_of_material','title'=>'Group'],
+            ['data'=>'status','name'=>'status','title'=>'Status'],
+            ['data'=>'approval_by','name'=>'approval_by','title'=>'Approval By'],
+            ['data'=>'created_by','name'=>'created_by','title'=>'Created By'],
+            ['data'=>'created_at','name'=>'created_at','title'=>'Created At'],
+            ['data'=>'updated_by','name'=>'updated_by','title'=>'Updated By'],
+            ['data'=>'updated_at','name'=>'updated_at','title'=>'Updated At'],
+        ];
+        return json_encode($kolom, true);
+    }
+
     public function index(Request $request)
     {
         $data['title'] = "$this->title";
-
+        $data['kolom'] = $this->getTableColoumn();
         $data['articles'] = DB::table('article')
         ->leftJoin('third_party','article.third_party','third_party.kode')
         ->leftJoin('group_materials','group_materials.code','=','article.group_of_material')
@@ -38,7 +57,7 @@ class BomController extends Controller
         ->select('article.*', 'third_party.nama as cust_name','group_materials.name as group')
         ->get();
        
-        $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'RECEIVED','5'=>'CANCELED','6'=>'CLOSED','7'=>'REVISED','8'=>'DECLINE'];
+        $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'RECEIVED','5'=>'DELETED','6'=>'CLOSED','7'=>'REVISED'];
                         
         return view("bom.index",$data);
     }
@@ -74,8 +93,22 @@ class BomController extends Controller
         ->leftJoin('third_party','article.third_party','third_party.kode')
         ->leftJoin('group_materials','group_materials.code','=','article.group_of_material')
         ->where('article_type','FG')
+        ->whereNotIn('article.article_code', function($query){
+            $query->select('article_code')
+            ->from('bom_hdr');
+        })
         ->select('article.*', 'third_party.nama as cust_name','group_materials.name as group')
         ->get();
+
+        $data['articlesRm'] = DB::table('article')
+        ->where('article_type','RM')
+        ->whereNotIn('article.article_code', function($query){
+            $query->select('article_code_rm')
+            ->from('bom_hdr');
+        })
+        ->get();
+
+        $data['oEdit']=false;
 
         return view("bom.create",$data);
     }
@@ -85,6 +118,7 @@ class BomController extends Controller
         $username =  Auth::user()->username;
         $articles = json_decode($request -> articles);
         $articleCode = $request->articleCode;
+        $articleCodeRm = $request->articleCodeRm;
         $customer = $request->customer;
         $group = $request->group;
         $uom = $request->uom;
@@ -128,10 +162,11 @@ class BomController extends Controller
             $bomNumber = $this->getLastCode('BOM');
             DB::beginTransaction();
             try {
-                    DB::table('bom_hdr')->insert([
+                    $id = DB::table('bom_hdr')->insertGetId([
                         'bom_code' => $bomNumber,
                         'customer' => $customer,
                         'article_code' => $articleCode,
+                        'article_code_rm' => $articleCodeRm,
                         'uom' => $uom,
                         'group_of_material' => $group,
                         'status' => $status,
@@ -154,6 +189,7 @@ class BomController extends Controller
                             'article_code' => $val->article_code,
                             'qty' => $val->qty,
                             'uom' => $val->uom,
+                            'uom_con' => $val->uom_con,
                             // 'cost_price' => $val->price,
                             'article_type' => $val->type,
                             'customer_code' => $val->customer_code,
@@ -171,8 +207,7 @@ class BomController extends Controller
                     $alert  ="success";
                     $message  = "$title $bomNumber is successfully saved";
                     \LogActivity::addToLog($title,"username: $username Status $message");
-                    return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'bomNumber'=>$bomNumber));
-
+                    return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'bomNumber'=>$bomNumber,'oEdit'=>true));
             } catch (Exception $e) {
                 DB::rollBack();
                 $title ='Save BOM';
@@ -193,7 +228,6 @@ class BomController extends Controller
 
         $data['headers'] = DB::table('bom_hdr')
         ->leftJoin('third_party','bom_hdr.customer','third_party.kode')
-        ->leftJoin('article','article.article_code','=','bom_hdr.article_code')
         ->leftJoin('group_materials','group_materials.code','=','bom_hdr.group_of_material')
         ->where('origin_bom_code', function($query) use ($id){
             $query->select('bom_code')->from('bom_hdr')->where('id',$id);
@@ -201,14 +235,18 @@ class BomController extends Controller
         ->select('bom_hdr.*'
         ,'third_party.nama as cust_name'
         ,'group_materials.name as group'
-        ,DB::raw("concat(article.article_alternative_code,'-',article.article_desc) as article")
         ,DB::raw("(select concat(kode,' - ',nama) from third_party where kode = bom_hdr.customer) as cust_name")
         ,DB::raw('(select sum(qty) from bom_det where bom_code = bom_hdr.bom_code) as sum_qty') 
         ,DB::raw('(select count(*) from bom_det where bom_code = bom_hdr.bom_code) as sum_row')
+        ,DB::raw("(select 
+                    concat(article.article_alternative_code,'-',article.article_desc)
+                from article where article_code = bom_hdr.article_code limit 1) as article")
+        ,DB::raw("(select 
+                    concat(article.article_alternative_code,'-',article.article_desc)
+                from article where article_code = bom_hdr.article_code_rm limit 1) as article_rm")
         )
         ->orderBy('id')
         ->get();    
-
 
         $bomNumber =  $data['headers'][0]->bom_code;
 
@@ -234,19 +272,19 @@ class BomController extends Controller
         ->select('article.*', 'third_party.nama as cust_name','group_materials.name as group')
         ->get();   
 
-        $data['articles'] = DB::table('article') 
-        ->leftJoin('article_types','article_types.code','=','article.article_type')
-        ->leftJoin('uom','uom.code','article.uom')
-        // ->whereNotIn('article_type',['FG','RM'])
-        ->orderBy('article_desc')
-        ->select('article.*','uom.uom_group as uom_group','article_types.name as type_name')
-        ->get();
+        // $data['articles'] = DB::table('article') 
+        // ->leftJoin('article_types','article_types.code','=','article.article_type')
+        // ->leftJoin('uom','uom.code','article.uom')
+        // // ->whereNotIn('article_type',['FG','RM'])
+        // ->orderBy('article_desc')
+        // ->select('article.*','uom.uom_group as uom_group','article_types.name as type_name')
+        // ->get();
 
         $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode,$bomNumber,$username);
         $data['approveValidate'] = Approval::approveValidate($this->moduleCode,$bomNumber,$username);
 
-        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'RECEIVED','5'=>'CANCELED','6'=>'CLOSED','7'=>'REVISED','8'=>'DECLINE'];
-        $statusPr = ['NEW','VALIDATE','APPROVED','RECEIVED','CANCELED','CLOSED','REVISED','DECLINE'];
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'RECEIVED','5'=>'DELETED','6'=>'CLOSED','7'=>'REVISED','8'=>'DECLINE'];
+        $statusPr = ['NEW','VALIDATE','APPROVED','RECEIVED','DELETED','CLOSED','REVISED','DECLINE'];
         $data['statusBom'] = $statusPr[$data['headers'][0]->status-1];
 
         return view("bom.show",$data);
@@ -266,7 +304,19 @@ class BomController extends Controller
         $data['subtitle'] = "Edit $this->title";
 
         $data['header'] = DB::table('bom_hdr')
-        ->where('id',$id)
+        ->leftJoin('third_party','bom_hdr.customer','third_party.kode')
+        ->leftJoin('group_materials','group_materials.code','=','bom_hdr.group_of_material')
+        ->select('bom_hdr.*'
+        ,'third_party.nama as cust_name'
+        ,'group_materials.name as group'
+        ,DB::raw("(select 
+                    concat(article.article_alternative_code,'-',article.article_desc)
+                from article where article_code = bom_hdr.article_code limit 1) as article")
+        ,DB::raw("(select 
+                    concat(article.article_alternative_code,'-',article.article_desc)
+                from article where article_code = bom_hdr.article_code_rm limit 1) as article_rm")
+        )
+        ->where('bom_hdr.id',$id)
         ->get()->first();
 
         $bomNumber = $data['header']->bom_code;
@@ -278,21 +328,23 @@ class BomController extends Controller
         ->select('bom_det.*'
         ,'uom.uom_group as uom_group'
         ,'article_types.name as type_name'
-        ,DB::RAW("(select string_agg(unit_to,',' order by unit_from) as uom_member from uom_con where unit_from = bom_det.uom)"))
+        ,DB::RAW("(select string_agg(unit_to,',' order by unit_from) as uom_member from uom_con where unit_from = bom_det.uom)")
+        ,DB::RAW("(select string_agg(code,',' order by code) as uoms from uom )")
+        )
         ->orderBy('bom_det.id')
         ->get();
 
-        $data['articleHeader']= DB::table('article')
-        ->leftJoin('third_party','article.third_party','third_party.kode')
-        ->leftJoin('group_materials','group_materials.code','=','article.group_of_material')
-        ->where('article.third_party',$data['header']->customer)
-        ->select('article.*', 'third_party.nama as cust_name','group_materials.name as group')
-        ->get();   
+        // $data['articleHeader']= DB::table('article')
+        // ->leftJoin('third_party','article.third_party','third_party.kode')
+        // ->leftJoin('group_materials','group_materials.code','=','article.group_of_material')
+        // ->where('article.third_party',$data['header']->customer)
+        // ->select('article.*', 'third_party.nama as cust_name','group_materials.name as group')
+        // ->get();   
 
         $data['articles'] = DB::table('article') 
         ->leftJoin('article_types','article_types.code','=','article.article_type')
         ->leftJoin('uom','uom.code','article.uom')
-        // ->whereNotIn('article_type',['FG','RM'])
+        ->whereNotIn('article_type',['FG','RM'])
         ->orderBy('article_desc')
         ->select('article.*','uom.uom_group as uom_group','article_types.name as type_name')
         ->get();
@@ -300,8 +352,8 @@ class BomController extends Controller
         $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode,$bomNumber,$username);
         $data['approveValidate'] = Approval::approveValidate($this->moduleCode,$bomNumber,$username);
 
-        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'RECEIVED','5'=>'CANCELED','6'=>'CLOSED','7'=>'REVISED','8'=>'DECLINE'];
-        $statusPr = ['NEW','VALIDATE','APPROVED','RECEIVED','CANCELED','CLOSED','REVISED','DECLINE'];
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'RECEIVED','5'=>'DELETED','6'=>'CLOSED','7'=>'REVISED','8'=>'DECLINE'];
+        $statusPr = ['NEW','VALIDATE','APPROVED','RECEIVED','DELETED','CLOSED','REVISED','DECLINE'];
         $data['statusBom'] = $statusPr[$data['header']->status-1];
 
         return view("bom.edit",$data);
@@ -399,6 +451,7 @@ class BomController extends Controller
                                 'article_code' => $val->article_code,
                                 'qty' => $val->qty,
                                 'uom' => $val->uom,
+                                'uom_con' => $val->uom_con,
                                 // 'cost_price' => $val->price,
                                 'article_type' => $val->type,
                                 'customer_code' => $val->customer_code,
@@ -414,7 +467,7 @@ class BomController extends Controller
                     $alert  ="success";
                     $message  = "$title $bomNumber is successfully updated";
                     \LogActivity::addToLog($title,"username: $username Status $message");
-                    return response()->json(array('status' => 1, 'message' => $message,'alert'=>$alert,'bomNumber'=>$bomNumber));
+                    return response()->json(array('status' => 1, 'message' => $message,'alert'=>$alert,'bomNumber'=>$bomNumber,'oEdit'=>true));
 
             } catch (Exception $e) {
                 DB::rollBack();
@@ -435,7 +488,7 @@ class BomController extends Controller
         $nextLevel = $statusLevelApproval[0]->next_level;
         $statusBom = $statusLevelApproval[0]->next_level == $statusLevelApproval[0]->max_level ? '3' :'2';
 
-        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'RECEIVED','5'=>'CANCELED','6'=>'CLOSED','7'=>'REVISED','8'=>'DECLINE'];
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'RECEIVED','5'=>'DELETED','6'=>'CLOSED','7'=>'REVISED','8'=>'DECLINE'];
              
         DB::beginTransaction();
         try {
@@ -486,8 +539,13 @@ class BomController extends Controller
     {
         $username =  Auth::user()->username;       
         $id=Crypt::decryptString($request->id);
-        $bom_code = DB::table('bom_hdr')->where('id',$id)->where('status','1')->value('bom_code');
-        $rowAffected = DB::table('bom_hdr')->where('id',$id)->delete();
+        $bom_code = DB::table('bom_hdr')->where('id',$id)->value('bom_code');
+        $rowAffected = DB::table('bom_hdr')->where('id',$id)->update([            
+            'status' => 5,
+            'note' => "Deleted at ". date('Y-m-d H:i:s') .", not active",
+            'updated_by' => Auth::user()->username,
+            'updated_at' => date('Y-m-d H:i:s')
+        ]);
         if($rowAffected>0){
             $title ="Delete $this->title";
             $alert  ="success";
@@ -506,8 +564,8 @@ class BomController extends Controller
 
     public function list(Request $request)
     {
-       // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'RECEIVED','5'=>'CANCELED','6'=>'CLOSED','7'=>'REVISED','8'=>'DECLINE'];
-
+       // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'RECEIVED','5'=>'DELETED','6'=>'CLOSED','7'=>'REVISED','8'=>'DECLINE'];
+        $username =  Auth::user()->username;
         $searchBom = strtolower($request->searchBom);
         $articleCode = $request->articleCode;
 
@@ -518,8 +576,22 @@ class BomController extends Controller
             $articleCode ? $query->where('bom_hdr.article_code','ilike','%'.$articleCode.'%') : '';
         })
         ->where('bom_hdr.status','<>','7')
+        ->select('bom_hdr.*'
+        ,DB::raw("CONCAT(article.article_alternative_code,'-',article.article_desc) as article_des")
+        ,DB::raw("(select STRING_AGG((select name from users where username = a.username), ' -> ' ORDER BY approval_order) AS main from approval_history a where module_number = bom_hdr.bom_code) as approval_by")
+        ,DB::raw("(SELECT username = '$username' as validate from (
+            select username,approval_order,
+            (select max(approval_number) from approval_master where module_code = a.module_code ) as max_level,
+            COALESCE((select max(approval_order) from approval_history
+            where module_code = a.module_code
+            and module_number = bom_hdr.bom_code),'0') as current_level
+            from approval_level a 
+            where module_code = '".$this->moduleCode."' and username = '$username') b
+            where approval_order = current_level+1
+            ) as statusku")
+        )
         ->orderBy('bom_code')
-        ->get(['bom_hdr.*',DB::raw("CONCAT(article.article_alternative_code,'-',article.article_desc) as article_des")]); 
+        ->get(); 
        
         return Datatables::of($data)
         ->addColumn('action', function ($data) {
@@ -528,16 +600,25 @@ class BomController extends Controller
                                 <i data-feather="menu"></i>
                             </a>';
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
-            if (Auth::user()->can('bom-edit')) {
+            if (Auth::user()->can('bom-edit') && $data->status != '3') {
             $buttons .=         '<a href="'. route('bom.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                     <i data-feather="file-text"></i>
                                     Edit
                                 </a>';
+            }
+
+            if ( $data->statusku and ($data->status == '2' or $data->status == '1') ){
+                
+                $buttons .= '<a href="'. route('bom.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+                                <i data-feather="check"></i>
+                                <span>'. __("Approve") .'</span>
+                            </a>';
+            }
+
             $buttons .=         '<a href="'. route('bom.print', ['id'=>Crypt::encryptString($data->id)]) .'" target="_blank" class="dropdown-item">
                                     <i data-feather="printer"></i>
                                     Print
                                 </a>';
-            }
             $buttons .=         '<a href="'. route('bom.show', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                     <i data-feather="list"></i>
                                     Detail
@@ -552,15 +633,18 @@ class BomController extends Controller
             }
                 
             if (Auth::user()->can('bom-delete')) {
-            $buttons .=         '<a href="javascript:;"
-                                    id="deleteButton"
-                                    class="dropdown-item"
-                                    data-toggle="modal"
-                                    data-target="#smallModal"
-                                    data-href="'. route("bom.destroy", ['id'=>Crypt::encryptString($data->id)]) .'">
-                                    <i data-feather="trash-2" class="feather-14-red"></i>
-                                    Delete
-                                </a>';
+                $buttons .= "<a href='javascript:;'
+                                class='dropdown-item' 
+                                data-size='sm'
+                                data-ajax-delete='true'
+                                data-confirm='Are You Sure want to Delete?|This action can not be undone. Do you want to continue?' 
+                                data-confirm-yes='document.getElementById(\""."delete-form-".$data->id."\").submit();'
+                                data-modal-id='".$data->id."'
+                                id='deleteButton'
+                                data-url='". route('bom.destroy', ['id'=>Crypt::encryptString($data->id)]) ."'>
+                                <i data-feather='trash-2' class='feather-14-red'></i>
+                                <span>". __('Delete') ."</span>
+                            </a>";
             }
             $buttons .=     '</div>
                         </div>';
@@ -569,12 +653,17 @@ class BomController extends Controller
         })
         
         ->addColumn('bom_code', function ($data) {
-            return '<span style="display: none;">'.$data->bom_code.'</span></span><a href="'. route('bom.show', ['id'=>Crypt::encryptString($data->id)]) .'" ><span>'.$data->bom_code.'</span></a>';
+            $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-danger'];
+            // $statusBo = ['NEW','VALIDATED','APPROVED','RECEIVED','DELETED','CLOSED','REVISED','DECLINE'];
+            return '<span style="display: none;">'.$data->bom_code.'</span>
+                    <a class="badge d-block '.$badges[$data->status - 1].'" href="'. route('bom.show', ['id'=>Crypt::encryptString($data->id)]) .'" >
+                    <span>'.$data->bom_code.'</span>
+                    </a>';
         })
 
         ->addColumn('status', function ($data) {
             $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary'];
-            $status = ['NEW','VALIDATE','APPROVED','RECEIVED','CANCELED','CLOSED','REVISED','DECLINE'];
+            $status = ['NEW','VALIDATE','APPROVED','RECEIVED','DELETED','CLOSED','REVISED','DECLINE'];
             return "<div class='badge ".$badges[$data->status - 1]."'>".$status[$data->status - 1]."</div>";
         })
         ->rawColumns(['action','status','bom_code'])
@@ -625,7 +714,6 @@ class BomController extends Controller
 
         if ($checkNewBom > 0){
             $bomNew = $bomOrigin.'-R'.($numRevision+1);
-            
         }
                 
         $sqlHdr = "INSERT into bom_hdr 
@@ -739,7 +827,7 @@ class BomController extends Controller
             $message  = "$title Revison PO: $bomOrigin to $bomNew is successfully saved";
             \LogActivity::addToLog($title,"username: $username Status $message");
             // return $this->showEdit(Crypt::encryptString($id));
-            return redirect()->route('bom.edit', ['id'=>Crypt::encryptString($data->id)]);
+            return redirect()->route('bom.edit', ['id'=>Crypt::encryptString($id)]);
         }else{
             $title ="Save $this->title";
             $alert  ="warning";
