@@ -57,6 +57,7 @@ class DatabaseBackUp extends Command
         $output = NULL;
         exec($command, $output, $returnVar);
 
+        $hasil="";
         //kasih waktu untuk mencari file setelah backup selesai
         for($i=0;$i<1000000;$i++){
             if (file_exists(storage_path() . "/app/backup/" . $sourceFile)) {
