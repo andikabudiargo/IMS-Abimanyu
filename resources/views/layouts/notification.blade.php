@@ -107,8 +107,8 @@
                                         onclick="action(this)"
                                         id = 'btnDeclinePo{{ $key }}'
                                         class="btn btn-outline-danger btn-sm  buttonPoDecline-{{ $val->id }}"
-                                        data-id-class-decline = "buttonPoDecline-{{ $val->id }}"
                                         data-id-class = "buttonPo-{{ $val->id }}"
+                                        data-id-class-decline = "buttonPoDecline-{{ $val->id }}"
                                         data-doc-number='{{ $val->po_number }}'
                                         data-url='{{ route("purchaseOrder.decline", ["poNumber"=>$val->po_number]) }}'>
                                         <i data-feather='x-circle'></i>

@@ -84,8 +84,8 @@
                                             onclick="action(this)"
                                             id = 'btnDeclinePoHome{{ $key }}'
                                             class="btn btn-outline-danger btn-sm  buttonPoDecline-{{ $val->id }}"
-                                            data-id-class-decline = "buttonPoDecline-{{ $val->id }}"
                                             data-id-class = "buttonPo-{{ $val->id }}"
+                                            data-id-class-decline = "buttonPoDecline-{{ $val->id }}"
                                             data-doc-number='{{ $val->po_number }}'
                                             data-url='{{ route("purchaseOrder.decline", ["poNumber"=>$val->po_number]) }}'>
                                             <i data-feather='x-circle'></i>
@@ -94,9 +94,9 @@
                                         <a href='javascript:;'
                                             onclick="action(this)"
                                             id = 'buttonPoHome{{ $key }}'
-                                            class="btn btn-outline-success btn-sm"
-                                            data-id-class-decline = "buttonPoDecline-{{ $val->id }}"
+                                            class="btn btn-outline-success btn-sm buttonPo-{{ $val->id }}"
                                             data-id-class = "buttonPo-{{ $val->id }}"
+                                            data-id-class-decline = "buttonPoDecline-{{ $val->id }}"
                                             data-doc-number='{{ $val->po_number }}'
                                             data-url='{{ route("purchaseOrder.approve", ["poNumber"=>$val->po_number]) }}'>
                                             <i data-feather='check-circle'></i>
@@ -196,6 +196,7 @@
                                             onclick="action(this)"
                                             id = 'buttonBomHome{{ $key }}'
                                             class="btn btn-outline-success btn-sm buttonBom-{{ $val->id }}"
+                                            data-id-class-decline = "buttonBomDecline-{{ $val->id }}"
                                             data-id-class = "buttonBom-{{ $val->id }}"
                                             data-doc-number='{{ $val->bom_code }}'
                                             data-url='{{ route("bom.approve", ["bomNumber"=>$val->bom_code]) }}'>
