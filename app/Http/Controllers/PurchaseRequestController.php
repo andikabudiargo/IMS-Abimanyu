@@ -756,8 +756,8 @@ class PurchaseRequestController extends Controller
             $dataSet[] = [
                 'code' => $randomCode,
                 'article_code' => $val->article_code,
-                // 'qty' => $val->qty_target,  // pakai yanbg ini atau pakai yang forcast
-                'qty' => $val->qty_forcast
+                'qty' => $val->qty_target //untuk perhitungan pakai yang qty_target sudah di konfirmasi ke bu ifah
+                // 'qty' => $val->qty_forcast
             ];
         }
 
@@ -774,10 +774,10 @@ class PurchaseRequestController extends Controller
         bom_det.article_code as article_code_det
         ,production_detail_temp.qty as qty_order
         ,production_detail_temp.uom as uom_order
-        ,bom_det.qty * coalesce((select unit_factor from uom_con where unit_from = bom_det.uom and unit_to = production_detail_temp.uom),1) as qty_bom
+        ,bom_det.qty * coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = production_detail_temp.uom),1) as qty_bom
         ,bom_det.uom as uom_bom
         ,bom_hdr.article_code 
-        ,coalesce((select unit_factor from uom_con where unit_from = bom_det.uom and unit_to = production_detail_temp.uom),1) as factor_qty
+        ,coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = production_detail_temp.uom),1) as factor_qty
         ,(select min_package from article where article_code = bom_det.article_code) as min_package 
         from production_detail_temp
         left join bom_hdr on bom_hdr.article_code=production_detail_temp.article_code

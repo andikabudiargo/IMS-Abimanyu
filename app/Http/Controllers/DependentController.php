@@ -261,7 +261,7 @@ class DependentController extends Controller
             $data= DB::table($table) 
             ->leftJoin('article_types','article_types.code','=',$table.'.article_type')
             ->leftJoin('uom','uom.code','=',$table.'.uom')
-            // ->whereNotIn('article_type',['FG'])
+            ->whereNotIn('article_type',['FG','RM'])
             ->orderBy($order)
             ->select($table.'.*'
             ,'article_types.name as type_name'

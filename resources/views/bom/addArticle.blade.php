@@ -176,17 +176,19 @@
         })
     }
     changeselect = (dependent,obj,article) => {
-      $.ajax({
-        url:"{{route('dynamic.dependent')}}",
-        method:"POST",
-        data:{
-            dependent:dependent
-        },
-        success:function(result){
-            $('#'+obj).html(result);
-            $('#'+obj).val(article).trigger('change');
-        }
-      })
+        $('#'+obj).attr('disabled','disabled');
+        $.ajax({
+            url:"{{route('dynamic.dependent')}}",
+            method:"POST",
+            data:{
+                dependent:dependent
+            },
+            success:function(result){
+                $('#'+obj).html(result);
+                $('#'+obj).val(article).trigger('change');
+                $('#'+obj).removeAttr('disabled');
+            }
+        })
     }
     saveData = (oEdit) =>{
         if (!$("#frmAdd")[0].checkValidity()){
@@ -318,7 +320,6 @@
         }
     }
     approve = (bomNumber) =>{
-        
         $.ajax({
             type: "GET",
             url: "{{ route('bom.approve') }}",
