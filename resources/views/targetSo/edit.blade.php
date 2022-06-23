@@ -35,12 +35,6 @@
                                     <input type="text" id="tsoName" name="tsoName" class="form-control" value="{{ $header->tso_name }}" required />
                                 </div>
                             </div>
-                            {{-- <div class="form-row">
-                                <div class="form-group col-md-5">
-                                    <label class="form-label" for="customer">Customer*</label>
-                                    <input type="text" id="customer" name="customer" class="form-control" value="{{ $header->customer }}" required />
-                                </div>
-                            </div> --}}
                             <div class="form-row">
                                 <div class="form-group col-md-5">
                                     <label class="form-label" for="note">Notes</label>
@@ -68,7 +62,7 @@
                                             <div class="col-md-6 col-12">
                                                 <div class="form-group margin-nol">
                                                     <label for="articleId" class="d-block d-md-none">Article</label>
-                                                    <select class="form-control sku-select-system" id="articleId" name="articleId[]" data-dependent="articleId">
+                                                    <select class="form-control sku-select-system" id="articleId{{ $key }}" name="articleId[]" data-dependent="articleId">
                                                         @foreach($articles as $val)
                                                             <option value="{{ $val->article_code }}" data-uom-group ="{{ $val->uom_group }}" data-uom ="{{ $val->uom }}" {{ $val->article_code == $item->article_code ? "selected" :"" }}>
                                                                     {{ $val->article_alternative_code }} - {{ $val->article_desc }}
@@ -115,10 +109,12 @@
                     </div>
                     <hr>
                     <div class="d-flex justify-content-between align-items-end mt-75">
+                        @if( strtoupper($statusPo) != 'APPROVED' )
                         <button class="btn btn-primary btn-prev" type="button" id="addNewRow" onclick="add_new_row();">
                             <i data-feather="plus" class="align-middle mr-sm-25 mr-0"></i>
                             <span class="align-middle d-sm-inline-block d-none">Add Article</span>
                         </button>
+                        @endif
                     </div>
                     <div class="d-flex justify-content-between align-items-end mt-75">
                         <div class="col-md-4">
@@ -153,8 +149,11 @@
                                     @if( $approveValidate ? $approveValidate[0]->validate : '')
                                         <input type="text" id ="approveLevel" name ="approveLevel" class="d-none" value="{{ $approveValidate[0]->next_level }}">
                                         <input type="text" id ="maxLevel" name ="maxLevel" class="d-none" value="{{ $approveValidate[0]->max_level }}">
-                                        <button class="btn btn-danger" type="button" id="cmdDecline" name="cmdDecline">Decline</button>
-                                        <button class="btn btn-primary" type="button" id="cmdApprove" name="cmdApprove">Approve</button>
+                                        {{-- <button class="btn btn-danger" type="button" id="cmdDecline" name="cmdDecline">Decline</button> --}}
+                                        <button class="btn btn-success" type="button" id="cmdApprove" name="cmdApprove">Approve</button>
+                                        @if( strtoupper($statusPo) == 'NEW' )
+                                            <button class="btn btn-primary" type="button" id="cmdUpdate" name="cmdUpdate">Update</button>
+                                        @endif
                                     @else
                                         @if( strtoupper($statusPo) == 'NEW' )
                                             <button class="btn btn-primary" type="button" id="cmdUpdate" name="cmdUpdate">Update</button>
@@ -217,25 +216,8 @@
 <script type="text/javascript">
     const updateBtn = document.querySelector('#cmdUpdate');
     const approveBtn = document.querySelector('#cmdApprove');
-    const declineBtn = document.querySelector('#cmdDecline');
+    // const declineBtn = document.querySelector('#cmdDecline');
     let cloneCount={{ count($details) }};
-    if (updateBtn) {
-        updateBtn.addEventListener('click',() =>{
-            updateData('update');
-        },{ once:true});
-    }
-
-    if (approveBtn) {
-        approveBtn.addEventListener('click',() =>{
-            updateData('approve');
-        },{ once:true});
-    }
-
-    if (declineBtn) {
-        declineBtn.addEventListener('click',() =>{
-            declineData('decline');
-        },{ once:true});
-    }
 
     $(document).ready(function(){           
         validateForm('frmAdd');
@@ -248,6 +230,28 @@
         $('[data-toggle="tooltip"]').tooltip();
         $('.sku-select-system').select2();
     });
+
+    
+    if (updateBtn) {
+        updateBtn.addEventListener('click',() =>{
+            updateData('update','cmdUpdate');
+        },{ once:true});
+    }
+
+    if (approveBtn) {
+        approveBtn.addEventListener('click',() =>{
+            let tsoCode = $('#tsoCode').val();
+            approve(tsoCode,'cmdApprove');
+        },{ once:true});
+    }
+
+    // if (declineBtn) {
+    //     declineBtn.addEventListener('click',() =>{
+    //         declineData('decline');
+    //     },{ once:true});
+    // }
+
+   
                
 </script>
 @endsection

@@ -10,7 +10,11 @@
 			</ul>
 			<ul class="nav navbar-nav d-xl-none d-md-none" style="margin-left:10px">
 				{{-- <li class="nav-item"> --}}
+					@if( env('APP_ENV') == 'local' )
+					<img src="{{asset('app-assets/images/logo/logo1.png')}}" alt="logo" class="logo" style="height: 50px;">
+					@else
 					<img src="{{asset('app-assets/images/logo/logo.png')}}" alt="logo" class="logo" style="height: 50px;">
+					@endif
 				{{-- </li> --}}
 			</ul>
 			{{-- <ul class="nav navbar-nav bookmark-icons">
@@ -21,7 +25,11 @@
 			</ul> --}}
 			<ul class="nav navbar-nav ml-1">
 				<li class="nav-item d-none d-lg-block" >
+					@if( env('APP_ENV') == 'local' )
+					<img src="{{asset('app-assets/images/logo/logo1.png')}}" alt="logo" class="logo" style="height: 50px;">
+					@else
 					<img src="{{asset('app-assets/images/logo/logo.png')}}" alt="logo" class="logo" style="height: 50px;">
+					@endif
 				</li>
 			</ul>
 			<ul class="nav navbar-nav align-items-end ml-2">

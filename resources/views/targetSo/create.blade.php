@@ -8,6 +8,7 @@
             <div class="card">
                 <div class="card-header">
                     <h4 class="card-title">Status: New</h4>
+                    <input type="hidden" id='oEdit' value="{{ $oEdit }}">
                     <div class="heading-elements">
                         <ul class="list-inline mb-0">
                             <li><a data-action="collapse"><i data-feather="chevron-down"></i></a></li>
@@ -35,17 +36,6 @@
                                     <input type="text" id="tsoName" name="tsoName" class="form-control" required/>
                                 </div>
                             </div>
-                            {{-- <div class="form-row">
-                                <div class="form-group col-md-5">
-                                    <label class="form-label" for="customer">Customer*</label>
-                                    <select class="select2 form-control" id="customer" name="customer" required>
-                                        <option value=""></option>
-                                        @foreach($custs as $val)
-                                            <option value="{{$val->kode}}" >{{$val->kode}} - {{$val->nama}}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                            </div> --}}
                             <div class="form-row">
                                 <div class="form-group col-md-5">
                                     <label class="form-label" for="note">Notes</label>
@@ -60,7 +50,9 @@
         <div class="col-md-12">
             <div class="card">
                 <div class="card-header">
-                    <h4 class="card-title">Article</h4>
+                    <div class="form-group col-md-6">
+                    <h4 class="card-title">Article</h4><small class="text-muted">Daftar article adalah article yang sudah memiliki BOM </small>
+                    </div>
                 </div>
                 <div class="card-body" >
                     <div class="container-list-item">
@@ -123,13 +115,20 @@
 @include('targetSo.addArticle')
 <script type="text/javascript">
     let cloneCount=1;
-    document.querySelector('#cmdSave').addEventListener('click',() =>{
-        simpanData();
-    });
-
     $(document).ready(function(){           
         validateFormToast("frmAdd");
         $('#tsoDate').val(currentDate);
     });
+
+    document.querySelector('#cmdSave').addEventListener('click',() =>{
+        let oEdit = $('#oEdit').val();
+        if (oEdit){
+            updateData('cmdSave');
+        }else{
+            simpanData('cmdSave');
+        }
+    });
+
+    
 </script>
 @endsection

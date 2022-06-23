@@ -138,28 +138,23 @@
 <script type="text/javascript">
     const currentDate = "{{ $currentDateValue }}";
     const orderDate = $('#orderDate');
-    const deliveryDate = $('#deliveryDate');
-    
+        
     if (orderDate.length) {
         orderDate.flatpickr({
             dateFormat: "d-m-Y",
         });
     }
   
-    function reloadPage(){
+    $("#cmdNew").click(function(){
         window.location.reload();
-    }
-
-    $("#cmdCancel,#cmdNew").click(function(){
-        reloadPage();
     });
 
-    simpanData = () => {
+    simpanData = (objButton) => {
+        $('#'+objButton).attr('disabled','disabled');
         if (!$("#frmAdd")[0].checkValidity()){
             $("#frmAdd").submit();
         }else{ 
             $('.disabled-el').removeAttr('disabled');
-            // ambil semua data article
             let objQtyTarget= $('#article_row input[name="qtyTarget[]"]');
             let objQtyForcast= $('#article_row input[name="qtyForcast[]"]');
             let objNote= $('#article_row input[name="note[]"]');
@@ -210,8 +205,9 @@
             if (flag==0){
                 let tsoDate = $('#tsoDate').val();
                 let tsoName = $('#tsoName').val();
-                let customer = "none";
                 let note = $('#note').val();
+                let url ="";
+                let tsoCode = "";
                 $.ajax({
                     type: "post",
                     url: "{{ route('targetSo.store') }}",
@@ -219,8 +215,8 @@
                         articles:JSON.stringify(articles),
                         tsoDate:tsoDate,
                         tsoName:tsoName,
-                        customer:customer,
-                        note:note
+                        note:note,
+                        tsoCode:tsoCode
                     },
                     dataType: "json",
                     success: function(data) {
@@ -232,12 +228,13 @@
                         }else{
                             show_msg(data.title, data.message, data.alert);
                             $('#tsoCode').attr('disabled','disabled');
-                            $('#addNewRow').attr('disabled','disabled');
                             $('#tsoCode').val(data.tsoCode);
+                            $('#'+objButton).removeAttr('disabled');
+                            $('#oEdit').val(data.oEdit);
                         }
                     },
                     error: function(error) {
-                        console.log(error);
+                        Swal.fire('Warning..',error,'warning');
                     }
                 });
 
@@ -247,7 +244,8 @@
         }
     }
 
-    updateData = (statusSimpan) =>{
+    updateData = (objButton) => {
+        $('#'+objButton).attr('disabled','disabled');
         if (!$("#frmAdd")[0].checkValidity()){
             $("#frmAdd").submit();
         }else{  
@@ -316,7 +314,6 @@
                         tsoDate:tsoDate,
                         tsoName:tsoName,
                         customer:customer,
-                        statusSimpan:statusSimpan,
                         note:note
                     },
                     dataType: "json",
@@ -329,12 +326,12 @@
                         }else{
                             show_msg(data.title, data.message, data.alert);
                             $('#tsoCode').attr('disabled','disabled');
-                            $('#addNewRow').attr('disabled','disabled');
                             $('#tsoCode').val(data.tsoCode);
+                            $('#'+objButton).removeAttr('disabled');
                         }
                     },
                     error: function(error) {
-                        console.log(error);
+                        Swal.fire('Warning..',error,'warning');
                     }
                 });
             }else{
@@ -343,11 +340,38 @@
         }
     }
 
+    approve = (tsoCode,objButton) => {
+        $('#'+objButton).attr('disabled','disabled');
+        $.ajax({
+            type: "GET",
+            url: "{{ route('targetSo.approve') }}",
+            data: {
+                tsoCode:tsoCode
+            },
+            dataType: "json",
+            success: function(data) {
+                if (data.status == 0 ){
+                    let message="";
+                    for(let i = 0; i < data.message.length; i++) {
+                        show_msg(data.title, data.message[i], data.alert);
+                    }
+                    $('#tsoCode').attr('disabled','disabled');
+                }else{
+                    show_msg(data.title, data.message, data.alert);
+                    $('#tsoCode').attr('disabled','disabled');
+                    $('#cmdApprove').attr('disabled','disabled');
+                    $('#addNewRow').attr('disabled','disabled');      
+                    window.location.reload();                 
+                }
+            },
+            error: function(error) {
+                console.log(error);
+            }
+        });
+    }
+
     function add_new_row() {
-        // let customer = $('#customer');
-        // let cust = customer.val();
         let poType = $('#poType').val();
-        // if (cust){            
             $("#article_row").append($("#new_row").clone().html());
             cloneCount++;
             $("#article_row").find('#baru').attr('id', 'new_row'+ cloneCount);
@@ -362,19 +386,6 @@
             hitungTotal();
             hitungGrandTotal();
             $('[data-toggle="tooltip"]').tooltip();
-        // }else{
-        //     Swal.fire({
-        //         title: 'Warning',
-        //         text: "Choose customer",
-        //         icon: 'warning',
-        //         confirmButtonColor: '#3085d6',
-        //         confirmButtonText: 'OK'
-        //     }).then((result) => {
-        //         if (result.isConfirmed) {
-        //             customer.select2('open');
-        //         }
-        //     })
-        // }
     };
 
     function changeselect(dependent,obj,value,type) {

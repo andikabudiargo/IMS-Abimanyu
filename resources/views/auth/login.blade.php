@@ -61,7 +61,11 @@
                         <div class="card mb-0">
                             <div class="card-body">
                                 <div class="mb-2">
+                                    @if( env('APP_ENV') == 'local' )
+                                    <img src="{{asset('app-assets/images/logo/logo1.png')}}" alt="logo" class="logo" style="height: 100px;">
+                                    @else
                                     <img src="{{asset('app-assets/images/logo/logo.png')}}" alt="logo" class="logo" style="height: 100px;">
+                                    @endif
                                     @if( env('APP_ENVIRONMENT') )
                                     <h2 class="text-primary">{{ env('APP_ENVIRONMENT') }}</h2>
                                     @endif

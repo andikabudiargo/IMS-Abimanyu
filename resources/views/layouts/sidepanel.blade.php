@@ -5,7 +5,11 @@
             <a class="navbar-brand" href="{{route('home')}}">
               <span class="brand-logo">
                 <div class="brand-wrapper">
+                  @if( env('APP_ENV') == 'local' )
+                  <img src="{{asset('app-assets/images/logo/logo1.png')}}" alt="logo" class="logo" >
+                  @else
                   <img src="{{asset('app-assets/images/logo/looping_icon.ico')}}" alt="logo" class="logo" >
+                  @endif
                 </div>
               </span>
               <h2 class="brand-text">IMS</h2>

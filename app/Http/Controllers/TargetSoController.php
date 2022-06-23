@@ -108,6 +108,8 @@ class TargetSoController extends Controller
         ->orderBy('nama')
         ->get();
 
+        $data['oEdit']=false;
+
         return view("targetSo.create",$data);
     }
 
@@ -117,7 +119,7 @@ class TargetSoController extends Controller
         $articles = json_decode($request->articles);
         $tsoDate = $request->tsoDate;
         $tsoName = $request->tsoName;
-        $customer = $request->customer;
+        $customer = 'none';
         $note = $request->note;
         $status = '1';
         $poLeadCode = $this->moduleCode; 
@@ -137,9 +139,7 @@ class TargetSoController extends Controller
         });
 
         $validation = Validator::make($request->all(),$messages = [
-            // 'tsoCode'=>'required|unique:purchase_order_hdr,po_number',
             'tsoName'  => 'required',
-            'customer'  => 'required',
         ]);
         
         $error_array = array();
@@ -193,7 +193,7 @@ class TargetSoController extends Controller
                     $alert  ="success";
                     $message  = "$title $tsoCode is successfully saved";
                     \LogActivity::addToLog($title,"username: $username Status $message");
-                    return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'tsoCode'=>$tsoCode));
+                    return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'tsoCode'=>$tsoCode,'oEdit'=>true));
 
             } catch (Exception $e) {
                 DB::rollBack();
@@ -318,7 +318,408 @@ class TargetSoController extends Controller
         return $this->showEdit($request->id);
     }
 
-    // public function revision(Request $request){
+    public function update(Request $request)
+    {
+
+        $username =  Auth::user()->username;
+        $articles = json_decode($request->articles);
+        $tsoCode = $request->tsoCode;
+        $tsoDate = $request->tsoDate;
+        $tsoName = $request->tsoName;
+        $customer = $request->customer;
+        $note = $request->note;
+        $status = '1';
+              
+        // $statusSimpan = $request->statusSimpan;
+        // if ( $statusSimpan == 'approve' ){
+        //     $maxLevel = $request->maxLevel;
+        //     $approveLevel  = $request->approveLevel;
+        //     $status = $approveLevel === $maxLevel ? '3' : '2';
+        // }else{
+        //     $status = '1';
+        // }       
+
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'RECEIVED','5'=>'CANCELED','6'=>'CLOSED','7'=>'REVISED','8'=>'DECLINE'];
+        
+        $messages = [
+            'required' => 'The field is required.',
+            'unique' => 'The code has already been taken', 
+            // 'iunique' => "PO Number has already been taken",
+        ];
+        
+        Validator::extend('iunique', function ($attribute, $value, $parameters, $validator) {
+            $query = DB::table($parameters[0]);
+            $column = $query->getGrammar()->wrap($parameters[1]);
+            return !$query->whereRaw("lower({$column}) = lower(?)", [$value])->count();
+        });
+
+        $validation = Validator::make($request->all(),$messages = [
+            'tsoDate'  => 'required',
+            'tsoName'  => 'required',
+            'customer'  => 'required',
+
+        ]);
+        
+        $error_array = array();
+        $success_output = '';
+        // return $validation;
+        if ($validation->fails()){
+            foreach ($validation->messages()->getMessages() as $field_name => $messages){
+                $error_array[] = $messages;
+            }
+
+            $alert ="warning";
+            return response()->json(array('status' => 0, 'message' => $error_array,'alert' =>$alert));
+
+        }else{
+            DB::beginTransaction();
+            try {
+                    $row_affected=DB::table('target_order_hdr')
+                    ->where('tso_code',$tsoCode)
+                    ->update(
+                        [
+                            'tso_code' => $tsoCode,
+                            'tso_name' => $tsoName ,
+                            'status' => $status,
+                            'note' => $note,
+                            'updated_by' => Auth::user()->username,
+                        ]
+                    );
+
+                    $dataset=[];
+                    foreach ($articles as $val) {
+                        $dataSet[] = [
+                            $tsoCode.$val->article_code
+                        ];
+                        
+                    }
+
+                    //Delete kalo article tidak ada di po $tsoCode dan article nya $val->article_code
+                    //berdasarkan 2 kondisi
+                    DB::table('target_order_det')
+                        ->whereNotIn(DB::raw("CONCAT(tso_code,article_code)"),$dataSet)
+                        ->where('tso_code',$tsoCode)
+                        ->delete();
+                                  
+                    foreach ($articles as $val) {
+                        DB::table('target_order_det')
+                        ->updateOrInsert(
+                            ['tso_code' => $tsoCode,'article_code' => $val->article_code],
+                            [
+                            'tso_code' => $tsoCode,
+                            'article_code' => $val->article_code,
+                            'qty_target' => $val->qtyTarget,
+                            'qty_forcast' => $val->qtyForcast,
+                            'uom' => $val->uom,
+                            'created_by' => Auth::user()->username,
+                            'created_at' => date('Y-m-d H:i:s'),
+                            ]
+                        );
+                    }
+                   
+                    // if ( $statusSimpan == 'approve' ){
+                    //     DB::table('approval_history')->insert([
+                    //         'module_code' => $this->moduleCode,
+                    //         'module_number' => $tsoCode,
+                    //         'username' => Auth::user()->username,
+                    //         'approval_order' => $approveLevel,
+                    //         'approval_date' => date('Y-m-d'),
+                    //         'status' => 1,
+                    //         'created_by' => Auth::user()->username,
+                    //         'updated_by' => Auth::user()->username,
+                    //         'created_at' => date('Y-m-d H:i:s'),
+                    //         'updated_at' => date('Y-m-d H:i:s')
+                    //     ]);
+                    // }
+                                            
+                    DB::commit();
+
+                    $title ="Save $this->title";
+                    $alert  ="success";
+                    $message  = "$title $tsoCode is successfully updated";
+                    \LogActivity::addToLog($title,"username: $username Status $message");
+                    return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'tsoCode'=>$tsoCode));
+
+            } catch (Exception $e) {
+                DB::rollBack();
+                $title ="Save $this->title";
+                $alert ="warning";
+                $message  = "$title $tsoCode is failed to updated";
+                \LogActivity::addToLog($title,"username: $username Status $message");
+                return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'prNumber'=>$tsoCode));
+            }
+        }
+
+    }
+
+    public function approve(Request $request)
+    {
+        $username =  Auth::user()->username;
+        $tsoCode = $request->tsoCode;
+        $statusLevelApproval = Approval::approvalLevelPosition($this->moduleCode,$tsoCode,$username);        
+        $nextLevel = $statusLevelApproval[0]->next_level;
+        $statusTso = $statusLevelApproval[0]->next_level == $statusLevelApproval[0]->max_level ? '3' :'2';
+
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','5'=>'CANCELED'];
+                
+        DB::beginTransaction();
+        try {
+                $row_affected=DB::table('target_order_hdr')
+                ->where('tso_code',$tsoCode)
+                ->update(
+                    [
+                        'status' => $statusTso,
+                        'updated_by' => Auth::user()->username,
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]
+                );
+
+                if ($row_affected){
+                    DB::table('approval_history')->insert([
+                        'module_code' => $this->moduleCode,
+                        'module_number' => $tsoCode,
+                        'username' => Auth::user()->username,
+                        'approval_order' => $nextLevel,
+                        'approval_date' => date('Y-m-d'),
+                        'status' => 1,
+                        'created_by' => Auth::user()->username,
+                        'updated_by' => Auth::user()->username,
+                        'created_at' => date('Y-m-d H:i:s'),
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]);
+                }
+                
+                DB::commit();
+                $title ="Approve $this->title";
+                $alert  ="success";
+                $message  = "$title $tsoCode is successfully Approve-".$nextLevel;
+                \LogActivity::addToLog($title,"username: $username Status $message");
+                return response()->json(array('statusPo' => $statusTso,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'tsoCode'=>$tsoCode));
+
+        } catch (Exception $e) {
+            DB::rollBack();
+            $title ="Approve $this->title";
+            $alert  ="warning";
+            $message  = "$title $tsoCode is failed to Approve-".$nextLevel;
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return response()->json(array('statusPo' => $statusTso,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'tsoCode'=>$tsoCode));
+        }
+    }
+
+    public function destroy(Request $request)
+    {
+        $username =  Auth::user()->username;       
+        $id=Crypt::decryptString($request->id);
+        $tsoCode = DB::table('target_order_hdr')->where('id',$id)->where('status','1')->first();
+        $tsoCode = $tsoCode->tso_code;
+        $tsoStatus = $tsoCode->status;
+        if ($tsoStatus == 1){
+            $rowAffected = DB::table('target_order_hdr')->where('id',$id)->where('status','1')->delete();
+        }else{
+            // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','','5'=>'CANCELED'];
+            $row_affected=DB::table('target_order_hdr')
+            ->where('tso_code',$tsoCode)
+            ->update(
+                [
+                    'status' => '3',
+                    'authorized_by' => Auth::user()->username,
+                    'authorized_at' => date('Y-m-d H:i:s')
+                ]
+            );
+        }
+        if($rowAffected>0){
+            DB::table('target_order_det')->where('po_number',$tsoCode)->delete();
+            $title ="Delete $this->title";
+            $alert  ="success";
+            $message  = "$title $tsoCode Successfully Deleted";
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);  
+        }else{
+            $title ="Delete $this->title";
+            $alert  ="warning";
+            $message  = "$title $tsoCode Failed to Delete";
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);
+        }
+    }
+
+    public function list(Request $request)
+    {
+        $username = Auth::user()->username;
+        $searchTso = strtolower($request->searchTso);
+        $searchCustomer = $request->searchCustomer;
+        $searchStatus = $request->searchStatus;
+        $tsoDate = $request->tsoDate;
+        $fromDate ="";
+        $toDate = "";
+        if ($tsoDate){
+            $date = explode("to",$tsoDate);
+            $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+            $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
+        }
+
+        $data = DB::table('target_order_hdr')
+        ->leftJoin('third_party','third_party.kode','target_order_hdr.customer_id')
+        ->where(function ($query) use ($searchTso,$searchStatus,$tsoDate,$fromDate,$toDate,$searchCustomer) {
+            $searchCustomer ? $query->where('customer_id',$searchCustomer) : '';
+            $searchTso ? $query->where('tso_code','ilike','%'.$searchTso.'%') : '';
+            $searchStatus ? $query->where('target_order_hdr.status',$searchStatus) : '';
+            $tsoDate ? $query->whereBetween(DB::raw("to_date(tso_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
+        })
+        ->select('target_order_hdr.*'
+        ,'third_party.nama as customer'
+        )
+        ->orderBy('target_order_hdr.id')
+        ->get(); 
+       
+        return Datatables::of($data)
+        ->addColumn('action', function ($data) {
+            $buttons = '<div class="d-inline-flex">
+                            <a class="pr-1 dropdown-toggle hide-arrow" data-toggle="dropdown">
+                                <i data-feather="menu"></i>
+                            </a>';
+            $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
+            
+            if ( $data->status == '2' or $data->status == '1') {
+                if (Auth::user()->can('purchaseOrder-authorize')) {
+                $buttons .=         '<a href="'. route('targetSo.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+                                        <i data-feather="file-text"></i>
+                                        <span>'. __("Approve") .'</span>
+                                    </a>';
+                }
+            }
+            if ( $data->status == '1' or $data->status == '2' ){
+                if (Auth::user()->can('purchaseOrder-edit')) {
+                $buttons .=         '<a href="'. route('targetSo.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+                                        <i data-feather="file-text"></i>
+                                        <span>'. __("Edit") .'</span>
+                                    </a>';
+                }
+            }
+            // if (($data->status == '2') || ($data->status == '3') ){
+            //     if (Auth::user()->can('purchaseOrder-revision')) {
+            //         $buttons .=         '<a href="'. route('targetSo.revision', ['id'=>Crypt::encryptString($data->id),'nR'=>$data->num_revision]) .'" class="dropdown-item">
+            //                                 <i data-feather="copy"></i>
+            //                                 <span>'. __("Revision") .'</span>
+            //                             </a>';
+            //     }
+            // }
+            
+            // $buttons .=         '<a href="'. route('targetSo.print', ['id'=>Crypt::encryptString($data->id)]) .'" target="_blank" class="dropdown-item">
+            //                         <i data-feather="printer"></i>
+            //                         <span>'. __("Print") .'</span>
+            //                     </a>';
+            
+            $buttons .=         '<a href="'. route('targetSo.show', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+                                    <i data-feather="list"></i>
+                                    <span>'. __("Detail") .'</span>
+                                </a>';
+
+            // if ( $data->status == '1' or $data->status == '2' or $data->status == '3' ){
+            //     if (Auth::user()->can('purchaseOrder-delete')) {
+            //         $buttons .="<a href='javascript:;'
+            //         class='dropdown-item' 
+            //         data-size='sm'
+            //         data-ajax-delete='true'
+            //         data-confirm='Are You Sure want to Close?|This action can not be undone. Do you want to continue?' 
+            //         data-confirm-yes='document.getElementById(\""."delete-form-".$data->id."\").submit();'
+            //         data-modal-id='".$data->id."'
+            //         id='deleteButton'
+            //         data-url='". route('targetSo.clear', ['id'=>Crypt::encryptString($data->id)]) ."'>
+            //         <i data-feather='x' class='feather-14-red'></i>
+            //         <span>". __('Close') ."</span>
+            //         </a>";
+            //     }
+            // }
+
+            if ( $data->status == '1' ){
+                if (Auth::user()->can('purchaseOrder-delete')) {
+                    $buttons .=         "<a href='javascript:;'
+                                        class='dropdown-item' 
+                                        data-size='sm'
+                                        data-ajax-delete='true'
+                                        data-confirm='Are You Sure want to Delete?|This action can not be undone. Do you want to continue?' 
+                                        data-confirm-yes='document.getElementById(\""."delete-form-".$data->id."\").submit();'
+                                        data-modal-id='".$data->id."'
+                                        id='deleteButton'
+                                        data-url='". route('targetSo.destroy', ['id'=>Crypt::encryptString($data->id)]) ."'>
+                                        <i data-feather='trash-2' class='feather-14-red'></i>
+                                        <span>". __('Delete') ."</span>
+                                    </a>";
+                }
+            }
+
+            $buttons .=     '</div>
+                        </div>';
+
+            return $buttons;
+        })
+        ->addColumn('tso_code', function ($data) {
+            $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-danger'];            
+            $statusTso = ['NEW','VALIDATED','APPROVED','','CANCELED'];
+            // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','','5'=>'CANCELED'];
+            return '<span style="display: none;">'.$data->tso_code.'</span><a class="text-left badge d-block '.$badges[$data->status - 1].'" name="'.$data->tso_code.'" href="'. route('targetSo.show', ['id'=>Crypt::encryptString($data->id)]) .'" ><span>'.$data->tso_code.'</span></a>';
+        })
+        ->addColumn('status', function ($data) {
+            $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-danger'];            
+            $statusTso = ['NEW','VALIDATED','APPROVED','','CANCELED'];
+            return "<div class='badge ".$badges[$data->status - 1]."'>".$statusTso[$data->status - 1]."</div>";
+        })
+        ->rawColumns(['action','status','tso_code'])
+        ->make(true);
+    }
+
+    public function listDetail(Request $request)
+    {
+
+        $searchTso = strtolower($request->searchTso);
+        $username = Auth::user()->username;
+        $searchCustomer = $request->searchCustomer;
+        $searchStatus = $request->searchStatus;
+        $tsoDate = $request->tsoDate;
+        $fromDate ="";
+        $toDate = "";
+        
+        if ($tsoDate){
+            $date = explode("to",$tsoDate);
+            $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+            $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
+        }
+
+        $data = DB::table('target_order_det')
+        ->leftJoin('target_order_hdr','target_order_hdr.tso_code','target_order_det.tso_code')
+        ->leftJoin('article','article.article_code','target_order_det.article_code')
+        ->leftJoin('third_party','third_party.kode','article.third_party')
+        ->leftJoin('uom','uom.code','target_order_det.uom')
+        ->where(function ($query) use ($searchTso,$searchStatus,$tsoDate,$fromDate,$toDate,$searchCustomer) {
+            $searchCustomer ? $query->where('customer_id',$searchCustomer) : '';
+            $searchTso ? $query->where('tso_code','ilike','%'.$searchTso.'%') : '';
+            $searchStatus ? $query->where('target_order_hdr.status',$searchStatus) : '';
+            $tsoDate ? $query->whereBetween(DB::raw("to_date(tso_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
+        })
+        ->select('target_order_det.*'
+        ,'target_order_hdr.*'
+        ,'article_alternative_code'
+        ,'article.article_desc'
+        ,'third_party.nama as customer'
+        ,'uom_group'
+        ,DB::raw("case when uom_group = 'PIECE' then TO_CHAR(qty_target,'999,999,999') when uom_group <> 'PIECE' then TO_CHAR(qty_target,'999,999,999.999') end as qty_target")
+        ,DB::raw("case when uom_group = 'PIECE' then TO_CHAR(qty_forcast,'999,999,999') when uom_group <> 'PIECE' then TO_CHAR(qty_forcast,'999,999,999.999') end as qty_forcast")
+        )
+        ->orderBy('target_order_det.id')
+        ->get(); 
+       
+        return Datatables::of($data)
+        ->addColumn('status', function ($data) {
+            $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-danger'];            
+            $statusTso = ['NEW','VALIDATED','APPROVED'];
+            return "<div class='badge ".$badges[$data->status - 1]."'>".$statusTso[$data->status - 1]."</div>";
+        })
+        ->rawColumns(['status'])
+        ->make(true);
+    }
+
+     // public function revision(Request $request){
     //     $username =  Auth::user()->username;
     //     $id=Crypt::decryptString($request->id);
     //     $poOrigin=DB::table('purchase_order_hdr')->where('id',$id)->value('po_number');
@@ -470,191 +871,6 @@ class TargetSoController extends Controller
         
     // }
 
-    public function update(Request $request)
-    {
-
-        $username =  Auth::user()->username;
-        $articles = json_decode($request->articles);
-        $tsoCode = $request->tsoCode;
-        $tsoDate = $request->tsoDate;
-        $tsoName = $request->tsoName;
-        $customer = $request->customer;
-        $note = $request->note;
-              
-        $statusSimpan = $request->statusSimpan;
-        if ( $statusSimpan == 'approve' ){
-            $maxLevel = $request->maxLevel;
-            $approveLevel  = $request->approveLevel;
-            $status = $approveLevel === $maxLevel ? '3' : '2';
-        }else{
-            $status = '1';
-        }       
-
-        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'RECEIVED','5'=>'CANCELED','6'=>'CLOSED','7'=>'REVISED','8'=>'DECLINE'];
-        
-        $messages = [
-            'required' => 'The field is required.',
-            'unique' => 'The code has already been taken', 
-            // 'iunique' => "PO Number has already been taken",
-        ];
-        
-        Validator::extend('iunique', function ($attribute, $value, $parameters, $validator) {
-            $query = DB::table($parameters[0]);
-            $column = $query->getGrammar()->wrap($parameters[1]);
-            return !$query->whereRaw("lower({$column}) = lower(?)", [$value])->count();
-        });
-
-        $validation = Validator::make($request->all(),$messages = [
-            'tsoDate'  => 'required',
-            'tsoName'  => 'required',
-            'customer'  => 'required',
-
-        ]);
-        
-        $error_array = array();
-        $success_output = '';
-        // return $validation;
-        if ($validation->fails()){
-            foreach ($validation->messages()->getMessages() as $field_name => $messages){
-                $error_array[] = $messages;
-            }
-
-            $alert ="warning";
-            return response()->json(array('status' => 0, 'message' => $error_array,'alert' =>$alert));
-
-        }else{
-            DB::beginTransaction();
-            try {
-                    $row_affected=DB::table('target_order_hdr')
-                    ->where('tso_code',$tsoCode)
-                    ->update(
-                        [
-                            'tso_code' => $tsoCode,
-                            'tso_name' => $tsoName ,
-                            'status' => $status,
-                            'note' => $note,
-                            'updated_by' => Auth::user()->username,
-                        ]
-                    );
-
-                    $dataset=[];
-                    foreach ($articles as $val) {
-                        $dataSet[] = [
-                            $tsoCode.$val->article_code
-                        ];
-                        
-                    }
-
-                    //Delete kalo article tidak ada di po $tsoCode dan article nya $val->article_code
-                    //berdasarkan 2 kondisi
-                    DB::table('target_order_det')
-                        ->whereNotIn(DB::raw("CONCAT(tso_code,article_code)"),$dataSet)
-                        ->where('tso_code',$tsoCode)
-                        ->delete();
-                                  
-                    foreach ($articles as $val) {
-                        DB::table('target_order_det')
-                        ->updateOrInsert(
-                            ['tso_code' => $tsoCode,'article_code' => $val->article_code],
-                            [
-                            'tso_code' => $tsoCode,
-                            'article_code' => $val->article_code,
-                            'qty_target' => $val->qtyTarget,
-                            'qty_forcast' => $val->qtyForcast,
-                            'uom' => $val->uom,
-                            'created_by' => Auth::user()->username,
-                            'created_at' => date('Y-m-d H:i:s'),
-                            ]
-                        );
-                    }
-                   
-                    if ( $statusSimpan == 'approve' ){
-                        DB::table('approval_history')->insert([
-                            'module_code' => $this->moduleCode,
-                            'module_number' => $tsoCode,
-                            'username' => Auth::user()->username,
-                            'approval_order' => $approveLevel,
-                            'approval_date' => date('Y-m-d'),
-                            'status' => 1,
-                            'created_by' => Auth::user()->username,
-                            'updated_by' => Auth::user()->username,
-                            'created_at' => date('Y-m-d H:i:s'),
-                            'updated_at' => date('Y-m-d H:i:s')
-                        ]);
-                    }
-                                            
-                    DB::commit();
-
-                    $title ="Save $this->title";
-                    $alert  ="success";
-                    $message  = "$title $tsoCode is successfully updated";
-                    \LogActivity::addToLog($title,"username: $username Status $message");
-                    return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'tsoCode'=>$tsoCode));
-
-            } catch (Exception $e) {
-                DB::rollBack();
-                $title ="Save $this->title";
-                $alert ="warning";
-                $message  = "$title $tsoCode is failed to updated";
-                \LogActivity::addToLog($title,"username: $username Status $message");
-                return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'prNumber'=>$tsoCode));
-            }
-        }
-
-    }
-
-    public function approve(Request $request)
-    {
-        $username =  Auth::user()->username;
-        $tsoCode = $request->tsoCode;
-        $statusLevelApproval = Approval::approvalLevelPosition($this->moduleCode,$tsoCode,$username);        
-        $nextLevel = $statusLevelApproval[0]->next_level;
-        $statusTso = $statusLevelApproval[0]->next_level == $statusLevelApproval[0]->max_level ? '3' :'2';
-                
-        DB::beginTransaction();
-        try {
-                $row_affected=DB::table('target_order_hdr')
-                ->where('tso_code',$tsoCode)
-                ->update(
-                    [
-                        'status' => $statusTso,
-                        'authorized_by' => Auth::user()->username,
-                        'authorized_at' => date('Y-m-d H:i:s')
-                    ]
-                );
-
-                if ($row_affected){
-                    DB::table('approval_history')->insert([
-                        'module_code' => $this->moduleCode,
-                        'module_number' => $tsoCode,
-                        'username' => Auth::user()->username,
-                        'approval_order' => $nextLevel,
-                        'approval_date' => date('Y-m-d'),
-                        'status' => 1,
-                        'created_by' => Auth::user()->username,
-                        'updated_by' => Auth::user()->username,
-                        'created_at' => date('Y-m-d H:i:s'),
-                        'updated_at' => date('Y-m-d H:i:s')
-                    ]);
-                }
-                
-                DB::commit();
-                $title ="Approve $this->title";
-                $alert  ="success";
-                $message  = "$title $tsoCode is successfully Approve-".$nextLevel;
-                \LogActivity::addToLog($title,"username: $username Status $message");
-                return response()->json(array('statusPo' => $statusTso,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'tsoCode'=>$tsoCode));
-
-        } catch (Exception $e) {
-            DB::rollBack();
-            $title ="Approve $this->title";
-            $alert  ="warning";
-            $message  = "$title $tsoCode is failed to Approve-".$nextLevel;
-            \LogActivity::addToLog($title,"username: $username Status $message");
-            return response()->json(array('statusPo' => $statusTso,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'tsoCode'=>$tsoCode));
-        }
-    }
-
     // public function decline(Request $request)
     // {
     //     $username =  Auth::user()->username;
@@ -707,42 +923,7 @@ class TargetSoController extends Controller
     //     }
     // }
 
-    public function destroy(Request $request)
-    {
-        $username =  Auth::user()->username;       
-        $id=Crypt::decryptString($request->id);
-        $tsoCode = DB::table('target_order_hdr')->where('id',$id)->where('status','1')->first();
-        $tsoCode = $tsoCode->tso_code;
-        $tsoStatus = $tsoCode->status;
-        if ($tsoStatus == 1){
-            $rowAffected = DB::table('target_order_hdr')->where('id',$id)->where('status','1')->delete();
-        }else{
-            // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','','5'=>'CANCELED'];
-            $row_affected=DB::table('target_order_hdr')
-            ->where('tso_code',$tsoCode)
-            ->update(
-                [
-                    'status' => '3',
-                    'authorized_by' => Auth::user()->username,
-                    'authorized_at' => date('Y-m-d H:i:s')
-                ]
-            );
-        }
-        if($rowAffected>0){
-            DB::table('target_order_det')->where('po_number',$tsoCode)->delete();
-            $title ="Delete $this->title";
-            $alert  ="success";
-            $message  = "$title $tsoCode Successfully Deleted";
-            \LogActivity::addToLog($title,"username: $username Status $message");
-            return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);  
-        }else{
-            $title ="Delete $this->title";
-            $alert  ="warning";
-            $message  = "$title $tsoCode Failed to Delete";
-            \LogActivity::addToLog($title,"username: $username Status $message");
-            return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);
-        }
-    }
+   
 
     // public function clear(Request $request)
     // {
@@ -798,181 +979,7 @@ class TargetSoController extends Controller
 
     // }
 
-    public function list(Request $request)
-    {
-        $username = Auth::user()->username;
-        $searchTso = strtolower($request->searchTso);
-        $searchCustomer = $request->searchCustomer;
-        $searchStatus = $request->searchStatus;
-        $tsoDate = $request->tsoDate;
-        $fromDate ="";
-        $toDate = "";
-        if ($tsoDate){
-            $date = explode("to",$tsoDate);
-            $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
-            $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
-        }
-
-        $data = DB::table('target_order_hdr')
-        ->leftJoin('third_party','third_party.kode','target_order_hdr.customer_id')
-        ->where(function ($query) use ($searchTso,$searchStatus,$tsoDate,$fromDate,$toDate,$searchCustomer) {
-            $searchCustomer ? $query->where('customer_id',$searchCustomer) : '';
-            $searchTso ? $query->where('tso_code','ilike','%'.$searchTso.'%') : '';
-            $searchStatus ? $query->where('target_order_hdr.status',$searchStatus) : '';
-            $tsoDate ? $query->whereBetween(DB::raw("to_date(tso_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
-        })
-        ->select('target_order_hdr.*'
-        ,'third_party.nama as customer'
-        )
-        ->orderBy('target_order_hdr.id')
-        ->get(); 
-       
-        return Datatables::of($data)
-        ->addColumn('action', function ($data) {
-            $buttons = '<div class="d-inline-flex">
-                            <a class="pr-1 dropdown-toggle hide-arrow" data-toggle="dropdown">
-                                <i data-feather="menu"></i>
-                            </a>';
-            $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
-            
-            if ( $data->status == '2' or $data->status == '1') {
-                if (Auth::user()->can('purchaseOrder-authorize')) {
-                $buttons .=         '<a href="'. route('targetSo.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
-                                        <i data-feather="file-text"></i>
-                                        <span>'. __("Approve") .'</span>
-                                    </a>';
-                }
-            }
-            if ( $data->status == '1' or $data->status == '2' ){
-                if (Auth::user()->can('purchaseOrder-edit')) {
-                $buttons .=         '<a href="'. route('targetSo.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
-                                        <i data-feather="file-text"></i>
-                                        <span>'. __("Edit") .'</span>
-                                    </a>';
-                }
-            }
-            // if (($data->status == '2') || ($data->status == '3') ){
-            //     if (Auth::user()->can('purchaseOrder-revision')) {
-            //         $buttons .=         '<a href="'. route('targetSo.revision', ['id'=>Crypt::encryptString($data->id),'nR'=>$data->num_revision]) .'" class="dropdown-item">
-            //                                 <i data-feather="copy"></i>
-            //                                 <span>'. __("Revision") .'</span>
-            //                             </a>';
-            //     }
-            // }
-            
-            // $buttons .=         '<a href="'. route('targetSo.print', ['id'=>Crypt::encryptString($data->id)]) .'" target="_blank" class="dropdown-item">
-            //                         <i data-feather="printer"></i>
-            //                         <span>'. __("Print") .'</span>
-            //                     </a>';
-            
-            $buttons .=         '<a href="'. route('targetSo.show', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
-                                    <i data-feather="list"></i>
-                                    <span>'. __("Detail") .'</span>
-                                </a>';
-
-            // if ( $data->status == '1' or $data->status == '2' or $data->status == '3' ){
-            //     if (Auth::user()->can('purchaseOrder-delete')) {
-            //         $buttons .="<a href='javascript:;'
-            //         class='dropdown-item' 
-            //         data-size='sm'
-            //         data-ajax-delete='true'
-            //         data-confirm='Are You Sure want to Close?|This action can not be undone. Do you want to continue?' 
-            //         data-confirm-yes='document.getElementById(\""."delete-form-".$data->id."\").submit();'
-            //         data-modal-id='".$data->id."'
-            //         id='deleteButton'
-            //         data-url='". route('targetSo.clear', ['id'=>Crypt::encryptString($data->id)]) ."'>
-            //         <i data-feather='x' class='feather-14-red'></i>
-            //         <span>". __('Close') ."</span>
-            //         </a>";
-            //     }
-            // }
-
-            if ( $data->status == '1' ){
-                if (Auth::user()->can('purchaseOrder-delete')) {
-                    $buttons .=         "<a href='javascript:;'
-                                        class='dropdown-item' 
-                                        data-size='sm'
-                                        data-ajax-delete='true'
-                                        data-confirm='Are You Sure want to Delete?|This action can not be undone. Do you want to continue?' 
-                                        data-confirm-yes='document.getElementById(\""."delete-form-".$data->id."\").submit();'
-                                        data-modal-id='".$data->id."'
-                                        id='deleteButton'
-                                        data-url='". route('targetSo.destroy', ['id'=>Crypt::encryptString($data->id)]) ."'>
-                                        <i data-feather='trash-2' class='feather-14-red'></i>
-                                        <span>". __('Delete') ."</span>
-                                    </a>";
-                }
-            }
-
-            $buttons .=     '</div>
-                        </div>';
-
-            return $buttons;
-        })
-        ->addColumn('tso_code', function ($data) {
-            $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-danger'];            
-            $statusTso = ['NEW','VALIDATED','APPROVED','','CANCELED'];
-            // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','','5'=>'CANCELED'];
-            return '<span style="display: none;">'.$data->tso_code.'</span><a class="text-left badge d-block '.$badges[$data->status - 1].'" name="'.$data->tso_code.'" href="'. route('targetSo.show', ['id'=>Crypt::encryptString($data->id)]) .'" ><span>'.$data->tso_code.'</span></a>';
-        })
-        ->addColumn('status', function ($data) {
-            $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-danger'];            
-            $statusTso = ['NEW','VALIDATED','APPROVED','','CANCELED'];
-            return "<div class='badge ".$badges[$data->status - 1]."'>".$statusTso[$data->status - 1]."</div>";
-        })
-        ->rawColumns(['action','status','tso_code'])
-        ->make(true);
-    }
-
-    public function listDetail(Request $request)
-    {
-
-        $searchTso = strtolower($request->searchTso);
-        $username = Auth::user()->username;
-        $searchCustomer = $request->searchCustomer;
-        $searchStatus = $request->searchStatus;
-        $tsoDate = $request->tsoDate;
-        $fromDate ="";
-        $toDate = "";
-        
-        if ($tsoDate){
-            $date = explode("to",$tsoDate);
-            $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
-            $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
-        }
-
-        $data = DB::table('target_order_det')
-        ->leftJoin('target_order_hdr','target_order_hdr.tso_code','target_order_det.tso_code')
-        ->leftJoin('article','article.article_code','target_order_det.article_code')
-        ->leftJoin('third_party','third_party.kode','target_order_hdr.customer_id')
-        ->leftJoin('uom','uom.code','target_order_det.uom')
-        ->where(function ($query) use ($searchTso,$searchStatus,$tsoDate,$fromDate,$toDate,$searchCustomer) {
-            $searchCustomer ? $query->where('customer_id',$searchCustomer) : '';
-            $searchTso ? $query->where('tso_code','ilike','%'.$searchTso.'%') : '';
-            $searchStatus ? $query->where('target_order_hdr.status',$searchStatus) : '';
-            $tsoDate ? $query->whereBetween(DB::raw("to_date(tso_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
-        })
-        ->select('target_order_det.*'
-        ,'target_order_hdr.*'
-        ,'article_alternative_code'
-        ,'article.article_desc'
-        ,'third_party.nama as customer'
-        ,'uom_group'
-        ,DB::raw("case when uom_group = 'PIECE' then TO_CHAR(qty_target,'999,999,999') when uom_group <> 'PIECE' then TO_CHAR(qty_target,'999,999,999.999') end as qty_target")
-        ,DB::raw("case when uom_group = 'PIECE' then TO_CHAR(qty_forcast,'999,999,999') when uom_group <> 'PIECE' then TO_CHAR(qty_forcast,'999,999,999.999') end as qty_forcast")
-        )
-        ->orderBy('target_order_det.id')
-        ->get(); 
-       
-        return Datatables::of($data)
-        ->addColumn('status', function ($data) {
-            $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-danger'];            
-            $statusTso = ['NEW','VALIDATED','APPROVED'];
-            return "<div class='badge ".$badges[$data->status - 1]."'>".$statusTso[$data->status - 1]."</div>";
-        })
-        ->rawColumns(['status'])
-        ->make(true);
-    }
+    
 
     // public function print(Request $request)
     // {
