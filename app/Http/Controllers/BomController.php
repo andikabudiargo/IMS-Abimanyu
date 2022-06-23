@@ -57,7 +57,8 @@ class BomController extends Controller
         ->select('article.*', 'third_party.nama as cust_name','group_materials.name as group')
         ->get();
        
-        $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'RECEIVED','5'=>'DELETED','6'=>'CLOSED','7'=>'REVISED'];
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'RECEIVED','5'=>'DELETED','6'=>'CLOSED','7'=>'REVISED'];
+        $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','5'=>'DELETED'];
                         
         return view("bom.index",$data);
     }
@@ -568,12 +569,14 @@ class BomController extends Controller
         $username =  Auth::user()->username;
         $searchBom = strtolower($request->searchBom);
         $articleCode = $request->articleCode;
+        $status = $request->status;
 
         $data = DB::table('bom_hdr')
         ->leftJoin('article','article.article_code','bom_hdr.article_code')
-        ->where(function ($query) use ($searchBom,$articleCode) {
+        ->where(function ($query) use ($searchBom,$articleCode,$status) {
             $searchBom ? $query->where('bom_code','ilike','%'.$searchBom.'%') : '';
             $articleCode ? $query->where('bom_hdr.article_code','ilike','%'.$articleCode.'%') : '';
+            $status ? $query->where('bom_hdr.status','=',$status) : '';
         })
         ->where('bom_hdr.status','<>','7')
         ->select('bom_hdr.*'
