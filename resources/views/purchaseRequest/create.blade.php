@@ -51,8 +51,8 @@
                             </div>
                             <div class="form-row" id="tsoBox">
                                 <div class="form-group col-md-7">
-                                    <label class="form-label" for="tsoNumber">Target SO Number</label>
-                                    <select class="select2 form-control" id="tsoNumber" name="tsoNumber">
+                                    <label class="form-label" for="tsoCode">Target SO Number</label>
+                                    <select class="select2 form-control" id="tsoCode" name="tsoCode">
                                     </select>
                                 </div>
                             </div>
@@ -108,7 +108,7 @@
     let orderDate = $('#orderDate');
     let objPoType = $('#poType');
     let objTsoBox = $('#tsoBox');
-    let objTsoNumber = $('#tsoNumber');
+    let objTsoCode = $('#tsoCode');
     
     $(document).ready(function(){           
         validateFormToast("frmAdd");
@@ -130,13 +130,13 @@
             dependent = 'tso_list'
             changeSelect({
                 dependent:dependent,
-                obj:'tsoNumber',
+                obj:'tsoCode',
                 url:"{{ route('dynamic.dependent') }}"            
             });
         }
     });
 
-    objTsoNumber.change(function(e){
+    objTsoCode.change(function(e){
         let tsoCode = $(this).val();    
         if (tsoCode){        
             $.ajax({
@@ -175,8 +175,7 @@
             let objQty = $('input[name="qty_order[]"]');
             let objNote = $('input[name="note[]"]');
             let objUom = $('span[name="uom[]"]'); 
-            let dept = $('#dept').val();
-            let poType = $('#poType').val();
+            
             let articles = []; 
             let flag=0; 
             let pesan="";
@@ -229,6 +228,8 @@
             if (flag==0){
                 let orderDate = $('#orderDate').val();
                 let dept = $('#dept').val();
+                let poType = $('#poType').val();
+                let tsoCode = $('#tsoCode').val();
                 let note = $('#note').val();
 
                 $.ajax({
@@ -240,6 +241,7 @@
                         poType:poType,
                         dept:dept,
                         note:note,
+                        tsoCode:tsoCode
                     },
                     dataType: "json",
                     success: function(data) {

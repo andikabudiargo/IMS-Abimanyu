@@ -129,23 +129,24 @@ class PurchaseRequestController extends Controller
         $orderType = $request->poType;
         $dept = $request->dept;
         $note = $request->note;
+        $tsoCode = $request->tsoCode;
         $status = '1';
         $print_seq = 0;
         switch ($orderType) { 
             case 'std':
-                $poLeadCode = 'PR';
+                $prLeadCode = 'PR';
                 break;
             case 'sub':
-                $poLeadCode = 'PRSUB';
+                $prLeadCode = 'PRSUB';
                 break;
             case 'tso':
-                $poLeadCode = 'PRTSO';
+                $prLeadCode = 'PRTSO';
                 break;
             case 'rm':
-                $poLeadCode = 'PRRM';
+                $prLeadCode = 'PRRM';
             break;
             default:
-            $poLeadCode = 'PR';
+            $prLeadCode = 'PR';
         }
         
         $messages = [
@@ -178,8 +179,8 @@ class PurchaseRequestController extends Controller
             return response()->json(array('status' => 0, 'message' => $error_array,'alert' =>$alert));
 
         }else{
-            $hasilUpdate = AppHelpers::resetCode($poLeadCode);
-            $prNumber = $this->getLastCode($poLeadCode);
+            $hasilUpdate = AppHelpers::resetCode($prLeadCode);
+            $prNumber = $this->getLastCode($prLeadCode);
             DB::beginTransaction();
             try {
                     DB::table('purchase_request_hdr')->insert([
@@ -210,6 +211,18 @@ class PurchaseRequestController extends Controller
                             'created_by' => Auth::user()->username,
                             'created_at' => date('Y-m-d H:i:s'),
                         ];
+                    }
+
+                    if($orderType == 'tso'){
+                        DB::table('target_order_hdr')
+                        ->where('tso_code',$tsoCode)
+                        ->update(
+                            [
+                                'pr_number' => $prNumber,
+                                'updated_by' => Auth::user()->username,
+                                'updated_at' => date('Y-m-d H:i:s')
+                            ]
+                        );
                     }
 
                     DB::table('purchase_request_det')->insert($dataSet);
@@ -486,7 +499,7 @@ class PurchaseRequestController extends Controller
                 $alert  ="success";
                 $message  = "$title $prNumber is successfully Approve-".$nextLevel;
                 \LogActivity::addToLog($title,"username: $username Status $message");
-                return response()->json(array('statusPo' => $statusPr,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'poNumber'=>$poNumber));
+                return response()->json(array('statusPo' => $statusPr,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'$prNumber'=>$prNumber));
 
         } catch (Exception $e) {
             DB::rollBack();
@@ -494,7 +507,7 @@ class PurchaseRequestController extends Controller
             $alert  ="warning";
             $message  = "$title $prNumber is failed to Approve-".$nextLevel;
             \LogActivity::addToLog($title,"username: $username Status $message");
-            return response()->json(array('statusPo' => $statusPr,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'poNumber'=>$poNumber));
+            return response()->json(array('statusPo' => $statusPr,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'$prNumber'=>$prNumber));
         }
     }
 

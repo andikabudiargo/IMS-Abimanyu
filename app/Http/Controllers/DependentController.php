@@ -416,6 +416,7 @@ class DependentController extends Controller
             ->get();
         }elseif($dependent =='tso_list'){
             $data= DB::table($table)
+            ->where('pr_number','=',null)
             ->orderBy($order)
             ->get();
         }else{
