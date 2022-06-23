@@ -366,7 +366,7 @@ class DependentController extends Controller
         }elseif($dependent =='pRequest'){
             $data= DB::table($table) 
             ->whereIn('pr_number', function ($query) {
-                $query->select('pr_number')->from('purchase_request_hdr')->where('order_type','std');
+                $query->select('pr_number')->from('purchase_request_hdr')->whereIn('order_type',['std','tso','rm']);
             })
             // permintaan bu ifah tidak si filter by supplier
             // 11 04 2022 permintaan batal dari bu Yorin, jadi tetap di filter

@@ -26,7 +26,7 @@
                                 </div>
                                 <div class="form-group col-md-2">
                                     <label class="form-label" for="poType">PO Type*</label>
-                                    <select class="select2 form-control" id="poType" name="poType" required>
+                                    <select class="select2 form-control" id="poType" name="poType" required disabled>
                                         <option value="std">Standard</option>
                                         <option value="sub">Subcontracting</option>
                                     </select>
