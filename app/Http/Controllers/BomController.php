@@ -103,10 +103,10 @@ class BomController extends Controller
 
         $data['articlesRm'] = DB::table('article')
         ->where('article_type','RM')
-        ->whereNotIn('article.article_code', function($query){
-            $query->select('article_code_rm')
-            ->from('bom_hdr');
-        })
+        // ->whereNotIn('article.article_code', function($query){
+        //     $query->select('article_code_rm')
+        //     ->from('bom_hdr');
+        // })
         ->get();
 
         $data['oEdit']=false;
