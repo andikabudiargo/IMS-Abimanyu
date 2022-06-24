@@ -233,7 +233,7 @@
                     let uomCon=objUomCon.eq(i).val();
                     let detail = $this.find(":selected").data("detail").split("|");
                     let type=detail[3];
-                    let qty=objQty.eq(i).val().replace(/[^0-9]/gi, '') || 0;
+                    let qty=objQty.eq(i).val().replace(/,/gi, '') || 0;
                     let obj = articles.find(obj => obj.plu == plu);
                     if(obj) {
                         pesan +="Article "+articleName+" entered more than once !! <br>"; 
