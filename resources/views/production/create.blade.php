@@ -242,7 +242,7 @@
                 let article=$this.val().split("|");
                 let articleName=$this.select2('data')[0].text;
                 let plu=article[0];
-                let qty=objQtyProd.eq(i).val().replace(/[^0-9]/gi, '') || 0;
+                let qty=objQtyProd.eq(i).val().replace(/,/gi, '') || 0;
                 let soCode=objSoCode.eq(i).val();
                             
                 //es6
@@ -366,7 +366,7 @@
                 let article=$this.val().split("|");
                 let plu=article[0];
                 let articleName=$this.select2('data')[0].text;
-                let qty=objQtyProd.eq(i).val().replace(/[^0-9]/gi, '') || 0;
+                let qty=objQtyProd.eq(i).val().replace(/,/gi, '') || 0;
                                             
                 //es6
                 // let obj = ingredient.find(obj => obj.plu == plu);

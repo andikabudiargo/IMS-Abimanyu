@@ -627,7 +627,7 @@
     //     let total = 0;
     //     let itemm = 0;
     //     for(const item of data){
-    //         itemm = item.replace(/[^0-9]/gi, '')||0;
+    //         itemm = item.replace(/,/gi, '')||0;
     //         total += parseFloat(itemm);
     //     }
     //     return total

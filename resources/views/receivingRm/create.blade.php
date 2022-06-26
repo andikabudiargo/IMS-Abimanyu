@@ -492,7 +492,7 @@
         let totalQty= 0;
 
         var arr = objQtyRec.map(function (i) {
-            let qty = parseInt(objQtyRec.eq(i).val().replace(/[^0-9]/gi, '')) || 0;
+            let qty = parseInt(objQtyRec.eq(i).val().replace(/,/gi, '')) || 0;
             totalQty+= qty;
         }).get();
         grandTotalQty=totalQty;

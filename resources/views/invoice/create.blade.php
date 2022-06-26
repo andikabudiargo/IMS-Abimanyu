@@ -279,9 +279,9 @@
                     let articleUom = $this.data("uom");
                     let articleSoCode = $this.data("so-code");
                     let articleDnNumber = $this.data("dn-number");
-                    let qty=objQty.eq(i).val().replace(/[^0-9]/gi, '') || 0;
-                    let price=objPrice.eq(i).val().replace(/[^0-9]/gi, '') || 0;
-                    let priceJasa=objPriceJasa.eq(i).val().replace(/[^0-9]/gi, '') || 0;
+                    let qty=objQty.eq(i).val().replace(/,/gi, '') || 0;
+                    let price=objPrice.eq(i).val().replace(/,/gi, '') || 0;
+                    let priceJasa=objPriceJasa.eq(i).val().replace(/,/gi, '') || 0;
                     
                     if ((articleCode!=='') && (qty> 0)){
                         articles.push({
@@ -317,10 +317,10 @@
 
                 let invDate = $('#invDate').val();
                 let customer = $('#customer').val()
-                let ppn = $('#ppn').val().replace(/[^0-9]/gi, '') || 10;
-                let pph23 = $('#pph23').val().replace(/[^0-9]/gi, '') || 2;
-                let totalPpn = $('#totalPPN').val().replace(/[^0-9]/gi, '') || 0;
-                let totalPph = $('#totalPPH').val().replace(/[^0-9]/gi, '') || 0;
+                let ppn = $('#ppn').val().replace(/,/gi, '') || 10;
+                let pph23 = $('#pph23').val().replace(/,/gi, '') || 2;
+                let totalPpn = $('#totalPPN').val().replace(/,/gi, '') || 0;
+                let totalPph = $('#totalPPH').val().replace(/,/gi, '') || 0;
                 let note = $('#note').val();
 
                 $.ajax({
@@ -580,9 +580,9 @@
         objQtyInv.keyup(function() {
 
             let indexnya= objQtyInv.index(this);
-            let qty = objQtyInv.eq(indexnya).val().replace(/[^0-9]/gi, '') || 0; 
-            let price = objPrice.eq(indexnya).val().replace(/[^0-9]/gi, '') ||0;
-            let priceJasa = objPriceJasa.eq(indexnya).val().replace(/[^0-9]/gi, '') ||0;
+            let qty = objQtyInv.eq(indexnya).val().replace(/,/gi, '') || 0; 
+            let price = objPrice.eq(indexnya).val().replace(/,/gi, '') ||0;
+            let priceJasa = objPriceJasa.eq(indexnya).val().replace(/,/gi, '') ||0;
             let total = qty*price;
             let totalJasa = qty*priceJasa;
             objTotal.eq(indexnya).text(humanizeNumber(total));
@@ -594,10 +594,10 @@
 
         objPrice.keyup(function() {
             let indexnya= objPrice.index(this);
-            let qty = objQtyInv.eq(indexnya).val().replace(/[^0-9]/gi, '') || 0; 
-            let price = objPrice.eq(indexnya).val().replace(/[^0-9]/gi, '')||0;
+            let qty = objQtyInv.eq(indexnya).val().replace(/,/gi, '') || 0; 
+            let price = objPrice.eq(indexnya).val().replace(/,/gi, '')||0;
             let total = qty*price;
-            let priceJasa = objPriceJasa.eq(indexnya).val().replace(/[^0-9]/gi, '')||0;
+            let priceJasa = objPriceJasa.eq(indexnya).val().replace(/,/gi, '')||0;
             let totalJasa = qty*priceJasa;
             objTotal.eq(indexnya).text(humanizeNumber(total));
             objTotalJasa.eq(indexnya).text(humanizeNumber(totalJasa));
@@ -607,10 +607,10 @@
 
         objPriceJasa.keyup(function() {
             let indexnya= objPrice.index(this);
-            let qty = objQtyInv.eq(indexnya).val().replace(/[^0-9]/gi, '') || 0; 
-            let price = objPrice.eq(indexnya).val().replace(/[^0-9]/gi, '')||0;
+            let qty = objQtyInv.eq(indexnya).val().replace(/,/gi, '') || 0; 
+            let price = objPrice.eq(indexnya).val().replace(/,/gi, '')||0;
             let total = qty*price;
-            let priceJasa = objPriceJasa.eq(indexnya).val().replace(/[^0-9]/gi, '')||0;
+            let priceJasa = objPriceJasa.eq(indexnya).val().replace(/,/gi, '')||0;
             let totalJasa = qty*priceJasa;
             objTotal.eq(indexnya).text(humanizeNumber(total));
             objTotalJasa.eq(indexnya).text(humanizeNumber(totalJasa));
@@ -634,9 +634,9 @@
         let totalAmountMaterial=0
 
         var arr = objQtyTiw.map(function (i) {
-            let qty = parseInt(objQTY.eq(i).val().replace(/[^0-9]/gi, '')) || 0;
-            let price = parseInt(objPrice.eq(i).val().replace(/[^0-9]/gi, '')) || 0;
-            let priceJasa = parseInt(objPriceJasa.eq(i).val().replace(/[^0-9]/gi, '')) || 0;
+            let qty = parseInt(objQTY.eq(i).val().replace(/,/gi, '')) || 0;
+            let price = parseInt(objPrice.eq(i).val().replace(/,/gi, '')) || 0;
+            let priceJasa = parseInt(objPriceJasa.eq(i).val().replace(/,/gi, '')) || 0;
             totalQty+= qty;
             totalAmount+= (qty*price)+(qty*priceJasa);
             totalAmountMaterial+= (qty*price)+(qty*priceJasa);

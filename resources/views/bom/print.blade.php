@@ -149,13 +149,13 @@
     </table>
 
     <footer>
-        <h4 class="font-9" style="padding-left:10px;">Note:"BOM sudah termasuk allowance 10%</h4>
+        <h4 class="font-9" style="padding-left:10px;">Note:{{ $bomHdr->note_hdr }}</h4>
         {{-- <h4 class="font-9" style="padding-left:10px;">No Revisi:</h4>
         <h4 class="font-9" style="padding-left:10px;">Engineering:</h4> --}}
         <table style="border:none;">
             <tr>
                 <td align="Left" class="detail-padding-bawah">No Revisi</td>
-                <td align="Left" class="detail-padding-bawah">:00</td>
+                <td align="Left" class="detail-padding-bawah">:{{ $bomHdr->num_revision }}</td>
             </tr>
             <tr>
                 <td align="left" class="detail-padding-bawah">Enginering</td>

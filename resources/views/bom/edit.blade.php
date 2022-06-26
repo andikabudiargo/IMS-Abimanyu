@@ -68,13 +68,13 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="form-group col-md-2">
+                                <div class="form-group col-md-3">
                                     <label for="cycleTime">Cycle time buffing</label>
                                     <input type="text" id="cycleTime" name="cycleTime" value="{{ old('cycleTime',$header->cycle_time) }}" class="form-control numeral-mask-digit" maxlength="5"/>
                                 </div>
                             </div>
                             <div class="form-row">
-                                <div class="form-group col-md-8">
+                                <div class="form-group col-md-10">
                                     <label class="form-label" for="note">Notes</label>
                                     <textarea type="text" id="note" name="note" class="form-control" rows="1" >{{ old('note',$header->note) }}</textarea>
                                 </div>

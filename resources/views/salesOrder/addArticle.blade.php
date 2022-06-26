@@ -165,9 +165,9 @@
         
         objQty.keyup(function() {
             let indexnya= objQty.index(this);
-            let qty = objQty.eq(indexnya).val().replace(/[^0-9]/gi, '') || 0; 
-            let price = objPrice.eq(indexnya).val().replace(/[^0-9]/gi, '') ||0;
-            let priceJasa = objPriceJasa.eq(indexnya).val().replace(/[^0-9]/gi, '') ||0;
+            let qty = objQty.eq(indexnya).val().replace(/,/gi, '') || 0; 
+            let price = objPrice.eq(indexnya).val().replace(/,/gi, '') ||0;
+            let priceJasa = objPriceJasa.eq(indexnya).val().replace(/,/gi, '') ||0;
             let total = qty*price;
             let totalJasa = qty*priceJasa;
             objTotal.eq(indexnya).val(humanizeNumber(total));
@@ -178,10 +178,10 @@
 
         objPrice.keyup(function() {
             let indexnya= objPrice.index(this);
-            let qty = objQty.eq(indexnya).val().replace(/[^0-9]/gi, '') || 0; 
-            let price = objPrice.eq(indexnya).val().replace(/[^0-9]/gi, '')||0;
+            let qty = objQty.eq(indexnya).val().replace(/,/gi, '') || 0; 
+            let price = objPrice.eq(indexnya).val().replace(/,/gi, '')||0;
             let total = qty*price;
-            let priceJasa = objPriceJasa.eq(indexnya).val().replace(/[^0-9]/gi, '')||0;
+            let priceJasa = objPriceJasa.eq(indexnya).val().replace(/,/gi, '')||0;
             let totalJasa = qty*priceJasa;
             objTotal.eq(indexnya).val(humanizeNumber(total));
             objTotalJasa.eq(indexnya).val(humanizeNumber(totalJasa));
@@ -191,10 +191,10 @@
 
         objPriceJasa.keyup(function() {
             let indexnya= objPrice.index(this);
-            let qty = objQty.eq(indexnya).val().replace(/[^0-9]/gi, '') || 0; 
-            let price = objPrice.eq(indexnya).val().replace(/[^0-9]/gi, '')||0;
+            let qty = objQty.eq(indexnya).val().replace(/,/gi, '') || 0; 
+            let price = objPrice.eq(indexnya).val().replace(/,/gi, '')||0;
             let total = qty*price;
-            let priceJasa = objPriceJasa.eq(indexnya).val().replace(/[^0-9]/gi, '')||0;
+            let priceJasa = objPriceJasa.eq(indexnya).val().replace(/,/gi, '')||0;
             let totalJasa = qty*priceJasa;
             objTotal.eq(indexnya).val(humanizeNumber(total));
             objTotalJasa.eq(indexnya).val(humanizeNumber(totalJasa));
@@ -217,9 +217,9 @@
         let totalAmountMaterial=0
 
         var arr = objQtyTiw.map(function (i) {
-            let qty = parseInt(objQTY.eq(i).val().replace(/[^0-9]/gi, '')) || 0;
-            let price = parseInt(objPrice.eq(i).val().replace(/[^0-9]/gi, '')) || 0;
-            let priceJasa = parseInt(objPriceJasa.eq(i).val().replace(/[^0-9]/gi, '')) || 0;
+            let qty = parseInt(objQTY.eq(i).val().replace(/,/gi, '')) || 0;
+            let price = parseInt(objPrice.eq(i).val().replace(/,/gi, '')) || 0;
+            let priceJasa = parseInt(objPriceJasa.eq(i).val().replace(/,/gi, '')) || 0;
             totalQty+= qty;
             totalAmount+= (qty*price)+(qty*priceJasa);
             totalAmountMaterial+= (qty*price)+(qty*priceJasa);

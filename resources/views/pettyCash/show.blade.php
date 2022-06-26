@@ -354,8 +354,8 @@
         let totalAmount=0
 
         var arr = objQtyTiw.map(function (i) {
-            let qty = parseInt(objQTY.eq(i).val().replace(/[^0-9]/gi, '')) || 0;
-            let price = parseInt(objPrice.eq(i).val().replace(/[^0-9]/gi, '')) || 0;
+            let qty = parseInt(objQTY.eq(i).val().replace(/,/gi, '')) || 0;
+            let price = parseInt(objPrice.eq(i).val().replace(/,/gi, '')) || 0;
             totalQty+= qty;
             totalAmount+= qty*price;
         }).get();

@@ -229,7 +229,7 @@
                     let article=$this.val().split("|");
                     let plu=article[0];
                     let articleName=article[1];
-                    // let qty=objQty.eq(i).val().replace(/[^0-9]/gi, '') || 0;
+                    // let qty=objQty.eq(i).val().replace(/,/gi, '') || 0;
                     let qty=objQty.eq(i).val().replace(/,/gi, '') || 0;
                     let qtyUom=objUom.eq(i).val() || articleUom;
                     let qtyFree=objQtyFree.eq(i).val().replace(/,/gi, '') || 0;

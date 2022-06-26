@@ -228,7 +228,7 @@
                     let articleDesc = $this.data("desc");
                     let articleUom = $this.data("uom");
                     let articleSoCode = $this.data("so-code");
-                    let qty=objQty.eq(i).val().replace(/[^0-9]/gi, '') || 0;
+                    let qty=objQty.eq(i).val().replace(/,/gi, '') || 0;
                     
                     if ((articleCode!=='') && (qty> 0)){
                         articles.push({
@@ -380,7 +380,7 @@
         let objQtyInv= $('#article_row input[name="qtyInv[]"]');
         objQtyInv.keyup(function() {
             let indexnya= objQtyInv.index(this);
-            let qty = objQtyInv.eq(indexnya).val().replace(/[^0-9]/gi, '') || 0; 
+            let qty = objQtyInv.eq(indexnya).val().replace(/,/gi, '') || 0; 
             hitungGrandTotal();
         });
     }
@@ -391,7 +391,7 @@
         let objQTY= $('#article_row input[name="qtyInv[]"]');
         let totalQty=0;
         var arr = objQtyTiw.map(function (i) {
-            let qty = parseInt(objQTY.eq(i).val().replace(/[^0-9]/gi, '')) || 0;
+            let qty = parseInt(objQTY.eq(i).val().replace(/,/gi, '')) || 0;
             totalQty+= qty;
         }).get();
         
@@ -405,7 +405,7 @@
         let objQTY= $('#article_row input[name="qtyInv[]"]');
         let totalQty=0;
         var arr = objQtyTiw.map(function (i) {
-            let qty = parseInt(objQTY.eq(i).val().replace(/[^0-9]/gi, '')) || 0;
+            let qty = parseInt(objQTY.eq(i).val().replace(/,/gi, '')) || 0;
             totalQty+= qty;
         }).get();
         

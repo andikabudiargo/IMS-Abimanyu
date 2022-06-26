@@ -283,7 +283,7 @@
         
         objQtyRec.keyup(function() {
             let indexnya= objQtyRec.index(this);
-            let qtyRec = parseInt(objQtyRec.eq(indexnya).val().replace(/[^0-9]/gi, '') || 0); 
+            let qtyRec = parseInt(objQtyRec.eq(indexnya).val().replace(/,/gi, '') || 0); 
             objTotalQty.eq(indexnya).text(humanizeNumber(totalQty));
             hitungGrandTotal();
         });    
@@ -296,7 +296,7 @@
         let totalQty= 0;
 
         var arr = objQtyRec.map(function (i) {
-            let qty = parseInt(objQtyRec.eq(i).val().replace(/[^0-9]/gi, '')) || 0;
+            let qty = parseInt(objQtyRec.eq(i).val().replace(/,/gi, '')) || 0;
             totalQty+= qty;
         }).get();
         grandTotalQty=totalQty;
@@ -314,7 +314,7 @@
         let totalQty= 0;
 
         var arr = objQtyRec.map(function (i) {
-            let qty = parseInt(objQtyRec.eq(i).val().replace(/[^0-9]/gi, '')) || 0;
+            let qty = parseInt(objQtyRec.eq(i).val().replace(/,/gi, '')) || 0;
             totalQty+= qty;
             objTotalQty.eq(i).text(humanizeNumber(qty));
         }).get();

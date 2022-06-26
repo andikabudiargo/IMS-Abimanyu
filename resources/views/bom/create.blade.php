@@ -78,7 +78,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="form-group col-md-2">
+                                <div class="form-group col-md-3">
                                     <label for="cycleTime">Cycle time buffing</label>
                                     <input type="text" id="cycleTime" name="cycleTime" value="{{ old('cycleTime') }}" class="form-control numeral-mask-digit" maxlength="5" required/>
                                 </div>
@@ -100,9 +100,13 @@
                     <h4 class="card-title">Article</h4>
                 </div>
                 <div class="card-body">
-                    @include('bom.headerColumn')
-                    <div class="" id="article_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px">
-                        <input type="text" id ="last_row_number" class="d-none" value="0">
+                    <div class="container-list-item">
+                        <div class="lebar-list-item">
+                            @include('bom.headerColumn')
+                            <div class="" id="article_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px">
+                                <input type="text" id ="last_row_number" class="d-none" value="0">
+                            </div>
+                        </div>
                     </div>
                     <div class="d-flex justify-content-between align-items-end mt-75">
                         <button class="btn btn-primary btn-prev" type="button" id="addNewRow" onclick="add_new_row();">
@@ -122,12 +126,40 @@
         </div>
     </div>
 </section>
-
 @endsection
 @section('styles')
 <style>
     textarea {
         resize: none;
+    }
+
+    @media screen 
+    and (min-device-width: 1200px) 
+    and (max-device-width: 1600px) 
+    and (-webkit-min-device-pixel-ratio: 1) { 
+        .lebar-list-item{
+            width:110%;
+        }
+        .container-list-item{
+            max-width:100%;
+            overflow-x:auto;
+            scrollbar-width: thin;
+            margin-top:7px;
+        }
+    }
+
+    @media only screen and (min-width: 600px)
+    and (max-width: 1200px)
+    {
+        .lebar-list-item{
+            width:100%;
+        }
+        .container-list-item{
+            max-width:100%;
+            overflow-x:auto;
+            scrollbar-width: thin;
+            margin-top:7px;
+        }
     }
 </style>
 @endsection

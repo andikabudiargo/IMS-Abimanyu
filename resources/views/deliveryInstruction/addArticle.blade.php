@@ -247,8 +247,8 @@
                     let articleName=$this.select2('data')[0].text;
                     let plu=article[0];
                     let qty=objQty.eq(i).val().replace(/,/gi, '') || 0;
-                    let newPrice=objNewPrice.eq(i).val().replace(/[^0-9]/gi, '') || 0;
-                    let price=objPrice.eq(i).val().replace(/[^0-9]/gi, '') || 0;
+                    let newPrice=objNewPrice.eq(i).val().replace(/,/gi, '') || 0;
+                    let price=objPrice.eq(i).val().replace(/,/gi, '') || 0;
                     let pRequest=objpr.eq(i).val();
                     let uom=objUom.eq(i).text();
                     let supp=$('#supplier').val();
@@ -303,9 +303,9 @@
                 let supp = $('#supplier').val();
                 let term = $('#term').val() || 0;
                 let kurs = $('#kurs').val() || 1;
-                let ppn = $('#ppn').val().replace(/[^0-9]/gi, '') || 0;
-                let totalPph = $('#totalPPH').val().replace(/[^0-9]/gi, '') || 0;
-                let totalPpn = $('#totalPPN').val().replace(/[^0-9]/gi, '') || 0;
+                let ppn = $('#ppn').val().replace(/,/gi, '') || 0;
+                let totalPph = $('#totalPPH').val().replace(/,/gi, '') || 0;
+                let totalPpn = $('#totalPPN').val().replace(/,/gi, '') || 0;
                 let note = $('#note').val();
                 let persenDiscount = $('#persenDiscount').val() || 0;
                 let tax = $('#pkp').is(':checked') ? 'PKP' : '';
@@ -378,8 +378,8 @@
                     let articleName=$this.select2('data')[0].text;
                     let plu=article[0];
                     let qty=objQty.eq(i).val().replace(/,/gi, '') || 0;
-                    let newPrice=objNewPrice.eq(i).val().replace(/[^0-9]/gi, '') || 0;
-                    let price=objPrice.eq(i).val().replace(/[^0-9]/gi, '') || 0;
+                    let newPrice=objNewPrice.eq(i).val().replace(/,/gi, '') || 0;
+                    let price=objPrice.eq(i).val().replace(/,/gi, '') || 0;
                     let pRequest=objpr.eq(i).val();
                     let uom=objUom.eq(i).text();
                     let supp=$('#supplier').val();
@@ -432,9 +432,9 @@
                 let supp = $('#supplier').val();
                 let term = $('#term').val()||0;
                 let kurs = $('#kurs').val()||1;
-                let ppn = $('#ppn').val().replace(/[^0-9]/gi, '') || 0;
-                let totalPph = $('#totalPPH').val().replace(/[^0-9]/gi, '') || 0;
-                let totalPpn = $('#totalPPN').val().replace(/[^0-9]/gi, '') || 0;
+                let ppn = $('#ppn').val().replace(/,/gi, '') || 0;
+                let totalPph = $('#totalPPH').val().replace(/,/gi, '') || 0;
+                let totalPpn = $('#totalPPN').val().replace(/,/gi, '') || 0;
                 let note = $('#note').val();
                 let persenDiscount = $('#persenDiscount').val() || 0;
                 let poNumber = $('#poNumber').val();
@@ -700,7 +700,7 @@
         objQty.keyup(function() {
             let indexnya= objQty.index(this);
             let qty = objQty.eq(indexnya).val().replace(/,/gi, '') || 0; 
-            let newPrice = objNewPrice.eq(indexnya).val().replace(/[^0-9]/gi, '') ||0;
+            let newPrice = objNewPrice.eq(indexnya).val().replace(/,/gi, '') ||0;
             let total = qty*newPrice;
             objTotal.eq(indexnya).val(humanizeNumber(total));
             hitungGrandTotal();
@@ -709,7 +709,7 @@
         objNewPrice.keyup(function() {
             let indexnya= objNewPrice.index(this);
             let qty = objQty.eq(indexnya).val().replace(/,/gi, '') || 0; 
-            let newPrice = objNewPrice.eq(indexnya).val().replace(/[^0-9]/gi, '')||0;
+            let newPrice = objNewPrice.eq(indexnya).val().replace(/,/gi, '')||0;
             let total = qty*newPrice;
             objTotal.eq(indexnya).val(humanizeNumber(total));
             hitungGrandTotal();

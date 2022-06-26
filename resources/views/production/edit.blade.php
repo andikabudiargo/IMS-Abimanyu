@@ -245,7 +245,7 @@
                 let uom=article[1];
                 let price=article[2]||0;
                 let type=article[3];
-                let qty=objQty.eq(i).val().replace(/[^0-9]/gi, '') || 0;
+                let qty=objQty.eq(i).val().replace(/,/gi, '') || 0;
                             
                 //es6
                 // let obj = ingredient.find(obj => obj.plu == plu);

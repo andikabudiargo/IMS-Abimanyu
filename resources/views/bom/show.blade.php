@@ -84,7 +84,7 @@
                                                     </div>
                                                 </div>
                                             </div>
-                                            <div class="form-group col-md-2">
+                                            <div class="form-group col-md-3">
                                                 <label for="cycleTime">Cycle time buffing</label>
                                                 <input type="text" id="cycleTime" name="cycleTime" value="{{ old('cycleTime',$header2->cycle_time) }}" class="form-control numeral-mask-digit" maxlength="5" disabled/>
                                             </div>
@@ -117,7 +117,7 @@
                                                         <td >{{ $item->article }}</td>
                                                         <td class="text-right">{{ number_format($item->qty,$decimalPlaces) }} {{ $item->uom }}</td>
                                                         <td > {{ $item->uom_con }}</td>
-                                                        <td >{{ $item->article_type }}</td>
+                                                        <td >{{ $item->type_name }}</td>
                                                     </tr>
                                                 @endif
                                             @endforeach

@@ -304,8 +304,8 @@
         
         objQtyRec.keyup(function() {
             let indexnya= objQtyRec.index(this);
-            let qtyRec = parseInt(objQtyRec.eq(indexnya).val().replace(/[^0-9]/gi, '') || 0); 
-            let qtyFree = parseInt(objQtyFree.eq(indexnya).val().replace(/[^0-9]/gi, '') || 0); 
+            let qtyRec = parseInt(objQtyRec.eq(indexnya).val().replace(/,/gi, '') || 0); 
+            let qtyFree = parseInt(objQtyFree.eq(indexnya).val().replace(/,/gi, '') || 0); 
             let totalQty = qtyRec+qtyFree;
             objTotalQty.eq(indexnya).text(humanizeNumber(totalQty));
             hitungGrandTotal();
@@ -313,8 +313,8 @@
 
         objQtyFree.keyup(function() {
             let indexnya= objQtyRec.index(this);
-            let qtyRec = parseInt(objQtyRec.eq(indexnya).val().replace(/[^0-9]/gi, '') || 0); 
-            let qtyFree = parseInt(objQtyFree.eq(indexnya).val().replace(/[^0-9]/gi, '') || 0); 
+            let qtyRec = parseInt(objQtyRec.eq(indexnya).val().replace(/,/gi, '') || 0); 
+            let qtyFree = parseInt(objQtyFree.eq(indexnya).val().replace(/,/gi, '') || 0); 
             let totalQty = qtyRec+qtyFree;
             objTotalQty.eq(indexnya).text(humanizeNumber(totalQty));
             hitungGrandTotal();
@@ -330,8 +330,8 @@
         let totalQtyFree= 0;
 
         var arr = objQtyRec.map(function (i) {
-            let qty = parseInt(objQtyRec.eq(i).val().replace(/[^0-9]/gi, '')) || 0;
-            let qtyFree = parseInt(objQtyFree.eq(i).val().replace(/[^0-9]/gi, '')) || 0;
+            let qty = parseInt(objQtyRec.eq(i).val().replace(/,/gi, '')) || 0;
+            let qtyFree = parseInt(objQtyFree.eq(i).val().replace(/,/gi, '')) || 0;
             totalQty+= qty;
             totalQtyFree+= qtyFree;
         }).get();
@@ -353,8 +353,8 @@
         let totalQtyFree= 0;
 
         var arr = objQtyRec.map(function (i) {
-            let qty = parseInt(objQtyRec.eq(i).val().replace(/[^0-9]/gi, '')) || 0;
-            let qtyFree = parseInt(objQtyFree.eq(i).val().replace(/[^0-9]/gi, '')) || 0;
+            let qty = parseInt(objQtyRec.eq(i).val().replace(/,/gi, '')) || 0;
+            let qtyFree = parseInt(objQtyFree.eq(i).val().replace(/,/gi, '')) || 0;
             totalQty+= qty;
             totalQtyFree+= qtyFree;
             objTotalQty.eq(i).text(humanizeNumber(qty+qtyFree));

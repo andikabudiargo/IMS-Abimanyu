@@ -90,6 +90,8 @@ class BomController extends Controller
         $data['title'] = "Create $this->title";
         $data['subtitle'] = "Create $this->title";
 
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'RECEIVED','5'=>'DELETED','6'=>'CLOSED','7'=>'REVISED','8'=>'DECLINE'];
+
         $data['articles'] = DB::table('article')
         ->leftJoin('third_party','article.third_party','third_party.kode')
         ->leftJoin('group_materials','group_materials.code','=','article.group_of_material')
@@ -97,16 +99,18 @@ class BomController extends Controller
         ->whereNotIn('article.article_code', function($query){
             $query->select('article_code')
             ->from('bom_hdr');
+            // ->whereNotIn('status',['4','5','6','7']);
         })
         ->select('article.*', 'third_party.nama as cust_name','group_materials.name as group')
         ->get();
 
         $data['articlesRm'] = DB::table('article')
         ->where('article_type','RM')
-        // ->whereNotIn('article.article_code', function($query){
-        //     $query->select('article_code_rm')
-        //     ->from('bom_hdr');
-        // })
+        ->whereNotIn('article.article_code', function($query){
+            $query->select(DB::raw("COALESCE('article_code_rm','blablabla')"))
+            ->from('bom_hdr')
+            ->whereNotIn('status',['4','5','6','7']);
+        })
         ->get();
 
         $data['oEdit']=false;
@@ -403,8 +407,9 @@ class BomController extends Controller
             foreach ($validation->messages()->getMessages() as $field_name => $messages){
                 $error_array[] = $messages;
             }
-            $alert ="alert-danger";
-            return response()->json(array('status' => 0, 'message' => $error_array,'alert' =>$alert));
+            $title="Update BOM";
+            $alert ="error";
+            return response()->json(array('status' => 0,'title' => $title, 'message' => $error_array,'alert' =>$alert));
         }else{
             DB::beginTransaction();
             try {
@@ -680,6 +685,7 @@ class BomController extends Controller
         $data['bomHdr']=DB::table('bom_hdr')
         ->leftJoin('third_party','third_party.kode','bom_hdr.customer')
         ->leftJoin('article','article.article_code','bom_hdr.article_code')
+        ->select('bom_hdr.*','third_party.*','article.*','bom_hdr.note as note_hdr')
         ->where('bom_hdr.id',$id)
         ->first();
 

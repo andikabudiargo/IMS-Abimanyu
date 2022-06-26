@@ -268,9 +268,9 @@
                     let articleName=$this.select2('data')[0].text;
                     let plu=article[0];
                     let inisial = articleName.substring(2,5); 
-                    let qty=objQty.eq(i).val().replace(/[^0-9]/gi, '') || 0;
-                    let price=objPrice.eq(i).val().replace(/[^0-9]/gi, '') || 0;
-                    let priceJasa=objPriceJasa.eq(i).val().replace(/[^0-9]/gi, '') || 0;
+                    let qty=objQty.eq(i).val().replace(/,/gi, '') || 0;
+                    let price=objPrice.eq(i).val().replace(/,/gi, '') || 0;
+                    let priceJasa=objPriceJasa.eq(i).val().replace(/,/gi, '') || 0;
                     let uom=objUom.eq(i).text();
                     let group=objGroup.eq(i).val(); 
                     let cust=$('#cust').val().split("|");
@@ -329,10 +329,10 @@
                 let cust = $('#cust').val().split("|");
                 let customer = cust[0];
                 let salesman = $('#salesman').val();
-                let ppn = $('#ppn').val().replace(/[^0-9]/gi, '') || 0;
-                let pph23 = $('#pph23').val().replace(/[^0-9]/gi, '') || 0;
-                let totalPpn = $('#totalPPN').val().replace(/[^0-9]/gi, '') || 0;
-                let totalPph = $('#totalPPH').val().replace(/[^0-9]/gi, '') || 0;
+                let ppn = $('#ppn').val().replace(/,/gi, '') || 0;
+                let pph23 = $('#pph23').val().replace(/,/gi, '') || 0;
+                let totalPpn = $('#totalPPN').val().replace(/,/gi, '') || 0;
+                let totalPph = $('#totalPPH').val().replace(/,/gi, '') || 0;
                 let note = $('#note').val();
 
                 $.ajax({
