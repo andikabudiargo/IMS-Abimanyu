@@ -97,9 +97,9 @@ class BomController extends Controller
         ->leftJoin('group_materials','group_materials.code','=','article.group_of_material')
         ->where('article_type','FG')
         ->whereNotIn('article.article_code', function($query){
-            $query->select('article_code')
-            ->from('bom_hdr');
-            // ->whereNotIn('status',['4','5','6','7']);
+            $query->select(DB::raw("COALESCE(article_code,'blablabla')"))
+            ->from('bom_hdr')
+            ->whereIn('status',['1','2','3']);
         })
         ->select('article.*', 'third_party.nama as cust_name','group_materials.name as group')
         ->get();
@@ -107,9 +107,9 @@ class BomController extends Controller
         $data['articlesRm'] = DB::table('article')
         ->where('article_type','RM')
         ->whereNotIn('article.article_code', function($query){
-            $query->select(DB::raw("COALESCE('article_code_rm','blablabla')"))
+            $query->select(DB::raw("COALESCE(article_code_rm,'blablabla')"))
             ->from('bom_hdr')
-            ->whereNotIn('status',['4','5','6','7']);
+            ->whereIn('status',['1','2','3']);
         })
         ->get();
 
