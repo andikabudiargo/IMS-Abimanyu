@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>PO</title>
+<title>DI</title>
 <style type="text/css">
     * {
         font-family: Verdana, Arial, sans-serif;
@@ -52,21 +52,21 @@
 @endif --}}
 
     <div class="header">
-        <table width="100%" >
+        <table width="100%">
             <tr>
-                <td align="left" style="width: 45%;">
-                    <h2>PURCHASE ORDER</h2>
-<pre>
-Date: {{ $poDate }}
-PO Number: {{ $poNumber }}
-Term: {{ $poTerm }} Days
-Delivery Date : {{ $poDelDate }}
-</pre>
-                </td>
-                <td style="width: 10%;"></td>
-                <td align="center" style="width: 45%;" tyle="text-align:center;">
+                <td align="left" style="width: 45%;vertical-align:bottom">
                     <img src="{{ public_path('app-assets/images/logo/logo_po.png') }}" alt="logo" style="width: 60%;"> 
                 </td>
+                <td style="vertical-align: bottom;font-size: large;"><h2>DELIVERY INSTRUCTION</h2></td>
+                {{-- <td align="center" style="width: 45%;" tyle="text-align:center;">
+                    
+                    <pre>
+                    Date: {{ $diDate }}
+                    PO Number: {{ $diNumber }}
+                    Delivery Date : {{ $diDelDate }}
+                    </pre>
+                    
+                </td> --}}
             </tr>
         </table>
     </div>
@@ -74,50 +74,49 @@ Delivery Date : {{ $poDelDate }}
     <table>
         <tr>
             <td width="45%" valign="top" style="border: 1px solid #0c0c0c;padding-left:10px">
-                <strong> VENDOR </strong><br>
+                <strong> SHIPPING ADDRESS </strong><br>
+                @foreach ($companies as $val)
+                {{ $val }} <br>
+                @endforeach
+                
+            </td>
+            <td width="10%"></td>
+            <td width="45%" style="border: 1px solid #0c0c0c;padding-left:10px;vertical-align:top">
+                Date: {{ $diDate }}<br>
+                {{-- PO Number: {{ $diNumber }}<br> --}}
+                Supplier Name : {{ $diNumber }}<br>
+                Delivery Date : {{ $diDelDate }}
+                {{-- <strong>SHIP TO </strong><br>
                 @foreach ($suppliers as $val )
                     {{ $val->nama }} <br>
                     Fax:{{ $val->fax }}<br>
                     Phone:{{ $val->telepon }}<br>
                     Contact:{{ $val->nama_kontak }}<br>
-                @endforeach
-            </td>
-            <td width="10%"></td>
-            <td width="45%" style="border: 1px solid #0c0c0c;padding-left:10px">
-                <strong>SHIP TO </strong><br>
-                @foreach ($companies as $val)
-                {{ $val }} <br>
-                @endforeach
+                @endforeach --}}
             </td>
         </tr>
     </table>
     <table class="detail" width="100%">
         <thead style="background-color: lightgray;">
         <tr>
-            <th width="5%">#</th>
-            <th width="10%">Code</th>
-            <th width="40%">Description</th>
-            <th width="5%">Qty</th>
-            <th>Price</th>
-            <th>PPN</th>
-            <th>Total</th>
+            <th width="6%">No. PO</th>
+            <th width="18%" >Description</th>
+            <th width="3%">Request</th>
+            <th width="3%">Satuan</th>
         </tr>
         </thead>
         <tbody>
             @foreach ($details as $val )
                 <tr style="border-bottom: 1px solid #ddd;">
-                    <td scope="row" style="border-bottom: 1px solid #ddd;">{{ ++$no }}</td>
-                    <td style="border-bottom: 1px solid #ddd;" align="left">{{ $val->article_alternative_code }}</td>
+                    <td style="border-bottom: 1px solid #ddd;" align="left">{{ $val->po_number }}</td>
                     <td style="border-bottom: 1px solid #ddd;" align="left">{{ $val->article_desc }}</td>
-                    <td style="border-bottom: 1px solid #ddd;" align="right">{{ number_format($val->qty) }}</td>
-                    <td style="border-bottom: 1px solid #ddd;" align="right">{{ number_format($val->price) }}</td>
-                    <td style="border-bottom: 1px solid #ddd;" align="right">{{ number_format($val->ppn) }}</td>
-                    <td style="border-bottom: 1px solid #ddd;" align="right">{{ number_format(($val->qty*$val->price)+$val->ppn) }}</td>
+                    <td style="border-bottom: 1px solid #ddd;" align="right">{{ number_format($val->qty,4) }}</td>
+                    <td style="border-bottom: 1px solid #ddd;" align="left">{{ $val->uom }}</td>
                 </tr>
             @endforeach
         </tbody>
         <tfoot>
-            @foreach ($totals as $val )
+            {{-- @foreach ($totals as $val )
                 <tr style="border-bottom: 1px solid #ddd;">
                     <td style="border-bottom: 1px solid #ddd;" align="left" colspan="3">Total</td>
                     <td style="border-bottom: 1px solid #ddd;" align="right" >{{ number_format($val->qty) }}</td>
@@ -125,18 +124,13 @@ Delivery Date : {{ $poDelDate }}
                     <td style="border-bottom: 1px solid #ddd;" align="right" >{{ number_format($val->ppn)}}</td>
                     <td style="border-bottom: 1px solid #ddd;" align="right" class="gray">{{ number_format($val->netto)}}</td>
                 </tr>
-            @endforeach
+            @endforeach --}}
         </tfoot>
     </table>
     <table width="100%">
         <tbody>
             <tr><td style="width: 65%;">Notes:</td></tr>
             <tr><td rowspan='6' style="width: 65%;">{{ $keterangan }}</td></tr>
-            <tr><td >Subtotal</td><td>:</td></td><td align="right">{{ number_format($totals[0]->gross) }}</td></tr>
-            <tr><td >Discount:</td><td>:</td><td align="right">{{ number_format($totals[0]->discount) }}</td></tr>
-            <tr><td >PPN 10%:</td><td>:</td><td align="right">{{ number_format($totals[0]->ppn) }}</td></tr>
-            <tr><td >PPH22:</td><td>:</td><td align="right"></td></tr>
-            <tr><td >Total:</td><td>:</td><td align="right">{{ number_format($totals[0]->netto) }}</td></tr>
         </tbody>
     </table>
     @if($status == '3')

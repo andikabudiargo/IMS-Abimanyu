@@ -70,7 +70,15 @@
                                     <input type="text" id="nama" name="nama" class="form-control text-uppercase" value="{{ old('nama',$article->desc) }}"  required  maxlength="100"/>
                                 </div>
                             </div>
-                        </div>                      
+                        </div>
+                        <div class="form-row">
+                            <div class="col-12">
+                                <div class="form-group">
+                                <label for="brand">Brand</label>
+                                    <input type="text" id="brand" name="brand" class="form-control text-uppercase" value="{{ old('brand',$article->brand) }}" maxlength="100"/>
+                                </div>
+                            </div>
+                        </div>
                         <div class="form-row">
                             <div class="form-group col-md-6">
                                 <label for="price">Price</label>

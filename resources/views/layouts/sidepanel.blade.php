@@ -173,8 +173,8 @@
               </a>
             </li>
             @endcan
-            <li class="{{ \Request::segment(1) == 'stockTake' ? 'active' : '' }} disabled">
-              <a class="d-flex align-items-center" href="{{ route('articles.index') }} ">
+            <li class="{{ \Request::is(['deliveryInstruction']) ? 'active' : '' }}">
+              <a class="d-flex align-items-center" href="{{ route('deliveryInstruction.index') }} ">
                 <i data-feather="circle"></i>
                 <span class="menu-item text-truncate" data-i18n="Input">Delivery Instruction</span>
               </a>
@@ -206,21 +206,21 @@
             @endcan
           </ul>
         </li>
-        <li class=" {{ in_array(\Request::segment(1), ['warehouse']) ? 'active' : '' }} nav-item">
+        <li class=" {{ in_array(\Request::segment(1), ['warehouse','transferIn']) ? 'active' : '' }} nav-item">
           <a class="d-flex align-items-center" href="javascript:void(0);">
             <i data-feather='box'></i>
             <span class="menu-title text-truncate" data-i18n="Form Elements">Warehouse
             </span>
           </a>
           <ul class="menu-content">
-            @can('warehouse-index')
+            {{-- @can('warehouse-index')
             <li class="{{ \Request::is(['warehouse']) ? 'active' : '' }}">
               <a class="d-flex align-items-center" href="{{ route('warehouse.index') }}">
                 <i data-feather="circle"></i>
                 <span class="menu-item text-truncate" data-i18n="Input">Warehouse</span>
               </a>
             </li>
-            @endcan
+            @endcan --}}
             @can('warehouse-index')
             <li class="{{ \Request::is(['warehouse/article']) ? 'active' : '' }}">
               <a class="d-flex align-items-center" href="{{ route('warehouse.article') }}">
@@ -229,17 +229,17 @@
               </a>
             </li>
             @endcan
-            @can('warehouse-index')
-            <li class="{{ \Request::is(['warehouse/transferIn']) ? 'active' : '' }}">
-              <a class="d-flex align-items-center" href="{{ route('warehouse.transferIn') }}">
+            @can('transferIn-index')
+            <li class="{{ \Request::is(['transferIn','transferIn/create']) ? 'active' : '' }}">
+              <a class="d-flex align-items-center" href="{{ route('transferIn.index') }}">
                 <i data-feather="circle"></i>
                 <span class="menu-item text-truncate" data-i18n="Input">Transfer in</span>
               </a>
             </li>
             @endcan
-            @can('warehouse-index')
-            <li class="{{ \Request::is(['warehouse/transferOut']) ? 'active' : '' }}">
-              <a class="d-flex align-items-center" href="{{ route('warehouse.transferOut') }}">
+            @can('transferOut-index')
+            <li class="{{ \Request::is(['transferOut','transferOut/create']) ? 'active' : '' }}">
+              <a class="d-flex align-items-center" href="{{ route('transferOut.index') }}">
                 <i data-feather="circle"></i>
                 <span class="menu-item text-truncate" data-i18n="Input">Transfer out</span>
               </a>

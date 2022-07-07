@@ -15,9 +15,11 @@ use DB;
 class ArticleController extends Controller
 {
     private $title;
+    private $decimalPlaces;
     public function __construct()
     {
         $this->title = "Article";
+        $this->decimalPlaces = config('globalParam.decimal');
     }
 
     public function getTableColoumn(){
@@ -26,6 +28,7 @@ class ArticleController extends Controller
             ['data'=>'action','name'=>'action','title'=>'action','orderable'=>false, 'searchable'=>false],
             ['data'=>'article_alternative_code','name'=>'article_alternative_code','title'=>'Code'],
             ['data'=>'desc','name'=>'article_desc','title'=>'Name'],
+            ['data'=>'brand','name'=>'brand','title'=>'Brand'],
             ['data'=>'cust','name'=>'third_party.nama','title'=>'Custs/Supp'],
             ['data'=>'costprice','name'=>'costprice','title'=>'Price'],
             ['data'=>'article_qty','name'=>'article_qty','title'=>'Qty'],
@@ -35,6 +38,23 @@ class ArticleController extends Controller
             ['data'=>'group','name'=>'group_materials.name','title'=>'Group'],
             ['data'=>'status','name'=>'status','title'=>'Status'],
             ['data'=>'note','name'=>'note','title'=>'Note']
+        ];
+        return json_encode($kolom, true);
+    }
+
+    public function getTableColoumnMovement(){
+        $kolom=    
+        [
+            ['data'=>'movement_code','name'=>'movement_code','title'=>'Code'],
+            ['data'=>'movement_date','name'=>'movement_date','title'=>'Date'],
+            ['data'=>'movement_type','name'=>'movement_type','title'=>'Type'],
+            ['data'=>'movement_transnno','name'=>'movement_transnno','title'=>'Ref'],
+            ['data'=>'movement_price','name'=>'movement_price','title'=>'Price'],
+            // ['data'=>'movement_min','name'=>'movement_min','title'=>'QTY Min'],
+            // ['data'=>'movement_plus','name'=>'movement_plus','title'=>'QTY Plus'],
+            ['data'=>'qty','name'=>'qty','title'=>'QTY'],
+            ['data'=>'balanceqty','name'=>'balanceqty','title'=>'QTY Total'],
+            ['data'=>'movement_desc','name'=> 'movement_desc','title'=>'Description']
         ];
         return json_encode($kolom, true);
     }
@@ -65,6 +85,7 @@ class ArticleController extends Controller
         ->get();
 
         $data['kolom'] = $this->getTableColoumn();
+        $data['kolomMovement'] = $this->getTableColoumnMovement();
         
         return view("articles.index",$data);
     }
@@ -173,7 +194,6 @@ class ArticleController extends Controller
     {
         // Dump, Die, Debug Fungsinya untuk nge-debug hasil dari submit
         // ddd($request);
-
         $username =  Auth::user()->username;
         $type = $request->articleType;
         $cust = $request->cust;
@@ -188,11 +208,11 @@ class ArticleController extends Controller
         $files = $request->files;
         $status = '1';
         $pesan = '';
+        $brand = $request->brand;
 
         $colorCode = $request->colorCode;
         $variant = $request->variant;
 
-        
         $messages = [
             'required' => 'The field is required.',
             'unique' => 'The code has already been taken',
@@ -237,7 +257,8 @@ class ArticleController extends Controller
                     'created_by' => Auth::user()->username,
                     'updated_by' => Auth::user()->username,
                     'created_at' => date('Y-m-d H:i:s'),
-                    'updated_at' => date('Y-m-d H:i:s')
+                    'updated_at' => date('Y-m-d H:i:s'),
+                    'brand' => $brand
                 ]); 
 
                 foreach($cust as $val){
@@ -286,14 +307,13 @@ class ArticleController extends Controller
 
     public function edit(Request $request)
     {
-
         $id=Crypt::decryptString($request->id);
         $data['title'] = "Edit $this->title";
         $data['subtitle'] = "Edit $this->title";
         
         $data['article'] = DB::table('article')
         ->where('id',$id)
-        ->get(['article_code','costprice','article_alternative_code as code','article_desc as desc','uom','quality','note','id','group_of_material as group','third_party as cust','quality','status','article_type','imgfile','color_code','variant','safety_stock','min_package'])->first();
+        ->get(['brand','article_code','costprice','article_alternative_code as code','article_desc as desc','uom','quality','note','id','group_of_material as group','third_party as cust','quality','status','article_type','imgfile','color_code','variant','safety_stock','min_package'])->first();
 
         $data['images'] = DB::table('images')
         ->where('key',$data['article']->article_code)
@@ -399,6 +419,8 @@ class ArticleController extends Controller
         $pesan = '';
         $colorCode = $request->colorCode;
         $variant = $request->variant;
+        $brand = $request->brand;
+
         // status : 1= aktif, 0= freeze        
         $messages = [
             'required' => 'The field is required.',
@@ -431,7 +453,8 @@ class ArticleController extends Controller
                         'color_code' => $colorCode,
                         'variant' => $variant,
                         'updated_by' => Auth::user()->username,
-                        'updated_at' => date('Y-m-d H:i:s')
+                        'updated_at' => date('Y-m-d H:i:s'),
+                        'brand' => $brand
                     ]
                 );
 
@@ -570,6 +593,7 @@ class ArticleController extends Controller
         ,'article.article_code as art_code'
         ,'article_alternative_code as code'
         ,'article_desc as desc'
+        ,'brand'
         ,'article.uom'
         ,'quality'
         ,'note'
@@ -642,7 +666,8 @@ class ArticleController extends Controller
                     </a>';
         })
         ->addColumn('article_qty', function ($data) {
-            $artilceQty = $data->uom_group =='PIECE' ? number_format($data->article_qty) : number_format($data->article_qty,3);
+            // $artilceQty = $data->uom_group =='PIECE' ? number_format($data->article_qty) : number_format($data->article_qty,4);
+            $artilceQty = number_format($data->article_qty,$this->decimalPlaces);
             return $data->article_qty < 0 ? "<div class='text-red'>$artilceQty</div>" : "<div class='text-hitam'>$artilceQty</div>";
         })
         ->addColumn('status', function ($data) {
@@ -680,15 +705,39 @@ class ArticleController extends Controller
     public function movement(Request $request){
 
         $articleCode = $request->articleCode;
-        $sqlku=("SELECT movement_code,movement_date,artikel_code,artikel_desc,movement_price,movement_type,movement_transnno,movement_min,movement_plus,balanceqty, movement_desc
+        $sqlku=("SELECT movement_code,movement_date,artikel_code,artikel_desc,movement_price,movement_type,movement_transnno,movement_min,movement_plus,qty,balanceqty, movement_desc
                 from (
-                select movement_code,artikel_code,artikel_desc,movement_price,movement_date,movement_desc, movement_type,movement_min,movement_plus,movement_transnno,sum(movement_plus) over (order by movement_code) - sum(movement_min) over (order by movement_code) as balanceqty,row_Number() over (order by movement_code) as rn
+                select movement_code
+                ,artikel_code
+                ,artikel_desc
+                ,movement_price
+                ,movement_date
+                ,movement_desc
+                ,movement_type
+                ,movement_min
+                ,movement_plus
+                ,movement_transnno
+                ,movement_plus - movement_min as qty
+                ,sum(movement_plus) over (order by movement_code) - sum(movement_min) over (order by movement_code) as balanceqty
+                ,row_Number() over (order by movement_code) as rn
                 from movement
                 where artikel_code='$articleCode'
                 ) t
                 order by movement_code");
         $data = DB::select($sqlku);
-        return Datatables::of($data)->make(true);
+        return Datatables::of($data)
+        ->addColumn('qty', function ($data) {
+            // $artilceQty = $data->uom_group =='PIECE' ? number_format($data->article_qty) : number_format($data->article_qty,3);
+            $qty = number_format($data->qty,$this->decimalPlaces);
+            return $data->qty < 0 ? "<div class='text-red'>$qty</div>" : "<div class='text-hitam'>$qty</div>";
+        })
+        ->addColumn('balanceqty', function ($data) {
+            // $artilceQty = $data->uom_group =='PIECE' ? number_format($data->article_qty) : number_format($data->article_qty,3);
+            $balanceQty = number_format($data->balanceqty,$this->decimalPlaces);
+            return $data->balanceqty < 0 ? "<div class='text-red'>$balanceQty</div>" : "<div class='text-hitam'>$balanceQty</div>";
+        })
+        ->rawColumns(['qty','balanceqty'])
+        ->make(true);
     }
     
 }

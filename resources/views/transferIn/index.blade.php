@@ -2,7 +2,7 @@
 @section('title', $title)
 @section('content')
 @include('layouts.breadcrumb')
-<section id="purchase-index">
+<section id="transfer-index">
   <div class="card">
     <div class="card-header">  
       <h4 class="card-title">Filter</h4>
@@ -17,21 +17,12 @@
         <form class="needs-validation" novalidate>
             <div class="form-row">
               <div class="form-group col-md-3"> 
-                <label for="searchPo">DI Number</label>
-                <input type="text" class="form-control text-uppercase" id="searchPo" name="searchPo" placeholder=""  />
-              </div>
-              <div class="form-group col-md-3"> 
-                <label class="form-label" for="searchSupplier">Supplier</label>
-                <select class="select2 form-control" id="searchSupplier" name="searchSupplier">
-                  <option value="">All</option>
-                    @foreach($supps as $val)
-                        <option value="{{$val->kode}}">{{$val->kode}} - {{$val->nama}}</option>
-                    @endforeach
-                </select>
+                <label for="searchTr">Transfer Number</label>
+                <input type="text" class="form-control text-uppercase" id="searchTr" name="searchTr" placeholder=""  />
               </div>
               <div class="col-md-3 form-group">
-                <label for="deliveryDate">Date</label>
-                <input type="text" id="deliveryDate" name="deliveryDate" class="form-control flatpickr-range" placeholder="YYYY-MM-DD to YYYY-MM-DD" />
+                <label for="trDate">Date</label>
+                <input type="text" id="trDate" name="trDate" class="form-control flatpickr-range" placeholder="YYYY-MM-DD to YYYY-MM-DD" />
               </div>
               <div class="form-group col-md-2"> 
                 <label class="form-label" for="searchStatus">Status</label>
@@ -46,8 +37,8 @@
             <div class="form-row">
                 <div class="col-12"> 
                     <button type="button" class="btn btn-primary" id ="btnSearch" name="btnSearch">Search</button>
-                    @can('purchaseOrder-create')
-                    <a href="{{ route('deliveryInstruction.create') }}" class="btn btn-info"><i class="fa fa-plus"></i> Create</a>
+                    @can('transferIn-create')
+                    <a href="{{ route('transferIn.create') }}" class="btn btn-info"><i class="fa fa-plus"></i> Create</a>
                     @endcan
                 </div>
             </div>
@@ -56,7 +47,7 @@
     </div>
   </div>
 </section>
-<section id="table-purchase">
+<section id="table-transfer">
   <div class="card">
     <div class="card-header">
       <h4 class="card-title"> @yield('title') List</h4>
@@ -93,10 +84,10 @@
 @section('scripts')
 <script type="text/javascript">
 
-  let searchPo = document.querySelector("#searchPo");
-  let searchSupplier = document.querySelector("#searchSupplier"); 
+  let searchTr = document.querySelector("#searchTr");
+  let searchType = 'TRIN'; 
   let searchStatus = document.querySelector("#searchStatus");
-  let deliveryDate = document.querySelector("#deliveryDate");
+  let trDate = document.querySelector("#trDate");
   let search = document.querySelector('#btnSearch');
   let refresh = document.querySelector('a[data-action="reload"]');
   let rangePickr = document.querySelector('.flatpickr-range');
@@ -115,39 +106,32 @@
     mode: "range"
   });
 
-  // if (rangePickr.length) {
-  //   rangePickr.flatpickr({
-  //     dateFormat: "d-m-Y",
-  //     mode: 'range'
-  //   });
-  // }
-
   //refresh di cards
   refresh.addEventListener("click",function(){
     btnDetail.style.display = "block";
     btnSummary.style.display = "none";
-    showList(searchPo.value,searchSupplier.value,searchStatus.value,deliveryDate.value);
+    showList(searchTr.value,searchType.value,searchStatus.value,trDate.value);
   })
 
   search.addEventListener("click", function(){ 
     btnDetail.style.display = "block";
     btnSummary.style.display = "none";
-    showList(searchPo.value,searchSupplier.value,searchStatus.value,deliveryDate.value);
+    showList(searchTr.value,searchType.value,searchStatus.value,trDate.value);
   });
 
   btnSummary.addEventListener("click", function(){
     btnSummary.style.display = "none";
     btnDetail.style.display = "block";
-    showList(searchPo.value,searchSupplier.value,searchStatus.value,deliveryDate.value);
+    showList(searchTr.value,searchType.value,searchStatus.value,trDate.value);
   });
   
   btnDetail.addEventListener("click", function(){
     btnSummary.style.display = "block";
     btnDetail.style.display = "none";
-    showListDetail(searchPo.value,searchSupplier.value,searchStatus.value,deliveryDate.value);
+    showListDetail(searchTr.value,searchType.value,searchStatus.value,trDate.value);
   });
 
-  const showList = (searchPo,searchSupplier,searchStatus,deliveryDate) => {
+  const showList = (searchTr,searchType,searchStatus,trDate) => {
     if ($('#detailedTable tr').length >0){
         let table= $('#detailedTable').DataTable();
         table.destroy();
@@ -156,25 +140,24 @@
     }
     showDataTables({
       tableId:"detailedTable",
-      route:"{{ route('deliveryInstruction.list') }}",
+      route:"{{ route('transferIn.list') }}",
       kolom:{!! $kolom !!},
-      arrColPrint:[0,1,2,3,4,5,6],
+      arrColPrint:[1,2,3,4,5],
       columnDefs :[
         { width: '5%', targets: 0 },
-        // { className: 'text-right','targets': [ 11,12,13,14,15 ] },
       ],
       dataSearch:  {
-        searchPo:searchPo,
-        searchSupplier:searchSupplier,
+        searchTr:searchTr,
+        searchType:searchType,
         searchStatus:searchStatus,
-        deliveryDate:deliveryDate
+        trDate:trDate
       },
       orderColumn:[[ 1, 'desc' ]],
-      excelFileName:'delivery_instruction'
+      excelFileName:'transfer_in'
     });
   }
 
-  const showListDetail = (searchPo,searchSupplier,searchStatus,deliveryDate) => {
+  const showListDetail = (searchTr,searchType,searchStatus,trDate) => {
     if ($('#detailedTable tr').length >0){
         let table= $('#detailedTable').DataTable();
         table.destroy();
@@ -183,21 +166,21 @@
     }
     showDataTables({
       tableId:"detailedTable",
-      route:"{{ route('deliveryInstruction.list.detail') }}",
+      route:"{{ route('transferIn.list.detail') }}",
       kolom:{!! $kolomDetail !!},
-      arrColPrint:[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15],
+      arrColPrint:[0,1,2,3,4,5,6,7,8,10,11],
       columnDefs :[
         { width: '5%', targets: 0 },
-        { className: 'text-right','targets': [8] },
+        { className: 'text-right','targets': [4] },
       ],
       dataSearch:  {
-        searchPo:searchPo,
-        searchSupplier:searchSupplier,
+        searchTr:searchTr,
+        searchType:searchType,
         searchStatus:searchStatus,
-        deliveryDate:deliveryDate
+        trDate:trDate
       },
-      orderColumn:[[ 2, 'asc' ]],
-      excelFileName:'purchase_order'
+      orderColumn:[[ 0, 'asc' ],[ 1, 'asc' ],[ 2, 'asc' ]],
+      excelFileName:'transfer_in'
     });
   }
  

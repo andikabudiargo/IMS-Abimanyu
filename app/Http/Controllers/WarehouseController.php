@@ -19,10 +19,12 @@ class WarehouseController extends Controller
 {
     private $title;
     private $moduleCode;
+    private $decimalPlaces;
     public function __construct()
     {
         $this->title = "WH";
         $this->moduleCode = "WH";
+        $this->decimalPlaces = config('globalParam.decimal');
     }
 
     public function getTableColoumn(){
@@ -76,6 +78,23 @@ class WarehouseController extends Controller
         return json_encode($kolom, true);
     }
 
+    public function getTableColoumnMovement(){
+        $kolom=    
+        [
+            ['data'=>'movement_code','name'=>'movement_code','title'=>'Code'],
+            ['data'=>'movement_date','name'=>'movement_date','title'=>'Date'],
+            ['data'=>'movement_type','name'=>'movement_type','title'=>'Type'],
+            ['data'=>'movement_transnno','name'=>'movement_transnno','title'=>'Ref'],
+            ['data'=>'movement_price','name'=>'movement_price','title'=>'Price'],
+            // ['data'=>'movement_min','name'=>'movement_min','title'=>'QTY Min'],
+            // ['data'=>'movement_plus','name'=>'movement_plus','title'=>'QTY Plus'],
+            ['data'=>'qty','name'=>'qty','title'=>'QTY'],
+            ['data'=>'balanceqty','name'=>'balanceqty','title'=>'QTY Total'],
+            ['data'=>'movement_desc','name'=> 'movement_desc','title'=>'Description']
+        ];
+        return json_encode($kolom, true);
+    }
+
     public function article(Request $request)
     {
         $data['title'] = "$this->title Article";
@@ -102,6 +121,7 @@ class WarehouseController extends Controller
         ->get();
 
         $data['kolom'] = $this->getTableColoumnArticle();
+        $data['kolomMovement'] = $this->getTableColoumnMovement();
         
         return view("warehouse.article",$data);
     }
@@ -1166,14 +1186,14 @@ class WarehouseController extends Controller
         ,'article.id'
         ,'group_materials.name as group'
         ,'third_party.nama as cust'
-        ,'warehouse_stock.article_qty as article_qty'
+        ,'article_stock.article_qty as article_qty'
         ,'safety_stock'
         ,'min_package'
         ,'uom.uom_group')
-        // ,DB::raw("case when uom.uom_group = 'PIECE' then TO_CHAR(warehouse_stock.article_qty,'999,999,999') else TO_CHAR(warehouse_stock.article_qty,'999,999,999.99') end as article_qty"))
+        // ,DB::raw("case when uom.uom_group = 'PIECE' then TO_CHAR(article_stock.article_qty,'999,999,999') else TO_CHAR(article_stock.article_qty,'999,999,999.99') end as article_qty"))
         ->leftJoin('group_materials', 'group_materials.code', '=', 'article.group_of_material')
         ->leftJoin('third_party', 'third_party.kode', '=', 'article.third_party')
-        ->leftJoin('warehouse_stock', 'warehouse_stock.article_code', '=', 'article.article_code')
+        ->leftJoin('article_stock', 'article_stock.article_code', '=', 'article.article_code')
         ->leftJoin('uom','uom.code','article.uom')
         ->where(function ($query) use ($code,$name,$group,$cust,$supp,$type) {
             $code ? $query->where('article_alternative_code','ilike','%'.$code.'%') :'';
@@ -1201,17 +1221,18 @@ class WarehouseController extends Controller
 
             return $buttons;
         })
-        ->addColumn('article_alternative_code', function ($data) {
-            $badges=['badge-light-danger','badge-light-primary'];
-            return '<span style="display: none;">"'.$data->article_alternative_code.'</span>
-                    <a class="badge d-block '.$badges[$data->status].'" href="'. route('article.show', ['id'=>Crypt::encryptString($data->id)]) .'" 
-                        type="button" 
-                        style="text-align: left;">
-                        <span>'.$data->article_alternative_code.'</span>
-                    </a>';
-        })
+        // ->addColumn('article_alternative_code', function ($data) {
+        //     $badges=['badge-light-danger','badge-light-primary'];
+        //     return '<span style="display: none;">"'.$data->article_alternative_code.'</span>
+        //             <a class="badge d-block '.$badges[$data->status].'" href="'. route('article.show', ['id'=>Crypt::encryptString($data->id)]) .'" 
+        //                 type="button" 
+        //                 style="text-align: left;">
+        //                 <span>'.$data->article_alternative_code.'</span>
+        //             </a>';
+        // })
         ->addColumn('article_qty', function ($data) {
-            $artilceQty = $data->uom_group =='PIECE' ? number_format($data->article_qty) : number_format($data->article_qty,3);
+            // $artilceQty = $data->uom_group =='PIECE' ? number_format($data->article_qty) : number_format($data->article_qty,3);
+            $artilceQty = number_format($data->article_qty,$this->decimalPlaces);
             return $data->article_qty < 0 ? "<div class='text-red'>$artilceQty</div>" : "<div class='text-hitam'>$artilceQty</div>";
         })
         ->addColumn('status', function ($data) {
@@ -1219,63 +1240,8 @@ class WarehouseController extends Controller
             $statusCode = ['Freeze','Active'];
             return "<div class='badge badge-pill ".$badges[$data->status]."'>".$statusCode[$data->status]."</div>";
         })
-        ->rawColumns(['action','article_alternative_code','status','article_qty'])
+        ->rawColumns(['action','status','article_qty'])
         ->make(true);
     }
-
-    // public function print(Request $request)
-    // {
-    //     $id=Crypt::decryptString($request->id);
-
-    //     $data['companies']=DB::table('company')
-    //     ->where('code','ASN')
-    //     ->select('name as nama', 'address as alamat', DB::RAW('(select region_name from regions where region_code = city::integer)  as kota'),'tlp')
-    //     ->get()->first();
-            
-    //     $poHdr=DB::table('purchase_order_hdr')
-    //     ->where('id',$id)
-    //     ->first();
-
-    //     $poNumber=$poHdr -> tr_number;
-    
-    //     $data['details']=DB::table('purchase_order_det')
-    //     ->leftJoin('article','article.article_code','purchase_order_det.article_code')
-    //     ->where('tr_number',$poNumber)
-    //     ->get();
-
-    //     $data['totals']=DB::select("SELECT *,(gross-discount)+ppn as netto from (
-    //         select a.tr_number,authorized_by,validate_by,sum(qty) as qty,sum(qty*price) as gross,sum(discount) as discount,sum(qty*price*b.ppn/100) as ppn from purchase_order_det a
-    //         left join purchase_order_hdr b
-    //         on a.tr_number = b.tr_number 
-    //         where a.tr_number = '$poNumber'
-    //         group by a.po_number,authorized_by,validate_by) as oki");
-
-    //     $data['suppliers']=DB::table('third_party')
-    //     ->where('kode',$poHdr -> supplier_id)
-    //     ->get();
-
-    //     $data['keterangan']=$poHdr -> note;
-    //     $data['poNumber'] =$poNumber;
-    //     $data['poDate'] =$poHdr -> po_date;
-    //     $data['poTerm'] =$poHdr -> termin;
-    //     $data['poDelDate'] =$poHdr -> delivery_date;
-        
-    //     $data['status'] = $poHdr->status;
-    //     $data['no'] =1;
-
-    //     // $poNumber = 'PO-ASN/2022/V/8';
-
-    //     $data['approved'] = DB::table('approval_history')
-    //     ->leftJoin('users','users.username','approval_history.username')
-    //     ->where('module_number',$poNumber)
-    //     ->orderBy('approval_order','desc')
-    //     ->value('users.name');
-
-    //     view()->share($data);
-
-    //     $pdf = PDF::loadView('warehouse.print');
-    //     return $pdf->stream("PO_$poNumber.pdf");
-
-    // }
 
 }

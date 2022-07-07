@@ -494,7 +494,7 @@
       Tombol panah atas bawah, untuk pindah antar field
       Apabila ada di kolom terkahir dan di tekan tombol bawah maka akan menambah 1 baris lagi
     */
-    $(document).on("keyup", '.tombol-panah', function(e) { 
+    $(document).on("keydown", '.tombol-panah', function(e) { 
         let nama = $(this).attr('name');
         let obj = $('input[name="'+nama+'"]');
         let indexnya = obj.index(this);
@@ -509,13 +509,13 @@
         indexnya=parseInt(indexnya);
         if (e.keyCode == 37) {
             //panah kiri
-            elKiri == 'select' ? objKiri.eq(indexnya).select2('open') : objKiri.eq(indexnya).focus().select();
+            elKiri == 'select' ? objKiri.eq(indexnya).select2('focus') : objKiri.eq(indexnya).focus().select();
             return false;
         }
 
         if (e.keyCode == 39) {
             //panah kanan
-            elKanan == 'select' ? objKanan.eq(indexnya).select2('open') : obj.eq(indexnya).focus().select();
+            elKanan == 'select' ? objKanan.eq(indexnya).select2('focus') : objKanan.eq(indexnya).focus().select();
             return false;
         }
 
@@ -584,7 +584,7 @@
 
 
     // tombol panah atas bawah, untuk pindah antar field
-    function tombolPanah(objname,objnameKiri,objnameKanan){
+    function tombolPanah(objname,objnameKiri,objnameKanan,oFn){
         // function kalo mau pindah filed dari atas ke bawah atau sebaliknya
         let obj = $('input[name="'+objname+'[]"]');
         let objKanan = objnameKanan ? $('input[name="'+objnameKanan+'[]"]') : '';
@@ -616,6 +616,15 @@
                 //panah kiri
                 if(objnameKiri){
                     objKiri.eq(indexnya).focus().select();
+                }
+                return false;
+            }
+
+            if (e.keyCode == 45) {
+                //jalankan fuction
+                if(oFn){
+                    let fn = window[oFn];
+                    fn();
                 }
                 return false;
             }

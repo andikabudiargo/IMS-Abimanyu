@@ -110,8 +110,8 @@
                                         <div class="form-row d-flex align-items-center">
                                             <div class="col-md-2 col-12">
                                                 <div class="form-group margin-nol">
-                                                    <label for="pRequest" class="d-block d-md-none">Purchase Request</label>
-                                                    <select class="form-control dynamicSelect sku-select-system" id="pRequest{{ $key }}" name="pRequest[]" data-dependent="pRequest">
+                                                    <label for="pOrder" class="d-block d-md-none">Purchase Request</label>
+                                                    <select class="form-control dynamicSelect sku-select-system" id="pOrder{{ $key }}" name="pOrder[]" data-dependent="pOrder">
                                                         @foreach($prHeader as $val)
                                                             <option value="{{ $val->pr_number }}" {{ $val->pr_number == $item->pr_number ? "selected" :"" }} >{{ $val->pr_number }}</option>
                                                         @endforeach
@@ -120,8 +120,8 @@
                                             </div>
                                             <div class="col-md-3 col-12">
                                                 <div class="form-group margin-nol">
-                                                    <label for="article_id" class="d-block d-md-none">Article</label>
-                                                    <select class="form-control dynamicSelect sku-select-system" id="article_id{{ $key }}" name="article_id[]" data-dependent="article_id">
+                                                    <label for="articleId" class="d-block d-md-none">Article</label>
+                                                    <select class="form-control dynamicSelect sku-select-system" id="articleId{{ $key }}" name="articleId[]" data-dependent="articleId">
                                                         @foreach($articles as $val)
                                                             <option value="{{ $val->article_code }}|{{ $val->group }}|{{ $val->qty_stock }}|{{ $val->qty }}|{{ $val->uom1 }}|{{ $val->costprice }}" 
                                                                     data-uom-group="{{ $val->uom_group }}'" {{ $val->article_code == $item->article_code && $val->pr_number == $item->pr_number ? "selected" :"" }}>

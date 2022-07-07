@@ -505,6 +505,53 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('warehouse/article',['as'=>'warehouse.article','uses'=>'WarehouseController@article','middleware' => ['permission:warehouse-index']]);
 	Route::get('warehouse/articles/list',['as'=>'warehouse.article.list','uses'=>'WarehouseController@listArticle']);
 
+	Route::get('transferIn',['as'=>'transferIn.index','uses'=>'TransferInController@index','middleware' => ['permission:transferIn-index']]);
+	Route::get('transferIn/create',['as'=>'transferIn.create','uses'=>'TransferInController@create']);
+	Route::post('transferIn/store',['as'=>'transferIn.store','uses'=>'TransferInController@store']);
+	Route::get('transferIn/list',['as'=>'transferIn.list','uses'=>'TransferInController@list']);
+	Route::get('transferIn/list/detail',['as'=>'transferIn.list.detail','uses'=>'TransferInController@listDetail']);
+	Route::get('transferIn/show',['as'=>'transferIn.show','uses'=>'TransferInController@show']);
+	Route::get('transferIn/edit',['as'=>'transferIn.edit','uses'=>'TransferInController@edit','middleware' => ['permission:transferIn-edit']]);
+	Route::post('transferIn/update',['as'=>'transferIn.update','uses'=>'TransferInController@update']);
+	Route::post('transferIn/delete',['as'=>'transferIn.destroy','uses'=>'TransferInController@destroy']);
+	Route::get('transferIn/approve',['as'=>'transferIn.approve','uses'=>'TransferInController@approve']);
+	Route::post('transferIn/posting',['as'=>'transferIn.posting','uses'=>'TransferInController@posting']);
+	Route::post('transferIn/cancel',['as'=>'transferIn.cancel','uses'=>'TransferInController@cancel']);
+	Route::get('transferIn/article',['as'=>'transferIn.article','uses'=>'TransferInController@article','middleware' => ['permission:transferIn-index']]);
+	Route::get('transferIn/print',['as'=>'transferIn.print','uses'=>'TransferInController@print']);
+
+	Route::get('transferOut',['as'=>'transferOut.index','uses'=>'TransferOutController@index','middleware' => ['permission:transferOut-index']]);
+	Route::get('transferOut/create',['as'=>'transferOut.create','uses'=>'TransferOutController@create']);
+	Route::post('transferOut/store',['as'=>'transferOut.store','uses'=>'TransferOutController@store']);
+	Route::get('transferOut/list',['as'=>'transferOut.list','uses'=>'TransferOutController@list']);
+	Route::get('transferOut/list/detail',['as'=>'transferOut.list.detail','uses'=>'TransferOutController@listDetail']);
+	Route::get('transferOut/show',['as'=>'transferOut.show','uses'=>'TransferOutController@show']);
+	Route::get('transferOut/edit',['as'=>'transferOut.edit','uses'=>'TransferOutController@edit','middleware' => ['permission:transferOut-edit']]);
+	Route::post('transferOut/update',['as'=>'transferOut.update','uses'=>'TransferOutController@update']);
+	Route::post('transferOut/delete',['as'=>'transferOut.destroy','uses'=>'TransferOutController@destroy']);
+	Route::get('transferOut/approve',['as'=>'transferOut.approve','uses'=>'TransferOutController@approve']);
+	Route::post('transferOut/posting',['as'=>'transferOut.posting','uses'=>'TransferOutController@posting']);
+	Route::post('transferOut/cancel',['as'=>'transferOut.cancel','uses'=>'TransferOutController@cancel']);
+	Route::get('transferOut/article',['as'=>'transferOut.article','uses'=>'TransferOutController@article','middleware' => ['permission:transferOut-index']]);
+	Route::get('transferOut/print',['as'=>'transferOut.print','uses'=>'TransferOutController@print']);
+
+	Route::get('deliveryInstruction',['as'=>'deliveryInstruction.index','uses'=>'DeliveryInstructionController@index','middleware' => ['permission:purchaseOrder-index']]);
+	Route::get('deliveryInstruction/create',['as'=>'deliveryInstruction.create','uses'=>'DeliveryInstructionController@create','middleware' => ['permission:deliveryInstruction-create']]);
+	Route::post('deliveryInstruction/store',['as'=>'deliveryInstruction.store','uses'=>'DeliveryInstructionController@store']);
+	Route::get('deliveryInstruction/list',['as'=>'deliveryInstruction.list','uses'=>'DeliveryInstructionController@list']);
+	Route::get('deliveryInstruction/list/detail',['as'=>'deliveryInstruction.list.detail','uses'=>'DeliveryInstructionController@listDetail']);
+	Route::get('deliveryInstruction/show',['as'=>'deliveryInstruction.show','uses'=>'DeliveryInstructionController@show']);
+	Route::get('deliveryInstruction/edit',['as'=>'deliveryInstruction.edit','uses'=>'DeliveryInstructionController@edit','middleware' => ['permission:deliveryInstruction-edit']]);
+	Route::post('deliveryInstruction/update',['as'=>'deliveryInstruction.update','uses'=>'DeliveryInstructionController@update']);
+	Route::post('deliveryInstruction/delete',['as'=>'deliveryInstruction.destroy','uses'=>'DeliveryInstructionController@destroy']);
+	Route::post('deliveryInstruction/clear',['as'=>'deliveryInstruction.clear','uses'=>'DeliveryInstructionController@clear']);
+	Route::get('deliveryInstruction/code/create',['as'=>'deliveryInstruction.code.create','uses'=>'DeliveryInstructionController@articleCodeCreate']);
+	Route::get('deliveryInstruction/print',['as'=>'deliveryInstruction.print','uses'=>'DeliveryInstructionController@print']);
+	Route::get('deliveryInstruction/revision',['as'=>'deliveryInstruction.revision','uses'=>'DeliveryInstructionController@revision','middleware' => ['permission:deliveryInstruction-revision']]);
+	Route::get('deliveryInstruction/approve',['as'=>'deliveryInstruction.approve','uses'=>'DeliveryInstructionController@approve']);
+	Route::get('deliveryInstruction/article/list',['as'=>'deliveryInstruction.article.list','uses'=>'DeliveryInstructionController@articleList']);
+	Route::get('deliveryInstruction/qty/po',['as'=>'deliveryInstruction.qty.po','uses'=>'DeliveryInstructionController@qtyPo']);
+
 	Route::post('dynamic/dependent',['as'=>'dynamic.dependent','uses'=>'DependentController@dependentFetch']);
 
 	Route::get('add-to-log', ['as'=>'add.to.log','uses'=>'LogActivityController@myTestAddToLog']);

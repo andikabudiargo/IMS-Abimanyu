@@ -8,6 +8,7 @@
             <div class="card">
                 <div class="card-header">
                     <h4 class="card-title">Status: New</h4>
+                    <input type="hidden" id='oEdit' value="{{ $oEdit }}">
                     <div class="heading-elements">
                         <ul class="list-inline mb-0">
                             <li><a data-action="collapse"><i data-feather="chevron-down"></i></a></li>
@@ -21,27 +22,12 @@
                             <input type="text" id="article" name="article" hidden>
                             <div class="form-row">
                                 <div class="form-group col-md-3">
-                                    <label for="diNumber">DI Number</label> <small class="text-muted"> automatic</small>
-                                    <input type="text" id="diNumber" name="diNumber" class="form-control disabled-el"  disabled />
+                                    <label for="trNumber">Transfer Out Number</label> <small class="text-muted"> automatic</small>
+                                    <input type="text" id="trNumber" name="trNumber" class="form-control disabled-el" disabled />
                                 </div>
                                 <div class="form-group col-md-2">
-                                    <label for="diDate">Date*</label>
-                                    <input type="text" id="diDate" name="diDate" class="form-control" placeholder="DD-MM-YYYY" required disabled/>
-                                </div>
-                                <div class="form-group col-md-2">
-                                    <label for="deliveryDate">Delivery Date*</label>
-                                    <input type="text" id="deliveryDate" name="deliveryDate" class="form-control" placeholder="DD-MM-YYYY" required />
-                                </div>
-                            </div>
-                            <div class="form-row">
-                                <div class="form-group col-md-7">
-                                    <label class="form-label" for="supplier">Supplier*</label>
-                                    <select class="select2 form-control" id="supplier" name="supplier" required>
-                                        <option value=""></option>
-                                        @foreach($supps as $val)
-                                            <option value="{{$val->kode}}" >{{$val->kode}} - {{$val->nama}}</option>
-                                        @endforeach
-                                    </select>
+                                    <label for="trDate">Date*</label>
+                                    <input type="text" id="trDate" name="trDate" class="form-control" placeholder="DD-MM-YYYY" required disabled/>
                                 </div>
                             </div>
                             <div class="form-row">
@@ -63,15 +49,15 @@
                 <div class="card-body" >
                     <div class="container-list-item">
                         <div class="lebar-list-item">
-                            @include('deliveryInstruction.headerColumn')
-                            <div class="" id="article_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px">
+                            @include('transferOut.headerColumn')
+                            <div class="" id="article_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;">
                                 <input type="text" id ="last_row_number" class="d-none" value="0">
                             </div>
                         </div>
                     </div>
                     <hr>
                     <div class="d-flex justify-content-between align-items-end mt-75">
-                        <button class="btn btn-primary btn-prev" type="button" id="addNewRow" onclick="add_new_row();">
+                        <button class="btn btn-primary btn-prev" type="button" id="addNewRow" onclick="add_new_row();hitungGrandTotal();">
                             <i data-feather="plus" class="align-middle mr-sm-25 mr-0"></i>
                             <span class="align-middle d-sm-inline-block d-none">Add Article</span>
                         </button>
@@ -85,12 +71,20 @@
                                 </div>
                             </div>
                         </div>
+                        <div class="col-md-5">
+                            <div class="form-group row mb-03">
+                                <label for="totalQty" class="col-sm-3 col-form-label titik-dua">Total QTY</label>
+                                <div class="col-sm-6">
+                                    <input type="text" class="form-control text-right font-weight-bold" id="totalQty" disabled />
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     <hr>
                     <div class="form-row mt-75">
                         <div class="col-md-12">
-                            <button class="btn btn-success" type="reset" id="cmdNew" name="cmdCancel">New</button>
-                            <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Save</button>
+                            <button class="btn btn-success" type="reset" id="cmdNew" name="cmdCancel" data-trType="TRIN">New</button>
+                            <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave" data-trType="TRIN">Save</button>
                         </div>
                     </div>
                 </div>
@@ -104,16 +98,18 @@
 </style>
 @endsection
 @section('scripts')
-@include('deliveryInstruction.addArticle')
+@include('transferOut.addArticle')
 <script type="text/javascript">
-    let cloneCount=1;
     document.querySelector('#cmdSave').addEventListener('click',() =>{
-        simpanData();
+        let element = document.getElementById('cmdSave');
+        let oEdit = document.getElementById('oEdit');
+        simpanData(oEdit.value);
     });
 
     $(document).ready(function(){           
         validateFormToast("frmAdd");
-        $('#diDate').val(currentDate);
+        $('#trDate').val(currentDate);
+        isiArticle('trArticle');
     });
 </script>
 @endsection

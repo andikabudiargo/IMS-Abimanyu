@@ -29,23 +29,14 @@ class DeliveryInstructionController extends Controller
         $kolom=
         [
             ['data'=>'action','name'=>'action','title'=>'action','orderable'=> false,'searchable'=>false],
-            ['data'=>'po_number','name'=>'po_number','title'=>'PO Number'],
-            ['data'=>'num_revision','name'=>'num_revision','title'=>'Revision'],
+            ['data'=>'di_number','name'=>'di_number','title'=>'DI Number'],
             ['data'=>'supp_name','name'=>'supp_name','title'=>'Supplier'],
-            ['data'=>'po_date','name'=>'po_date','title'=>'PO Date'],
+            ['data'=>'di_date','name'=>'di_date','title'=>'DI Date'],
             ['data'=>'delivery_date','name'=>'delivery_date','title'=>'Delivery Date'],
-            ['data'=>'created_by','name'=>'created_by','title'=>'Created By'],
-            ['data'=>'validate_by','name'=>'validate_by','title'=>'Prepared By'],
-            ['data'=>'authorized_by','name'=>'authorized_by','title'=>'Authorized By'],
-            ['data'=>'pkp','name'=>'pkp','title'=>'Tax'],
-            ['data'=>'termin','name'=>'termin','title'=>'Termin'],            
-            ['data'=>'qty','name'=>'qty','title'=>'QTY'],
-            ['data'=>'gross','name'=>'gross','title'=>'Bruto'],
-            ['data'=>'discount','name'=>'discount','title'=>'Discount'],
-            ['data'=>'ppn','name'=>'ppn','title'=>'PPN'],
-            ['data'=>'netto','name'=>'netto','title'=>'Netto'],
+            ['data'=>'note','name'=>'note','title'=>'Note'],
             ['data'=>'status','name'=>'status','title'=>'Status'],
-            ['data'=>'approval_by','name'=>'approval_by','title'=>'Approved By']
+            ['data'=>'created_by','name'=>'created_by','title'=>'Created By'],
+        
         ];
         return json_encode($kolom, true);
     }
@@ -53,29 +44,17 @@ class DeliveryInstructionController extends Controller
     public function getTableColoumnDetail(){
         $kolom=
         [
+            ['data'=>'di_number','name'=>'di_number','title'=>'DI Number'],
             ['data'=>'po_number','name'=>'po_number','title'=>'PO Number'],
-            ['data'=>'pr_number','name'=>'pr_number','title'=>'PR Number'],
-            ['data'=>'po_date','name'=>'po_date','title'=>'PO Date'],
+            ['data'=>'supplier_id','name'=>'supplier_id','title'=>'Supplier code'],
+            ['data'=>'supp_name','name'=>'supp_name','title'=>'Supplier'],
+            ['data'=>'di_date','name'=>'di_date','title'=>'DI Date'],
             ['data'=>'delivery_date','name'=>'delivery_date','title'=>'Delivery Date'],
             ['data'=>'article_alternative_code','name'=>'article_alternative_code','title'=>'Article code'],
             ['data'=>'article_desc','name'=>'article_desc','title'=>'Article desc'],
-            ['data'=>'qtyku','name'=>'qtyku','title'=>'Qty'],
+            ['data'=>'qty','name'=>'qty','title'=>'Qty'],
             ['data'=>'uom','name'=>'uom','title'=>'UOM'],
-            ['data'=>'price','name'=>'price','title'=>'Price'],
-            ['data'=>'discount','name'=>'discount','title'=>'Discount'],
-            ['data'=>'total_ppn','name'=>'total_ppn','title'=>'PPN'],
-            ['data'=>'total_pph22','name'=>'total_pph22','title'=>'PPH22'],
-            ['data'=>'grand_total','name'=>'grand_total','title'=>'Grand Total'],
-            ['data'=>'currency','name'=>'currency','title'=>'Currency'],
-            ['data'=>'kurs','name'=>'kurs','title'=>'Kurs'],
-            ['data'=>'ppn','name'=>'ppn','title'=>'PPN'],
-            ['data'=>'pph22','name'=>'pph22','title'=>'PPH22'],
-            ['data'=>'pkp','name'=>'pkp','title'=>'PKP'],
-            ['data'=>'termin','name'=>'termin','title'=>'Termin'],
-            ['data'=>'num_revision','name'=>'num_revision','title'=>'Revision'],
-            ['data'=>'supplier_id','name'=>'supplier_id','title'=>'Supplier code'],
-            ['data'=>'supp_name','name'=>'supp_name','title'=>'Supplier'],
-            ['data'=>'approval_by','name'=>'approval_by','title'=>'Approved By'],
+            ['data'=>'note','name'=>'note','title'=>'Note'],
             ['data'=>'created_by','name'=>'created_by','title'=>'Created By'],
             ['data'=>'created_at','name'=>'created_at','title'=>'Created Date'],
             ['data'=>'updated_by','name'=>'updated_by','title'=>'Updated By'],
@@ -94,11 +73,103 @@ class DeliveryInstructionController extends Controller
         ->orderBy('nama')
         ->get();
 
-        $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'RECEIVED','5'=>'CANCELED','6'=>'CLOSED','7'=>'REVISED','8'=>'DECLINE'];
+        $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'','5'=>'','6'=>'','7'=>'REVISED','8'=>''];
             
         return view("deliveryInstruction.index",$data);
     }
 
+    public function articleList(Request $request)
+    {
+        $username =  Auth::user()->username;
+        $supplier = $request->supplier; 
+
+        // status PO
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'RECEIVED','5'=>'CANCELED','6'=>'CLOSED','7'=>'REVISED','8'=>'DECLINE'];
+
+
+        // left join 
+        //             (select po, article_code,sum(qty) as qty,price from (
+        //                 select *,(select po_number from receiving_hdr 
+        //                            where rec_number = a.rec_number) as po from receiving_det a where rec_number in (
+        //                            select rec_number from receiving_hdr where status = '3' and po_number = '$po')
+        //             ) z
+        //         group by po, article_code,price) b
+        //         on a.po_number = b.po and a.article_code = b.article_code
+
+        $data= DB::table('purchase_order_det')
+        ->leftJoin('article_stock','article_stock.article_code','purchase_order_det.article_code')
+        ->leftJoin('article','article.article_code','=','purchase_order_det.article_code')
+        ->leftJoin('purchase_order_hdr','purchase_order_hdr.po_number','purchase_order_det.po_number')
+        ->leftJoin(DB::raw("(select po, article_code,sum(qty) as qty_rec,price from (
+            select *,(select po_number from receiving_hdr 
+            where rec_number = a.rec_number) as po from receiving_det a where rec_number in (
+            select rec_number from receiving_hdr where status = '3' and po_number = 'purchase_order_det.po_number')
+            ) z
+            group by po, article_code,price) oki"),function($join){
+               $join->on('purchase_order_det.po_number','oki.po');
+            })
+        ->whereIn('purchase_order_det.po_number', function ($query) use ($supplier) {
+            $query->select('po_number')
+            ->from('purchase_order_hdr')
+            ->where('status','3')
+            ->where('supplier_id',$supplier);
+        })
+        ->select('purchase_order_det.*'
+        ,DB::raw("COALESCE(purchase_order_det.qty,0) - COALESCE(qty_rec,0) as qty_order")
+        ,'article_stock.article_qty as qty_stock'
+        ,'purchase_order_hdr.supplier_id'
+        ,'article.article_alternative_code'
+        ,'article.article_desc'
+        ,DB::RAW("(select string_agg(distinct po_number,',' order by po_number) as list_po from 
+                    purchase_order_det 
+                    where article_code = purchase_order_det.article_code 
+                    and po_number 
+                    in (select po_number from purchase_order_hdr where status = '3' and supplier_id = '$supplier'))")
+        )
+        ->orderBy('article.article_desc')
+        ->get();
+
+        $output='';
+        $output .='<option value="">Choose Article</option>';
+        foreach ($data as $row){
+            $output .='<option value="'.$row->article_code.'" 
+                        data-list-po= "'.$row->list_po.'" 
+                        data-detail="'.$row->article_code.'|'.$row->uom.'|'.$row->supplier_id.'" >
+                        '.$row->article_alternative_code.' - '. $row->article_desc.'
+                        </option>';
+        }
+        return $output;
+    }
+
+    public function qtyPo(Request $request)
+    {
+        $valPO = $request->valPO;
+        $valArt = $request->valArt;
+
+        $data = DB::table('purchase_order_det')
+        ->leftJoin(DB::raw("(select po, article_code,sum(qty) as qty_rec,price from (
+            select *,(select po_number from receiving_hdr 
+            where rec_number = a.rec_number) as po from receiving_det a where rec_number in (
+            select rec_number from receiving_hdr where status = '3' and po_number = 'purchase_order_det.po_number')
+            ) z
+            group by po, article_code,price) oki"),function($join){
+               $join->on('purchase_order_det.po_number','oki.po');
+        })
+        ->select(DB::raw("COALESCE(qty_rec,0) as qty_rec")
+        ,DB::raw("COALESCE(qty,0) as qty")
+        ,DB::raw("COALESCE(purchase_order_det.qty,0) - COALESCE(qty_rec,0) as remain_qty")
+        ,'uom'
+        )
+        ->where('purchase_order_det.po_number',$valPO)
+        ->where('purchase_order_det.article_code',$valArt)
+        ->first();
+
+        // dd($data);
+
+        return response()->json(array('data' => $data));
+
+    }
+    
     public function getLastCode($key)
     {
         DB::table('master_code')
@@ -115,9 +186,9 @@ class DeliveryInstructionController extends Controller
         $months = ['I', 'II', 'III','IV','V', 'VI', 'VII', 'VIII','IX','X','XI','XII'];
         $month = $months[date('n')-1];
         $year = date('Y');
-        $poNumber="$key-ASN/$year/$month/$newCode";
+        $diNumber="$key-ASN/$year/$month/$newCode";
         
-        return $poNumber;
+        return $diNumber;
     }
 
     public function create(Request $request)
@@ -130,12 +201,6 @@ class DeliveryInstructionController extends Controller
         ->orderBy('nama')
         ->get();
 
-        $data['currency'] = ['IDR','USD'];
-
-        $data['uoms'] = DB::table('uom')
-        ->orderBy('name')
-        ->get();
-
         return view("deliveryInstruction.create",$data);
     }
 
@@ -143,22 +208,13 @@ class DeliveryInstructionController extends Controller
     {
         $username =  Auth::user()->username;
         $articles = json_decode($request->articles);
-        $orderDate = $request->orderDate;
-        $poType = $request->poType; 
+        $diNumber = $request->diNumber;
+        $diDate = $request->diDate;
         $deliveryDate = $request->deliveryDate;
-        $currency = $request->currency;
         $supplier = $request->supplier;
-        $tax = $request->tax;
-        $ppn = $request->ppn;
-        $termin = $request -> term;
-        $pph = 0;
-        $kurs = $request -> kurs;
-        $totalPpn = $request->totalPpn;
-        $totalPph = $request->totalPph;
-        $discount = $request->discount;
         $note = $request->note;
         $status = '1';
-        $poLeadCode = $poType=='std' ? 'PO' : 'POSUB'; 
+        $leadCode = $this->moduleCode; 
 
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'RECEIVED','5'=>'CANCELED','6'=>'CLOSED','7'=>'REVISED','8'=>'DECLINE'];
 
@@ -175,9 +231,8 @@ class DeliveryInstructionController extends Controller
         });
 
         $validation = Validator::make($request->all(),$messages = [
-            // 'poNumber'=>'required|unique:purchase_order_hdr,po_number',
-            'orderDate'  => 'required',
-            'currency'  => 'required',
+            'deliveryDate'  => 'required',
+            'diDate'  => 'required',
             'supplier'  => 'required',
         ]);
         
@@ -194,28 +249,19 @@ class DeliveryInstructionController extends Controller
             return response()->json(array('status' => 0,'title' => $title, 'message' => $error_array,'alert' =>$alert));
 
         }else{
-            $hasilUpdate = AppHelpers::resetCode($poLeadCode);
-            $poNumber = $this->getLastCode($poLeadCode);
+            $hasilUpdate = AppHelpers::resetCode($leadCode);
+            $diNumber = $this->getLastCode($leadCode);
             DB::beginTransaction();
             try {
-                    DB::table('purchase_order_hdr')->insert([
-                        'po_number' => $poNumber,
-                        'origin_po_number' => $poNumber,
-                        'supplier_id' => $supplier,
-                        'po_date' => $orderDate,
-                        'delivery_date' =>$deliveryDate,
-                        'currency' => $currency,
-                        'kurs' => $kurs,
-                        'ppn' => $ppn,
-                        'pph22' => $pph,
-                        'status' => $status,
-                        'note' =>  $note,
-                        'authorized_by' => '',
-                        'validate_by' =>  '',
-                        'discount' => $discount,
-                        'pkp' => $tax,
-                        'termin' =>$termin,
-                        'order_type' => $poType,
+                    DB::table('delivery_instruction_hdr')->insert([
+                        'di_number'=>$diNumber,
+                        'origin_di_number'=>$diNumber,
+                        'supplier_id'=>$supplier,
+                        'di_date'=>$diDate,
+                        'delivery_date'=>$deliveryDate,
+                        'order_type'=>'',
+                        'status'=>$status,
+                        'note'=>$note,
                         'created_by' => Auth::user()->username,
                         'updated_by' => Auth::user()->username,
                         'created_at' => date('Y-m-d H:i:s'),
@@ -225,54 +271,32 @@ class DeliveryInstructionController extends Controller
                     $dataSet = [];
                     foreach ($articles as $val) {
                         $dataSet[] = [
-                            'po_number' => $poNumber,
-                            'pr_number' => $val->pRequest,
+                            'di_number' => $diNumber,
+                            'po_number' => $val->po_number,
                             'article_code' => $val->article_code,
                             'qty' => $val->qty,
                             'uom' => $val->uom,
-                            'old_price' => $val->price,
-                            'price' => $val->newPrice,
-                            'ppn' => ($val->qty*$val->newPrice)*0.1,
-                            'pph22' => $totalPph,
                             'created_by' => Auth::user()->username,
                             'created_at' => date('Y-m-d H:i:s'),
                         ];
-
-                        DB::table('purchase_request_det')
-                        ->where('pr_number',$val->pRequest)
-                        ->where('article_code',$val->article_code)
-                        // ->where('supp_code',$supplier)
-                        ->update([
-                            'po_number' => $poNumber,
-                            'updated_by' => Auth::user()->username,
-                            'updated_at' => date('Y-m-d H:i:s')
-                        ]);
-
-                        DB::table('purchase_request_hdr')
-                        ->where('pr_number',$val->pRequest)
-                        ->update([
-                            'status' => 7,
-                            'updated_by' => Auth::user()->username,
-                            'updated_at' => date('Y-m-d H:i:s')
-                        ]);
                     }
 
-                    DB::table('purchase_order_det')->insert($dataSet);
+                    DB::table('delivery_instruction_det')->insert($dataSet);
 
                     DB::commit();
                     $title ="Save $this->title";
                     $alert  ="success";
-                    $message  = "$title $poNumber is successfully saved";
+                    $message  = "$title $diNumber is successfully saved";
                     \LogActivity::addToLog($title,"username: $username Status $message");
-                    return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'poNumber'=>$poNumber));
+                    return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'diNumber'=>$diNumber));
 
             } catch (Exception $e) {
                 DB::rollBack();
                 $title ="Save $this->title";
                 $alert  ="warning";
-                $message  = "$title $poNumber is failed to save";
+                $message  = "$title $diNumber is failed to save";
                 \LogActivity::addToLog($title,"username: $username Status $message");
-                return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'poNumber'=>$poNumber));
+                return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'diNumber'=>$diNumber));
 
             }
         }
@@ -301,7 +325,7 @@ class DeliveryInstructionController extends Controller
         ->orderBy('id')
         ->get();
 
-        $poNumber = $data['headers'][0]->origin_po_number;
+        $diNumber = $data['headers'][0]->origin_po_number;
         
         $data['details'] = DB::table('purchase_order_det')
         ->leftJoin('article','article.article_code','=','purchase_order_det.article_code')
@@ -311,8 +335,8 @@ class DeliveryInstructionController extends Controller
             ->on('purchase_request_det.article_code','purchase_order_det.article_code');
         })
         ->leftJoin('uom','uom.code','=','purchase_order_det.uom')
-        ->whereIn('purchase_order_det.po_number', function($query) use ($poNumber){
-            $query->select('po_number')->from('purchase_order_hdr')->where('origin_po_number',$poNumber);
+        ->whereIn('purchase_order_det.po_number', function($query) use ($diNumber){
+            $query->select('po_number')->from('purchase_order_hdr')->where('origin_po_number',$diNumber);
         })
         ->select('purchase_order_det'.'.*'
             ,'purchase_order_det.pr_number'
@@ -324,8 +348,8 @@ class DeliveryInstructionController extends Controller
         ->orderBy('id')
         ->get();
 
-        $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode,$poNumber,$username);
-        $data['approveValidate'] = Approval::approveValidate($this->moduleCode,$poNumber,$username);
+        $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode,$diNumber,$username);
+        $data['approveValidate'] = Approval::approveValidate($this->moduleCode,$diNumber,$username);
 
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'RECEIVED','5'=>'CANCELED','6'=>'CLOSED','7'=>'RVISED','8'=>'DECLINE'];
         $statusPo = ['NEW','VALIDATED','APPROVED','RECEIVED','CANCELED','CLOSED','REVISED','DECLINE'];
@@ -336,7 +360,7 @@ class DeliveryInstructionController extends Controller
 
     public function detail(Request $request)
     {
-        $poNumber=$request->poNumber;
+        $diNumber=$request->poNumber;
         $detail = DB::table('purchase_order_det')
         ->leftJoin('article','article.article_code','=','purchase_order_det.article_code')
         ->leftJoin('article_stock','article_stock.article_code','=','purchase_order_det.article_code')
@@ -345,7 +369,7 @@ class DeliveryInstructionController extends Controller
             ->on('purchase_request_det.article_code','purchase_order_det.article_code');
         })
         ->leftJoin('uom','uom.code','=','purchase_order_det.uom')
-        ->where('purchase_order_det.po_number',$poNumber)
+        ->where('purchase_order_det.po_number',$diNumber)
         ->select('purchase_order_det'.'.*'
             ,'purchase_order_det.pr_number'
             ,'article_stock.article_qty as qty_stock'
@@ -357,23 +381,23 @@ class DeliveryInstructionController extends Controller
         return response()->json(array('status' => 0, 'data' => $detail));
 
     }
+
     public function showEdit($key)
     {
         $id=Crypt::decryptString($key);
-        $username =  Auth::user()->username;
+        $username= Auth::user()->username;
         $data['title'] = "Edit $this->title";
         $data['subtitle'] = "Edit $this->title";
 
-        $data['header'] = DB::table('purchase_order_hdr')
-        // ->leftJoin('purchase_request_det','purchase_order_hdr.po_number','purchase_request_det.po_number')
-        ->where('purchase_order_hdr.id',$id)
+        $data['header'] = DB::table('delivery_instruction_hdr')
+        ->where('delivery_instruction_hdr.id',$id)
         ->get()->first();
 
-        $poNumber = $data['header']->po_number;
+        $diNumber = $data['header']->di_number;
         
         $data['prHeader'] = DB::table('purchase_request_det') 
         ->where('supp_code',$data['header']->supplier_id)
-        ->where('po_number','=',$poNumber)
+        ->where('po_number','=',$diNumber)
         ->orderBy('pr_number')
         ->distinct('pr_number')
         ->get();
@@ -384,7 +408,7 @@ class DeliveryInstructionController extends Controller
             ->leftJoin('group_materials','group_materials.code','=','article.group_of_material')
             ->leftJoin('uom','uom.code','=','purchase_request_det.uom')
             ->where('supp_code',$data['header']->supplier_id)
-            ->where('po_number','=',$poNumber)
+            ->where('po_number','=',$diNumber)
             // ->where('pr_number','=',$data['header']->pr_number)
             ->orderBy('article.article_desc')
             ->distinct('article.article_desc')
@@ -407,7 +431,7 @@ class DeliveryInstructionController extends Controller
             ->on('purchase_request_det.article_code','purchase_order_det.article_code');
         })
         ->leftJoin('uom','uom.code','=','purchase_order_det.uom')
-        ->where('purchase_order_det.po_number',$poNumber)
+        ->where('purchase_order_det.po_number',$diNumber)
         ->select('purchase_order_det'.'.*'
             ,'purchase_order_det.pr_number'
             ,'article_stock.article_qty as qty_stock'
@@ -427,7 +451,7 @@ class DeliveryInstructionController extends Controller
         ->orderBy('name')
         ->get();
 
-        $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode,$poNumber,$username);
+        $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode,$diNumber,$username);
         $data['approveValidate'] = Approval::approveValidate($this->moduleCode,$poNumber,$username);
                    
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'RECEIVED','5'=>'CANCELED','6'=>'CLOSED','7'=>'REVISED','8'=>'DECLINE'];
@@ -442,158 +466,159 @@ class DeliveryInstructionController extends Controller
         return $this->showEdit($request->id);
     }
 
-    public function revision(Request $request){
-        $username =  Auth::user()->username;
-        $id=Crypt::decryptString($request->id);
-        $poOrigin=DB::table('purchase_order_hdr')->where('id',$id)->value('po_number');
-        $numRevision = $request->nR ? $request->nR +1 : 1 ;
-        $poNew = $poOrigin.'-R'.$numRevision;
-        $checkNewPo=DB::table('purchase_order_hdr')->where('po_number',$poNew)->count();
+    // public function revision(Request $request){
+    //     $username =  Auth::user()->username;
+    //     $id=Crypt::decryptString($request->id);
+    //     $poOrigin=DB::table('purchase_order_hdr')->where('id',$id)->value('po_number');
+    //     $numRevision = $request->nR ? $request->nR +1 : 1 ;
+    //     $poNew = $poOrigin.'-R'.$numRevision;
+    //     $checkNewPo=DB::table('purchase_order_hdr')->where('po_number',$poNew)->count();
 
-        if ($checkNewPo > 0){
-            $poNew = $poOrigin.'-R'.$numRevision+1;
-        } 
+    //     if ($checkNewPo > 0){
+    //         $poNew = $poOrigin.'-R'.$numRevision+1;
+    //     } 
                 
-        $sqlHdr = "INSERT into purchase_order_hdr 
-        (
-            po_number,
-            origin_po_number,
-            supplier_id,
-            po_date,
-            delivery_date,
-            currency,
-            authorized_by,
-            authorized_at,
-            validate_by,
-            discount,
-            kurs,
-            pkp,
-            ppn,
-            pph22,
-            termin,
-            order_type,
-            status,
-            num_revision,
-            revised_by,
-            revised_at,
-            note,
-            created_by,
-            updated_by,
-            created_at,
-            updated_at
-        )
-        select 
-            '$poNew',
-            '$poOrigin',
-            supplier_id,
-            po_date,
-            delivery_date,
-            currency,
-            authorized_by,
-            authorized_at,
-            validate_by,
-            discount,
-            kurs,
-            pkp,
-            ppn,
-            pph22,
-            termin,
-            order_type,
-            '7',
-            $numRevision,
-            '$username',
-            '".date('Y-m-d H:i:s')."',
-            note,
-            '$username',
-            '$username',
-            '".date('Y-m-d H:i:s')."',
-            '".date('Y-m-d H:i:s')."'
-        from purchase_order_hdr where po_number = '$poOrigin'";
+    //     $sqlHdr = "INSERT into purchase_order_hdr 
+    //     (
+    //         po_number,
+    //         origin_po_number,
+    //         supplier_id,
+    //         po_date,
+    //         delivery_date,
+    //         currency,
+    //         authorized_by,
+    //         authorized_at,
+    //         validate_by,
+    //         discount,
+    //         kurs,
+    //         pkp,
+    //         ppn,
+    //         pph22,
+    //         termin,
+    //         order_type,
+    //         status,
+    //         num_revision,
+    //         revised_by,
+    //         revised_at,
+    //         note,
+    //         created_by,
+    //         updated_by,
+    //         created_at,
+    //         updated_at
+    //     )
+    //     select 
+    //         '$poNew',
+    //         '$poOrigin',
+    //         supplier_id,
+    //         po_date,
+    //         delivery_date,
+    //         currency,
+    //         authorized_by,
+    //         authorized_at,
+    //         validate_by,
+    //         discount,
+    //         kurs,
+    //         pkp,
+    //         ppn,
+    //         pph22,
+    //         termin,
+    //         order_type,
+    //         '7',
+    //         $numRevision,
+    //         '$username',
+    //         '".date('Y-m-d H:i:s')."',
+    //         note,
+    //         '$username',
+    //         '$username',
+    //         '".date('Y-m-d H:i:s')."',
+    //         '".date('Y-m-d H:i:s')."'
+    //     from purchase_order_hdr where po_number = '$poOrigin'";
 
-        $sqlDet="INSERT into purchase_order_det
-        (
-            po_number,
-            pr_number,
-            article_code,
-            qty,
-            uom,
-            old_price,
-            price,
-            ppn,
-            pph22,
-            created_by,
-            updated_by,
-            created_at,
-            updated_at
-        )
-        select '$poNew',
-            pr_number,
-            article_code,
-            qty,
-            uom,
-            old_price,
-            price,
-            ppn,
-            pph22,
-            '$username',
-            '$username',
-            '".date('Y-m-d H:i:s')."',
-            '".date('Y-m-d H:i:s')."' 
-        from purchase_order_det where po_number = '$poOrigin'";
+    //     $sqlDet="INSERT into purchase_order_det
+    //     (
+    //         po_number,
+    //         pr_number,
+    //         article_code,
+    //         qty,
+    //         uom,
+    //         old_price,
+    //         price,
+    //         ppn,
+    //         pph22,
+    //         created_by,
+    //         updated_by,
+    //         created_at,
+    //         updated_at
+    //     )
+    //     select '$poNew',
+    //         pr_number,
+    //         article_code,
+    //         qty,
+    //         uom,
+    //         old_price,
+    //         price,
+    //         ppn,
+    //         pph22,
+    //         '$username',
+    //         '$username',
+    //         '".date('Y-m-d H:i:s')."',
+    //         '".date('Y-m-d H:i:s')."' 
+    //     from purchase_order_det where po_number = '$poOrigin'";
 
-        $rowAffected =  DB::select($sqlHdr);
-        if ($rowAffected){
-            DB::select($sqlDet);
+    //     $rowAffected =  DB::select($sqlHdr);
+    //     if ($rowAffected){
+    //         DB::select($sqlDet);
 
-            // status:
-            // 1 = New
-            // 2 = Validated
-            // 3 = Authorized
-            // 4 = Received
-            // 5 = Canceled
-            // 6 = closed
-            // 7 = Revised
+    //         // status:
+    //         // 1 = New
+    //         // 2 = Validated
+    //         // 3 = Authorized
+    //         // 4 = Received
+    //         // 5 = Canceled
+    //         // 6 = closed
+    //         // 7 = Revised
 
-            DB::table('purchase_order_hdr')
-            ->where('po_number',$poOrigin)
-            ->update(
-                [
-                    'num_revision' => $numRevision,
-                    'status' => '1',
-                    'revised_by'=>Auth::user()->username,
-                    'revised_at'=> date('Y-m-d H:i:s'),
-                    'updated_by' => Auth::user()->username,
-                    'updated_at' => date('Y-m-d H:i:s')
-                ]
-            );
+    //         DB::table('purchase_order_hdr')
+    //         ->where('po_number',$poOrigin)
+    //         ->update(
+    //             [
+    //                 'num_revision' => $numRevision,
+    //                 'status' => '1',
+    //                 'revised_by'=>Auth::user()->username,
+    //                 'revised_at'=> date('Y-m-d H:i:s'),
+    //                 'updated_by' => Auth::user()->username,
+    //                 'updated_at' => date('Y-m-d H:i:s')
+    //             ]
+    //         );
 
-            DB::table('approval_history')
-            ->where('module_number',$poOrigin)
-            ->update(
-                [
-                    'module_number' => $poNew,
-                    'status' => '0',
-                    'updated_by' => Auth::user()->username,
-                    'updated_at' => date('Y-m-d H:i:s')
-                ]
-            );
+    //         DB::table('approval_history')
+    //         ->where('module_number',$poOrigin)
+    //         ->update(
+    //             [
+    //                 'module_number' => $poNew,
+    //                 'status' => '0',
+    //                 'updated_by' => Auth::user()->username,
+    //                 'updated_at' => date('Y-m-d H:i:s')
+    //             ]
+    //         );
             
-            $title ="Save $this->title";
-            $alert  ="success";
-            $message  = "$title Revison PO: $poOrigin to $poNew is successfully saved";
-            \LogActivity::addToLog($title,"username: $username Status $message");
-            return redirect()->route('deliveryInstruction.edit', ['id'=>Crypt::encryptString($data->id)]);
-            // return $this->showEdit(Crypt::encryptString($id));
-        }else{
-            $title ="Save $this->title";
-            $alert  ="warning";
-            $message  = "$title Revison PO: $poOrigin to $poNew is failed to save";
-            \LogActivity::addToLog($title,"username: $username Status $message");
-            return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);
-        }
+    //         $title ="Save $this->title";
+    //         $alert  ="success";
+    //         $message  = "$title Revison PO: $poOrigin to $poNew is successfully saved";
+    //         \LogActivity::addToLog($title,"username: $username Status $message");
+    //         return redirect()->route('deliveryInstruction.edit', ['id'=>Crypt::encryptString($data->id)]);
+    //         // return $this->showEdit(Crypt::encryptString($id));
+    //     }else{
+    //         $title ="Save $this->title";
+    //         $alert  ="warning";
+    //         $message  = "$title Revison PO: $poOrigin to $poNew is failed to save";
+    //         \LogActivity::addToLog($title,"username: $username Status $message");
+    //         return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);
+    //     }
         
-    }
+    // }
 
+    
     public function update(Request $request)
     {
         $username =  Auth::user()->username;
@@ -792,269 +817,111 @@ class DeliveryInstructionController extends Controller
 
     }
 
-    public function approve(Request $request)
-    {
-        $username =  Auth::user()->username;
-        $poNumber = $request->poNumber;
-        $statusLevelApproval = Approval::approvalLevelPosition($this->moduleCode,$poNumber,$username);        
-        $nextLevel = $statusLevelApproval[0]->next_level;
-        $statusPo = $statusLevelApproval[0]->next_level == $statusLevelApproval[0]->max_level ? '3' :'2';
+    // public function approve(Request $request)
+    // {
+    //     $username =  Auth::user()->username;
+    //     $poNumber = $request->poNumber;
+    //     $statusLevelApproval = Approval::approvalLevelPosition($this->moduleCode,$poNumber,$username);        
+    //     $nextLevel = $statusLevelApproval[0]->next_level;
+    //     $statusPo = $statusLevelApproval[0]->next_level == $statusLevelApproval[0]->max_level ? '3' :'2';
                 
-        DB::beginTransaction();
-        try {
-                $row_affected=DB::table('purchase_order_hdr')
-                ->where('po_number',$poNumber)
-                ->update(
-                    [
-                        'status' => $statusPo,
-                        'authorized_by' => Auth::user()->username,
-                        'authorized_at' => date('Y-m-d H:i:s')
-                    ]
-                );
+    //     DB::beginTransaction();
+    //     try {
+    //             $row_affected=DB::table('purchase_order_hdr')
+    //             ->where('po_number',$poNumber)
+    //             ->update(
+    //                 [
+    //                     'status' => $statusPo,
+    //                     'authorized_by' => Auth::user()->username,
+    //                     'authorized_at' => date('Y-m-d H:i:s')
+    //                 ]
+    //             );
 
-                if ($row_affected){
-                    DB::table('approval_history')->insert([
-                        'module_code' => $this->moduleCode,
-                        'module_number' => $poNumber,
-                        'username' => Auth::user()->username,
-                        'approval_order' => $nextLevel,
-                        'approval_date' => date('Y-m-d'),
-                        'status' => 1,
-                        'created_by' => Auth::user()->username,
-                        'updated_by' => Auth::user()->username,
-                        'created_at' => date('Y-m-d H:i:s'),
-                        'updated_at' => date('Y-m-d H:i:s')
-                    ]);
-                }
+    //             if ($row_affected){
+    //                 DB::table('approval_history')->insert([
+    //                     'module_code' => $this->moduleCode,
+    //                     'module_number' => $poNumber,
+    //                     'username' => Auth::user()->username,
+    //                     'approval_order' => $nextLevel,
+    //                     'approval_date' => date('Y-m-d'),
+    //                     'status' => 1,
+    //                     'created_by' => Auth::user()->username,
+    //                     'updated_by' => Auth::user()->username,
+    //                     'created_at' => date('Y-m-d H:i:s'),
+    //                     'updated_at' => date('Y-m-d H:i:s')
+    //                 ]);
+    //             }
                 
-                DB::commit();
-                $title ="Approve $this->title";
-                $alert  ="success";
-                $message  = "$title $poNumber is successfully Approve-".$nextLevel;
-                \LogActivity::addToLog($title,"username: $username Status $message");
-                return response()->json(array('statusPo' => $statusPo,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'poNumber'=>$poNumber));
+    //             DB::commit();
+    //             $title ="Approve $this->title";
+    //             $alert  ="success";
+    //             $message  = "$title $poNumber is successfully Approve-".$nextLevel;
+    //             \LogActivity::addToLog($title,"username: $username Status $message");
+    //             return response()->json(array('statusPo' => $statusPo,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'poNumber'=>$poNumber));
 
-        } catch (Exception $e) {
-            DB::rollBack();
-            $title ="Approve $this->title";
-            $alert  ="warning";
-            $message  = "$title $poNumber is failed to Approve-".$nextLevel;
-            \LogActivity::addToLog($title,"username: $username Status $message");
-            return response()->json(array('statusPo' => $statusPo,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'poNumber'=>$poNumber));
-        }
-    }
-
-    public function decline(Request $request)
-    {
-        $username =  Auth::user()->username;
-        $poNumber = $request->poNumber;
-        $statusLevelApproval = Approval::approvalLevelPosition($this->moduleCode,$poNumber,$username);        
-        $nextLevel = $statusLevelApproval[0]->next_level;
-        $statusPo = '8';
-                
-        DB::beginTransaction();
-        try {
-                $row_affected=DB::table('purchase_order_hdr')
-                ->where('po_number',$poNumber)
-                ->update(
-                    [
-                        'status' => $statusPo,
-                        'authorized_by' => Auth::user()->username,
-                        'authorized_at' => date('Y-m-d H:i:s')
-                    ]
-                );
-
-                if ($row_affected){
-                    DB::table('approval_history')->insert([
-                        'module_code' => $this->moduleCode,
-                        'module_number' => $poNumber,
-                        'username' => Auth::user()->username,
-                        'approval_order' => $nextLevel,
-                        'approval_date' => date('Y-m-d'),
-                        'status' => 0,
-                        'created_by' => Auth::user()->username,
-                        'updated_by' => Auth::user()->username,
-                        'created_at' => date('Y-m-d H:i:s'),
-                        'updated_at' => date('Y-m-d H:i:s')
-                    ]);
-                }
-                
-                DB::commit();
-                $title ="Decline $this->title";
-                $alert  ="success";
-                $message  = "$title $poNumber is successfully decline";
-                \LogActivity::addToLog($title,"username: $username Status $message");
-                return response()->json(array('statusPo' => $statusPo,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'poNumber'=>$poNumber));
-
-        } catch (Exception $e) {
-            DB::rollBack();
-            $title ="Decline $this->title";
-            $alert  ="warning";
-            $message  = "$title $poNumber is failed to decline";
-            \LogActivity::addToLog($title,"username: $username Status $message");
-            return response()->json(array('statusPo' => $statusPo,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'poNumber'=>$poNumber));
-        }
-    }
+    //     } catch (Exception $e) {
+    //         DB::rollBack();
+    //         $title ="Approve $this->title";
+    //         $alert  ="warning";
+    //         $message  = "$title $poNumber is failed to Approve-".$nextLevel;
+    //         \LogActivity::addToLog($title,"username: $username Status $message");
+    //         return response()->json(array('statusPo' => $statusPo,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'poNumber'=>$poNumber));
+    //     }
+    // }
 
     public function destroy(Request $request)
     {
         $username =  Auth::user()->username;       
         $id=Crypt::decryptString($request->id);
-        $po_number = DB::table('purchase_order_hdr')->where('id',$id)->where('status','1')->value('po_number');
-        $rowAffected = DB::table('purchase_order_hdr')->where('id',$id)->where('status','1')->delete();
+        $diNumber = DB::table('delivery_instruction_hdr')->where('id',$id)->value('di_number');
+        $rowAffected = DB::table('delivery_instruction_hdr')->where('id',$id)->delete();
         if($rowAffected>0){
-            DB::table('purchase_order_det')->where('po_number',$po_number)->delete();
+            DB::table('delivery_instruction_det')->where('di_number',$diNumber)->delete();
             $title ="Delete $this->title";
             $alert  ="success";
-            $message  = "$title $po_number Successfully Deleted";
+            $message  = "$title $diNumber Successfully Deleted";
             \LogActivity::addToLog($title,"username: $username Status $message");
             return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);  
         }else{
             $title ="Delete $this->title";
             $alert  ="warning";
-            $message  = "$title $po_number Failed to Delete";
+            $message  = "$title $diNumber Failed to Delete";
             \LogActivity::addToLog($title,"username: $username Status $message");
             return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);
         }
-
-    }
-
-    public function clear(Request $request)
-    {
-        //memutihkan PO supaya tidak bisa di pakai lagi
-        //status PO jadi closed
-        $username =  Auth::user()->username;       
-        $id=Crypt::decryptString($request->id);
-        $po_number = DB::table('purchase_order_hdr')->where('id',$id)->value('po_number');
-        $status = '6';
-        DB::beginTransaction();
-        try {
-                $row_affected=DB::table('purchase_order_hdr')
-                ->where('id',$id)
-                ->update(
-                    [
-                        'status' => $status,
-                        'updated_by' => Auth::user()->username,
-                        'updated_at' => date('Y-m-d H:i:s')
-                    ]
-                );
-                
-                DB::commit();
-                $title ="Clear $this->title";
-                $alert  ="success";
-                $message  = "$title $po_number Successfully Closed";
-                \LogActivity::addToLog($title,"username: $username Status $message");
-                return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);
-
-        } catch (Exception $e) {
-            DB::rollBack();
-            $title ="Clear $this->title";
-            $alert  ="warning";
-            $message  = "$title $po_number Failed to Close";
-            \LogActivity::addToLog($title,"username: $username Status $message");
-            return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);
-        }
-
-    }
-
-    public function priceList(Request $request)
-    {
-        $articleCode = $request -> article;
-        $listArticle = DB::table('purchase_order_det')
-        ->leftJoin('purchase_order_hdr','purchase_order_hdr.po_number','purchase_order_det.po_number')
-        ->where('article_code',$articleCode)
-        ->select('purchase_order_det.po_number','po_date','price', 'purchase_order_hdr.created_at')
-        ->orderBy('po_date','desc')
-        ->where('status','<>','7')
-        ->limit(10)
-        ->get();
-
-        return Response()->json($listArticle);
 
     }
 
     public function list(Request $request)
     {
-        $searchPo = strtolower($request->searchPo);
         $username = Auth::user()->username;
+        $searchDi = strtolower($request->searchDi);
         $searchSupplier = $request->searchSupplier;
         $searchStatus = $request->searchStatus;
-        $orderDate = $request->orderDate;
+        $deliveryDate = $request->deliveryDate;
+
+        $deliveryDate = $request->$deliveryDate;
+        $fromDate ="";
+        $toDate = "";
+        if ($deliveryDate){
+            $date = explode("to",$deliveryDate);
+            $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+            $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
+        }
        
-        $filter='';
-        
-        if ($searchPo !='' ){
-            $filter.="lower(a.po_number) like '%$searchPo%' and ";
-        }
+        $data = DB::table('delivery_instruction_hdr')
+        ->where(function ($query) use ($searchDi,$searchSupplier,$searchStatus,$deliveryDate,$fromDate,$toDate) {
+            $searchDi ? $query->where('di_number','ilike','%'.$searchDi.'%') : '';
+            $searchSupplier ? $query->where('supplier_id',$searchSupplier) : '';
+            $deliveryDate ? $query->whereBetween(DB::raw("delivery_date(tr_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
+            $searchStatus ? $query->where('status',$searchStatus) : '';
+        })
+        ->leftjoin('third_party','third_party.kode','delivery_instruction_hdr.supplier_id')
+        ->select('delivery_instruction_hdr.*','third_party.nama as supp_name')
+        ->orderBy('id')
+        ->get(); 
 
-        if ($searchSupplier  != '' ){
-            $filter.="supplier_id = '$searchSupplier' and ";            
-        }
-
-        if ($searchStatus  != '' ){
-            $filter.="status = '$searchStatus' and ";            
-        }
-        
-        $filter.="status <> '7' and ";            
-     
-        if ($orderDate  != '' ){
-            $date = explode("to",$orderDate);
-            $date1=trim($date[0]);
-            $date2=trim($date[1]);
-            $filter.= "to_date(po_date, 'DD/MM/YYYY')  BETWEEN to_date('$date1', 'DD/MM/YYYY') and to_date('$date2', 'DD/MM/YYYY') and ";
-        }
-        
-        if ($filter !=''){
-            $filter=" where ".substr($filter,0,-4);
-        }
-
-        $data=DB::select("SELECT *,oki.id as idku,
-        -- case when uom_group = 'PIECE' then TO_CHAR(qtyku,'999,999,999') when uom_group <> 'PIECE' then TO_CHAR(qtyku,'999,999,999.999') end as qty,
-        qtyku as qty,
-        TO_CHAR(grossku,'999,999,999') as gross,
-        TO_CHAR(discountku,'999,999,999') as discount,
-        TO_CHAR(ppnku,'999,999,999') as ppn,
-        delivery_date,
-        (select concat(kode,'-',nama) from third_party where kode = supplier_id limit 1) as supp_name,
-        TO_CHAR((grossku-discountku)+ppnku,'999,999,999') as netto,
-        --query apakah user berhak untuk approve atau tidak
-        (SELECT username = '$username' as validate from (
-            select username,approval_order,
-            (select max(approval_number) from approval_master where module_code = a.module_code ) as max_level,
-            COALESCE((select max(approval_order) from approval_history
-            where module_code = a.module_code
-            and module_number = oki.po_number),'0') as current_level
-            from approval_level a 
-            where module_code = '".$this->moduleCode."' and username = '$username') b
-            where approval_order = current_level+1
-        ) as statusku
-        from (
-            select 
-                b.created_by,
-                b.status,b.id,
-                a.po_number,
-                supplier_id,
-                po_date,
-                delivery_date,
-                pkp,
-                termin,
-                authorized_by,
-                validate_by,
-                sum(qty) as qtyku,
-                sum(qty*price) as grossku,
-                sum(discount) as discountku,
-                sum(a.ppn) as ppnku,
-                b.num_revision,
-                (select STRING_AGG((select name from users where username = z.username), ' -> ' ORDER BY approval_order) AS main from approval_history z where module_number = a.po_number) as approval_by
-            from purchase_order_det a
-            left join purchase_order_hdr b
-            on a.po_number = b.po_number    
-            $filter
-            group by b.id,a.po_number,supplier_id,po_date,delivery_date,pkp,termin,authorized_by,validate_by,b.created_by,b.status,b.num_revision
-        ) as oki
-        order by oki.id desc");
-
-        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'RECEIVED','5'=>'CANCELED','6'=>'CLOSED','7'=>'REVISED','8'=>'DECLINE'];
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'','5'=>'','6'=>'','7'=>'REVISED','8'=>''];
     
         return Datatables::of($data)
         ->addColumn('action', function ($data) {
@@ -1064,220 +931,116 @@ class DeliveryInstructionController extends Controller
                             </a>';
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
             
-            if ( $data->statusku and ($data->status == '2' or $data->status == '1') ){
-                if (Auth::user()->can('purchaseOrder-authorize')) {
-                $buttons .=         '<a href="'. route('deliveryInstruction.edit', ['id'=>Crypt::encryptString($data->idku)]) .'" class="dropdown-item">
-                                        <i data-feather="file-text"></i>
-                                        <span>'. __("Approve") .'</span>
-                                    </a>';
-                }
-            }
-            if ( $data->status == '1' or $data->status == '2' ){
-                if (Auth::user()->can('purchaseOrder-edit')) {
-                $buttons .=         '<a href="'. route('deliveryInstruction.edit', ['id'=>Crypt::encryptString($data->idku)]) .'" class="dropdown-item">
+            // if ( $data->status == '2' or $data->status == '1' ){
+            //     if (Auth::user()->can('deliveryInstruction-edit')) {
+            //     $buttons .=         '<a href="'. route('deliveryInstruction.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+            //                             <i data-feather="file-text"></i>
+            //                             <span>'. __("Approve") .'</span>
+            //                         </a>';
+            //     }
+            // }
+            // if ( $data->status == '1' or $data->status == '2' ){
+                if (Auth::user()->can('deliveryInstruction-edit')) {
+                $buttons .=         '<a href="'. route('deliveryInstruction.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                         <i data-feather="file-text"></i>
                                         <span>'. __("Edit") .'</span>
                                     </a>';
                 }
-            }
-            if (($data->status == '2') || ($data->status == '3') ){
-                if (Auth::user()->can('purchaseOrder-revision')) {
-                    $buttons .=         '<a href="'. route('deliveryInstruction.revision', ['id'=>Crypt::encryptString($data->idku),'nR'=>$data->num_revision]) .'" class="dropdown-item">
-                                            <i data-feather="copy"></i>
-                                            <span>'. __("Revision") .'</span>
-                                        </a>';
-                }
-            }
+            // }
+
+            // if (($data->status == '2') || ($data->status == '3') ){
+            //     if (Auth::user()->can('deliveryInstruction-revision')) {
+            //         $buttons .=         '<a href="'. route('deliveryInstruction.revision', ['id'=>Crypt::encryptString($data->id),'nR'=>$data->num_revision]) .'" class="dropdown-item">
+            //                                 <i data-feather="copy"></i>
+            //                                 <span>'. __("Revision") .'</span>
+            //                             </a>';
+            //     }
+            // }
             
-            $buttons .=         '<a href="'. route('deliveryInstruction.print', ['id'=>Crypt::encryptString($data->idku)]) .'" target="_blank" class="dropdown-item">
+            $buttons .=         '<a href="'. route('deliveryInstruction.print', ['id'=>Crypt::encryptString($data->id)]) .'" target="_blank" class="dropdown-item">
                                     <i data-feather="printer"></i>
                                     <span>'. __("Print") .'</span>
                                 </a>';
             
-            $buttons .=         '<a href="'. route('deliveryInstruction.show', ['id'=>Crypt::encryptString($data->idku)]) .'" class="dropdown-item">
+            $buttons .=         '<a href="'. route('deliveryInstruction.show', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                     <i data-feather="list"></i>
                                     <span>'. __("Detail") .'</span>
                                 </a>';
 
-            if ( $data->status == '1' or $data->status == '2' or $data->status == '3' ){
-                if (Auth::user()->can('purchaseOrder-delete')) {
-                    $buttons .="<a href='javascript:;'
-                    class='dropdown-item' 
-                    data-size='sm'
-                    data-ajax-delete='true'
-                    data-confirm='Are You Sure want to Close?|This action can not be undone. Do you want to continue?' 
-                    data-confirm-yes='document.getElementById(\""."delete-form-".$data->idku."\").submit();'
-                    data-modal-id='".$data->idku."'
-                    id='deleteButton'
-                    data-url='". route('deliveryInstruction.clear', ['id'=>Crypt::encryptString($data->idku)]) ."'>
-                    <i data-feather='x' class='feather-14-red'></i>
-                    <span>". __('Close') ."</span>
-                    </a>";
-                }
+            if (Auth::user()->can('deliveryInstruction-delete')) {
+                $buttons .=         "<a href='javascript:;'
+                                    class='dropdown-item' 
+                                    data-size='sm'
+                                    data-ajax-delete='true'
+                                    data-confirm='Are You Sure want to Delete?|This action can not be undone. Do you want to continue?' 
+                                    data-confirm-yes='document.getElementById(\""."delete-form-".$data->id."\").submit();'
+                                    data-modal-id='".$data->id."'
+                                    data-url='". route('deliveryInstruction.destroy', ['id'=>Crypt::encryptString($data->id)]) ."'>
+                                    <i data-feather='trash-2' class='feather-14-red'></i>
+                                    <span>". __('Delete') ."</span>
+                                </a>";
             }
-
-            if ( $data->status == '1' ){
-                if (Auth::user()->can('purchaseOrder-delete')) {
-                    $buttons .=         "<a href='javascript:;'
-                                        class='dropdown-item' 
-                                        data-size='sm'
-                                        data-ajax-delete='true'
-                                        data-confirm='Are You Sure want to Delete?|This action can not be undone. Do you want to continue?' 
-                                        data-confirm-yes='document.getElementById(\""."delete-form-".$data->idku."\").submit();'
-                                        data-modal-id='".$data->idku."'
-                                        id='deleteButton'
-                                        data-url='". route('deliveryInstruction.destroy', ['id'=>Crypt::encryptString($data->idku)]) ."'>
-                                        <i data-feather='trash-2' class='feather-14-red'></i>
-                                        <span>". __('Delete') ."</span>
-                                    </a>";
-                }
-            }
-
+ 
             $buttons .=     '</div>
                         </div>';
 
             return $buttons;
         })
-        ->addColumn('po_number', function ($data) {
+        ->addColumn('di_number', function ($data) {
             $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-danger'];            
-            $statusPo = ['NEW','VALIDATED','APPROVED','RECEIVED','CANCELED','CLOSED','REVISED','DECLINE'];
+            $status = ['NEW','VALIDATED','APPROVED','','','','REVISED',''];
             // return '<div class="badge d-block '.$badges[$data->status - 1].'"><a name="'.$data->po_number.'" href="'. route('deliveryInstruction.show', ['id'=>Crypt::encryptString($data->idku)]) .'" ><span>'.$data->po_number.'</span></a></div>';
-            return '<span style="display: none;">'.$data->po_number.'</span><a class="badge d-block '.$badges[$data->status - 1].'" name="'.$data->po_number.'" href="'. route('deliveryInstruction.show', ['id'=>Crypt::encryptString($data->idku)]) .'" ><span>'.$data->po_number.'</span></a>';
+            return '<span style="display: none;">'.$data->di_number.'</span><a class="badge d-block '.$badges[$data->status - 1].'" name="'.$data->di_number.'" href="'. route('deliveryInstruction.show', ['id'=>Crypt::encryptString($data->id)]) .'" ><span>'.$data->di_number.'</span></a>';
         })
+
         ->addColumn('status', function ($data) {
             $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-danger'];            
-            $statusPo = ['NEW','VALIDATED','APPROVED','RECEIVED','CANCELED','CLOSED','REVISED','DECLINE'];
-            return "<div class='badge ".$badges[$data->status - 1]."'>".$statusPo[$data->status - 1]."</div>";
+            $status = ['NEW','VALIDATED','APPROVED','','','','REVISED',''];
+            return "<div class='badge ".$badges[$data->status - 1]."'>".$status[$data->status - 1]."</div>";
         })
-        ->rawColumns(['action','status','po_number'])
+        ->rawColumns(['action','status','di_number'])
         ->make(true);
     }
 
     public function listDetail(Request $request)
     {
 
-        $searchPo = strtolower($request->searchPo);
         $username = Auth::user()->username;
+        $searchDi = strtolower($request->searchDi);
         $searchSupplier = $request->searchSupplier;
         $searchStatus = $request->searchStatus;
-        $orderDate = $request->orderDate;
+        $deliveryDate = $request->deliveryDate;
+
+        $deliveryDate = $request->$deliveryDate;
         $fromDate ="";
         $toDate = "";
-        
-        if ($orderDate){
-            $date = explode("to",$orderDate);
+        if ($deliveryDate){
+            $date = explode("to",$deliveryDate);
             $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
             $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
         }
-
-        $data = DB::table('purchase_order_det')
-        ->leftJoin('purchase_order_hdr','purchase_order_hdr.po_number','purchase_order_det.po_number')
-        ->leftJoin('article','article.article_code','purchase_order_det.article_code')
-        ->leftJoin('third_party','third_party.kode','purchase_order_hdr.supplier_id')
-        ->leftJoin('uom','uom.code','purchase_order_det.uom')
-        ->where(function ($query) use ($searchPo,$searchStatus,$orderDate,$fromDate,$toDate,$searchSupplier) {
-            $searchSupplier ? $query->where('supplier_id',$searchSupplier) : '';
-            $searchPo ? $query->where('po_number','ilike','%'.$searchPo.'%') : '';
-            $searchStatus ? $query->where('purchase_order_hdr.status',$searchStatus) : '';
-            $orderDate ? $query->whereBetween(DB::raw("to_date(po_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
+       
+        $data = DB::table('delivery_instruction_det')
+        ->leftJoin('delivery_instruction_hdr','delivery_instruction_hdr.di_number','delivery_instruction_det.di_number')
+        ->leftJoin('article','article.article_code','delivery_instruction_det.article_code')
+        ->where(function ($query) use ($searchDi,$searchSupplier,$searchStatus,$deliveryDate,$fromDate,$toDate) {
+            $searchDi ? $query->where('di_number','ilike','%'.$searchDi.'%') : '';
+            $searchSupplier ? $query->where('delivery_instruction_hdr.supplier_id',$searchSupplier) : '';
+            $deliveryDate ? $query->whereBetween(DB::raw("delivery_instruction_hdr.delivery_date(tr_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
+            $searchStatus ? $query->where('delivery_instruction_hdr.status',$searchStatus) : '';
         })
-        ->select('purchase_order_det.*'
-        ,'purchase_order_hdr.*'
+        ->leftjoin('third_party','third_party.kode','delivery_instruction_hdr.supplier_id')
+        ->select('delivery_instruction_det.*'
+        ,'delivery_instruction_hdr.*'
         ,'article_alternative_code'
         ,'article.article_desc'
         ,'third_party.nama as supp_name'
-        ,'uom_group'
-        ,DB::raw("case when uom_group = 'PIECE' then TO_CHAR(qty,'999,999,999') when uom_group <> 'PIECE' then TO_CHAR(qty,'999,999,999.999') end as qtyku")
-        ,DB::raw("TO_CHAR(price*qty*purchase_order_hdr.ppn/100,'999,999,999') as total_ppn")
-        ,DB::raw("TO_CHAR(price*qty*purchase_order_hdr.pph22/100,'999,999,999') as total_pph22")
-        ,DB::raw("TO_CHAR((((price*qty)-discount)+(price*qty*purchase_order_hdr.ppn/100)-(price*qty*purchase_order_hdr.pph22)),'999,999,999') as grand_total")
-        ,DB::raw("(select STRING_AGG((select name from users where username = a.username), ' -> ' ORDER BY approval_order) AS main from approval_history a where module_number = purchase_order_det.po_number) as approval_by")
+        // ,'uom_group'
+        ,DB::raw("(select STRING_AGG((select name from users where username = a.username), ' -> ' ORDER BY approval_order) AS main from approval_history a where module_number = delivery_instruction_det.di_number) as approval_by")
         )
-        ->orderBy('purchase_order_det.id')
+        ->orderBy('delivery_instruction_det.id')
         ->get(); 
 
-        // $searchPo = strtolower($request->searchPo);
-        // $username = Auth::user()->username;
-        // $searchSupplier = $request->searchSupplier;
-        // $searchStatus = $request->searchStatus;
-        // $orderDate = $request->orderDate;
-       
-        // $filter='';
-        
-        // if ($searchPo !='' ){
-        //     $filter.="lower(a.po_number) like '%$searchPo%' and ";
-        // }
-
-        // if ($searchSupplier  != '' ){
-        //     $filter.="supplier_id = '$searchSupplier' and ";            
-        // }
-
-        // if ($searchStatus  != '' ){
-        //     $filter.="status = '$searchStatus' and ";            
-        // }
-        
-        // $filter.="status <> '7' and ";            
-     
-        // if ($orderDate  != '' ){
-        //     $date = explode("to",$orderDate);
-        //     $date1=trim($date[0]);
-        //     $date2=trim($date[1]);
-        //     $filter.= "to_date(po_date, 'DD/MM/YYYY')  BETWEEN to_date('$date1', 'DD/MM/YYYY') and to_date('$date2', 'DD/MM/YYYY') and ";
-        // }
-        
-        // if ($filter !=''){
-        //     $filter=" where ".substr($filter,0,-4);
-        // }
-
-        // $data=DB::select("SELECT *,oki.id as idku,
-        // case when uom_group = 'PIECE' then TO_CHAR(qtyku,'999,999,999') when uom_group <> 'PIECE' then TO_CHAR(qtyku,'999,999,999.99') end as qty,
-        // TO_CHAR(grossku,'999,999,999') as gross,
-        // TO_CHAR(discountku,'999,999,999') as discount,
-        // TO_CHAR(ppnku,'999,999,999') as ppn,
-        // delivery_date,
-        // (select concat(kode,'-',nama) from third_party where kode = supplier_id limit 1) as supp_name,
-        // TO_CHAR((grossku-discountku)+ppnku,'999,999,999') as netto,
-        // --query apakah user berhak untuk approve atau tidak
-        // (SELECT username= '$username' as validate from (
-        //     select username,approval_order,
-        //     (select max(approval_number) from approval_master where module_code = a.module_code ) as max_level,
-        //     COALESCE((select max(approval_order) from approval_history
-        //     where module_code = a.module_code
-        //     and module_number = oki.po_number),'0') as current_level
-        //     from approval_level a 
-        //     where module_code = '".$this->moduleCode."' and username = '$username') b
-        //     where approval_order = current_level+1
-        // ) as statusku
-        // from (
-        //     select 
-        //         b.created_by,
-        //         b.status,b.id,
-        //         a.po_number,
-        //         supplier_id,
-        //         po_date,
-        //         delivery_date,
-        //         pkp,
-        //         termin,
-        //         authorized_by,
-        //         validate_by,
-        //         uom,
-        //         sum(qty) as qtyku,
-        //         sum(qty*price) as grossku,
-        //         sum(discount) as discountku,
-        //         sum(a.ppn) as ppnku,
-        //         b.num_revision
-        //     from purchase_order_det a
-        //     left join purchase_order_hdr b
-        //     on a.po_number = b.po_number    
-        //     $filter
-        //     group by b.id,a.po_number,supplier_id,po_date,delivery_date,pkp,termin,authorized_by,validate_by,b.created_by,uom,b.status,b.num_revision
-        // ) as oki
-        // left join uom c
-        // on oki.uom = c.code
-        // order by oki.id");
-
-        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'RECEIVED','5'=>'CANCELED','6'=>'CLOSED','7'=>'REVISED','8'=>'DECLINE'];
-    
         return Datatables::of($data)
         ->addColumn('status', function ($data) {
             $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-danger'];            
@@ -1297,49 +1060,38 @@ class DeliveryInstructionController extends Controller
         ->select('name as nama', 'address as alamat', DB::RAW('(select region_name from regions where region_code = city::integer)  as kota'),'tlp')
         ->get()->first();
             
-        $poHdr=DB::table('purchase_order_hdr')
+        $diHdr=DB::table('delivery_instruction_hdr')
         ->where('id',$id)
         ->first();
 
-        $poNumber=$poHdr -> po_number;
+        $diNumber=$diHdr->di_number;
     
-        $data['details']=DB::table('purchase_order_det')
-        ->leftJoin('article','article.article_code','purchase_order_det.article_code')
-        ->where('po_number',$poNumber)
+        $data['details']=DB::table('delivery_instruction_det')
+        ->leftJoin('article','article.article_code','delivery_instruction_det.article_code')
+        ->where('di_number',$diNumber)
         ->get();
-
-        $data['totals']=DB::select("SELECT *,(gross-discount)+ppn as netto from (
-            select a.po_number,authorized_by,validate_by,sum(qty) as qty,sum(qty*price) as gross,sum(discount) as discount,sum(qty*price*b.ppn/100) as ppn from purchase_order_det a
-            left join purchase_order_hdr b
-            on a.po_number = b.po_number 
-            where a.po_number = '$poNumber'
-            group by a.po_number,authorized_by,validate_by) as oki");
 
         $data['suppliers']=DB::table('third_party')
-        ->where('kode',$poHdr -> supplier_id)
+        ->where('kode',$diHdr -> supplier_id)
         ->get();
 
-        $data['keterangan']=$poHdr -> note;
-        $data['poNumber'] =$poNumber;
-        $data['poDate'] =$poHdr -> po_date;
-        $data['poTerm'] =$poHdr -> termin;
-        $data['poDelDate'] =$poHdr -> delivery_date;
-        
-        $data['status'] = $poHdr->status;
+        $data['keterangan']=$diHdr -> note;
+        $data['diNumber'] =$diNumber;
+        $data['diDate'] =$diHdr -> di_date;
+        $data['diDelDate'] =$diHdr -> delivery_date;
+        $data['status'] = $diHdr->status;
         $data['no'] =0;
-
-        // $poNumber = 'PO-ASN/2022/V/8';
 
         $data['approved'] = DB::table('approval_history')
         ->leftJoin('users','users.username','approval_history.username')
-        ->where('module_number',$poNumber)
+        ->where('module_number',$diNumber)
         ->orderBy('approval_order','desc')
         ->value('users.name');
 
         view()->share($data);
 
         $pdf = PDF::loadView('deliveryInstruction.print');
-        return $pdf->stream("PO_$poNumber.pdf");
+        return $pdf->stream("PO_$diNumber.pdf");
 
     }
 
