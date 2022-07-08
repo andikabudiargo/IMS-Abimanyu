@@ -27,7 +27,7 @@
                                 </div>
                                 <div class="form-group col-md-2">
                                     <label for="trDate">Date*</label>
-                                    <input type="text" id="trDate" name="trDate" value="{{ old('trDate',$header->tr_date) }}" class="form-control" placeholder="DD-MM-YYYY" required disabled/>
+                                    <input type="text" id="trDate" name="trDate" value="{{ old('trDate',$header->tr_date) }}" class="form-control" placeholder="DD-MM-YYYY" required />
                                 </div>
                             </div>
                             <div class="form-row">
