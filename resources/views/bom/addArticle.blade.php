@@ -40,7 +40,7 @@
                     <input type="text" class="form-control numeral-mask-digit text-right tombol-panah" id ="qtyCon" name="qtyCon[]" maxlength="10" />
                 </div>
             </div>
-            <div class="col-md-2 col-12">
+            <div class="col-md-1 col-12">
                 <div class="form-group">
                     <label for="uom" class="d-block d-md-none">Type</label>
                     <span class="" id = "type" name="type[]"></span>
@@ -128,6 +128,7 @@
         let objArticle = $('#article_row select[name="article_id[]"]');
         let objType= $('#article_row span[name="type[]"]'); 
         let objQty = $('#article_row input[name="qtyBom[]"]');
+        let objCon = $('#article_row input[name="qtyCon[]"]');
         let objUom = $('#article_row select[name="uom[]"]');
         let objUomCon = $('#article_row select[name="uomCon[]"]');
         
@@ -151,11 +152,11 @@
                 let arrUomMember = uomMember.split(',');
                 $.each(arrUomMember, function(index, val) {
                     let uomDet = val.split(';');
-                    uomOption +=`<option data-faktor = ${uomDet[1]}>${uomDet[0]}</option>`;
+                    uomOption +=`<option data-factor = ${uomDet[1]}>${uomDet[0]}</option>`;
                 });
             }else{
                 if(arrDetail[1]){
-                    uomOption +=`<option data-faktor = '1'>${arrDetail[1]}</option>`;
+                    uomOption +=`<option data-factor = '1'>${arrDetail[1]}</option>`;
                 }
             }
             objUomCon.eq(objIndex).html(uomOption);
@@ -169,10 +170,10 @@
 		});
 
         objUomCon.change(function(e){ 
-            let objIndex = objArticle.index(this);
-            console.log("oki");
-            // let factor = objUomCon.eq(objIndex).find(":selected").data("detail");
-
+            let objIndex = objUomCon.index(this);
+            let qtyFactor = objUomCon.eq(objIndex).find(":selected").data("factor");
+            let qtyBom = objQty.eq(objIndex).val()||0;
+            objCon.eq(objIndex).val(parseFloat(qtyBom)*parseFloat(qtyFactor));
         }); 
     }
     listUom = (obj,value,uom) => {

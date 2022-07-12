@@ -13,7 +13,7 @@
                     <form id="frmAdd" name="frmAdd" action="{{ route('uomCon.store') }}" method="post" autocomplete="off">
                         @csrf
                         <div class="form-row">
-                            <div class="form-group col-md-6">
+                            <div class="form-group col-md-12">
                                 <label class="form-label" for="dept">Unit From *</label>
                                 <select class="select2 form-control dynamicSelect" id="unitFrom" name="unitFrom" data-dependent="unitTo" required>
                                     <option value="">All</option>
@@ -24,7 +24,7 @@
                             </div>
                         </div>
                         <div class="form-row">
-                            <div class="form-group col-md-6">
+                            <div class="form-group col-md-12">
                                 <label class="form-label" for="dept">Unit To *</label>
                                 <select class="select2 form-control" id="unitTo" name="unitTo" required>                                
                                 </select>
