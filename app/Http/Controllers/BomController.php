@@ -265,6 +265,7 @@ class BomController extends Controller
         ->select('bom_det.*'
         ,'uom.uom_group as uom_group'
         ,'article_types.name as type_name'
+        ,DB::RAW("(select unit_factor from uom_con where unit_from = bom_det.uom and unit_to = bom_det.uom_con) as factor_qty")
         ,DB::raw("concat(article.article_alternative_code,'-',article.article_desc) as article")
         )
         ->orderBy('bom_det.id')
@@ -333,7 +334,8 @@ class BomController extends Controller
         ->select('bom_det.*'
         ,'uom.uom_group as uom_group'
         ,'article_types.name as type_name'
-        ,DB::RAW("(select string_agg(unit_to,',' order by unit_from) as uom_member from uom_con where unit_from = bom_det.uom)")
+        ,DB::RAW("(select unit_factor from uom_con where unit_from = bom_det.uom and unit_to = bom_det.uom_con) as factor_qty")
+        ,DB::RAW("(select string_agg(concat(unit_to,';',unit_factor),',' order by unit_from) as uom_member from uom_con where unit_from = bom_det.uom)")
         ,DB::RAW("(select string_agg(code,',' order by code) as uoms from uom )")
         )
         ->orderBy('bom_det.id')

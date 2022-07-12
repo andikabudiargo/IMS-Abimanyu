@@ -2,12 +2,41 @@
     #article_row .form-group {
         margin-bottom: 0.5rem;
     }
+
+    @media screen 
+    and (min-device-width: 1200px) 
+    and (max-device-width: 1600px) 
+    and (-webkit-min-device-pixel-ratio: 1) { 
+        .lebar-list-item{
+            width:120%;
+        }
+        .container-list-item{
+            max-width:100%;
+            overflow-x:auto;
+            scrollbar-width: thin;
+            margin-top:7px;
+        }
+    }
+
+    @media only screen and (min-width: 600px)
+    and (max-width: 1200px)
+    {
+        .lebar-list-item{
+            width:200%;
+        }
+        .container-list-item{
+            max-width:100%;
+            overflow-x:auto;
+            scrollbar-width: thin;
+            margin-top:7px;
+        }
+    }
 </style>
 {{-- table row untuk di clone--}}
 <div id="new_row" name="new_row[]" class="d-none">
     <div id="baru" class="tanda-baris barisDetail" >
         <div class="form-row d-flex align-items-center">
-            <div class="col-md-6 col-12">
+            <div class="col-md-5 col-12">
                 <div class="form-group">
                     <label for="article_id" class="d-block d-md-none">Article Code</label>
                     <select class="dynamicSelect form-control" id="article_id" name="article_id[]" data-dependent="article_id">
@@ -37,10 +66,10 @@
             <div class="col-md-1 col-12">
                 <div class="form-group">
                     <label for="qtyCon" class="d-block d-md-none">QTY Con.</label>
-                    <input type="text" class="form-control numeral-mask-digit text-right tombol-panah" id ="qtyCon" name="qtyCon[]" maxlength="10" />
+                    <input type="text" class="form-control numeral-mask-digit text-right tombol-panah" id ="qtyCon" name="qtyCon[]" maxlength="10" disabled/>
                 </div>
             </div>
-            <div class="col-md-1 col-12">
+            <div class="col-md-2 col-12">
                 <div class="form-group">
                     <label for="uom" class="d-block d-md-none">Type</label>
                     <span class="" id = "type" name="type[]"></span>
@@ -62,7 +91,7 @@
 
 <script type="text/javascript">
     let cloneCount=1;
-    add_new_row_edit = (article,qty,uom,uomCon,typeName,uomMember,uoms) => {
+    add_new_row_edit = (article,qty,uom,uomCon,typeName,uomMember,uoms,factor) => {
         $("#article_row").append($("#new_row").clone().html());
         cloneCount++;
         $("#article_row").find('#baru').attr('id', 'new_row'+ cloneCount);
@@ -73,10 +102,12 @@
         $("#new_row"+ cloneCount).find('#type').attr('id', 'type'+ cloneCount);
         $("#type"+ cloneCount).text(typeName);
         $("#article_id"+cloneCount).select2();
+        $("#new_row"+ cloneCount).find('#qtyCon').attr('id', 'qtyCon'+ cloneCount);
+        $("#qtyCon"+ cloneCount).val(parseFloat(qty)*parseFloat(factor));
 
         let uomOption="";
         if (uoms){
-            let arrUom = uomMember.split(',');
+            let arrUom = uoms.split(',');
             $.each(arrUom, function(index, val) {
                 uomOption +=`<option>${val}</option>`;
             });
@@ -90,7 +121,8 @@
         if (uomMember){
             let arrUomMember = uomMember.split(',');
             $.each(arrUomMember, function(index, val) {
-                uomOptionCon +=`<option>${val}</option>`;
+                let uomDet = val.split(';');
+                uomOptionCon +=`<option data-factor = ${uomDet[1]}>${uomDet[0]}</option>`;
             });
         }else{
             if(uom){
@@ -106,8 +138,10 @@
         $("#uomCon"+ cloneCount).val(uom).trigger('change');
         $('#remove_button').tooltip();
         tombolPanah('qtyBom');
+        hitungTotal();
         mask_thousand_digit(numberOfDecimalDigit);
     }
+
     add_new_row = () => {
         $("#article_row").append($("#new_row").clone().html());
         cloneCount++;
@@ -121,6 +155,7 @@
         $('#remove_button').tooltip();
         tombolPanah('qtyBom');
         splitArticle('new');
+        hitungTotal();
         mask_thousand_digit(numberOfDecimalDigit);
     };
 
@@ -167,15 +202,9 @@
                     objQty.eq(objIndex).focus().select();
                 }, 5);
             }
-		});
-
-        objUomCon.change(function(e){ 
-            let objIndex = objUomCon.index(this);
-            let qtyFactor = objUomCon.eq(objIndex).find(":selected").data("factor");
-            let qtyBom = objQty.eq(objIndex).val()||0;
-            objCon.eq(objIndex).val(parseFloat(qtyBom)*parseFloat(qtyFactor));
-        }); 
+		}); 
     }
+
     listUom = (obj,value,uom) => {
         $.ajax({
         url:"{{ route('receiving.list.uom') }}",
@@ -390,5 +419,34 @@
         $('#group').val(detail[5]);
         $('#group').attr('data-group', detail[3]);
     })
+
+    function hitungTotal(){
+        let objArticle = $('#article_row select[name="article_id[]"]');
+        let objQty = $('#article_row input[name="qtyBom[]"]');
+        let objCon = $('#article_row input[name="qtyCon[]"]');
+        let objUom = $('#article_row select[name="uom[]"]');
+        let objUomCon = $('#article_row select[name="uomCon[]"]');
+        
+        objQty.keyup(function() {
+            let indexnya= objQty.index(this);
+            console.log(objArticle.eq(indexnya).val());
+            if(objArticle.eq(indexnya).val()){
+                let qtyFactor = objUomCon.eq(indexnya).find(":selected").data("factor") || 1;
+                let qtyBom = objQty.eq(indexnya).val().replace(/,/gi, '') || 0; 
+                objCon.eq(indexnya).val(parseFloat(qtyBom)*parseFloat(qtyFactor));
+                mask_thousand_digit(numberOfDecimalDigit);
+            }
+        });
+        
+        objUomCon.change(function(e){ 
+            let indexnya = objUomCon.index(this);
+            if(objArticle.eq(indexnya).val()){
+                let qtyFactor = objUomCon.eq(indexnya).find(":selected").data("factor") || 1;
+                let qtyBom = objQty.eq(indexnya).val()||0;
+                objCon.eq(indexnya).val(parseFloat(qtyBom)*parseFloat(qtyFactor));
+                mask_thousand_digit(numberOfDecimalDigit);
+            }
+        });
+    }
 
 </script>

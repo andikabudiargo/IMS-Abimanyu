@@ -116,7 +116,7 @@
                                                         <td ></td>
                                                         <td >{{ $item->article }}</td>
                                                         <td class="text-right">{{ number_format($item->qty,$decimalPlaces) }} {{ $item->uom }}</td>
-                                                        <td > {{ $item->uom_con }}</td>
+                                                        <td class="text-right">{{ number_format($item->qty*$item->factor_qty,$decimalPlaces) }} {{ $item->uom_con }}</td>
                                                         <td >{{ $item->type_name }}</td>
                                                     </tr>
                                                 @endif

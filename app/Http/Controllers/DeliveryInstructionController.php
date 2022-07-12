@@ -114,23 +114,31 @@ class DeliveryInstructionController extends Controller
             ->where('status','3')
             ->where('supplier_id',$supplier);
         })
-        ->select('purchase_order_det.*'
-        ,DB::raw("COALESCE(purchase_order_det.qty,0) - COALESCE(qty_rec,0) as qty_order")
-        ,'article_stock.article_qty as qty_stock'
+        ->select(
+        // 'purchase_order_det.*',
+        // ,DB::raw("COALESCE(purchase_order_det.qty,0) - COALESCE(qty_rec,0) as qty_order")
+        // ,'article_stock.article_qty as qty_stock'
+        // ,'purchase_order_hdr.supplier_id'
+        // ,'article.article_alternative_code'
+        // ,'article.article_desc'
+        DB::raw("distinct('purchase_order_det.article_code')")
+        ,'purchase_order_det.article_code'
+        ,'purchase_order_det.uom'
         ,'purchase_order_hdr.supplier_id'
         ,'article.article_alternative_code'
         ,'article.article_desc'
         ,DB::RAW("(select string_agg(distinct po_number,'|' order by po_number) as list_po from 
-                    purchase_order_det 
-                    where article_code = purchase_order_det.article_code 
-                    and po_number 
-                    in (select po_number from purchase_order_hdr where status = '3' and supplier_id = '$supplier'))")
+                    purchase_order_det as pod
+                    where pod.article_code = purchase_order_det.article_code 
+                    and pod.po_number 
+                    in (select po_number from purchase_order_hdr where status = '3' and supplier_id = purchase_order_hdr.supplier_id))")
         )
         ->orderBy('article.article_desc')
         ->get();
 
         $output='';
         $output .='<option value="">Choose Article</option>';
+        
         foreach ($data as $row){
             $output .='<option value="'.$row->article_code.'" 
                         data-list-po= "'.$row->list_po.'" 

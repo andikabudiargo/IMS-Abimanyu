@@ -91,8 +91,12 @@
                     <h4 class="card-title">Article</h4>
                 </div>
                 <div class="card-body">
-                    @include('bom.headerColumn')
-                    <div class="" id="article_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;">
+                    <div class="container-list-item">
+                        <div class="lebar-list-item">
+                            @include('bom.headerColumn')
+                            <div class="" id="article_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;">
+                            </div>
+                        </div>
                     </div>
                     <div class="d-flex justify-content-between align-items-end mt-75">
                         @if( $statusBom =='NEW')
@@ -193,7 +197,8 @@
             typeName = detail[i].type_name;
             uomMember = detail[i].uom_member;
             uoms = detail[i].uoms;
-            add_new_row_edit(article,qty,uom,uomCon,typeName,uomMember,uoms);
+            factor = detail[i].factor_qty;
+            add_new_row_edit(article,qty,uom,uomCon,typeName,uomMember,uoms,factor);
         }
     });
 
