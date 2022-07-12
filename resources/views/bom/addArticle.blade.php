@@ -16,7 +16,7 @@
             </div>
             <div class="col-md-1 col-12">
                 <div class="form-group">
-                    <label for="qty_stock" class="d-block d-md-none">QTY</label>
+                    <label for="qtyBom" class="d-block d-md-none">QTY</label>
                     <input type="text" class="form-control numeral-mask-digit text-right tombol-panah" id ="qtyBom" name="qtyBom[]" maxlength="10" />
                 </div>
             </div>
@@ -32,6 +32,12 @@
                     <label for="uomCon" class="d-block d-md-none">Uom Con.</label>
                     <select class="form-control" id="uomCon" name="uomCon[]">
                     </select>
+                </div>
+            </div>
+            <div class="col-md-1 col-12">
+                <div class="form-group">
+                    <label for="qtyCon" class="d-block d-md-none">QTY Con.</label>
+                    <input type="text" class="form-control numeral-mask-digit text-right tombol-panah" id ="qtyCon" name="qtyCon[]" maxlength="10" />
                 </div>
             </div>
             <div class="col-md-2 col-12">
@@ -117,6 +123,7 @@
         splitArticle('new');
         mask_thousand_digit(numberOfDecimalDigit);
     };
+
     splitArticle = () => {
         let objArticle = $('#article_row select[name="article_id[]"]');
         let objType= $('#article_row span[name="type[]"]'); 
@@ -143,11 +150,12 @@
             if (uomMember){
                 let arrUomMember = uomMember.split(',');
                 $.each(arrUomMember, function(index, val) {
-                    uomOption +=`<option>${val}</option>`;
+                    let uomDet = val.split(';');
+                    uomOption +=`<option data-faktor = ${uomDet[1]}>${uomDet[0]}</option>`;
                 });
             }else{
                 if(arrDetail[1]){
-                    uomOption +=`<option>${arrDetail[1]}</option>`;
+                    uomOption +=`<option data-faktor = '1'>${arrDetail[1]}</option>`;
                 }
             }
             objUomCon.eq(objIndex).html(uomOption);
@@ -159,6 +167,13 @@
                 }, 5);
             }
 		});
+
+        objUomCon.change(function(e){ 
+            let objIndex = objArticle.index(this);
+            console.log("oki");
+            // let factor = objUomCon.eq(objIndex).find(":selected").data("detail");
+
+        }); 
     }
     listUom = (obj,value,uom) => {
         $.ajax({

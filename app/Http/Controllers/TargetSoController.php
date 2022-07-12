@@ -273,6 +273,7 @@ class TargetSoController extends Controller
         return response()->json(array('status' => 0, 'data' => $detail));
 
     }
+
     public function showEdit($key)
     {
         $id=Crypt::decryptString($key);
@@ -320,7 +321,6 @@ class TargetSoController extends Controller
 
     public function update(Request $request)
     {
-
         $username =  Auth::user()->username;
         $articles = json_decode($request->articles);
         $tsoCode = $request->tsoCode;
@@ -588,6 +588,7 @@ class TargetSoController extends Controller
                                     </a>';
                 }
             }
+
             if ( $data->status == '1' or $data->status == '2' ){
                 if (Auth::user()->can('purchaseOrder-edit')) {
                 $buttons .=         '<a href="'. route('targetSo.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
@@ -596,14 +597,15 @@ class TargetSoController extends Controller
                                     </a>';
                 }
             }
-            // if (($data->status == '2') || ($data->status == '3') ){
-            //     if (Auth::user()->can('purchaseOrder-revision')) {
-            //         $buttons .=         '<a href="'. route('targetSo.revision', ['id'=>Crypt::encryptString($data->id),'nR'=>$data->num_revision]) .'" class="dropdown-item">
-            //                                 <i data-feather="copy"></i>
-            //                                 <span>'. __("Revision") .'</span>
-            //                             </a>';
-            //     }
-            // }
+
+            if (($data->status == '2') || ($data->status == '3') ){
+                if (Auth::user()->can('purchaseOrder-revision')) {
+                    $buttons .=         '<a href="'. route('targetSo.revision', ['id'=>Crypt::encryptString($data->id),'nR'=>$data->num_revision]) .'" class="dropdown-item">
+                                            <i data-feather="copy"></i>
+                                            <span>'. __("Revision") .'</span>
+                                        </a>';
+                }
+            }
             
             // $buttons .=         '<a href="'. route('targetSo.print', ['id'=>Crypt::encryptString($data->id)]) .'" target="_blank" class="dropdown-item">
             //                         <i data-feather="printer"></i>
@@ -719,267 +721,157 @@ class TargetSoController extends Controller
         ->make(true);
     }
 
-     // public function revision(Request $request){
-    //     $username =  Auth::user()->username;
-    //     $id=Crypt::decryptString($request->id);
-    //     $poOrigin=DB::table('purchase_order_hdr')->where('id',$id)->value('po_number');
-    //     $numRevision = $request->nR ? $request->nR +1 : 1 ;
-    //     $poNew = $poOrigin.'-R'.$numRevision;
-    //     $checkNewPo=DB::table('purchase_order_hdr')->where('po_number',$poNew)->count();
+    public function revision(Request $request){
+        $username =  Auth::user()->username;
+        $id=Crypt::decryptString($request->id);
+        $poOrigin=DB::table('purchase_order_hdr')->where('id',$id)->value('po_number');
+        $numRevision = $request->nR ? $request->nR +1 : 1 ;
+        $poNew = $poOrigin.'-R'.$numRevision;
+        $checkNewPo=DB::table('purchase_order_hdr')->where('po_number',$poNew)->count();
 
-    //     if ($checkNewPo > 0){
-    //         $poNew = $poOrigin.'-R'.$numRevision+1;
-    //     } 
+        if ($checkNewPo > 0){
+            $poNew = $poOrigin.'-R'.$numRevision+1;
+        } 
                 
-    //     $sqlHdr = "INSERT into purchase_order_hdr 
-    //     (
-    //         po_number,
-    //         origin_po_number,
-    //         supplier_id,
-    //         po_date,
-    //         delivery_date,
-    //         currency,
-    //         authorized_by,
-    //         authorized_at,
-    //         validate_by,
-    //         discount,
-    //         kurs,
-    //         pkp,
-    //         ppn,
-    //         pph22,
-    //         termin,
-    //         order_type,
-    //         status,
-    //         num_revision,
-    //         revised_by,
-    //         revised_at,
-    //         note,
-    //         created_by,
-    //         updated_by,
-    //         created_at,
-    //         updated_at
-    //     )
-    //     select 
-    //         '$poNew',
-    //         '$poOrigin',
-    //         supplier_id,
-    //         po_date,
-    //         delivery_date,
-    //         currency,
-    //         authorized_by,
-    //         authorized_at,
-    //         validate_by,
-    //         discount,
-    //         kurs,
-    //         pkp,
-    //         ppn,
-    //         pph22,
-    //         termin,
-    //         order_type,
-    //         '7',
-    //         $numRevision,
-    //         '$username',
-    //         '".date('Y-m-d H:i:s')."',
-    //         note,
-    //         '$username',
-    //         '$username',
-    //         '".date('Y-m-d H:i:s')."',
-    //         '".date('Y-m-d H:i:s')."'
-    //     from purchase_order_hdr where po_number = '$poOrigin'";
+        $sqlHdr = "INSERT into purchase_order_hdr 
+        (
+            po_number,
+            origin_po_number,
+            supplier_id,
+            po_date,
+            delivery_date,
+            currency,
+            authorized_by,
+            authorized_at,
+            validate_by,
+            discount,
+            kurs,
+            pkp,
+            ppn,
+            pph22,
+            termin,
+            order_type,
+            status,
+            num_revision,
+            revised_by,
+            revised_at,
+            note,
+            created_by,
+            updated_by,
+            created_at,
+            updated_at
+        )
+        select 
+            '$poNew',
+            '$poOrigin',
+            supplier_id,
+            po_date,
+            delivery_date,
+            currency,
+            authorized_by,
+            authorized_at,
+            validate_by,
+            discount,
+            kurs,
+            pkp,
+            ppn,
+            pph22,
+            termin,
+            order_type,
+            '7',
+            $numRevision,
+            '$username',
+            '".date('Y-m-d H:i:s')."',
+            note,
+            '$username',
+            '$username',
+            '".date('Y-m-d H:i:s')."',
+            '".date('Y-m-d H:i:s')."'
+        from purchase_order_hdr where po_number = '$poOrigin'";
 
-    //     $sqlDet="INSERT into purchase_order_det
-    //     (
-    //         po_number,
-    //         pr_number,
-    //         article_code,
-    //         qty,
-    //         uom,
-    //         old_price,
-    //         price,
-    //         ppn,
-    //         pph22,
-    //         created_by,
-    //         updated_by,
-    //         created_at,
-    //         updated_at
-    //     )
-    //     select '$poNew',
-    //         pr_number,
-    //         article_code,
-    //         qty,
-    //         uom,
-    //         old_price,
-    //         price,
-    //         ppn,
-    //         pph22,
-    //         '$username',
-    //         '$username',
-    //         '".date('Y-m-d H:i:s')."',
-    //         '".date('Y-m-d H:i:s')."' 
-    //     from purchase_order_det where po_number = '$poOrigin'";
+        $sqlDet="INSERT into purchase_order_det
+        (
+            po_number,
+            pr_number,
+            article_code,
+            qty,
+            uom,
+            old_price,
+            price,
+            ppn,
+            pph22,
+            created_by,
+            updated_by,
+            created_at,
+            updated_at
+        )
+        select '$poNew',
+            pr_number,
+            article_code,
+            qty,
+            uom,
+            old_price,
+            price,
+            ppn,
+            pph22,
+            '$username',
+            '$username',
+            '".date('Y-m-d H:i:s')."',
+            '".date('Y-m-d H:i:s')."' 
+        from purchase_order_det where po_number = '$poOrigin'";
 
-    //     $rowAffected =  DB::select($sqlHdr);
-    //     if ($rowAffected){
-    //         DB::select($sqlDet);
+        $rowAffected =  DB::select($sqlHdr);
+        if ($rowAffected){
+            DB::select($sqlDet);
 
-    //         // status:
-    //         // 1 = New
-    //         // 2 = Validated
-    //         // 3 = Authorized
-    //         // 4 = Received
-    //         // 5 = Canceled
-    //         // 6 = closed
-    //         // 7 = Revised
+            // status:
+            // 1 = New
+            // 2 = Validated
+            // 3 = Authorized
+            // 4 = Received
+            // 5 = Canceled
+            // 6 = closed
+            // 7 = Revised
 
-    //         DB::table('purchase_order_hdr')
-    //         ->where('po_number',$poOrigin)
-    //         ->update(
-    //             [
-    //                 'num_revision' => $numRevision,
-    //                 'status' => '1',
-    //                 'revised_by'=>Auth::user()->username,
-    //                 'revised_at'=> date('Y-m-d H:i:s'),
-    //                 'updated_by' => Auth::user()->username,
-    //                 'updated_at' => date('Y-m-d H:i:s')
-    //             ]
-    //         );
+            DB::table('purchase_order_hdr')
+            ->where('po_number',$poOrigin)
+            ->update(
+                [
+                    'num_revision' => $numRevision,
+                    'status' => '1',
+                    'revised_by'=>Auth::user()->username,
+                    'revised_at'=> date('Y-m-d H:i:s'),
+                    'updated_by' => Auth::user()->username,
+                    'updated_at' => date('Y-m-d H:i:s')
+                ]
+            );
 
-    //         DB::table('approval_history')
-    //         ->where('module_number',$poOrigin)
-    //         ->update(
-    //             [
-    //                 'module_number' => $poNew,
-    //                 'status' => '0',
-    //                 'updated_by' => Auth::user()->username,
-    //                 'updated_at' => date('Y-m-d H:i:s')
-    //             ]
-    //         );
+            DB::table('approval_history')
+            ->where('module_number',$poOrigin)
+            ->update(
+                [
+                    'module_number' => $poNew,
+                    'status' => '0',
+                    'updated_by' => Auth::user()->username,
+                    'updated_at' => date('Y-m-d H:i:s')
+                ]
+            );
             
-    //         $title ="Save $this->title";
-    //         $alert  ="success";
-    //         $message  = "$title Revison PO: $poOrigin to $poNew is successfully saved";
-    //         \LogActivity::addToLog($title,"username: $username Status $message");
-    //         // return $this->showEdit(Crypt::encryptString($id));
-    //         return redirect()->route('targetSo.edit', ['id'=>Crypt::encryptString($data->id)]);
-    //     }else{
-    //         $title ="Save $this->title";
-    //         $alert  ="warning";
-    //         $message  = "$title Revison PO: $poOrigin to $poNew is failed to save";
-    //         \LogActivity::addToLog($title,"username: $username Status $message");
-    //         return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);
-    //     }
-        
-    // }
-
-    // public function decline(Request $request)
-    // {
-    //     $username =  Auth::user()->username;
-    //     $poNumber = $request->poNumber;
-    //     $statusLevelApproval = Approval::approvalLevelPosition($this->moduleCode,$poNumber,$username);        
-    //     $nextLevel = $statusLevelApproval[0]->next_level;
-    //     $statusTso = '8';
-                
-    //     DB::beginTransaction();
-    //     try {
-    //             $row_affected=DB::table('purchase_order_hdr')
-    //             ->where('po_number',$poNumber)
-    //             ->update(
-    //                 [
-    //                     'status' => $statusTso,
-    //                     'authorized_by' => Auth::user()->username,
-    //                     'authorized_at' => date('Y-m-d H:i:s')
-    //                 ]
-    //             );
-
-    //             if ($row_affected){
-    //                 DB::table('approval_history')->insert([
-    //                     'module_code' => $this->moduleCode,
-    //                     'module_number' => $poNumber,
-    //                     'username' => Auth::user()->username,
-    //                     'approval_order' => $nextLevel,
-    //                     'approval_date' => date('Y-m-d'),
-    //                     'status' => 0,
-    //                     'created_by' => Auth::user()->username,
-    //                     'updated_by' => Auth::user()->username,
-    //                     'created_at' => date('Y-m-d H:i:s'),
-    //                     'updated_at' => date('Y-m-d H:i:s')
-    //                 ]);
-    //             }
-                
-    //             DB::commit();
-    //             $title ="Decline $this->title";
-    //             $alert  ="success";
-    //             $message  = "$title $poNumber is successfully decline";
-    //             \LogActivity::addToLog($title,"username: $username Status $message");
-    //             return response()->json(array('statusPo' => $statusTso,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'tsoCode'=>$poNumber));
-
-    //     } catch (Exception $e) {
-    //         DB::rollBack();
-    //         $title ="Decline $this->title";
-    //         $alert  ="warning";
-    //         $message  = "$title $poNumber is failed to decline";
-    //         \LogActivity::addToLog($title,"username: $username Status $message");
-    //         return response()->json(array('statusPo' => $statusTso,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'tsoCode'=>$poNumber));
-    //     }
-    // }
-
-   
-
-    // public function clear(Request $request)
-    // {
-    //     //memutihkan PO supaya tidak bisa di pakai lagi
-    //     //status PO jadi closed
-    //     $username =  Auth::user()->username;       
-    //     $id=Crypt::decryptString($request->id);
-    //     $po_number = DB::table('purchase_order_hdr')->where('id',$id)->value('po_number');
-    //     $status = '6';
-    //     DB::beginTransaction();
-    //     try {
-    //             $row_affected=DB::table('purchase_order_hdr')
-    //             ->where('id',$id)
-    //             ->update(
-    //                 [
-    //                     'status' => $status,
-    //                     'updated_by' => Auth::user()->username,
-    //                     'updated_at' => date('Y-m-d H:i:s')
-    //                 ]
-    //             );
-                
-    //             DB::commit();
-    //             $title ="Clear $this->title";
-    //             $alert  ="success";
-    //             $message  = "$title $po_number Successfully Closed";
-    //             \LogActivity::addToLog($title,"username: $username Status $message");
-    //             return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);
-
-    //     } catch (Exception $e) {
-    //         DB::rollBack();
-    //         $title ="Clear $this->title";
-    //         $alert  ="warning";
-    //         $message  = "$title $po_number Failed to Close";
-    //         \LogActivity::addToLog($title,"username: $username Status $message");
-    //         return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);
-    //     }
-
-    // }
-
-    // public function priceList(Request $request)
-    // {
-    //     $articleCode = $request -> article;
-    //     $listArticle = DB::table('purchase_order_det')
-    //     ->leftJoin('purchase_order_hdr','purchase_order_hdr.po_number','purchase_order_det.po_number')
-    //     ->where('article_code',$articleCode)
-    //     ->select('purchase_order_det.po_number','po_date','price', 'purchase_order_hdr.created_at')
-    //     ->orderBy('po_date','desc')
-    //     ->where('status','<>','7')
-    //     ->limit(10)
-    //     ->get();
-
-    //     return Response()->json($listArticle);
-
-    // }
-
-    
+            $title ="Save $this->title";
+            $alert  ="success";
+            $message  = "$title Revison PO: $poOrigin to $poNew is successfully saved";
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            // return $this->showEdit(Crypt::encryptString($id));
+            return redirect()->route('targetSo.edit', ['id'=>Crypt::encryptString($data->id)]);
+        }else{
+            $title ="Save $this->title";
+            $alert  ="warning";
+            $message  = "$title Revison PO: $poOrigin to $poNew is failed to save";
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);
+        }       
+    }
+ 
 
     // public function print(Request $request)
     // {

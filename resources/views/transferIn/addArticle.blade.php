@@ -191,7 +191,7 @@
                             });
                         }
                     // } 
-                
+                        console.log(arrArticles);
                     if (qty == 0 ){
                         pesan +="QTY of items "+ articleName +" cannot be 0 <br>"; 
                         flag=1;

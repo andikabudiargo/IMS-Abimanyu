@@ -120,7 +120,7 @@ class DeliveryInstructionController extends Controller
         ,'purchase_order_hdr.supplier_id'
         ,'article.article_alternative_code'
         ,'article.article_desc'
-        ,DB::RAW("(select string_agg(distinct po_number,',' order by po_number) as list_po from 
+        ,DB::RAW("(select string_agg(distinct po_number,'|' order by po_number) as list_po from 
                     purchase_order_det 
                     where article_code = purchase_order_det.article_code 
                     and po_number 
