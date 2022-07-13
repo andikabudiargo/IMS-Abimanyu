@@ -278,7 +278,7 @@ class DependentController extends Controller
             // Permintaan dari bu ifah tidak usah di filter by supplier
             // 11 04 2022 permintaan batal dari bu Yorin, jadi tetap di filter
             ->where($field,$code)
-            ->where('po_number','=',null)
+            // ->where('po_number','=',null)
             ->where('pr_number','=',$prNumber)
             ->orderBy('article.article_desc')
             ->distinct('article.article_desc')
@@ -291,6 +291,11 @@ class DependentController extends Controller
             ,'group_materials.name as group'
             ,'uom.uom_group'
             ,DB::raw("(SELECT price as last_price from purchase_order_det where article_code = $table.article_code order by updated_at,created_at desc limit 1) as last_price")
+            ,DB::RAW("(select coalesce(sum(qty),0) from purchase_order_det 
+                where article_code = purchase_request_det.article_code 
+                and  pr_number = purchase_request_det.pr_number
+                and po_number in (select po_number from purchase_order_hdr where status = '3')
+                ) as qty_po")
             )
             ->get();
         }elseif($dependent =='searchFromPr_sub'){
@@ -371,9 +376,16 @@ class DependentController extends Controller
             // permintaan bu ifah tidak si filter by supplier
             // 11 04 2022 permintaan batal dari bu Yorin, jadi tetap di filter
             ->where($field,$code)
-            ->where('po_number','=',null)
+            // ->where('po_number','=',null)
             ->orderBy($order)
             ->distinct($order)
+            ->select('purchase_request_det.*',
+                DB::RAW("(select coalesce(sum(qty),0) from purchase_order_det 
+                where article_code = purchase_request_det.article_code 
+                and  pr_number = purchase_request_det.pr_number
+                and po_number in (select po_number from purchase_order_hdr where status = '3')
+                ) as qty_po")
+            )
             ->get();
         }elseif($dependent =='pRequest_sub'){
             $data= DB::table($table) 
@@ -450,7 +462,9 @@ class DependentController extends Controller
                 '.$row->article_alternative_code.' - '. $row->article_desc.'
                 </option>';
             }elseif($dependent =='searchFromPr'){
-                $output .='<option value="'.$row->article_code.'|'.$row->group.'|'.$row->qty_stock.'|'.$row->qty.'|'.$row->uom1.'|'.$row->costprice.'|'.$row->last_price.'" data-uom-group="'.$row->uom_group.'">'.$row->article_alternative_code.' - '. $row->article_desc.'</option>';
+                if (($row->qty-$row->qty_po) > 0 ){
+                    $output .='<option value="'.$row->article_code.'|'.$row->group.'|'.$row->qty_stock.'|'.($row->qty-$row->qty_po).'|'.$row->uom1.'|'.$row->costprice.'|'.$row->last_price.'" data-uom-group="'.$row->uom_group.'">'.$row->article_alternative_code.' - '. $row->article_desc.'</option>';
+                }
             }elseif($dependent =='searchFromPr_sub'){
                 $output .='<option value="'.$row->article_code.'|'.$row->group.'|'.$row->qty_stock.'|'.$row->qty.'|'.$row->uom1.'|'.$row->costprice.'|'.$row->last_price.'" data-uom-group="'.$row->uom_group.'">'.$row->article_alternative_code.' - '. $row->article_desc.'</option>';
             }elseif($dependent =='searchFromSO'){
@@ -463,6 +477,10 @@ class DependentController extends Controller
                 $output .="<option value='$row->article_code' data-uom-group ='$row->uom_group' data-uom ='$row->uom'>$row->article_alternative_code - $row->article_desc</option>";
             }elseif($dependent =='trArticle'){
                 $output .="<option value='$row->article_code' data-uom-member='".$row->uom_member."' data-uom-group ='$row->uom_group' data-uom ='$row->uom'>$row->article_alternative_code - $row->article_desc</option>";
+            }elseif($dependent =='pRequest'){
+                if(($row->qty-$row->qty_po) > 0){
+                    $output .="<option value='$row->pr_number'>$row->pr_number</option>";
+                }
             }else{
                 $output .='<option value="'.$row->$value.'">'.$row->$name.'</option>';
             }

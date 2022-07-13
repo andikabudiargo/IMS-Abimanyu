@@ -697,8 +697,14 @@ class BomController extends Controller
        
         $data['details']=DB::table('bom_det')
         ->leftJoin('article','article.article_code','bom_det.article_code')
+        ->leftJoin('third_party','third_party.kode','article.third_party')
+        ->select('bom_det.*'
+        ,'article.article_alternative_code'
+        ,'article.article_desc'
+        ,'third_party.nama')
         ->where('bom_code',$bomNumber)
         ->get();
+
         $username="";
         $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode,$bomNumber,$username);
         

@@ -139,7 +139,7 @@
                 <tr >
                     <td class="detail-padding" scope="row" >{{ ++$no }}</td>
                     <td class="detail-padding"  align="left">{{ $val->article_desc }}</td>
-                    <td class="detail-padding"  align="left">{{ $val->article_alternative_code }}</td>
+                    <td class="detail-padding"  align="left">{{ $val->nama }}</td>
                     <td class="detail-padding"  align="right">{{ $val->qty }}</td>
                     <td class="detail-padding"  align="left">{{ $val->uom }}</td>
                     <td class="detail-padding"  align="left">{{ $val->article_alternative_code }}</td>
