@@ -36,7 +36,7 @@
                         <div class="form-row">
                             <div class="form-group col-md-6">
                                 <label for="unitFactor">Unit Factor</label>
-                                <input type="text" id="unitFactor" name="unitFactor" class="form-control angka" value="{{ old('unitFactor',$uomCon->unit_factor) }}"  required  maxlength="20"/>
+                                <input type="text" id="unitFactor" name="unitFactor" class="form-control angka-decimal" value="{{ old('unitFactor',$uomCon->unit_factor) }}"  required  maxlength="20"/>
                             </div>
                         </div>
                         <br>

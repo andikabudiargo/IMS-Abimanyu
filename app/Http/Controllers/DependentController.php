@@ -266,7 +266,9 @@ class DependentController extends Controller
             ->select($table.'.*'
             ,'article_types.name as type_name'
             ,'uom.uom_group'
-            ,DB::RAW("(select string_agg(concat(unit_to,';',(select unit_factor from uom_con where unit_from=a.unit_to and unit_to = article.uom)),',' order by unit_from) as uom_member from uom_con a where unit_from = $table.uom)")
+            ,DB::RAW("(select 
+                        string_agg(concat(unit_to,';',(uom_conversion(a.unit_to,article.uom))),',' order by unit_from) as uom_member 
+                        from uom_con a where unit_from = $table.uom)")
             )
             ->get();
         }elseif($dependent =='searchFromPr'){
