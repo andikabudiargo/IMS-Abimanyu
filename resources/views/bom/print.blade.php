@@ -81,7 +81,7 @@
 
     footer {
         position: fixed; 
-        bottom: 5px; 
+        bottom: 3%; 
         left: 10px; 
         right: 10px;
         height: 180px; 
@@ -138,21 +138,28 @@
             @foreach ($details as $val )
                 <tr >
                     <td class="detail-padding" scope="row" >{{ ++$no }}</td>
-                    <td class="detail-padding"  align="left">{{ $val->article_desc }}</td>
-                    <td class="detail-padding"  align="left">{{ $val->nama }}</td>
-                    <td class="detail-padding"  align="right">{{ $val->qty }}</td>
-                    <td class="detail-padding"  align="left">{{ $val->uom }}</td>
-                    <td class="detail-padding"  align="left">{{ $val->article_alternative_code }}</td>
+                    <td class="detail-padding" align="left">{{ $val->article_desc }}</td>
+                    <td class="detail-padding" align="left">{{ $val->nama }}</td>
+                    <td class="detail-padding" align="right">{{ $val->qty }}</td>
+                    <td class="detail-padding" align="left">{{ $val->uom }}</td>
+                    <td class="detail-padding" align="left">{{ $val->article_alternative_code }}</td>
                 </tr>
             @endforeach
         </tbody>
     </table>
 
     <footer>
-        <h4 class="font-9" style="padding-left:10px;">Note:{{ $bomHdr->note_hdr }}</h4>
+        
+        {{-- <text class="font-9" style="padding-left:10px;">Note:{{ $bomHdr->note_hdr }}</p> --}}
         {{-- <h4 class="font-9" style="padding-left:10px;">No Revisi:</h4>
         <h4 class="font-9" style="padding-left:10px;">Engineering:</h4> --}}
+        <textarea class="font-9" type="text" style="height:20%;padding-left:10px;padding-bottom:10px;border:none">Note:<br>{{ $bomHdr->note_hdr }}<br></textarea>
         <table style="border:none;">
+            {{-- <tr>
+                <td colspan="2" style="border:none;">
+                    <textarea class="font-9" type="text" style="padding-left:10px;padding-bottom:10px;border:none">Note:<br>{{ $bomHdr->note_hdr }}<br></textarea>
+                </td>
+            </tr> --}}
             <tr>
                 <td align="Left" class="detail-padding-bawah">No Revisi</td>
                 <td align="Left" class="detail-padding-bawah">:{{ $bomHdr->num_revision }}</td>

@@ -7,7 +7,7 @@
         <div class="col-md-12">
             <div class="card">
                 <div class="card-header">
-                    <h4 class="card-title">Status: <span id="statusText"></span></h4>
+                    <h4 class="card-title">Status: New</h4>
                     <div class="heading-elements">
                         <ul class="list-inline mb-0">
                             <li><a data-action="collapse"><i data-feather="chevron-down"></i></a></li>
@@ -87,11 +87,15 @@
                     <h4 class="card-title">Article</h4>
                 </div>
                 <div class="card-body" >
-                    @include('receiving.headerColumn') 
-                    <input type="text" id ="last_row_number" class="d-none" value="0">
-                    <div class="" id="article_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px">
+                    <div class="container-list-item">
+                        <div class="lebar-list-item">
+                            @include('receiving.headerColumn') 
+                            <input type="text" id ="last_row_number" class="d-none" value="0">
+                            <div class="" id="article_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin">
+                            </div>
+                        </div>
                     </div>
-                    <div class="d-flex justify-content-between align-items-end mt-75 ml-75">
+                    <div class="d-flex justify-content-between align-items-end mt-75">
                     </div>
                     <div class="d-flex justify-content-between align-items-end mt-75">
                         <div class="col-md-4 ">
@@ -128,9 +132,9 @@
                         <div class="col-12">
                             <button class="btn btn-success" type="reset" id="cmdNew" name="cmdCancel">New</button>
                             <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Save</button>
-                            @can('receiving-posting')
+                            {{-- @can('receiving-posting')
                                 <button class="btn btn-dark" type="button" id="cmdPosting" name="cmdPosting">Posting</button>
-                            @endcan
+                            @endcan --}}
                         </div>
                     </div>
                 </div>
@@ -348,23 +352,23 @@
         mask_thousand_digit(numberOfDecimalDigit);
         hitungTotal();
 
-        if ( uomGroup === 'PIECE' ){
-            $('#qty_rec'+ cloneCount).removeClass("numeral-mask-digit");
-            $('#qty_rec'+ cloneCount).addClass("numeral-mask-satuan");
-            $('#qty_free'+ cloneCount).removeClass("numeral-mask-digit");
-            $('#qty_free'+ cloneCount).addClass("numeral-mask-satuan");
-            $('#qty_po'+ cloneCount).removeClass("numeral-mask-digit");
-            $('#qty_po'+ cloneCount).addClass("numeral-mask-satuan");
-            mask_thousand_satuan();
-        }else{
-            $('#qty_rec'+ cloneCount).removeClass("numeral-mask-satuan");
-            $('#qty_rec'+ cloneCount).addClass("numeral-mask-digit");
-            $('#qty_free'+ cloneCount).removeClass("numeral-mask-satuan");
-            $('#qty_free'+ cloneCount).addClass("numeral-mask-digit");
-            $('#qty_po'+ cloneCount).removeClass("numeral-mask-satuan");
-            $('#qty_po'+ cloneCount).addClass("numeral-mask-digit");
-            mask_thousand_digit(numberOfDecimalDigit);
-        }
+        // if ( uomGroup === 'PIECE' ){
+        //     $('#qty_rec'+ cloneCount).removeClass("numeral-mask-digit");
+        //     $('#qty_rec'+ cloneCount).addClass("numeral-mask-satuan");
+        //     $('#qty_free'+ cloneCount).removeClass("numeral-mask-digit");
+        //     $('#qty_free'+ cloneCount).addClass("numeral-mask-satuan");
+        //     $('#qty_po'+ cloneCount).removeClass("numeral-mask-digit");
+        //     $('#qty_po'+ cloneCount).addClass("numeral-mask-satuan");
+        //     mask_thousand_satuan();
+        // }else{
+        //     $('#qty_rec'+ cloneCount).removeClass("numeral-mask-satuan");
+        //     $('#qty_rec'+ cloneCount).addClass("numeral-mask-digit");
+        //     $('#qty_free'+ cloneCount).removeClass("numeral-mask-satuan");
+        //     $('#qty_free'+ cloneCount).addClass("numeral-mask-digit");
+        //     $('#qty_po'+ cloneCount).removeClass("numeral-mask-satuan");
+        //     $('#qty_po'+ cloneCount).addClass("numeral-mask-digit");
+        //     mask_thousand_digit(numberOfDecimalDigit);
+        // }
     }
 
     $("#cmdPosting").click(function(){

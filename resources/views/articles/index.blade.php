@@ -32,16 +32,7 @@
                       </select>
                     </div>
                     <div class="form-group col-md-4"> 
-                      <label class="form-label" for="searchCustomer">Customer</label>
-                      <select class="select2 form-control" id="searchCustomer" name="searchCustomer">
-                          <option value="">All</option>
-                          @foreach($custs as $val)
-                              <option value="{{$val->kode}}">{{$val->kode}} - {{$val->nama}}</option>
-                          @endforeach
-                      </select>
-                    </div>
-                    <div class="form-group col-md-4"> 
-                      <label class="form-label" for="searchSupplier">Supplier</label>
+                      <label class="form-label" for="searchSupplier">Supplier/Customer</label>
                       <select class="select2 form-control" id="searchSupplier" name="searchSupplier">
                           <option value="">All</option>
                           @foreach($supps as $val)
@@ -140,23 +131,21 @@
       let name = $("#searchName").val();
       let code = $("#seachCode").val();
       let group = $("#searchGroup").val();
-      let cust = $("#searchCustomer").val();
       let supp = $("#searchSupplier").val();
       let type = $("#searchType").val();
-      showList(name,code,group,cust,supp,type);
+      showList(name,code,group,supp,type);
   });
 
   $("#btnSearch").click(function(e){
       let name = $("#searchName").val();
       let code = $("#seachCode").val();
       let group = $("#searchGroup").val();
-      let cust = $("#searchCustomer").val();
       let supp = $("#searchSupplier").val();
       let type = $("#searchType").val();
-      showList(name,code,group,cust,supp,type);
+      showList(name,code,group,supp,type);
   });
 
-  const showList = (name,code,group,cust,supp,type) => {
+  const showList = (name,code,group,supp,type) => {
     if ($('#detailedTable tr').length >0){
         let table= $('#detailedTable').DataTable();
         table.destroy();
@@ -167,7 +156,7 @@
       tableId:"detailedTable",
       route:"{{ route('article.list') }}",
       kolom:{!! $kolom !!},
-      arrColPrint:[1,2,3,4,5,6,7,8,9],
+      arrColPrint:[1,2,3,4,5,6,7,8,9,10,11],
       columnDefs :[
         { width: '5%', targets: 0 },
         { className: 'text-right','targets': [ 4,5,7,8 ] },
@@ -176,7 +165,6 @@
         name:name,
         code:code,
         group:group,
-        cust:cust,
         supp:supp,
         type:type
       },

@@ -63,6 +63,7 @@ class WarehouseController extends Controller
         $kolom=    
         [
             ['data'=>'action','name'=>'action','title'=>'action','orderable'=>false, 'searchable'=>false],
+            ['data'=>'location_number','name'=>'location_number','title'=>'Location'],
             ['data'=>'article_alternative_code','name'=>'article_alternative_code','title'=>'Code'],
             ['data'=>'desc','name'=>'article_desc','title'=>'Name'],
             ['data'=>'cust','name'=>'third_party.nama','title'=>'Custs/Supp'],
@@ -71,6 +72,7 @@ class WarehouseController extends Controller
             ['data'=>'uom','name'=>'uom','title'=>'UOM'],
             ['data'=>'safety_stock','name'=>'safety_stock','title'=>'Safety Stock'],
             ['data'=>'min_package','name'=>'min_package','title'=>'Min Package'],
+            ['data'=>'last_rec_date','name'=>'last_rec_date','title'=>'Last Rec'],
             ['data'=>'group','name'=>'group_materials.name','title'=>'Group'],
             ['data'=>'status','name'=>'status','title'=>'Status'],
             ['data'=>'note','name'=>'note','title'=>'Note']
@@ -97,21 +99,15 @@ class WarehouseController extends Controller
 
     public function article(Request $request)
     {
-        $data['title'] = "$this->title Article";
+        $data['title'] = "Stock Article";
 
         $data['types'] = DB::table('article_types')
         ->where ('status','=',1)
         ->orderBy('name')
         ->get();
-
-        $data['custs'] = DB::table('third_party')
-        ->where ('third_party_type','=','cust')
-        ->orderBy('nama')
-        ->get();
-
     
         $data['supps'] = DB::table('third_party')
-        ->where ('third_party_type','=','supp')
+        // ->where ('third_party_type','=','supp')
         ->orderBy('nama')
         ->get();        
 
@@ -1170,10 +1166,11 @@ class WarehouseController extends Controller
         $code = strtolower($request->code);
         $name = strtolower($request->name);
         $group = strtolower($request->group);
-        $cust = strtolower($request->cust);
         $supp = strtolower($request->supp);
         $type = strtolower($request->type);
-
+        $qty = $request->qty;
+        $operator = $request->opr;
+       
         $data=DB::table('article')
         ->select('article.*'
         ,'costprice'
@@ -1189,19 +1186,22 @@ class WarehouseController extends Controller
         ,'article_stock.article_qty as article_qty'
         ,'safety_stock'
         ,'min_package'
-        ,'uom.uom_group')
+        ,'uom.uom_group'
+        ,'location_number'
+        ,DB::raw("last_rec_date(article.article_code) as last_rec_date")        
         // ,DB::raw("case when uom.uom_group = 'PIECE' then TO_CHAR(article_stock.article_qty,'999,999,999') else TO_CHAR(article_stock.article_qty,'999,999,999.99') end as article_qty"))
+        )
         ->leftJoin('group_materials', 'group_materials.code', '=', 'article.group_of_material')
         ->leftJoin('third_party', 'third_party.kode', '=', 'article.third_party')
         ->leftJoin('article_stock', 'article_stock.article_code', '=', 'article.article_code')
         ->leftJoin('uom','uom.code','article.uom')
-        ->where(function ($query) use ($code,$name,$group,$cust,$supp,$type) {
+        ->where(function ($query) use ($code,$name,$group,$supp,$type,$operator,$qty) {
             $code ? $query->where('article_alternative_code','ilike','%'.$code.'%') :'';
             $name ? $query->where('article_desc','ilike','%'.$name.'%') :'';
             $group ? $query->where('group_of_material','ilike','%'.$group.'%') :'';
-            $cust ? $query->where('third_party','ilike','%'.$cust.'%') :'';
             $supp ? $query->where('third_party','ilike','%'.$supp.'%') :'';
-            $type ? $query->where('article_alternative_code','ilike',$type.'%') :'';      
+            $type ? $query->where('article_alternative_code','ilike',$type.'%') :'';
+            $operator ? $query->where('article_stock.article_qty',$operator,$qty) :'';
         })->orderBy('article_desc')->get();
        
         return Datatables::of($data)
@@ -1221,15 +1221,6 @@ class WarehouseController extends Controller
 
             return $buttons;
         })
-        // ->addColumn('article_alternative_code', function ($data) {
-        //     $badges=['badge-light-danger','badge-light-primary'];
-        //     return '<span style="display: none;">"'.$data->article_alternative_code.'</span>
-        //             <a class="badge d-block '.$badges[$data->status].'" href="'. route('article.show', ['id'=>Crypt::encryptString($data->id)]) .'" 
-        //                 type="button" 
-        //                 style="text-align: left;">
-        //                 <span>'.$data->article_alternative_code.'</span>
-        //             </a>';
-        // })
         ->addColumn('article_qty', function ($data) {
             // $artilceQty = $data->uom_group =='PIECE' ? number_format($data->article_qty) : number_format($data->article_qty,3);
             $artilceQty = number_format($data->article_qty,$this->decimalPlaces);

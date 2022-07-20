@@ -301,7 +301,7 @@
         $("#new_row"+ cloneCount).find('#qty').attr('id', 'qty'+ cloneCount);
         $("#qty"+ cloneCount).val(qty);
         $("#new_row"+ cloneCount).find('#note').attr('id', 'note'+ cloneCount);
-        $("#note"+ cloneCount).text(note);
+        $("#note"+ cloneCount).val(note);
         let uomOption="";
         if (uomMember){
             let arrUomMember = uomMember.split(',');

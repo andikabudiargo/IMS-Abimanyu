@@ -76,6 +76,7 @@
     </div>
   </div>
 </section>
+@include('partials.delete-modal')
 @endsection
 @section('styles')
 <style>
@@ -97,6 +98,13 @@
   document.addEventListener("DOMContentLoaded", function(event) {
     btnSummary.style.display = "none";
     btnDetail.style.display = "none";
+  });
+
+  let href;
+  $(document).on('click', '#cancelReasonButton', function(event) {
+      event.preventDefault();
+      href = $(this).data('href');
+      $('#modalReasonCancel').attr("action", href);
   });
 
   initDatePicker(rangePickr,{

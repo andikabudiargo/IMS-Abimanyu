@@ -342,6 +342,7 @@
                             show_msg(data.title, data.message, data.alert);
                             $('#poNumber').attr('disabled','disabled');
                             $('#addNewRow').attr('disabled','disabled');
+                            $('#cmdSave').attr('disabled','disabled');
                             $('#poNumber').val(data.poNumber);
                         }
                     },

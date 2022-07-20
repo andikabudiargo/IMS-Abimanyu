@@ -28,7 +28,7 @@ class ArticleController extends Controller
             ['data'=>'action','name'=>'action','title'=>'action','orderable'=>false, 'searchable'=>false],
             ['data'=>'article_alternative_code','name'=>'article_alternative_code','title'=>'Code'],
             ['data'=>'desc','name'=>'article_desc','title'=>'Name'],
-            ['data'=>'brand','name'=>'brand','title'=>'Brand'],
+            // ['data'=>'brand','name'=>'brand','title'=>'Brand'],
             ['data'=>'cust','name'=>'third_party.nama','title'=>'Custs/Supp'],
             ['data'=>'costprice','name'=>'costprice','title'=>'Price'],
             ['data'=>'article_qty','name'=>'article_qty','title'=>'Qty'],
@@ -67,15 +67,9 @@ class ArticleController extends Controller
         ->where ('status','=',1)
         ->orderBy('name')
         ->get();
-
-        $data['custs'] = DB::table('third_party')
-        ->where ('third_party_type','=','cust')
-        ->orderBy('nama')
-        ->get();
-
     
         $data['supps'] = DB::table('third_party')
-        ->where ('third_party_type','=','supp')
+        // ->where ('third_party_type','=','supp')
         ->orderBy('nama')
         ->get();        
 
@@ -667,7 +661,9 @@ class ArticleController extends Controller
         })
         ->addColumn('article_qty', function ($data) {
             // $artilceQty = $data->uom_group =='PIECE' ? number_format($data->article_qty) : number_format($data->article_qty,4);
-            $artilceQty = number_format($data->article_qty,$this->decimalPlaces);
+            // $artilceQty = number_format($data->article_qty,$this->decimalPlaces);
+
+            $artilceQty = floatval($data->article_qty) == intval($data->article_qty) ? number_format($data->article_qty) : number_format($data->article_qty,$this->decimalPlaces);
             return $data->article_qty < 0 ? "<div class='text-red'>$artilceQty</div>" : "<div class='text-hitam'>$artilceQty</div>";
         })
         ->addColumn('status', function ($data) {

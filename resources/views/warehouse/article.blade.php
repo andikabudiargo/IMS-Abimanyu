@@ -32,16 +32,7 @@
                       </select>
                     </div>
                     <div class="form-group col-md-4"> 
-                      <label class="form-label" for="searchCustomer">Customer</label>
-                      <select class="select2 form-control" id="searchCustomer" name="searchCustomer">
-                          <option value="">All</option>
-                          @foreach($custs as $val)
-                              <option value="{{$val->kode}}">{{$val->kode}} - {{$val->nama}}</option>
-                          @endforeach
-                      </select>
-                    </div>
-                    <div class="form-group col-md-4"> 
-                      <label class="form-label" for="searchSupplier">Supplier</label>
+                      <label class="form-label" for="searchSupplier">Supplier/customer</label>
                       <select class="select2 form-control" id="searchSupplier" name="searchSupplier">
                           <option value="">All</option>
                           @foreach($supps as $val)
@@ -58,13 +49,29 @@
                           @endforeach
                       </select>
                     </div>
+                    <div class="col-md-4 col-12 mb-1">
+                      <label for="searchQty">QTY</label>
+                      {{-- <fieldset> --}}
+                          <div class="input-group">
+                              <div class="input-group-prepend">
+                                <select class="form-control" id="searchOperator" name="searchOperator">
+                                  <option value="">All</option>
+                                  <option value=">">></option>
+                                  <option value="<"><</option>
+                                  <option value="=">=</option>
+                                </select>
+                              </div>
+                              <input type="text" class="form-control numeral-mask-digit text-right" id="searchQty" name="searchQty" />
+                          </div>
+                      {{-- </fieldset> --}}
+                  </div>
                 </div>
                 <div class="form-row">
                     <div class="col-12"> 
                         <button type="button" class="btn btn-primary" id ="btnSearch" name="btnSearch">Search</button>
-                        @can('article-create')
+                        {{-- @can('article-create')
                         <a href="{{ route('article.create') }}" class="btn btn-info"><i class="fa fa-plus"></i> Create</a>
-                        @endcan
+                        @endcan --}}
                     </div>
                 </div>
             </form>
@@ -127,36 +134,40 @@
 @endsection
 @section('scripts')
 <script type="text/javascript">
+
+  let name = $("#searchName");
+  let code = $("#seachCode");
+  let group = $("#searchGroup");
+  let supp = $("#searchSupplier");
+  let type = $("#searchType");
+  let opr = $("#searchOperator");
+  let qty = $("#searchQty");
+
+
   $(document).ready(function(){
     $(document).on('click', '#deleteButton', function(event) {
         event.preventDefault();
         let href = $(this).data('href');
         $('#modalConfirmation').attr("action", href);
     });
+    mask_thousand_digit(numberOfDecimalDigit);
   });
 
   //refresh di cards
   $('a[data-action="reload"]').on('click', function () {
-      let name = $("#searchName").val();
-      let code = $("#seachCode").val();
-      let group = $("#searchGroup").val();
-      let cust = $("#searchCustomer").val();
-      let supp = $("#searchSupplier").val();
-      let type = $("#searchType").val();
-      showList(name,code,group,cust,supp,type);
+    showList(name.val(),code.val(),group.val(),supp.val(),type.val(),opr.val(),qty.val());
   });
 
   $("#btnSearch").click(function(e){
-      let name = $("#searchName").val();
-      let code = $("#seachCode").val();
-      let group = $("#searchGroup").val();
-      let cust = $("#searchCustomer").val();
-      let supp = $("#searchSupplier").val();
-      let type = $("#searchType").val();
-      showList(name,code,group,cust,supp,type);
+      showList(name.val(),code.val(),group.val(),supp.val(),type.val(),opr.val(),qty.val());
   });
 
-  const showList = (name,code,group,cust,supp,type) => {
+
+  opr.change(function(e){
+    qty.focus();
+  });
+
+  const showList = (name,code,group,supp,type,opr,qty) => {
     if ($('#detailedTable tr').length >0){
         let table= $('#detailedTable').DataTable();
         table.destroy();
@@ -167,21 +178,22 @@
       tableId:"detailedTable",
       route:"{{ route('warehouse.article.list') }}",
       kolom:{!! $kolom !!},
-      arrColPrint:[1,2,3,4,5,6,7,8],
+      arrColPrint:[1,2,3,4,5,6,7,8,9,10],
       columnDefs :[
         { width: '5%', targets: 0 },
-        { className: 'text-right','targets': [4,5,7,8]},
+        { className: 'text-right','targets': [5,7,8,9]},
       ],
       dataSearch:  {
         name:name,
         code:code,
         group:group,
-        cust:cust,
         supp:supp,
-        type:type
+        type:type,
+        opr:opr,
+        qty:qty
       },
-      orderColumn:[[ 2, 'asc' ]],
-      excelFileName:'article'
+      orderColumn:[[ 1, 'asc' ],[ 2, 'asc' ]],
+      excelFileName:'article_stock'
     });
   }
 

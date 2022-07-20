@@ -76,6 +76,7 @@
     </div>
   </div>
 </section>
+@include('partials.delete-modal')
 @endsection
 @section('styles')
 <style>
@@ -85,7 +86,7 @@
 <script type="text/javascript">
 
   let searchTr = document.querySelector("#searchTr");
-  let searchType = 'TRIN'; 
+  let searchType = 'TROUT';
   let searchStatus = document.querySelector("#searchStatus");
   let trDate = document.querySelector("#trDate");
   let search = document.querySelector('#btnSearch');
@@ -97,6 +98,13 @@
   document.addEventListener("DOMContentLoaded", function(event) {
     btnSummary.style.display = "none";
     btnDetail.style.display = "none";
+  });
+
+  let href;
+  $(document).on('click', '#cancelReasonButton', function(event) {
+      event.preventDefault();
+      href = $(this).data('href');
+      $('#modalReasonCancel').attr("action", href);
   });
 
   initDatePicker(rangePickr,{

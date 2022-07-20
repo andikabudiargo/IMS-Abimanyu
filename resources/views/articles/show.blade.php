@@ -73,14 +73,6 @@
                             </div>
                         </div>
                         <div class="form-row">
-                            <div class="col-12">
-                                <div class="form-group">
-                                <label for="brand">Brand</label>
-                                    <input type="text" id="brand" name="brand" class="form-control text-uppercase" value="{{ old('brand',$article->brand) }}" maxlength="100"/>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="form-row">
                             <div class="form-group col-md-6">
                                 <label for="price">Price</label>
                                 <input type="text" id="price" name="price" class="form-control numeral-mask text-right" value="{{ old('price',$article->costprice) }}"  maxlength="10" disabled/>

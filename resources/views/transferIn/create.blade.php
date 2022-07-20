@@ -50,7 +50,7 @@
                     <div class="container-list-item">
                         <div class="lebar-list-item">
                             @include('transferIn.headerColumn')
-                            <div class="" id="article_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;">
+                            <div class="" id="article_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width:thin;">
                                 <input type="text" id ="last_row_number" class="d-none" value="0">
                             </div>
                         </div>

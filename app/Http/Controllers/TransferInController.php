@@ -34,7 +34,8 @@ class TransferInController extends Controller
             ['data'=>'tr_date','name'=>'tr_date','title'=>'Date'],
             ['data'=>'tr_type','name'=>'tr_type','title'=>'Type'],
             ['data'=>'status','name'=>'status','title'=>'Status'],
-            ['data'=>'note','name'=>'note','title'=>'Note']
+            ['data'=>'note','name'=>'note','title'=>'Note'],
+            ['data'=>'approval_by','name'=>'approval_by','title'=>'Approved By']
         ];
         return json_encode($kolom, true);
     }
@@ -45,12 +46,13 @@ class TransferInController extends Controller
         [
             ['data'=>'tr_number','name'=>'tr_number','title'=>'TSO Code'],
             ['data'=>'tr_date','name'=>'tr_date','title'=>'Date'],
-            ['data'=>'article_alternatif_code','name'=>'article_alternatif_code','title'=>'Article Code'],
+            ['data'=>'article_alternative_code','name'=>'article_alternative_code','title'=>'Article Code'],
             ['data'=>'article_desc','name'=>'article_desc','title'=>'Article desc'],
             ['data'=>'qty','name'=>'qty','title'=>'Qty'],
             ['data'=>'uom','name'=>'uom','title'=>'UOM'],
             ['data'=>'note','name'=>'note','title'=>'Note'],
             ['data'=>'status','name'=>'status','title'=>'Status'],
+            ['data'=>'approval_by','name'=>'approval_by','title'=>'Approved By'],
             ['data'=>'created_by','name'=>'created_by','title'=>'Created By'],
             ['data'=>'created_at','name'=>'created_at','title'=>'Created Date'],
             ['data'=>'updated_by','name'=>'updated_by','title'=>'Updated By'],
@@ -169,6 +171,7 @@ class TransferInController extends Controller
                             'article_code' => $val->article_code,
                             'qty' => $val->qty,
                             'uom' => $val->uom,
+                            'note' => $val->note,
                             'created_by' => Auth::user()->username,
                             'updated_by' => Auth::user()->username,
                             'created_at' => date('Y-m-d H:i:s'),
@@ -204,71 +207,92 @@ class TransferInController extends Controller
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED'];
         $username =  Auth::user()->username;
         $id=Crypt::decryptString($request->id);
-        $tr = DB::table('transfer_hdr')->where('id',$id)->where('status','3')->first();
-        $trNumber = $tr->tr_number;
+        $trNumber = DB::table('transfer_hdr')->where('id',$id)->where('status','3')->value('tr_number');
         $trType = $this->moduleCode;
         $siteCode = 'HO';
+        $location ='WH';
         $status = '4';
-        $authorizedBy = Auth::user()->username;
 
         if ($trNumber){
-            // Update stock kalo article nya udah ada
-            $sqlUpdate = "UPDATE article_stock a set article_qty = COALESCE(a.article_qty,0) + COALESCE(b.qty,0)
-            from (
-            select art_code, (qty*factor_qty) as qty from 
-            (
-                select *,article.article_code as art_code,(select unit_factor from uom_con where unit_from = o.uom_tr and unit_to = article.uom) as factor_qty  from (
-                select *,uom as uom_tr from transfer_det where tr_number in (
-                select tr_number from transfer_hdr where tr_number = '$trNumber' and status = '3')) o
-                left join article on article.article_code = o.article_code
-            ) c
-            ) b
-            where a.article_code=b.art_code and site_code ='$siteCode'";
+            $data = DB::table('transfer_det')
+            ->leftJoin('transfer_hdr','transfer_hdr.tr_number','transfer_det.tr_number')
+            ->leftJoin('article','article.article_code','transfer_det.article_code')
+            ->where('transfer_det.tr_number',$trNumber)
+            ->where('transfer_hdr.status','3')
+            ->select('transfer_det.*','article.article_type','article.uom as uom_article',
+                DB::RAW("transfer_det.qty*uom_conversion(transfer_det.uom,article.uom) as total_qty")
+            )
+            ->get();
 
-            //Insert ke article stock kalo article nya belum ada
-            $sqlInsert = "INSERT into article_stock (site_code,article_code,dept_code,location_number,article_qty,uom)
-            select '$siteCode',art_code,article_type,'00',(qty*factor_qty) as qty,uom_tr from 
-            (
-                select *,article.article_code as art_code,(select unit_factor from uom_con where unit_from = z.uom_tr and unit_to = article.uom) as factor_qty from (
-                select *,uom as uom_tr from transfer_det where tr_number in (
-                select tr_number from transfer_hdr where tr_number = '$trNumber' and status = '3')) z
-                left join article on article.article_code = z.article_code
-                where article.article_code not in (select article_code from article_stock)
-            ) y";
+            foreach($data as $val){
+                //insert article code kalo belum ada di tabel item_stock
+                DB::table('article_stock')
+                ->updateOrInsert(
+                    [ 'site_code' =>$siteCode,
+                        'article_code' => $val->article_code,
+                        'location_number'=>$location
+                    ],
+                    [
+                        'dept_code'=>$val->article_type,
+                        'uom'=>$val->uom_article
+                    ]
+                );
 
-            //Insert into table movement
-            $sqlMovement = "INSERT into movement
-            (movement_date,artikel_code,artikel_desc,movement_min,movement_plus,movement_price,movement_transnno,movement_type,movement_desc)
-            select 
-            now()::timestamp::date,
-            article_code,
-            (select concat(article_alternative_code,'-',article_desc) from article where article_code = a.article_code) as article_desc,
-            0,
-            qty,
-            price,
-            tr_number,
-            '$trType',
-            (select note from transfer_hdr where tr_number=a.tr_number) as note 
-            from transfer_det a where tr_number in (
-            select tr_number from transfer_hdr where tr_number = '$trNumber' and status = '4' and qty <> 0)";
-        
-            DB::select($sqlUpdate);
-            $rowAffected = DB::select($sqlInsert);
-            
+                //update qty nya ditambahkan dengan qty baru
+                $rowAffected = DB::table('article_stock')
+                ->where('site_code',$siteCode)
+                ->where('article_code',$val->article_code)
+                ->increment('article_qty', $val->total_qty);
+            }
+                    
             if ($rowAffected > 0){
                 DB::table('transfer_hdr')
                 ->where('tr_number',$trNumber)
                 ->update(
                     [   
                         'status' => $status,
-                        // 'authorized_by' => $authorizedBy,
-                        // 'authorized_at' => date('Y-m-d H:i:s'),
                         'updated_by' => Auth::user()->username,
                         'updated_at' => date('Y-m-d H:i:s')
                     ]
                 );
 
-                DB::select($sqlMovement);
+                $movements = DB::table('transfer_det')
+                ->leftJoin('transfer_hdr','transfer_hdr.tr_number','transfer_det.tr_number')
+                ->leftJoin('article','article.article_code','transfer_det.article_code')
+                ->where('transfer_det.tr_number',$trNumber)
+                ->where('transfer_hdr.status','4')
+                ->where('qty', '<>', 0)
+                ->select(
+                    DB::RAW("now()::timestamp::date as movement_date" )
+                    ,'transfer_det.article_code'
+                    ,'article.article_desc'
+                    ,DB::raw("0 as movement_min")
+                    ,DB::RAW("(uom_conversion(transfer_det.uom,article.uom)*transfer_det.qty) as movement_plus")
+                    ,DB::raw(" 0 as movement_price ")
+                    ,'transfer_hdr.tr_number as movement_transnno'
+                    ,DB::raw("'$trType' as movement_type")
+                    ,'transfer_hdr.note as movement_desc'
+                )
+                ->get();
+                
+                $dataSetMovement = [];
+                foreach ($movements as $val) {
+                    $dataSetMovement[] = [
+                        'movement_date' => $val->movement_date,
+                        'artikel_code' => $val->article_code,
+                        'artikel_desc' => $val->article_desc,
+                        'movement_min' => $val->movement_min,
+                        'movement_plus' => $val->movement_plus,
+                        'movement_price' => $val->movement_price,
+                        'movement_transnno' => $val->movement_transnno,
+                        'movement_type' => $val->movement_type,
+                        'movement_desc' => $val->movement_desc,
+                        'created_by' => Auth::user()->username,
+                        'created_at' => date('Y-m-d H:i:s')
+                    ];
+                }
+
+                DB::table('movement')->insert($dataSetMovement);
 
                 DB::commit();
                 $title ="Posting $this->title";
@@ -276,14 +300,12 @@ class TransferInController extends Controller
                 $message  = "$title $trNumber Successfully Posted";
                 \LogActivity::addToLog($title,"username: $username Status $message");
                 return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);
-                // return response()->json(array('statusRec' => $statusRec,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'trNumber'=>$trNumber));
             }else{
                 $title ="Posting $this->title";
                 $alert  ="warning";
                 $message  = "$title $trNumber Failed to Posting";
                 \LogActivity::addToLog($title,"username: $username Status $message");
                 return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);
-                // return response()->json(array('statusRec' => $statusRec,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'trNumber'=>$trNumber));
             }
         }else{
             $title ="Posting $this->title";
@@ -299,63 +321,45 @@ class TransferInController extends Controller
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED'];
         $username =  Auth::user()->username;
         $id=Crypt::decryptString($request->id);
-        $tr = DB::table('transfer_hdr')->where('id',$id)->where('status','4')->first();
-        $trNumber = $tr->tr_number;
+        $trNumber = DB::table('transfer_hdr')->where('id',$id)->where('status','4')->value('tr_number');
         $trType = $this->moduleCode;
         $siteCode = 'HO';
         $status = '5';
+        $reason = "(Cancel by $username, Reason: $request->reason)";
         $authorizedBy = Auth::user()->username;
+        $rowAffected = 0;
+        $location = 'WH';
 
-        // Update stock kalo article nya udah ada
-        $sqlUpdate = "UPDATE article_stock a set article_qty = COALESCE(a.article_qty,0) - COALESCE(b.qty,0)
-        from (
-        select art_code, (qty*factor_qty) as qty from 
-        (
-            select *
-            ,article.article_code as art_code
-            ,(select unit_factor from uom_con where unit_from = o.uom_tr and unit_to = article.uom) as factor_qty  
-            from (
-            select *,uom as uom_tr from transfer_det where tr_number in (
-            select tr_number from transfer_hdr where tr_number = '$trNumber' and status = '4' )
-            ) o
-            left join article on article.article_code = o.article_code
-        ) c
-        ) b
-        where a.article_code=b.art_code and site_code ='$siteCode'";
+        $data = DB::table('transfer_det')
+        ->leftJoin('transfer_hdr','transfer_hdr.tr_number','transfer_det.tr_number')
+        ->leftJoin('article','article.article_code','transfer_det.article_code')
+        ->where('transfer_det.tr_number',$trNumber)
+        ->where('transfer_hdr.status','4')
+        ->select('transfer_det.*','article.article_type','article.uom as uom_article',
+            DB::RAW("transfer_det.qty*uom_conversion(transfer_det.uom,article.uom) as total_qty")
+        )
+        ->get();
 
-        //Insert ke article stock kalo article nya belum ada
-        $sqlInsert = "INSERT into article_stock (site_code,article_code,dept_code,location_number,article_qty,uom)
-        select '$siteCode',art_code,article_type,'00',(qty*factor_qty)*-1 as qty,uom_tr from 
-        (
-            select *
-            ,article.article_code as art_code
-            ,(select unit_factor from uom_con where unit_from = z.uom_tr and unit_to = article.uom) as factor_qty 
-            from (
-            select *,uom as uom_tr from transfer_det where tr_number in (
-            select tr_number from transfer_hdr where tr_number = '$trNumber' and status = '4')
-            ) z
-            left join article on article.article_code = z.article_code
-            where article.article_code not in (select article_code from article_stock)
-        ) y";
+        foreach($data as $val){
+            //insert article code kalo belum ada di tabel item_stock
+            DB::table('article_stock')
+            ->updateOrInsert(
+                [ 'site_code' =>$siteCode,
+                    'article_code' => $val->article_code,
+                    'location_number'=>$location
+                ],
+                [
+                    'dept_code'=>$val->article_type,
+                    'uom'=>$val->uom_article
+                ]
+            );
 
-        //Insert into table movement
-        $sqlMovement = "INSERT into movement
-        (movement_date,artikel_code,artikel_desc,movement_min,movement_plus,movement_price,movement_transnno,movement_type,movement_desc)
-        select 
-        now()::timestamp::date,
-        article_code,
-        (select concat(article_alternative_code,'-',article_desc) from article where article_code = a.article_code) as article_desc,
-        qty,
-        0,
-        price,
-        tr_number,
-        '$trType',
-        'CANCEL'
-        from transfer_det a where tr_number in (
-        select tr_number from transfer_hdr where tr_number = '$trNumber' and status = '5' and qty <> 0)";
-    
-        DB::select($sqlUpdate);
-        $rowAffected = DB::select($sqlInsert);
+            //update qty nya ditambahkan dengan qty baru
+            $rowAffected = DB::table('article_stock')
+            ->where('site_code',$siteCode)
+            ->where('article_code',$val->article_code)
+            ->decrement('article_qty', $val->total_qty);
+        }
         
         if ($rowAffected > 0){
             DB::table('transfer_hdr')
@@ -363,14 +367,49 @@ class TransferInController extends Controller
             ->update(
                 [   
                     'status' => $status,
-                    // 'authorized_by' => $authorizedBy,
-                    // 'authorized_at' => date('Y-m-d H:i:s'),
+                    'note' => DB::raw("CONCAT(note,';','$reason')") ,
                     'updated_by' => Auth::user()->username,
                     'updated_at' => date('Y-m-d H:i:s')
                 ]
             );
 
-            DB::select($sqlMovement);
+            $movements = DB::table('transfer_det')
+            ->leftJoin('transfer_hdr','transfer_hdr.tr_number','transfer_det.tr_number')
+            ->leftJoin('article','article.article_code','transfer_det.article_code')
+            ->where('transfer_det.tr_number',$trNumber)
+            ->where('transfer_hdr.status','5')
+            ->where('qty', '<>', 0)
+            ->select(
+                DB::RAW("now()::timestamp::date as movement_date" )
+                ,'transfer_det.article_code'
+                ,'article.article_desc'
+                ,DB::raw("0 as movement_plus")
+                ,DB::RAW("(uom_conversion(transfer_det.uom,article.uom)*transfer_det.qty) as movement_min")
+                ,DB::raw(" 0 as movement_price ")
+                ,'transfer_hdr.tr_number as movement_transnno'
+                ,DB::raw("'$trType' as movement_type")
+                ,DB::raw("'$reason' as movement_desc")
+            )
+            ->get();
+            
+            $dataSetMovement = [];
+            foreach ($movements as $val) {
+                $dataSetMovement[] = [
+                    'movement_date' => $val->movement_date,
+                    'artikel_code' => $val->article_code,
+                    'artikel_desc' => $val->article_desc,
+                    'movement_min' => $val->movement_min,
+                    'movement_plus' => $val->movement_plus,
+                    'movement_price' => $val->movement_price,
+                    'movement_transnno' => $val->movement_transnno,
+                    'movement_type' => $val->movement_type,
+                    'movement_desc' => $val->movement_desc,
+                    'created_by' => Auth::user()->username,
+                    'created_at' => date('Y-m-d H:i:s')
+                ];
+            }
+
+            DB::table('movement')->insert($dataSetMovement);
 
             DB::commit();
             $title ="Cancel $this->title";
@@ -451,7 +490,7 @@ class TransferInController extends Controller
         $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode,$trNumber,$username);
         $data['approveValidate'] = Approval::approveValidate($this->moduleCode,$trNumber,$username);
         
-        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'','5'=>'CANCELED'];
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED'];
         $statusTr = ['NEW','VALIDATED','APPROVED','POSTED','CANCELED'];
         $data['statusTr'] = $statusTr[$data['header']->status-1];
 
@@ -629,9 +668,11 @@ class TransferInController extends Controller
     {
         $username =  Auth::user()->username;       
         $id=Crypt::decryptString($request->id);
-        $trNumber = DB::table('transfer_hdr')->where('id',$id)->where('status','1')->first();
-        $trNumber = $trNumber->tr_number;
-        $rowAffected = DB::table('transfer_hdr')->where('id',$id)->where('status','1')->delete();
+        $trNumber = DB::table('transfer_hdr')->where('id',$id)
+        ->where('status','<>','4')
+        ->where('status','<>','5')
+        ->value('tr_number');
+        $rowAffected = DB::table('transfer_hdr')->where('tr_number',$trNumber)->delete();
         
         if($rowAffected>0){
             DB::table('transfer_det')->where('tr_number',$trNumber)->delete();
@@ -656,6 +697,7 @@ class TransferInController extends Controller
         $searchType = $request->searchType;
         $searchStatus = $request->searchStatus;
         $trDate = $request->trDate;
+        $trType = $this->moduleCode;
         $fromDate ="";
         $toDate = "";
         if ($trDate){
@@ -671,7 +713,10 @@ class TransferInController extends Controller
             $searchStatus ? $query->where('status',$searchStatus) : '';
             $trDate ? $query->whereBetween(DB::raw("to_date(tr_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
         })
-        ->where('tr_type','TRIN')
+        ->select('transfer_hdr.*'
+        ,DB::raw("(select STRING_AGG((select name from users where username = a.username), ' -> ' ORDER BY approval_order) AS main from approval_history a where module_number = transfer_hdr.tr_number) as approval_by")
+        )
+        ->where('tr_type',$trType)
         ->orderBy('id')
         ->get(); 
        
@@ -692,13 +737,7 @@ class TransferInController extends Controller
                 }
             }
 
-            if ( $data->status == '3' ) {
-                // $buttons .=         '<a href="'. route('transferIn.posting', ['trNumber'=>$data->tr_number]) .'" class="dropdown-item">
-                //                         <i data-feather="check"></i>
-                //                         <span>'. __("Posting") .'</span>
-                //                     </a>';
-                // }
-                
+            if ( $data->status == '3' ) {                
                 if (Auth::user()->can('transferIn-posting')) {
                     $buttons .="<a href='javascript:;'
                     class='dropdown-item' 
@@ -726,18 +765,30 @@ class TransferInController extends Controller
   
             if ( $data->status == '4' ){
                 if (Auth::user()->can('transferIn-delete')) {
-                    $buttons .="<a href='javascript:;'
-                    class='dropdown-item' 
-                    data-size='sm'
-                    data-ajax-delete='true'
-                    data-confirm='Are You Sure want to Cancel?|This action can not be undone. Do you want to continue?' 
-                    data-confirm-yes='document.getElementById(\""."delete-form-".$data->id."\").submit();'
-                    data-modal-id='".$data->id."'
-                    data-url='". route('transferIn.cancel', ['id'=>Crypt::encryptString($data->id)]) ."'>
-                    <i data-feather='corner-down-left' class='feather-14-red'></i>
-                    <span>". __('Cancel') ."</span>
-                    </a>";
+                    $buttons .=         "<a href='javascript:;'
+                                            id='cancelReasonButton'
+                                            class='dropdown-item'
+                                            data-toggle='modal'
+                                            data-target='#reasonModalCancel'
+                                            data-href='". route("transferIn.cancel", ["id"=>Crypt::encryptString($data->id)]) ."'>
+                                            <i data-feather='corner-down-left' class='feather-14-red'></i>
+                                            <span>". __('Cancel') ."</span>
+                                        </a>";
                 }
+
+                // if (Auth::user()->can('transferIn-delete')) {
+                //     $buttons .="<a href='javascript:;'
+                //     class='dropdown-item' 
+                //     data-size='sm'
+                //     data-ajax-delete='true'
+                //     data-confirm='Are You Sure want to Cancel?|This action can not be undone. Do you want to continue?' 
+                //     data-confirm-yes='document.getElementById(\""."delete-form-".$data->id."\").submit();'
+                //     data-modal-id='".$data->id."'
+                //     data-url='". route('transferIn.cancel', ['id'=>Crypt::encryptString($data->id)]) ."'>
+                //     <i data-feather='corner-down-left' class='feather-14-red'></i>
+                //     <span>". __('Cancel') ."</span>
+                //     </a>";
+                // }
             }
 
             $buttons .= '<a href="'. route('transferIn.show', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
@@ -745,7 +796,7 @@ class TransferInController extends Controller
                             <span>'. __("Detail") .'</span>
                         </a>';
 
-            if ( $data->status != '4' or $data->status != '5' ){
+            if ( $data->status != '4' and $data->status != '5' ){
                 if (Auth::user()->can('transferIn-delete')) {
                     $buttons .=         "<a href='javascript:;'
                                         class='dropdown-item' 
@@ -793,6 +844,7 @@ class TransferInController extends Controller
         $searchType = $request->searchType;
         $searchStatus = $request->searchStatus;
         $trDate = $request->trDate;
+        $trType = $this->moduleCode;
         $fromDate ="";
         $toDate = "";
         
@@ -812,12 +864,13 @@ class TransferInController extends Controller
             $searchStatus ? $query->where('transfer_hdr.status',$searchStatus) : '';
             $trDate ? $query->whereBetween(DB::raw("to_date(tr_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
         })
-        ->where('tr_type','TRIN')
+        ->where('tr_type',$trType)
         ->select('transfer_det.*'
         ,'transfer_hdr.*'
-        ,'article_alternative_code'
+        ,'article.article_alternative_code'
         ,'article.article_desc'
         ,'uom_group'
+        ,DB::raw("(select STRING_AGG((select name from users where username = a.username), ' -> ' ORDER BY approval_order) AS main from approval_history a where module_number = transfer_hdr.tr_number) as approval_by")
         // ,DB::raw("case when uom_group = 'PIECE' then TO_CHAR(qty,'999,999,999') when uom_group <> 'PIECE' then TO_CHAR(qty,'999,999,999.999') end as qty")
         )
         ->orderBy('transfer_det.id')
@@ -826,7 +879,7 @@ class TransferInController extends Controller
         return Datatables::of($data)
         ->addColumn('status', function ($data) {
             $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-danger'];            
-            $statusTso = ['NEW','VALIDATED','POSTED','APPROVED'];
+            $statusTso = ['NEW','VALIDATED','POSTED','APPROVED','DELETED'];
             return "<div class='badge ".$badges[$data->status - 1]."'>".$statusTso[$data->status - 1]."</div>";
         })
         ->rawColumns(['status'])

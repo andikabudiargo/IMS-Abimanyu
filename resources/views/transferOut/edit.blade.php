@@ -91,11 +91,11 @@
                                         <input type="text" id ="maxLevel" name ="maxLevel" class="d-none" value="{{ $approveValidate[0]->max_level }}">
                                         <button class="btn btn-success" type="button" id="cmdApprove" name="cmdApprove">Approve</button>
                                         @if( $statusTr =='NEW')
-                                            <button class="btn btn-primary" type="button" id="cmdUpdate" name="cmdUpdate" data-trType="TRIN">Update</button>
+                                            <button class="btn btn-primary" type="button" id="cmdUpdate" name="cmdUpdate" data-trType="TROUT">Update</button>
                                         @endif
                                     @else
                                         @if( !$approveValidate && $statusTr =='NEW')
-                                            <button class="btn btn-primary" type="button" id="cmdUpdate" name="cmdUpdate" data-trType="TRIN">Update</button>
+                                            <button class="btn btn-primary" type="button" id="cmdUpdate" name="cmdUpdate" data-trType="TROUT">Update</button>
                                         @endif
                                     @endif
                                 </div>

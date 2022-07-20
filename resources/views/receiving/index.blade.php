@@ -2,7 +2,7 @@
 @section('title', $title)
 @section('content')
 @include('layouts.breadcrumb')
-<section id="article-index">
+<section id="receiving-index">
   <div class="card">
     <div class="card-header">  
       <h4 class="card-title">Filter</h4>
@@ -64,7 +64,7 @@
     </div>
   </div>
 </section>
-<section id="table-article">
+<section id="table-receiving">
   <div class="card">
     <div class="card-header">
       <h4 class="card-title"> @yield('title') List</h4>
@@ -77,6 +77,8 @@
     </div>
     <div class="card-content collapse show">
       <div class="card-body">
+        <button type="button" class="btn btn-primary" id ="btnDetail" name="btnDetail">Detail</button>
+        <button type="button" class="btn btn-primary" id ="btnSummary" name="btnSummary">Summary</button>
         <div class="row">
             <div class="col-sm-12">
               <div class="table-responsive">
@@ -99,19 +101,41 @@
 @endsection
 @section('scripts')
 <script type="text/javascript">
+  let searchRec = $("#searchRec");
+  let searchPo = $("#searchPo");
+  let searchInv = $("#searchInv");
+  let searchSupplier = $("#searchSupplier"); 
+  let searchStatus = $("#searchStatus");
+  let recDate = $("#recDate");
+  let btnSummary = $('#btnSummary');
+  let btnDetail = $('#btnDetail');
+
   $(document).ready(function(){    
-    let href;
-    $(document).on('click', '#deleteButton', function(event) {
-        event.preventDefault();
-        href = $(this).data('href');
-        console.log(href);
-        $('#modalConfirmationCancel').attr("action", href);
-    });
+    // let href;
+    // $(document).on('click', '#deleteButton', function(event) {
+    //     event.preventDefault();
+    //     href = $(this).data('href');
+    //     console.log(href);
+    //     $('#modalConfirmationCancel').attr("action", href);
+    // });
+
+    btnSummary.hide();
+    btnDetail.hide();
+
+  });
+
+  let href;
+  $(document).on('click', '#cancelReasonButton', function(event) {
+      event.preventDefault();
+      href = $(this).data('href');
+      $('#modalReasonCancel').attr("action", href);
   });
 
   //refresh di cards
   $('a[data-action="reload"]').on('click', function () {
-      showList();
+    btnSummary.hide();
+    btnDetail.show();
+    showList(searchRec.val(),searchPo.val(),searchInv.val(),searchSupplier.val(),searchStatus.val(),recDate.val());
   });
 
   rangePickr = $('.flatpickr-range');
@@ -123,15 +147,24 @@
   }
 
   $("#btnSearch").click(function(e){
-    let searchRec = $("#searchRec").val();
-    let searchPo = $("#searchPo").val();
-    let searchInv = $("#searchInv").val();
-    let searchSupplier = $("#searchSupplier").val(); 
-    let searchStatus = $("#searchStatus").val();
-    let recDate = $("#recDate").val();
-    showList(searchRec,searchPo,searchInv,searchSupplier,searchStatus,recDate);
-
+    btnSummary.hide();
+    btnDetail.show();
+    showList(searchRec.val(),searchPo.val(),searchInv.val(),searchSupplier.val(),searchStatus.val(),recDate.val());
   });
+
+  btnSummary.click(function(e){
+    btnSummary.hide();
+    btnDetail.show();
+    showList(searchRec.val(),searchPo.val(),searchInv.val(),searchSupplier.val(),searchStatus.val(),recDate.val());
+  });
+
+  btnDetail.click(function(e){
+    btnSummary.show();
+    btnDetail.hide();
+    showListDetail(searchRec.val(),searchPo.val(),searchInv.val(),searchSupplier.val(),searchStatus.val(),recDate.val());
+  });
+
+
 
   const showList = (searchRec,searchPo,searchInv,searchSupplier,searchStatus,recDate) => {
     if ($('#detailedTable tr').length >0){
@@ -145,10 +178,9 @@
       tableId:"detailedTable",
       route:"{{ route('receiving.list') }}",
       kolom:{!! $kolom !!},
-      arrColPrint:[1,2,3,4,5,6,7,8,9],
+      arrColPrint:[1,2,3,4,5,6,7,8,9,10],
       columnDefs :[
-        { width: '5%', targets: 0 },
-        { className: 'text-right','targets': [4,5] },
+        { width: '5%', targets: 0 }
       ],
       dataSearch:  {
         searchRec:searchRec,
@@ -160,6 +192,36 @@
       },
       orderColumn:[[ 1, 'desc' ]],
       excelFileName:'receiving'
+    });
+  }
+
+  const showListDetail = (searchRec,searchPo,searchInv,searchSupplier,searchStatus,recDate) => {
+    if ($('#detailedTable tr').length >0){
+        let table= $('#detailedTable').DataTable();
+        table.destroy();
+        $('#detailedTable tbody > tr').remove();
+        $("#detailedTable thead > tr").remove();
+    }
+
+    showDataTables({
+      tableId:"detailedTable",
+      route:"{{ route('receiving.list.detail') }}",
+      kolom:{!! $kolomDetail !!},
+      arrColPrint:[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15],
+      columnDefs :[
+        { width: '5%', targets: 0 },
+        { className: 'text-right','targets': [4,5,7] },
+      ],
+      dataSearch:  {
+        searchRec:searchRec,
+        searchPo:searchPo,
+        searchInv:searchInv,
+        searchSupplier:searchSupplier,
+        searchStatus:searchStatus,
+        recDate:recDate
+      },
+      orderColumn:[[ 1, 'desc' ]],
+      excelFileName:'receiving_detail'
     });
   }
 

@@ -78,8 +78,8 @@
                 PO Number   : {{ $recHdr->po_number }}<br>
                 Rec. Date   : {{ $recHdr->rec_date }}                
             </td>
-            <td width="25%"></td>
-            <td width="30%">
+            <td width="15%"></td>
+            <td width="40%">
                 Customer   : {{ $suppliers[0]->nama }}<br>
                 DO Number  : {{ $recHdr->do_number }}<br>
                 DO Date    : {{ $recHdr->do_date }}
@@ -112,6 +112,9 @@
                     <td class="border-bottom" align="right" >{{ number_format($val->qty) }}</td>
                 </tr>
             @endforeach
+            <tr class="border-bottom">
+                <td class="border-bottom" align="left" colspan="3" style="border:none">Status:{{ $status }}</td>
+            </tr>
         </tfoot>
     </table>
     <table width="100%" border="0">
@@ -130,8 +133,8 @@
             <td align="center"></td>
         </tr>
         <tr>
-            <td align="center">( _____________ )</td>
-            <td align="center">( _____________  )</td>
+            <td align="center"> {{ $approved }} </td>
+            <td align="center"> {{ $recHdr->created_by }} </td>
         </tr>
     </table>
 {{-- @if($poNumber == "oki")

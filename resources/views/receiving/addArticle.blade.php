@@ -55,6 +55,39 @@
     .margin-nol{
         margin-bottom:0.5rem;
     }
+
+    .pointer-link {
+        cursor: pointer;
+        color: #33548a;
+    }
+
+    @media screen 
+    and (min-device-width: 1200px) 
+    and (max-device-width: 1600px) 
+    and (-webkit-min-device-pixel-ratio: 1) { 
+        .lebar-list-item{
+            width:100%;
+        }
+        .container-list-item{
+            max-width:100%;
+            overflow-x:auto;
+            scrollbar-width: thin;
+            margin-top:7px;
+        }
+    }
+
+    @media only screen and (min-width: 600px)
+    and (max-width: 1200px){
+        .lebar-list-item{
+            width:200%;
+        }
+        .container-list-item{
+            max-width:100%;
+            overflow-x:auto;
+            scrollbar-width: thin;
+            margin-top:7px;
+        }
+    }
     
 </style>
 {{-- table row untuk di clone--}}  
@@ -173,34 +206,66 @@
         let objQtyFree= $('#article_row input[name="qty_free[]"]');
 
         objUom.change(function(e){   
-            let objIndex = objUom.index(this);
-            let uomGroup = objUom.eq(objIndex).find(":selected").data("uom-group");
+            // let objIndex = objUom.index(this);
+            // let uomGroup = objUom.eq(objIndex).find(":selected").data("uom-group");
 
-            if ( uomGroup === 'PIECE' ){
-                objQty.eq(objIndex).removeClass("numeral-mask-digit");
-                objQty.eq(objIndex).addClass("numeral-mask-satuan");
-                mask_thousand_satuan();
-            }else{
-                objQty.eq(objIndex).removeClass("numeral-mask-satuan");
-                objQty.eq(objIndex).addClass("numeral-mask-digit");
-                mask_thousand_digit(numberOfDecimalDigit);
-            }
+            // if ( uomGroup === 'PIECE' ){
+            //     objQty.eq(objIndex).removeClass("numeral-mask-digit");
+            //     objQty.eq(objIndex).addClass("numeral-mask-satuan");
+            //     mask_thousand_satuan();
+            // }else{
+            //     objQty.eq(objIndex).removeClass("numeral-mask-satuan");
+            //     objQty.eq(objIndex).addClass("numeral-mask-digit");
+            //     mask_thousand_digit(numberOfDecimalDigit);
+            // }
+            mask_thousand_digit(numberOfDecimalDigit);
 		});
 
         objUomFree.change(function(e){   
-            let objIndex = objUomFree.index(this);
-            let uomGroup = objUomFree.eq(objIndex).find(":selected").data("uom-group");
+            // let objIndex = objUomFree.index(this);
+            // let uomGroup = objUomFree.eq(objIndex).find(":selected").data("uom-group");
 
-            if ( uomGroup === 'PIECE' ){
-                objQtyFree.eq(objIndex).removeClass("numeral-mask-digit");
-                objQtyFree.eq(objIndex).addClass("numeral-mask-satuan");
-                mask_thousand_satuan();
-            }else{
-                objQtyFree.eq(objIndex).removeClass("numeral-mask-satuan");
-                objQtyFree.eq(objIndex).addClass("numeral-mask-digit");
-                mask_thousand_digit(numberOfDecimalDigit);
-            }
+            // if ( uomGroup === 'PIECE' ){
+            //     objQtyFree.eq(objIndex).removeClass("numeral-mask-digit");
+            //     objQtyFree.eq(objIndex).addClass("numeral-mask-satuan");
+            //     mask_thousand_satuan();
+            // }else{
+            //     objQtyFree.eq(objIndex).removeClass("numeral-mask-satuan");
+            //     objQtyFree.eq(objIndex).addClass("numeral-mask-digit");
+            //     mask_thousand_digit(numberOfDecimalDigit);
+            // }
+
+            mask_thousand_digit(numberOfDecimalDigit);
 		});
+    }
+
+    approve = (recNumber,objButton) => {
+        $('#'+objButton).attr('disabled','disabled');
+        $.ajax({
+            type: "POST",
+            url: "{{ route('receiving.approve') }}",
+            data: {
+                recNumber:recNumber
+            },
+            dataType: "json",
+            success: function(data) {
+                if (data.status == 0 ){
+                    let message="";
+                    for(let i = 0; i < data.message.length; i++) {
+                        show_msg(data.title, data.message[i], data.alert);
+                    }
+                    $('#recNumber').attr('disabled','disabled');
+                }else{
+                    show_msg(data.title, data.message, data.alert);
+                    $('#recNumber').attr('disabled','disabled');
+                    $('#cmdApprove').attr('disabled','disabled');
+                    window.location.reload();           
+                }
+            },
+            error: function(error) {
+                console.log(error);
+            }
+        });
     }
 
 </script>

@@ -258,6 +258,7 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('receivings/po/det',['as'=>'receiving.po.det','uses'=>'ReceivingController@poDetail']);
 	Route::post('receivings/store',['as'=>'receiving.store','uses'=>'ReceivingController@store']);
 	Route::get('receivings/list',['as'=>'receiving.list','uses'=>'ReceivingController@list']);
+	Route::get('receivings/list/detail',['as'=>'receiving.list.detail','uses'=>'ReceivingController@listDetail']);
 	Route::get('receivings/show',['as'=>'receiving.show','uses'=>'ReceivingController@show']);
 	Route::get('receivings/edit',['as'=>'receiving.edit','uses'=>'ReceivingController@edit','middleware' => ['permission:receiving-edit']]);
 	Route::post('receivings/update',['as'=>'receiving.update','uses'=>'ReceivingController@update']);
@@ -265,6 +266,8 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('receivings/code/create',['as'=>'receiving.code.create','uses'=>'ReceivingController@articleCodeCreate']);
 	Route::get('receivings/print',['as'=>'receiving.print','uses'=>'ReceivingController@print']);
 	Route::post('receivings/posting',['as'=>'receiving.posting','uses'=>'ReceivingController@posting']);
+	Route::post('receiving/approve',['as'=>'receiving.approve','uses'=>'ReceivingController@approve']);
+	Route::post('receiving/cancel',['as'=>'receiving.cancel','uses'=>'ReceivingController@cancel']);
 
 	Route::get('delivery',['as'=>'delivery.index','uses'=>'DeliveryController@index','middleware' => ['permission:receiving-index']]);
 	Route::get('delivery/create',['as'=>'delivery.create','uses'=>'DeliveryController@create','middleware' => ['permission:receiving-create']]);
@@ -328,7 +331,6 @@ Route::group( ['middleware' => ['auth']], function() {
 	// Route::get('receivings/code/create',['as'=>'ap.code.create','uses'=>'ReceivingController@articleCodeCreate']);
 	// Route::get('receivings/print',['as'=>'ap.print','uses'=>'ReceivingController@print']);
 	// Route::post('receivings/posting',['as'=>'ap.posting','uses'=>'ReceivingController@posting']);
-
 
 	Route::get('proforma',['as'=>'apProforma.index','uses'=>'AccountPayableProformaController@index','middleware' => ['permission:ap-proforma-index']]);
 	Route::get('proforma/create',['as'=>'apProforma.create','uses'=>'AccountPayableProformaController@create','middleware' => ['permission:ap-proforma-create']]);
