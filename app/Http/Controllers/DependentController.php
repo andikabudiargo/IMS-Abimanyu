@@ -242,6 +242,14 @@ class DependentController extends Controller
                 $default='';
                 $defaulttxt='Choose article';
                 break;
+            case 'prd_list': 
+                $table='production_hdr';
+                $order ='prod_code';
+                $name  ='prod_code';
+                $value ='prod_code';
+                $default='';
+                $defaulttxt='Choose Production';
+                break;
             break;
                 default:
                     $table='';
@@ -431,6 +439,11 @@ class DependentController extends Controller
         }elseif($dependent =='tso_list'){
             $data= DB::table($table)
             ->where('pr_number','=',null)
+            ->orderBy($order)
+            ->get();
+        }elseif($dependent =='prd_list'){
+            $data= DB::table($table)
+            // ->where('pr_number','=',null)
             ->orderBy($order)
             ->get();
         }else{

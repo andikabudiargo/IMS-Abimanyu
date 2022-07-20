@@ -242,7 +242,15 @@ class TransferInController extends Controller
                 $rowAffected = DB::table('article_stock')
                 ->where('site_code',$siteCode)
                 ->where('article_code',$val->article_code)
-                ->increment('article_qty', $val->total_qty);
+                ->where('location_number',$location)
+                ->update([
+                    'article_qty' => DB::raw('coalesce(article_qty,0) + '.$val->total_qty)
+                ]);
+
+                // $rowAffected = DB::table('article_stock')
+                // ->where('site_code',$siteCode)
+                // ->where('article_code',$val->article_code)
+                // ->increment('article_qty', $val->total_qty);
             }
                     
             if ($rowAffected > 0){
@@ -288,7 +296,9 @@ class TransferInController extends Controller
                         'movement_type' => $val->movement_type,
                         'movement_desc' => $val->movement_desc,
                         'created_by' => Auth::user()->username,
-                        'created_at' => date('Y-m-d H:i:s')
+                        'created_at' => date('Y-m-d H:i:s'),
+                        'site_code' => $siteCode,
+                        'location_number' => $location
                     ];
                 }
 
@@ -358,7 +368,15 @@ class TransferInController extends Controller
             $rowAffected = DB::table('article_stock')
             ->where('site_code',$siteCode)
             ->where('article_code',$val->article_code)
-            ->decrement('article_qty', $val->total_qty);
+            ->where('location_number',$location)
+            ->update([
+                'article_qty' => DB::raw('coalesce(article_qty,0) - '.$val->total_qty)
+            ]);
+            
+            // $rowAffected = DB::table('article_stock')
+            // ->where('site_code',$siteCode)
+            // ->where('article_code',$val->article_code)
+            // ->decrement('article_qty', $val->total_qty);
         }
         
         if ($rowAffected > 0){
@@ -405,7 +423,9 @@ class TransferInController extends Controller
                     'movement_type' => $val->movement_type,
                     'movement_desc' => $val->movement_desc,
                     'created_by' => Auth::user()->username,
-                    'created_at' => date('Y-m-d H:i:s')
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'site_code' => $siteCode,
+                    'location_number' => $location
                 ];
             }
 

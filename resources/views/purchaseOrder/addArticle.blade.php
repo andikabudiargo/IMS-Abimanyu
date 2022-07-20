@@ -480,6 +480,7 @@
                             $('#cmdUpdate').attr('disabled','disabled');
                             $('#addNewRow').attr('disabled','disabled');
                             $('#poNumber').val(data.poNumber);
+                            window.location.reload();
                         }
                     },
                     error: function(error) {

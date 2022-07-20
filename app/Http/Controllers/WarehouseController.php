@@ -83,6 +83,7 @@ class WarehouseController extends Controller
     public function getTableColoumnMovement(){
         $kolom=    
         [
+            ['data'=>'location_number','name'=>'location_number','title'=>'Location'],
             ['data'=>'movement_code','name'=>'movement_code','title'=>'Code'],
             ['data'=>'movement_date','name'=>'movement_date','title'=>'Date'],
             ['data'=>'movement_type','name'=>'movement_type','title'=>'Type'],

@@ -699,9 +699,24 @@ class ArticleController extends Controller
     }
 
     public function movement(Request $request){
-
+        
         $articleCode = $request->articleCode;
-        $sqlku=("SELECT movement_code,movement_date,artikel_code,artikel_desc,movement_price,movement_type,movement_transnno,movement_min,movement_plus,qty,balanceqty, movement_desc
+        $location = 'WH';
+        $siteCode = 'HO';
+        $sqlku=("SELECT movement_code
+                    ,movement_date
+                    ,artikel_code
+                    ,artikel_desc
+                    ,movement_price
+                    ,movement_type
+                    ,movement_transnno
+                    ,movement_min
+                    ,movement_plus
+                    ,qty
+                    ,balanceqty
+                    ,movement_desc
+                    ,site_code
+                    ,location_number
                 from (
                 select movement_code
                 ,artikel_code
@@ -716,8 +731,12 @@ class ArticleController extends Controller
                 ,movement_plus - movement_min as qty
                 ,sum(movement_plus) over (order by movement_code) - sum(movement_min) over (order by movement_code) as balanceqty
                 ,row_Number() over (order by movement_code) as rn
+                ,site_code
+                ,location_number
                 from movement
                 where artikel_code='$articleCode'
+                and site_code = '$siteCode'
+                and location_number = '$location'
                 ) t
                 order by movement_code");
         $data = DB::select($sqlku);

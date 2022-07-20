@@ -283,7 +283,7 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('delivery/delete',['as'=>'delivery.destroy','uses'=>'DeliveryController@destroy']);
 	Route::get('delivery/code/create',['as'=>'delivery.code.create','uses'=>'DeliveryController@articleCodeCreate']);
 	Route::get('delivery/print',['as'=>'delivery.print','uses'=>'DeliveryController@print']);
-	// Route::post('delivery/posting',['as'=>'delivery.posting','uses'=>'DeliveryController@posting']);
+	Route::post('delivery/posting',['as'=>'delivery.posting','uses'=>'DeliveryController@posting']);
 
 	Route::get('invoice',['as'=>'invoice.index','uses'=>'InvoiceController@index','middleware' => ['permission:receiving-index']]);
 	Route::get('invoice/create',['as'=>'invoice.create','uses'=>'InvoiceController@create','middleware' => ['permission:receiving-create']]);
@@ -536,6 +536,7 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('transferOut/cancel',['as'=>'transferOut.cancel','uses'=>'TransferOutController@cancel']);
 	Route::get('transferOut/article',['as'=>'transferOut.article','uses'=>'TransferOutController@article','middleware' => ['permission:transferOut-index']]);
 	Route::get('transferOut/print',['as'=>'transferOut.print','uses'=>'TransferOutController@print']);
+	Route::get('transferOut/article/tso',['as'=>'transferOut.article.tso','uses'=>'TransferOutController@articleTso']);
 
 	Route::get('deliveryInstruction',['as'=>'deliveryInstruction.index','uses'=>'DeliveryInstructionController@index','middleware' => ['permission:purchaseOrder-index']]);
 	Route::get('deliveryInstruction/create',['as'=>'deliveryInstruction.create','uses'=>'DeliveryInstructionController@create','middleware' => ['permission:deliveryInstruction-create']]);

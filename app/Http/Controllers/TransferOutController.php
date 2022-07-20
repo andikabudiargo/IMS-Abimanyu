@@ -242,7 +242,16 @@ class TransferOutController extends Controller
                 $rowAffected = DB::table('article_stock')
                 ->where('site_code',$siteCode)
                 ->where('article_code',$val->article_code)
-                ->decrement('article_qty', $val->total_qty);
+                ->where('location_number',$location)
+                ->update([
+                    'article_qty' => DB::raw('coalesce(article_qty,0) - '.$val->total_qty)
+                ]);
+
+                //update qty nya ditambahkan dengan qty baru
+                // $rowAffected = DB::table('article_stock')
+                // ->where('site_code',$siteCode)
+                // ->where('article_code',$val->article_code)
+                // ->decrement('article_qty', $val->total_qty);
             }
                     
             if ($rowAffected > 0){
@@ -288,7 +297,9 @@ class TransferOutController extends Controller
                         'movement_type' => $val->movement_type,
                         'movement_desc' => $val->movement_desc,
                         'created_by' => Auth::user()->username,
-                        'created_at' => date('Y-m-d H:i:s')
+                        'created_at' => date('Y-m-d H:i:s'),
+                        'site_code' => $siteCode,
+                        'location_number' => $location
                     ];
                 }
 
@@ -360,7 +371,16 @@ class TransferOutController extends Controller
             $rowAffected = DB::table('article_stock')
             ->where('site_code',$siteCode)
             ->where('article_code',$val->article_code)
-            ->increment('article_qty', $val->total_qty);
+            ->where('location_number',$location)
+            ->update([
+                'article_qty' => DB::raw('coalesce(article_qty,0) + '.$val->total_qty)
+            ]);
+
+            //update qty nya ditambahkan dengan qty baru
+            // $rowAffected = DB::table('article_stock')
+            // ->where('site_code',$siteCode)
+            // ->where('article_code',$val->article_code)
+            // ->increment('article_qty', $val->total_qty);
         }
         
         if ($rowAffected > 0){
@@ -407,7 +427,9 @@ class TransferOutController extends Controller
                     'movement_type' => $val->movement_type,
                     'movement_desc' => $val->movement_desc,
                     'created_by' => Auth::user()->username,
-                    'created_at' => date('Y-m-d H:i:s')
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'site_code' => $siteCode,
+                    'location_number' => $location
                 ];
             }
 
@@ -933,7 +955,61 @@ class TransferOutController extends Controller
 
         $pdf = PDF::loadView('transferOut.print');
         return $pdf->stream("$trNumber.pdf");
-
     }
 
+    public function articleTso(Request $request)
+    {
+        $tsoCode = $request->tsoCode;
+        $articles = DB::table('production_det')
+        ->where('prod_code',$tsoCode)
+        ->get();
+
+        $dataSet = [];
+        $randomCode = rand();
+        foreach ($articles as $val) {
+            $dataSet[] = [
+                'code' => $randomCode,
+                'article_code' => $val->article_code,
+                'qty' => $val->qty //untuk perhitungan pakai yang qty_target sudah di konfirmasi ke bu ifah
+            ];
+        }
+
+        DB::table('production_detail_temp')->insert($dataSet);
+
+        $data=DB::select("SELECT 
+        article_code_det as article_code
+        ,min_package 
+        ,sum(qty_order * qty_bom) as total
+        ,sum(qty_order * qty_bom) as grand_total
+        ,uom_bom as uom 
+        ,(select string_agg(unit_to,',' order by unit_from) as uom_member from uom_con where unit_from = a.uom_bom)
+        from(
+        select 
+        bom_det.article_code as article_code_det
+        ,production_detail_temp.qty as qty_order
+        ,production_detail_temp.uom as uom_order
+        ,bom_det.qty * coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = production_detail_temp.uom),1) as qty_bom
+        ,bom_det.uom as uom_bom
+        ,bom_hdr.article_code 
+        ,coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = production_detail_temp.uom),1) as factor_qty
+        ,(select min_package from article where article_code = bom_det.article_code) as min_package 
+        from production_detail_temp
+        left join bom_hdr on bom_hdr.article_code=production_detail_temp.article_code
+        join bom_det on  bom_det.bom_code = bom_hdr.bom_code
+        where production_detail_temp.code ='$randomCode'
+        and bom_hdr.status = '3'
+        ) a
+        group by article_code_det,uom_bom,min_package
+        order by article_code_det
+        ");
+
+        if ($data){
+            DB::table('production_detail_temp')
+                ->where('code',$randomCode)
+                ->delete();
+        }
+        
+        return response()->json($data);                        
+    }
 }
+

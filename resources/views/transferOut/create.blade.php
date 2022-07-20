@@ -31,7 +31,24 @@
                                 </div>
                             </div>
                             <div class="form-row">
-                                <div class="form-group col-md-5">
+                                <div class="form-group col-md-2">
+                                    <label class="form-label" for="toType">TO Type</label>
+                                    <select class="select2 form-control" id="toType" name="toType" required>
+                                        <option value="std">Standard</option>
+                                        <option value="prd">Production</option>
+                                    </select>
+                                </div>
+                                <div class="form-group col-md-4" id="tsoBox">
+                                    <label class="form-label" for="tsoCode">Production</label>
+                                    <select class="select2 form-control" id="tsoCode" name="tsoCode">
+                                    </select>
+                                </div>
+                            </div>
+                            {{-- <div class="form-row" id="tsoBox">
+                                
+                            </div> --}}
+                            <div class="form-row">
+                                <div class="form-group col-md-6">
                                     <label class="form-label" for="note">Notes</label>
                                     <textarea type="text" id="note" name="note" class="form-control" rows="1" ></textarea>
                                 </div>
@@ -100,6 +117,9 @@
 @section('scripts')
 @include('transferOut.addArticle')
 <script type="text/javascript">
+    let objToType = $('#toType');
+    let objTsoCode = $('#tsoCode');
+    let objTsoBox = $('#tsoBox');
     document.querySelector('#cmdSave').addEventListener('click',() =>{
         let element = document.getElementById('cmdSave');
         let oEdit = document.getElementById('oEdit');
@@ -110,6 +130,45 @@
         validateFormToast("frmAdd");
         $('#trDate').val(currentDate);
         isiArticle('trArticle');
+        objTsoBox.hide();
+    });
+
+    objToType.change(function(e){
+        let toType=$(this).val();
+        objTsoBox.hide();
+        if (toType ==='prd'){
+            objTsoBox.show();
+            dependent = 'prd_list'
+            changeSelect({
+                dependent:dependent,
+                obj:'tsoCode',
+                url:"{{ route('dynamic.dependent') }}"            
+            });
+        }
+    });
+
+    objTsoCode.change(function(e){
+        let tsoCode = $(this).val();    
+        if (tsoCode){        
+            $.ajax({
+                type: "GET",
+                url: "{{ route('transferOut.article.tso') }}",
+                data: {
+                    tsoCode:tsoCode
+                },
+                dataType: "json",
+                success: function(data) {
+                    if (data){
+                        for(let i=0;i<data.length;i++){
+                            add_new_row_edit(data[i].article_code,data[i].grand_total,data[i].uom,data[i].uom_member,'');
+                        }
+                    }
+                },
+                error: function(error) {
+                    console.log(error);
+                }
+            });
+        }
     });
 </script>
 @endsection

@@ -551,8 +551,8 @@
                     { data: 'article_desc', name: 'article_desc',title:'Desc' },
                     { data: 'uom', name: 'uom',title:'UOM' },
                     { data: 'qty', name: 'qty',title:'QTY' },
-                    { data: 'qty_total', name: 'qty_total',title:'QTY Total' ,render: $.fn.dataTable.render.number(',','.') },
-                    { data: 'kelompok', name: 'kelompok',title:'Article Type' ,render: $.fn.dataTable.render.number(',','.') },
+                    { data: 'qty_total', name: 'qty_total',title:'QTY Total' ,render: $.fn.dataTable.render.number(',','.',4) },
+                    { data: 'kelompok', name: 'kelompok',title:'Article Type' ,render: $.fn.dataTable.render.number(',','.',4) },
                 ],
             });
         });

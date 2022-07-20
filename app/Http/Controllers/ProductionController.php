@@ -93,6 +93,7 @@ class ProductionController extends Controller
         $username =  Auth::user()->username;
         $articles = json_decode($request -> articles);
         $prdDate = $request->prdDate;
+        $prdDate = date("Y-m-d", strtotime($prdDate) );
         $shift = $request->shift;
         $group = $request->group;
         $note = $request->note;
@@ -701,6 +702,9 @@ class ProductionController extends Controller
     {
         $articles = json_decode($request -> articles);
 
+        DB::table('production_detail_temp')
+        ->delete();
+
         $dataSet = [];
         $randomCode = rand();
         foreach ($articles as $val) {
@@ -713,19 +717,59 @@ class ProductionController extends Controller
 
         DB::table('production_detail_temp')->insert($dataSet);
 
-        $data=DB::select("SELECT article_alternative_code,article_desc,article.uom,qty,qty_proses,qty_total ,article.article_type,(select name from article_types where code = article.article_type) as kelompok from (
-            select article_code,sum(oki.qty) as qty,sum(mari.qty) as qty_proses,sum(oki.qty*mari.qty) as qty_total from (
-            select * from bom_det where bom_code in (
-            select bom_code from bom_hdr 
-            left join production_detail_temp on bom_hdr.article_code = production_detail_temp.article_code
-            where bom_hdr.article_code in (select article_code from production_detail_temp))) oki
-            left join(
-            select bom_code,qty from bom_hdr 
-            left join production_detail_temp on bom_hdr.article_code = production_detail_temp.article_code
-            where bom_hdr.article_code in (select article_code from production_detail_temp)) mari
-            on oki.bom_code= mari.bom_code
-            group by article_code) so
-            left join article on article.article_code = so.article_code");
+        $data=DB::select("SELECT so.article_code 
+                                ,article_alternative_code
+                                ,article_desc
+                                ,article.uom
+                                ,qty
+                                ,qty_proses
+                                ,qty_total 
+                                ,article.article_type
+                                ,(select name from article_types where code = article.article_type) as kelompok
+         FROM (SELECT 
+            article_code_det as article_code
+            ,sum(qty_bom) as qty
+            ,sum(qty_order) as qty_proses
+            ,sum(qty_order * qty_bom) as qty_total
+            ,uom_bom as uom 
+            from(
+            select 
+            bom_det.article_code as article_code_det
+            ,production_detail_temp.qty as qty_order
+            ,production_detail_temp.uom as uom_order
+            ,bom_det.qty * coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = production_detail_temp.uom),1) as qty_bom
+            ,bom_det.uom as uom_bom
+            ,bom_hdr.article_code 
+            ,coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = production_detail_temp.uom),1) as factor_qty
+            ,(select min_package from article where article_code = bom_det.article_code) as min_package 
+            from production_detail_temp
+            left join bom_hdr on bom_hdr.article_code=production_detail_temp.article_code
+            join bom_det on  bom_det.bom_code = bom_hdr.bom_code
+            where production_detail_temp.code ='$randomCode'
+            and bom_hdr.status = '3'
+            ) a
+            group by article_code_det,uom_bom
+            order by article_code_det) AS so
+            left join article on article.article_code = so.article_code"
+        );
+
+        // $data=DB::select("SELECT article_alternative_code,article_desc,article.uom,qty,qty_proses,qty_total ,article.article_type,(select name from article_types where code = article.article_type) as kelompok from (
+        //     select article_code,sum(oki.qty) as qty,sum(mari.qty) as qty_proses,sum(oki.qty*mari.qty) as qty_total 
+        //     from (
+        //         select * from bom_det where bom_code in (
+        //             select bom_code from bom_hdr 
+        //             left join production_detail_temp on bom_hdr.article_code = production_detail_temp.article_code
+        //             where bom_hdr.article_code in (select article_code from production_detail_temp)
+        //         )) oki
+        //             left join(
+        //                 select bom_code,qty 
+        //                 from bom_hdr 
+        //                 left join production_detail_temp on bom_hdr.article_code = production_detail_temp.article_code
+        //                 where bom_hdr.article_code in (select article_code from production_detail_temp)
+        //             ) mari
+        //     on oki.bom_code= mari.bom_code
+        //     group by article_code) so
+        //     left join article on article.article_code = so.article_code");
 
         DB::table('production_detail_temp')
         ->where('code',$randomCode)

@@ -62,7 +62,7 @@
                 <div class="form-group margin-nol">
                     <label for="qtyShow" class="d-block d-md-none">QTY</label>
                     <div class="input-group input-group-merge">
-                        <input type="text" class="form-control numeral-mask-satuan text-right" id = "qtyShow" name="qtyShow[]" maxlength="9" />
+                        <input type="text" class="form-control numeral-mask-digit text-right" id = "qtyShow" name="qtyShow[]" maxlength="9" />
                         <div class="input-group-append">
                             <span class="input-group-text" id ="uomShow" name="uomShow[]"></span>
                         </div>

@@ -482,11 +482,11 @@ class ReceivingController extends Controller
                 ->updateOrInsert(
                     [ 'site_code' =>$siteCode,
                       'article_code' => $val->article_code,
-                      'location_number'=>$location
+                      'location_number'=> $location
                     ],
                     [
                       'dept_code'=>$val->article_type,
-                      'uom'=>$val->uom_article
+                      'uom'=>$val->uom_article,
                     ]
                 );
 
@@ -494,7 +494,15 @@ class ReceivingController extends Controller
                 $rowAffected = DB::table('article_stock')
                 ->where('site_code',$siteCode)
                 ->where('article_code',$val->article_code)
-                ->increment('article_qty', $val->total_qty);
+                ->where('location_number',$location)
+                ->update([
+                    'article_qty' => DB::raw('coalesce(article_qty,0) + '.$val->total_qty)
+                ]);
+
+                // $rowAffected = DB::table('article_stock')
+                // ->where('site_code',$siteCode)
+                // ->where('article_code',$val->article_code)
+                // ->increment('article_qty', $val->total_qty);
 
                 if ($rowAffected){
                     DB::table('article')
@@ -553,7 +561,9 @@ class ReceivingController extends Controller
                         'movement_type' => $val->movement_type,
                         'movement_desc' => $val->movement_desc,
                         'created_by' => Auth::user()->username,
-                        'created_at' => date('Y-m-d H:i:s')
+                        'created_at' => date('Y-m-d H:i:s'),
+                        'site_code' => $siteCode,
+                        'location_number' => $location
                     ];
                 }
 
@@ -623,11 +633,19 @@ class ReceivingController extends Controller
                 ]
             );
 
-            //update qty nya ditambahkan dengan qty baru
             $rowAffected = DB::table('article_stock')
             ->where('site_code',$siteCode)
             ->where('article_code',$val->article_code)
-            ->decrement('article_qty', $val->total_qty);
+            ->where('location_number',$location)
+            ->update([
+                'article_qty' => DB::raw('coalesce(article_qty,0) - '.$val->total_qty)
+            ]);
+
+            //update qty nya ditambahkan dengan qty baru
+            // $rowAffected = DB::table('article_stock')
+            // ->where('site_code',$siteCode)
+            // ->where('article_code',$val->article_code)
+            // ->decrement('article_qty', $val->total_qty);
 
             if ($rowAffected){
                 DB::table('article')
@@ -687,7 +705,9 @@ class ReceivingController extends Controller
                     'movement_type' => $val->movement_type,
                     'movement_desc' => $val->movement_desc,
                     'created_by' => Auth::user()->username,
-                    'created_at' => date('Y-m-d H:i:s')
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'site_code' => $siteCode,
+                    'location_number' => $location
                 ];
             }
 
@@ -1053,7 +1073,7 @@ class ReceivingController extends Controller
         
         $statusRec = ['NEW','VALIDATED','APPROVED','POSTED','CANCELED'];
         $data['status'] = $statusRec[$recHdr ->status-1];
-        
+
         $data['no'] =0;
 
         view()->share($data);
@@ -1098,7 +1118,7 @@ class ReceivingController extends Controller
                     (select po, article_code,sum(qty) as qty,price from (
                         select *,(select po_number from receiving_hdr 
                                    where rec_number = a.rec_number) as po from receiving_det a where rec_number in (
-                                   select rec_number from receiving_hdr where status = '3' and po_number = '$po')
+                                   select rec_number from receiving_hdr where status = '4' and po_number = '$po')
                     ) z
                 group by po, article_code,price) b
                 on a.po_number = b.po and a.article_code = b.article_code

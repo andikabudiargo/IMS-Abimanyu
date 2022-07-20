@@ -259,7 +259,7 @@
                     show_msg(data.title, data.message, data.alert);
                     $('#recNumber').attr('disabled','disabled');
                     $('#cmdApprove').attr('disabled','disabled');
-                    window.location.reload();           
+                    window.location.reload();      
                 }
             },
             error: function(error) {
