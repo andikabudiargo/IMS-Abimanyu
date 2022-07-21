@@ -89,7 +89,7 @@
     <table style="table-layout:fixed;">
         <thead style="background-color: lightgray;">
         <tr>
-            <th width="5%">#</th>
+            <th width="5%">No</th>
             {{-- <th width="10%">Code</th> --}}
             <th width="45%">Description</th>
             <th width="10%">Qty</th>
@@ -131,8 +131,8 @@
         <tr>
             <td colspan="3" rowspan="4" valign="top" style="border: 1px solid #0c0c0c;padding-left:10px">
                     <br>
-                    Syarat Bayar : {{ $customers->syarat_bayar }}<br>
-                    Waktu Kirim : {{ $customers->syarat_kirim }}<br>
+                    {{-- Syarat Bayar : {{ $customers->syarat_bayar }}<br>
+                    Waktu Kirim : {{ $customers->syarat_kirim }}<br> --}}
                     Alamat Kirim:{{ $customers->alamat_kirim_1 }}<br>
                     Note:{{ $keterangan }}<br>
             </td>
@@ -167,9 +167,9 @@
         <tr><td colspan="2" height="100"></td></tr>
         <tr><td colspan="2" height="100"></td></tr>
         <tr>
-            <td align="center">Disetujui</td>
+            <td align="center">Dibuat</td>
             <td align="center">Diperiksa</td>
-            <td align="center">Disiapkan</td>
+            <td align="center">Disetujui</td>
         </tr>
         <tr>
             <td align="center"></td>

@@ -56,10 +56,15 @@
             <tr>
                 <td align="left" style="width: 45%;">
                     <h2>PURCHASE ORDER</h2>
+                    <table>
+                        <tr>
+                            <td></td>
+                        </tr>
+                    </table>
 <pre>
-Date: {{ $poDate }}
-PO Number: {{ $poNumber }}
-Term: {{ $poTerm }} Days
+Date          : {{ $poDate }}
+PO Number     : {{ $poNumber }}
+Term          : {{ $poTerm }} Days
 Delivery Date : {{ $poDelDate }}
 </pre>
                 </td>
@@ -94,12 +99,13 @@ Delivery Date : {{ $poDelDate }}
     <table class="detail" width="100%">
         <thead style="background-color: lightgray;">
         <tr>
-            <th width="5%">#</th>
+            <th width="5%">No</th>
             <th width="10%">Code</th>
             <th width="40%">Description</th>
             <th width="5%">Qty</th>
+            <th width="5%">UOM</th>
             <th>Price</th>
-            <th>PPN</th>
+            {{-- <th>PPN</th> --}}
             <th>Total</th>
         </tr>
         </thead>
@@ -110,8 +116,9 @@ Delivery Date : {{ $poDelDate }}
                     <td style="border-bottom: 1px solid #ddd;" align="left">{{ $val->article_alternative_code }}</td>
                     <td style="border-bottom: 1px solid #ddd;" align="left">{{ $val->article_desc }}</td>
                     <td style="border-bottom: 1px solid #ddd;" align="right">{{ number_format($val->qty) }}</td>
+                    <td style="border-bottom: 1px solid #ddd;" align="right">{{ $val->uom }}</td>
                     <td style="border-bottom: 1px solid #ddd;" align="right">{{ number_format($val->price) }}</td>
-                    <td style="border-bottom: 1px solid #ddd;" align="right">{{ number_format($val->ppn) }}</td>
+                    {{-- <td style="border-bottom: 1px solid #ddd;" align="right">{{ number_format($val->ppn) }}</td> --}}
                     <td style="border-bottom: 1px solid #ddd;" align="right">{{ number_format(($val->qty*$val->price)+$val->ppn) }}</td>
                 </tr>
             @endforeach
@@ -134,12 +141,39 @@ Delivery Date : {{ $poDelDate }}
             <tr><td rowspan='6' style="width: 65%;">{{ $keterangan }}</td></tr>
             <tr><td >Subtotal</td><td>:</td></td><td align="right">{{ number_format($totals[0]->gross) }}</td></tr>
             <tr><td >Discount:</td><td>:</td><td align="right">{{ number_format($totals[0]->discount) }}</td></tr>
-            <tr><td >PPN 10%:</td><td>:</td><td align="right">{{ number_format($totals[0]->ppn) }}</td></tr>
-            <tr><td >PPH22:</td><td>:</td><td align="right"></td></tr>
+            <tr><td >PPN 11%:</td><td>:</td><td align="right">{{ number_format($totals[0]->ppn) }}</td></tr>
             <tr><td >Total:</td><td>:</td><td align="right">{{ number_format($totals[0]->netto) }}</td></tr>
         </tbody>
     </table>
-    @if($status == '3')
+    <table width="100%" border="0">
+        <tr><td colspan="2" height="100"></td></tr>
+        <tr><td colspan="2" height="100"></td></tr>
+        <tr>
+            <td align="center">Dibuat</td>
+            <td align="center">Diperiksa</td>
+            <td align="center">Mengetahui</td>
+            <td align="center">Menyetujui</td>
+        </tr>
+        <tr>
+            <td align="center"></td>
+            <td align="center"></td>
+            <td align="center"></td>
+            <td align="center"></td>
+        </tr>
+        <tr>
+            <td align="center"></td>
+            <td align="center"></td>
+            <td align="center"></td>
+            <td align="center"></td>
+        </tr>
+        <tr>
+            <td align="center">( _____________ )</td>
+            <td align="center">( _____________  )</td>
+            <td align="center">( _____________  )</td>
+            <td align="center">( _____________  )</td>
+        </tr>
+    </table>
+    {{-- @if($status == '3')
     <table>
         <tr>
             <td align="center" style="width:30%;" style="">Authorization</td><td></td>
@@ -151,7 +185,7 @@ Delivery Date : {{ $poDelDate }}
             <td align="center">(     {{ $approved }}     )</td><td></td>
         </tr>
     </table>
-    @endif
+    @endif --}}
 {{-- @if($status == "3")
 </div>
 @endif --}}

@@ -598,14 +598,14 @@ class TargetSoController extends Controller
                 }
             }
 
-            if (($data->status == '2') || ($data->status == '3') ){
-                if (Auth::user()->can('purchaseOrder-revision')) {
-                    $buttons .=         '<a href="'. route('targetSo.revision', ['id'=>Crypt::encryptString($data->id),'nR'=>$data->num_revision]) .'" class="dropdown-item">
-                                            <i data-feather="copy"></i>
-                                            <span>'. __("Revision") .'</span>
-                                        </a>';
-                }
-            }
+            // if (($data->status == '2') || ($data->status == '3') ){
+            //     if (Auth::user()->can('purchaseOrder-revision')) {
+            //         $buttons .=         '<a href="'. route('targetSo.revision', ['id'=>Crypt::encryptString($data->id),'nR'=>$data->num_revision]) .'" class="dropdown-item">
+            //                                 <i data-feather="copy"></i>
+            //                                 <span>'. __("Revision") .'</span>
+            //                             </a>';
+            //     }
+            // }
             
             // $buttons .=         '<a href="'. route('targetSo.print', ['id'=>Crypt::encryptString($data->id)]) .'" target="_blank" class="dropdown-item">
             //                         <i data-feather="printer"></i>
