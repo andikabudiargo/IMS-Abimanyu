@@ -13,7 +13,7 @@
     
     tfoot tr td{
         /*font-weight: bold;*/
-        font-size: medium;
+        /* font-size: medium; */
     }
     .gray {
         background-color: lightgray;
@@ -132,7 +132,7 @@
                     <td style="border-bottom: 1px solid #ddd;" align="left" colspan="3">Total</td>
                     <td style="border-bottom: 1px solid #ddd;" align="right" >{{ number_format($val->qty) }}</td>
                     <td style="border-bottom: 1px solid #ddd;" align="right" ></td>
-                    <td style="border-bottom: 1px solid #ddd;" align="right" >{{ number_format($val->ppn)}}</td>
+                    <td style="border-bottom: 1px solid #ddd;" align="right" ></td>
                     <td style="border-bottom: 1px solid #ddd;" align="right" class="gray">{{ number_format($val->netto)}}</td>
                 </tr>
             @endforeach
