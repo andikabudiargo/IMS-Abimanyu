@@ -67,7 +67,7 @@
             <td width="30%" >
                 <img src="{{ public_path('app-assets/images/logo/logo_po.png') }}" alt="logo" style="width: 60%;"> 
             </td>
-            <td valign="top" style="text-align:center"><h2>RECEIPT NOTE</h2></td>
+            <td valign="top" style="text-align:center"><h2>LEMBAR PENERIMAAN BARANG</h2></td>
             <td width="30%" ></td>
         </tr>
     </table>
