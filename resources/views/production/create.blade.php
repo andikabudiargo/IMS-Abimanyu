@@ -48,6 +48,13 @@
                                     </select>
                                 </div>
                             </div>
+
+                            <div class="form-row">
+                                <div class="form-group col-md-2">
+                                    <label for="prdDate">Time StartDate*</label>
+                                    <input type="text" id="prdTime" name="prdTime" class="form-control" placeholder="HH:MM" required />
+                                </div>
+                            </div>
                             
                             <div class="row">
                                 <div class="form-group col-md-8">
@@ -208,6 +215,14 @@
         prdDate.flatpickr({
             dateFormat: "d-m-Y",
             minDate: currentDate
+        });
+    }
+
+    prdTime = $('#prdTime');
+    if (prdTime.length) {
+        prdTime.flatpickr({
+            enableTime: true,
+            noCalendar: true
         });
     }
 

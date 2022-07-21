@@ -102,7 +102,7 @@
                                         <table class="table table-bordered w-100" >
                                             <thead class="thead-dark">
                                                 <tr>
-                                                    <th>#</th>
+                                                    <th>No</th>
                                                     <th>Article Code</th>
                                                     <th class="text-right">QTY</th>
                                                     <th >Uom Con.</th>

@@ -68,7 +68,7 @@
                         <table class="table table-bordered w-100" >
                             <thead class="thead-dark">
                                 <tr>
-                                    <th>#</th>
+                                    <th>No</th>
                                     <th>Article</th>
                                     <th class="text-right">QTY</th>
                                     <th class="text-right">Note</th>

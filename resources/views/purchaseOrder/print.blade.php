@@ -52,21 +52,24 @@
 @endif --}}
 
     <div class="header">
-        <table width="100%" >
+        <table width="100%">
             <tr>
-                <td align="left" style="width: 45%;">
+                <td align="left" style="width: 35%;padding:0px">
                     <h2>PURCHASE ORDER</h2>
-                    <table>
+                    <table width="100%" style="padding-left:0px" >
                         <tr>
-                            <td></td>
+                            <td style="width: 40%;">Date</td><td>:{{ $poDate }}</td>
+                        </tr>
+                        <tr>
+                            <td>PO Number</td><td>:{{ $poNumber }}</td>
+                        </tr>
+                        <tr>
+                            <td>Term</td><td>:{{ $poTerm }}</td>
+                        </tr>
+                        <tr>
+                            <td>Delivery Date</td><td>:{{ $poDelDate }}</td>
                         </tr>
                     </table>
-<pre>
-Date          : {{ $poDate }}
-PO Number     : {{ $poNumber }}
-Term          : {{ $poTerm }} Days
-Delivery Date : {{ $poDelDate }}
-</pre>
                 </td>
                 <td style="width: 10%;"></td>
                 <td align="center" style="width: 45%;" tyle="text-align:center;">
@@ -137,8 +140,21 @@ Delivery Date : {{ $poDelDate }}
     </table>
     <table width="100%">
         <tbody>
-            <tr><td style="width: 65%;">Notes:</td></tr>
-            <tr><td rowspan='6' style="width: 65%;">{{ $keterangan }}</td></tr>
+            <tr>
+                <td rowspan='5' valign="top" style="border: 1px solid #0c0c0c;padding-left:10px;width: 65%;font-size: 10px;">
+                Notes:{{ $keterangan }}<br>
+                1. Surat jalan harus mencantumkan No. PO<br>
+                2. Barang harus diterima di gudang kami paling lambat jam 15:30 WIB<br>
+                3. Pembayaran sesuai dengan schedule yang telah ditentukan perusahaan<br>
+                4. Pada saat penagihan harap lampirkan<br>
+                   - 2 Rangkap surat jalan<br>
+                   - 2 Rangkap tanda terima barang<br>
+                   - 2 Rangkap Invoice<br>
+                5. Pada saat penagihan harap lampirkan tanda terima Barang<br>
+                6. Jatuh tempo invoice dihitung dari tanggal terima invoice
+                </td>
+            </tr>
+            {{-- <tr><td rowspan='6' style="width: 65%;">{{ $keterangan }}</td></tr> --}}
             <tr><td >Subtotal</td><td>:</td></td><td align="right">{{ number_format($totals[0]->gross) }}</td></tr>
             <tr><td >Discount:</td><td>:</td><td align="right">{{ number_format($totals[0]->discount) }}</td></tr>
             <tr><td >PPN 11%:</td><td>:</td><td align="right">{{ number_format($totals[0]->ppn) }}</td></tr>
