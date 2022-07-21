@@ -129,7 +129,7 @@
         <table>
             <thead style="background-color: lightgray;">
                 <tr>
-                    <th width="5%">#</th>
+                    <th width="5%">No</th>
                     <th width="10%">Article</th>
                     <th width="45%">Description</th>
                     <th width="10%">Qty</th>

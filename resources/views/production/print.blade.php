@@ -87,7 +87,7 @@
     <table style="table-layout:fixed;">
         <thead style="background-color: lightgray;">
         <tr>
-            <th width="5%">#</th>
+            <th width="5%">No</th>
             <th width="15%">Code</th>
             <th width="50%">Description</th>
             <th width="10%">Qty</th>

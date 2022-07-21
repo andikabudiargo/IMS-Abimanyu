@@ -13,7 +13,7 @@
                     <table class="table table-bordered w-100" id="modalTableData" >
                         <thead class="thead-dark">
                             <tr>
-                                <th style="width:5%">#</th>
+                                <th style="width:5%">No</th>
                                 <th>PO Number</th>
                                 <th>Date</th>
                                 <th class="text-right">Price</th>

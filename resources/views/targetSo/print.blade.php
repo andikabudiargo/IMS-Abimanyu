@@ -94,7 +94,7 @@ Delivery Date : {{ $poDelDate }}
     <table class="detail" width="100%">
         <thead style="background-color: lightgray;">
         <tr>
-            <th width="5%">#</th>
+            <th width="5%">No</th>
             <th width="10%">Code</th>
             <th width="40%">Description</th>
             <th width="5%">Qty</th>
