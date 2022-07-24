@@ -109,13 +109,13 @@
             <td valign="" width="3%" class="font-10 header-padding">Part Name</td>
             <td valign="" width="10%" class="font-10 header-padding">{{ $bomHdr->article_desc }}</td>
             <td valign="" width="3%" class="font-10 header-padding">Model</td>
-            <td valign="" width="10%" class="font-10 header-padding"></td>
+            <td valign="" width="10%" class="font-10 header-padding">{{ $bomHdr->model }}</td>
             <td valign="" width="4%" class="font-10 header-padding">No Revisi</td>
             <td valign="" width="5%" class="font-10 header-padding">1</td>
         </tr>
         <tr>
             <td valign="" class="font-10 header-padding">Part No</td>
-            <td valign="" class="font-10 header-padding">{{ $bomHdr->article_alternative_code }}</td>
+            <td valign="" class="font-10 header-padding">{{ $bomHdr->part_no }}</td>
             <td valign="" class="font-10 header-padding">Customer</td>
             <td valign="" class="font-10 header-padding">{{ $bomHdr->nama }}</td>
             <td valign="" class="font-10 header-padding">Halaman</td>

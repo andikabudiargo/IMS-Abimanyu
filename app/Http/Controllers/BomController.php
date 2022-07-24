@@ -756,7 +756,9 @@ class BomController extends Controller
             num_revision,
             authorized_by,
             revised_by,
-            revised_at
+            revised_at,
+            part_no,
+            model
         )
         select 
             '$bomNew',
@@ -778,7 +780,9 @@ class BomController extends Controller
             $numRevision,
             authorized_by,
             '$username',
-            '".date('Y-m-d H:i:s')."'
+            '".date('Y-m-d H:i:s')."',
+            part_no,
+            model
         from bom_hdr where bom_code = '$bomOrigin'";
 
         $sqlDet="INSERT into bom_det
