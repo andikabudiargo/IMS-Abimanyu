@@ -27,7 +27,7 @@
                                 </div>
                             </div>
                             <div class="form-row">
-                                <div class="form-group col-md-5">
+                                <div class="form-group col-md-4">
                                     <label class="form-label" for="articleCode">Article Finish Goods*</label>
                                     <select class="select2 form-control" id="articleCode" name="articleCode" required>
                                         <option value=""></option>
@@ -47,17 +47,27 @@
                                 </div>
                             </div>
                             <div class="form-row">
-                                <div class="form-group col-md-5">
+                                <div class="form-group col-md-4">
                                     <label for="customer">Customer</label>
                                     <input type="text" id="customer" name="customer" class="form-control disabled-el"  disabled required/>
                                 </div>
-                                <div class="form-group col-md-4">
+                                <div class="form-group col-md-3">
                                     <label for="group">Group of material</label>
                                     <input type="text" id="group" name="group" class="form-control disabled-el"  disabled />
                                 </div>
                                 <div class="form-group col-md-1">
                                     <label for="uomHdr">UOM</label>
                                     <input type="text" id="uomHdr" name="uomHdr" class="form-control disabled-el"  disabled />
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group col-md-4">
+                                    <label for="partNo">Part No</label>
+                                    <input type="text" id="partNo" name="partNo" class="form-control" />
+                                </div>
+                                <div class="form-group col-md-4">
+                                    <label for="model">Model</label>
+                                    <input type="text" id="model" name="model" class="form-control" />
                                 </div>
                             </div>
                             <div class="form-row">
@@ -78,13 +88,13 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="form-group col-md-3">
+                                <div class="form-group col-md-2">
                                     <label for="cycleTime">Cycle time buffing</label>
                                     <input type="text" id="cycleTime" name="cycleTime" value="{{ old('cycleTime') }}" class="form-control numeral-mask-digit" maxlength="5" required/>
                                 </div>
                             </div>
                             <div class="form-row">
-                                <div class="form-group col-md-10">
+                                <div class="form-group col-md-8">
                                     <label class="form-label" for="note">Notes</label>
                                     <textarea type="text" id="note" name="note" class="form-control" rows="1" >{{ old('note') }}</textarea>
                                 </div>

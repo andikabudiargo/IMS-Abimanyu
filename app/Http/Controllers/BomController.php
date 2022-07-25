@@ -105,7 +105,7 @@ class BomController extends Controller
         ->get();
 
         $data['articlesRm'] = DB::table('article')
-        ->where('article_type','RM')
+        ->whereIn('article_type',['RM','RMP','RMNP'])
         ->whereNotIn('article.article_code', function($query){
             $query->select(DB::raw("COALESCE(article_code_rm,'blablabla')"))
             ->from('bom_hdr')
@@ -132,6 +132,8 @@ class BomController extends Controller
         $passThru = $request->passThru;
         $cycleTime = $request->cycleTime;
         $note = $request->note;
+        $partNo =$request->partNo;
+        $model =$request->model;
 
         $status = '1';
         $print_seq = 0;
@@ -180,6 +182,8 @@ class BomController extends Controller
                         'pass_thru' => $passThru,
                         'cycle_time' => $cycleTime,
                         'note' => $note,
+                        'part_no' => $partNo,
+                        'model' => $model,
                         'created_by' => Auth::user()->username,
                         'updated_by' => Auth::user()->username,
                         'created_at' => date('Y-m-d H:i:s'),
@@ -383,6 +387,8 @@ class BomController extends Controller
         $passThru = $request->passThru;
         $cycleTime = $request->cycleTime;
         $note = $request->note;
+        $partNo =$request->partNo;
+        $model =$request->model;
 
         $status = '1';
         $print_seq = 0;
@@ -432,6 +438,8 @@ class BomController extends Controller
                             'pass_thru' => $passThru,
                             'cycle_time' => $cycleTime,
                             'note' => $note,
+                            'part_no' => $partNo,
+                            'model' => $model,
                             'updated_by' => Auth::user()->username,
                             'updated_at' => date('Y-m-d H:i:s')
                         ]

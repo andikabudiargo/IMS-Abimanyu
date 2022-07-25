@@ -222,6 +222,7 @@
         }
         })
     }
+
     changeselect = (dependent,obj,article) => {
         $('#'+obj).attr('disabled','disabled');
         $.ajax({
@@ -237,6 +238,7 @@
             }
         })
     }
+
     saveData = (oEdit) => {
         if (!$("#frmAdd")[0].checkValidity()){
             $("#frmAdd").submit();
@@ -266,6 +268,8 @@
             let passRate = $('#passRate').val().replace(/,/gi, '') || 0;
             let passThru = $('#passThru').val().replace(/,/gi, '') || 0;
             let cycleTime = $('#cycleTime').val().replace(/,/gi, '') || 0;
+            let partNo = $('#partNo').val();
+            let model = $('#partModel').val();
             let note = $('#note').val();
             let arrArticles = []; 
             let articles;
@@ -352,7 +356,9 @@
                         passRate:passRate,
                         passThru:passThru,
                         cycleTime:cycleTime,
-                        bomNumber:bomNumber
+                        bomNumber:bomNumber,
+                        partNo:partNo,
+                        model:model
                     },
                     dataType: "json",
                     success: function(data) {
@@ -378,6 +384,7 @@
             }
         }
     }
+
     approve = (bomNumber) => {
         $.ajax({
             type: "GET",
@@ -406,10 +413,12 @@
             }
         });
     }
+
     $("#cmdCancel,#cmdNew").click(function() {
         $('#bomNumber').val('');
         window.location.reload();
     });
+    
     $("#articleCode").change(function() {
         let $this = $(this);
         let detail = $this.find(":selected").data("detail").split("|");

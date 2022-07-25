@@ -42,27 +42,37 @@
                                             </div>
                                         </div>  
                                         <div class="form-row">
-                                            <div class="form-group col-md-5">
+                                            <div class="form-group col-md-4">
                                                 <label class="form-label" for="articleCode">Article Finish Goods</label>
                                                 <input type="text" id="customer" name="customer" class="form-control" value="{{ $header2->article }}"disabled />
                                             </div>
-                                            <div class="form-group col-md-5">
+                                            <div class="form-group col-md-4">
                                                 <label class="form-label" for="articleCodeRm">Article Raw material*</label>
                                                 <input type="text" id="articleCodeRm" name="articleCodeRm" value="{{ old('articleCodeRm',$header->article_rm) }}" class="form-control" disabled />
                                             </div>
                                         </div>
                                         <div class="form-row">
-                                            <div class="form-group col-md-5">
+                                            <div class="form-group col-md-4">
                                                 <label for="customer">Customer</label>
                                                 <input type="text" id="customer" name="customer" value="{{ $header2->cust_name }}"class="form-control" disabled />
                                             </div>
-                                            <div class="form-group col-md-4">
+                                            <div class="form-group col-md-3">
                                                 <label for="group">Group of material</label>
                                                 <input type="text" id="group" name="group" class="form-control" disabled />
                                             </div>
                                             <div class="form-group col-md-1">
                                                 <label for="uom">UOM</label>
                                                 <input type="text" id="uom" name="uom" class="form-control" disabled />
+                                            </div>
+                                        </div>
+                                        <div class="form-row">
+                                            <div class="form-group col-md-4">
+                                                <label for="partNo">Part No</label>
+                                                <input type="text" id="partNo" name="partNo" value="{{ $header2->part_no }}" class="form-control" />
+                                            </div>
+                                            <div class="form-group col-md-4">
+                                                <label for="model">Model</label>
+                                                <input type="text" id="model" name="model" value="{{ $header2->model }}" class="form-control" />
                                             </div>
                                         </div>
                                         <div class="form-row">
@@ -84,7 +94,7 @@
                                                     </div>
                                                 </div>
                                             </div>
-                                            <div class="form-group col-md-3">
+                                            <div class="form-group col-md-2">
                                                 <label for="cycleTime">Cycle time buffing</label>
                                                 <input type="text" id="cycleTime" name="cycleTime" value="{{ old('cycleTime',$header2->cycle_time) }}" class="form-control numeral-mask-digit" maxlength="5" disabled/>
                                             </div>
@@ -105,7 +115,9 @@
                                                     <th>No</th>
                                                     <th>Article Code</th>
                                                     <th class="text-right">QTY</th>
-                                                    <th >Uom Con.</th>
+                                                    <th class="text-right">Uom</th>
+                                                    <th >Qty Con.</th>
+                                                    <th >Uom</th>
                                                     <th >Type</th>
                                                 </tr>
                                             </thead>
@@ -115,8 +127,10 @@
                                                     <tr>
                                                         <td ></td>
                                                         <td >{{ $item->article }}</td>
-                                                        <td class="text-right">{{ number_format($item->qty,$decimalPlaces) }} {{ $item->uom }}</td>
-                                                        <td class="text-right">{{ number_format($item->qty*$item->factor_qty,$decimalPlaces) }} {{ $item->uom_con }}</td>
+                                                        <td class="text-right">{{ number_format($item->qty,$decimalPlaces) }}</td>
+                                                        <td class="text-right">{{ $item->uom }}</td>
+                                                        <td class="text-right">{{ number_format($item->qty*$item->factor_qty,$decimalPlaces) }}</td>
+                                                        <td class="text-right">{{ $item->uom_con }}</td>
                                                         <td >{{ $item->type_name }}</td>
                                                     </tr>
                                                 @endif

@@ -26,27 +26,37 @@
                                 </div>
                             </div>  
                             <div class="form-row">
-                                <div class="form-group col-md-5">
+                                <div class="form-group col-md-4">
                                     <label class="form-label" for="articleCode">Article Finish Goods*</label>
                                     <input type="text" id="articleCode" name="articleCode" value="{{ old('articleCode',$header->article) }}" data-article-code="{{ old('articleCode',$header->article_code) }}" class="form-control" disabled />
                                 </div>
-                                <div class="form-group col-md-5">
+                                <div class="form-group col-md-4">
                                     <label class="form-label" for="articleCodeRm">Article Raw material*</label>
                                     <input type="text" id="articleCodeRm" name="articleCodeRm" value="{{ old('articleCodeRm',$header->article_rm) }}" data-article-code="{{ old('articleCodeRm',$header->article_code_rm) }}" class="form-control" disabled />
                                 </div>
                             </div>
                             <div class="form-row">
-                                <div class="form-group col-md-5">
+                                <div class="form-group col-md-4">
                                     <label for="customer">Customer</label>
                                     <input type="text" id="customer" name="customer" value="{{ old('customer',$header->cust_name) }}" data-customer-code = "{{ $header->customer }}" class="form-control" disabled />
                                 </div>
-                                <div class="form-group col-md-4">
+                                <div class="form-group col-md-3">
                                     <label for="group">Group of material</label>
                                     <input type="text" id="group" name="group" value="{{ old('group',$header->group) }}" data-group = "{{ $header->group_of_material }}" class="form-control" disabled />
                                 </div>
                                 <div class="form-group col-md-1">
                                     <label for="uomHdr">Uom</label>
                                     <input type="text" id="uomHdr" name="uomHdr" value="{{ old('uomHdr',$header->uom) }}" class="form-control" disabled />
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group col-md-4">
+                                    <label for="partNo">Part No</label>
+                                    <input type="text" id="partNo" name="partNo" value="{{ old('partNo',$header->part_no) }}" class="form-control" />
+                                </div>
+                                <div class="form-group col-md-4">
+                                    <label for="model">Model</label>
+                                    <input type="text" id="model" name="model" value="{{ old('model',$header->model) }}" class="form-control" />
                                 </div>
                             </div>
                             <div class="form-row">
@@ -68,13 +78,13 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="form-group col-md-3">
+                                <div class="form-group col-md-2">
                                     <label for="cycleTime">Cycle time buffing</label>
                                     <input type="text" id="cycleTime" name="cycleTime" value="{{ old('cycleTime',$header->cycle_time) }}" class="form-control numeral-mask-digit" maxlength="5"/>
                                 </div>
                             </div>
                             <div class="form-row">
-                                <div class="form-group col-md-10">
+                                <div class="form-group col-md-8">
                                     <label class="form-label" for="note">Notes</label>
                                     <textarea type="text" id="note" name="note" class="form-control" rows="1" >{{ old('note',$header->note) }}</textarea>
                                 </div>
