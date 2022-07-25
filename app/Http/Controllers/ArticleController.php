@@ -117,7 +117,7 @@ class ArticleController extends Controller
         $customer = $custCode;
         $leadingCode = $leadCode;
     
-        if ($leadingCode == "FG"){
+        if (($leadingCode == "FG") or  ($leadingCode == "RMP") or ($leadingCode == "RMNP")){
             /*
             pembuatan article_alternative_code sesuai dengan aturan, kalo FG harus ada kode cabang nya
             eg. FGXXX0001

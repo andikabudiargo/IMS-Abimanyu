@@ -355,7 +355,7 @@ class DependentController extends Controller
         }elseif($dependent =='article_pr_rm'){
             $data= DB::table($table)
             ->leftJoin('uom','uom.code','=',$table.'.uom')
-            ->whereIn('article_type',['RM'])
+            ->whereIn('article_type',['RM','RMP','RMNP'])
             ->orderBy($order)
             ->get();
         }elseif($dependent =='article_wos'){
