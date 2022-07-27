@@ -223,6 +223,7 @@
         let flag=0;
         let pesan="";
         let objArticle = $("#article_row select[name='articleId[]']");
+        let objArticleRm = $("#article_row select[name='articleRm[]']");
         let objQtyOrder = $('#article_row input[name="qtyOrder[]"]');
         let objUomQtyOrder = $('#article_row span[name="uomQtyOrder[]"]');
         let objQtyProd = $('#article_row input[name="qtyProd[]"]');
@@ -235,6 +236,7 @@
 		    let $this=$(this);
             if ($this.val()){
                 let article=$this.val();
+                let articleRm = objArticleRm.eq(i).val();
                 let urutan =objUrutan.eq(i).val();
                 let soCode=objSoCode.eq(i).val();
                 let qtyOrder=objQtyOrder.eq(i).val().replace(/,/gi, '') || 0;
@@ -254,6 +256,7 @@
                             "urutan":urutan,
                             "so_code":soCode,
                             "article_code":article,
+                            "aticle_rm":articleRm,
                             "qty_so":qtyOrder,
                             "uom":uomOrder,
                             "qty":qtyProd,
@@ -270,7 +273,7 @@
             $('#article_row').find('div').remove();
             cloneCountEdit=0;
             articles.map(function(i) {
-                add_new_row_edit(i.so_code,i.article_code,i.qty_so,i.uom,i.qty,i.waktu,i.tag);
+                add_new_row_edit(i.so_code,i.article_code,i.article_rm,i.qty_so,i.uom,i.qty,i.waktu,i.tag);
             })
         }
     });
@@ -674,13 +677,14 @@
     };
 
     let cloneCountEdit=0;
-    function add_new_row_edit(noSo,noArticle,qtySo,qtySoUom,qtyProd,waktu,tag) {
+    function add_new_row_edit(noSo,noArticle,noArticleRm,qtySo,qtySoUom,qtyProd,waktu,tag) {
         $("#article_row").append($("#new_row").clone().html());
         cloneCountEdit++;
         $("#article_row").find('#baru').attr('id', 'new_row'+ cloneCountEdit);
         $("#new_row"+ cloneCountEdit).find('#urutan').attr('id', 'urutan'+ cloneCountEdit);
         $("#new_row"+ cloneCountEdit).find('#salesOrder').attr('id', 'salesOrder'+ cloneCountEdit);
         $("#new_row"+ cloneCountEdit).find('#articleId').attr('id', 'articleId'+ cloneCountEdit);
+        $("#new_row"+ cloneCountEdit).find('#articleRm').attr('id', 'articleRm'+ cloneCountEdit);
         $("#new_row"+ cloneCountEdit).find('#qtyOrder').attr('id', 'qtyOrder'+ cloneCountEdit);
         $("#new_row"+ cloneCountEdit).find('#uomQtyOrder').attr('id', 'uomQtyOrder'+ cloneCountEdit);
         $("#new_row"+ cloneCountEdit).find('#qtyProd').attr('id', 'qtyProd'+ cloneCountEdit);
@@ -694,6 +698,7 @@
         $('#qtyProd'+ cloneCountEdit).val(qtyProd);
         $('#waktu'+ cloneCountEdit).val(waktu);
         $('#tag'+ cloneCountEdit).val(tag);
+        $('#articleRm'+ cloneCountEdit).val(noArticleRm);
         $("#articleId"+cloneCountEdit).select2();
         $("#salesOrder"+cloneCountEdit).select2();
         $('#remove_button').tooltip();
@@ -704,19 +709,27 @@
 
     function changeSelectArticle(dependent,objIndex,value) {
         let objArticle = $('#article_row select[name="articleId[]"]');
-        $.ajax({
-            url:"{{route('dynamic.dependent')}}",
-            method:"POST",
-            data:{
-                value:value,
-                dependent:dependent
-            },
-            success:function(result){
-                objArticle.eq(objIndex).html(result);
-                objArticle.eq(objIndex).select2();
-                // objArticle.eq(objIndex).trigger('change');
-            }
-        })
+        if (value ==='other'){
+            let result = "";
+            result +='<option value="" data-article-rm="none" data-detail=""></option>';
+            result +='<option value="gantiWarna" data-article-rm="none" data-detail="gantiWarna|none|6|||">Ganti Warna</option>';
+            result +='<option value="istirahat"  data-article-rm="none" data-detail="istirahat|none|120|||">Istirahat</option>';
+            objArticle.eq(objIndex).html(result);
+            objArticle.eq(objIndex).select2();
+        }else{
+            $.ajax({
+                url:"{{route('dynamic.dependent')}}",
+                method:"POST",
+                data:{
+                    value:value,
+                    dependent:dependent
+                },
+                success:function(result){
+                    objArticle.eq(objIndex).html(result);
+                    objArticle.eq(objIndex).select2();
+                }
+            })
+        }
     }
 
     function changeSelectArticleEdit(dependent,obj,value,article) {
@@ -749,6 +762,7 @@
     function splitArticle(){
         // split article with delimiter |
         let objArticle = $('#article_row select[name="articleId[]"]');
+        let objArticleRm = $('input[name="articleRm[]"]');
         let objQtyOrder = $('input[name="qtyOrder[]"]');
         let objQtyProd = $('input[name="qtyProd[]"]');
         let objTag = $('input[name="tag[]"]');
@@ -758,8 +772,10 @@
         objArticle.change(function(e){        
             let objIndex = objArticle.index(this);
             let detail = objArticle.eq(objIndex).find(":selected").data("detail");
+            let articleRm = objArticle.eq(objIndex).find(":selected").data("article-rm");
             if (detail){
                 let arrDetail = detail.split("|");
+                objArticleRm.eq(objIndex).val(articleRm);
                 objQtyProd.eq(objIndex).val('');
                 objQtyOrder.eq(objIndex).val(arrDetail[3]);
                 objTag.eq(objIndex).val(arrDetail[2]);
@@ -782,13 +798,6 @@
 		});
     }
 
-    detikKeJam = (s) => {
-        let date = new Date(0);
-        date.setSeconds(s); // specify value for SECONDS here
-        let timeString = date.toISOString().substr(11, 8);
-        return timeString;
-    }
-
     hitungWaktu = () => {
         let objWaktu = $('#article_row input[name="waktu[]"]');
         let objTag = $('#article_row input[name="tag[]"]');
@@ -800,7 +809,7 @@
         objWaktu.map(function(i) {  
             let $this=$(this);            
             if (i>0){
-                let nilaiTag = objTag.eq(i).val()*30;
+                let nilaiTag = objTag.eq(i-1).val()*30;
                 let currentTime = objWaktu.eq(i-1).val();
                 let currentTimeDetik = currentTime.split(':').reduce((acc,time) => (60 * acc) + +time);
                 nilaiSekarang = currentTimeDetik+nilaiTag;
@@ -811,22 +820,6 @@
             }
         });
     }
-
-    function changeselect(dependent,obj,isiData) {
-      $.ajax({
-        url:"{{route('dynamic.dependent')}}",
-        method:"POST",
-        data:{
-            dependent:dependent
-        },
-        success:function(result){
-            $('#'+obj).html(result);
-            $('#'+obj).val(isiData).trigger('change');
-        }
-      })
-    }
-
-    
 
     updatQty = () =>{
         let objQtyProd = $('#article_row input[name="qtyProd[]"]');
@@ -869,26 +862,20 @@
 		});
     }
 
-    // function tombolPanah(objname){
-    //     // function kalo mau pindah filed dari atas ke bawah atau sebaliknya
-    //     let obj = $('input[name="'+objname+'[]"]');
-    //     obj.keyup(function(e) {
-    //         indexnya= obj.index(this);
-    //         indexnya=parseInt(indexnya);
-    //         if (e.keyCode == 38) {
-    //             //panah atas
-    //             indexTarget = indexnya-1;
-    //             obj.eq(indexTarget).focus().select();
-    //             return false;
-    //         }
-    //         if (e.keyCode == 40) {
-    //             //panah bawah
-    //             indexTarget = indexnya+1;
-    //             obj.eq(indexTarget).focus().select();
-    //             return false;
-    //         }
-    //     });
-    // }
+    function changeselect(dependent,obj,isiData) {
+      $.ajax({
+        url:"{{route('dynamic.dependent')}}",
+        method:"POST",
+        data:{
+            dependent:dependent
+        },
+        success:function(result){
+            result +='<option value="other">Others</option>';
+            $('#'+obj).html(result);
+            $('#'+obj).val(isiData).trigger('change');
+        }
+      })
+    }
 
     $.ajaxSetup({
         headers: {

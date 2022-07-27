@@ -1,5 +1,4 @@
 <style>
-
     textarea {
         resize: none;
     }
@@ -76,12 +75,13 @@
                     <label for="articleId" class="d-block d-md-none">Article</label>
                     <select class="dynamicSelect form-control" id="articleId" name="articleId[]" data-dependent="articleId">
                     </select>
+                    <input type="hidden" class="form-control" id="articleRm" name="articleRm[]" disabled />
                 </div>
             </div>
             <div class="col-md-1 col-12">
                 <div class="form-group margin-nol">
                     <label for="qtyOrder" class="d-block d-md-none">QTY SO</label>
-                    <input type="text" class="form-control numeral-mask-satuan text-right" id = "qtyOrder" name="qtyOrder[]" disabled />
+                    <input type="text" class="form-control numeral-mask-satuan text-right" id="qtyOrder" name="qtyOrder[]" disabled />
                     {{-- <div class="input-group input-group-merge">
                         <div class="input-group-append">
                             <span class="input-group-text" id ="uomQtyOrder" name="uomQtyOrder[]"></span>
@@ -92,7 +92,7 @@
             <div class="col-md-1 col-12">
                 <div class="form-group margin-nol">
                     <label for="qtyProd" class="d-block d-md-none">QTY Fresh</label>
-                    <input type="text" class="form-control numeral-mask-satuan text-right" id = "qtyProd" name="qtyProd[]" maxlength="9" />
+                    <input type="text" class="form-control numeral-mask-satuan text-right" id="qtyProd" name="qtyProd[]" maxlength="9" />
                 </div>
             </div>
             <div class="col-md-1 col-12">

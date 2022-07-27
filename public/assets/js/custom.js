@@ -283,7 +283,7 @@ $('body').on('shown.bs.modal', '#commonModal', function () {
 })
 
 const FLATPICKR_CUSTOM_YEAR_SELECT = 'flatpickr-custom-year-select';
-    const initDatePicker = (inputId,opt) => {
+const initDatePicker = (inputId,opt) => {
     opt = $.extend({
         minDate: "01/01/1900",
         maxDate: "31/12/2100",
@@ -336,5 +336,12 @@ const FLATPICKR_CUSTOM_YEAR_SELECT = 'flatpickr-custom-year-select';
             document.getElementById(FLATPICKR_CUSTOM_YEAR_SELECT).value = '' + instance.currentYear;
         }
     })
+}
+
+function detikKeJam(s) {
+    let date = new Date(0);
+    date.setSeconds(s); // specify value for SECONDS here
+    let timeString = date.toISOString().substr(11, 8);
+    return timeString;
 }
 

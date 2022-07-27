@@ -698,12 +698,12 @@ class SalesOrderController extends Controller
                                     Detail
                                 </a>';
 
-            if ( $data->status == 3){
+            // if ( $data->status == 3){
             $buttons .=         '<a href="'. route('salesOrder.print', ['id'=>Crypt::encryptString($data->id)]) .'" target="_blank" class="dropdown-item">
                                 <i data-feather="printer"></i>
                                     Print
                                 </a>';
-            }
+            // }
             if (Auth::user()->can('salesOrder-delete') and  ($data->status == 1 or $data->status == 2 or $data->status == 3)) {
             $buttons .=         "<a href='javascript:;'
                                     id='deleteButton'

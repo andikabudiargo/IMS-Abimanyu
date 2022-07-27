@@ -346,6 +346,7 @@ class DependentController extends Controller
             // ,'article_stock.article_qty as qty_stock'
             ,'article.uom as uom1'
             ,'group_materials.name as group'
+            ,'bom_hdr.article_code_rm'
             ,'bom_hdr.tag')
             ->get();          
 
@@ -493,7 +494,7 @@ class DependentController extends Controller
             }elseif($dependent =='searchFromPr_sub'){
                 $output .='<option value="'.$row->article_code.'|'.$row->group.'|'.$row->qty_stock.'|'.$row->qty.'|'.$row->uom1.'|'.$row->costprice.'|'.$row->last_price.'" data-uom-group="'.$row->uom_group.'">'.$row->article_alternative_code.' - '. $row->article_desc.'</option>';
             }elseif($dependent =='searchFromSO'){
-                $output .='<option value="'.$row->article_code.'" data-detail="'.$row->article_code.'|'.$row->group.'|'.$row->tag.'|'.$row->qty.'|'.$row->uom1.'|'.$row->costprice.'">'.$row->article_alternative_code.' - '. $row->article_desc.'</option>';
+                $output .='<option value="'.$row->article_code.'" data-article-rm="'.$row->article_code_rm.'" data-detail="'.$row->article_code.'|'.$row->group.'|'.$row->tag.'|'.$row->qty.'|'.$row->uom1.'|'.$row->costprice.'">'.$row->article_alternative_code.' - '. $row->article_desc.'</option>';
             }elseif($dependent =='unitTo'){
                 $output .='<option value="'.$row->code.'|'.$row->uom_group.'">'.$row->code.' - '.$row->name.'</option>';
             }elseif($dependent =='account'){
@@ -502,6 +503,8 @@ class DependentController extends Controller
                 $output .="<option value='$row->article_code' data-uom-group ='$row->uom_group' data-uom ='$row->uom'>$row->article_alternative_code - $row->article_desc</option>";
             }elseif($dependent =='trArticle'){
                 $output .="<option value='$row->article_code' data-uom-member='".$row->uom_member."' data-uom-group ='$row->uom_group' data-uom ='$row->uom'>$row->article_alternative_code - $row->article_desc</option>";
+            }elseif($dependent =='salesOrder'){
+                $output .='<option value="'.$row->$value.'">'.$row->$name.'</option>';
             }elseif($dependent =='pRequest'){
                 if(($row->qty-$row->qty_po) > 0){
                     $output .="<option value='$row->pr_number'>$row->pr_number</option>";
