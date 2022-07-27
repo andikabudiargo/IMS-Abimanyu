@@ -30,7 +30,7 @@
                                     <label for="prdDate">Date*</label>
                                     <input type="text" id="prdDate" name="prdDate" class="form-control" placeholder="DD-MM-YYYY" required />
                                 </div>
-                                <div class="form-group col-md-3">
+                                <div class="form-group col-md-2">
                                     <label for="shift">Shift*</label>
                                     <select class="select2 form-control" id="shift" name="shift" required>
                                         {{-- <option value="">All</option> --}}
@@ -38,7 +38,7 @@
                                         <option value="siang">Siang</option>
                                     </select>
                                 </div>
-                                <div class="form-group col-md-3">
+                                <div class="form-group col-md-2">
                                     <label for="group">Group*</label>
                                     <select class="select2 form-control" id="group" name="group" required>
                                         {{-- <option value="">All</option> --}}
@@ -47,9 +47,6 @@
                                         <option value="C">C</option>
                                     </select>
                                 </div>
-                            </div>
-
-                            <div class="form-row">
                                 <div class="form-group col-md-2">
                                     <label for="prdDate">Time StartDate*</label>
                                     <input type="text" id="prdTime" name="prdTime" class="form-control" placeholder="HH:MM" required />
@@ -65,7 +62,7 @@
                             <div class="row">
                                 <div class="col-12">
                                     {{-- <button class="btn btn-warning" type="reset" id="cmdCancel" name="cmdCancel">Cancel</button> --}}
-                                    <button class="btn btn-success" type="reset" id="cmdNew" name="cmdCancel">New</button>
+                                    {{-- <button class="btn btn-success" type="reset" id="cmdNew" name="cmdCancel">New</button> --}}
                                     <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Save</button>
                                     <button class="btn btn-primary" type="button" id="cmdPosting" name="cmdPosting">Posting</button>
                                 </div>
@@ -81,34 +78,15 @@
                     <h4 class="card-title">Article</h4>
                 </div>
                 <div class="card-body" >
-                    <div>
-                        <table class="" style="width:98%;table-layout: fixed;">
-                            <tbody>
-                                <tr>
-                                    <td class="isian-satu" style="width: 20%">
-                                        <label>NO SPK / SO</label>
-                                    </td>
-                                    <td class="isian-satu" style="width: 25%">
-                                        <label>Article Code</label>
-                                    </td>
-                                    <td class="isian" style="width: 5%">
-                                        <label>Stock</label>
-                                    </td>
-                                    <td class="isian" style="width: 5%">
-                                        <label>QTY Order</label>
-                                    </td>
-                                    <td class="isian" style="width: 5%">
-                                        <label>QTY Prod</label>
-                                    </td>
-                                    <td class="isian text-center" style="width: 5%">
-                                        <label>-</label>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>      
-                    <div class="" id="article_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px">
-                        <input type="text" id ="last_row_number" class="d-none" value="0">
+                    <button class="btn btn-success" type="button" id="cmdSort" name="cmdSort">Sort</button>
+                    <div class="container-list-item">
+                        <div class="lebar-list-item">
+                            <br>
+                            @include('production.headerColumn')
+                            <div class="" id="article_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px">
+                                <input type="text" id ="last_row_number" class="d-none" value="0">
+                            </div>
+                        </div>
                     </div>
                     <div class="d-flex justify-content-start align-items-end mt-75 ml-75">
                         <button class="btn btn-primary btn-prev" type="button" id="addNewRow" onclick="add_new_row();">
@@ -204,6 +182,8 @@
         validateFormToast("frmAdd");
         $('#prdDate').val(currentDate);
         $('#cmdPosting').hide();
+        // console.log(detikKeJam(5400));
+        // hitungWaktu();
     });
         
     function reloadPage(){
@@ -222,7 +202,9 @@
     if (prdTime.length) {
         prdTime.flatpickr({
             enableTime: true,
-            noCalendar: true
+            time_24hr: true,
+            noCalendar: true,
+            defaultDate: "08:00:00",
         });
     }
 
@@ -235,20 +217,80 @@
         $('#prdNumber').val('');
         reloadPage();
     });
+    
+    $("#cmdSort").click(function(){
+        let articles = []; 
+        let flag=0;
+        let pesan="";
+        let objArticle = $("#article_row select[name='articleId[]']");
+        let objQtyOrder = $('#article_row input[name="qtyOrder[]"]');
+        let objUomQtyOrder = $('#article_row span[name="uomQtyOrder[]"]');
+        let objQtyProd = $('#article_row input[name="qtyProd[]"]');
+        let objSoCode = $('#article_row select[name="salesOrder[]"]');
+        let objTag = $('#article_row input[name="tag[]"]');
+        let objUrutan = $('#article_row input[name="urutan[]"]');
+        let objWaktu = $('#article_row input[name="waktu[]"]');
+        
+        objArticle.map(function(i) {
+		    let $this=$(this);
+            if ($this.val()){
+                let article=$this.val();
+                let urutan =objUrutan.eq(i).val();
+                let soCode=objSoCode.eq(i).val();
+                let qtyOrder=objQtyOrder.eq(i).val().replace(/,/gi, '') || 0;
+                let uomOrder=objUomQtyOrder.eq(i).text();
+                let qtyProd=objQtyProd.eq(i).val().replace(/,/gi, '') || 0;
+                let tag =objTag.eq(i).val();
+                let waktu = objWaktu.eq(i).val();
+                let obj = articles.find(obj => obj.urutan == urutan);
+                
+                if(obj) {
+                    pesan +="Urutan belum sesuai !! <br>"; 
+                    flag=1;
+                    console.log(pesan);
+                }else{
+                    if(article){
+                        articles.push({
+                            "urutan":urutan,
+                            "so_code":soCode,
+                            "article_code":article,
+                            "qty_so":qtyOrder,
+                            "uom":uomOrder,
+                            "qty":qtyProd,
+                            "tag":tag*qtyProd,
+                            "waktu":waktu
+                        });
+                    }
+                }
+                articles.sort((a, b) => (a.urutan > b.urutan) ? 1 : -1)
+            }
+        });
+
+        if (articles.length > 0){
+            $('#article_row').find('div').remove();
+            cloneCountEdit=0;
+            articles.map(function(i) {
+                add_new_row_edit(i.so_code,i.article_code,i.qty_so,i.uom,i.qty,i.waktu,i.tag);
+            })
+        }
+    });
 
     $("#cmdSave").click(function(){     
         $('.disabled-el').removeAttr('disabled');
         // ambil semua data article
-        let objArticle = $("#article_row select[name='article_id[]']");
+        let objArticle = $("#article_row select[name='articleId[]']");
         let objQtyOrder = $('#article_row input[name="qtyOrder[]"]');
         let objQtyProd = $('#article_row input[name="qtyProd[]"]');
         let objSoCode = $('#article_row select[name="salesOrder[]"]');
+        let objTag = $('#article_row input[name="tag[]"]');
+        let objUrutan = $('#article_row input[name="urutan[]"]');
+        let objWaktu = $('#article_row input[name="waktu[]"]');
         let prdDate = $('#prdDate').val();
         let shift = $('#shift').val();
         let group = $('#group').val();
         let note = $('#note').val();
         let articles = []; 
-        let flag=0; 
+        let flag=0;
         let pesan="";
 
         objArticle.map(function(i) {  
@@ -257,30 +299,59 @@
                 let article=$this.val().split("|");
                 let articleName=$this.select2('data')[0].text;
                 let plu=article[0];
+                let qtyOrder=objQtyOrder.eq(i).val().replace(/,/gi, '') || 0;
                 let qty=objQtyProd.eq(i).val().replace(/,/gi, '') || 0;
                 let soCode=objSoCode.eq(i).val();
-                            
+                let tag =objTag.eq(i).val();
+                let urutan =objUrutan.eq(i).val();
+                let waktu = objWaktu.eq(i).val();
+                                        
                 //es6
                 // let obj = ingredient.find(obj => obj.plu == plu);
 
                 //jquery
                 //cek apakah article ada yang double input ato ngk
                 let obj = $.grep(articles, function(obj){
-                    return obj.article_code === plu;
+                    return obj.urutan === urutan;
                 })[0];
-                
+
                 if(obj) {
-                    pesan +="Article "+articleName+" entered more than once !! <br>"; 
+                    pesan +="Urutan belum sesuai !! <br>"; 
                     flag=1;
-                } else {
-                    if ((plu!=='') && (qty> 0)){
-                        articles.push({
-                            "so_code":soCode,
-                            "article_code":plu,
-                            "qty":qty,
-                        });
-                    }
-                } 
+                    console.log(pesan);
+                }
+                
+                // if(obj) {
+                //     pesan +="Article "+articleName+" entered more than once !! <br>"; 
+                //     flag=1;
+                // } else {
+                //     if ((plu!=='') && (qty> 0)){
+                //         articles.push({
+                //             "urutan":urutan,
+                //             "so_code":soCode,
+                //             "article_code":plu,
+                //             "qty":qty,
+                //             "tag":tag
+                //         });
+                //     }
+                // } 
+
+                // articles.sort();
+                // add_new_row(noSo,noArticle,qtySo,qtyProd,waktu) {
+                // if ((plu!=='') && (qty> 0)){
+                    articles.push({
+                        "urutan":urutan,
+                        "so_code":soCode,
+                        "article_code":plu,
+                        "qty_so":qtyOrder,
+                        "qty":qty,
+                        "tag":tag,
+                        "waktu":waktu
+                    });
+                // }
+
+                articles.sort((a, b) => (a.urutan > b.urutan) ? 1 : -1)
+                // console.log(articles);
             
                 if (qty == 0){
                     pesan +="QTY of items "+ articleName +" cannot be 0 <br>"; 
@@ -289,51 +360,59 @@
             }
         });
 
+        if (flag==0){
+            $('#article_row').find('div').remove();
+            cloneCountEdit=0;
+            articles.map(function(i) {
+                add_new_row_edit(i.so_code,i.article_code,i.qty_so,i.qty,i.waktu,i.tag);
+            })
+        }
+
         if (articles.length == 0){
 			pesan +="Articles must be filled in completely <br>"; 
 			flag=1;
 		}
 
-        if (flag==0){
-            $.ajax({
-                type: "post",
-                url: "{{ route('production.store') }}",
-                data: {
-                    articles:JSON.stringify(articles),
-                    prdDate:prdDate,
-                    shift:shift,
-                    group:group,
-                    note:note
-                },
-                dataType: "json",
-                success: function(data) {
-                    if (data.status == 0 ){
-                        let message="";
-                        for(let i = 0; i < data.message.length; i++) {
-                            show_msg(data.title, data.message[i], data.alert);
-                        }
+        // if (flag==0){
+        //     $.ajax({
+        //         type: "post",
+        //         url: "{{ route('production.store') }}",
+        //         data: {
+        //             articles:JSON.stringify(articles),
+        //             prdDate:prdDate,
+        //             shift:shift,
+        //             group:group,
+        //             note:note
+        //         },
+        //         dataType: "json",
+        //         success: function(data) {
+        //             if (data.status == 0 ){
+        //                 let message="";
+        //                 for(let i = 0; i < data.message.length; i++) {
+        //                     show_msg(data.title, data.message[i], data.alert);
+        //                 }
                         
-                        $('#prdNumber').attr('disabled','disabled');
+        //                 $('#prdNumber').attr('disabled','disabled');
 
-                    }else{
-                        show_msg(data.title, data.message, data.alert)
-                        $('#prdNumber').attr('disabled','disabled');
-                        $('#cmdSave').attr('disabled','disabled');
-                        $('#addNewRow').attr('disabled','disabled');
-                        $('#prdNumber').val(data.prdNumber);
-                        $('#cmdPosting').show();
+        //             }else{
+        //                 show_msg(data.title, data.message, data.alert)
+        //                 $('#prdNumber').attr('disabled','disabled');
+        //                 $('#cmdSave').attr('disabled','disabled');
+        //                 $('#addNewRow').attr('disabled','disabled');
+        //                 $('#prdNumber').val(data.prdNumber);
+        //                 $('#cmdPosting').show();
                         
-                    }
+        //             }
                     
-                },
-                error: function(error) {
-                    console.log(error);
-                }
-            });
+        //         },
+        //         error: function(error) {
+        //             console.log(error);
+        //         }
+        //     });
 
-        }else{
-            Swal.fire('Warning..',pesan,'warning');
-        }
+        // }else{
+        //     Swal.fire('Warning..',pesan,'warning');
+        // }
     
     });
 
@@ -370,7 +449,7 @@
     });
 
     function prosesWO(){
-        let objArticle = $("#article_row select[name='article_id[]']");
+        let objArticle = $("#article_row select[name='articleId[]']");
         let objQtyProd = $('input[name="qtyProd[]"]');
         let articles = []; 
         let pesan="";
@@ -573,39 +652,58 @@
         });
         
     }
-
     
-    let cloneCount=1;
+    let cloneCount=0;
     function add_new_row() {
         $("#article_row").append($("#new_row").clone().html());
         cloneCount++;
         $("#article_row").find('#baru').attr('id', 'new_row'+ cloneCount);
-        $("#new_row"+ cloneCount).find('#article_id').attr('id', 'article_id'+ cloneCount);
+        $("#new_row"+ cloneCount).find('#articleId').attr('id', 'articleId'+ cloneCount);
         $("#new_row"+ cloneCount).find('#salesOrder').attr('id', 'salesOrder'+ cloneCount);
+        $("#new_row"+ cloneCount).find('#urutan').attr('id', 'urutan'+ cloneCount);
+        $('#urutan'+ cloneCount).val(cloneCount);
         changeselect('salesOrder','salesOrder'+ cloneCount,'','');
-        $("#article_id"+cloneCount).select2();
+        $("#articleId"+cloneCount).select2();
         $("#salesOrder"+cloneCount).select2();
         $('#remove_button').tooltip();
-        tombolPanah('qty_prod');
+        tombolPanah('qtyProd');
         activate_angka();
-        mask_thousand();
-        // splitArticle();
+        mask_thousand_satuan();
         isiListArticle();
+        updatQty();
     };
 
-    function isiListArticle(){
-        // split article with delimiter |
-        let objSo = $('#article_row select[name="salesOrder[]"]');
-        objSo.change(function(e){        
-            let objIndex = objSo.index(this);
-            let soCode = objSo.eq(objIndex).val();
-            changeSelectArticle('searchFromSO',objIndex,soCode);
-            splitArticle();
-		});
-    }
+    let cloneCountEdit=0;
+    function add_new_row_edit(noSo,noArticle,qtySo,qtySoUom,qtyProd,waktu,tag) {
+        $("#article_row").append($("#new_row").clone().html());
+        cloneCountEdit++;
+        $("#article_row").find('#baru').attr('id', 'new_row'+ cloneCountEdit);
+        $("#new_row"+ cloneCountEdit).find('#urutan').attr('id', 'urutan'+ cloneCountEdit);
+        $("#new_row"+ cloneCountEdit).find('#salesOrder').attr('id', 'salesOrder'+ cloneCountEdit);
+        $("#new_row"+ cloneCountEdit).find('#articleId').attr('id', 'articleId'+ cloneCountEdit);
+        $("#new_row"+ cloneCountEdit).find('#qtyOrder').attr('id', 'qtyOrder'+ cloneCountEdit);
+        $("#new_row"+ cloneCountEdit).find('#uomQtyOrder').attr('id', 'uomQtyOrder'+ cloneCountEdit);
+        $("#new_row"+ cloneCountEdit).find('#qtyProd').attr('id', 'qtyProd'+ cloneCountEdit);
+        $("#new_row"+ cloneCountEdit).find('#waktu').attr('id', 'waktu'+ cloneCountEdit);
+        $("#new_row"+ cloneCountEdit).find('#tag').attr('id', 'tag'+ cloneCountEdit);
+        changeselect('salesOrder','salesOrder'+ cloneCountEdit,noSo);
+        changeSelectArticleEdit('searchFromSO','articleId'+ cloneCountEdit,noSo,noArticle);
+        $('#urutan'+ cloneCountEdit).val(cloneCountEdit);
+        $('#qtyOrder'+ cloneCountEdit).val(qtySo);
+        $('#uomQtyOrder'+ cloneCountEdit).text(qtySoUom);
+        $('#qtyProd'+ cloneCountEdit).val(qtyProd);
+        $('#waktu'+ cloneCountEdit).val(waktu);
+        $('#tag'+ cloneCountEdit).val(tag);
+        $("#articleId"+cloneCountEdit).select2();
+        $("#salesOrder"+cloneCountEdit).select2();
+        $('#remove_button').tooltip();
+        tombolPanah('qtyProd');
+        mask_thousand_satuan();
+        hitungWaktu(); 
+    };
 
     function changeSelectArticle(dependent,objIndex,value) {
-        let objArticle = $('#article_row select[name="article_id[]"]');
+        let objArticle = $('#article_row select[name="articleId[]"]');
         $.ajax({
             url:"{{route('dynamic.dependent')}}",
             method:"POST",
@@ -621,28 +719,100 @@
         })
     }
 
+    function changeSelectArticleEdit(dependent,obj,value,article) {
+        $.ajax({
+            url:"{{route('dynamic.dependent')}}",
+            method:"POST",
+            data:{
+                value:value,
+                dependent:dependent
+            },
+            success:function(result){
+                $('#'+obj).html(result);
+                $('#'+obj).val(article).trigger('change');
+            }
+        })
+    }
+
+    function isiListArticle(){
+        let objSo = $('#article_row select[name="salesOrder[]"]');
+        objSo.change(function(e){        
+            let objIndex = objSo.index(this);
+            let soCode = objSo.eq(objIndex).val();
+            if (soCode){
+                changeSelectArticle('searchFromSO',objIndex,soCode);
+                splitArticle();
+            }
+        });
+    }
+
     function splitArticle(){
         // split article with delimiter |
-        let objArticle = $('#article_row select[name="article_id[]"]');
-        let objQtyStock = $('input[name="qtyStock[]"]');
+        let objArticle = $('#article_row select[name="articleId[]"]');
         let objQtyOrder = $('input[name="qtyOrder[]"]');
         let objQtyProd = $('input[name="qtyProd[]"]');
-        
+        let objTag = $('input[name="tag[]"]');
+        let objUomQtyOrder = $('span[name="uomQtyOrder[]"]');
+        let objWaktu = $('input[name="waktu[]"]');
+
         objArticle.change(function(e){        
             let objIndex = objArticle.index(this);
-            let detail = objArticle.eq(objIndex).val();
-            let arrDetail = detail.split("|");
-            objQtyStock.eq(objIndex).val(arrDetail[2]);
-            objQtyOrder.eq(objIndex).val(arrDetail[3]);
+            let detail = objArticle.eq(objIndex).find(":selected").data("detail");
             if (detail){
-                setTimeout(() => {
-                    objQtyProd.eq(objIndex).focus().select();
-                }, 5);
+                let arrDetail = detail.split("|");
+                objQtyProd.eq(objIndex).val('');
+                objQtyOrder.eq(objIndex).val(arrDetail[3]);
+                objTag.eq(objIndex).val(arrDetail[2]);
+                objWaktu.eq(objIndex).val($('#prdTime').val()+":00");
+                objUomQtyOrder.eq(objIndex).text(arrDetail[4]);
+                if (detail){
+                    setTimeout(() => {
+                        objQtyProd.eq(objIndex).focus().select();
+                    }, 5);
+                }
+                mask_thousand_satuan();
+                // hitungWaktu();   
+            }else{
+                objQtyProd.eq(objIndex).val('');
+                objQtyOrder.eq(objIndex).val('');
+                objTag.eq(objIndex).val('');
+                objWaktu.eq(objIndex).val('');
+                objUomQtyOrder.eq(objIndex).text('');
             }
 		});
     }
 
-    function changeselect(dependent,obj) {
+    detikKeJam = (s) => {
+        let date = new Date(0);
+        date.setSeconds(s); // specify value for SECONDS here
+        let timeString = date.toISOString().substr(11, 8);
+        return timeString;
+    }
+
+    hitungWaktu = () => {
+        let objWaktu = $('#article_row input[name="waktu[]"]');
+        let objTag = $('#article_row input[name="tag[]"]');
+        let waktuAwal = $('#prdTime').val()+":00";
+        let waktuAwalDetik = waktuAwal.split(':').reduce((acc,time) => (60 * acc) + +time);
+        let nilaiTag = 0;
+        let jamBaru = waktuAwal;
+        let nilaiSekarang = 0;
+        objWaktu.map(function(i) {  
+            let $this=$(this);            
+            if (i>0){
+                let nilaiTag = objTag.eq(i).val()*30;
+                let currentTime = objWaktu.eq(i-1).val();
+                let currentTimeDetik = currentTime.split(':').reduce((acc,time) => (60 * acc) + +time);
+                nilaiSekarang = currentTimeDetik+nilaiTag;
+                let jamBaru = detikKeJam(nilaiSekarang);
+                $this.val(jamBaru);
+            }else{
+                $this.val(jamBaru);
+            }
+        });
+    }
+
+    function changeselect(dependent,obj,isiData) {
       $.ajax({
         url:"{{route('dynamic.dependent')}}",
         method:"POST",
@@ -651,9 +821,52 @@
         },
         success:function(result){
             $('#'+obj).html(result);
-            $('#'+obj).val('').trigger('change');
+            $('#'+obj).val(isiData).trigger('change');
         }
       })
+    }
+
+    
+
+    updatQty = () =>{
+        let objQtyProd = $('#article_row input[name="qtyProd[]"]');
+        let objQtyRepaint = $('#article_row input[name="qtyRepaint[]"]');
+        let objTag = $('#article_row input[name="tag[]"]');
+        let objArticle = $('#article_row select[name="articleId[]"]');
+        objQtyProd.keyup(function(e){        
+            let objIndex = objQtyProd.index(this);
+            let qtyProd = objQtyProd.eq(objIndex).val().replace(/,/gi, '') || 0;
+            let qtyRepaint = objQtyRepaint.eq(objIndex).val().replace(/,/gi, '') || 0;
+            let detail = objArticle.eq(objIndex).find(":selected").data("detail");
+            if (detail){
+                let arrDetail = detail.split("|");
+                qtyTag = arrDetail[2].replace(/,/gi, '') || 0;
+            }
+            if (qtyProd || qtyRepaint){
+                objTag.eq(objIndex).val((parseInt(qtyProd)+parseInt(qtyRepaint))*parseFloat(qtyTag));
+            }else{
+                objTag.eq(objIndex).val(qtyTag);
+            }
+            hitungWaktu();
+		});
+
+        objQtyRepaint.keyup(function(e){        
+            let objIndex = objQtyRepaint.index(this);
+            console.log(objIndex);
+            let qtyProd = objQtyProd.eq(objIndex).val().replace(/,/gi, '') || 0;
+            let qtyRepaint = objQtyRepaint.eq(objIndex).val().replace(/,/gi, '') || 0;
+            let detail = objArticle.eq(objIndex).find(":selected").data("detail");
+            if (detail){
+                let arrDetail = detail.split("|");
+                qtyTag = arrDetail[2].replace(/,/gi, '') || 0;
+            }
+            if (qtyProd || qtyRepaint){
+                objTag.eq(objIndex).val((parseInt(qtyProd)+parseInt(qtyRepaint))*parseFloat(qtyTag));
+            }else{
+                objTag.eq(objIndex).val(qtyTag);
+            }
+            hitungWaktu();
+		});
     }
 
     // function tombolPanah(objname){

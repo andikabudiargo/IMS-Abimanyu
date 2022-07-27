@@ -332,12 +332,21 @@ class DependentController extends Controller
         }elseif($dependent =='searchFromSO'){
             $data= DB::table($table) 
             ->leftJoin('article','article.article_code','=',$table.'.article_code')
-            ->leftJoin('article_stock','article_stock.article_code','=',$table.'.article_code')
+            // ->leftJoin('article_stock','article_stock.article_code','=',$table.'.article_code')
             ->leftJoin('group_materials','group_materials.code','=','article.group_of_material')
+            ->leftJoin('bom_hdr','bom_hdr.article_code','=','article.article_code')
             ->where($field,$code)
             ->orderBy('article.article_desc')
             ->distinct('article.article_desc')
-            ->select($table.'.*','article.article_alternative_code','article.article_code as artikel_code','article.article_desc','article.costprice','article_stock.article_qty as qty_stock','article.uom as uom1','group_materials.name as group')
+            ->select($table.'.*'
+            ,'article.article_alternative_code'
+            ,'article.article_code as artikel_code'
+            ,'article.article_desc'
+            ,'article.costprice'
+            // ,'article_stock.article_qty as qty_stock'
+            ,'article.uom as uom1'
+            ,'group_materials.name as group'
+            ,'bom_hdr.tag')
             ->get();          
 
         }elseif($dependent =='article_pr'){
@@ -408,7 +417,8 @@ class DependentController extends Controller
             ->get();
         }elseif($dependent =='salesOrder'){
             $data= DB::table($table) 
-            ->where('order_type','NEW')
+            // ->where('order_type','NEW')
+            ->where('status','3')
             ->orderBy($order)
             ->distinct($order)
             ->get();
@@ -483,7 +493,7 @@ class DependentController extends Controller
             }elseif($dependent =='searchFromPr_sub'){
                 $output .='<option value="'.$row->article_code.'|'.$row->group.'|'.$row->qty_stock.'|'.$row->qty.'|'.$row->uom1.'|'.$row->costprice.'|'.$row->last_price.'" data-uom-group="'.$row->uom_group.'">'.$row->article_alternative_code.' - '. $row->article_desc.'</option>';
             }elseif($dependent =='searchFromSO'){
-                $output .='<option value="'.$row->article_code.'|'.$row->group.'|'.$row->qty_stock.'|'.$row->qty.'|'.$row->uom1.'|'.$row->costprice.'">'.$row->article_alternative_code.' - '. $row->article_desc.'</option>';
+                $output .='<option value="'.$row->article_code.'" data-detail="'.$row->article_code.'|'.$row->group.'|'.$row->tag.'|'.$row->qty.'|'.$row->uom1.'|'.$row->costprice.'">'.$row->article_alternative_code.' - '. $row->article_desc.'</option>';
             }elseif($dependent =='unitTo'){
                 $output .='<option value="'.$row->code.'|'.$row->uom_group.'">'.$row->code.' - '.$row->name.'</option>';
             }elseif($dependent =='account'){

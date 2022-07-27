@@ -55,8 +55,8 @@
                         </div>
                         <div class="form-row">
                             <div class="form-group col-md-12">
-                                <label class="form-label" for="cust"> {{ $article->article_type == 'FG' || $article->article_type == 'RM' ? 'Customer' : 'Supplier'}}</label>
-                                <select class="select2 form-control" id="cust" name="cust[]" multiple>
+                                <label class="form-label" for="cust"> {{ $article->article_type == 'FG' || $article->article_type == 'RM' || $article->article_type == 'RMP' || $article->article_type == 'RMNP' ? 'Customer*' : 'Supplier*'}}</label>
+                                <select class="select2 form-control" id="cust" name="cust[]" multiple required>
                                     @foreach($custs as $val)
                                         <option value="{{$val->kode}}" {{ in_array($val->kode, old('cust',$suppliers)) ? "selected":"" }}>{{$val->kode}} - {{$val->nama}}</option>
                                     @endforeach

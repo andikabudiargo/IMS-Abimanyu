@@ -61,7 +61,7 @@
                             </div>
                             <div class="form-row">
                                 <div class="form-group col-md-2">
-                                    <label for="tag">Tag</label>
+                                    <label for="tag">Tact*</label>
                                     <input type="text" id="tag" name="tag" value="{{ old('tag',$header->tag) }}" class="form-control numeral-mask-digit" maxlength="5" />
                                 </div>
                                 <div class="form-group col-md-2">
