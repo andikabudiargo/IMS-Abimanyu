@@ -28,13 +28,14 @@
 
         table {
             width: 100%;
+            border-collapse: collapse;
         }
 
         th {
             height: 30px;
         }
         td {
-            height: 20px;
+            /* height: 20px; */
         }
         th, td {
             padding-left: 5px;
@@ -75,15 +76,9 @@
         <tr>
             <td width="23%" valign="top" >
                 <table style="padding-bottom:0px" >
-                    <tr style="padding-bottom:0px">
-                        <td style="width:40%;padding:0:margin:0">TSO Number</td><td>:{{ $tsoNumber }}</td>
-                    </tr>
-                    <tr style="padding:0">
-                        <td style=style="width:40%;padding:0:margin:0">Tso Name</td><td>:{{ $tsoName }}</td>
-                    </tr>
-                    <tr style="padding:0">
-                        <td style=style="width:40%;padding:0:margin:0">Date</td><td>:{{ $tsoDate }}</td>
-                    </tr>
+                    <tr><td width="40%" >TSO Number</td><td>:{{ $tsoNumber }}</td></tr>
+                    <tr><td>Tso Name</td><td>:{{ $tsoName }}</td></tr>
+                    <tr><td>Date</td><td>:{{ $tsoDate }}</td></tr>
                 </table>
                 {{-- TSO Number : {{ $tsoNumber }}<br>
                 Tso Name : {{ $tsoName }}<br>
@@ -91,9 +86,11 @@
             </td>
             <td width="25%"></td>
             <td width="30%">
-                Created By : {{ $createdBy }}<br>
-                Status : {{ $status }}<br>
-                Note : {{ $keterangan }}
+                <table style="padding-bottom:0px" >
+                    <tr><td width="25%" >Created By</td><td>:{{ $createdBy }}</td></tr>
+                    <tr><td>Status</td><td>:{{ $status }}</td></tr>
+                    <tr><td valign="top" >Note</td><td valign="top">:{{ $keterangan }}Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley</td></tr>
+                </table>
             </td>
         </tr>
     </table>
@@ -101,11 +98,11 @@
         <thead style="background-color: lightgray;">
         <tr>
             <th width="5%">No</th>
-            <th width="10%">Article Code</th>
-            <th width="45%">Article Desc</th>
-            <th width="8%">Qty Target</th>
-            <th width="8%">Qty Forcast</th>
-            <th width="10%">Uom</th>
+            <th width="12%">Article Code</th>
+            <th width="58%">Article Desc</th>
+            <th width="10%">Qty Target</th>
+            <th width="10%">Qty Forcast</th>
+            <th width="5%">Uom</th>
         </tr>
         </thead>
         <tbody>
