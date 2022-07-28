@@ -131,7 +131,7 @@
     </div>
 </section>
 
-@include('production.addArticle')
+@include('workingOrderSheet.addArticle')
 @endsection
 @section('styles')
 <style>
@@ -286,6 +286,7 @@
         let objQtyProd = $('#article_row input[name="qtyProd[]"]');
         let objSoCode = $('#article_row select[name="salesOrder[]"]');
         let objTag = $('#article_row input[name="tag[]"]');
+        let objTagAsli = $('#article_row input[name="tagAsli[]"]');
         let objUrutan = $('#article_row input[name="urutan[]"]');
         let objWaktu = $('#article_row input[name="waktu[]"]');
         let prdDate = $('#prdDate').val();
@@ -305,7 +306,8 @@
                 let qtyOrder=objQtyOrder.eq(i).val().replace(/,/gi, '') || 0;
                 let qty=objQtyProd.eq(i).val().replace(/,/gi, '') || 0;
                 let soCode=objSoCode.eq(i).val();
-                let tag =objTag.eq(i).val();
+                let tag = objTag.eq(i).val();
+                let tagAsli = objTagAsli.eq(i).val();
                 let urutan =objUrutan.eq(i).val();
                 let waktu = objWaktu.eq(i).val();
                                         
@@ -349,12 +351,12 @@
                         "qty_so":qtyOrder,
                         "qty":qty,
                         "tag":tag,
+                        "tag_asli":tagAsli,
                         "waktu":waktu
                     });
                 // }
 
                 articles.sort((a, b) => (a.urutan > b.urutan) ? 1 : -1)
-                // console.log(articles);
             
                 if (qty == 0){
                     pesan +="QTY of items "+ articleName +" cannot be 0 <br>"; 
@@ -366,8 +368,9 @@
         if (flag==0){
             $('#article_row').find('div').remove();
             cloneCountEdit=0;
+            console.log(articles);
             articles.map(function(i) {
-                add_new_row_edit(i.so_code,i.article_code,i.qty_so,i.qty,i.waktu,i.tag);
+                add_new_row_edit(i.so_code,i.article_code,i.qty_so,i.qty,i.waktu,i.tag,i.tag_asli);
             })
         }
 
@@ -677,7 +680,8 @@
     };
 
     let cloneCountEdit=0;
-    function add_new_row_edit(noSo,noArticle,noArticleRm,qtySo,qtySoUom,qtyProd,waktu,tag) {
+    function add_new_row_edit(noSo,noArticle,noArticleRm,qtySo,qtySoUom,qtyProd,waktu,tag,tagAsli) {
+        let waktuAwal = $('#prdTime').val()+":00";
         $("#article_row").append($("#new_row").clone().html());
         cloneCountEdit++;
         $("#article_row").find('#baru').attr('id', 'new_row'+ cloneCountEdit);
@@ -696,8 +700,8 @@
         $('#qtyOrder'+ cloneCountEdit).val(qtySo);
         $('#uomQtyOrder'+ cloneCountEdit).text(qtySoUom);
         $('#qtyProd'+ cloneCountEdit).val(qtyProd);
-        $('#waktu'+ cloneCountEdit).val(waktu);
-        $('#tag'+ cloneCountEdit).val(tag);
+        $('#waktu'+ cloneCountEdit).val(waktuAwal);
+        $('#tag'+ cloneCountEdit).val(tagAsli);
         $('#articleRm'+ cloneCountEdit).val(noArticleRm);
         $("#articleId"+cloneCountEdit).select2();
         $("#salesOrder"+cloneCountEdit).select2();
@@ -766,6 +770,7 @@
         let objQtyOrder = $('input[name="qtyOrder[]"]');
         let objQtyProd = $('input[name="qtyProd[]"]');
         let objTag = $('input[name="tag[]"]');
+        let objTagAsli = $('input[name="tagAsli[]"]');
         let objUomQtyOrder = $('span[name="uomQtyOrder[]"]');
         let objWaktu = $('input[name="waktu[]"]');
 
@@ -779,6 +784,7 @@
                 objQtyProd.eq(objIndex).val('');
                 objQtyOrder.eq(objIndex).val(arrDetail[3]);
                 objTag.eq(objIndex).val(arrDetail[2]);
+                objTagAsli.eq(objIndex).val(arrDetail[2]);
                 objWaktu.eq(objIndex).val($('#prdTime').val()+":00");
                 objUomQtyOrder.eq(objIndex).text(arrDetail[4]);
                 if (detail){
@@ -792,6 +798,7 @@
                 objQtyProd.eq(objIndex).val('');
                 objQtyOrder.eq(objIndex).val('');
                 objTag.eq(objIndex).val('');
+                objTagAsli.eq(objIndex).val('');
                 objWaktu.eq(objIndex).val('');
                 objUomQtyOrder.eq(objIndex).text('');
             }

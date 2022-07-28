@@ -607,10 +607,10 @@ class TargetSoController extends Controller
             //     }
             // }
             
-            // $buttons .=         '<a href="'. route('targetSo.print', ['id'=>Crypt::encryptString($data->id)]) .'" target="_blank" class="dropdown-item">
-            //                         <i data-feather="printer"></i>
-            //                         <span>'. __("Print") .'</span>
-            //                     </a>';
+            $buttons .=         '<a href="'. route('targetSo.print', ['id'=>Crypt::encryptString($data->id)]) .'" target="_blank" class="dropdown-item">
+                                    <i data-feather="printer"></i>
+                                    <span>'. __("Print") .'</span>
+                                </a>';
             
             $buttons .=         '<a href="'. route('targetSo.show', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                     <i data-feather="list"></i>
@@ -873,59 +873,61 @@ class TargetSoController extends Controller
     }
  
 
-    // public function print(Request $request)
-    // {
-    //     $id=Crypt::decryptString($request->id);
+    public function print(Request $request)
+    {
+        $id=Crypt::decryptString($request->id);
 
-    //     $data['companies']=DB::table('company')
-    //     ->where('code','ASN')
-    //     ->select('name as nama', 'address as alamat', DB::RAW('(select region_name from regions where region_code = city::integer)  as kota'),'tlp')
-    //     ->get()->first();
+        $data['companies']=DB::table('company')
+        ->where('code','ASN')
+        ->select('name as nama'
+        ,'address as alamat'
+        , DB::RAW('(select region_name from regions where region_code = city::integer)  as kota')
+        ,'tlp')
+        ->get()->first();
             
-    //     $poHdr=DB::table('purchase_order_hdr')
-    //     ->where('id',$id)
-    //     ->first();
+        $tSoHdr=DB::table('target_order_hdr')
+        ->where('id',$id)
+        ->first();
 
-    //     $poNumber=$poHdr -> tso_code;
+        $tSoNumber=$tSoHdr -> tso_code;
     
-    //     $data['details']=DB::table('purchase_order_det')
-    //     ->leftJoin('article','article.article_code','purchase_order_det.article_code')
-    //     ->where('tso_code',$poNumber)
-    //     ->get();
+        $data['details']=DB::table('target_order_det')
+        ->leftJoin('article','article.article_code','target_order_det.article_code')
+        ->where('tso_code',$tSoNumber)
+        ->get();
 
-    //     $data['totals']=DB::select("SELECT *,(gross-discount)+ppn as netto from (
-    //         select a.tso_code,authorized_by,validate_by,sum(qty) as qty,sum(qty*price) as gross,sum(discount) as discount,sum(qty*price*b.ppn/100) as ppn from purchase_order_det a
-    //         left join purchase_order_hdr b
-    //         on a.tso_code = b.tso_code 
-    //         where a.tso_code = '$poNumber'
-    //         group by a.po_number,authorized_by,validate_by) as oki");
+        $data['totals']=DB::select("
+            select tso_code
+            ,sum(qty_target) as total_target
+            ,sum(qty_forcast) as total_forcast
+            from target_order_det
+            where tso_code = '$tSoNumber'
+            group by tso_code");
 
-    //     $data['suppliers']=DB::table('third_party')
-    //     ->where('kode',$poHdr -> supplier_id)
-    //     ->get();
-
-    //     $data['keterangan']=$poHdr -> note;
-    //     $data['poNumber'] =$poNumber;
-    //     $data['poDate'] =$poHdr -> po_date;
-    //     $data['poTerm'] =$poHdr -> termin;
-    //     $data['poDelDate'] =$poHdr -> delivery_date;
         
-    //     $data['status'] = $poHdr->status;
-    //     $data['no'] =1;
 
-    //     // $poNumber = 'PO-ASN/2022/V/8';
+        $data['keterangan']=$tSoHdr->note;
+        $data['tsoNumber']=$tSoNumber;
+        $data['tsoName']=$tSoHdr->tso_name;
+        $data['tsoDate']=$tSoHdr->tso_date;
+        $data['createdBy']=$tSoHdr->created_by;
+        
 
-    //     $data['approved'] = DB::table('approval_history')
-    //     ->leftJoin('users','users.username','approval_history.username')
-    //     ->where('module_number',$poNumber)
-    //     ->orderBy('approval_order','desc')
-    //     ->value('users.name');
+        $status = ['NEW','VALIDATED','APPROVED','','CANCELED'];
+        $data['status'] = $status[$tSoHdr ->status-1];
+        $data['no']=0;
 
-    //     view()->share($data);
+        $data['approved'] = DB::table('approval_history')
+        ->leftJoin('users','users.username','approval_history.username')
+        ->where('module_number',$tSoNumber)
+        ->orderBy('approval_order','desc')
+        ->value('users.name');
 
-    //     $pdf = PDF::loadView('targetSo.print');
-    //     return $pdf->stream("PO_$poNumber.pdf");
+        view()->share($data);
 
-    // }
+        $pdf = PDF::loadView('targetSo.print');
+        return $pdf->stream("TSO_$tSoNumber.pdf");
+
+    }
 
 }
