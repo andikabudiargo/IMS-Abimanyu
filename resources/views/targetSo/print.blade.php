@@ -72,6 +72,7 @@
             <td width="30%" ></td>
         </tr>
     </table>
+    <br>
     <table width="100%" border="0" >
         <tr>
             <td width="23%" valign="top" >
@@ -89,7 +90,7 @@
                 <table style="padding-bottom:0px" >
                     <tr><td width="25%" >Created By</td><td>:{{ $createdBy }}</td></tr>
                     <tr><td>Status</td><td>:{{ $status }}</td></tr>
-                    <tr><td valign="top" >Note</td><td valign="top">:{{ $keterangan }}Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley</td></tr>
+                    <tr><td valign="top" >Note</td><td valign="top">:{{ $keterangan }}</td></tr>
                 </table>
             </td>
         </tr>
