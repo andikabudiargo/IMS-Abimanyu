@@ -904,14 +904,11 @@ class TargetSoController extends Controller
             where tso_code = '$tSoNumber'
             group by tso_code");
 
-        
-
         $data['keterangan']=$tSoHdr->note;
         $data['tsoNumber']=$tSoNumber;
         $data['tsoName']=$tSoHdr->tso_name;
         $data['tsoDate']=$tSoHdr->tso_date;
         $data['createdBy']=$tSoHdr->created_by;
-        
 
         $status = ['NEW','VALIDATED','APPROVED','','CANCELED'];
         $data['status'] = $status[$tSoHdr ->status-1];

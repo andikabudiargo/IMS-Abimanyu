@@ -60,7 +60,7 @@
             <div class="col-md-1 col-12" style="max-width: 5%;">
                 <div class="form-group margin-nol">
                     <label for="urutan" class="d-block d-md-none">Urutan</label>
-                    <input type="text" class="form-control numeral-mask-satuan" id="urutan" name="urutan[]" >
+                    <input type="text" class="form-control numeral-mask-satuan drop" id="urutan" name="urutan[]" >
                 </div>
             </div>
             <div class="col-md-2 col-12" style="max-width: 14%;">
@@ -111,7 +111,7 @@
                 <div class="form-group margin-nol">
                     <label for="tag" class="d-block d-md-none">Tag</label>
                     <input type="text" class="form-control" id="tag" name="tag[]" disabled>
-                    <input type="text" class="form-control" id="tagAsli" name="tagAsli[]" disabled>
+                    <input type="hidden" class="form-control" id="tagAsli" name="tagAsli[]" disabled>
                 </div>
             </div>
             <div class="col-md-1 col-12" style="max-width: 5%;">

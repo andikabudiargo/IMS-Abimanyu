@@ -76,6 +76,15 @@
             <div class="card">
                 <div class="card-header">
                     <h4 class="card-title">Article</h4>
+                    <div class="btn btn-primary" type="button" id="draggable">Save</div>
+                    <table border="1" class="ui-widget-header">
+                        <tr>
+                            <td id="I1" class="drop">&nbsp;&nbsp;&nbsp;&nbsp;</td><td id="I2" class="drop">&nbsp;&nbsp;&nbsp;&nbsp;</td>
+                        </tr>
+                        <tr>
+                            <td id="I3" class="drop">&nbsp;&nbsp;&nbsp;&nbsp;</td><td id="I4" class="drop">&nbsp;&nbsp;&nbsp;&nbsp;</td>
+                        </tr>        
+                    </table>
                 </div>
                 <div class="card-body" >
                     <button class="btn btn-success" type="button" id="cmdSort" name="cmdSort">Sort</button>
@@ -134,6 +143,7 @@
 @include('workingOrderSheet.addArticle')
 @endsection
 @section('styles')
+<link rel="stylesheet" type="text/css" href="{{ asset('assets/css/jquery-ui.css') }}">
 <style>
     textarea {
         resize: none;
@@ -176,14 +186,25 @@
 </style>
 @endsection
 @section('scripts')
+<script src="{{ asset('assets/js/ui.1.13.0.jquery-ui.js') }}"></script>
 <script type="text/javascript">
     let currentDate = todayDate('dd-mm-yyyy');    
+
+    $(function() {
+        $("#draggable").draggable({ snap: ".drop"});
+        $(".drop").droppable({
+            drop: function(event, ui){
+                alert($(this).attr("id"));
+            console.log("Dropped to" + $(this).attr("id"));
+        }
+        });
+    });
+
+
     $(document).ready(function(){           
         validateFormToast("frmAdd");
         $('#prdDate').val(currentDate);
         $('#cmdPosting').hide();
-        // console.log(detikKeJam(5400));
-        // hitungWaktu();
     });
         
     function reloadPage(){
@@ -227,8 +248,10 @@
         let objQtyOrder = $('#article_row input[name="qtyOrder[]"]');
         let objUomQtyOrder = $('#article_row span[name="uomQtyOrder[]"]');
         let objQtyProd = $('#article_row input[name="qtyProd[]"]');
+        let objQtyRepaint = $('#article_row input[name="qtyRepaint[]"]');
         let objSoCode = $('#article_row select[name="salesOrder[]"]');
         let objTag = $('#article_row input[name="tag[]"]');
+        let objTagAsli = $('#article_row input[name="tagAsli[]"]');
         let objUrutan = $('#article_row input[name="urutan[]"]');
         let objWaktu = $('#article_row input[name="waktu[]"]');
         
@@ -242,8 +265,11 @@
                 let qtyOrder=objQtyOrder.eq(i).val().replace(/,/gi, '') || 0;
                 let uomOrder=objUomQtyOrder.eq(i).text();
                 let qtyProd=objQtyProd.eq(i).val().replace(/,/gi, '') || 0;
+                let qtyRepaint=objQtyRepaint.eq(i).val().replace(/,/gi, '') || 0;
                 let tag =objTag.eq(i).val();
+                let tagAsli = objTagAsli.eq(i).val();
                 let waktu = objWaktu.eq(i).val();
+
                 let obj = articles.find(obj => obj.urutan == urutan);
                 
                 if(obj) {
@@ -259,21 +285,24 @@
                             "aticle_rm":articleRm,
                             "qty_so":qtyOrder,
                             "uom":uomOrder,
-                            "qty":qtyProd,
-                            "tag":tag*qtyProd,
+                            "qty_prod":qtyProd,
+                            "qty_repaint":qtyRepaint,
+                            "tag":tag,
+                            "tag_asli":tagAsli,
                             "waktu":waktu
                         });
                     }
                 }
-                articles.sort((a, b) => (a.urutan > b.urutan) ? 1 : -1)
+                articles.sort((a, b) => (a.urutan > b.urutan) ? 1 : -1);
             }
         });
 
         if (articles.length > 0){
+            
             $('#article_row').find('div').remove();
             cloneCountEdit=0;
             articles.map(function(i) {
-                add_new_row_edit(i.so_code,i.article_code,i.article_rm,i.qty_so,i.uom,i.qty,i.waktu,i.tag);
+                add_new_row_edit(i.so_code,i.article_code,i.article_rm,i.qty_so,i.uom,i.qty_prod,i.qty_repaint,i.waktu,i.tag,i.tag_asli);
             })
         }
     });
@@ -680,7 +709,7 @@
     };
 
     let cloneCountEdit=0;
-    function add_new_row_edit(noSo,noArticle,noArticleRm,qtySo,qtySoUom,qtyProd,waktu,tag,tagAsli) {
+    function add_new_row_edit(noSo,noArticle,noArticleRm,qtySo,qtySoUom,qtyProd,qtyRepaint,waktu,tag,tagAsli) {
         let waktuAwal = $('#prdTime').val()+":00";
         $("#article_row").append($("#new_row").clone().html());
         cloneCountEdit++;
@@ -692,16 +721,20 @@
         $("#new_row"+ cloneCountEdit).find('#qtyOrder').attr('id', 'qtyOrder'+ cloneCountEdit);
         $("#new_row"+ cloneCountEdit).find('#uomQtyOrder').attr('id', 'uomQtyOrder'+ cloneCountEdit);
         $("#new_row"+ cloneCountEdit).find('#qtyProd').attr('id', 'qtyProd'+ cloneCountEdit);
+        $("#new_row"+ cloneCountEdit).find('#qtyRepaint').attr('id', 'qtyRepaint'+ cloneCountEdit);
         $("#new_row"+ cloneCountEdit).find('#waktu').attr('id', 'waktu'+ cloneCountEdit);
         $("#new_row"+ cloneCountEdit).find('#tag').attr('id', 'tag'+ cloneCountEdit);
+        $("#new_row"+ cloneCountEdit).find('#tagAsli').attr('id', 'tagAsli'+ cloneCountEdit);
         changeselect('salesOrder','salesOrder'+ cloneCountEdit,noSo);
         changeSelectArticleEdit('searchFromSO','articleId'+ cloneCountEdit,noSo,noArticle);
         $('#urutan'+ cloneCountEdit).val(cloneCountEdit);
         $('#qtyOrder'+ cloneCountEdit).val(qtySo);
         $('#uomQtyOrder'+ cloneCountEdit).text(qtySoUom);
         $('#qtyProd'+ cloneCountEdit).val(qtyProd);
+        $('#qtyRepaint'+ cloneCountEdit).val(qtyRepaint);
         $('#waktu'+ cloneCountEdit).val(waktuAwal);
-        $('#tag'+ cloneCountEdit).val(tagAsli);
+        $('#tag'+ cloneCountEdit).val(parseFloat(tagAsli)*(parseInt(qtyProd)+parseInt(qtyRepaint)));
+        $('#tagAsli'+ cloneCountEdit).val(tagAsli);
         $('#articleRm'+ cloneCountEdit).val(noArticleRm);
         $("#articleId"+cloneCountEdit).select2();
         $("#salesOrder"+cloneCountEdit).select2();
@@ -709,6 +742,7 @@
         tombolPanah('qtyProd');
         mask_thousand_satuan();
         hitungWaktu(); 
+        cloneCount=cloneCountEdit;
     };
 
     function changeSelectArticle(dependent,objIndex,value) {
@@ -732,23 +766,32 @@
                     objArticle.eq(objIndex).html(result);
                     objArticle.eq(objIndex).select2();
                 }
-            })
+            });
         }
     }
 
     function changeSelectArticleEdit(dependent,obj,value,article) {
-        $.ajax({
-            url:"{{route('dynamic.dependent')}}",
-            method:"POST",
-            data:{
-                value:value,
-                dependent:dependent
-            },
-            success:function(result){
-                $('#'+obj).html(result);
-                $('#'+obj).val(article).trigger('change');
-            }
-        })
+        if (value ==='other'){
+            let result = "";
+            result +='<option value="" data-article-rm="none" data-detail=""></option>';
+            result +='<option value="gantiWarna" data-article-rm="none" data-detail="gantiWarna|none|6|||">Ganti Warna</option>';
+            result +='<option value="istirahat"  data-article-rm="none" data-detail="istirahat|none|120|||">Istirahat</option>';
+            $('#'+obj).html(result);
+            $('#'+obj).val(article).trigger('change');
+        }else{
+            $.ajax({
+                url:"{{route('dynamic.dependent')}}",
+                method:"POST",
+                data:{
+                    value:value,
+                    dependent:dependent
+                },
+                success:function(result){
+                    $('#'+obj).html(result);
+                    $('#'+obj).val(article).trigger('change');
+                }
+            });
+        }
     }
 
     function isiListArticle(){
@@ -805,7 +848,7 @@
 		});
     }
 
-    hitungWaktu = () => {
+    hitungWaktu = (s) => {
         let objWaktu = $('#article_row input[name="waktu[]"]');
         let objTag = $('#article_row input[name="tag[]"]');
         let waktuAwal = $('#prdTime').val()+":00";

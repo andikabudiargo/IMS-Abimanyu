@@ -235,7 +235,7 @@
     if (updateBtn) {
         updateBtn.addEventListener('click',() =>{
             updateData('update','cmdUpdate');
-        },{ once:true});
+        });
     }
 
     if (approveBtn) {
