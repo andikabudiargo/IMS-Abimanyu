@@ -135,7 +135,7 @@
         $("#uom"+ cloneCount).val(uom).trigger('change');
         $("#new_row"+ cloneCount).find('#uomCon').attr('id', 'uomCon'+ cloneCount);
         $("#uomCon"+ cloneCount).html(uomOptionCon);
-        $("#uomCon"+ cloneCount).val(uom).trigger('change');
+        $("#uomCon"+ cloneCount).val(uomCon).trigger('change');
         $('#remove_button').tooltip();
         tombolPanah('qtyBom');
         hitungTotal();

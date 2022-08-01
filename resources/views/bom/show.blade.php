@@ -114,10 +114,11 @@
                                                 <tr>
                                                     <th>No</th>
                                                     <th>Article Code</th>
+                                                    <th >Log.Uom</th>
                                                     <th class="text-right">QTY</th>
-                                                    <th class="text-right">Uom</th>
-                                                    <th >Qty Con.</th>
-                                                    <th >Uom</th>
+                                                    <th class="text-left">Bom Uom</th>
+                                                    <th class="text-right">Qty Con.</th>
+                                                    <th class="text-left">Uom Con.</th>
                                                     <th >Type</th>
                                                 </tr>
                                             </thead>
@@ -127,10 +128,11 @@
                                                     <tr>
                                                         <td ></td>
                                                         <td >{{ $item->article }}</td>
+                                                        <td >{{ $item->original_uom }}</td>
                                                         <td class="text-right">{{ number_format($item->qty,$decimalPlaces) }}</td>
-                                                        <td class="text-right">{{ $item->uom }}</td>
+                                                        <td class="text-left">{{ $item->uom }}</td>
                                                         <td class="text-right">{{ number_format($item->qty*$item->factor_qty,$decimalPlaces) }}</td>
-                                                        <td class="text-right">{{ $item->uom_con }}</td>
+                                                        <td class="text-left">{{ $item->uom_con }}</td>
                                                         <td >{{ $item->type_name }}</td>
                                                     </tr>
                                                 @endif

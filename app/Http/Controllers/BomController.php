@@ -267,18 +267,20 @@ class BomController extends Controller
         $bomNumber =  $data['headers'][0]->bom_code;
 
         $data['details'] = DB::table('bom_det')
-        ->whereIn('bom_det.bom_code', function($query) use ($bomNumber){
-            $query->select('bom_code')->from('bom_hdr')->where('origin_bom_code',$bomNumber);
-        })
+        // ->whereIn('bom_det.bom_code', function($query) use ($bomNumber){
+        //     $query->select('bom_code')->from('bom_hdr')->where('bom_code',$bomNumber);
+        // })
         ->leftJoin('article','article.article_code','=','bom_det.article_code')
         ->leftJoin('uom','uom.code','bom_det.uom')
         ->leftJoin('article_types','article_types.code','=','bom_det.article_type')
         ->select('bom_det.*'
+        ,'article.uom as original_uom'
         ,'uom.uom_group as uom_group'
         ,'article_types.name as type_name'
-        ,DB::RAW("(select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = bom_det.uom) as factor_qty")
+        ,DB::RAW("(select uom_conversion(bom_det.uom_con,article.uom) as factor_qty)")
         ,DB::raw("concat(article.article_alternative_code,'-',article.article_desc) as article")
         )
+        ->where('bom_det.bom_code',$bomNumber)
         ->orderBy('bom_det.id')
         ->get();
 
@@ -342,13 +344,15 @@ class BomController extends Controller
         ->where('bom_code',$bomNumber)
         ->leftJoin('uom','uom.code','bom_det.uom')
         ->leftJoin('article_types','article_types.code','=','bom_det.article_type')
+        ->leftJoin('article','article.article_code','=','bom_det.article_code')
         ->select('bom_det.*'
+        ,'article.uom as original_uom'
         ,'uom.uom_group as uom_group'
         ,'article_types.name as type_name'
-        ,DB::RAW("(select uom_conversion(bom_det.uom_con,bom_det.uom) as factor_qty)")
+        ,DB::RAW("(select uom_conversion(bom_det.uom_con,article.uom) as factor_qty)")
         ,DB::RAW("(select 
-                        string_agg(concat(unit_to,';',(uom_conversion(a.unit_to,bom_det.uom))),',' order by unit_from) as uom_member 
-                        from uom_con a where unit_from = bom_det.uom)")
+                        string_agg(concat(unit_to,';',(uom_conversion(a.unit_to,article.uom))),',' order by unit_from) as uom_member 
+                        from uom_con a where unit_from = article.uom)")
         ,DB::RAW("(select string_agg(code,',' order by code) as uoms from uom )")
         )
         ->orderBy('bom_det.id')
