@@ -9,9 +9,9 @@
             <div class="card">
                 <div class="card-header">
                     <div class="form-group row">
-                        <label for="prdNumber" class="col-sm-4 col-form-label col-form-label-sm">Production Number</label>
+                        <label for="wosNumber" class="col-sm-4 col-form-label col-form-label-sm">WOS Number</label>
                         <div class="col-md-8">
-                            <input type="text" id="prdNumber" name="prdNumber" class="form-control form-control-sm disabled-el" disabled />
+                            <input type="text" id="wosNumber" name="wosNumber" class="form-control form-control-sm disabled-el" disabled />
                         </div>
                     </div>                    
                     <div class="heading-elements">
@@ -27,8 +27,8 @@
                             <input type="text" id="article" name="article" hidden>
                             <div class="form-row">
                                 <div class="form-group col-md-2">
-                                    <label for="prdDate">Date*</label>
-                                    <input type="text" id="prdDate" name="prdDate" class="form-control" placeholder="DD-MM-YYYY" required />
+                                    <label for="wosDate">Date*</label>
+                                    <input type="text" id="wosDate" name="wosDate" class="form-control" placeholder="DD-MM-YYYY" required />
                                 </div>
                                 <div class="form-group col-md-2">
                                     <label for="shift">Shift*</label>
@@ -48,8 +48,8 @@
                                     </select>
                                 </div>
                                 <div class="form-group col-md-2">
-                                    <label for="prdDate">Time StartDate*</label>
-                                    <input type="text" id="prdTime" name="prdTime" class="form-control" placeholder="HH:MM" required />
+                                    <label for="wosTime">Start Time*</label>
+                                    <input type="text" id="wosTime" name="wosTime" class="form-control" placeholder="HH:MM" required />
                                 </div>
                             </div>
                             
@@ -61,10 +61,7 @@
                             </div>
                             <div class="row">
                                 <div class="col-12">
-                                    {{-- <button class="btn btn-warning" type="reset" id="cmdCancel" name="cmdCancel">Cancel</button> --}}
-                                    {{-- <button class="btn btn-success" type="reset" id="cmdNew" name="cmdCancel">New</button> --}}
                                     <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Save</button>
-                                    <button class="btn btn-primary" type="button" id="cmdPosting" name="cmdPosting">Posting</button>
                                 </div>
                             </div>
                         </form>
@@ -76,15 +73,6 @@
             <div class="card">
                 <div class="card-header">
                     <h4 class="card-title">Article</h4>
-                    <div class="btn btn-primary" type="button" id="draggable">Save</div>
-                    <table border="1" class="ui-widget-header">
-                        <tr>
-                            <td id="I1" class="drop">&nbsp;&nbsp;&nbsp;&nbsp;</td><td id="I2" class="drop">&nbsp;&nbsp;&nbsp;&nbsp;</td>
-                        </tr>
-                        <tr>
-                            <td id="I3" class="drop">&nbsp;&nbsp;&nbsp;&nbsp;</td><td id="I4" class="drop">&nbsp;&nbsp;&nbsp;&nbsp;</td>
-                        </tr>        
-                    </table>
                 </div>
                 <div class="card-body" >
                     <button class="btn btn-success" type="button" id="cmdSort" name="cmdSort">Sort</button>
@@ -143,7 +131,6 @@
 @include('workingOrderSheet.addArticle')
 @endsection
 @section('styles')
-<link rel="stylesheet" type="text/css" href="{{ asset('assets/css/jquery-ui.css') }}">
 <style>
     textarea {
         resize: none;
@@ -186,60 +173,39 @@
 </style>
 @endsection
 @section('scripts')
-<script src="{{ asset('assets/js/ui.1.13.0.jquery-ui.js') }}"></script>
 <script type="text/javascript">
-    let currentDate = todayDate('dd-mm-yyyy');    
-
-    $(function() {
-        $("#draggable").draggable({ snap: ".drop"});
-        $(".drop").droppable({
-            drop: function(event, ui){
-                alert($(this).attr("id"));
-            console.log("Dropped to" + $(this).attr("id"));
-        }
-        });
-    });
-
+    let currentDate = todayDate('dd-mm-yyyy');
+    const wosDate = $('#wosDate');
+    const wosTime = $('#wosTime');
+    const wosDate = $('#wosDate');
+    const wosShift = $('#shift');
+    const wosGroup = $('#group');
+    const note = $('#note');
+    const cmdSort = $('#cmdSort');
+    const cmdSave = $('#cmdSave');
 
     $(document).ready(function(){           
         validateFormToast("frmAdd");
-        $('#prdDate').val(currentDate);
-        $('#cmdPosting').hide();
+        $('#wosDate').val(currentDate);
     });
-        
-    function reloadPage(){
-        window.location.reload();
-    }
-
-    prdDate = $('#prdDate');
-    if (prdDate.length) {
-        prdDate.flatpickr({
+            
+    if (wosDate.length) {
+        wosDate.flatpickr({
             dateFormat: "d-m-Y",
             minDate: currentDate
         });
     }
 
-    prdTime = $('#prdTime');
-    if (prdTime.length) {
-        prdTime.flatpickr({
+    if (wosTime.length) {
+        wosTime.flatpickr({
             enableTime: true,
             time_24hr: true,
             noCalendar: true,
             defaultDate: "08:00:00",
         });
     }
-
-    $("#cmdCancel").click(function(){
-        $('#prdNumber').val('');
-        reloadPage();
-    });
-
-    $("#cmdNew").click(function(){
-        $('#prdNumber').val('');
-        reloadPage();
-    });
     
-    $("#cmdSort").click(function(){
+    cmdSort.click(function(){
         let articles = []; 
         let flag=0;
         let pesan="";
@@ -275,7 +241,6 @@
                 if(obj) {
                     pesan +="Urutan belum sesuai !! <br>"; 
                     flag=1;
-                    console.log(pesan);
                 }else{
                     if(article){
                         articles.push({
@@ -293,12 +258,11 @@
                         });
                     }
                 }
-                articles.sort((a, b) => (a.urutan > b.urutan) ? 1 : -1);
             }
         });
 
         if (articles.length > 0){
-            
+            articles.sort((a, b) => (a.urutan > b.urutan) ? 1 : -1);
             $('#article_row').find('div').remove();
             cloneCountEdit=0;
             articles.map(function(i) {
@@ -307,180 +271,124 @@
         }
     });
 
-    $("#cmdSave").click(function(){     
+    cmdSave.click(function(){     
         $('.disabled-el').removeAttr('disabled');
-        // ambil semua data article
+        let articles = []; 
+        let flag=0;
+        let pesan="";
         let objArticle = $("#article_row select[name='articleId[]']");
+        let objArticleRm = $("#article_row select[name='articleRm[]']");
         let objQtyOrder = $('#article_row input[name="qtyOrder[]"]');
+        let objUomQtyOrder = $('#article_row span[name="uomQtyOrder[]"]');
         let objQtyProd = $('#article_row input[name="qtyProd[]"]');
+        let objQtyRepaint = $('#article_row input[name="qtyRepaint[]"]');
         let objSoCode = $('#article_row select[name="salesOrder[]"]');
         let objTag = $('#article_row input[name="tag[]"]');
         let objTagAsli = $('#article_row input[name="tagAsli[]"]');
         let objUrutan = $('#article_row input[name="urutan[]"]');
         let objWaktu = $('#article_row input[name="waktu[]"]');
-        let prdDate = $('#prdDate').val();
-        let shift = $('#shift').val();
-        let group = $('#group').val();
-        let note = $('#note').val();
-        let articles = []; 
-        let flag=0;
-        let pesan="";
+        let wosDate = wosDate.val();
+        let wosShift = wosShift.val();
+        let wosGroup = wosGroup.val();
+        let wosTime = wosTime.val();
+        let note = note.val();
 
         objArticle.map(function(i) {  
 		    let $this=$(this);
             if ($this.val()){
-                let article=$this.val().split("|");
-                let articleName=$this.select2('data')[0].text;
-                let plu=article[0];
-                let qtyOrder=objQtyOrder.eq(i).val().replace(/,/gi, '') || 0;
-                let qty=objQtyProd.eq(i).val().replace(/,/gi, '') || 0;
-                let soCode=objSoCode.eq(i).val();
+                let article = $this.val();
+                let articleName = article;
+                let articleRm = objArticleRm.eq(i).val();
+                let urutan = objUrutan.eq(i).val();
+                let soCode = objSoCode.eq(i).val();
+                let qtyOrder = objQtyOrder.eq(i).val().replace(/,/gi, '') || 0;
+                let uomOrder = objUomQtyOrder.eq(i).text();
+                let qtyProd = objQtyProd.eq(i).val().replace(/,/gi, '') || 0;
+                let qtyRepaint = objQtyRepaint.eq(i).val().replace(/,/gi, '') || 0;
                 let tag = objTag.eq(i).val();
                 let tagAsli = objTagAsli.eq(i).val();
-                let urutan =objUrutan.eq(i).val();
                 let waktu = objWaktu.eq(i).val();
-                                        
-                //es6
-                // let obj = ingredient.find(obj => obj.plu == plu);
 
-                //jquery
-                //cek apakah article ada yang double input ato ngk
-                let obj = $.grep(articles, function(obj){
-                    return obj.urutan === urutan;
-                })[0];
-
+                // cek urutan harus sesuai jangan ada urutan yang double
+                let obj = articles.find(obj => obj.urutan == urutan);
+                
                 if(obj) {
                     pesan +="Urutan belum sesuai !! <br>"; 
                     flag=1;
-                    console.log(pesan);
+                }else{
+                    if(article){
+                        articles.push({
+                            "urutan":urutan,
+                            "so_code":soCode,
+                            "article_code":article,
+                            "aticle_rm":articleRm,
+                            "qty_so":qtyOrder,
+                            "uom":uomOrder,
+                            "qty_prod":qtyProd,
+                            "qty_repaint":qtyRepaint,
+                            "tag":tag,
+                            "tag_asli":tagAsli,
+                            "waktu":waktu
+                        });
+                    }
                 }
-                
-                // if(obj) {
-                //     pesan +="Article "+articleName+" entered more than once !! <br>"; 
-                //     flag=1;
-                // } else {
-                //     if ((plu!=='') && (qty> 0)){
-                //         articles.push({
-                //             "urutan":urutan,
-                //             "so_code":soCode,
-                //             "article_code":plu,
-                //             "qty":qty,
-                //             "tag":tag
-                //         });
-                //     }
-                // } 
-
-                // articles.sort();
-                // add_new_row(noSo,noArticle,qtySo,qtyProd,waktu) {
-                // if ((plu!=='') && (qty> 0)){
-                    articles.push({
-                        "urutan":urutan,
-                        "so_code":soCode,
-                        "article_code":plu,
-                        "qty_so":qtyOrder,
-                        "qty":qty,
-                        "tag":tag,
-                        "tag_asli":tagAsli,
-                        "waktu":waktu
-                    });
-                // }
-
-                articles.sort((a, b) => (a.urutan > b.urutan) ? 1 : -1)
-            
-                if (qty == 0){
-                    pesan +="QTY of items "+ articleName +" cannot be 0 <br>"; 
+                // urutkan data berdasarkan nomor urutan   
+                if ( (qtyProd+qtyRepaint) == 0 ){
+                    pesan +="QTY of items "+ articleName +" order ="+urutan +" cannot be 0 <br>"; 
                     flag=1;
                 }
             }
         });
 
-        if (flag==0){
+        if (articles.length > 0){
+            articles.sort((a, b) => (a.urutan > b.urutan) ? 1 : -1);
             $('#article_row').find('div').remove();
             cloneCountEdit=0;
-            console.log(articles);
             articles.map(function(i) {
-                add_new_row_edit(i.so_code,i.article_code,i.qty_so,i.qty,i.waktu,i.tag,i.tag_asli);
+                add_new_row_edit(i.so_code,i.article_code,i.article_rm,i.qty_so,i.uom,i.qty_prod,i.qty_repaint,i.waktu,i.tag,i.tag_asli);
             })
+        }else{
+            pesan +="Articles must be filled in completely <br>"; 
+			flag=1;
         }
 
-        if (articles.length == 0){
-			pesan +="Articles must be filled in completely <br>"; 
-			flag=1;
-		}
-
-        // if (flag==0){
-        //     $.ajax({
-        //         type: "post",
-        //         url: "{{ route('production.store') }}",
-        //         data: {
-        //             articles:JSON.stringify(articles),
-        //             prdDate:prdDate,
-        //             shift:shift,
-        //             group:group,
-        //             note:note
-        //         },
-        //         dataType: "json",
-        //         success: function(data) {
-        //             if (data.status == 0 ){
-        //                 let message="";
-        //                 for(let i = 0; i < data.message.length; i++) {
-        //                     show_msg(data.title, data.message[i], data.alert);
-        //                 }
-                        
-        //                 $('#prdNumber').attr('disabled','disabled');
-
-        //             }else{
-        //                 show_msg(data.title, data.message, data.alert)
-        //                 $('#prdNumber').attr('disabled','disabled');
-        //                 $('#cmdSave').attr('disabled','disabled');
-        //                 $('#addNewRow').attr('disabled','disabled');
-        //                 $('#prdNumber').val(data.prdNumber);
-        //                 $('#cmdPosting').show();
-                        
-        //             }
-                    
-        //         },
-        //         error: function(error) {
-        //             console.log(error);
-        //         }
-        //     });
-
-        // }else{
-        //     Swal.fire('Warning..',pesan,'warning');
-        // }
-    
-    });
-
-    $("#cmdPosting").click(function(){   
-        let prodNumber = $('#prdNumber').val();
-        $.ajax({
-            type: "post",
-            url: "{{ route('production.posting') }}",
-            data: { prodNumber:prodNumber},
-            dataType: "json",
-            success: function(data) {
-                if (data.status == 0 ){
-                    let message="";
-                    for(let i = 0; i < data.message.length; i++) {
-                        show_msg(data.title, data.message[i], data.alert);
+        if (flag==0){
+            $.ajax({
+                type: "post",
+                url: "{{ route('workingOrderSheet.store') }}",
+                data: {
+                    articles:JSON.stringify(articles),
+                    wosDate:wosDate,
+                    wosTime:wosTime,
+                    shift:wosShift,
+                    group:wosGroup,
+                    note:note
+                },
+                dataType: "json",
+                success: function(data) {
+                    if (data.status == 0 ){
+                        let message="";
+                        for(let i = 0; i < data.message.length; i++) {
+                            show_msg(data.title, data.message[i], data.alert);
+                        }
+                        $('#wosNumber').attr('disabled','disabled');
+                    }else{
+                        show_msg(data.title, data.message, data.alert)
+                        $('#wosNumber').attr('disabled','disabled');
+                        $('#cmdSave').attr('disabled','disabled');
+                        $('#addNewRow').attr('disabled','disabled');
+                        $('#wosNumber').val(data.wosNumber);
                     }
-
-                    $('#prdNumber').attr('disabled','disabled');
-
-                }else{
-                    show_msg(data.title, data.message, data.alert)
-                    $('#prdNumber').attr('disabled','disabled');
-                    $('#cmdSave').attr('disabled','disabled');
-                    $('#addNewRow').attr('disabled','disabled');
-                    $('#prdNumber').val(data.prdNumber);
-                    $('#cmdPosting').attr('disabled','disabled');
+                },
+                error: function(error) {
+                    console.log(error);
                 }
-                
-            },
-            error: function(error) {
-                console.log(error);
-            }
-        });
+            });
+
+        }else{
+            Swal.fire('Warning..',pesan,'warning');
+        }
+    
     });
 
     function prosesWO(){
@@ -710,7 +618,7 @@
 
     let cloneCountEdit=0;
     function add_new_row_edit(noSo,noArticle,noArticleRm,qtySo,qtySoUom,qtyProd,qtyRepaint,waktu,tag,tagAsli) {
-        let waktuAwal = $('#prdTime').val()+":00";
+        let waktuAwal = $('#wosTime').val()+":00";
         $("#article_row").append($("#new_row").clone().html());
         cloneCountEdit++;
         $("#article_row").find('#baru').attr('id', 'new_row'+ cloneCountEdit);
@@ -828,7 +736,7 @@
                 objQtyOrder.eq(objIndex).val(arrDetail[3]);
                 objTag.eq(objIndex).val(arrDetail[2]);
                 objTagAsli.eq(objIndex).val(arrDetail[2]);
-                objWaktu.eq(objIndex).val($('#prdTime').val()+":00");
+                objWaktu.eq(objIndex).val($('#wosTime').val()+":00");
                 objUomQtyOrder.eq(objIndex).text(arrDetail[4]);
                 if (detail){
                     setTimeout(() => {
@@ -851,7 +759,7 @@
     hitungWaktu = (s) => {
         let objWaktu = $('#article_row input[name="waktu[]"]');
         let objTag = $('#article_row input[name="tag[]"]');
-        let waktuAwal = $('#prdTime').val()+":00";
+        let waktuAwal = $('#wosTime').val()+":00";
         let waktuAwalDetik = waktuAwal.split(':').reduce((acc,time) => (60 * acc) + +time);
         let nilaiTag = 0;
         let jamBaru = waktuAwal;

@@ -74,43 +74,20 @@ class WorkingOrderSheetController extends Controller
 
     }
 
-    public function articleCodeCreate(Request $request){
-        $customer = $request->customer;
-        $leadingCode = 'FG';
-
-        $lastCode = DB::table('article')
-        ->where('third_party','=',$customer)
-        ->orderBy('article_alternative_code','DESC')->first();
-
-        if (!$lastCode){
-            $newCode = '00001';
-        }else{
-            $newCode = str_pad(substr($lastCode->article_alternative_code,5)+1, 5, "0", STR_PAD_LEFT);
-        }
-
-        $artilceCode = DB::table('third_party')
-        ->where('kode',$customer)
-        ->select(DB::raw("CONCAT('$leadingCode',inisial,'$newCode') AS new_code"))->value('new_code');
-
-        return  Response()->json($artilceCode);
-    
-    }
-
     public function store(Request $request)
     {
         $username =  Auth::user()->username;
-        $articles = json_decode($request -> articles);
-        $prdDate = $request->prdDate;
-        $prdDate = date("Y-m-d", strtotime($prdDate) );
-        $shift = $request->shift;
-        $group = $request->group;
+        $articles = json_decode($request->articles);        
+        $woDate = date("Y-m-d", strtotime($request->wosDate));
+        $woShift = $request->wosShift;
+        $woGroup = $request->wosGroup;
+        $woTime = $request->wos;
         $note = $request->note;
         $status = '1';
 
         $messages = [
             'required' => 'The field is required.',
             'unique' => 'The code has already been taken', 
-            // 'iunique' => "PO Number has already been taken",
         ];
         
         Validator::extend('iunique', function ($attribute, $value, $parameters, $validator) {
@@ -120,10 +97,9 @@ class WorkingOrderSheetController extends Controller
         });
 
         $validation = Validator::make($request->all(),$messages = [
-            // 'woNumber'=>'required|unique:purchase_order_hdr,po_number',
-            'prdDate'  => 'required',
-            'shift'  => 'required',
-            'group'  => 'required',
+            'wosDate'  => 'required',
+            'wosGroup'  => 'required',
+            'wosShift'  => 'required',
         ]);
         
         $error_array = array();
@@ -133,22 +109,24 @@ class WorkingOrderSheetController extends Controller
             foreach ($validation->messages()->getMessages() as $field_name => $messages){
                 $error_array[] = $messages;
             }
-            $title="Save Production";
+            $title="Save $this->title";
             $alert ="error";
             return response()->json(array('status' => 0,'title' => $title, 'message' => $error_array,'alert' =>$alert));
         }else{
-            $hasilUpdate = AppHelpers::resetCode('PRD');
-            $prdNumber = $this->getLastCode('PRD');
+            $hasilUpdate = AppHelpers::resetCode($this->moduleCode);
+            $woNumber = $this->getLastCode($this->moduleCode);
             DB::beginTransaction();
             try {
-                    DB::table('production_hdr')->insert([
-                        
-                        'prod_code' => $prdNumber,
-                        'prod_date' => $prdDate,
-                        'prod_shift' => $shift,
-                        'prod_group' => $group,
+                    DB::table('wo_hdr')->insert([
+                        'wo_code' =>$woNumber,
+                        'original_wo_code' =>$woNumber,
+                        'wo_date' => $woDate,
+                        'wo_shift' => $woShift,
+                        'wo_group' => $woGroup,
+                        'start_time' => $woTime,
+                        'num_revision' => 0,
                         'status' => $status,
-                        'note' =>$note ,
+                        'note' => $note,
                         'created_by' => Auth::user()->username,
                         'updated_by' => Auth::user()->username,
                         'created_at' => date('Y-m-d H:i:s'),
@@ -158,31 +136,43 @@ class WorkingOrderSheetController extends Controller
                     $dataSet = [];
                     foreach ($articles as $val) {
                         $dataSet[] = [
-                            'prod_code' => $prdNumber,
-                            'so_code' => $val->so_code,
-                            'article_code' => $val->article_code,
-                            'qty' => $val->qty,
-                            'created_by' => Auth::user()->username,
-                            'created_at' => date('Y-m-d H:i:s'),
+                            "wo_code" => $woNumber,
+                            "urutan" => $val->urutan,
+                            "article_code" => $val->article_code,
+                            "article_rm_code" => $val->article_rm,
+                            "plan_time_loading" => $val->waktu,
+                            "act_time_loading" => 0,
+                            "qty_rm" => 0,
+                            "plan_qty_fresh" => $val->qty_prod,
+                            "plan_qty_repaint" => $val->qty_repaint,
+                            "plan_qty_tag" => $val->tag,
+                            "act_qty_fresh" => 0,
+                            "act_qty_repaint" => 0,
+                            "act_qty_tag" => 0,
+                            "qty_ok" => 0,
+                            "qty_repair" => 0,
+                            "qty_repaint" => 0,
+                            "created_by" => Auth::user()->username,
+                            "created_at" => date('Y-m-d H:i:s')
                         ];
                     }
 
-                    DB::table('production_det')->insert($dataSet);
+                    DB::table('wo_det')->insert($dataSet);
 
                     DB::commit();
-                    $title ='Save Production';
+                    $title ="Save $this->title";
                     $alert  ="success";
-                    $message  = "$title $prdNumber is successfully saved";
+                    $message  = "$title $woNumber is successfully saved";
                     \LogActivity::addToLog($title,"username: $username Status $message");
-                    return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'prdNumber'=>$prdNumber));
+                    return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'woNumber'=>$woNumber));
 
             } catch (Exception $e) {
                 DB::rollBack();
-                $title ='Save Production';
+                $title ="Save $this->title";
                 $alert  ="warning";
-                $message  = "$title $prdNumber is failed to save";
+                $message  = "$title $woNumber is failed to save";
                 \LogActivity::addToLog($title,"username: $username Status $message");
-                return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'prdNumber'=>$prdNumber));
+                return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'woNumber'=>$woNumber));
             }
         }
     }

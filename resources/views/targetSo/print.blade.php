@@ -75,9 +75,9 @@
     <br>
     <table width="100%" border="0" >
         <tr>
-            <td width="23%" valign="top" >
+            <td width="55%" valign="top" >
                 <table style="padding-bottom:0px" >
-                    <tr><td width="40%" >TSO Number</td><td>:{{ $tsoNumber }}</td></tr>
+                    <tr><td width="20%" >TSO Number</td><td>:{{ $tsoNumber }}</td></tr>
                     <tr><td>Tso Name</td><td>:{{ $tsoName }}</td></tr>
                     <tr><td>Date</td><td>:{{ $tsoDate }}</td></tr>
                 </table>
@@ -85,10 +85,10 @@
                 Tso Name : {{ $tsoName }}<br>
                 Date    : {{ $tsoDate }} --}}
             </td>
-            <td width="25%"></td>
+            <td width="5%"></td>
             <td width="30%">
                 <table style="padding-bottom:0px" >
-                    <tr><td width="25%" >Created By</td><td>:{{ $createdBy }}</td></tr>
+                    <tr><td width="30%" >Created By</td><td>:{{ $createdBy }}</td></tr>
                     <tr><td>Status</td><td>:{{ $status }}</td></tr>
                     <tr><td valign="top" >Note</td><td valign="top">:{{ $keterangan }}</td></tr>
                 </table>

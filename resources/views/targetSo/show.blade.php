@@ -83,8 +83,10 @@
                                                     <tr>
                                                         <td ></td>
                                                         <td >{{ $item->article }}</td>
-                                                        <td class="text-right">{{ $item->uom_group =='PIECE' ? number_format($item->qty_target) : number_format($item->qty_target,4) }} {{ $item->uom }}</td>
-                                                        <td class="text-right">{{ $item->uom_group =='PIECE' ? number_format($item->qty_forcast) : number_format($item->qty_forcast,3) }} {{ $item->uom }}</td>
+                                                        <td class="text-right">{{ number_format($item->qty_target) }} </td>
+                                                        <td class="text-right">{{ number_format($item->qty_forcast) }} </td>
+                                                        {{-- <td class="text-right">{{ $item->uom_group =='PIECE' ? number_format($item->qty_target) : number_format($item->qty_target,4) }} {{ $item->uom }}</td>
+                                                        <td class="text-right">{{ $item->uom_group =='PIECE' ? number_format($item->qty_forcast) : number_format($item->qty_forcast,4) }} {{ $item->uom }}</td> --}}
                                                     </tr>
                                                 @endif
                                             @endforeach
