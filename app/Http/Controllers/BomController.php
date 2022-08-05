@@ -724,6 +724,7 @@ class BomController extends Controller
         ,'article.article_desc'
         ,'third_party.nama')
         ->where('bom_code',$bomNumber)
+        ->orderBy('bom_det.id')
         ->get();
 
         $username="";

@@ -21,6 +21,7 @@
             /*font-weight: bold;*/
             /* font-size: medium; */
         }
+
         .gray {
             background-color: lightgray;
             font-weight: bold;
@@ -48,7 +49,7 @@
         }
 
         #watermark {
-            background: url('{{ asset('assets/img/lunas-stamp.png') }}') center;
+            background: url("{{ public_path('app-assets/images/logo/logo_po.png') }}") center;
             background-size: 10px 10px;
             background-repeat: no-repeat;
             opacity: 0.1;
@@ -57,6 +58,7 @@
         /* td {
             white-space: nowrap;
         } */
+        
     </style>
 </head>
 <body>
@@ -81,9 +83,6 @@
                     <tr><td>Tso Name</td><td>:{{ $tsoName }}</td></tr>
                     <tr><td>Date</td><td>:{{ $tsoDate }}</td></tr>
                 </table>
-                {{-- TSO Number : {{ $tsoNumber }}<br>
-                Tso Name : {{ $tsoName }}<br>
-                Date    : {{ $tsoDate }} --}}
             </td>
             <td width="5%"></td>
             <td width="30%">
