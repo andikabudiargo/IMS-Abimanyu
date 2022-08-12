@@ -1,4 +1,9 @@
 <div class="form-row d-flex align-items-end">
+    <div class="col-md-1 col-12 d-none d-md-block">
+        <div class="form-group">
+            <label class="d-none d-md-block">No</label>
+        </div>
+    </div>
     <div class="col-md-6 col-12 d-none d-md-block">
         <div class="form-group">
             <label class="d-none d-md-block">Article Code</label>
@@ -16,7 +21,7 @@
     </div>
     <div class="col-md-1 col-12 d-none d-md-block">
         <div class="form-group">
-            <label class="d-none d-md-block text-left">-</label>
+            <label class="d-none d-md-block text-center">-</label>
         </div>
     </div>
 </div>

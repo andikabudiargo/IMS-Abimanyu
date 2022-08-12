@@ -55,55 +55,7 @@
                     <div class="container-list-item">
                         <div class="lebar-list-item">
                             @include('targetSo.headerColumn')
-                            <div class="" id="article_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px">
-                                @foreach ($details as $key =>$item)
-                                    <div id="new_row{{ $key }}" class="tanda-baris" >
-                                        <div class="form-row d-flex align-items-center">
-                                            <div class="col-md-6 col-12">
-                                                <div class="form-group margin-nol">
-                                                    <label for="articleId" class="d-block d-md-none">Article</label>
-                                                    <select class="form-control sku-select-system" id="articleId{{ $key }}" name="articleId[]" data-dependent="articleId">
-                                                        @foreach($articles as $val)
-                                                            <option value="{{ $val->article_code }}" data-uom-group ="{{ $val->uom_group }}" data-uom ="{{ $val->uom }}" {{ $val->article_code == $item->article_code ? "selected" :"" }}>
-                                                                    {{ $val->article_alternative_code }} - {{ $val->article_desc }}
-                                                            </option>
-                                                        @endforeach                                               
-                                                    </select>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-2 col-12">
-                                                <div class="form-group margin-nol">
-                                                    <label for="qtyTarget" class="d-block d-md-none">QTY Target</label>
-                                                    <div class="input-group input-group-merge">
-                                                        <input type="text" class="form-control numeral-mask-satuan text-right" value="{{ $item->qty_target }}" id="qtyTarget" name="qtyTarget[]" maxlength="9" />
-                                                        <div class="input-group-append">
-                                                            <span class="input-group-text" id ="uomTarget" name="uomTarget[]">{{ $item->uom }}</span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-2 col-12">
-                                                <div class="form-group margin-nol">
-                                                    <label for="qtyForcast" class="d-block d-md-none">QTY Forcast</label>
-                                                    <div class="input-group input-group-merge">
-                                                        <input type="text" class="form-control numeral-mask-satuan text-right" value="{{ $item->qty_forcast }}"  id="qtyForcast" name="qtyForcast[]" maxlength="9" />
-                                                        <div class="input-group-append">
-                                                            <span class="input-group-text" id ="uomForcast" name="uomForcast[]">{{ $item->uom }}</span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-1 col-12">
-                                                <div class="form-group margin-nol">
-                                                    <a onmouseover="this.style.cursor='pointer'" onclick="$(this).parents('.tanda-baris').remove();hitungGrandTotal();">
-                                                        <i data-feather="trash-2" class="remove_button feather-24">
-                                                        </i>
-                                                    </a>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                @endforeach
+                            <div class="" id="article_row" style="max-height: 30rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px">
                             </div>
                         </div>
                     </div>
@@ -216,19 +168,25 @@
 <script type="text/javascript">
     const updateBtn = document.querySelector('#cmdUpdate');
     const approveBtn = document.querySelector('#cmdApprove');
-    // const declineBtn = document.querySelector('#cmdDecline');
-    let cloneCount={{ count($details) }};
-
+ 
     $(document).ready(function(){           
         validateForm('frmAdd');
-        tombolPanah('qtyTarget','','qtyForcast');
-        tombolPanah('qtyForcast','qtyTarget','');
-        mask_thousand_satuan();
-        splitArticle();
-        hitungTotal();
-        hitungGrandTotal();
-        $('[data-toggle="tooltip"]').tooltip();
-        $('.sku-select-system').select2();
+        isiArticle('tsoArticle');
+        let timerId= setInterval(() => checkVariable(), 1000);
+        function checkVariable() {
+            if (dataArticle.length > 0) {
+                clearInterval(timerId);
+                let detail = {!!  $details !!};
+                for(let i=0;i<detail.length;i++){
+                    article = detail[i].article_code;
+                    qtyTarget = detail[i].qty_target;
+                    qtyForcast =  detail[i].qty_forcast;
+                    console.log(article+"-"+qtyTarget+"-"+qtyForcast);
+                    add_new_row_edit(article,qtyTarget,qtyForcast)
+                }
+            }
+        }
+
     });
 
     
@@ -244,14 +202,6 @@
             approve(tsoCode,'cmdApprove');
         },{ once:true});
     }
-
-    // if (declineBtn) {
-    //     declineBtn.addEventListener('click',() =>{
-    //         declineData('decline');
-    //     },{ once:true});
-    // }
-
-   
-               
+                
 </script>
 @endsection

@@ -290,12 +290,12 @@ class TargetSoController extends Controller
         $tsoCode = $data['header']->tso_code;
         $customer = $data['header']->customer_id;
 
-        $data['articles'] = DB::table('article')
-            ->leftJoin('uom','uom.code','=','article.uom')
-            // ->where('third_party',$customer)
-            ->whereIn('article_type',['FG'])
-            ->orderBy('article_desc')
-            ->get();
+        // $data['articles'] = DB::table('article')
+        //     ->leftJoin('uom','uom.code','=','article.uom')
+        //     // ->where('third_party',$customer)
+        //     ->whereIn('article_type',['FG'])
+        //     ->orderBy('article_desc')
+        //     ->get();
                 
         $data['details'] = DB::table('target_order_det')
         ->leftJoin('article','article.article_code','=','target_order_det.article_code')

@@ -117,6 +117,7 @@
     let cloneCount=1;
     $(document).ready(function(){           
         validateFormToast("frmAdd");
+        isiArticle('tsoArticle');
         $('#tsoDate').val(currentDate);
     });
 

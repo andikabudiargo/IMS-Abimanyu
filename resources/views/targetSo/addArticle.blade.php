@@ -2,6 +2,12 @@
 <div id="new_row" name="new_row[]" class="d-none">
     <div id="baru" class="tanda-baris" >
         <div class="form-row d-flex align-items-center">
+            <div class="col-md-1 col-12">
+                <div class="form-group margin-nol">
+                    <label for="articleId" class="d-block d-md-none">No</label>
+                    <span class="input-group-text" id ="number" name="number[]"></span>
+                </div>
+            </div>
             <div class="col-md-6 col-12">
                 <div class="form-group margin-nol">
                     <label for="articleId" class="d-block d-md-none">Article</label>
@@ -12,27 +18,27 @@
             <div class="col-md-2 col-12">
                 <div class="form-group margin-nol">
                     <label for="qtyTarget" class="d-block d-md-none">QTY Target</label>
-                    <div class="input-group input-group-merge">
-                        <input type="text" class="form-control numeral-mask-satuan text-right" id = "qtyTarget" name="qtyTarget[]" maxlength="9" />
-                        <div class="input-group-append">
-                            <span class="input-group-text" id ="uomTarget" name="uomTarget[]"></span>
-                        </div>
-                    </div>
+                    <input type="text" class="form-control numeral-mask-digit text-right tombol-panah" 
+                        data-type-el-kiri="select" 
+                        data-nama-el-kiri='articleId'
+                        data-type-el-kanan='input'
+                        data-nama-el-kanan='qtyForcast'
+                        id ="qtyTarget" name="qtyTarget[]" maxlength="9" />
                 </div>
             </div>
             <div class="col-md-2 col-12">
                 <div class="form-group margin-nol">
                     <label for="qtyForcast" class="d-block d-md-none">QTY Forcast</label>
-                    <div class="input-group input-group-merge">
-                        <input type="text" class="form-control numeral-mask-satuan text-right" id = "qtyForcast" name="qtyForcast[]" maxlength="9" />
-                        <div class="input-group-append">
-                            <span class="input-group-text" id ="uomForcast" name="uomForcast[]"></span>
-                        </div>
-                    </div>
+                    <input type="text" class="form-control numeral-mask-digit text-right tombol-panah" 
+                        data-type-el-kiri="input" 
+                        data-nama-el-kiri='qtyTarget'
+                        data-type-el-kanan='select'
+                        data-nama-el-kanan='articleId'
+                        id ="qtyForcast" name="qtyForcast[]" maxlength="9" />
                 </div>
             </div>
             <div class="col-md-1 col-12">
-                <div class="form-group margin-nol">
+                <div class="form-group margin-nol text-center">
                     <a onmouseover="this.style.cursor='pointer'" onclick="$(this).parents('.tanda-baris').remove();hitungGrandTotal();">
                         <i data-feather="trash-2" class="remove_button feather-24">
                         </i>
@@ -43,41 +49,6 @@
     </div>
 </div>
 {{-- \.table row --}} 
-
-<div id="new_row_show" name="new_row_show[]" class="d-none">
-    <div id="baru_show">
-        <div class="form-row d-flex align-items-center">
-            <div class="col-md-6 col-12">
-                <div class="form-group margin-nol">
-                    <label for="articleId" class="d-block d-md-none">Article</label>
-                    <input type="text" class="form-control" id="articleIdShow" name="articleIdShow[]" disabled>
-                </div>
-            </div>
-            <div class="col-md-2 col-12">
-                <div class="form-group margin-nol">
-                    <label for="qty_orderShow" class="d-block d-md-none">QTY Target</label>
-                    <div class="input-group input-group-merge">
-                        <input type="text" class="form-control numeral-mask-satuan text-right" id = "qty_orderShow" name="qty_orderShow[]" maxlength="9" />
-                        <div class="input-group-append">
-                            <span class="input-group-text" id ="uomShow" name="uomShow[]"></span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-2 col-12">
-                <div class="form-group margin-nol">
-                    <label for="qty_orderShow" class="d-block d-md-none">QTY Forcast</label>
-                    <div class="input-group input-group-merge">
-                        <input type="text" class="form-control numeral-mask-satuan text-right" id = "qty_orderShow" name="qty_orderShow[]" maxlength="9" />
-                        <div class="input-group-append">
-                            <span class="input-group-text" id ="uomShow" name="uomShow[]"></span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
 
 <style>
 
@@ -138,6 +109,7 @@
 <script type="text/javascript">
     const currentDate = "{{ $currentDateValue }}";
     const orderDate = $('#orderDate');
+    let cloneCount = 0;
         
     if (orderDate.length) {
         orderDate.flatpickr({
@@ -375,35 +347,83 @@
             $("#article_row").append($("#new_row").clone().html());
             cloneCount++;
             $("#article_row").find('#baru').attr('id', 'new_row'+ cloneCount);
+            $("#new_row"+ cloneCount).find('#number').attr('id', 'number'+ cloneCount);
             $("#new_row"+ cloneCount).find('#articleId').attr('id', 'articleId'+ cloneCount);
             changeselect('tsoArticle','articleId'+ cloneCount,'','');
+            $('#number'+ cloneCount).text(cloneCount);
             $("#articleId"+cloneCount).select2();
             $('#remove_button').tooltip();
             tombolPanah('qtyTarget','','qtyForcast');
             tombolPanah('qtyForcast','qtyTarget','');
             mask_thousand_satuan();
-            splitArticle();
+            // splitArticle();
             hitungTotal();
             hitungGrandTotal();
             $('[data-toggle="tooltip"]').tooltip();
     };
 
-    function changeselect(dependent,obj,value,type) {
-      $.ajax({
-        url:"{{route('dynamic.dependent')}}",
-        method:"POST",
-        data:{
-            value:value,
-            type:type,
-            dependent:dependent
-        },
-        success:function(result){
-            $('#'+obj).html(result);
-            // $('#'+obj).val('').trigger('change');
-        }
-      })
+    function add_new_row_edit(articleId,qtyTarget,qtyForcast) {
+        $("#article_row").append($("#new_row").clone().html());
+        cloneCount++;
+        $("#article_row").find('#baru').attr('id', 'new_row'+ cloneCount);
+        $("#new_row"+ cloneCount).find('#number').attr('id', 'number'+ cloneCount);
+        $("#new_row"+ cloneCount).find('#articleId').attr('id', 'articleId'+ cloneCount);
+        changeselect('tsoArticle','articleId'+ cloneCount,'','');
+        $("#new_row"+ cloneCount).find('#qtyTarget').attr('id', 'qtyTarget'+ cloneCount);
+        $("#new_row"+ cloneCount).find('#qtyForcast').attr('id', 'qtyForcast'+ cloneCount);
+        $('#articleId'+ cloneCount).val(articleId);
+        $('#qtyTarget'+ cloneCount).val(qtyTarget);
+        $('#qtyForcast'+ cloneCount).val(qtyForcast);
+        $('#number'+ cloneCount).text(cloneCount);
+        $("#articleId"+cloneCount).select2();
+        $('#remove_button').tooltip();
+        tombolPanah('qtyTarget','','qtyForcast');
+        tombolPanah('qtyForcast','qtyTarget','');
+        mask_thousand_satuan();
+        // splitArticle();
+        hitungTotal();
+        hitungGrandTotal();
+        $('[data-toggle="tooltip"]').tooltip();
+    };
+
+    function isiArticle(dependent) {
+        $.ajax({
+            url:"{{route('dynamic.dependent')}}",
+            method:"POST",
+            data:{
+                dependent:dependent
+            },
+            success:function(result){
+                dataArticle = result;
+            }
+        })
     }
+
+    // function changeselect(dependent,obj,value,type) {
+    //   $.ajax({
+    //     url:"{{route('dynamic.dependent')}}",
+    //     method:"POST",
+    //     data:{
+    //         value:value,
+    //         type:type,
+    //         dependent:dependent
+    //     },
+    //     success:function(result){
+    //         $('#'+obj).html(result);
+    //         // $('#'+obj).val('').trigger('change');
+    //     }
+    //   })
+    // }
    
+    function changeselect(dependent,obj,article) {
+        $('#'+obj).attr('disabled','disabled');
+        $('#'+obj).html(dataArticle);
+        $('#'+obj).select2();
+        $('#'+obj).val(article).trigger('change');
+        $('#'+obj).removeAttr('disabled');
+        $('#'+obj).select2('focus');
+    }
+
     function splitArticle(){
         let objArticle = $('#article_row select[name="articleId[]"]');
         let objQtyTarget= $('#article_row input[name="qtyTarget[]"]'); 
