@@ -6,12 +6,14 @@ use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Crypt;
 use Response;
 use App\Permission;
 use DataTables;
 use DB;
 use PDF;
 use AppHelpers;
+use Approval;
 
 class WorkingOrderSheetController extends Controller
 {   
@@ -20,28 +22,60 @@ class WorkingOrderSheetController extends Controller
     public function __construct()
     {
         $this->title = "WOS";
-        $this->moduleCode = "WOS";
+        $this->moduleCode = "WO";
+    }
+
+    public function getTableColoumn()
+    {
+        $kolom=
+        [
+            ['data'=>'action','name'=>'action','title'=>'action','orderable'=> false,'searchable'=>false],
+            ['data'=>'wo_code','name'=>'wo_code','title'=>'Wo Code'],
+            ['data'=>'wo_shift','name'=>'wo_shift','title'=>'Shift'],
+            ['data'=>'wo_group','name'=>'wo_group','title'=>'Group'],
+            ['data'=>'start_time','name'=>'start_time','title'=>'Start Time'],
+            ['data'=>'working_hour','name'=>'working_hour','title'=>'Working Hour'],
+            ['data'=>'status','name'=>'status','title'=>'Status']
+        ];
+        return json_encode($kolom, true);
+    }
+
+    public function getTableColoumnDetail()
+    {
+        $kolom=
+        [
+            ['data'=>'urutan','name'=>'urutan','title'=>'Urutan'],
+            ['data'=>'wo_code','name'=>'wo_code','title'=>'Wo Code'],
+            ['data'=>'so_code','name'=>'so_code','title'=>'So Code'],
+            ['data'=>'wo_shift','name'=>'wo_shift','title'=>'Shift'],
+            ['data'=>'wo_group','name'=>'wo_group','title'=>'Group'],
+            ['data'=>'start_time','name'=>'start_time','title'=>'Start Time'],
+            ['data'=>'working_hour','name'=>'working_hour','title'=>'Working Hour'],
+            ['data'=>'so_qty','name'=>'so_qty','title'=>'So Qty'],
+            ['data'=>'article_fg','name'=>'article_fg','title'=>'Article FG'],
+            ['data'=>'article_fg_desc','name'=>'article_fg_desc','title'=>'Desc'],
+            ['data'=>'article_rm','name'=>'article_rm','title'=>'Article RM'],
+            ['data'=>'article_rm_desc','name'=>'article_rm_desc','title'=>'Desc'],
+            ['data'=>'plan_time_loading','name'=>'plan_time_loading','title'=>'Plan Time'],
+            ['data'=>'plan_qty_fresh','name'=>'plan_qty_fresh','title'=>'Plan Qty Frsh'],
+            ['data'=>'plan_qty_repaint','name'=>'plan_qty_repaint','title'=>'Plan Qty Rep'],
+            ['data'=>'plan_tag','name'=>'plan_tag','title'=>'Tag'],
+            ['data'=>'note_hdr','name'=>'note_hdr','title'=>'Note']
+
+        ];
+        return json_encode($kolom, true);
     }
 
     public function index(Request $request)
     {
         $data['title'] = $this->title;
+        $data['subtitle'] = "$this->title";
 
-        $data['supps'] = DB::table('third_party')
-        ->where ('third_party_type','=','supp')
-        ->orderBy('nama')
-        ->get();
+        $data['kolom'] = $this->getTableColoumn();
+        $data['kolomDetail'] = $this->getTableColoumnDetail();
 
-        // status:
-        // 1 = New
-        // 2 = Validated
-        // 3 = Authorized
-        // 4 = Received
-        // 5 = Canceled
-        // 6 = closed
+        $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVE','4'=>'PROCESS','5'=>'CANCELED'];
 
-        $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'AUTHORIZED','4'=>'RECEIVED','5'=>'CANCELED','6'=>"CLOSE"];
-            
         return view("workingOrderSheet.index",$data);
     }
 
@@ -69,9 +103,10 @@ class WorkingOrderSheetController extends Controller
     {
         $data['title'] = "Input $this->title";
         $data['subtitle'] = "Input $this->title";
-       
+        $data['oEdit']=false;
+        $data['statusWo']='NEW';
+               
         return view("workingOrderSheet.create",$data);
-
     }
 
     public function store(Request $request)
@@ -79,9 +114,10 @@ class WorkingOrderSheetController extends Controller
         $username =  Auth::user()->username;
         $articles = json_decode($request->articles);        
         $woDate = date("Y-m-d", strtotime($request->wosDate));
-        $woShift = $request->wosShift;
-        $woGroup = $request->wosGroup;
-        $woTime = $request->wos;
+        $woShift = $request->shift;
+        $woGroup = $request->group;
+        $woTime = $request->wosTime;
+        $workHour = $request->workHour;
         $note = $request->note;
         $status = '1';
 
@@ -97,9 +133,9 @@ class WorkingOrderSheetController extends Controller
         });
 
         $validation = Validator::make($request->all(),$messages = [
-            'wosDate'  => 'required',
-            'wosGroup'  => 'required',
-            'wosShift'  => 'required',
+            // 'wosDate'  => 'required',
+            // 'wosGroup'  => 'required',
+            // 'wosShift'  => 'required',
         ]);
         
         $error_array = array();
@@ -124,6 +160,7 @@ class WorkingOrderSheetController extends Controller
                         'wo_shift' => $woShift,
                         'wo_group' => $woGroup,
                         'start_time' => $woTime,
+                        'working_hour'=> $workHour,
                         'num_revision' => 0,
                         'status' => $status,
                         'note' => $note,
@@ -137,22 +174,25 @@ class WorkingOrderSheetController extends Controller
                     foreach ($articles as $val) {
                         $dataSet[] = [
                             "wo_code" => $woNumber,
+                            "so_code" => $val->so_code,
+                            "so_qty" => $val->qty_so,
                             "urutan" => $val->urutan,
                             "article_code" => $val->article_code,
                             "article_rm_code" => $val->article_rm,
                             "plan_time_loading" => $val->waktu,
                             "act_time_loading" => 0,
-                            "qty_rm" => 0,
                             "plan_qty_fresh" => $val->qty_prod,
                             "plan_qty_repaint" => $val->qty_repaint,
-                            "plan_qty_tag" => $val->tag,
+                            "plan_tag" => $val->tag,
                             "act_qty_fresh" => 0,
                             "act_qty_repaint" => 0,
-                            "act_qty_tag" => 0,
+                            "act_tag" => 0,
+                            "origin_tag" => $val->tag_asli,
                             "qty_ok" => 0,
                             "qty_repair" => 0,
                             "qty_repaint" => 0,
                             "created_by" => Auth::user()->username,
+                            "status" => $val->status,
                             "created_at" => date('Y-m-d H:i:s')
                         ];
                     }
@@ -418,43 +458,34 @@ class WorkingOrderSheetController extends Controller
 
     public function edit(Request $request)
     {
-        $id=$request->id;
-        $data['title'] = "Edit Production";
-        $data['subtitle'] = "Edit Production";
+        $id=Crypt::decryptString($request->id);
+        $username =  Auth::user()->username;
+        $data['title'] = "Edit $this->title";
+        $data['subtitle'] = "Edit $this->title";
 
-        $data['header'] = DB::table('production_hdr')
+        $data['header'] = DB::table('wo_hdr')
         ->where('id',$id)
         ->get()->first();
 
-        $data['detail'] = DB::table('production_det')
-        ->leftJoin('article','article.article_code','=','purchase_order_det.article_code')
-        ->leftJoin('article_stock','article_stock.article_code','=','purchase_order_det.article_code')
-        ->where('po_number',$data['header']->po_number)
-        ->select('purchase_order_det'.'.*','article_stock.article_qty as qty_stock', DB::raw('(SELECT name from group_materials where code = group_of_material) as group'))
-        ->orderBy('id')
-        ->get();       
+        $woCode = $data['header']->wo_code;
 
-        $data['articles']= DB::table('article') 
-        ->leftJoin('article_stock','article_stock.article_code','=','article.article_code')
-        ->leftJoin('group_materials','group_materials.code','=','article.group_of_material')
-        // ->where('third_party',$data['header']->customer_id)
-        ->where('article_type','CM')
-        ->orderBy('article_desc')
-        ->select('article'.'.*', 'article_stock.article_qty as qty','article.uom as uom1','group_materials.name as group')
-        ->get();   
-
-        $data['supps'] = DB::table('third_party')
-        ->where ('third_party_type','=','supp')
-        ->orderBy('nama')
+        $data['details'] = DB::table('wo_det')
+        ->leftJoin('article','article.article_code','=','wo_det.article_code')
+        ->where('wo_code',$woCode)
+        // ->select('wo_det'.'.*','article_stock.article_qty as qty_stock', DB::raw('(SELECT name from group_materials where code = group_of_material) as group'))
+        ->orderBy('urutan')
         ->get();
 
-        $data['currency'] = ['IDR','USD'];
+        $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode,$woCode,$username);
+        $data['approveValidate'] = Approval::approveValidate($this->moduleCode,$woCode,$username);
 
-        $data['uoms'] = DB::table('uom')
-        ->orderBy('name')
-        ->get();
+        $data['oEdit']=true;
 
-        return view("purchaseOrder.edit",$data);
+         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'','5'=>'CANCELED'];
+         $statusWo = ['NEW','VALIDATED','APPROVED','PROCESS','CANCELED'];
+         $data['statusWo'] = $statusWo[$data['header']->status-1];
+
+        return view("workingOrderSheet.edit",$data);
         
     }
 
@@ -478,13 +509,7 @@ class WorkingOrderSheetController extends Controller
         $note = $request->note;
         $status = '1';
 
-        // status:
-        // 1 = New
-        // 2 = Validated
-        // 3 = Authorized
-        // 4 = Received
-        // 5 = Canceled
-        // 6 = closed
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVE','4'=>'PROCESS','5'=>'CANCELED'];
         
         $messages = [
             'required' => 'The field is required.',
@@ -615,22 +640,26 @@ class WorkingOrderSheetController extends Controller
     }
 
     public function list(Request $request)
-    {
-        // status
-        // 1. Draft
-        // 2. Update
-        // 3. Posted
-        // 4. Cancel
-
-        $searchPrd = strtolower($request->searchPrd);
-        $articleCode = $request->articleCode;
-
-        $data = DB::table('production_hdr')
-        ->where(function ($query) use ($searchPrd,$articleCode) {
-            $searchPrd ? $query->where('bom_code','ilike','%'.$searchPrd.'%') : '';
-            $articleCode ? $query->where('bom_hdr.article_code','ilike','%'.$articleCode.'%') : '';
+    {   
+        $username = Auth::user()->username;
+        $searchWos = strtolower($request->searchWos);
+        $searchStatus = $request->searchStatus;
+        $wosDate = $request->wosdate;        
+        $fromDate ="";
+        $toDate = "";
+        if ($wosDate){
+            $date = explode("to",$wosDate);
+            $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+            $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
+        }
+        
+        $data = DB::table('wo_hdr')
+        ->where(function ($query) use ($searchWos,$searchStatus,$wosDate,$fromDate,$toDate) {
+            $searchWos ? $query->where('wo_code','ilike','%'.$searchWos.'%') : '';
+            $searchStatus ? $query->where('wo_hdr.status','=','%'.$searchStatus.'%') : '';
+            $wosDate ? $query->whereBetween(DB::raw("to_date(wo_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
         })
-        ->orderBy('prod_code')
+        ->orderBy('wo_code')
         ->get(); 
 
         return Datatables::of($data)
@@ -640,56 +669,51 @@ class WorkingOrderSheetController extends Controller
                                 <i data-feather="menu"></i>
                             </a>';
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
-            // if (Auth::user()->can('purchaseOrder-edit')) {
-            // $buttons .=         '<a href="'. route('production.edit', ['id'=>$data->id]) .'" class="dropdown-item">
-            //                         <i data-feather="file-text"></i>
-            //                         Edit
-            //                     </a>';
-            $buttons .=         '<a href="'. route('production.print', ['id'=>$data->id]) .'" target="_blank" class="dropdown-item">
+
+            if (Auth::user()->can('workingOrder-edit')) {
+            $buttons .=         '<a href="'. route('workingOrderSheet.edit',['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+                                    <i data-feather="file-text"></i>
+                                    Edit
+                                </a>';
+            }
+
+            $buttons .=         '<a href="'. route('workingOrderSheet.print',['id'=>Crypt::encryptString($data->id)]) .'" target="_blank" class="dropdown-item">
                                     <i data-feather="printer"></i>
                                     Print
                                 </a>';
-            // }
 
             if($data->status != '3'){
                 $buttons .= '<a href="javascript:;"
-                                onclick="posting(\''.$data->prod_code.'\')" class="dropdown-item">
+                                onclick="posting(\''.$data->wo_code.'\')" class="dropdown-item">
                                 <i data-feather="arrow-down"></i>
                                     Posting
                             </a>';
             }
             
-            // $buttons .=         '<a href="'. route('production.show', ['id'=>$data->id]) .'" class="dropdown-item">
-            //                         <i data-feather="list"></i>
-            //                         Detail
-            //                     </a>';
+            $buttons .=         '<a href="'. route('workingOrderSheet.show',['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+                                    <i data-feather="list"></i>
+                                    Detail
+                                </a>';
                 
-            // if (Auth::user()->can('purchaseOrder-delete')) {
+            if (Auth::user()->can('workingOrder-delete')) {
             $buttons .=         "<a href='javascript:;'
                                     id='deleteButton'
                                     class='dropdown-item'
                                     data-toggle='modal'
                                     data-target='#smallModal'
-                                    data-href='". route("production.destroy", ["id"=>$data->id]) ."'>
+                                    data-href='". route("workingOrderSheet.destroy", ["id"=>$data->id]) ."'>
                                     <i data-feather='trash-2'></i>
                                     Cancel
                                 </a>";
-            // }
+            }
             $buttons .=     '</div>
                         </div>';
 
             return $buttons;
         })
-
-        // status
-        // 1. Draft
-        // 2. Update
-        // 3. Posted
-        // 4. Cancel
-
         ->addColumn('status', function ($data) {
             $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary'];
-            $status = ['Draft','Update','Posted','Cancel'];
+            $status = ['NEW','VALIDATE','APPROVE','PROCESS','CANCELED'];
             return "<div class='badge ".$badges[$data->status - 1]."'>".$status[$data->status - 1]."</div>";
         })
         ->rawColumns(['action','status'])
@@ -698,80 +722,37 @@ class WorkingOrderSheetController extends Controller
 
     public function listDetail(Request $request)
     {
-        $articles = json_decode($request -> articles);
-
-        DB::table('production_detail_temp')
-        ->delete();
-
-        $dataSet = [];
-        $randomCode = rand();
-        foreach ($articles as $val) {
-            $dataSet[] = [
-                'code' => $randomCode,
-                'article_code' => $val->article_code,
-                'qty' => $val->qty,
-            ];
+        $username = Auth::user()->username;
+        $searchWos = strtolower($request->searchWos);
+        $searchStatus = $request->searchStatus;
+        $wosDate = $request->wosdate;        
+        $fromDate ="";
+        $toDate = "";
+        if ($wosDate){
+            $date = explode("to",$wosDate);
+            $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+            $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
         }
-
-        DB::table('production_detail_temp')->insert($dataSet);
-
-        $data=DB::select("SELECT so.article_code 
-                                ,article_alternative_code
-                                ,article_desc
-                                ,article.uom
-                                ,qty
-                                ,qty_proses
-                                ,qty_total 
-                                ,article.article_type
-                                ,(select name from article_types where code = article.article_type) as kelompok
-         FROM (SELECT 
-            article_code_det as article_code
-            ,sum(qty_bom) as qty
-            ,sum(qty_order) as qty_proses
-            ,sum(qty_order * qty_bom) as qty_total
-            ,uom_bom as uom 
-            from(
-            select 
-            bom_det.article_code as article_code_det
-            ,production_detail_temp.qty as qty_order
-            ,production_detail_temp.uom as uom_order
-            ,bom_det.qty * coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = production_detail_temp.uom),1) as qty_bom
-            ,bom_det.uom as uom_bom
-            ,bom_hdr.article_code 
-            ,coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = production_detail_temp.uom),1) as factor_qty
-            ,(select min_package from article where article_code = bom_det.article_code) as min_package 
-            from production_detail_temp
-            left join bom_hdr on bom_hdr.article_code=production_detail_temp.article_code
-            join bom_det on  bom_det.bom_code = bom_hdr.bom_code
-            where production_detail_temp.code ='$randomCode'
-            and bom_hdr.status = '3'
-            ) a
-            group by article_code_det,uom_bom
-            order by article_code_det) AS so
-            left join article on article.article_code = so.article_code"
-        );
-
-        // $data=DB::select("SELECT article_alternative_code,article_desc,article.uom,qty,qty_proses,qty_total ,article.article_type,(select name from article_types where code = article.article_type) as kelompok from (
-        //     select article_code,sum(oki.qty) as qty,sum(mari.qty) as qty_proses,sum(oki.qty*mari.qty) as qty_total 
-        //     from (
-        //         select * from bom_det where bom_code in (
-        //             select bom_code from bom_hdr 
-        //             left join production_detail_temp on bom_hdr.article_code = production_detail_temp.article_code
-        //             where bom_hdr.article_code in (select article_code from production_detail_temp)
-        //         )) oki
-        //             left join(
-        //                 select bom_code,qty 
-        //                 from bom_hdr 
-        //                 left join production_detail_temp on bom_hdr.article_code = production_detail_temp.article_code
-        //                 where bom_hdr.article_code in (select article_code from production_detail_temp)
-        //             ) mari
-        //     on oki.bom_code= mari.bom_code
-        //     group by article_code) so
-        //     left join article on article.article_code = so.article_code");
-
-        DB::table('production_detail_temp')
-        ->where('code',$randomCode)
-        ->delete();
+        
+        $data = DB::table('wo_det')
+        ->leftJoin('wo_hdr','wo_hdr.wo_code','wo_det.wo_code')
+        ->leftJoin('article as fg','fg.article_code','wo_det.article_code')
+        ->leftJoin('article as rm','rm.article_code','wo_det.article_code')
+        ->where(function ($query) use ($searchWos,$searchStatus,$wosDate,$fromDate,$toDate) {
+            $searchWos ? $query->where('wo_code','ilike','%'.$searchWos.'%') : '';
+            $searchStatus ? $query->where('wo_hdr.status','=','%'.$searchStatus.'%') : '';
+            $wosDate ? $query->whereBetween(DB::raw("to_date(wo_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
+        })
+        ->select('wo_det.*','wo_hdr.*'
+        ,'fg.article_alternative_code as article_fg'
+        ,'fg.article_desc as article_fg_desc'
+        ,'rm.article_alternative_code as article_rm'
+        ,'rm.article_desc as article_rm_desc'
+        ,'wo_hdr.note as note_hdr'
+        )
+        ->orderBy('urutan')
+        ->orderBy('wo_det.wo_code')
+        ->get(); 
                         
         return Datatables::of($data)
         ->make(true);

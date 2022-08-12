@@ -9,11 +9,9 @@
             <div class="card">
                 <div class="card-header">
                     <div class="form-group row">
-                        <h4 class="card-title">Status: {{ $statusWo }}</h4>
-                        <input type="hidden" id='oEdit' value="{{ $oEdit }}">
                         <label for="wosNumber" class="col-sm-4 col-form-label col-form-label-sm">WOS Number</label>
                         <div class="col-md-8">
-                            <input type="text" id="wosNumber" name="wosNumber" class="form-control form-control-sm disabled-el" disabled />
+                            <input type="text" id="wosNumber" name="wosNumber" value="{{ $header->wo_code  }}" class="form-control form-control-sm disabled-el" disabled />
                         </div>
                     </div>                    
                     <div class="heading-elements">
@@ -30,38 +28,38 @@
                             <div class="form-row">
                                 <div class="form-group col-md-2">
                                     <label for="wosDate">Date*</label>
-                                    <input type="text" id="wosDate" name="wosDate" class="form-control" placeholder="DD-MM-YYYY" required />
+                                    <input type="text" id="wosDate" name="wosDate" value="{{ $header->wo_date  }}" class="form-control"  placeholder="DD-MM-YYYY" required />
                                 </div>
                                 <div class="form-group col-md-2">
                                     <label for="shift">Shift*</label>
                                     <select class="select2 form-control" id="shift" name="shift" required>
                                         <option value=""></option>
-                                        <option value="pagi">Pagi</option>
-                                        <option value="siang">Siang</option>
+                                        <option value="pagi" {{ $header->wo_shift == 'pagi' ? "selected" : "" }} >Pagi</option>
+                                        <option value="siang" {{ $header->wo_shift == 'siang' ? "selected" : "" }} >Siang</option>
                                     </select>
                                 </div>
                                 <div class="form-group col-md-2">
                                     <label for="group">Group*</label>
                                     <select class="select2 form-control" id="group" name="group" required>
                                         <option value=""></option>
-                                        <option value="A">A</option>
-                                        <option value="B">B</option>
-                                        <option value="C">C</option>
+                                        <option value="A" {{ $header->wo_group == 'A' ? "selected" : "" }} >A</option>
+                                        <option value="B" {{ $header->wo_group == 'B' ? "selected" : "" }} >B</option>
+                                        <option value="C" {{ $header->wo_group == 'C' ? "selected" : "" }} >C</option>
                                     </select>
                                 </div>
                                 <div class="form-group col-md-2">
                                     <label for="wosTime">Start Time*</label>
-                                    <input type="text" id="wosTime" name="wosTime" class="form-control" placeholder="HH:MM" required />
+                                    <input type="text" id="wosTime" name="wosTime" value="{{ $header->start_time  }}" class="form-control"  placeholder="HH:MM" required />
                                 </div>
                                 <div class="form-group col-md-2">
                                     <label for="workingHour">Working Hour*</label>
-                                    <input type="text" id="workingHour" name="workingHour" class="form-control numeral-mask-satuan text-right" maxlength="2" required />
+                                    <input type="text" id="workingHour" name="workingHour" value="{{ $header->working_hour  }}" class="form-control numeral-mask-satuan text-right" maxlength="2" required />
                                 </div>
                             </div>
                             <div class="row">
                                 <div class="form-group col-md-8">
                                     <label class="form-label" for="note">Notes</label>
-                                    <textarea type="text" id="note" name="note" class="form-control" rows="1" ></textarea>
+                                    <textarea type="text" id="note" name="note" value="{{ $header->note  }}" class="form-control" rows="1" ></textarea>
                                 </div>
                             </div>
                         </form>
@@ -113,24 +111,6 @@
                             </table>
                         </div>
                     </div>
-                    {{-- <div class="d-flex justify-content-between align-items-end mt-75">
-                        <div class="col-md-4">
-                            <div class="form-group row mb-03">
-                                <label for="totalRow" class="col-sm-4 col-form-label titik-dua">Row(s)</label>
-                                <div class="col-sm-3">
-                                    <input type="text" class="form-control text-right font-weight-bold" id="totalRow" />
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-5">
-                            <div class="form-group row mb-03">
-                                <label for="totalQty" class="col-sm-3 col-form-label titik-dua">Total QTY</label>
-                                <div class="col-sm-6">
-                                    <input type="text" class="form-control text-right font-weight-bold" id="totalQty" disabled />
-                                </div>
-                            </div>
-                        </div>
-                    </div> --}}
                     <hr>
                     <div class="form-row mt-75">
                         <div class="col-md-12">
@@ -218,7 +198,20 @@
     
     $(document).ready(function(){           
         validateFormToast("frmAdd");
-        wosDate.val(currentDate);
+        let detail = {!!  $details !!};
+        for(let i=0;i< detail.length;i++){
+            soCode = detail[i].so_code;
+            articleCode = detail[i].article_code;
+            articleRm = detail[i].article_rm_code;
+            qtySo = detail[i].so_qty; //belum ada
+            uom = 'PCS';
+            planQtyFresh = detail[i].plan_qty_fresh;
+            planQtyRepaint = detail[i].plan_qty_repaint;
+            planTime = detail[i].plan_time;
+            planTag = detail[i].plan_tag;
+            originTag = detail[i].origin_tag;
+            add_new_row_edit(soCode,articleCode,articleRm,qtySo,uom,planQtyFresh,planQtyRepaint,planTime,planTag,originTag);
+        }
     });   
 
     cmdSave.click(function(){
@@ -277,8 +270,7 @@
                             "qty_repaint":qtyRepaint,
                             "tag":tag,
                             "tag_asli":tagAsli,
-                            "waktu":waktu,
-                            "status": articleRm == 'none'?'0':'1'
+                            "waktu":waktu
                         });
                     }
                 }
@@ -303,11 +295,9 @@
         }
 
         if (flag==0){
-
-            let urlKu = "{{ route('workingOrderSheet.store') }}"; 
             $.ajax({
                 type: "post",
-                url: urlKu,
+                url: "{{ route('workingOrderSheet.store') }}",
                 data: {
                     articles:JSON.stringify(articles),
                     wosDate:sWosDate,

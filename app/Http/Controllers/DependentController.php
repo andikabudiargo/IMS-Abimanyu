@@ -256,10 +256,17 @@ class DependentController extends Controller
         }
 
         if($dependent =='article_id'){
+            //cari finish goods yang sudah memilki BOM baru bisa di bikin SO
             $data= DB::table($table) 
             ->leftJoin('article_stock','article_stock.article_code','=',$table.'.article_code')
             ->leftJoin('group_materials','group_materials.code','=',$table.'.group_of_material')
             ->leftJoin('uom','uom.code','=',$table.'.uom')
+            ->whereIn($table.'.article_code', function($query) use ($code) {
+                $query->select('article_code')
+                ->from('bom_hdr') 
+                ->where('status','3')
+                ->where('customer',$code);
+            })
             ->where($field,$code)
             ->where($field2,$type)
             ->orderBy($order)

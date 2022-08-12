@@ -693,6 +693,12 @@ class SalesOrderController extends Controller
                                     Edit
                                 </a>';
             }
+            if (Auth::user()->can('salesOrder-edit') and ($data->status == 1 or $data->status == 2)) {
+            $buttons .=         '<a href="'. route('salesOrder.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+                                    <i data-feather="file-text"></i>
+                                    Approve
+                                </a>';
+            }
             $buttons .=         '<a href="'. route('salesOrder.show', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                     <i data-feather="list"></i>
                                     Detail
