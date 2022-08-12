@@ -276,7 +276,8 @@ class TargetSoController extends Controller
 
     public function showEdit($key)
     {
-        $id=Crypt::decryptString($key);
+        // $id=Crypt::decryptString($key);
+        $id=$key;
         $username =  Auth::user()->username;
         $data['title'] = "Edit $this->title";
         $data['subtitle'] = "Edit $this->title";
@@ -591,7 +592,7 @@ class TargetSoController extends Controller
 
             if ( $data->status == '1' or $data->status == '2' ){
                 if (Auth::user()->can('purchaseOrder-edit')) {
-                $buttons .=         '<a href="'. route('targetSo.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+                $buttons .=         '<a href="'. route('targetSo.edit', ['id'=>$data->id]) .'" class="dropdown-item">
                                         <i data-feather="file-text"></i>
                                         <span>'. __("Edit") .'</span>
                                     </a>';
