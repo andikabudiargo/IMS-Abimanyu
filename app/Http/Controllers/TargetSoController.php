@@ -302,6 +302,7 @@ class TargetSoController extends Controller
         ->where('target_order_det.tso_code',$tsoCode)
         ->select('target_order_det'.'.*')
         ->orderBy('id')
+        ->limit(10)
         ->get();
 
         $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode,$tsoCode,$username);
