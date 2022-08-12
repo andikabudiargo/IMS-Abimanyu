@@ -181,7 +181,6 @@
                     article = detail[i].article_code;
                     qtyTarget = detail[i].qty_target;
                     qtyForcast =  detail[i].qty_forcast;
-                    console.log(article+"-"+qtyTarget+"-"+qtyForcast);
                     add_new_row_edit(article,qtyTarget,qtyForcast)
                 }
             }
