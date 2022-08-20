@@ -438,10 +438,10 @@ class BomController extends Controller
                     ->where('bom_code',$bomNumber)
                     ->update(
                         [
-                            'bom_code' => $bomNumber,
-                            'customer' => $customer,
-                            'article_code' => $articleCode,
-                            'uom' => $uom,
+                            // 'bom_code' => $bomNumber,
+                            // 'customer' => $customer,
+                            // 'article_code' => $articleCode,
+                            // 'uom' => $uom,
                             'group_of_material' => $group,
                             'status' => $status,
                             'tag' => $tag,
@@ -631,7 +631,7 @@ class BomController extends Controller
                                 <i data-feather="menu"></i>
                             </a>';
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
-            if (Auth::user()->can('bom-edit') && $data->status != '3') {
+            if (Auth::user()->can('bom-edit') && $data->status != '3' && $data->status != '5') {
             $buttons .=         '<a href="'. route('bom.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                     <i data-feather="file-text"></i>
                                     Edit
@@ -664,18 +664,20 @@ class BomController extends Controller
             }
                 
             if (Auth::user()->can('bom-delete')) {
-                $buttons .= "<a href='javascript:;'
-                                class='dropdown-item' 
-                                data-size='sm'
-                                data-ajax-delete='true'
-                                data-confirm='Are You Sure want to Delete?|This action can not be undone. Do you want to continue?' 
-                                data-confirm-yes='document.getElementById(\""."delete-form-".$data->id."\").submit();'
-                                data-modal-id='".$data->id."'
-                                id='deleteButton'
-                                data-url='". route('bom.destroy', ['id'=>Crypt::encryptString($data->id)]) ."'>
-                                <i data-feather='trash-2' class='feather-14-red'></i>
-                                <span>". __('Delete') ."</span>
-                            </a>";
+                if ( $data->status != '5' ){
+                    $buttons .= "<a href='javascript:;'
+                                    class='dropdown-item' 
+                                    data-size='sm'
+                                    data-ajax-delete='true'
+                                    data-confirm='Are You Sure want to Delete?|This action can not be undone. Do you want to continue?' 
+                                    data-confirm-yes='document.getElementById(\""."delete-form-".$data->id."\").submit();'
+                                    data-modal-id='".$data->id."'
+                                    id='deleteButton'
+                                    data-url='". route('bom.destroy', ['id'=>Crypt::encryptString($data->id)]) ."'>
+                                    <i data-feather='trash-2' class='feather-14-red'></i>
+                                    <span>". __('Delete') ."</span>
+                                </a>";
+                }
             }
             $buttons .=     '</div>
                         </div>';

@@ -56,7 +56,7 @@
                                         <div class="form-row">
                                             <div class="form-group col-md-4">
                                                 <label for="customer">Customer</label>
-                                                <input type="text" id="customer" name="customer" value="{{ $header2->cust_name }}"class="form-control" disabled />
+                                                <input type="text" id="customer" name="customer" value="{{ $header2->cust_name }}" class="form-control" disabled />
                                             </div>
                                             <div class="form-group col-md-3">
                                                 <label for="group">Group of material</label>
@@ -64,7 +64,7 @@
                                             </div>
                                             <div class="form-group col-md-1">
                                                 <label for="uom">UOM</label>
-                                                <input type="text" id="uom" name="uom" class="form-control" disabled />
+                                                <input type="text" id="uom" name="uom" value="{{ $header2->uom }}" class="form-control" disabled />
                                             </div>
                                         </div>
                                         <div class="form-row">
