@@ -2,18 +2,13 @@
 @section('title', $title)
 @section('content')
 @include('layouts.breadcrumb')
-@include('partials.alert')
 <section id="add-index">
     <div class="row">
         <div class="col-md-12">
             <div class="card">
                 <div class="card-header">
-                    <div class="form-group row">
-                        <label for="wosNumber" class="col-sm-4 col-form-label col-form-label-sm">WOS Number</label>
-                        <div class="col-md-8">
-                            <input type="text" id="wosNumber" name="wosNumber" value="{{ $header->wo_code  }}" class="form-control form-control-sm disabled-el" disabled />
-                        </div>
-                    </div>                    
+                    <h4 class="card-title">Status: {{ $statusWo }}</h4>
+                    <input type="hidden" id='oEdit' value="{{ $oEdit }}">
                     <div class="heading-elements">
                         <ul class="list-inline mb-0">
                             <li><a data-action="collapse"><i data-feather="chevron-down"></i></a></li>
@@ -25,6 +20,12 @@
                         <form id="frmAdd" name="frmAdd" autocomplete="off">
                             @csrf
                             <input type="text" id="article" name="article" hidden>
+                            <div class="form-row">
+                                <div class="form-group col-md-2">
+                                    <label for="wosDate">Wo Number</label>
+                                    <input type="text" id="wosNumber" name="wosNumber" value="{{ $header->wo_code  }}" class="form-control form-control-sm disabled-el" disabled />
+                                </div>
+                            </div>
                             <div class="form-row">
                                 <div class="form-group col-md-2">
                                     <label for="wosDate">Date*</label>
@@ -57,7 +58,7 @@
                                 </div>
                             </div>
                             <div class="row">
-                                <div class="form-group col-md-8">
+                                <div class="form-group col-md-10">
                                     <label class="form-label" for="note">Notes</label>
                                     <textarea type="text" id="note" name="note" value="{{ $header->note  }}" class="form-control" rows="1" ></textarea>
                                 </div>
@@ -77,8 +78,8 @@
                     <div class="container-list-item">
                         <div class="lebar-list-item">
                             <br>
-                            @include('production.headerColumn')
-                            <div class="" id="article_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px">
+                            @include('workingOrderSheet.headerColumn')
+                            <div class="" id="article_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px;">
                                 <input type="text" id ="last_row_number" class="d-none" value="0">
                             </div>
                         </div>
@@ -92,61 +93,78 @@
                             <span class="align-middle d-sm-inline-block d-none">Proses</span>
                         </button> --}}
                     </div>
-                    <div class="col-md-10" style="padding-left:0">
-                        <div class="table-responsive main-table mt-75">
-                            <table class="table table-bordered w-100" >
-                                <tr>
-                                    <td rowspan="2">Total Tag</td>
-                                    <td class="text-right" id="sumWorkHour"></td>
-                                    <td>x3600"x95% = </td>
-                                    <td>Waktu tersedia</td>
-                                    <td class="text-right" id="sumAvailableTime"></td>
-                                </tr>
-                                <tr>
-                                    <td>Waktu Dibutuhkan</td>
-                                    <td class="text-right" id="sumTimeRequired"></td>
-                                    <td>Sisa Waktu</td>
-                                    <td class="text-right" id="sumRemainTime"></td>
-                                </tr>
-                            </table>
+                    @include('workingOrderSheet.summary')
+                    <br>
+                    <div class="form-row">
+                        <div class="col-md-12">
+                            <div class="form-row">
+                                <div class="col-md-12">
+                                    <a href="{{ route('workingOrderSheets.index') }}" class="btn btn-warning">Back</a>
+                                    @if( $approveValidate ? $approveValidate[0]->validate : '')
+                                        <input type="text" id ="approveLevel" name ="approveLevel" class="d-none" value="{{ $approveValidate[0]->next_level }}">
+                                        <input type="text" id ="maxLevel" name ="maxLevel" class="d-none" value="{{ $approveValidate[0]->max_level }}">
+                                        <button class="btn btn-success" type="button" id="cmdApprove" name="cmdApprove">Approve</button>
+                                        @if( $statusWo =='NEW')
+                                            {{-- <button class="btn btn-primary" type="button" id="cmdUpdate" name="cmdUpdate">Update</button> --}}
+                                            <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Update</button>
+                                        @endif
+                                    @else
+                                        @if( !$approveValidate && $statusWo =='NEW')
+                                            {{-- <button class="btn btn-primary" type="button" id="cmdUpdate" name="cmdUpdate">Update</button> --}}
+                                            <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Update</button>
+                                        @endif
+                                    @endif
+                                </div>
+                            </div>
                         </div>
                     </div>
                     <hr>
+                    <div class="form-row card-statistics">
+                        @foreach($approvalHistory as $val)
+                            @if($val->status == true)
+                                <div class="statistics-body">
+                                    <div class="col-xl-3 col-sm-6 col-12 mb-2 mb-xl-0">
+                                        <div class="media">
+                                            <div class="avatar bg-light-{{ $val->statusapprove == 1 ? 'success':'warning' }} mr-2">
+                                                <div class="avatar-content">
+                                                    <i data-feather="{{ $val->statusapprove == 1 ? 'check':'x' }}" class="avatar-icon"></i>
+                                                </div>
+                                            </div>
+                                            <div class="media-body my-auto">
+                                                <h4 class="font-weight-bolder mb-0">{{ $val->statusapprove == 1 ? 'Approve':'Decline' }}-{{ $val->approval_order }}</h4>
+                                                <p class="card-text mb-0">{{ $val->name }}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            @else
+                                <div class="statistics-body">
+                                    <div class="col-xl-3 col-sm-6 col-12 mb-2 mb-xl-0">
+                                        <div class="media">
+                                            <div class="avatar bg-light-danger mr-2">
+                                                <div class="avatar-content">
+                                                    <i data-feather="x" class="avatar-icon"></i>
+                                                </div>
+                                            </div>
+                                            <div class="media-body my-auto">
+                                                <h4 class="font-weight-bolder mb-0">Approve-{{ $val->approval_order }}</h4>
+                                                <p class="card-text mb-0">{{ $val->petugas }}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endif
+                        @endforeach
+                    </div>
+                    {{-- <hr>
                     <div class="form-row mt-75">
                         <div class="col-md-12">
                             <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave" >Save</button>
                         </div>
-                    </div>
+                    </div> --}}
                 </div>
             </div>
         </div>
-    </div>
-</section>
-<section id="table-article">
-    <div class="card">
-      <div class="card-header">
-        <h4 class="card-title">Material List</h4>
-        <div class="heading-elements">
-            <ul class="list-inline mb-0">
-                <li><a data-action="collapse"><i data-feather="chevron-down"></i></a></li>
-                <li><a data-action="reload"><i data-feather="rotate-cw"></i></a></li>
-            </ul>
-        </div>
-      </div>
-      <div class="card-content collapse show">
-        <div class="card-body">
-          <div class="row">
-              <div class="col-sm-12">
-                <div class="card-datatable table-responsive pt-0">
-                  <table id="detailedTable" class="table">
-                    <thead class="thead-light">
-                    </thead>
-                  </table>
-                </div>
-              </div>
-          </div>  
-        </div>
-      </div>
     </div>
 </section>
 @endsection

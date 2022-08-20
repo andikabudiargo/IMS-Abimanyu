@@ -27,7 +27,7 @@
     and (max-device-width: 1600px) 
     and (-webkit-min-device-pixel-ratio: 1) { 
         .lebar-list-item{
-            width:130%;
+            width:110%;
         }
         .container-list-item{
             max-width:100%;
@@ -333,6 +333,10 @@
         });
     }
 
+    workHour.keyup(function(e){
+        sumData();
+    }); 
+
     cmdSort.click(function(){
         let articles = []; 
         let flag=0;
@@ -424,12 +428,13 @@
 
     sumData = ()=>{
         let objTag = $('#article_row input[name="tag[]"]');
-        let sumTag = objTag.map(function(){return $(this).val();}).get();
-        let timeReq = parseInt(workHour.val())*3600*(95/100);
+        let dataTag = objTag.map(function(){return $(this).val();}).get();
+        let sumTag = sumFromArray(dataTag);
+        let timeReq = parseInt((workHour.val())*3600*(95/100)/30);
         sumWorkHour.text(workHour.val());
         sumTimeRequired.text(timeReq);
         sumAvailableTime.text(sumTag);
-        sumRemainTime.text(sumTag-timeReq);
+        sumRemainTime.text(parseInt(sumTag)-timeReq);
     }
 
     updatQty=()=>{

@@ -242,7 +242,7 @@ class BomController extends Controller
         $data['title'] = "Edit $this->title";
         $data['subtitle'] = "Edit $this->title";
 
-        $data['headers'] = DB::table('1bom_hdr')
+        $data['headers'] = DB::table('bom_hdr')
         ->leftJoin('third_party','bom_hdr.customer','third_party.kode')
         ->leftJoin('group_materials','group_materials.code','=','bom_hdr.group_of_material')
         ->where('origin_bom_code', function($query) use ($id){

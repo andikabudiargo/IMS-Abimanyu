@@ -2,20 +2,13 @@
 @section('title', $title)
 @section('content')
 @include('layouts.breadcrumb')
-@include('partials.alert')
 <section id="add-index">
     <div class="row">
         <div class="col-md-12">
             <div class="card">
                 <div class="card-header">
-                    <div class="form-group row">
-                        <h4 class="card-title">Status: {{ $statusWo }}</h4>
-                        <input type="hidden" id='oEdit' value="{{ $oEdit }}">
-                        <label for="wosNumber" class="col-sm-4 col-form-label col-form-label-sm">WOS Number</label>
-                        <div class="col-md-8">
-                            <input type="text" id="wosNumber" name="wosNumber" class="form-control form-control-sm disabled-el" disabled />
-                        </div>
-                    </div>                    
+                    <h4 class="card-title">Status: {{ $statusWo }}</h4>
+                    <input type="hidden" id='oEdit' value="{{ $oEdit }}">
                     <div class="heading-elements">
                         <ul class="list-inline mb-0">
                             <li><a data-action="collapse"><i data-feather="chevron-down"></i></a></li>
@@ -27,6 +20,12 @@
                         <form id="frmAdd" name="frmAdd" autocomplete="off">
                             @csrf
                             <input type="text" id="article" name="article" hidden>
+                            <div class="form-row">
+                                <div class="form-group col-md-2">
+                                    <label for="wosNumber">Wos Number</label>
+                                    <input type="text" id="wosNumber" name="wosNumber" class="form-control form-control-sm disabled-el" disabled />
+                                </div>
+                            </div>
                             <div class="form-row">
                                 <div class="form-group col-md-2">
                                     <label for="wosDate">Date*</label>
@@ -55,7 +54,7 @@
                                 </div>
                                 <div class="form-group col-md-2">
                                     <label for="workingHour">Working Hour*</label>
-                                    <input type="text" id="workingHour" name="workingHour" class="form-control numeral-mask-satuan text-right" maxlength="2" required />
+                                    <input type="text" id="workingHour" name="workingHour" value="9" class="form-control numeral-mask-satuan text-right" maxlength="2" required />
                                 </div>
                             </div>
                             <div class="row">
@@ -79,7 +78,7 @@
                     <div class="container-list-item">
                         <div class="lebar-list-item">
                             <br>
-                            @include('production.headerColumn')
+                            @include('workingOrderSheet.headerColumn')
                             <div class="" id="article_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px">
                                 <input type="text" id ="last_row_number" class="d-none" value="0">
                             </div>
@@ -94,43 +93,7 @@
                             <span class="align-middle d-sm-inline-block d-none">Proses</span>
                         </button> --}}
                     </div>
-                    <div class="col-md-10" style="padding-left:0">
-                        <div class="table-responsive main-table mt-75">
-                            <table class="table table-bordered w-100" >
-                                <tr>
-                                    <td rowspan="2">Total Tag</td>
-                                    <td class="text-right" id="sumWorkHour"></td>
-                                    <td>x3600"x95% = </td>
-                                    <td>Waktu tersedia</td>
-                                    <td class="text-right" id="sumAvailableTime"></td>
-                                </tr>
-                                <tr>
-                                    <td>Waktu Dibutuhkan</td>
-                                    <td class="text-right" id="sumTimeRequired"></td>
-                                    <td>Sisa Waktu</td>
-                                    <td class="text-right" id="sumRemainTime"></td>
-                                </tr>
-                            </table>
-                        </div>
-                    </div>
-                    {{-- <div class="d-flex justify-content-between align-items-end mt-75">
-                        <div class="col-md-4">
-                            <div class="form-group row mb-03">
-                                <label for="totalRow" class="col-sm-4 col-form-label titik-dua">Row(s)</label>
-                                <div class="col-sm-3">
-                                    <input type="text" class="form-control text-right font-weight-bold" id="totalRow" />
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-5">
-                            <div class="form-group row mb-03">
-                                <label for="totalQty" class="col-sm-3 col-form-label titik-dua">Total QTY</label>
-                                <div class="col-sm-6">
-                                    <input type="text" class="form-control text-right font-weight-bold" id="totalQty" disabled />
-                                </div>
-                            </div>
-                        </div>
-                    </div> --}}
+                    @include('workingOrderSheet.summary')
                     <hr>
                     <div class="form-row mt-75">
                         <div class="col-md-12">
@@ -140,33 +103,6 @@
                 </div>
             </div>
         </div>
-    </div>
-</section>
-<section id="table-article">
-    <div class="card">
-      <div class="card-header">
-        <h4 class="card-title">Material List</h4>
-        <div class="heading-elements">
-            <ul class="list-inline mb-0">
-                <li><a data-action="collapse"><i data-feather="chevron-down"></i></a></li>
-                <li><a data-action="reload"><i data-feather="rotate-cw"></i></a></li>
-            </ul>
-        </div>
-      </div>
-      <div class="card-content collapse show">
-        <div class="card-body">
-          <div class="row">
-              <div class="col-sm-12">
-                <div class="card-datatable table-responsive pt-0">
-                  <table id="detailedTable" class="table">
-                    <thead class="thead-light">
-                    </thead>
-                  </table>
-                </div>
-              </div>
-          </div>  
-        </div>
-      </div>
     </div>
 </section>
 @endsection
@@ -222,124 +158,137 @@
     });   
 
     cmdSave.click(function(){
-        $('.disabled-el').removeAttr('disabled');
-        let articles = []; 
-        let flag=0;
-        let pesan="";
-        let objArticle = $("#article_row select[name='articleId[]']");
-        let objArticleRm = $("#article_row input[name='articleRm[]']");
-        let objQtyOrder = $('#article_row input[name="qtyOrder[]"]');
-        let objQtyProd = $('#article_row input[name="qtyProd[]"]');
-        let objQtyRepaint = $('#article_row input[name="qtyRepaint[]"]');
-        let objSoCode = $('#article_row select[name="salesOrder[]"]');
-        let objTag = $('#article_row input[name="tag[]"]');
-        let objTagAsli = $('#article_row input[name="tagAsli[]"]');
-        let objUrutan = $('#article_row input[name="urutan[]"]');
-        let objWaktu = $('#article_row input[name="waktu[]"]');
-        let sWosDate = wosDate.val();
-        let sWosShift = wosShift.val();
-        let sWosGroup = wosGroup.val();
-        let sWosTime = wosTime.val();
-        let sWorkHour = workHour.val();
-        let sNote = note.val();
-
-        objArticle.map(function(i) {  
-		    let $this=$(this);
-            if ($this.val()){
-                let article = $this.val();
-                let articleName = article;
-                let articleRm = objArticleRm.eq(i).val();
-                let urutan = objUrutan.eq(i).val();
-                let soCode = objSoCode.eq(i).val();
-                let qtyOrder = objQtyOrder.eq(i).val().replace(/,/gi, '') || 0;
-                let qtyProd = objQtyProd.eq(i).val().replace(/,/gi, '') || 0;
-                let qtyRepaint = objQtyRepaint.eq(i).val().replace(/,/gi, '') || 0;
-                let tag = objTag.eq(i).val();
-                let tagAsli = objTagAsli.eq(i).val();
-                let waktu = objWaktu.eq(i).val();
-
-                // cek urutan harus sesuai jangan ada urutan yang double
-                let obj = articles.find(obj => obj.urutan == urutan);
-                
-                if(obj) {
-                    pesan +="Urutan belum sesuai !! <br>"; 
-                    flag=1;
-                }else{
-                    if(article){
-                        articles.push({
-                            "urutan":urutan,
-                            "so_code":soCode,
-                            "article_code":article,
-                            "article_rm":articleRm,
-                            "qty_so":qtyOrder,
-                            "uom":'PCS',
-                            "qty_prod":qtyProd,
-                            "qty_repaint":qtyRepaint,
-                            "tag":tag,
-                            "tag_asli":tagAsli,
-                            "waktu":waktu,
-                            "status": articleRm == 'none'?'0':'1'
-                        });
-                    }
-                }
-                // urutkan data berdasarkan nomor urutan   
-                if ( (qtyProd+qtyRepaint) == 0 ){
-                    pesan +="QTY of items "+ articleName +" order ="+urutan +" cannot be 0 <br>"; 
-                    flag=1;
-                }
-            }
-        });
-
-        if (articles.length > 0){
-            articles.sort((a, b) => (a.urutan > b.urutan) ? 1 : -1);
-            $('#article_row').find('div').remove();
-            cloneCountEdit=0;
-            articles.map(function(i) {
-                add_new_row_edit(i.so_code,i.article_code,i.article_rm,i.qty_so,i.uom,i.qty_prod,i.qty_repaint,i.waktu,i.tag,i.tag_asli);
-            })
+        if (!$("#frmAdd")[0].checkValidity()){
+            $("#frmAdd").submit();
         }else{
-            pesan +="Articles must be filled in completely <br>"; 
-			flag=1;
-        }
+            $('.disabled-el').removeAttr('disabled');
+            let articles = []; 
+            let flag=0;
+            let pesan="";
+            let objArticle = $("#article_row select[name='articleId[]']");
+            let objArticleRm = $("#article_row input[name='articleRm[]']");
+            let objQtyOrder = $('#article_row input[name="qtyOrder[]"]');
+            let objQtyProd = $('#article_row input[name="qtyProd[]"]');
+            let objQtyRepaint = $('#article_row input[name="qtyRepaint[]"]');
+            let objSoCode = $('#article_row select[name="salesOrder[]"]');
+            let objTag = $('#article_row input[name="tag[]"]');
+            let objTagAsli = $('#article_row input[name="tagAsli[]"]');
+            let objUrutan = $('#article_row input[name="urutan[]"]');
+            let objWaktu = $('#article_row input[name="waktu[]"]');
+            let sWosDate = wosDate.val();
+            let sWosShift = wosShift.val();
+            let sWosGroup = wosGroup.val();
+            let sWosTime = wosTime.val();
+            let sWorkHour = workHour.val();
+            let sNote = note.val();
 
-        if (flag==0){
+            objArticle.map(function(i) {  
+                let $this=$(this);
+                if ($this.val()){
+                    let article = $this.val();
+                    let articleName = article;
+                    let articleRm = objArticleRm.eq(i).val();
+                    let urutan = objUrutan.eq(i).val();
+                    let soCode = objSoCode.eq(i).val();
+                    let qtyOrder = objQtyOrder.eq(i).val().replace(/,/gi, '') || 0;
+                    let qtyProd = objQtyProd.eq(i).val().replace(/,/gi, '') || 0;
+                    let qtyRepaint = objQtyRepaint.eq(i).val().replace(/,/gi, '') || 0;
+                    let tag = objTag.eq(i).val();
+                    let tagAsli = objTagAsli.eq(i).val();
+                    let waktu = objWaktu.eq(i).val();
 
-            let urlKu = "{{ route('workingOrderSheet.store') }}"; 
-            $.ajax({
-                type: "post",
-                url: urlKu,
-                data: {
-                    articles:JSON.stringify(articles),
-                    wosDate:sWosDate,
-                    wosTime:sWosTime,
-                    shift:sWosShift,
-                    group:sWosGroup,
-                    workHour:sWorkHour,
-                    note:sNote
-                },
-                dataType: "json",
-                success: function(data) {
-                    if (data.status == 0 ){
-                        let message="";
-                        for(let i = 0; i < data.message.length; i++) {
-                            show_msg(data.title, data.message[i], data.alert);
-                        }
-                        $('#wosNumber').attr('disabled','disabled');
+                    // cek urutan harus sesuai jangan ada urutan yang double
+                    let obj = articles.find(obj => obj.urutan == urutan);
+                    
+                    if(obj) {
+                        pesan +="Urutan belum sesuai !! <br>"; 
+                        flag=1;
                     }else{
-                        show_msg(data.title, data.message, data.alert)
-                        $('#wosNumber').attr('disabled','disabled');
-                        $('#cmdSave').attr('disabled','disabled');
-                        $('#addNewRow').attr('disabled','disabled');
-                        $('#wosNumber').val(data.wosNumber);
+                        if(article){
+                            articles.push({
+                                "urutan":urutan,
+                                "so_code":soCode,
+                                "article_code":article,
+                                "article_rm":articleRm,
+                                "qty_so":qtyOrder,
+                                "uom":'PCS',
+                                "qty_prod":qtyProd,
+                                "qty_repaint":qtyRepaint,
+                                "tag":tag,
+                                "tag_asli":tagAsli,
+                                "waktu":waktu,
+                                "status": articleRm == 'none'?'0':'1'
+                            });
+                        }
                     }
-                },
-                error: function(error) {
-                    console.log(error);
+                    // urutkan data berdasarkan nomor urutan   
+                    if ( (qtyProd+qtyRepaint) == 0 ){
+                        pesan +="QTY of items "+ articleName +" order ="+urutan +" cannot be 0 <br>"; 
+                        flag=1;
+                    }
                 }
             });
 
-        }else{
-            Swal.fire('Warning..',pesan,'warning');
+            if (articles.length > 0){
+                articles.sort((a, b) => (a.urutan > b.urutan) ? 1 : -1);
+                $('#article_row').find('div').remove();
+                cloneCountEdit=0;
+                articles.map(function(i) {
+                    add_new_row_edit(i.so_code,i.article_code,i.article_rm,i.qty_so,i.uom,i.qty_prod,i.qty_repaint,i.waktu,i.tag,i.tag_asli);
+                })
+            }else{
+                pesan +="Articles must be filled in completely <br>"; 
+                flag=1;
+            }
+
+            if (flag==0){
+
+                let wosNumber = "";
+                let urlKu="";
+                if (oEdit){
+                    wosNumber = $('#wosNumber').val();
+                    urlKu ="{{ route('workingOrderSheet.update') }}";
+                }else{
+                    urlKu ="{{ route('workingOrderSheet.store') }}";
+                }
+                $.ajax({
+                    type: "POST",
+                    url: urlKu,
+                    data: {
+                        articles:JSON.stringify(articles),
+                        wosNumber:wosNumber,
+                        wosDate:sWosDate,
+                        wosTime:sWosTime,
+                        shift:sWosShift,
+                        group:sWosGroup,
+                        workHour:sWorkHour,
+                        note:sNote
+                    },
+                    dataType: "json",
+                    success: function(data) {
+                        if (data.status == 0 ){
+                            let message="";
+                            for(let i = 0; i < data.message.length; i++) {
+                                show_msg(data.title, data.message[i], data.alert);
+                            }
+                            $('#wosNumber').attr('disabled','disabled');
+                        }else{
+                            show_msg(data.title, data.message, data.alert)
+                            $('#wosNumber').attr('disabled','disabled');
+                            // $('#cmdSave').attr('disabled','disabled');
+                            // $('#addNewRow').attr('disabled','disabled');
+                            $('#wosNumber').val(data.wosNumber);
+                            $('#oEdit').val(data.oEdit);
+                        }
+                    },
+                    error: function(error) {
+                        console.log(error);
+                    }
+                });
+
+            }else{
+                Swal.fire('Warning..',pesan,'warning');
+            }
         }
     
     });

@@ -6,7 +6,7 @@
     </div>
     <div class="col-md-2 col-12 d-none d-md-block" style="max-width: 14%;">
         <div class="form-group">
-            <label class="d-none d-md-block">NO SPK / SO</label>
+            <label class="d-none d-md-block">SO Number</label>
         </div>
     </div>
     <div class="col-md-4 col-12 d-none d-md-block">

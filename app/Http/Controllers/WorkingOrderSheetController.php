@@ -120,6 +120,7 @@ class WorkingOrderSheetController extends Controller
         $workHour = $request->workHour;
         $note = $request->note;
         $status = '1';
+        $oEdit = true;
 
         $messages = [
             'required' => 'The field is required.',
@@ -204,7 +205,7 @@ class WorkingOrderSheetController extends Controller
                     $alert  ="success";
                     $message  = "$title $woNumber is successfully saved";
                     \LogActivity::addToLog($title,"username: $username Status $message");
-                    return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'woNumber'=>$woNumber));
+                    return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'woNumber'=>$woNumber,'oEdit'=>$oEdit));
 
             } catch (Exception $e) {
                 DB::rollBack();
@@ -228,7 +229,7 @@ class WorkingOrderSheetController extends Controller
         $username =  Auth::user()->username;
         $prdNumber = $request->prodNumber;
         $recType = "NORMAL";
-        $statusRec ="Posted";
+        $statusRec ="WOSsted";
         $status = '3';
         $authorizedBy = Auth::user()->username;
 
@@ -397,15 +398,15 @@ class WorkingOrderSheetController extends Controller
             DB::select($sqlMovementChemical);
 
             DB::commit();
-            $title ='Posting Production';
+            $title ='WOSsting Production';
             $alert  ="success";
             $message  = "$title $prdNumber is successfully posted";
             \LogActivity::addToLog($title,"username: $username Status $message");
-            return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'prdNumber'=>$prdNumber));
+            return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'woNumber'=>$wodNumber));
 
         }else{
             DB::rollBack();
-            $title ='Posting Production';
+            $title ='WOSsting Production';
             $alert  ="warning";
             $message  = "$title $prdNumber is failed to post";
             \LogActivity::addToLog($title,"username: $username Status $message");
@@ -427,7 +428,7 @@ class WorkingOrderSheetController extends Controller
         $data['detail'] = DB::table('purchase_order_det')
         ->leftJoin('article','article.article_code','=','purchase_order_det.article_code')
         ->leftJoin('article_stock','article_stock.article_code','=','purchase_order_det.article_code')
-        ->where('po_number',$data['header']->po_number)
+        ->where('WOS_number',$data['header']->po_number)
         ->select('purchase_order_det'.'.*','article_stock.article_qty as qty_stock', DB::raw('(SELECT name from group_materials where code = group_of_material) as group'))
         ->orderBy('id')
         ->get();       
@@ -492,29 +493,21 @@ class WorkingOrderSheetController extends Controller
     public function update(Request $request)
     {
         $username =  Auth::user()->username;
-        $woNumber = $request -> woNumber;
-        $articles = json_decode($request -> articles);
-        $orderDate = $request->orderDate;
-        $deliveryDate = $request->deliveryDate;
-        $currency = $request->currency;
-        $supplier = $request->supplier;
-        $tax = $request->tax;
-        $ppn = $request->ppn;
-        $termin = $request -> term;
-        $pph = 0;
-        $kurs = $request -> kurs;
-        $totalPpn = $request->totalPpn;
-        $totalPph = $request->totalPph;
-        $discount = $request->discount;
+        $articles = json_decode($request->articles);        
+        $woDate = date("Y-m-d", strtotime($request->wosDate));
+        $woShift = $request->shift;
+        $woGroup = $request->group;
+        $woTime = $request->wosTime;
+        $workHour = $request->workHour;
         $note = $request->note;
-        $status = '1';
+        $oEdit = true;
 
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVE','4'=>'PROCESS','5'=>'CANCELED'];
         
         $messages = [
             'required' => 'The field is required.',
             'unique' => 'The code has already been taken', 
-            // 'iunique' => "PO Number has already been taken",
+            // 'iunique' => "WOS Number has already been taken",
         ];
         
         Validator::extend('iunique', function ($attribute, $value, $parameters, $validator) {
@@ -524,16 +517,13 @@ class WorkingOrderSheetController extends Controller
         });
 
         $validation = Validator::make($request->all(),$messages = [
-            // 'woNumber'=>'required|unique:purchase_order_hdr,po_number',
-            // 'orderNumber' => 'required',
-            'orderDate'  => 'required',
-            'currency'  => 'required',
-            'supplier'  => 'required',
+            // 'wosDate'  => 'required',
+            // 'wosGroup'  => 'required',
+            // 'wosShift'  => 'required',
         ]);
         
         $error_array = array();
         $success_output = '';
-        // return $validation;
         if ($validation->fails()){
             foreach ($validation->messages()->getMessages() as $field_name => $messages){
                 $error_array[] = $messages;
@@ -543,89 +533,81 @@ class WorkingOrderSheetController extends Controller
         }else{
             DB::beginTransaction();
             try {
-                    $row_affected=DB::table('purchase_order_hdr')
-                    ->where('po_number',$woNumber)
+                    $row_affected=DB::table('wo_hdr')
+                    ->where('wo_code',$woNumber)
                     ->update(
                         [
-                            'po_number' => $woNumber,
-                            'supplier_id' => $supplier,
-                            'po_date' => $orderDate,
-                            'delivery_date' =>$deliveryDate,
-                            'currency' => $currency,
-                            'kurs' => $kurs,
-                            'ppn' => $ppn,
-                            'pph22' => $pph,
+                            'original_wo_code' =>$woNumber,
+                            'wo_date' => $woDate,
+                            'wo_shift' => $woShift,
+                            'wo_group' => $woGroup,
+                            'start_time' => $woTime,
+                            'working_hour'=> $workHour,
+                            'num_revision' => 0,
                             'status' => $status,
-                            'note' =>  $note,
-                            'authorized_by' => '',
-                            'prepared_by' =>  '',
-                            'discount' => $discount,
-                            'pkp' => $tax,
-                            'termin' =>$termin,
+                            'note' => $note,
                             'updated_by' => Auth::user()->username,
                             'updated_at' => date('Y-m-d H:i:s')
                         ]
                     );
 
-                    $dataset=[];
+                    DB::table('wo_det')
+                    ->where('wo_code',$woNumber)
+                    ->delete();
+
+                    $dataSet = [];
                     foreach ($articles as $val) {
                         $dataSet[] = [
-                            $woNumber.$val->article_code
+                            "wo_code" => $woNumber,
+                            "so_code" => $val->so_code,
+                            "so_qty" => $val->qty_so,
+                            "urutan" => $val->urutan,
+                            "article_code" => $val->article_code,
+                            "article_rm_code" => $val->article_rm,
+                            "plan_time_loading" => $val->waktu,
+                            "act_time_loading" => 0,
+                            "plan_qty_fresh" => $val->qty_prod,
+                            "plan_qty_repaint" => $val->qty_repaint,
+                            "plan_tag" => $val->tag,
+                            "act_qty_fresh" => 0,
+                            "act_qty_repaint" => 0,
+                            "act_tag" => 0,
+                            "origin_tag" => $val->tag_asli,
+                            "qty_ok" => 0,
+                            "qty_repair" => 0,
+                            "qty_repaint" => 0,
+                            "created_by" => Auth::user()->username,
+                            "status" => $val->status,
+                            "created_at" => date('Y-m-d H:i:s')
                         ];
-                        
                     }
 
-                    //Delete kalo article tidak ada di po $woNumber dan article nya $val->article_code
-                    //berdasarkan 2 kondisi
-                    DB::table('purchase_order_det')
-                        ->whereNotIn(DB::raw("CONCAT(po_number,article_code)"),$dataSet)
-                        ->where('po_number',$woNumber)
-                        ->delete();
-
-                    foreach ($articles as $val) {
-                        DB::table('purchase_order_det')
-                        ->updateOrInsert(
-                            ['po_number' => $woNumber,'article_code' => $val->article_code],
-                            [
-                            'po_number' => $woNumber,
-                            'article_code' => $val->article_code,
-                            'qty' => $val->qty,
-                            'uom' => $val->uom,
-                            'old_price' => $val->price,
-                            'price' => $val->newPrice,
-                            'ppn' => $totalPpn,
-                            'pph22' => $totalPph,
-                            'updated_by' => Auth::user()->username,
-                            'updated_at' => date('Y-m-d H:i:s')
-                            ]
-                        );
-                    }
+                    DB::table('wo_det')->insert($dataSet);
                     
                     DB::commit();
                     $alert  ="alert-success";
-                    $message  = "PO $woNumber is successfully updated";
-                    \LogActivity::addToLog('PO update ',"username: $username Status $message");
-                    return response()->json(array('status' => 1, 'message' => $message,'alert'=>$alert,'woNumber'=>$woNumber));
+                    $message  = "WOS $woNumber is successfully updated";
+                    \LogActivity::addToLog('WOS update ',"username: $username Status $message");
+                    return response()->json(array('status' => 1, 'message' => $message,'alert'=>$alert,'woNumber'=>$woNumber,'oEdit'=>$oEdit));
 
             } catch (Exception $e) {
                 DB::rollBack();
                 $alert  ="alert-warning";
-                $message  = "PO $woNumber is failed to updated";
-                \LogActivity::addToLog('PO update ',"username: $username Status $message");
-                return response()->json(array('status' => 1, 'message' => $message,'alert'=>$alert,'woNumber'=>$woNumber));
+                $message  = "WOS $woNumber is failed to updated";
+                \LogActivity::addToLog('WOS update ',"username: $username Status $message");
+                return response()->json(array('status' => 1, 'message' => $message,'alert'=>$alert,'woNumber'=>$woNumber,'oEdit'=>$oEdit));
             }
         }
-
     }
 
     public function destroy(Request $request)
     {
         $username =  Auth::user()->username;       
         $id = $request->id;
-        $po_number = DB::table('purchase_order_hdr')->where('id',$id)->where('status','1')->value('po_number');
-        $rowAffected = DB::table('purchase_order_hdr')->where('id',$id)->delete();
+        $woNumber = DB::table('wo_hdr')->where('id',$id)->where('status','1')->value('wo_code');
+        $rowAffected = DB::table('wo_hdr')->where('id',$id)->delete();
         if($rowAffected>0){
-            DB::table('purchase_order_det')->where('po_number',$po_number)->delete();
+            DB::table('wo_det')->where('wo_code',$woNumber)->delete();
             $alert  ="alert-success";
             $message  = "SO $po_number Successfully Deleted";
             \LogActivity::addToLog('SO delete ',"username: $username Status $message");
@@ -684,7 +666,7 @@ class WorkingOrderSheetController extends Controller
 
             if($data->status != '3'){
                 $buttons .= '<a href="javascript:;"
-                                onclick="posting(\''.$data->wo_code.'\')" class="dropdown-item">
+                                onclick="WOSsting(\''.$data->wo_code.'\')" class="dropdown-item">
                                 <i data-feather="arrow-down"></i>
                                     Posting
                             </a>';
@@ -761,18 +743,14 @@ class WorkingOrderSheetController extends Controller
     public function print(Request $request)
     {
         $id = $request -> id;
-        
-        $prdHdr=DB::table('production_hdr')
+
+        $data['header']=DB::table('wo_hdr')
         ->where('id',$id)
         ->first();
 
-        $data['header']=DB::table('production_hdr')
-        ->where('id',$id)
-        ->first();
-
-        $prdNumber=$prdHdr -> prod_code;
+        $woNumber=$data['header'] -> wo_code;
        
-        $data['details']=DB::table('production_det')
+        $data['details']=DB::table('wo_det')
         ->leftJoin('article','article.article_code','production_det.article_code')
         ->where('prod_code',$prdNumber)
         ->get();
