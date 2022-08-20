@@ -26,11 +26,13 @@
                                 </div>
                             </div>  
                             <div class="form-row">
-                                <div class="form-group col-md-4">
+                                <div class="form-group col-md-8">
                                     <label class="form-label" for="articleCode">Article Finish Goods*</label>
                                     <input type="text" id="articleCode" name="articleCode" value="{{ old('articleCode',$header->article) }}" data-article-code="{{ old('articleCode',$header->article_code) }}" class="form-control" disabled />
                                 </div>
-                                <div class="form-group col-md-4">
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group col-md-8">
                                     <label class="form-label" for="articleCodeRm">Article Raw material*</label>
                                     <input type="text" id="articleCodeRm" name="articleCodeRm" value="{{ old('articleCodeRm',$header->article_rm) }}" data-article-code="{{ old('articleCodeRm',$header->article_code_rm) }}" class="form-control" disabled />
                                 </div>

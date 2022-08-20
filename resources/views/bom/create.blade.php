@@ -27,7 +27,7 @@
                                 </div>
                             </div>
                             <div class="form-row">
-                                <div class="form-group col-md-4">
+                                <div class="form-group col-md-8">
                                     <label class="form-label" for="articleCode">Article Finish Goods*</label>
                                     <select class="select2 form-control" id="articleCode" name="articleCode" required>
                                         <option value=""></option>
@@ -36,7 +36,9 @@
                                         @endforeach
                                     </select>
                                 </div>
-                                <div class="form-group col-md-5">
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group col-md-8">
                                     <label class="form-label" for="articleCodeRm">Article Raw material*</label>
                                     <select class="select2 form-control" id="articleCodeRm" name="articleCodeRm" required>
                                         <option value=""></option>

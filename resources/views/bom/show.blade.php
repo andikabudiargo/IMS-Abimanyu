@@ -42,11 +42,13 @@
                                             </div>
                                         </div>  
                                         <div class="form-row">
-                                            <div class="form-group col-md-4">
+                                            <div class="form-group col-md-8">
                                                 <label class="form-label" for="articleCode">Article Finish Goods</label>
                                                 <input type="text" id="customer" name="customer" class="form-control" value="{{ $header2->article }}"disabled />
                                             </div>
-                                            <div class="form-group col-md-4">
+                                        </div>
+                                        <div class="form-row">
+                                            <div class="form-group col-md-8">
                                                 <label class="form-label" for="articleCodeRm">Article Raw material*</label>
                                                 <input type="text" id="articleCodeRm" name="articleCodeRm" value="{{ old('articleCodeRm',$header->article_rm) }}" class="form-control" disabled />
                                             </div>
