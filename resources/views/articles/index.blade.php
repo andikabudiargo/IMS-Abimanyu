@@ -156,10 +156,10 @@
       tableId:"detailedTable",
       route:"{{ route('article.list') }}",
       kolom:{!! $kolom !!},
-      arrColPrint:[1,2,3,4,5,6,7,8,9,10,11],
+      arrColPrint:[1,2,3,4,5,6,7,8,9,10,11,12],
       columnDefs :[
         { width: '5%', targets: 0 },
-        { className: 'text-right','targets': [ 4,5,7,8 ] },
+        { className: 'text-right','targets': [ 5,7,8,9 ] },
       ],
       dataSearch:  {
         name:name,
