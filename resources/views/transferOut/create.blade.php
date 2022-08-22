@@ -138,7 +138,7 @@
         objTsoBox.hide();
         if (toType ==='prd'){
             objTsoBox.show();
-            dependent = 'prd_list'
+            dependent = 'wos_list'
             changeSelect({
                 dependent:dependent,
                 obj:'tsoCode',

@@ -247,21 +247,21 @@
             @endcan
           </ul>
         </li>
-        <li class=" {{ in_array(\Request::segment(1), ['boms','workingOrders','workingOrderSheets','deliveryPlan']) ? 'active' : '' }} nav-item">
+        <li class=" {{ in_array(\Request::segment(1), ['boms','workingOrders','workOrderSheet','deliveryPlan']) ? 'active' : '' }} nav-item">
           <a class="d-flex align-items-center" href="javascript:void(0);">
             <i data-feather='tool'></i>
             <span class="menu-title text-truncate" data-i18n="Form Elements">PPIC
             </span>
           </a>
           <ul class="menu-content">
-            @can('workingOrder-index')
+            {{-- @can('workingOrder-index')
             <li class="{{ \Request::segment(1) == 'deliveryPlan' ? 'active' : '' }} " >
               <a class="d-flex align-items-center" href="{{ route('deliveryPlan.create') }}">
                 <i data-feather="circle"></i>
                 <span class="menu-item text-truncate" data-i18n="Input">Delivery Plan</span>
               </a>
             </li>
-            @endcan
+            @endcan --}}
             @can('workingOrder-index')
             <li class="{{ \Request::segment(1) == 'production' ? 'active' : '' }}" >
               <a class="d-flex align-items-center" href="{{ route('production.index') }}">
@@ -272,13 +272,14 @@
             @endcan
             
             @can('workingOrder-index')
-            <li class="{{ \Request::segment(1) == 'workingOrderSheets' ? 'active' : '' }}" >
+            <li class="{{ \Request::is(['workOrderSheet','workOrderSheet/create','workOrderSheet/edit']) ? 'active' : '' }}">
               <a class="d-flex align-items-center" href="{{ route('workingOrderSheets.index') }}">
                 <i data-feather="circle"></i>
-                <span class="menu-item text-truncate" data-i18n="Input">Working Order Sheet</span>
+                <span class="menu-item text-truncate" data-i18n="Input">Work Order Sheet</span>
               </a>
             </li>
             @endcan
+
             {{-- @can('workingOrder-index')
             <li class="{{ \Request::segment(1) == 'workingOrders' ? 'active' : '' }}" >
               <a class="d-flex align-items-center" href="{{ route('workingOrders.index') }}">

@@ -439,18 +439,19 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('workingOrders/code/create',['as'=>'workingOrder.code.create','uses'=>'WorkingOrderController@articleCodeCreate']);
 	Route::get('workingOrders/print',['as'=>'workingOrder.print','uses'=>'WorkingOrderController@print']);
 
-	Route::get('workingOrderSheets',['as'=>'workingOrderSheets.index','uses'=>'WorkingOrderSheetController@index','middleware' => ['permission:workingOrder-index']]);
-	Route::get('workingOrderSheets/create',['as'=>'workingOrderSheet.create','uses'=>'WorkingOrderSheetController@create','middleware' => ['permission:workingOrder-create']]);
-	Route::post('workingOrderSheets/store',['as'=>'workingOrderSheet.store','uses'=>'WorkingOrderSheetController@store']);
-	Route::get('workingOrderSheets/list',['as'=>'workingOrderSheet.list','uses'=>'WorkingOrderSheetController@list']);
-	Route::get('workingOrderSheets/list/detail',['as'=>'workingOrderSheet.detail.list','uses'=>'WorkingOrderSheetController@listDetail']);
-	Route::get('workingOrderSheets/show',['as'=>'workingOrderSheet.show','uses'=>'WorkingOrderSheetController@show']);
-	Route::get('workingOrderSheets/edit',['as'=>'workingOrderSheet.edit','uses'=>'WorkingOrderSheetController@edit','middleware' => ['permission:workingOrder-edit']]);
-	Route::post('workingOrderSheets/update',['as'=>'workingOrderSheet.update','uses'=>'WorkingOrderSheetController@update']);
-	Route::post('workingOrderSheets/delete',['as'=>'workingOrderSheet.destroy','uses'=>'WorkingOrderSheetController@destroy']);
-	Route::get('workingOrderSheets/code/create',['as'=>'workingOrderSheet.code.create','uses'=>'WorkingOrderSheetController@articleCodeCreate']);
-	Route::get('workingOrderSheets/print',['as'=>'workingOrderSheet.print','uses'=>'WorkingOrderSheetController@print']);
-
+	Route::get('workOrderSheet',['as'=>'workingOrderSheets.index','uses'=>'WorkingOrderSheetController@index','middleware' => ['permission:workingOrder-index']]);
+	Route::get('workOrderSheet/create',['as'=>'workingOrderSheet.create','uses'=>'WorkingOrderSheetController@create','middleware' => ['permission:workingOrder-create']]);
+	Route::post('workOrderSheet/store',['as'=>'workingOrderSheet.store','uses'=>'WorkingOrderSheetController@store']);
+	Route::get('workOrderSheet/list',['as'=>'workingOrderSheet.list','uses'=>'WorkingOrderSheetController@list']);
+	Route::get('workOrderSheet/list/detail',['as'=>'workingOrderSheet.detail.list','uses'=>'WorkingOrderSheetController@listDetail']);
+	Route::get('workOrderSheet/show',['as'=>'workingOrderSheet.show','uses'=>'WorkingOrderSheetController@show']);
+	Route::get('workOrderSheet/edit',['as'=>'workingOrderSheet.edit','uses'=>'WorkingOrderSheetController@edit','middleware' => ['permission:workingOrder-edit']]);
+	Route::post('workOrderSheet/update',['as'=>'workingOrderSheet.update','uses'=>'WorkingOrderSheetController@update']);
+	Route::post('workOrderSheet/delete',['as'=>'workingOrderSheet.destroy','uses'=>'WorkingOrderSheetController@destroy']);
+	Route::get('workOrderSheet/code/create',['as'=>'workingOrderSheet.code.create','uses'=>'WorkingOrderSheetController@articleCodeCreate']);
+	Route::get('workOrderSheet/print',['as'=>'workingOrderSheet.print','uses'=>'WorkingOrderSheetController@print']);
+	Route::post('workOrderSheet/approve',['as'=>'workingOrderSheet.approve','uses'=>'WorkingOrderSheetController@approve']);
+	Route::get('workOrderSheet/revision',['as'=>'workingOrderSheet.revision','uses'=>'WorkingOrderSheetController@revision','middleware' => ['permission:workingOrder-revision']]);
 
 	Route::get('production',['as'=>'production.index','uses'=>'ProductionController@index','middleware' => ['permission:workingOrder-index']]);
 	Route::get('production/create',['as'=>'production.create','uses'=>'ProductionController@create','middleware' => ['permission:workingOrder-create']]);

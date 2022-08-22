@@ -136,6 +136,38 @@
     const sumAvailableTime = $('#sumAvailableTime');
     const sumTimeRequired = $('#sumTimeRequired');
     const sumRemainTime = $('#sumRemainTime');
+    const oEdit = $('#oEdit');
+    
+
+    approve = (woNumber,objButton) => {
+        $('#'+objButton).attr('disabled','disabled');
+        $.ajax({
+            type: "POST",
+            url: "{{ route('workingOrderSheet.approve') }}",
+            data: {
+                wosNumber:woNumber
+            },
+            dataType: "json",
+            success: function(data) {
+                if (data.status == 0 ){
+                    let message="";
+                    for(let i = 0; i < data.message.length; i++) {
+                        show_msg(data.title, data.message[i], data.alert);
+                    }
+                    $('#wosNumber').attr('disabled','disabled');
+                }else{
+                    show_msg(data.title, data.message, data.alert);
+                    $('#wosNumber').attr('disabled','disabled');
+                    $('#cmdApprove').attr('disabled','disabled');
+                    $('#addNewRow').attr('disabled','disabled');      
+                    window.location.reload();                 
+                }
+            },
+            error: function(error) {
+                console.log(error);
+            }
+        });
+    }
 
     let cloneCountEdit=0;
     function add_new_row_edit(noSo,noArticle,noArticleRm,qtySo,qtySoUom,qtyProd,qtyRepaint,waktu,tag,tagAsli) {
@@ -434,7 +466,7 @@
         sumWorkHour.text(workHour.val());
         sumTimeRequired.text(timeReq);
         sumAvailableTime.text(sumTag);
-        sumRemainTime.text(parseInt(sumTag)-timeReq);
+        sumRemainTime.text(parseInt(sumTag)-timeReq-10);
     }
 
     updatQty=()=>{
@@ -479,5 +511,140 @@
             hitungWaktu();
 		});
     }
+
+    cmdSave.click(function(){
+        if (!$("#frmAdd")[0].checkValidity()){
+            $("#frmAdd").submit();
+        }else{
+            $('.disabled-el').removeAttr('disabled');
+            let articles = []; 
+            let flag=0;
+            let pesan="";
+            let objArticle = $("#article_row select[name='articleId[]']");
+            let objArticleRm = $("#article_row input[name='articleRm[]']");
+            let objQtyOrder = $('#article_row input[name="qtyOrder[]"]');
+            let objQtyProd = $('#article_row input[name="qtyProd[]"]');
+            let objQtyRepaint = $('#article_row input[name="qtyRepaint[]"]');
+            let objSoCode = $('#article_row select[name="salesOrder[]"]');
+            let objTag = $('#article_row input[name="tag[]"]');
+            let objTagAsli = $('#article_row input[name="tagAsli[]"]');
+            let objUrutan = $('#article_row input[name="urutan[]"]');
+            let objWaktu = $('#article_row input[name="waktu[]"]');
+            let sWosDate = wosDate.val();
+            let sWosShift = wosShift.val();
+            let sWosGroup = wosGroup.val();
+            let sWosTime = wosTime.val();
+            let sWorkHour = workHour.val();
+            let sNote = note.val();
+
+            objArticle.map(function(i) {  
+                let $this=$(this);
+                if ($this.val()){
+                    let article = $this.val();
+                    let articleName = article;
+                    let articleRm = objArticleRm.eq(i).val();
+                    let urutan = objUrutan.eq(i).val();
+                    let soCode = objSoCode.eq(i).val();
+                    let qtyOrder = objQtyOrder.eq(i).val().replace(/,/gi, '') || 0;
+                    let qtyProd = objQtyProd.eq(i).val().replace(/,/gi, '') || 0;
+                    let qtyRepaint = objQtyRepaint.eq(i).val().replace(/,/gi, '') || 0;
+                    let tag = objTag.eq(i).val();
+                    let tagAsli = objTagAsli.eq(i).val();
+                    let waktu = objWaktu.eq(i).val();
+
+                    // cek urutan harus sesuai jangan ada urutan yang double
+                    let obj = articles.find(obj => obj.urutan == urutan);
+                    
+                    if(obj) {
+                        pesan +="Urutan belum sesuai !! <br>"; 
+                        flag=1;
+                    }else{
+                        if(article){
+                            articles.push({
+                                "urutan":urutan,
+                                "so_code":soCode,
+                                "article_code":article,
+                                "article_rm":articleRm,
+                                "qty_so":qtyOrder,
+                                "uom":'PCS',
+                                "qty_prod":qtyProd,
+                                "qty_repaint":qtyRepaint,
+                                "tag":tag,
+                                "tag_asli":tagAsli,
+                                "waktu":waktu,
+                                "status": articleRm == 'none'?'0':'1'
+                            });
+                        }
+                    }
+                    // urutkan data berdasarkan nomor urutan   
+                    if ( (qtyProd+qtyRepaint) == 0 ){
+                        pesan +="QTY of items "+ articleName +" order ="+urutan +" cannot be 0 <br>"; 
+                        flag=1;
+                    }
+                }
+            });
+
+            if (articles.length > 0){
+                articles.sort((a, b) => (a.urutan > b.urutan) ? 1 : -1);
+                $('#article_row').find('div').remove();
+                cloneCountEdit=0;
+                articles.map(function(i) {
+                    add_new_row_edit(i.so_code,i.article_code,i.article_rm,i.qty_so,i.uom,i.qty_prod,i.qty_repaint,i.waktu,i.tag,i.tag_asli);
+                })
+            }else{
+                pesan +="Articles must be filled in completely <br>"; 
+                flag=1;
+            }
+
+            if (flag==0){
+                let wosNumber = "";
+                let urlKu="";
+                if (oEdit.val()){
+                    wosNumber = $('#wosNumber').val();
+                    urlKu ="{{ route('workingOrderSheet.update') }}";
+                }else{
+                    urlKu ="{{ route('workingOrderSheet.store') }}";
+                }
+                $.ajax({
+                    type: "POST",
+                    url: urlKu,
+                    data: {
+                        articles:JSON.stringify(articles),
+                        wosNumber:wosNumber,
+                        wosDate:sWosDate,
+                        wosTime:sWosTime,
+                        shift:sWosShift,
+                        group:sWosGroup,
+                        workHour:sWorkHour,
+                        note:sNote
+                    },
+                    dataType: "json",
+                    success: function(data) {
+                        if (data.status == 0 ){
+                            let message="";
+                            for(let i = 0; i < data.message.length; i++) {
+                                show_msg(data.title, data.message[i], data.alert);
+                            }
+                            $('#wosNumber').attr('disabled','disabled');
+                        }else{
+                            show_msg(data.title, data.message, data.alert)
+                            $('#wosNumber').attr('disabled','disabled');
+                            // $('#cmdSave').attr('disabled','disabled');
+                            // $('#addNewRow').attr('disabled','disabled');
+                            $('#wosNumber').val(data.wosNumber);
+                            $('#oEdit').val(data.oEdit);
+                        }
+                    },
+                    error: function(error) {
+                        console.log(error);
+                    }
+                });
+
+            }else{
+                Swal.fire('Warning..',pesan,'warning');
+            }
+        }
+    
+    });
 
 </script>

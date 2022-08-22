@@ -582,7 +582,7 @@ class PurchaseOrderController extends Controller
             $alert  ="success";
             $message  = "$title Revison PO: $poOrigin to $poNew is successfully saved";
             \LogActivity::addToLog($title,"username: $username Status $message");
-            return redirect()->route('purchaseOrder.edit', ['id'=>Crypt::encryptString($data->id)]);
+            return redirect()->route('purchaseOrder.edit', ['id'=>Crypt::encryptString($id)]);
             // return $this->showEdit(Crypt::encryptString($id));
         }else{
             $title ="Save $this->title";

@@ -960,8 +960,8 @@ class TransferOutController extends Controller
     public function articleTso(Request $request)
     {
         $tsoCode = $request->tsoCode;
-        $articles = DB::table('production_det')
-        ->where('prod_code',$tsoCode)
+        $articles = DB::table('wo_det')
+        ->where('wo_code',$tsoCode)
         ->get();
 
         $dataSet = [];
@@ -970,11 +970,14 @@ class TransferOutController extends Controller
             $dataSet[] = [
                 'code' => $randomCode,
                 'article_code' => $val->article_code,
-                'qty' => $val->qty //untuk perhitungan pakai yang qty_target sudah di konfirmasi ke bu ifah
+                //yang dihitung datanya cuma yang fresh yang repaint tidak motong chemical lagi 
+                //'qty' => $val->plan_qty_fresh+$val->plan_qty_repaint
+                'qty' => $val->plan_qty_fresh,
+                'uom' => 'PCS'
             ];
         }
 
-        DB::table('production_detail_temp')->insert($dataSet);
+        DB::table('wo_detail_temp')->insert($dataSet);
 
         $data=DB::select("SELECT 
         article_code_det as article_code
@@ -986,17 +989,17 @@ class TransferOutController extends Controller
         from(
         select 
         bom_det.article_code as article_code_det
-        ,production_detail_temp.qty as qty_order
-        ,production_detail_temp.uom as uom_order
-        ,bom_det.qty * coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = production_detail_temp.uom),1) as qty_bom
+        ,wo_detail_temp.qty as qty_order
+        ,wo_detail_temp.uom as uom_order
+        ,bom_det.qty * coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = wo_detail_temp.uom),1) as qty_bom
         ,bom_det.uom as uom_bom
         ,bom_hdr.article_code 
-        ,coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = production_detail_temp.uom),1) as factor_qty
+        ,coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = wo_detail_temp.uom),1) as factor_qty
         ,(select min_package from article where article_code = bom_det.article_code) as min_package 
-        from production_detail_temp
-        left join bom_hdr on bom_hdr.article_code=production_detail_temp.article_code
+        from wo_detail_temp
+        left join bom_hdr on bom_hdr.article_code=wo_detail_temp.article_code
         join bom_det on  bom_det.bom_code = bom_hdr.bom_code
-        where production_detail_temp.code ='$randomCode'
+        where wo_detail_temp.code ='$randomCode'
         and bom_hdr.status = '3'
         ) a
         group by article_code_det,uom_bom,min_package
@@ -1004,7 +1007,7 @@ class TransferOutController extends Controller
         ");
 
         if ($data){
-            DB::table('production_detail_temp')
+            DB::table('wo_detail_temp')
                 ->where('code',$randomCode)
                 ->delete();
         }

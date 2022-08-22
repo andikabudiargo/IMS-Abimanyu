@@ -18,7 +18,7 @@
         <form class="needs-validation" novalidate>
           <div class="form-row">
             <div class="form-group col-md-3"> 
-              <label for="searchWos">Transfer Number</label>
+              <label for="searchWos">WOS Number</label>
               <input type="text" class="form-control text-uppercase" id="searchWos" name="searchWos" placeholder="" />
             </div>
             <div class="col-md-3 form-group">
@@ -98,13 +98,6 @@
     btnDetail.style.display = "none";
   });
 
-  // let href;
-  // $(document).on('click', '#cancelReasonButton', function(event) {
-  //     event.preventDefault();
-  //     href = $(this).data('href');
-  //     $('#modalReasonCancel').attr("action", href);
-  // });
-
   initDatePicker(rangePickr,{
     minDate: "01/01/2010",
     maxDate: "31/12/2030",
@@ -148,14 +141,14 @@
       tableId:"detailedTable",
       route:"{{ route('workingOrderSheet.list') }}",
       kolom:{!! $kolom !!},
-      arrColPrint:[1,2,3,4,5,6],
+      arrColPrint:[1,2,3,4,5,6,7,8],
       columnDefs :[
         { width: '5%', targets: 0 },
       ],
       dataSearch:  {
         searchWos:searchWos,
         wosDate:wosdate,
-        searchStatus
+        searchStatus:searchStatus
       },
       orderColumn:[[ 1, 'asc' ]],
       excelFileName:'wos_data'
@@ -173,13 +166,16 @@
       tableId:"detailedTable",
       route:"{{ route('workingOrderSheet.detail.list') }}",
       kolom:{!! $kolomDetail !!},
-      arrColPrint:[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17],
+      arrColPrint:[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18],
       dataSearch:  {
         searchWos:searchWos,
         wosDate:wosdate,
-        searchStatus
+        searchStatus:searchStatus
       },
-      orderColumn:[[ 1, 'desc' ]],
+      columnDefs :[
+        { width: '5%', targets: 0 },
+      ],
+      orderColumn:[[ 1, 'desc' ],[ 0, 'asc' ]],
       excelFileName:'wos_data'
     });
   }
