@@ -959,9 +959,10 @@ class TransferOutController extends Controller
 
     public function articleTso(Request $request)
     {
-        $tsoCode = $request->tsoCode;
+        $woCode = $request->tsoCode;
         $articles = DB::table('wo_det')
-        ->where('wo_code',$tsoCode)
+        ->where('wo_code',$woCode)
+        ->where('so_code','<>','other')
         ->get();
 
         $dataSet = [];

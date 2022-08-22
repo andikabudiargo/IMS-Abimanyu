@@ -115,8 +115,8 @@ class ArticleController extends Controller
         //membuat article code diaawali dengan leadCode yang isinya kode awal dari article
         
         $customer = $custCode;
-        $leadingCode = $leadCode;
-    
+        $leadingCode = $leadCode; 
+
         if (($leadingCode == "FG") or  ($leadingCode == "RMP") or ($leadingCode == "RMNP")){
             /*
             pembuatan article_alternative_code sesuai dengan aturan, kalo FG harus ada kode cabang nya
@@ -130,9 +130,18 @@ class ArticleController extends Controller
             ->orderBy('article_alternative_code','DESC')->first();
 
             if (!$lastCode){
-                $newCode = '00001';                                                                                                                                                                                                                                                                                                                                     
+                if (($leadingCode == "RMP") or ($leadingCode == "RMNP")){
+                    $newCode = '01';
+                }else{
+                    $newCode = '00001';
+                }
             }else{
-                $newCode = str_pad(substr($lastCode->article_alternative_code,5)+1, 5, "0", STR_PAD_LEFT);
+                if (($leadingCode == "RMP") or ($leadingCode == "RMNP")){
+                    $newCode = str_pad(substr($lastCode->article_alternative_code,-2)+1, 2, "0", STR_PAD_LEFT);
+                }else{
+                    $newCode = str_pad(substr($lastCode->article_alternative_code,-4)+1, 4, "0", STR_PAD_LEFT);
+                }
+                
             }
 
             $artilceCode = DB::table('third_party')

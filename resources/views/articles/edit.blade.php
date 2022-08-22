@@ -31,8 +31,8 @@
                         <div class="form-row">       
                             <div class="form-group col-md-12">
                                 <label class="form-label" for="group">Group of material</label>
-                                <select class="select2 form-control" id="group" name="group" required>
-                                    <option value="">All</option>
+                                <select class="select2 form-control" id="group" name="group">
+                                    <option value=""></option>
                                     @foreach($groups as $val)
                                         <option value="{{$val->code}}" {{ $val->code == old("group",$article->group) ? "selected" : ""}}>{{$val->code}} - {{$val->name}}</option>
                                     @endforeach

@@ -10,13 +10,13 @@
                     <form id="frmAdd" name="frmAdd" action="{{ route('article.store') }}" method="post"  autocomplete="off" enctype="multipart/form-data" >
                         @csrf
                         <div class="form-row d-none">
-                            <div class="form-group col-md-6">
+                            <div class="form-group col-md-12">
                                 <label for="kode">Article Code 1</label>
                                 <input type="text" id="kode" name="kode" class="form-control disabled-el"  value="{{ old('kode') }}" disabled />
                             </div>
                         </div>
                         <div class="form-row">
-                            <div class="form-group col-md-6">
+                            <div class="form-group col-md-12">
                                 <label class="form-label" for="articleType">Article Type*</label>
                                 <select class="select2 form-control" id="articleType" name="articleType" autofocus required>
                                     <option value=""></option>
@@ -54,7 +54,9 @@
                         <div class="form-row">
                             <div class="form-group col-md-12">
                                 <label class="form-label" for="cust" id="custLable">Customer/Supplier*</label>
-                                <select class="select2 form-control select2-hidden-accessible" id="cust" name="cust[]" autofocus required multiple>
+                                {{-- <select class="select2 form-control select2-hidden-accessible" id="cust" name="cust[]" autofocus required multiple>
+                                </select> --}}
+                                <select class="select2 form-control select2-hidden-accessible" id="cust" name="cust[]" autofocus required>
                                 </select>
                             </div>
                         </div>
