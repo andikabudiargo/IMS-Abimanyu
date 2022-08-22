@@ -238,10 +238,10 @@
                             "so_number":articleSoCode
                         });
                     }
-                    if (qty == 0){
-                        pesan +="QTY of items "+ articleDesc +" cannot be 0 <br>"; 
-                        flag=1;
-                    }
+                    // if (qty == 0){
+                    //     pesan +="QTY of items "+ articleDesc +" cannot be 0 <br>"; 
+                    //     flag=1;
+                    // }
                 }
             });
 
