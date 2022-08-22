@@ -373,6 +373,10 @@ class BomController extends Controller
         ->select('article.*','uom.uom_group as uom_group','article_types.name as type_name')
         ->get();
 
+        $data['articlesRm'] = DB::table('article')
+        ->whereIn('article_type',['RM','RMP','RMNP'])
+        ->get();
+
         $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode,$bomNumber,$username);
         $data['approveValidate'] = Approval::approveValidate($this->moduleCode,$bomNumber,$username);
 
@@ -390,6 +394,7 @@ class BomController extends Controller
         $bomNumber = $request -> bomNumber;
         $articles = json_decode($request -> articles);
         $articleCode = $request->articleCode;
+        $articleCodeRm = $request->articleCodeRm;
         $customer = $request->customer;
         $group = $request->group;
         $uom = $request->uom;
@@ -442,6 +447,7 @@ class BomController extends Controller
                             // 'customer' => $customer,
                             // 'article_code' => $articleCode,
                             // 'uom' => $uom,
+                            'article_code_rm' => $articleCodeRm,
                             'group_of_material' => $group,
                             'status' => $status,
                             'tag' => $tag,
@@ -568,24 +574,31 @@ class BomController extends Controller
     {
         $username =  Auth::user()->username;       
         $id=Crypt::decryptString($request->id);
-        $bom_code = DB::table('bom_hdr')->where('id',$id)->value('bom_code');
-        $rowAffected = DB::table('bom_hdr')->where('id',$id)->update([            
-            'status' => 5,
-            'note' => "Deleted at ". date('Y-m-d H:i:s') .", not active",
-            'updated_by' => Auth::user()->username,
-            'updated_at' => date('Y-m-d H:i:s')
-        ]);
+        $boms = DB::table('bom_hdr')->where('id',$id)->first();
+        $bomCode = $boms->bom_code;
+        $bomStatus = $boms->status;
+        // $bom_code = DB::table('bom_hdr')->where('id',$id)->value('bom_code');
+        if ($bomStatus!=3){
+            $rowAffected = DB::table('bom_hdr')->where('bom_code',$bomCode)->where('status','<>','3')->delete();
+        }else{
+            $rowAffected = DB::table('bom_hdr')->where('bom_code',$bomCode)->update([
+                'status' => 5,
+                'note' => "Deleted at ". date('Y-m-d H:i:s') .", not active",
+                'updated_by' => Auth::user()->username,
+                'updated_at' => date('Y-m-d H:i:s')
+            ]);
+        }
         if($rowAffected>0){
             $title ="Delete $this->title";
             $alert  ="success";
-            $message  = "$this->title $bom_code is successfully deleted";
+            $message  = "$this->title $bomCode is successfully deleted";
             \LogActivity::addToLog($title,"username: $username Status $message");
             return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);  
        }else{
             DB::rollBack();
             $title ="Delete $this->title";
             $alert  ="warning";
-            $message  = "$this->title $bom_code is failed to delete";
+            $message  = "$this->title $bomCode is failed to delete";
             \LogActivity::addToLog($title,"username: $username Status $message");
             return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);            
         }

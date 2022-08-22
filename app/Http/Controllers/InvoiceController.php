@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Crypt;
 use Response;
 use App\Permission;
 use DataTables;
@@ -271,11 +272,11 @@ class InvoiceController extends Controller
 
     public function edit(Request $request)
     {
-        $id=$request->id;
+        $id=Crypt::decryptString($request->id);
         $data['title'] = "Edit $this->title";
         $data['subtitle'] = "Edit $this->title";
 
-        $data['header'] = DB::table('receiving_hdr')
+        $data['header'] = DB::table('invoice_hdr')
         ->where('id',$id)
         ->get()->first();
 
@@ -648,7 +649,7 @@ class InvoiceController extends Controller
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
             if (($data->status != '3') && ($data->status != '4')){
                 if (Auth::user()->can('receiving-edit')) {
-                $buttons .=         '<a href="'. route('invoice.edit', ['id'=>$data->id]) .'" class="dropdown-item">
+                $buttons .=         '<a href="'. route('invoice.edit',  ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                         <i data-feather="file-text"></i>
                                         Edit
                                     </a>';

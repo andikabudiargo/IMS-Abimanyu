@@ -34,7 +34,13 @@
                             <div class="form-row">
                                 <div class="form-group col-md-8">
                                     <label class="form-label" for="articleCodeRm">Article Raw material*</label>
-                                    <input type="text" id="articleCodeRm" name="articleCodeRm" value="{{ old('articleCodeRm',$header->article_rm) }}" data-article-code="{{ old('articleCodeRm',$header->article_code_rm) }}" class="form-control" disabled />
+                                    <select class="select2 form-control" id="articleCodeRm" name="articleCodeRm" required>
+                                        <option value=""></option>
+                                        @foreach($articlesRm as $val)
+                                            <option value="{{ $val->article_code }}" {{ $val->article_code == old("articleCodeRm",$header->article_code_rm) ? "selected" : ""}} >{{ $val->article_alternative_code }} - {{ $val->article_desc }}</option>
+                                        @endforeach
+                                    </select>
+                                    {{-- <input type="text" id="articleCodeRm" name="articleCodeRm" value="{{ old('articleCodeRm',$header->article_rm) }}" data-article-code="{{ old('articleCodeRm',$header->article_code_rm) }}" class="form-control" disabled /> --}}
                                 </div>
                             </div>
                             <div class="form-row">

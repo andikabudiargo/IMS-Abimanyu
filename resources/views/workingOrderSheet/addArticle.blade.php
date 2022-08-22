@@ -426,7 +426,6 @@
 
         if (articles.length > 0){
             articles.sort((a, b) => (a.urutan > b.urutan) ? 1 : -1);
-            console.log(articles);
             $('#article_row').find('div').remove();
             cloneCountEdit=0;
             articles.map(function(i) {

@@ -251,7 +251,7 @@
             
             if (oEdit){
                 articleCode = $('#articleCode').data('article-code');
-                articleCodeRm = $('#articleCodeRm').data('article-code');
+                articleCodeRm = $('#articleCodeRm').val();
                 uomHdr = $('#uomHdr').val();
                 customer = $('#customer').data('customer-code');
                 group = $('#group').data('group');
@@ -275,6 +275,7 @@
             let articles;
             let flag=0; 
             let pesan="";
+            let urutan=1;
 
             objArticle.map(function(i) {  
                 let $this=$(this);
@@ -293,6 +294,7 @@
                     // } else {
                         if ((plu!=='') && (qty> 0)){
                             arrArticles.push({
+                                "urutan":urutan++,
                                 "article_code":plu,
                                 "qty":parseFloat(qty),
                                 "uom":uom,
@@ -329,6 +331,7 @@
                     }
                 })
                 articles = Object.values(obj)
+                articles = articles.sort((a, b) => (a.urutan > b.urutan) ? 1 : -1);
             }
 
             if (flag==0){
