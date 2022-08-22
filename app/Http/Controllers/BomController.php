@@ -113,11 +113,11 @@ class BomController extends Controller
 
         $data['articlesRm'] = DB::table('article')
         ->whereIn('article_type',['RM','RMP','RMNP'])
-        ->whereNotIn('article.article_code', function($query){
-            $query->select(DB::raw("COALESCE(article_code_rm,'blablabla')"))
-            ->from('bom_hdr')
-            ->whereIn('status',['1','2','3']);
-        })
+        // ->whereNotIn('article.article_code', function($query){
+        //     $query->select(DB::raw("COALESCE(article_code_rm,'blablabla')"))
+        //     ->from('bom_hdr')
+        //     ->whereIn('status',['1','2','3']);
+        // })
         ->get();
 
         $data['oEdit']=false;

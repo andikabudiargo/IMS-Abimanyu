@@ -319,7 +319,7 @@
                 pesan +="Articles must be filled in completely <br>"; 
                 flag=1;
             }else{
-                //summary sata by article_code
+                //summary data by article_code ini menyebabkan urutan jadi berubah
                 let obj = {}
                 arrArticles.forEach((item)=>{
                     if(obj[item.article_code]){
