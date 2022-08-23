@@ -26,13 +26,13 @@
                                 </div>
                                 <div class="form-group col-md-2">
                                     <label for="dnDate">Delivery Date*</label>
-                                    <input type="text" id="dnDate" name="dnDate" class="form-control" placeholder="DD-MM-YYYY" value="{{ $header->delivery_date }}" required />
+                                    <input type="text" id="dnDate" name="dnDate" class="form-control" placeholder="DD-MM-YYYY" value="{{ $header->delivery_date }}" disabled />
                                 </div>                               
                             </div>
                             <div class="form-row">
                                 <div class="form-group col-md-5">
                                     <label class="form-label" for="customer">Customer*</label>
-                                    <select class="select2 form-control" id="customer" name="customer" required>
+                                    <select class="select2 form-control" id="customer" name="customer" disabled>
                                         {{-- <option value="">All</option> --}}
                                         @foreach($customers as $val)
                                             <option value="{{$val->kode}}" {{$val->kode == $header->customer_id ? "selected" : ""}} >{{$val->kode}} - {{$val->nama}}</option>
@@ -41,13 +41,13 @@
                                 </div>
                                 <div class="form-group col-md-4">
                                     <label class="form-label" for="soNumber">SO Number*</label>
-                                    <input type="text" id="soNumber" name="soNumber" class="form-control" value="{{ $header->so_number }}" required />
+                                    <input type="text" id="soNumber" name="soNumber" class="form-control" value="{{ $header->so_number }}" disabled />
                                 </div>
                             </div>
                             <div class="form-row">
                                 <div class="form-group col-md-9">
                                     <label class="form-label" for="note">Notes</label>
-                                    <textarea type="text" id="note" name="note" class="form-control" rows="1" >{{ $header->note }}</textarea>
+                                    <textarea type="text" id="note" name="note" class="form-control" rows="1" disabled>{{ $header->note }}</textarea>
                                 </div>
                             </div>
                             
@@ -95,6 +95,44 @@
                                 </div>
                             </div>
                         </div>
+                    </div>
+                    <hr>
+                    <div class="form-row card-statistics">
+                        @foreach($approvalHistory as $val)
+                            @if($val->status == true)
+                                <div class="statistics-body">
+                                    <div class="col-xl-3 col-sm-6 col-12 mb-2 mb-xl-0">
+                                        <div class="media">
+                                            <div class="avatar bg-light-{{ $val->statusapprove == 1 ? 'success':'warning' }} mr-2">
+                                                <div class="avatar-content">
+                                                    <i data-feather="{{ $val->statusapprove == 1 ? 'check':'x' }}" class="avatar-icon"></i>
+                                                </div>
+                                            </div>
+                                            <div class="media-body my-auto">
+                                                <h4 class="font-weight-bolder mb-0">{{ $val->statusapprove == 1 ? 'Approve':'Decline' }}-{{ $val->approval_order }}</h4>
+                                                <p class="card-text mb-0">{{ $val->name }}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            @else
+                                <div class="statistics-body">
+                                    <div class="col-xl-3 col-sm-6 col-12 mb-2 mb-xl-0">
+                                        <div class="media">
+                                            <div class="avatar bg-light-danger mr-2">
+                                                <div class="avatar-content">
+                                                    <i data-feather="x" class="avatar-icon"></i>
+                                                </div>
+                                            </div>
+                                            <div class="media-body my-auto">
+                                                <h4 class="font-weight-bolder mb-0">Approve-{{ $val->approval_order }}</h4>
+                                                <p class="card-text mb-0">{{ $val->petugas }}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endif
+                        @endforeach
                     </div>
                 </div>
             </div>
@@ -174,7 +212,8 @@
             uomGroup =  detail[i].uom_group;
             uom = detail[i].uom;
             soCode = detail[i].so_number;
-            add_new_row(article,articleCode,articleDesc,qtyDel,uomGroup,uom,soCode);
+            poNumber = detail[i].po_number;
+            add_new_row(article,articleCode,articleDesc,qtyDel,uomGroup,uom,soCode,poNumber);
         }
     });
 
@@ -280,7 +319,7 @@
 
         
     let cloneCount=0;
-    function add_new_row(article,articleCode,articleDesc,qtyDel,uomGroup,uom,soCode) {
+    function add_new_row(article,articleCode,articleDesc,qtyDel,uomGroup,uom,soCode,poNumber) {
         // console.log(article,articleCode,articleDesc,qtyDel,uomGroup,uom);
         $("#article_row").append($("#new_row").clone().html());
         cloneCount++;
@@ -289,6 +328,7 @@
         $('#articleId'+ cloneCount).attr('data-code', article);
         $('#articleId'+ cloneCount).attr('data-uom', uom);
         $('#articleId'+ cloneCount).attr('data-so-code', soCode);
+        $('#articleId'+ cloneCount).attr('data-po-number', poNumber);
         $('#articleId'+ cloneCount).val(articleCode +" - " + articleDesc);
         $("#new_row"+ cloneCount).find('#qtyInv').attr('id', 'qtyInv'+ cloneCount);
         $('#qtyInv'+ cloneCount).val(qtyDel);

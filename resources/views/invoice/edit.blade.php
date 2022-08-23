@@ -8,7 +8,7 @@
         <div class="col-md-12">
             <div class="card">
                 <div class="card-header">
-                    <h4 class="card-title">Status: <span id="statusText">{{ $statusRec }}</span></h4>
+                    <h4 class="card-title">Status: <span id="statusText">{{ $statusInv }}</span></h4>
                     <div class="heading-elements">
                         <ul class="list-inline mb-0">
                             <li><a data-action="collapse"><i data-feather="chevron-down"></i></a></li>
@@ -20,63 +20,53 @@
                         <form id="frmAdd" name="frmAdd" autocomplete="off">
                             @csrf
                             {{-- <input type="text" id="article" name="article" hidden> --}}
+                            <input type="text" id="ppn" name="ppn"  values="10" hidden>
+                            <input type="text" id="pph23" name="ppn23" values="2" hidden>
                             <div class="form-row">
                                 <div class="form-group col-md-3">
-                                    <label for="recNumber">Receiving Number</label> <small class="text-muted"> automatic</small>
-                                    <input type="text" id="recNumber" name="recNumber" class="form-control text-hitam disabled-el" value="{{ $header->rec_number }}"  disabled />
+                                    <label for="invNumber">Invoice Number</label> <small class="text-muted"> automatic </small>
+                                    <input type="text" id="invNumber" name="invNumber" value="{{ $header->invoice_number }}" class="form-control text-hitam disabled-el"  disabled />
                                 </div>
                                 <div class="form-group col-md-2">
-                                    <label for="recDate">Receiving Date*</label>
-                                    <input type="text" id="recDate" name="recDate" class="form-control" placeholder="DD-MM-YYYY" value="{{ $header->rec_date }}" required />
+                                    <label for="invDate">Invoice Date*</label>
+                                    <input type="text" id="invDate" name="invDate" value="{{ $header->invoice_date }}" class="form-control" placeholder="DD-MM-YYYY" required />
                                 </div>                               
                             </div>
                             <div class="form-row">
                                 <div class="form-group col-md-4">
-                                    <label class="form-label" for="supplier">Supplier*</label>
-                                    <select class="select2 form-control" id="supplier" name="supplier" required disabled>
+                                    <label class="form-label" for="customer">Customer*</label>
+                                    <select class="select2 form-control" id="customer" name="customer" required>
                                         <option value="">All</option>
-                                        @foreach($supps as $val)
-                                            <option value="{{$val->kode}}" {{$val->kode == $header->supplier_id ? "selected" : ""}} >{{$val->kode}} - {{$val->nama}}</option>
+                                        @foreach($customers as $val)
+                                            <option value="{{$val->kode}}" {{$val->kode == $header->customer_id ? "selected" : ""}} >{{$val->kode}} - {{$val->nama}}</option>
                                         @endforeach
                                     </select>
                                 </div>
                                 <div class="form-group col-md-3">
-                                    <label class="form-label" for="poNumber">PO Number*</label>
-                                    <input type="text" id="poNumber" name="poNumber" class="form-control text-hitam disabled-el" value="{{ $header->po_number }}"  disabled />
+                                    <label class="form-label" for="soNumber">SO Number*</label>
+                                    <select class="select2 form-control" id="soNumber" name="soNumber" required>
+                                    </select>
                                 </div>
-                            </div>
-                            <div class="form-row">
-                                <div class="form-group col-md-2">
-                                    <label for="doDate">DO Date*</label>
-                                    <input type="text" id="doDate" name="doDate" class="form-control" placeholder="DD-MM-YYYY" required />
-                                </div>                               
                                 <div class="form-group col-md-3">
-                                    <label for="doNumber">DO Number*</label>
-                                    <input type="text" id="doNumber" name="doNumber" class="form-control disabled-el" required/>
-                                </div>
-                                <div class="form-group col-md-2 d-none">
-                                    <label for="invDate">Invoice Date*</label>
-                                    <input type="text" id="invDate" name="invDate" class="form-control" placeholder="DD-MM-YYYY" value="{{ $header->inv_date }}" />
-                                </div> 
-                                <div class="form-group col-md-3 d-none">
-                                    <label for="invNumber">Invoice Number</label>
-                                    <input type="text" id="invNumber" name="invNumber" class="form-control disabled-el" value="{{ $header->inv_number }}" />
+                                    <label class="form-label" for="dnNumber">DN Number*</label>
+                                    <select class="select2 form-control" id="dnNumber" name="dnNumber" >
+                                    </select>
                                 </div>
                             </div>
                             <div class="form-row">
                                 <div class="form-group col-md-12">
                                     <label class="form-label" for="note">Notes</label>
-                                    <textarea type="text" id="note" name="note" class="form-control" rows="1" >{{ $header->note }} </textarea>
+                                    <textarea type="text" id="note" name="note" class="form-control" rows="1" >{{ $header->note }}</textarea>
                                 </div>
                             </div>
+
                             <div class="form-row">
                                 <div class="col-12">
                                     <div class="form-row">
                                         <div class="col-12">
-                                            <a href="{{ route('receivings.index') }}" class="btn btn-success">Back</a>
-                                            <a href="{{ route('receiving.create') }}" class="btn btn-success">New</a>
+                                            <a href="{{ route('invoice.index') }}" class="btn btn-success">Back</a>
                                             @if( $header->status != '3' && $header->status != '4')
-                                                @can('receiving-delete')
+                                                @can('invoice-delete')
                                                     <a href='javascript:;'
                                                         id='deleteButton'
                                                         class='btn btn-warning'
@@ -88,12 +78,10 @@
                                                 @endcan
 
                                                 <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Update</button>
-                                                @can('receiving-posting')
+                                                @can('invoice-posting')
                                                     <button class="btn btn-primary" type="button" id="cmdPosting" name="cmdPosting">Posting</button>
                                                 @endcan
-
                                             @endif
-                                            
                                         </div>
                                     </div>
                                 </div>
@@ -113,11 +101,8 @@
                         <table class="" style="width:98%;table-layout: fixed;">
                             <tbody>
                                 <tr>
-                                    <td class="" style="width: 25%">
+                                    <td class="" style="width: 39%">
                                         <label>Article Code</label>
-                                    </td>
-                                    <td class="isian" style="width: 5%">
-                                        <label>Qty PO</label>   
                                     </td>
                                     <td class="isian" style="width: 5%">
                                         <label>Qty</label>
@@ -125,14 +110,23 @@
                                     <td class="isian" style="width: 5%">
                                         <label>UOM</label>
                                     </td>
-                                    <td class="isian" style="width: 5%">
-                                        <label>Free Goods</label>
+                                    <td class="isian" style="width: 10%">
+                                        <label>Material Price</label>
                                     </td>
-                                    <td class="isian" style="width: 5%">
-                                        <label>UOM</label>
+                                    <td class="isian" style="width: 10%">
+                                        <label>Service Price</label>
                                     </td>
-                                    <td class="isian" style="width: 5%">
-                                        <label>Total Qty</label>
+                                    <td class="isian" style="width: 10%">
+                                        <label>T.Material</label>
+                                    </td>
+                                    <td class="isian" style="width: 10%">
+                                        <label>T.Service</label>
+                                    </td>
+                                    <td class="isian" style="width: 10%">
+                                        <label>Total</label>
+                                    </td>
+                                    <td class="isian text-center" style="width: 5%">
+                                        <label>-</label>
                                     </td>
                                 </tr>
                             </tbody>
@@ -140,65 +134,47 @@
                     </div>
                     <div class="" id="article_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px">
                         <input type="text" id ="last_row_number" class="d-none" value="{{ count($detail) }}">
-                        {{-- @foreach ($detail as $key =>$item)
-                            <div id="new_row{{ $key }}" class="tanda-baris" >
-                                <table class="table-bordered" style="width: 98%;table-layout: fixed;">
-                                    <tbody>
-                                        <tr>
-                                            <td class="isian disabled" style="width: 25%">
-                                                <input type="text" class="form-control-plaintext text-hitam" id="article_id{{ $key }}" name="article_id[]" data-code="{{ $item->article_code }}" data-uom="{{ $item->uom_rec }}" value= "{{ $item->article_alternative_code  }} - {{ $item->article_desc }}" disabled>
-                                            </td>
-                                            <td class="isian" style="width: 5%">
-                                                <input type="text" class="form-control-plaintext numeral-mask-digit text-right" id = "qty_rec" name="qty_rec[]" value= "{{ $item->qty_rec  }}" maxlength="9">
-                                            </td>
-                                            <td class="isian" style="width: 5%">
-                                                <select class="form-control" id="uom" name="uom[]">
-                                                </select>
-                                            </td>
-                                            <td class="isian" style="width: 5%">
-                                                <input type="text" class="form-control-plaintext numeral-mask-digit text-right" id = "qty_free" name="qty_free[]" maxlength="9" />
-                                            </td>
-                                            <td class="isian" style="width: 5%">
-                                                <select class="form-control" id="uomFree" name="uomFree[]">
-                                                </select>
-                                            </td>
-                                            <td class="isian disabled text-right" style="width: 5%">
-                                                <span class="text-hitam" id="totalQty" name="totalQty[]"></span>
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        @endforeach --}}
                     </div>
                     <div class="d-flex justify-content-between align-items-end mt-75 ml-75">
                     </div>
                     <div class="d-flex justify-content-between align-items-end mt-75">
-                        <div class="col-md-4 ">
-                            <div class="form-group row mb-04">
-                                <label for="totalRow" class="col-sm-4 col-form-label titik-dua">Row(s)</label>
-                                <div class="col-sm-4">
+                        <div class="col-md-4">
+                            <div class="form-group row mb-03">
+                                <label for="totalRow" class="col-sm-4 col-form-label titik-dua tanpa-padding">Row(s)</label>
+                                <div class="col-sm-3">
                                     <input type="text" class="form-control text-right font-weight-bold" id="totalRow" disabled/>
                                 </div>
                             </div>
+                            <div class="form-group row mb-03">
+                                <label for="totalQTY" class="col-sm-4 col-form-label titik-dua tanpa-padding">Total QTY</label>
+                                <div class="col-sm-3">
+                                    <input type="text" class="form-control text-right font-weight-bold" id="totalQTY" disabled/>
+                                </div>
+                            </div>
                         </div>
-                        <div class="col-md-5">
+                        <div class="col-md-4">
                             <div class="form-group row mb-03">
-                                <label for="totalQTY" class="col-sm-4 col-form-label titik-dua">Total Qty</label>
-                                <div class="col-sm-4">
-                                    <input type="text" class="form-control text-right font-weight-bold" id="totalQTY" disabled />
+                                <label for="totalAmount" class="col-sm-4 col-form-label titik-dua tanpa-padding">Bruto</label>
+                                <div class="col-sm-6">
+                                    <input type="text" class="form-control text-right font-weight-bold" id="totalAmount" disabled />
                                 </div>
                             </div>
                             <div class="form-group row mb-03">
-                                <label for="totalQtyFree" class="col-sm-4 col-form-label titik-dua">Total Qty Free</label>
-                                <div class="col-sm-4">
-                                    <input type="text" class="form-control text-right font-weight-bold" id="totalQtyFree" disabled />
+                                <label for="totalPPN" class="col-sm-4 col-form-label titik-dua tanpa-padding">PPN <span id="nilaiPPN"></span> </label>
+                                <div class="col-sm-6">
+                                    <input type="text" class="form-control text-right font-weight-bold" id="totalPPN" disabled/>
                                 </div>
                             </div>
                             <div class="form-group row mb-03">
-                                <label for="grandTotalQty" class="col-sm-4 col-form-label titik-dua">Grand Total Qty</label>
-                                <div class="col-sm-4">
-                                    <input type="text" class="form-control text-right font-weight-bold" id="grandTotalQty" disabled />
+                                <label for="totalPPH" class="col-sm-4 col-form-label titik-dua tanpa-padding">PPH23 <span id="nilaiPPH23"></span> </label>
+                                <div class="col-sm-6">
+                                    <input type="text" class="form-control text-right font-weight-bold" id="totalPPH" disabled/>
+                                </div>
+                            </div>
+                            <div class="form-group row mb-03">
+                                <label for="totalNetto" class="col-sm-4 col-form-label titik-dua tanpa-padding">Netto</label>
+                                <div class="col-sm-6">
+                                    <input type="text" class="form-control text-right font-weight-bold" id="totalNetto" disabled/>
                                 </div>
                             </div>
                         </div>
@@ -208,35 +184,7 @@
         </div>
     </div>
 </section>
-<div class="modal fade text-left bisa-geser" id="modalListPrice" tabindex="-1" role="dialog" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h4>List price</h4>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body">
-                <h5><span class="semi-bold" id='modalArticle'></span></h5>
-                <div class="table-responsive">
-                    <table class="table" id='modalTableData'>
-                        <thead>
-                            <tr>
-                                <td>PO Number</td>
-                                <td>Date</td>
-                                <td>Price</td>
-                            </tr>
-                        </thead>
-                        <tbody></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-@include('receiving.addArticle')
-@include('partials.delete-modal')
+
 @endsection
 @section('styles')
 <style>
@@ -287,34 +235,32 @@
 </style>
 @endsection
 @section('scripts')
+@include('invoice.addArticle')
 <script type="text/javascript">
-    let currentDate = todayDate('dd-mm-yyyy');  
+    let currentDate = todayDate('dd-mm-yyyy');
     
-    $(document).ready(function(){          
-
-        let href;
-        $(document).on('click', '#deleteButton', function(event) {
-            event.preventDefault();
-            href = $(this).data('href');
-            $('#modalConfirmationCancel').attr("action", href);
-        });
+    $(document).ready(function(){
+        console.log({{ $header->so_number }});
+        searchSo('soNumber',customer.val(),{{ $header->so_number }});
+        // searchDn('dnNumber',{{ $header->so_number }},{{ $header->dn_number }});
 
         let detail = {!!  $detail !!};
-        for(let i=0;i<detail.length;i++){
-            article = detail[i].article_code;
-            articleCode = detail[i].article_alternative_code;
-            articleDesc = detail[i].article_desc;
-            qtyPo =  detail[i].qty;
-            uomGroup =  detail[i].uom_group;
-            uom =  detail[i].uomQty;
-            qty =  detail[i].qty;
-            uomQty =  detail[i].uom_rec;
-            qtyFree =  detail[i].qty_free;
-            uomFree =  detail[i].uom_free;
-            price =  detail[i].price;
-            add_new_row(article,articleCode,articleDesc,qtyPo,uomGroup,uom,qty,uomQty,qtyFree,uomFree,price);
+        for (let i = 0; i < detail.length; i++) {
+            article=detail[i].article_code;
+            articleCode=detail[i].article_alternative_code;
+            articleDesc=detail[i].article_desc;
+            qtySo=detail[i].qty;
+            uomGroup=detail[i].uom_group;
+            uom=detail[i].uom;
+            price=detail[i].price;
+            priceService=detail[i].price_service;
+            soCode=detail[i].so_number;
+            dnNumberData=detail[i].delivery_number;
+            add_new_row(article,articleCode,articleDesc,qtySo,uomGroup,uom,price,priceService,soCode,dnNumberData);
         }
-            
+
+        hitungTotal();
+
     });
 
     invDate = $('#invDate');
@@ -509,31 +455,40 @@
         
     });
     
-    let cloneCount=1;
-    function add_new_row(article,articleCode,articleDesc,qtyPo,uomGroup,uom,qty,uomQty,qtyFree,uomFree,price) {
+    let cloneCount=0;
+    function add_new_row(article,articleCode,articleDesc,qty,uomGroup,uom,price,priceJasa,soCode,dnNumber) {
         $("#article_row").append($("#new_row").clone().html());
         cloneCount++;
         $("#article_row").find('#baru').attr('id', 'new_row'+ cloneCount);
-        $("#new_row"+ cloneCount).find('#article_id').attr('id', 'article_id'+ cloneCount);
-        $('#article_id'+ cloneCount).attr('data-code', article);
-        $('#article_id'+ cloneCount).attr('data-uom', uom);
-        $('#article_id'+ cloneCount).attr('data-price', price);
-        $('#article_id'+ cloneCount).val(articleCode +" - " + articleDesc);
-        $("#new_row"+ cloneCount).find('#qty_po').attr('id', 'qty_po'+ cloneCount);
-        $('#qty_po'+ cloneCount).val("");
-        $("#new_row"+ cloneCount).find('#qty_rec').attr('id', 'qty_rec'+ cloneCount);
-        $('#qty_rec'+ cloneCount).val(qty);
         $("#new_row"+ cloneCount).find('#uom').attr('id', 'uom'+ cloneCount);
-        listUom('uom'+ cloneCount,uomGroup,uom,uomQty);
-        $("#new_row"+ cloneCount).find('#qty_free').attr('id', 'qty_free'+ cloneCount);
-        $('#qty_free'+ cloneCount).val(qtyFree);
-        $("#new_row"+ cloneCount).find('#uomFree').attr('id', 'uomFree'+ cloneCount);
-        listUom('uomFree'+ cloneCount,uomGroup,uom,uomFree);
-        tombolPanah('qty_rec');
-        tombolPanah('qty_free');
-        mask_thousand_digit(3);
+        $("#new_row"+ cloneCount).find('#qtyInv').attr('id', 'qtyInv'+ cloneCount);
+        $("#new_row"+ cloneCount).find('#totalLine').attr('id', 'totalLine'+ cloneCount);
+        $("#new_row"+ cloneCount).find('#totalJasa').attr('id', 'totalJasa'+ cloneCount);
+        $("#new_row"+ cloneCount).find('#subTotal').attr('id', 'subTotal'+ cloneCount);
+        $("#new_row"+ cloneCount).find('#articleId').attr('id', 'articleId'+ cloneCount);
+        $("#new_row"+ cloneCount).find('#price').attr('id', 'price'+ cloneCount);
+        $("#new_row"+ cloneCount).find('#priceJasa').attr('id', 'priceJasa'+cloneCount);
+        $('#articleId'+ cloneCount).attr('data-code', article);
+        $('#articleId'+ cloneCount).attr('data-desc', articleDesc);
+        $('#articleId'+ cloneCount).attr('data-uom', uom);
+        $('#articleId'+ cloneCount).attr('data-price', price);
+        $('#articleId'+ cloneCount).attr('data-price-service', priceJasa);
+        $('#articleId'+ cloneCount).attr('data-so-code', soCode);
+        $('#articleId'+ cloneCount).attr('data-dn-number', dnNumber);
+        // $('#articleId'+ cloneCount).val(articleCode +" - " + articleDesc);
+        $('#articleId'+ cloneCount).val(articleDesc);
+        $('#price'+ cloneCount).val(price);
+        $('#priceJasa'+ cloneCount).val(priceJasa);
+        $('#qtyInv'+ cloneCount).val(qty);
+        $('#uom'+ cloneCount).val(uom);
+        $('#totalLine'+ cloneCount).text(humanizeNumber(qty*price));
+        $('#totalJasa'+ cloneCount).text(humanizeNumber(qty*priceJasa));
+        $('#subTotal'+ cloneCount).text(humanizeNumber((qty*price)+(qty*priceJasa)));
+        tombolPanah('qtyInv');
+        mask_thousand();
         hitungTotal();
-        hitungGrandTotalLoad();
+        hitungGrandTotal();
+        
     }
 
     function listUom(obj,value,uom,uomSelect) {

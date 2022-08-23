@@ -28,7 +28,7 @@ class ArticleController extends Controller
             ['data'=>'action','name'=>'action','title'=>'action','orderable'=>false, 'searchable'=>false],
             ['data'=>'article_alternative_code','name'=>'article_alternative_code','title'=>'Code'],
             ['data'=>'desc','name'=>'article_desc','title'=>'Name'],
-            ['data'=>'third_party','name'=>'third_party','title'=>'Kode supp'],
+            ['data'=>'third_party','name'=>'third_party','title'=>'Cust/supp'],
             ['data'=>'cust','name'=>'third_party.nama','title'=>'Custs/Supp'],
             ['data'=>'costprice','name'=>'costprice','title'=>'Price'],
             ['data'=>'article_qty','name'=>'article_qty','title'=>'Qty'],
@@ -659,15 +659,12 @@ class ArticleController extends Controller
 
             return $buttons;
         })
+
         ->addColumn('article_alternative_code', function ($data) {
             $badges=['badge-light-danger','badge-light-primary'];
-            return '<span style="display: none;">"'.$data->article_alternative_code.'</span>
-                    <a class="badge d-block '.$badges[$data->status].'" href="'. route('article.show', ['id'=>Crypt::encryptString($data->id)]) .'" 
-                        type="button" 
-                        style="text-align: left;">
-                        <span>'.$data->article_alternative_code.'</span>
-                    </a>';
+            return '<span style="display: none;">'.$data->article_alternative_code.'</span><a class="badge d-block '.$badges[$data->status].'" href="'. route('article.show', ['id'=>Crypt::encryptString($data->id)]) .'" ><span>'.$data->article_alternative_code.'</span></a>';
         })
+        
         ->addColumn('article_qty', function ($data) {
             // $artilceQty = $data->uom_group =='PIECE' ? number_format($data->article_qty) : number_format($data->article_qty,4);
             // $artilceQty = number_format($data->article_qty,$this->decimalPlaces);

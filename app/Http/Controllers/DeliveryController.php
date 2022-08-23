@@ -6,20 +6,24 @@ use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Crypt;
 use Response;
 use App\Permission;
 use DataTables;
 use DB;
 use PDF;
 use AppHelpers;
+use Approval;
 
 class DeliveryController extends Controller
 {
 
     private $title;
+    private $moduleCode;
     public function __construct()
     {
         $this->title = "Delivery";
+        $this->moduleCode = "DN";
     }
 
     public function index(Request $request)
@@ -37,7 +41,8 @@ class DeliveryController extends Controller
         // 3. Posting
         // 4. Cancel
 
-        $data['status'] = ['1'=>'Draft','2'=>'Update','3'=>'Posting','4'=>'Cancel'];
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCLED','7'=>'REVISED'];
+        $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCLED','7'=>'REVISED'];
             
         return view("delivery.index",$data);
     }
@@ -80,16 +85,14 @@ class DeliveryController extends Controller
     public function soDetail(Request $request)
     {
         $so = $request->value;
-        $data = DB::select("SELECT * ,
-                round(qty) as qty_so,
-                a.article_code,
-                article_alternative_code,
-                article_desc
-                from sales_order_det a
-                left join uom on uom.code=a.uom
-                left join article on article.article_code = a.article_code
-                where so_code = '$so'
-                ");
+        $data = DB::table('sales_order_det')
+        ->leftJoin('article','article.article_code','=','sales_order_det.article_code')
+        ->leftJoin('sales_order_hdr','sales_order_hdr.so_code','=','sales_order_det.so_code')
+        ->leftJoin('uom','sales_order_det.uom','uom.code')
+        ->select('sales_order_det.*','article.*','sales_order_hdr.po_number')
+        ->where('sales_order_det.so_code',$so)
+        ->orderBy('sales_order_det.id')
+        ->get();
 
         return response()->json($data);
     }
@@ -101,16 +104,13 @@ class DeliveryController extends Controller
         $dnDate = $request->dnDate;
         $customer = $request->customer;
         $soNumber = $request->soNumber;
+        $poNumber = $request->poNumber;
         $note = $request->note;
         $status = '1';
         $gudang = 'false';
         $kurs = 1;
 
-        // status
-        // 1. Draft
-        // 2. Update
-        // 3. Posting
-        // 4. Cancel
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCLED','7'=>'REVISED'];
 
         $messages = [
             'required' => 'The field is required.',
@@ -142,8 +142,8 @@ class DeliveryController extends Controller
             $alert ="error";
             return response()->json(array('status' => 0,'title' => $title, 'message' => $error_array,'alert' =>$alert));
         }else{
-            $hasilUpdate = AppHelpers::resetCode('DN');
-            $dnCode = $this->getLastCode('DN');
+            $hasilUpdate = AppHelpers::resetCode($this->moduleCode);
+            $dnCode = $this->getLastCode($this->moduleCode);
             DB::beginTransaction();
             try {
                     DB::table('delivery_hdr')->insert([
@@ -151,7 +151,7 @@ class DeliveryController extends Controller
                         'delivery_date' => $dnDate,
                         'customer_id' => $customer,
                         'so_number' => $soNumber,
-                        'po_number' => '',
+                        'po_number' => $poNumber,
                         'status' => $status,
                         'note' =>  $note,
                         'created_by' => Auth::user()->username,
@@ -166,6 +166,7 @@ class DeliveryController extends Controller
                             'delivery_number' => $dnCode,
                             'article_code' => $val->article_code,
                             'so_number' => $val->so_number,
+                            'po_number' => $val->po_number,
                             'qty' => $val->qty,
                             'uom' => $val->uom,
                             'created_by' => Auth::user()->username,
@@ -195,7 +196,8 @@ class DeliveryController extends Controller
 
     public function show(Request $request)
     {
-        $id=$request->id;
+        $username =  Auth::user()->username; 
+        $id=Crypt::decryptString($request->id);
         $data['title'] = "Detail $this->title";
         $data['subtitle'] = "Detail $this->title";
 
@@ -203,12 +205,12 @@ class DeliveryController extends Controller
         ->where('id',$id)
         ->get()->first();
 
-        $deliveryNumber = $data['header']->delivery_number;
+        $dnNumber = $data['header']->delivery_number;
 
         $data['detail'] = DB::table('delivery_det')
         ->leftJoin('article','article.article_code','=','delivery_det.article_code')
         ->leftJoin('uom','delivery_det.uom','uom.code')
-        ->where('delivery_det.delivery_number',$deliveryNumber)
+        ->where('delivery_det.delivery_number',$dnNumber)
         ->orderBy('delivery_det.id')
         ->get();
 
@@ -221,7 +223,11 @@ class DeliveryController extends Controller
         ->orderBy('name')
         ->get();
 
-        $statusDel = ['Draft','Update','Posting','Cancel'];
+        $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode,$dnNumber,$username);
+        $data['approveValidate'] = Approval::approveValidate($this->moduleCode,$dnNumber,$username);
+
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCLED','7'=>'REVISED'];
+        $statusDel = ['NEW','VALIDATE','APPROVED','POSTED','CANCELED','','REVISED'];
         $data['statusDel'] = $statusDel[$data['header']->status-1];
 
         return view("delivery.show",$data);
@@ -230,7 +236,9 @@ class DeliveryController extends Controller
 
     public function edit(Request $request)
     {
-        $id=$request->id;
+        $username =  Auth::user()->username;       
+        $id=Crypt::decryptString($request->id);
+
         $data['title'] = "Edit $this->title";
         $data['subtitle'] = "Edit $this->title";
 
@@ -238,12 +246,12 @@ class DeliveryController extends Controller
         ->where('id',$id)
         ->get()->first();
 
-        $deliveryNumber = $data['header']->delivery_number;
+        $dnNumber = $data['header']->delivery_number;
 
         $data['detail'] = DB::table('delivery_det')
         ->leftJoin('article','article.article_code','=','delivery_det.article_code')
         ->leftJoin('uom','delivery_det.uom','uom.code')
-        ->where('delivery_det.delivery_number',$deliveryNumber)
+        ->where('delivery_det.delivery_number',$dnNumber)
         ->orderBy('delivery_det.id')
         ->get();
 
@@ -256,24 +264,28 @@ class DeliveryController extends Controller
         ->orderBy('name')
         ->get();
 
-        $statusDel = ['Draft','Update','Posting','Cancel'];
+        $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode,$dnNumber,$username);
+        $data['approveValidate'] = Approval::approveValidate($this->moduleCode,$dnNumber,$username);
+
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCLED','7'=>'REVISED'];
+        $statusDel = ['NEW','VALIDATE','APPROVED','POSTED','CANCELED','','REVISED'];
         $data['statusDel'] = $statusDel[$data['header']->status-1];
 
-        return view("delivery.edit",$data);
-        
+        return view("delivery.edit",$data);        
     }
 
     public function update(Request $request)
     {
-        $username =  Auth::user()->username;
+        $username =  Auth::user()->username;       
+        // $id=Crypt::decryptString($request->id);
         $articles = json_decode($request -> articles);
         $dnDate=$request->dnDate;
         $customer=$request->customer;
         $soNumber=$request->soNumber;
+        $poNumber = $request->poNumber;
         $dnNumber=$request->dnNumber;
         $note=$request->note;
         $status = '2';
-        $poNumber =""; //ini nanti hapus
         
         // status
         // 1. Draft
@@ -296,7 +308,7 @@ class DeliveryController extends Controller
         });
         
         $validation = Validator::make($request->all(),$messages = [
-            // 'dnNumber'=>'required|iunique:receiving_hdr,inv_number,po_number',
+            // 'dnNumber'=>'required|iunique:delivery_hdr,inv_number,po_number',
             'dnDate'  => 'required',
             'dnNumber'  => 'required',
             // 'supplier'  => 'required',
@@ -322,7 +334,7 @@ class DeliveryController extends Controller
                         'delivery_date' => $dnDate,
                         'customer_id' => $customer,
                         'so_number' => $soNumber,
-                        'po_number' => '',
+                        'po_number' => $poNumber,
                         'status' => $status,
                         'note' =>  $note,
                         'updated_by' => Auth::user()->username,
@@ -353,6 +365,7 @@ class DeliveryController extends Controller
                                 'delivery_number' => $dnNumber,
                                 'article_code' => $val->article_code,
                                 'so_number' => $val->so_number,
+                                'po_number' => $val->po_number,
                                 'qty' => $val->qty,
                                 'uom' => $val->uom,
                                 'updated_by' => Auth::user()->username,
@@ -378,102 +391,189 @@ class DeliveryController extends Controller
         }
     }
 
-    // public function posting(Request $request)
-    // {
-    //     // status
-    //     // 1. Draft
-    //     // 2. Update
-    //     // 3. Posting
-    //     // 4. Cancel
+    public function approve(Request $request)
+    {
+        $username =  Auth::user()->username;
+        $dnNumber = $request->dnNumber;
+        $statusLevelApproval = Approval::approvalLevelPosition($this->moduleCode,$dnNumber,$username);        
+        $nextLevel = $statusLevelApproval[0]->next_level;
+        $statusDel = $statusLevelApproval[0]->next_level == $statusLevelApproval[0]->max_level ? '3' :'2';
+                
+        DB::beginTransaction();
+        try {
+                $row_affected=DB::table('delivery_hdr')
+                ->where('delivery_number',$dnNumber)
+                ->update(
+                    [
+                        'status' => $statusDel,
+                        'updated_by' => Auth::user()->username,
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]
+                );
 
-    //     $username =  Auth::user()->username;
-    //     $recNumber = $request->recNumber;
-    //     $recType = "NORMAL";
-    //     $statusRec ="Posting";
-    //     $status = '3';
-    //     $authorizedBy = Auth::user()->username;
+                if ($row_affected){
+                    DB::table('approval_history')->insert([
+                        'module_code' => $this->moduleCode,
+                        'module_number' => $dnNumber,
+                        'username' => Auth::user()->username,
+                        'approval_order' => $nextLevel,
+                        'approval_date' => date('Y-m-d'),
+                        'status' => 1,
+                        'created_by' => Auth::user()->username,
+                        'updated_by' => Auth::user()->username,
+                        'created_at' => date('Y-m-d H:i:s'),
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]);
+                }
+                
+                DB::commit();
+                $title ="Approve $this->title";
+                $alert  ="success";
+                $message  = "$title $dnNumber is successfully Approve-".$nextLevel;
+                \LogActivity::addToLog($title,"username: $username Status $message");
+                return response()->json(array('statusPo' => $statusDel,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'dnNumber'=>$dnNumber));
 
-    //     // Update stock kalo article nya udah ada
-    //     $sqlUpdate = "UPDATE article_stock a set article_qty = COALESCE(a.article_qty,0)  + COALESCE(b.qty,0)
-    //     from (
-    //     select art_code, (qty*factor_qty)+(qty_free*factor_free) as qty from 
-    //     (
-    //         select *,article.article_code as art_code,(select unit_factor from uom_con where unit_from = o.uom_rec and unit_to = article.uom) as factor_qty,(select unit_factor from uom_con where unit_from = o.uom_free and unit_to = article.uom) as factor_free  from (
-    //         select * from receiving_det where rec_number in (
-    //         select rec_number from receiving_hdr where rec_number = '$recNumber' and (status != '3' and status != '4'))) o
-    //         left join article on article.article_code = o.article_code
-    //     ) c
-    //     ) b
-    //     where a.article_code=b.art_code";
+        } catch (Exception $e) {
+            DB::rollBack();
+            $title ="Approve $this->title";
+            $alert  ="warning";
+            $message  = "$title $dnNumber is failed to Approve-".$nextLevel;
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return response()->json(array('statusPo' => $statusDel,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'dnNumber'=>$dnNumber));
+        }
+    }
 
-    //     //Insert ke stock kalo article nya belum ada
-    //     $sqlInsert = "INSERT into article_stock (site_code,article_code,dept_code,location_number,article_qty,uom)
-    //     select 'HO',art_code,article_type,'00',(qty*factor_qty)+(qty_free*factor_free) as qty,uom from 
-    //     (
-    //         select *,article.article_code as art_code,(select unit_factor from uom_con where unit_from = z.uom_rec and unit_to = article.uom) as factor_qty,(select unit_factor from uom_con where unit_from = z.uom_free and unit_to = article.uom) as factor_free  from (
-    //         select * from receiving_det where rec_number in (
-    //         select rec_number from receiving_hdr where rec_number = '$recNumber' and (status != '3' and status != '4'))) z
-    //         left join article on article.article_code = z.article_code
-    //         where article.article_code not in (select article_code from article_stock)
-    //     ) y";
+    public function posting(Request $request)
+    {
 
-    //     //Insert into table movement
-    //     $sqlMovement = "INSERT into movement
-    //     (movement_date,artikel_code,artikel_desc,movement_min,movement_plus,movement_price,movement_transnno,movement_type,movement_desc)
-    //     select 
-    //     now()::timestamp::date,
-    //     article_code,
-    //     (select concat(article_alternative_code,'-',article_desc) from article where article_code = a.article_code) as article_desc,
-    //     0,
-    //     qty,
-    //     price,
-    //     rec_number,
-    //     'REC',
-    //     (select po_number from receiving_hdr where rec_number=a.rec_number) as po from receiving_det a where rec_number in (
-    //     select rec_number from receiving_hdr where rec_number = '$recNumber' and status = '3' and qty <> 0)";
-    
-    //     DB::select($sqlUpdate);
-    //     $rowAffected = DB::select($sqlInsert);
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','7'=>'REVISED'];
+
+        $username =  Auth::user()->username;
+        $id=Crypt::decryptString($request->id);
+        $dnNumber = DB::table('delivery_hdr')->where('id',$id)->where('status','=','3')->value('delivery_number');
+        $recType = "NORMAL";
+        $siteCode = 'HO';
+        $location ='WH';
+        $status = '4';
+        $moduleCode = $this->moduleCode;
         
-    //     if ($rowAffected > 0){
-    //         DB::table('receiving_hdr')
-    //         ->where('rec_number',$recNumber)
-    //         ->update(
-    //             [   
-    //                 'status' => $status,
-    //                 'authorized_by' => $authorizedBy,
-    //                 'authorized_at' => date('Y-m-d H:i:s'),
-    //                 'updated_by' => Auth::user()->username,
-    //                 'updated_at' => date('Y-m-d H:i:s')
-    //             ]
-    //         );
+        if ($dnNumber){
+            $data = DB::table('delivery_det')
+            ->leftJoin('delivery_hdr','delivery_hdr.delivery_number','delivery_det.delivery_number')
+            ->leftJoin('article','article.article_code','delivery_det.article_code')
+            ->where('delivery_det.delivery_number',$dnNumber)
+            ->where('delivery_hdr.status','3')
+            ->select('delivery_det.*'
+            ,'article.article_type'
+            ,'article.uom as uom_article'
+            ,DB::RAW("(delivery_det.qty*uom_conversion(delivery_det.uom,article.uom)) as total_qty")
+            )->get();
 
-    //         DB::select($sqlMovement);
+            foreach($data as $val){
+                //insert article code kalo belum ada di tabel item_stock
+                DB::table('article_stock')
+                ->updateOrInsert(
+                    [ 'site_code' =>$siteCode,
+                      'article_code' => $val->article_code,
+                      'location_number'=> $location
+                    ],
+                    [
+                      'dept_code'=>$val->article_type,
+                      'uom'=>$val->uom_article,
+                    ]
+                );
 
-    //         DB::commit();
-    //         $alert  ="alert-success";
-    //         $message  = "Posting Rec $recNumber Successfully Posting";
-    //         \LogActivity::addToLog('Posting Rec ',"username: $username Status $message");
-    //         return response()->json(array('statusRec' => $statusRec,'status' => 1, 'message' => $message,'alert'=>$alert,'recNumber'=>$recNumber));
-    //     }else{
-    //         $alert  ="alert-warning";
-    //         $message  = "Posting Rec $recNumber Failed to Posting";
-    //         \LogActivity::addToLog('Posting Rec ',"username: $username Status $message");
-    //         return response()->json(array('statusRec' => $statusRec,'status' => 1, 'message' => $message,'alert'=>$alert,'recNumber'=>$recNumber));
-    //     }
-    // }
+                //update qty nya ditambahkan dengan qty baru
+                $rowAffected = DB::table('article_stock')
+                ->where('site_code',$siteCode)
+                ->where('article_code',$val->article_code)
+                ->where('location_number',$location)
+                ->update([
+                    'article_qty' => DB::raw('coalesce(article_qty,0) - '.$val->total_qty)
+                ]);
+            }
+                    
+            if ($rowAffected > 0){
+                DB::table('delivery_hdr')
+                ->where('delivery_number',$dnNumber)
+                ->update(
+                    [   
+                        'status' => $status,
+                        'updated_by' => Auth::user()->username,
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]
+                );
+
+                $movements = DB::table('delivery_det')
+                ->leftJoin('delivery_hdr','delivery_hdr.delivery_number','delivery_det.delivery_number')
+                ->leftJoin('article','article.article_code','delivery_det.article_code')
+                ->where('delivery_det.delivery_number',$dnNumber)
+                ->where('delivery_hdr.status','4')
+                ->where('qty', '<>', 0)
+                ->select(
+                    DB::RAW("now()::timestamp::date as movement_date" )
+                    ,'delivery_det.article_code'
+                    ,'article.article_desc'
+                    ,DB::raw("0 as movement_plus")
+                    ,DB::RAW("(uom_conversion(delivery_det.uom,article.uom)*delivery_det.qty) as movement_min")
+                    ,DB::raw("0 as movement_price ")
+                    ,'delivery_hdr.delivery_number as movement_transnno'
+                    ,DB::raw("'$moduleCode' as movement_type")
+                    ,'delivery_hdr.delivery_number as movement_desc'
+                )
+                ->get();
+                
+                $dataSetMovement = [];
+                foreach ($movements as $val) {
+                    $dataSetMovement[] = [
+                        'movement_date' => $val->movement_date,
+                        'artikel_code' => $val->article_code,
+                        'artikel_desc' => $val->article_desc,
+                        'movement_min' => $val->movement_min,
+                        'movement_plus' => $val->movement_plus,
+                        'movement_price' => $val->movement_price,
+                        'movement_transnno' => $val->movement_transnno,
+                        'movement_type' => $val->movement_type,
+                        'movement_desc' => $val->movement_desc,
+                        'created_by' => Auth::user()->username,
+                        'created_at' => date('Y-m-d H:i:s'),
+                        'site_code' => $siteCode,
+                        'location_number' => $location
+                    ];
+                }
+
+                DB::table('movement')->insert($dataSetMovement);
+
+                DB::commit();
+                $title ="Posting $this->title";
+                $alert  ="success";
+                $message  = "$title $dnNumber Successfully Posted";
+                \LogActivity::addToLog($title,"username: $username Status $message");
+                return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);
+            }else{
+                $title ="Posting $this->title";
+                $alert  ="warning";
+                $message  = "$title $dnNumber Failed to Posting";
+                \LogActivity::addToLog($title,"username: $username Status $message");
+                return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);
+            }
+        }else{
+            $title ="Posting $this->title";
+            $alert  ="warning";
+            $message  = "$title $dnNumber Failed to Posting";
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);
+        }
+    }
 
     public function destroy(Request $request)
     {
-        // status
-        // 1. Draft
-        // 2. Update
-        // 3. Posting
-        // 4. Cancel
+       
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED'];
 
         $username =  Auth::user()->username;       
-        $id = $request->id;
-        $status = "4";
+        $id=Crypt::decryptString($request->id);
+        $status = "5";
 
         $poHdr= DB::table('delivery_hdr')
         ->where('id',$id)
@@ -523,12 +623,6 @@ class DeliveryController extends Controller
 
     public function list(Request $request)
     {
-        // status:
-        // 1. Draft
-        // 2. Update
-        // 3. Posting
-        // 4. Cancel
-
         $searchInv = strtolower($request->searchInv);
         $searchSo = strtolower($request->searchSo);
         $searchCustomer = $request->searchCustomer; 
@@ -548,22 +642,49 @@ class DeliveryController extends Controller
                                 <i data-feather="menu"></i>
                             </a>';
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
+            
             if (($data->status != '3') && ($data->status != '4')){
                 if (Auth::user()->can('receiving-edit')) {
-                $buttons .=         '<a href="'. route('delivery.edit', ['id'=>$data->id]) .'" class="dropdown-item">
+                $buttons .=         '<a href="'. route('delivery.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                         <i data-feather="file-text"></i>
                                         Edit
                                     </a>';
                 }
             }
+
+            if (($data->status != '3') && ($data->status != '4')){
+                if (Auth::user()->can('receiving-edit')) {
+                $buttons .=         '<a href="'. route('delivery.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+                                        <i data-feather="file-text"></i>
+                                        Approve
+                                    </a>';
+                }
+            }
+
+            if ( $data->status == '3' ) {                
+                if (Auth::user()->can('receiving-posting')) {
+                    $buttons .="<a href='javascript:;'
+                    class='dropdown-item' 
+                    data-size='sm'
+                    data-ajax-delete='true'
+                    data-confirm='Are You Sure want to post This number?' 
+                    data-confirm-yes='document.getElementById(\""."delete-form-".$data->id."\").submit();'
+                    data-modal-id='".$data->id."'
+                    data-url='". route('delivery.posting', ['id'=>Crypt::encryptString($data->id)]) ."'>
+                    <i data-feather='check' class='feather-14-red'></i>
+                    <span>". __('Posting') ."</span>
+                    </a>";
+                }   
+            }
+
             // if ($data->status == '3'){
-                $buttons .=         '<a href="'. route('delivery.print', ['id'=>$data->id]) .'" target="_blank" class="dropdown-item">
+                $buttons .=         '<a href="'. route('delivery.print', ['id'=>Crypt::encryptString($data->id)]) .'" target="_blank" class="dropdown-item">
                                         <i data-feather="printer"></i>
                                         Print
                                     </a>';
 
             // }
-            $buttons .=         '<a href="'. route('delivery.show', ['id'=>$data->id]) .'" class="dropdown-item">
+            $buttons .=         '<a href="'. route('delivery.show', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                     <i data-feather="list"></i>
                                     Detail
                                 </a>';
@@ -575,7 +696,7 @@ class DeliveryController extends Controller
                                         class='dropdown-item'
                                         data-toggle='modal'
                                         data-target='#smallModalCancel'
-                                        data-href='". route("delivery.destroy", ["id"=>$data->id]) ."'>
+                                        data-href='". route("delivery.destroy",  ['id'=>Crypt::encryptString($data->id)]) ."'>
                                         <i data-feather='trash-2'></i>
                                         Cancel
                                     </a>";
@@ -586,17 +707,27 @@ class DeliveryController extends Controller
 
             return $buttons;
             })
-        ->addColumn('status', function ($data) {
-            $statusRec = ['Draft','Update','Posting','Cancel'];
-            return $statusRec[$data->status - 1];
+
+        ->addColumn('delivery_number', function ($data) {
+            $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-danger'];            
+            $statusDel = ['NEW','VALIDATE','APPROVED','POSTED','CANCELED'];
+             // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED'];
+            return '<span style="display: none;">'.$data->delivery_number.'</span><a class="text-left badge d-block '.$badges[$data->status - 1].'" name="'.$data->delivery_number.'" href="'. route('delivery.show', ['id'=>Crypt::encryptString($data->id)]) .'" ><span>'.$data->delivery_number.'</span></a>';
         })
-        ->rawColumns(['action','status'])
+
+        ->addColumn('status', function ($data) {
+            $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-danger'];            
+            $statusDel = ['NEW','VALIDATE','APPROVED','POSTED','CANCELED'];
+            return "<div class='badge ".$badges[$data->status - 1]."'>".$statusDel[$data->status - 1]."</div>";
+        })
+
+        ->rawColumns(['action','status','delivery_number'])
         ->make(true);
     }
 
     public function print(Request $request)
     {
-        $id = $request -> id;
+        $id=Crypt::decryptString($request->id);
 
         $data['companies']= array(
             "nama"=> "PT ABIMANYU SEKAR NUSANTARA",
@@ -604,23 +735,20 @@ class DeliveryController extends Controller
             "kota" => "KEC. BUNGURSARI KAB. PURWAKARTA JAWA BARAT",
             "tlp" =>  ""
         );
-        
-        $data['suppliers']=array(
-            'nama'=>'PT ABIMANYU SEKAR NUSANTARA',
-            'alamat'=>'KP. KARANG MULYA RT 014 RW 005 DESA CIKOPO',
-            'kota' =>'KEC. BUNGURSARI KAB. PURWAKARTA JAWA BARAT',
-            'tlp' => ''
-        );
-        
+                
         $dnHdr=DB::table('delivery_hdr')
         ->where('id',$id)
         ->first();
 
-        $data['recHdr']=DB::table('delivery_hdr')
+        $data['dnHdr']=DB::table('delivery_hdr')
         ->where('id',$id)
         ->first();
 
         $dnNumber=$dnHdr -> delivery_number;
+        $data['title'] =$dnNumber;
+
+        $statusDel = ['NEW','VALIDATE','APPROVED','','','PAID','REVISED'];
+        $data['statusDel'] = $statusDel[$data['dnHdr']->status-1];
        
         $data['details']=DB::table('delivery_det')
         ->leftJoin('article','article.article_code','delivery_det.article_code')
@@ -654,7 +782,7 @@ class DeliveryController extends Controller
 
     public function listSo(Request $request)
     {
-        $cust= $request->value;      
+        $cust= $request->value;
         $output="";
 
         $data= DB::table("sales_order_hdr") 
@@ -666,7 +794,7 @@ class DeliveryController extends Controller
 
         $output .='<option value=""></option>';            
         foreach ($data as $row){
-            $output .='<option value="'.$row->so_code.'">'.$row->so_code. ' - ' .$row->po_number.'</option>';            
+            $output .='<option value="'.$row->so_code.'" data-po-number="'.$row->po_number.'">'.$row->so_code. ' - ' .$row->po_number.'</option>';            
         }        
         
         return $output;

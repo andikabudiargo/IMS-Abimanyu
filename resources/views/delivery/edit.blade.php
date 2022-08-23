@@ -41,7 +41,7 @@
                                 </div>
                                 <div class="form-group col-md-4">
                                     <label class="form-label" for="soNumber">SO Number*</label>
-                                    <input type="text" id="soNumber" name="soNumber" class="form-control" value="{{ $header->so_number }}" required />
+                                    <input type="text" id="soNumber" name="soNumber" class="form-control" value="{{ $header->so_number }}" data-po-number="{{ $header->po_number }}" required />
                                 </div>
                             </div>
                             <div class="form-row">
@@ -88,29 +88,63 @@
                     </div>
                     <hr>
                     <div class="form-row">
-                        <div class="col-12">
+                        <div class="col-md-12">
                             <div class="form-row">
-                                <div class="col-12">
-                                    <a href="{{ route('delivery.index') }}" class="btn btn-success">Back</a>
-                                    @if( $header->status != '3' && $header->status != '4')
-                                        @can('receiving-delete')
-                                            <a href='javascript:;'
-                                                id='deleteButton'
-                                                class='btn btn-warning'
-                                                data-toggle='modal'
-                                                data-target='#smallModalCancel'
-                                                data-href='{{ route("delivery.destroy", ["id"=>$header->id]) }}'>
-                                                Cancel
-                                            </a>
-                                        @endcan
-                                        <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Update</button>
-                                        {{-- @can('receiving-posting')
-                                            <button class="btn btn-primary" type="button" id="cmdPosting" name="cmdPosting">Posting</button>
-                                        @endcan --}}
+                                <div class="col-md-12">
+                                    <a href="{{ route('delivery.index') }}" class="btn btn-warning">Back</a>
+                                    @if( $approveValidate ? $approveValidate[0]->validate : '')
+                                        <input type="text" id ="approveLevel" name ="approveLevel" class="d-none" value="{{ $approveValidate[0]->next_level }}">
+                                        <input type="text" id ="maxLevel" name ="maxLevel" class="d-none" value="{{ $approveValidate[0]->max_level }}">
+                                        <button class="btn btn-success" type="button" id="cmdApprove" name="cmdApprove">Approve</button>
+                                        @if( $statusDel =='NEW')
+                                            <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave" >Update</button>
+                                        @endif
+                                    @else
+                                        @if( !$approveValidate && $statusDel =='NEW')
+                                            <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave" >Update</button>
+                                        @endif
                                     @endif
                                 </div>
                             </div>
                         </div>
+                    </div>
+                    <hr>
+                    <div class="form-row card-statistics">
+                        @foreach($approvalHistory as $val)
+                            @if($val->status == true)
+                                <div class="statistics-body">
+                                    <div class="col-xl-3 col-sm-6 col-12 mb-2 mb-xl-0">
+                                        <div class="media">
+                                            <div class="avatar bg-light-{{ $val->statusapprove == 1 ? 'success':'warning' }} mr-2">
+                                                <div class="avatar-content">
+                                                    <i data-feather="{{ $val->statusapprove == 1 ? 'check':'x' }}" class="avatar-icon"></i>
+                                                </div>
+                                            </div>
+                                            <div class="media-body my-auto">
+                                                <h4 class="font-weight-bolder mb-0">{{ $val->statusapprove == 1 ? 'Approve':'Decline' }}-{{ $val->approval_order }}</h4>
+                                                <p class="card-text mb-0">{{ $val->name }}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            @else
+                                <div class="statistics-body">
+                                    <div class="col-xl-3 col-sm-6 col-12 mb-2 mb-xl-0">
+                                        <div class="media">
+                                            <div class="avatar bg-light-danger mr-2">
+                                                <div class="avatar-content">
+                                                    <i data-feather="x" class="avatar-icon"></i>
+                                                </div>
+                                            </div>
+                                            <div class="media-body my-auto">
+                                                <h4 class="font-weight-bolder mb-0">Approve-{{ $val->approval_order }}</h4>
+                                                <p class="card-text mb-0">{{ $val->petugas }}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endif
+                        @endforeach
                     </div>
                 </div>
             </div>
@@ -171,7 +205,46 @@
 @endsection
 @section('scripts')
 <script type="text/javascript">
-    let currentDate = todayDate('dd-mm-yyyy');  
+    let currentDate = todayDate('dd-mm-yyyy');
+    const approveBtn = document.querySelector('#cmdApprove');
+
+    if (approveBtn) {
+        approveBtn.addEventListener('click',() =>{
+            let dnNumber = $('#dnNumber').val();
+            approve(dnNumber,'cmdApprove');
+        },{ once:true});
+    }
+
+    approve = (dnNumber,objButton) => {
+        $('#'+objButton).attr('disabled','disabled');
+        $.ajax({
+            type: "POST",
+            url: "{{ route('delivery.approve') }}",
+            data: {
+                dnNumber:dnNumber
+            },
+            dataType: "json",
+            success: function(data) {
+                if (data.status == 0 ){
+                    let message="";
+                    for(let i = 0; i < data.message.length; i++) {
+                        show_msg(data.title, data.message[i], data.alert);
+                    }
+                    $('#dnNumber').attr('disabled','disabled');
+                }else{
+                    show_msg(data.title, data.message, data.alert);
+                    $('#dnNumber').attr('disabled','disabled');
+                    $('#cmdApprove').attr('disabled','disabled');
+                    $('#addNewRow').attr('disabled','disabled');      
+                    window.location.reload();                 
+                }
+            },
+            error: function(error) {
+                console.log(error);
+            }
+        });
+    }
+
     $(document).ready(function(){    
         validateFormToast("frmAdd");
         let href;
@@ -190,7 +263,8 @@
             uomGroup =  detail[i].uom_group;
             uom = detail[i].uom;
             soCode = detail[i].so_number;
-            add_new_row(article,articleCode,articleDesc,qtyDel,uomGroup,uom,soCode);
+            poNumber = detail[i].po_number;
+            add_new_row(article,articleCode,articleDesc,qtyDel,uomGroup,uom,soCode,poNumber);
         }
     });
 
@@ -228,6 +302,7 @@
                     let articleDesc = $this.data("desc");
                     let articleUom = $this.data("uom");
                     let articleSoCode = $this.data("so-code");
+                    let poNumber = $this.data("po-number");
                     let qty=objQty.eq(i).val().replace(/,/gi, '') || 0;
                     
                     if ((articleCode!=='') && (qty> 0)){
@@ -235,7 +310,8 @@
                             "article_code":articleCode,
                             "qty":qty,
                             "uom":articleUom,
-                            "so_number":articleSoCode
+                            "so_number":articleSoCode,
+                            "po_number":poNumber
                         });
                     }
                     // if (qty == 0){
@@ -253,8 +329,9 @@
             if (flag==0){
 
                 let dnDate = $('#dnDate').val();
-                let customer = $('#customer').val()
-                let soNumber = $('#soNumber').val()
+                let customer = $('#customer').val();
+                let soNumber = $('#soNumber').val();
+                let poNumber = $('#soNumber').data("po-number");
                 let note = $('#note').val();
                 let dnNumber = $('#dnNumber').val();
 
@@ -266,6 +343,7 @@
                         dnDate:dnDate,
                         customer:customer,
                         soNumber:soNumber,
+                        poNumber:poNumber,
                         dnNumber:dnNumber,
                         note:note
                     },
@@ -293,53 +371,9 @@
             }
         }
     });
-
-    // $("#cmdPosting").click(function(){
-    //     let objQty= $('input[name="qtyInv[]"]');
-    //     let objUom= $('select[name="uom[]"]');       
-    //     let dnNumber = $('#dnNumber').val();            
-    //     $.ajax({
-    //         type: "post",
-    //         url: "{{ route('receiving.posting') }}",
-    //         data: {
-    //             dnNumber:dnNumber
-    //         },
-    //         dataType: "json",
-    //         success: function(data) {
-    //             if (data.status == 0 ){
-    //                 let message="";
-    //                 for(let i = 0; i < data.message.length; i++) {
-    //                     show_msg(data.title, data.message[i], data.alert);
-    //                 }
-    //                 $('#dnNumber').attr('disabled','disabled');
-    //                 $('#cmdSave').show();
-    //                 $('#cmdPosting').hide();
-
-    //             }else{
-    //                 show_msg(data.title, data.message, data.alert);
-
-    //                 // $('#statusText').text(data.statusRec);
-    //                 $('#cmdSave').hide();
-    //                 $('#deleteButton').hide();
-    //                 $('#cmdPosting').hide();
-    //                 $('#dnNumber').attr('disabled','disabled');
-    //                 $('#soNumber').attr('disabled','disabled');
-    //                 $('#customer').attr('disabled','disabled');
-    //                 $('#dnDate').attr('disabled','disabled');
-    //                 objQty.attr('disabled','disabled');
-    //                 objUom.attr('disabled','disabled');
-                    
-    //             }
-    //         },
-    //         error: function(error) {
-    //             console.log(error);
-    //         }
-    //     });
-             
-    // });
-    
+        
     let cloneCount=0;
-    function add_new_row(article,articleCode,articleDesc,qtyDel,uomGroup,uom,soCode) {
+    function add_new_row(article,articleCode,articleDesc,qtyDel,uomGroup,uom,soCode,poNumber) {
         // console.log(article,articleCode,articleDesc,qtyDel,uomGroup,uom);
         $("#article_row").append($("#new_row").clone().html());
         cloneCount++;
@@ -348,6 +382,7 @@
         $('#articleId'+ cloneCount).attr('data-code', article);
         $('#articleId'+ cloneCount).attr('data-uom', uom);
         $('#articleId'+ cloneCount).attr('data-so-code', soCode);
+        $('#articleId'+ cloneCount).attr('data-po-number', poNumber);
         $('#articleId'+ cloneCount).val(articleCode +" - " + articleDesc);
         $("#new_row"+ cloneCount).find('#qtyInv').attr('id', 'qtyInv'+ cloneCount);
         $('#qtyInv'+ cloneCount).val(qtyDel);
@@ -413,27 +448,7 @@
         $("#totalQTY").val(humanizeNumber(totalQty));
     }
 
-    // function tombolPanah(objname){
-    //     // function kalo mau pindah filed dari atas ke bawah atau sebaliknya
-    //     let obj = $('input[name="'+objname+'[]"]');
-    //     obj.keyup(function(e) {
-    //         indexnya= obj.index(this);
-    //         indexnya=parseInt(indexnya);
-    //         if (e.keyCode == 38) {
-    //             //panah atas
-    //             indexTarget = indexnya-1;
-    //             obj.eq(indexTarget).focus().select();
-    //             return false;
-    //         }
-    //         if (e.keyCode == 40) {
-    //             //panah bawah
-    //             indexTarget = indexnya+1;
-    //             obj.eq(indexTarget).focus().select();
-    //             return false;
-    //         }
-    //     });
-    // }
-    
+        
     $.ajaxSetup({
         headers: {
             'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')

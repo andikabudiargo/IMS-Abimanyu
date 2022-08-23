@@ -79,3 +79,174 @@
     </div>
 </div>
 {{-- \.table row --}} 
+
+<script type="text/javascript">
+    const customer = $('#customer');
+    const soNumber = $('#soNumber');
+    const dnNumber = $('#dnNumber');
+
+    customer.change(function(){
+        searchSo('soNumber',$(this).val());
+    });
+    
+    function searchSo(obj,value,triggerVal) {
+      $.ajax({
+        url:"{{ route('invoice.list.so') }}",
+        method:"GET",
+        data:{
+            value:value,
+        },
+        success:function(result){
+            $('#'+obj).html(result);
+            $('#'+obj).val(triggerVal).trigger('change');
+        },
+        error: function (response) {
+            //Error here
+            Swal.fire("Warning","Get list PO failed","warning");
+        }
+      })
+    }
+
+    function searchDn(obj,value,triggerVal) {
+        $.ajax({
+            url:"{{ route('invoice.list.dn') }}",
+            method:"GET",
+            data:{
+                value:value,
+            },
+            success:function(result){
+                $('#'+obj).html(result);
+                $('#'+obj).val(triggerVal).trigger('change');
+            },
+            error: function (response) {
+                //Error here
+                Swal.fire("Warning","Get list DN failed","warning");
+            }
+        })
+    }
+
+    function searchDnDet(dnNumber,soNumber) {
+        $.ajax({
+            url:"{{ route('invoice.dn.det') }}",
+            method:"GET",
+            data:{
+                soNumber:soNumber,
+                dnNumber:dnNumber
+            },
+            success:function(result){                
+                if(result.length > 0 ){
+                    for (let i = 0; i < result.length; i++) {
+                        article=result[i].article_code;
+                        articleCode=result[i].article_alternative_code;
+                        articleDesc=result[i].article_desc;
+                        qtySo=result[i].qty;
+                        uomGroup=result[i].uom_group;
+                        uom=result[i].uom;
+                        price=result[i].price;
+                        priceService=result[i].price_service;
+                        soCode=result[i].so_number;
+                        dnNumber=result[i].delivery_number;
+                        add_new_row(article,articleCode,articleDesc,qtySo,uomGroup,uom,price,priceService,soCode,dnNumber);
+                    }
+                }
+            },
+            error: function (response) {
+                Swal.fire("Warning","Get detail PO failed","warning");
+            }
+        })
+    }
+
+    soNumber.change(function(){
+        searchDn('dnNumber',$(this).val());
+    })
+
+    dnNumber.change(function(){
+        searchDnDet($(this).val(),soNumber.val());
+    })
+
+    function hitungTotal(){
+        let objQtyInv= $('#article_row input[name="qtyInv[]"]');
+        let objPrice= $('#article_row input[name="price[]"]');
+        let objTotal= $('#article_row span[name="totalLine[]"]');
+        let objPriceJasa= $('#article_row input[name="priceJasa[]"]');
+        let objTotalJasa= $('#article_row span[name="totalJasa[]"]');
+        let objSubTotal= $('#article_row span[name="subTotal[]"]');
+                
+        objQtyInv.keyup(function() {
+
+            let indexnya= objQtyInv.index(this);
+            let qty = objQtyInv.eq(indexnya).val().replace(/,/gi, '') || 0; 
+            let price = objPrice.eq(indexnya).val().replace(/,/gi, '') ||0;
+            let priceJasa = objPriceJasa.eq(indexnya).val().replace(/,/gi, '') ||0;
+            let total = qty*price;
+            let totalJasa = qty*priceJasa;
+            objTotal.eq(indexnya).text(humanizeNumber(total));
+            objTotalJasa.eq(indexnya).text(humanizeNumber(totalJasa));
+            objSubTotal.eq(indexnya).text(humanizeNumber(total+totalJasa));
+            hitungGrandTotal();
+
+        });
+
+        objPrice.keyup(function() {
+            let indexnya= objPrice.index(this);
+            let qty = objQtyInv.eq(indexnya).val().replace(/,/gi, '') || 0; 
+            let price = objPrice.eq(indexnya).val().replace(/,/gi, '')||0;
+            let total = qty*price;
+            let priceJasa = objPriceJasa.eq(indexnya).val().replace(/,/gi, '')||0;
+            let totalJasa = qty*priceJasa;
+            objTotal.eq(indexnya).text(humanizeNumber(total));
+            objTotalJasa.eq(indexnya).text(humanizeNumber(totalJasa));
+            objSubTotal.eq(indexnya).text(humanizeNumber(total+totalJasa));
+            hitungGrandTotal();
+        });    
+
+        objPriceJasa.keyup(function() {
+            let indexnya= objPrice.index(this);
+            let qty = objQtyInv.eq(indexnya).val().replace(/,/gi, '') || 0; 
+            let price = objPrice.eq(indexnya).val().replace(/,/gi, '')||0;
+            let total = qty*price;
+            let priceJasa = objPriceJasa.eq(indexnya).val().replace(/,/gi, '')||0;
+            let totalJasa = qty*priceJasa;
+            objTotal.eq(indexnya).text(humanizeNumber(total));
+            objTotalJasa.eq(indexnya).text(humanizeNumber(totalJasa));
+            objSubTotal.eq(indexnya).text(humanizeNumber(total+totalJasa));
+            hitungGrandTotal();
+        });
+
+    }
+
+    function hitungGrandTotal(){
+        let objArticle = $('#article_row select[name="articleId[]"]');
+        let objQtyTiw= $('#article_row input[name="qtyInv[]"]');
+        let objQTY= $('#article_row input[name="qtyInv[]"]');
+        let objPrice= $('#article_row input[name="price[]"]');
+        let objPriceJasa= $('#article_row input[name="priceJasa[]"]');
+        let ppn= $('#ppn').val() || 10;
+        let pph23= $('#pph23').val() || 2;
+        let totalQty= 0;
+        let totalAmount=0
+        let totalAmountJasa=0
+        let totalAmountMaterial=0
+
+        var arr = objQtyTiw.map(function (i) {
+            let qty = parseInt(objQTY.eq(i).val().replace(/,/gi, '')) || 0;
+            let price = parseInt(objPrice.eq(i).val().replace(/,/gi, '')) || 0;
+            let priceJasa = parseInt(objPriceJasa.eq(i).val().replace(/,/gi, '')) || 0;
+            totalQty+= qty;
+            totalAmount+= (qty*price)+(qty*priceJasa);
+            totalAmountMaterial+= (qty*price)+(qty*priceJasa);
+            totalAmountJasa+= (qty*priceJasa);
+        }).get();
+        
+        $("#totalRow").val(objArticle.length);
+        $("#nilaiPPN").text(ppn+"%");
+        $("#nilaiPPH23").text(pph23+"%");
+        $("#totalQTY").val(humanizeNumber(totalQty));
+        $("#totalAmount").val(humanizeNumber(totalAmount));
+        $("#totalPPN").val(humanizeNumber((parseInt(ppn)*totalAmountMaterial)/100));
+        $("#totalPPH").val("-"+humanizeNumber((pph23*totalAmountJasa)/100));
+        $("#totalNetto").val(humanizeNumber(totalAmount+((parseInt(ppn)*totalAmount)/100)-((pph23*totalAmountJasa)/100)));
+    
+    }
+
+</script>

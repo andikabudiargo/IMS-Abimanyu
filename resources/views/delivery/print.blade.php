@@ -2,7 +2,7 @@
 <html lang="en">
     <head>
     <meta charset="UTF-8">
-    <title>INV</title>
+    <title>{{ $title }}</title>
     <style type="text/css">
 
         html { 
@@ -79,7 +79,8 @@
                 <h2>DELIVERY NOTE</h2>
             </td>
             <td style="border: 1px solid #0c0c0c;padding-left:10px">
-                No:<br>{{ $recHdr->delivery_number }}
+                No:<br>{{ $dnHdr->delivery_number }}<br>
+                Status:{{ $statusDel }}
             </td>
         </tr>
     </table>
@@ -91,8 +92,7 @@
                     {{ $customers->alamat_kirim_1 }} <br>
             </td>
             <td width="40%" valign="top" style="border: 1px solid #0c0c0c;padding-left:10px">
-                <strong>PO Number </strong><br>
-                
+                PO Number:<br>{{ $dnHdr->po_number }}
             </td>
         </tr>
     </table>

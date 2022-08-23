@@ -454,7 +454,6 @@ class ReceivingController extends Controller
     {
         $username =  Auth::user()->username;
         $id=Crypt::decryptString($request->id);
-        $status = "5";
         $recNumber = DB::table('receiving_hdr')->where('id',$id)->where('status','=','3')->value('rec_number');
         $recType = "NORMAL";
         $siteCode = 'HO';

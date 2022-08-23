@@ -13,14 +13,17 @@ use DataTables;
 use DB;
 use PDF;
 use AppHelpers;
+use Approval;
 
 class InvoiceController extends Controller
 {
 
     private $title;
+    private $moduleCode;
     public function __construct()
     {
         $this->title = "Invoice";
+        $this->moduleCode = "INV";
     }
 
     public function index(Request $request)
@@ -32,13 +35,9 @@ class InvoiceController extends Controller
         ->orderBy('nama')
         ->get();
 
-        // status
-        // 1. Draft
-        // 2. Update
-        // 3. Posting
-        // 4. Cancel
-
-        $data['status'] = ['1'=>'Draft','2'=>'Update','3'=>'Posting','4'=>'Cancel'];
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'RECEIVED','5'=>'DELETED','6'=>'PAID','7'=>'REVISED','8'=>'DECLINE'];
+        $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','6'=>'PAID','7'=>'REVISED'];
+        // $data['status'] = ['1'=>'Draft','2'=>'Update','3'=>'Posting','4'=>'Cancel'];
             
         return view("invoice.index",$data);
     }
@@ -58,10 +57,10 @@ class InvoiceController extends Controller
         ->value('code_number'); 
         $months = ['I', 'II', 'III','IV','V', 'VI', 'VII', 'VIII','IX','X','XI','XII'];
         $month = $months[date('n')-1];
-        $year = date('Y');
-        $poNumber="$key-ASN/$year/$month/$newCode";
+        $year = date('y');
+        $invNumber="$key/ASN$year/$month/$newCode";
         
-        return $poNumber;
+        return $invNumber;
     }
 
     public function create(Request $request)
@@ -77,43 +76,6 @@ class InvoiceController extends Controller
         return view("invoice.create",$data);
     }
 
-    public function dnDetail(Request $request)
-    {
-        $so = $request->soNumber;
-        $dn = $request->dnNumber;
-        $data = DB::select("SELECT 
-            a.article_code,
-            article_alternative_code,
-            article_desc,
-            a.qty,
-            uom_group,
-            a.uom,
-            price,
-            price_service,
-            so_number,
-            delivery_number
-            from delivery_det a 
-            left join sales_order_det b on b.so_code = a.so_number  and a.article_code = b.article_code
-            left join uom on uom.code=a.uom
-            left join article on article.article_code = a.article_code
-            where 
-            delivery_number = '$dn' 
-            and so_number = '$so'");
-
-        return response()->json($data);
-    }
-
-    // public function dnDetail(Request $request)
-    // {
-    //     $so = $request->value;
-    //     $data['dnHdr']=DB::table('delivery_hdr')
-    //     ->where('so_number',$id)
-    //     ->get();
-
-    //     return response()->json($data);
-    // }
-
-
     public function store(Request $request)
     {
         $username =  Auth::user()->username;
@@ -124,6 +86,8 @@ class InvoiceController extends Controller
         $pph23 = $request->pph23;
         $totalPpn = $request->totalPpn;
         $totalPph = $request->totalPph;
+        $soNumber = $request->soNumber;
+        $dnNumber  = $request->dnNumber;
         $note = $request->note;
         $status = '1';
         $gudang = 'false';
@@ -170,17 +134,17 @@ class InvoiceController extends Controller
             $alert ="error";
             return response()->json(array('status' => 0,'title' => $title, 'message' => $error_array,'alert' =>$alert));
         }else{
-            $hasilUpdate = AppHelpers::resetCode('INV');
-            $invCode = $this->getLastCode('INV');
+            $hasilUpdate = AppHelpers::resetCode($this->moduleCode);
+            $invCode = $this->getLastCode($this->moduleCode);
             DB::beginTransaction();
             try {
                 DB::table('invoice_hdr')->insert([
                     'invoice_number' => $invCode,
                     'invoice_date' => $invDate,
                     'customer_id' => $customer,
-                    'so_number' => '',
+                    'so_number' => $soNumber,
                     'po_number' => '',
-                    'dn_number' => '',
+                    'dn_number' => $dnNumber,
                     'dpp' => 0,
                     'other_admin' => 0 ,
                     'discount' => 0,
@@ -272,6 +236,7 @@ class InvoiceController extends Controller
 
     public function edit(Request $request)
     {
+        $username =  Auth::user()->username;
         $id=Crypt::decryptString($request->id);
         $data['title'] = "Edit $this->title";
         $data['subtitle'] = "Edit $this->title";
@@ -280,28 +245,30 @@ class InvoiceController extends Controller
         ->where('id',$id)
         ->get()->first();
 
-        $data['detail'] = DB::table('receiving_det')
-        ->leftJoin('article','article.article_code','=','receiving_det.article_code')
-        ->leftJoin('uom','receiving_det.uom_rec','uom.code')
-        ->where('receiving_det.rec_number',$data['header']->rec_number)
-        ->orderBy('receiving_det.id')
-        // ->select('receiving_det.article_code')
-        ->get();       
+        $invoiceNumber = $data['header']->invoice_number;
 
-        $data['supps'] = DB::table('third_party')
-        ->where ('third_party_type','=','supp')
+        $data['detail'] = DB::table('invoice_det')
+        ->leftJoin('article','article.article_code','=','invoice_det.article_code')
+        ->leftJoin('uom','uom.code','invoice_det.uom')
+        ->where('invoice_det.invoice_number',$invoiceNumber)
+        ->orderBy('invoice_det.id')
+        ->get();
+
+        // dd($data['detail']);
+
+        $data['customers'] = DB::table('third_party')
+        ->where ('third_party_type','=','cust')
         ->orderBy('nama')
         ->get();
 
-        $data['uoms'] = DB::table('uom')
-        ->orderBy('name')
-        ->get();
+        $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode,$invoiceNumber,$username);
+        $data['approveValidate'] = Approval::approveValidate($this->moduleCode,$invoiceNumber,$username);
 
-        $statusRec = ['Draft','Update','Posting','Cancel'];
-        $data['statusRec'] = $statusRec[$data['header']->status-1];
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','6'=>'PAID','7'=>'REVISED'];
+        $statusInv = ['NEW','VALIDATE','APPROVED','','','PAID','REVISED'];
+        $data['statusInv'] = $statusInv[$data['header']->status-1];
 
         return view("invoice.edit",$data);
-        
     }
 
     public function update(Request $request)
@@ -573,6 +540,32 @@ class InvoiceController extends Controller
         }
     }
 
+    public function dnDetail(Request $request)
+    {
+        $so = $request->soNumber;
+        $dn = $request->dnNumber;
+        $data = DB::select("SELECT 
+            a.article_code,
+            article_alternative_code,
+            article_desc,
+            a.qty,
+            uom_group,
+            a.uom,
+            price,
+            price_service,
+            so_number,
+            delivery_number
+            from delivery_det a 
+            left join sales_order_det b on b.so_code = a.so_number  and a.article_code = b.article_code
+            left join uom on uom.code=a.uom
+            left join article on article.article_code = a.article_code
+            where 
+            delivery_number = '$dn' 
+            and so_number = '$so'");
+
+        return response()->json($data);
+    }
+
     public function list(Request $request)
     {
         // status:
@@ -794,7 +787,7 @@ class InvoiceController extends Controller
 
         $output .='<option value=""></option>';            
         foreach ($data as $row){
-            $output .='<option value="'.$row->so_code.'">'.$row->so_code. ' - ' .$row->po_number.'</option>';            
+            $output .='<option value="'.$row->so_code.'" data-po-number="'.$row->po_number.'">'.$row->so_code. ' - ' .$row->po_number.'</option>';            
         }        
         
         return $output;

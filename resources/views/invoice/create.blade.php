@@ -77,9 +77,6 @@
                                     <td class="" style="width: 39%">
                                         <label>Article Code</label>
                                     </td>
-                                    {{-- <td class="isian" style="width: 5%">
-                                        <label>Qty SO</label>
-                                    </td> --}}
                                     <td class="isian" style="width: 5%">
                                         <label>Qty</label>
                                     </td>
@@ -427,30 +424,14 @@
              
     });
 
-    function searchSo(obj,value) {
-      $.ajax({
-        url:"{{ route('invoice.list.so') }}",
-        method:"GET",
-        data:{
-            value:value,
-        },
-        success:function(result){
-            $('#'+obj).html(result);
-            // $('#'+obj).val('').trigger('change');
-        },
-        error: function (response) {
-            //Error here
-            Swal.fire("Warning","Get list PO failed","warning");
-        }
-      })
-    }
+    
 
     $('#customer').change(function(){
         let value= $(this).val();
         searchSo('soNumber',value);
     });
 
-    let cloneCount=1;
+    let cloneCount=0;
     function add_new_row(article,articleCode,articleDesc,qty,uomGroup,uom,price,priceJasa,soCode,dnNumber) {
         $("#article_row").append($("#new_row").clone().html());
         cloneCount++;
@@ -486,23 +467,7 @@
         
     }
 
-    function searchDn(obj,value) {
-        $.ajax({
-            url:"{{ route('invoice.list.dn') }}",
-            method:"GET",
-            data:{
-                value:value,
-            },
-            success:function(result){
-                $('#'+obj).html(result);
-                // $('#'+obj).val('').trigger('change');
-            },
-            error: function (response) {
-                //Error here
-                Swal.fire("Warning","Get list DN failed","warning");
-            }
-        })
-    }
+    
 
     function searchDnDet(dnNumber,soNumber) {
         $.ajax({
@@ -512,12 +477,7 @@
                 soNumber:soNumber,
                 dnNumber:dnNumber
             },
-            success:function(result){
-                // if (cloneCount > 1){
-                //     $("#article_row").empty();
-                //     cloneCount=1;
-                // }
-                
+            success:function(result){                
                 if(result.length > 0 ){
                     for (let i = 0; i < result.length; i++) {
                         article=result[i].article_code;
