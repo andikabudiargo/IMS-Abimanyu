@@ -8,7 +8,7 @@
         <div class="col-md-12">
             <div class="card">
                 <div class="card-header">
-                    <h4 class="card-title">Status: <span id="statusText"></span></h4>
+                    <h4 class="card-title">Status: <span id="statusText">{{ $status }}</span></h4>
                     <div class="heading-elements">
                         <ul class="list-inline mb-0">
                             <li><a data-action="collapse"><i data-feather="chevron-down"></i></a></li>
@@ -44,12 +44,12 @@
                                 </div>
                                 <div class="form-group col-md-3">
                                     <label class="form-label" for="soNumber">SO Number*</label>
-                                    <select class="select2 form-control" id="soNumber" name="soNumber" required>
+                                    <select class="select2 form-control" id="soNumber" name="soNumber">
                                     </select>
                                 </div>
                                 <div class="form-group col-md-3">
                                     <label class="form-label" for="dnNumber">DN Number*</label>
-                                    <select class="select2 form-control" id="dnNumber" name="dnNumber" >
+                                    <select class="select2 form-control" id="dnNumber" name="dnNumber">
                                     </select>
                                 </div>
                             </div>
@@ -167,7 +167,7 @@
         </div>
     </div>
 </section>
-@include('invoice.addArticle')
+
 @endsection
 @section('styles')
 <style>
@@ -220,7 +220,9 @@
 </style>
 @endsection
 @section('scripts')
+@include('invoice.addArticle')
 <script type="text/javascript">
+    
     let currentDate = todayDate('dd-mm-yyyy');    
     
     $(document).ready(function(){
@@ -229,9 +231,6 @@
         $("#totalQTY").val(humanizeNumber(0));
         $("#totalQtyFree").val(humanizeNumber(0));
         $("#grandTotalQty").val(humanizeNumber(0));
-
-
-        $('#statusText').text('New');
         $('#invDate').val(currentDate);
         $('#cmdSave').show();
         $('#cmdPosting').hide();
@@ -245,7 +244,6 @@
         });
     }
 
-    
     function reloadPage(){
         window.location.reload();
     }
@@ -276,6 +274,7 @@
                     let articleUom = $this.data("uom");
                     let articleSoCode = $this.data("so-code");
                     let articleDnNumber = $this.data("dn-number");
+                    let poNumber = $this.data("po-number");
                     let qty=objQty.eq(i).val().replace(/,/gi, '') || 0;
                     let price=objPrice.eq(i).val().replace(/,/gi, '') || 0;
                     let priceJasa=objPriceJasa.eq(i).val().replace(/,/gi, '') || 0;
@@ -288,12 +287,13 @@
                             "price":price,
                             "price_service":priceJasa,
                             "so_number":articleSoCode,
-                            "dn_number":articleDnNumber
+                            "dn_number":articleDnNumber,
+                            "po_number":poNumber
                         });
                     }
 
-                    // console.log(articles);
-                                    
+                    console.log(articles);
+
                     if (qty == 0){
                         pesan +="QTY of items "+ articleDesc +" cannot be 0 <br>"; 
                         flag=1;
@@ -363,76 +363,9 @@
         }
     });
 
-    $("#cmdPosting").click(function(){
-        let objQty= $('input[name="qty_inv[]"]');
-        let objUom= $('select[name="uom[]"]');
-        let objQtyFree= $('input[name="qty_free[]"]');
-        let objUomFree= $('select[name="uomFree[]"]');
-        
-        let invNumber = $('#invNumber').val();            
-        $.ajax({
-            type: "post",
-            url: "{{ route('receiving.posting') }}",
-            data: {
-                invNumber:invNumber
-            },
-            dataType: "json",
-            success: function(data) {
-                if (data.status == 0 ){
-                    let message="";
-                    for(let i = 0; i < data.message.length; i++) {
-                        message += "-"+data.message[i]+"<br>";                           
-                    }
-                    $("#alert-message-success").addClass(data.alert);
-                    $("#alert-message-success .alert-body").html(message);
-                    $("#alert-message-success").show();
-                    $("#alert-message-success").fadeTo(5000, 500).slideUp(500, function(){
-                        $("#alert-message-success").slideUp(500);
-                    });
-                    $('#invNumber').attr('disabled','disabled');
-                    $('#cmdSave').show();
-                    $('#cmdPosting').hide();
-
-                }else{
-                    $("#alert-message-success").addClass(data.alert);
-                    $("#alert-message-success .alert-body").html(data.message);
-                    $("#alert-message-success").show();
-                    $("#alert-message-success").fadeTo(5000, 500).slideUp(500, function(){
-                        $("#alert-message-success").slideUp(500);
-                    });
-                    $('#statusText').text(data.statusRec);
-                    $('#cmdSave').hide();
-                    $('#deleteButton').hide();
-                    $('#cmdPosting').hide();
-                    $('#invNumber').attr('disabled','disabled');
-                    $('#soNumber').attr('disabled','disabled');
-                    $('#customer').attr('disabled','disabled');
-                    $('#invDate').attr('disabled','disabled');
-                    $('#invDate').attr('disabled','disabled');
-                    $('#invNumber').attr('disabled','disabled');
-                    objQty.attr('disabled','disabled');
-                    objUom.attr('disabled','disabled');
-                    objQtyFree.attr('disabled','disabled');
-                    objUomFree.attr('disabled','disabled');
-                    
-                }
-            },
-            error: function(error) {
-                console.log(error);
-            }
-        });
-             
-    });
-
-    
-
-    $('#customer').change(function(){
-        let value= $(this).val();
-        searchSo('soNumber',value);
-    });
-
     let cloneCount=0;
-    function add_new_row(article,articleCode,articleDesc,qty,uomGroup,uom,price,priceJasa,soCode,dnNumber) {
+    function add_new_row(article,articleCode,articleDesc,qty,uomGroup,uom,price,priceJasa,soCode,dnNumber,poNumber) {
+        console.log(poNumber);
         $("#article_row").append($("#new_row").clone().html());
         cloneCount++;
         $("#article_row").find('#baru').attr('id', 'new_row'+ cloneCount);
@@ -451,6 +384,7 @@
         $('#articleId'+ cloneCount).attr('data-price-service', priceJasa);
         $('#articleId'+ cloneCount).attr('data-so-code', soCode);
         $('#articleId'+ cloneCount).attr('data-dn-number', dnNumber);
+        $('#articleId'+ cloneCount).attr('data-po-number', poNumber);
         // $('#articleId'+ cloneCount).val(articleCode +" - " + articleDesc);
         $('#articleId'+ cloneCount).val(articleDesc);
         $('#price'+ cloneCount).val(price);
@@ -466,51 +400,6 @@
         hitungGrandTotal();
         
     }
-
-    
-
-    function searchDnDet(dnNumber,soNumber) {
-        $.ajax({
-            url:"{{ route('invoice.dn.det') }}",
-            method:"GET",
-            data:{
-                soNumber:soNumber,
-                dnNumber:dnNumber
-            },
-            success:function(result){                
-                if(result.length > 0 ){
-                    for (let i = 0; i < result.length; i++) {
-                        article=result[i].article_code;
-                        articleCode=result[i].article_alternative_code;
-                        articleDesc=result[i].article_desc;
-                        qtySo=result[i].qty;
-                        uomGroup=result[i].uom_group;
-                        uom=result[i].uom;
-                        price=result[i].price;
-                        priceService=result[i].price_service;
-                        soCode=result[i].so_number;
-                        dnNumber=result[i].delivery_number;
-                        add_new_row(article,articleCode,articleDesc,qtySo,uomGroup,uom,price,priceService,soCode,dnNumber);
-                    }
-                }
-                
-            },
-            error: function (response) {
-                Swal.fire("Warning","Get detail PO failed","warning");
-            }
-        })
-    }
-
-    $('#soNumber').change(function(){
-        let value= $(this).val();
-        searchDn('dnNumber',value);
-    })
-
-    $('#dnNumber').change(function(){
-        let dn = $(this).val();
-        let so = $('#soNumber').val();
-        searchDnDet(dn,so);
-    })
 
     function listUom(obj,value,uom) {
       $.ajax({
@@ -528,112 +417,6 @@
         }
       })
     }
-    
-    function hitungTotal(){
-        let objQtyInv= $('#article_row input[name="qtyInv[]"]');
-        let objPrice= $('#article_row input[name="price[]"]');
-        let objTotal= $('#article_row span[name="totalLine[]"]');
-        let objPriceJasa= $('#article_row input[name="priceJasa[]"]');
-        let objTotalJasa= $('#article_row span[name="totalJasa[]"]');
-        let objSubTotal= $('#article_row span[name="subTotal[]"]');
-                
-        objQtyInv.keyup(function() {
-
-            let indexnya= objQtyInv.index(this);
-            let qty = objQtyInv.eq(indexnya).val().replace(/,/gi, '') || 0; 
-            let price = objPrice.eq(indexnya).val().replace(/,/gi, '') ||0;
-            let priceJasa = objPriceJasa.eq(indexnya).val().replace(/,/gi, '') ||0;
-            let total = qty*price;
-            let totalJasa = qty*priceJasa;
-            objTotal.eq(indexnya).text(humanizeNumber(total));
-            objTotalJasa.eq(indexnya).text(humanizeNumber(totalJasa));
-            objSubTotal.eq(indexnya).text(humanizeNumber(total+totalJasa));
-            hitungGrandTotal();
-
-        });
-
-        objPrice.keyup(function() {
-            let indexnya= objPrice.index(this);
-            let qty = objQtyInv.eq(indexnya).val().replace(/,/gi, '') || 0; 
-            let price = objPrice.eq(indexnya).val().replace(/,/gi, '')||0;
-            let total = qty*price;
-            let priceJasa = objPriceJasa.eq(indexnya).val().replace(/,/gi, '')||0;
-            let totalJasa = qty*priceJasa;
-            objTotal.eq(indexnya).text(humanizeNumber(total));
-            objTotalJasa.eq(indexnya).text(humanizeNumber(totalJasa));
-            objSubTotal.eq(indexnya).text(humanizeNumber(total+totalJasa));
-            hitungGrandTotal();
-        });    
-
-        objPriceJasa.keyup(function() {
-            let indexnya= objPrice.index(this);
-            let qty = objQtyInv.eq(indexnya).val().replace(/,/gi, '') || 0; 
-            let price = objPrice.eq(indexnya).val().replace(/,/gi, '')||0;
-            let total = qty*price;
-            let priceJasa = objPriceJasa.eq(indexnya).val().replace(/,/gi, '')||0;
-            let totalJasa = qty*priceJasa;
-            objTotal.eq(indexnya).text(humanizeNumber(total));
-            objTotalJasa.eq(indexnya).text(humanizeNumber(totalJasa));
-            objSubTotal.eq(indexnya).text(humanizeNumber(total+totalJasa));
-            hitungGrandTotal();
-        });
-
-    }
-
-    function hitungGrandTotal(){
-        let objArticle = $('#article_row select[name="articleId[]"]');
-        let objQtyTiw= $('#article_row input[name="qtyInv[]"]');
-        let objQTY= $('#article_row input[name="qtyInv[]"]');
-        let objPrice= $('#article_row input[name="price[]"]');
-        let objPriceJasa= $('#article_row input[name="priceJasa[]"]');
-        let ppn= $('#ppn').val() || 10;
-        let pph23= $('#pph23').val() || 2;
-        let totalQty= 0;
-        let totalAmount=0
-        let totalAmountJasa=0
-        let totalAmountMaterial=0
-
-        var arr = objQtyTiw.map(function (i) {
-            let qty = parseInt(objQTY.eq(i).val().replace(/,/gi, '')) || 0;
-            let price = parseInt(objPrice.eq(i).val().replace(/,/gi, '')) || 0;
-            let priceJasa = parseInt(objPriceJasa.eq(i).val().replace(/,/gi, '')) || 0;
-            totalQty+= qty;
-            totalAmount+= (qty*price)+(qty*priceJasa);
-            totalAmountMaterial+= (qty*price)+(qty*priceJasa);
-            totalAmountJasa+= (qty*priceJasa);
-        }).get();
-        
-        $("#totalRow").val(objArticle.length);
-        $("#nilaiPPN").text(ppn+"%");
-        $("#nilaiPPH23").text(pph23+"%");
-        $("#totalQTY").val(humanizeNumber(totalQty));
-        $("#totalAmount").val(humanizeNumber(totalAmount));
-        $("#totalPPN").val(humanizeNumber((parseInt(ppn)*totalAmountMaterial)/100));
-        $("#totalPPH").val("-"+humanizeNumber((pph23*totalAmountJasa)/100));
-        $("#totalNetto").val(humanizeNumber(totalAmount+((parseInt(ppn)*totalAmount)/100)-((pph23*totalAmountJasa)/100)));
-    
-    }
-
-    // function tombolPanah(objname){
-    //     // function kalo mau pindah filed dari atas ke bawah atau sebaliknya
-    //     let obj = $('input[name="'+objname+'[]"]');
-    //     obj.keyup(function(e) {
-    //         indexnya= obj.index(this);
-    //         indexnya=parseInt(indexnya);
-    //         if (e.keyCode == 38) {
-    //             //panah atas
-    //             indexTarget = indexnya-1;
-    //             obj.eq(indexTarget).focus().select();
-    //             return false;
-    //         }
-    //         if (e.keyCode == 40) {
-    //             //panah bawah
-    //             indexTarget = indexnya+1;
-    //             obj.eq(indexTarget).focus().select();
-    //             return false;
-    //         }
-    //     });
-    // }
 
     $.ajaxSetup({
         headers: {

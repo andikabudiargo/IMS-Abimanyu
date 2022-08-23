@@ -37,7 +37,7 @@
             <tbody>
                 <tr>
                     <td class="isian disabled" style="width: 39%">
-                        <input type="text" class="form-control-plaintext text-hitam" id = "articleId" name="articleId[]" data-code="" data-uom=""  data-price="" disabled>
+                        <input type="text" class="form-control-plaintext text-hitam" id = "articleId" name="articleId[]" data-code="" data-uom=""  data-price="" data-po-number="" data-so-code="" disabled>
                     </td>
                     {{-- <td class="isian disabled" style="width: 5%">
                         <input type="text" class="form-control-plaintext text-hitam numeral-mask-digit text-right" id = "qty_po" name="qty_po[]" disabled>
@@ -89,71 +89,78 @@
         searchSo('soNumber',$(this).val());
     });
     
-    function searchSo(obj,value,triggerVal) {
-      $.ajax({
-        url:"{{ route('invoice.list.so') }}",
-        method:"GET",
-        data:{
-            value:value,
-        },
-        success:function(result){
-            $('#'+obj).html(result);
-            $('#'+obj).val(triggerVal).trigger('change');
-        },
-        error: function (response) {
-            //Error here
-            Swal.fire("Warning","Get list PO failed","warning");
+    function searchSo(obj,value) {
+        if(value){
+            $.ajax({
+                url:"{{ route('invoice.list.so') }}",
+                method:"GET",
+                data:{
+                    value:value,
+                },
+                success:function(result){
+                    $('#'+obj).html(result);
+                    $('#'+obj).val('').trigger('change');
+                },
+                error: function (response) {
+                    //Error here
+                    Swal.fire("Warning","Get list PO failed","warning");
+                }
+            })
         }
-      })
     }
 
-    function searchDn(obj,value,triggerVal) {
-        $.ajax({
-            url:"{{ route('invoice.list.dn') }}",
-            method:"GET",
-            data:{
-                value:value,
-            },
-            success:function(result){
-                $('#'+obj).html(result);
-                $('#'+obj).val(triggerVal).trigger('change');
-            },
-            error: function (response) {
-                //Error here
-                Swal.fire("Warning","Get list DN failed","warning");
-            }
-        })
+    function searchDn(obj,value) {
+        if(value){
+            $.ajax({
+                url:"{{ route('invoice.list.dn') }}",
+                method:"GET",
+                data:{
+                    value:value,
+                },
+                success:function(result){
+                    $('#'+obj).html(result);
+                    $('#'+obj).val('').trigger('change');
+                },
+                error: function (response) {
+                    //Error here
+                    Swal.fire("Warning","Get list DN failed","warning");
+                }
+            })
+        }
     }
 
     function searchDnDet(dnNumber,soNumber) {
-        $.ajax({
-            url:"{{ route('invoice.dn.det') }}",
-            method:"GET",
-            data:{
-                soNumber:soNumber,
-                dnNumber:dnNumber
-            },
-            success:function(result){                
-                if(result.length > 0 ){
-                    for (let i = 0; i < result.length; i++) {
-                        article=result[i].article_code;
-                        articleCode=result[i].article_alternative_code;
-                        articleDesc=result[i].article_desc;
-                        qtySo=result[i].qty;
-                        uomGroup=result[i].uom_group;
-                        uom=result[i].uom;
-                        price=result[i].price;
-                        priceService=result[i].price_service;
-                        soCode=result[i].so_number;
-                        dnNumber=result[i].delivery_number;
-                        add_new_row(article,articleCode,articleDesc,qtySo,uomGroup,uom,price,priceService,soCode,dnNumber);
+        if(dnNumber){
+            $.ajax({
+                url:"{{ route('invoice.dn.det') }}",
+                method:"GET",
+                data:{
+                    soNumber:soNumber,
+                    dnNumber:dnNumber
+                },
+                success:function(result){                
+                    if(result.length > 0 ){
+                        for (let i = 0; i < result.length; i++) {
+                            article=result[i].article_code;
+                            articleCode=result[i].article_alternative_code;
+                            articleDesc=result[i].article_desc;
+                            qtySo=result[i].qty;
+                            uomGroup=result[i].uom_group;
+                            uom=result[i].uom;
+                            price=result[i].price;
+                            priceService=result[i].price_service;
+                            soCode=result[i].so_number;
+                            dnNumber=result[i].delivery_number;
+                            poNumber=result[i].po_number;
+                            add_new_row(article,articleCode,articleDesc,qtySo,uomGroup,uom,price,priceService,soCode,dnNumber,poNumber);
+                        }
                     }
+                },
+                error: function (response) {
+                    Swal.fire("Warning","Get detail PO failed","warning");
                 }
-            },
-            error: function (response) {
-                Swal.fire("Warning","Get detail PO failed","warning");
-            }
-        })
+            })
+        }
     }
 
     soNumber.change(function(){

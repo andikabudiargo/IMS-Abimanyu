@@ -73,6 +73,8 @@ class InvoiceController extends Controller
         ->orderBy('nama')
         ->get();
 
+        $data['status']='NEW';
+
         return view("invoice.create",$data);
     }
 
@@ -120,7 +122,7 @@ class InvoiceController extends Controller
             // 'orderDate'  => 'required',
             // 'currency'  => 'required',
             // 'type'  => 'required',
-            // 'customer'  => 'required',
+            'customer'  => 'required',
         ]);
         
         $error_array = array();
@@ -168,6 +170,7 @@ class InvoiceController extends Controller
                         'invoice_number' => $invCode,
                         'article_code' => $val->article_code,
                         'so_number' => $val->so_number,
+                        'po_number' => $val->po_number,
                         'dn_number' => $val->dn_number,
                         'qty' => $val->qty,
                         'uom' => $val->uom,
@@ -274,26 +277,22 @@ class InvoiceController extends Controller
     public function update(Request $request)
     {
         $username =  Auth::user()->username;
-        $recNumber = $request->recNumber;
-        $doNumber = $request->doNumber;
-        $doDate = $request->doDate;
+        $articles = json_decode($request -> articles);
         $invNumber = $request->invNumber;
         $invDate = $request->invDate;
-        $poNumber = $request->poNumber;
-        $supplier = $request->supp;
-        $recDate = $request->recDate;
+        $customer = $request->customer;
+        $ppn = $request->ppn;
+        $pph23 = $request->pph23;
+        $totalPpn = $request->totalPpn;
+        $totalPph = $request->totalPph;
+        $soNumber = $request->soNumber;
+        $dnNumber  = $request->dnNumber;
         $note = $request->note;
-        $articles = json_decode($request->articles);
-        $recType = "NORMAL";
-        $statusRec ="Update";
-        $status = '2';
-        $authorizedBy = "";
+        $gudang = 'false';
+        $kurs = 1;
+        $status = '1';
 
-        // status
-        // 1. Draft
-        // 2. Update
-        // 3. Posting
-        // 4. Cancel
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED','9'=>'PAID'];
 
         $customMessages = [
             'required' => 'The field is required.',
@@ -311,9 +310,9 @@ class InvoiceController extends Controller
         
         $validation = Validator::make($request->all(),$messages = [
             // 'invNumber'=>'required|iunique:receiving_hdr,inv_number,po_number',
-            'recDate'  => 'required',
-            'poNumber'  => 'required',
-            // 'supplier'  => 'required',
+            // 'recDate'  => 'required',
+            // 'poNumber'  => 'required',
+            'customer'  => 'required'
         ],$customMessages);
                 
         $error_array = array();
@@ -323,27 +322,29 @@ class InvoiceController extends Controller
             foreach ($validation->messages()->getMessages() as $field_name => $messages){
                 $error_array[] = $messages;
             }
-            $alert ="alert-danger";
-            return response()->json(array('status' => 0, 'message' => $error_array,'alert' =>$alert));
+            $title="Update  $this->title";
+            $alert ="error";
+            return response()->json(array('status' => 0,'title' => $title, 'message' => $error_array,'alert' =>$alert));
         }else{
             DB::beginTransaction();
             try {
                     $row_affected=DB::table('receiving_hdr')
-                    ->where('rec_number',$recNumber)
+                    ->where('invoice_number',$invNumber)
                     ->update(
                         [   
-                            'do_number' => $doNumber,
-                            'do_date' => $doDate,
-                            'inv_number' => $invNumber,
-                            'inv_date' => $invDate,
-                            'po_number' => $poNumber,
-                            'supplier_id' => $supplier,
-                            'rec_date' => $recDate,
-                            'authorized_by' => $authorizedBy,
-                            'prepared_by' => Auth::user()->username,
-                            'rec_type' => $recType,
+                            'invoice_date' => $invDate,
+                            'customer_id' => $customer,
+                            'so_number' => $soNumber,
+                            'dpp' => 0,
+                            'other_admin' => 0,
+                            'discount' => 0,
+                            'ppn' => $ppn,
+                            'pph23' => $pph23,
+                            'npwp' => "",
+                            'payment_term' => 0 ,
+                            'payment_terms' => '',
                             'status' => $status,
-                            'note' => $note,
+                            'note' =>  $note,
                             'updated_by' => Auth::user()->username,
                             'updated_at' => date('Y-m-d H:i:s')
                         ]
@@ -352,30 +353,37 @@ class InvoiceController extends Controller
                     $dataset=[];
                     foreach ($articles as $val) {
                         $dataSet[] = [
-                            $recNumber.$val->article_code
+                            $invNumber.$val->po_number.$val->dn_number.$val->article_code
                         ];
-                        
                     }
 
                     //Delete kalo article tidak ada di po $poNumber dan article nya $val->article_code
-                    //berdasarkan 2 kondisi
-                    DB::table('receiving_det')
-                        ->whereNotIn(DB::raw("CONCAT(rec_number,article_code)"),$dataSet)
-                        ->where('rec_number',$recNumber)
+                    //berdasarkan 3 kondisi
+                    DB::table('invoice_det')
+                        ->whereNotIn(DB::raw("CONCAT(invoice_number,po_number,dn_number,article_code)"),$dataSet)
+                        ->where('invoice_number',$invNumber)
                         ->delete();
                                   
                     foreach ($articles as $val) {
-                        DB::table('receiving_det')
+                        DB::table('invoice_det')
                         ->updateOrInsert(
-                            ['rec_number' => $recNumber,'article_code' => $val->article_code],
+                            ['invoice_number' => $invNumber
+                                ,'article_code' => $val->article_code
+                                ,'po_number' => $val->po_number
+                                ,'dn_number' => $val->dn_number
+                            ],
                             [
-                                'rec_number' => $recNumber,
+                                'invoice_number' => $invNumber,
                                 'article_code' => $val->article_code,
+                                'so_number' => $val->so_number,
+                                'po_number' => $val->po_number,
+                                'dn_number' => $val->dn_number,
                                 'qty' => $val->qty,
-                                'uom_rec' => $val->uom,
-                                'qty_free' => $val->qty_free,
-                                'uom_free' => $val->uom_free,
+                                'uom' => $val->uom,
                                 'price' => $val->price,
+                                'price_service' => $val->price_service,
+                                'ppn' => ($val->price*$val->qty) * $ppn/100,
+                                'pph23' => ($val->price_service*$val->qty) * $pph23/100,
                                 'updated_by' => Auth::user()->username,
                                 'updated_at' => date('Y-m-d H:i:s')
                             ]
@@ -383,17 +391,19 @@ class InvoiceController extends Controller
                     }
                                                                 
                     DB::commit();
-                    $alert  ="alert-success";
-                    $message  = "Rec $recNumber is successfully updated";
-                    \LogActivity::addToLog('Rec update ',"username: $username Status $message");
-                    return response()->json(array('statusRec' => $statusRec,'status' => 1, 'message' => $message,'alert'=>$alert,'recNumber'=>$recNumber));
+                    $title ="Update $this->title";
+                    $alert  ="success";
+                    $message  = "$title $invNumber is successfully updated";
+                    \LogActivity::addToLog($title,"username: $username Status $message");
+                    return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'invNumber'=>$invNumber));
 
             } catch (Exception $e) {
                 DB::rollBack();
-                $alert  ="alert-warning";
-                $message  = "Rec $recNumber is failed to updated";
-                \LogActivity::addToLog('Rec update ',"username: $username Status $message");
-                return response()->json(array('statusRec' => $statusRec,'status' => 1, 'message' => $message,'alert'=>$alert,'recNumber'=>$recNumber));
+                $title ="Update $this->title";
+                $alert ="warning";
+                $message  = "$title $invNumber is failed to update";
+                \LogActivity::addToLog($title,"username: $username Status $message");
+                return response()->json(array('status' => 0,'title' => $title, 'message' => $message,'alert'=>$alert,'invNumber'=>$invNumber));
             }
         }
 
@@ -544,36 +554,43 @@ class InvoiceController extends Controller
     {
         $so = $request->soNumber;
         $dn = $request->dnNumber;
-        $data = DB::select("SELECT 
-            a.article_code,
-            article_alternative_code,
-            article_desc,
-            a.qty,
-            uom_group,
-            a.uom,
-            price,
-            price_service,
-            so_number,
-            delivery_number
-            from delivery_det a 
-            left join sales_order_det b on b.so_code = a.so_number  and a.article_code = b.article_code
-            left join uom on uom.code=a.uom
-            left join article on article.article_code = a.article_code
-            where 
-            delivery_number = '$dn' 
-            and so_number = '$so'");
+        $data = DB::table('delivery_det')
+        ->join('sales_order_det', function ($join) {
+            $join->on('sales_order_det.so_code', '=', 'delivery_det.so_number')
+                 ->on('sales_order_det.article_code', '=', 'delivery_det.article_code');
+        })
+        ->leftJoin('article','article.article_code','=','delivery_det.article_code')
+        ->leftJoin('uom','delivery_det.uom','uom.code')
+        ->where('delivery_det.delivery_number',$dn)
+        ->where('delivery_det.so_number',$so)
+        ->orderBy('delivery_det.id')
+        ->get();
+
+        // $data = DB::select("SELECT 
+        //     a.article_code,
+        //     article_alternative_code,
+        //     article_desc,
+        //     a.qty,
+        //     uom_group,
+        //     a.uom,
+        //     price,
+        //     price_service,
+        //     so_number,
+        //     delivery_number
+        //     from delivery_det a 
+        //     left join sales_order_det b on b.so_code = a.so_number  and a.article_code = b.article_code
+        //     left join uom on uom.code=a.uom
+        //     left join article on article.article_code = a.article_code
+        //     where 
+        //     delivery_number = '$dn' 
+        //     and so_number = '$so'");
 
         return response()->json($data);
     }
 
     public function list(Request $request)
     {
-        // status:
-        // 1. Draft
-        // 2. Update
-        // 3. Posting
-        // 4. Cancel
-
+       
         $searchInv = strtolower($request->searchInv);
         $searchSo = strtolower($request->searchSo);
         $searchCustomer = $request->searchCustomer; 
@@ -648,6 +665,16 @@ class InvoiceController extends Controller
                                     </a>';
                 }
             }
+
+            if (($data->status != '3') && ($data->status != '4')){
+                if (Auth::user()->can('receiving-edit')) {
+                $buttons .=         '<a href="'. route('invoice.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+                                        <i data-feather="file-text"></i>
+                                        Approve
+                                    </a>';
+                }
+            }
+
             // if ($data->status == '3'){
                 $buttons .=         '<a href="'. route('invoice.print', ['id'=>$data->id]) .'" target="_blank" class="dropdown-item">
                                         <i data-feather="printer"></i>
@@ -677,12 +704,20 @@ class InvoiceController extends Controller
                         </div>';
 
             return $buttons;
-            })
-        ->addColumn('status', function ($data) {
-            $statusRec = ['Draft','Update','Posting','Cancel'];
-            return $statusRec[$data->status - 1];
         })
-        ->rawColumns(['action','status'])
+
+        ->addColumn('invoice_number', function ($data) {
+            $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-danger'];            
+            // $statusInv = ['NEW','VALIDATE','APPROVED','POSTED','DELETED','PAID'];
+            // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED'];
+            return '<span style="display: none;">'.$data->invoice_number.'</span><a class="text-left badge d-block '.$badges[$data->status - 1].'" name="'.$data->invoice_number.'" href="'. route('invoice.show', ['id'=>Crypt::encryptString($data->id)]) .'" ><span>'.$data->invoice_number.'</span></a>';
+        })
+        ->addColumn('status', function ($data) {
+            $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-danger'];            
+            $statusInv = ['NEW','VALIDATE','APPROVED','POSTED','DELETED','PAID'];
+            return "<div class='badge ".$badges[$data->status - 1]."'>".$statusInv[$data->status - 1]."</div>";
+        })
+        ->rawColumns(['action','status','invoice_number'])
         ->make(true);
     }
 
@@ -760,7 +795,7 @@ class InvoiceController extends Controller
 
         $data= DB::table("delivery_hdr") 
         ->where("so_number",$so)
-        // ->where("status","3")
+        ->where("status","4")
         ->orderBy("so_number")
         ->select("delivery_number","so_number","po_number")
         ->get();          
@@ -810,5 +845,57 @@ class InvoiceController extends Controller
         }        
         
         return $output;
+    }
+
+    public function approve(Request $request)
+    {
+        $username =  Auth::user()->username;
+        $invNumber = $request->invNumber;
+        $statusLevelApproval = Approval::approvalLevelPosition($this->moduleCode,$invNumber,$username);        
+        $nextLevel = $statusLevelApproval[0]->next_level;
+        $statusInv = $statusLevelApproval[0]->next_level == $statusLevelApproval[0]->max_level ? '3' :'2';
+                
+        DB::beginTransaction();
+        try {
+                $row_affected=DB::table('invoice_hdr')
+                ->where('invoice_number',$invNumber)
+                ->update(
+                    [
+                        'status' => $statusInv,
+                        'updated_by' => Auth::user()->username,
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]
+                );
+
+                if ($row_affected){
+                    DB::table('approval_history')->insert([
+                        'module_code' => $this->moduleCode,
+                        'module_number' => $invNumber,
+                        'username' => Auth::user()->username,
+                        'approval_order' => $nextLevel,
+                        'approval_date' => date('Y-m-d'),
+                        'status' => 1,
+                        'created_by' => Auth::user()->username,
+                        'updated_by' => Auth::user()->username,
+                        'created_at' => date('Y-m-d H:i:s'),
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]);
+                }
+                
+                DB::commit();
+                $title ="Approve $this->title";
+                $alert  ="success";
+                $message  = "$title $invNumber is successfully Approve-".$nextLevel;
+                \LogActivity::addToLog($title,"username: $username Status $message");
+                return response()->json(array('statusPo' => $statusInv,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'invNumber'=>$invNumber));
+
+        } catch (Exception $e) {
+            DB::rollBack();
+            $title ="Approve $this->title";
+            $alert  ="warning";
+            $message  = "$title $invNumber is failed to Approve-".$nextLevel;
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return response()->json(array('statusPo' => $statusInv,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'invNumber'=>$invNumber));
+        }
     }
 }

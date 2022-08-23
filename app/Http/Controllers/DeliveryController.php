@@ -41,8 +41,8 @@ class DeliveryController extends Controller
         // 3. Posting
         // 4. Cancel
 
-        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCLED','7'=>'REVISED'];
-        $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCLED','7'=>'REVISED'];
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED'];
+        $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED'];
             
         return view("delivery.index",$data);
     }
@@ -110,7 +110,7 @@ class DeliveryController extends Controller
         $gudang = 'false';
         $kurs = 1;
 
-        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCLED','7'=>'REVISED'];
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED'];
 
         $messages = [
             'required' => 'The field is required.',
@@ -226,7 +226,7 @@ class DeliveryController extends Controller
         $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode,$dnNumber,$username);
         $data['approveValidate'] = Approval::approveValidate($this->moduleCode,$dnNumber,$username);
 
-        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCLED','7'=>'REVISED'];
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED'];
         $statusDel = ['NEW','VALIDATE','APPROVED','POSTED','CANCELED','','REVISED'];
         $data['statusDel'] = $statusDel[$data['header']->status-1];
 
@@ -267,7 +267,7 @@ class DeliveryController extends Controller
         $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode,$dnNumber,$username);
         $data['approveValidate'] = Approval::approveValidate($this->moduleCode,$dnNumber,$username);
 
-        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCLED','7'=>'REVISED'];
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED'];
         $statusDel = ['NEW','VALIDATE','APPROVED','POSTED','CANCELED','','REVISED'];
         $data['statusDel'] = $statusDel[$data['header']->status-1];
 

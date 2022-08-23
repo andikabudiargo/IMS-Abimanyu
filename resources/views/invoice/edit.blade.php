@@ -35,7 +35,7 @@
                             <div class="form-row">
                                 <div class="form-group col-md-4">
                                     <label class="form-label" for="customer">Customer*</label>
-                                    <select class="select2 form-control" id="customer" name="customer" required>
+                                    <select class="select2 form-control" id="customer" name="customer" required disabled>
                                         <option value="">All</option>
                                         @foreach($customers as $val)
                                             <option value="{{$val->kode}}" {{$val->kode == $header->customer_id ? "selected" : ""}} >{{$val->kode}} - {{$val->nama}}</option>
@@ -44,7 +44,7 @@
                                 </div>
                                 <div class="form-group col-md-3">
                                     <label class="form-label" for="soNumber">SO Number*</label>
-                                    <select class="select2 form-control" id="soNumber" name="soNumber" required>
+                                    <select class="select2 form-control" id="soNumber" name="soNumber">
                                     </select>
                                 </div>
                                 <div class="form-group col-md-3">
@@ -57,33 +57,6 @@
                                 <div class="form-group col-md-12">
                                     <label class="form-label" for="note">Notes</label>
                                     <textarea type="text" id="note" name="note" class="form-control" rows="1" >{{ $header->note }}</textarea>
-                                </div>
-                            </div>
-
-                            <div class="form-row">
-                                <div class="col-12">
-                                    <div class="form-row">
-                                        <div class="col-12">
-                                            <a href="{{ route('invoice.index') }}" class="btn btn-success">Back</a>
-                                            @if( $header->status != '3' && $header->status != '4')
-                                                @can('invoice-delete')
-                                                    <a href='javascript:;'
-                                                        id='deleteButton'
-                                                        class='btn btn-warning'
-                                                        data-toggle='modal'
-                                                        data-target='#smallModalCancel'
-                                                        data-href='{{ route("receiving.destroy", ["id"=>$header->id]) }}'>
-                                                        Cancel
-                                                    </a>
-                                                @endcan
-
-                                                <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Update</button>
-                                                @can('invoice-posting')
-                                                    <button class="btn btn-primary" type="button" id="cmdPosting" name="cmdPosting">Posting</button>
-                                                @endcan
-                                            @endif
-                                        </div>
-                                    </div>
                                 </div>
                             </div>
                         </form>
@@ -179,6 +152,66 @@
                             </div>
                         </div>
                     </div>
+                    <hr>
+                    <div class="form-row">
+                        <div class="col-md-12">
+                            <div class="form-row">
+                                <div class="col-md-12">
+                                    <a href="{{ route('invoice.index') }}" class="btn btn-warning">Back</a>
+                                    @if( $approveValidate ? $approveValidate[0]->validate : '')
+                                        <input type="text" id ="approveLevel" name ="approveLevel" class="d-none" value="{{ $approveValidate[0]->next_level }}">
+                                        <input type="text" id ="maxLevel" name ="maxLevel" class="d-none" value="{{ $approveValidate[0]->max_level }}">
+                                        <button class="btn btn-success" type="button" id="cmdApprove" name="cmdApprove">Approve</button>
+                                        @if( $statusInv =='NEW')
+                                            <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave" >Update</button>
+                                        @endif
+                                    @else
+                                        @if( !$approveValidate && $statusInv =='NEW')
+                                            <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave" >Update</button>
+                                        @endif
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="form-row card-statistics">
+                        @foreach($approvalHistory as $val)
+                            @if($val->status == true)
+                                <div class="statistics-body">
+                                    <div class="col-xl-3 col-sm-6 col-12 mb-2 mb-xl-0">
+                                        <div class="media">
+                                            <div class="avatar bg-light-{{ $val->statusapprove == 1 ? 'success':'warning' }} mr-2">
+                                                <div class="avatar-content">
+                                                    <i data-feather="{{ $val->statusapprove == 1 ? 'check':'x' }}" class="avatar-icon"></i>
+                                                </div>
+                                            </div>
+                                            <div class="media-body my-auto">
+                                                <h4 class="font-weight-bolder mb-0">{{ $val->statusapprove == 1 ? 'Approve':'Decline' }}-{{ $val->approval_order }}</h4>
+                                                <p class="card-text mb-0">{{ $val->name }}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            @else
+                                <div class="statistics-body">
+                                    <div class="col-xl-3 col-sm-6 col-12 mb-2 mb-xl-0">
+                                        <div class="media">
+                                            <div class="avatar bg-light-danger mr-2">
+                                                <div class="avatar-content">
+                                                    <i data-feather="x" class="avatar-icon"></i>
+                                                </div>
+                                            </div>
+                                            <div class="media-body my-auto">
+                                                <h4 class="font-weight-bolder mb-0">Approve-{{ $val->approval_order }}</h4>
+                                                <p class="card-text mb-0">{{ $val->petugas }}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endif
+                        @endforeach
+                    </div>
                 </div>
             </div>
         </div>
@@ -240,10 +273,8 @@
     let currentDate = todayDate('dd-mm-yyyy');
     
     $(document).ready(function(){
-        console.log({{ $header->so_number }});
-        searchSo('soNumber',customer.val(),{{ $header->so_number }});
-        // searchDn('dnNumber',{{ $header->so_number }},{{ $header->dn_number }});
-
+        
+        searchSo('soNumber',customer.val());
         let detail = {!!  $detail !!};
         for (let i = 0; i < detail.length; i++) {
             article=detail[i].article_code;
@@ -255,13 +286,51 @@
             price=detail[i].price;
             priceService=detail[i].price_service;
             soCode=detail[i].so_number;
-            dnNumberData=detail[i].delivery_number;
-            add_new_row(article,articleCode,articleDesc,qtySo,uomGroup,uom,price,priceService,soCode,dnNumberData);
+            dnNumberData=detail[i].dn_number;
+            poNumber=detail[i].po_number;
+            add_new_row(article,articleCode,articleDesc,qtySo,uomGroup,uom,price,priceService,soCode,dnNumberData,poNumber);
         }
-
         hitungTotal();
-
     });
+
+    const approveBtn = document.querySelector('#cmdApprove');
+
+    if (approveBtn) {
+        approveBtn.addEventListener('click',() =>{
+            let invNumber = $('#invNumber').val();
+            approve(invNumber,'cmdApprove');
+        },{ once:true});
+    }
+
+    approve = (invNumber,objButton) => {
+        $('#'+objButton).attr('disabled','disabled');
+        $.ajax({
+            type: "POST",
+            url: "{{ route('invoice.approve') }}",
+            data: {
+                invNumber:invNumber
+            },
+            dataType: "json",
+            success: function(data) {
+                if (data.status == 0 ){
+                    let message="";
+                    for(let i = 0; i < data.message.length; i++) {
+                        show_msg(data.title, data.message[i], data.alert);
+                    }
+                    $('#invNumber').attr('disabled','disabled');
+                }else{
+                    show_msg(data.title, data.message, data.alert);
+                    $('#invNumber').attr('disabled','disabled');
+                    $('#cmdApprove').attr('disabled','disabled');
+                    $('#addNewRow').attr('disabled','disabled');      
+                    window.location.reload();                 
+                }
+            },
+            error: function(error) {
+                console.log(error);
+            }
+        });
+    }
 
     invDate = $('#invDate');
     if (invDate.length) {
@@ -290,41 +359,51 @@
     $("#cmdSave").click(function(){
         if (!$("#frmAdd")[0].checkValidity()){
             $("#frmAdd").submit();
-        }else{
+        }else{ 
             $('.disabled-el').removeAttr('disabled');
             // ambil semua data article
-            let objQty= $('input[name="qty_rec[]"]');
-            let objUom= $('select[name="uom[]"]');
-            let objQtyFree= $('input[name="qty_free[]"]');
-            let objUomFree= $('select[name="uomFree[]"]');
-            
+            let objQty= $('#article_row input[name="qtyInv[]"]');
+            let objPrice= $('#article_row input[name="price[]"]');
+            let objPriceJasa= $('#article_row input[name="priceJasa[]"]');
+            let objUom= $('#article_row span[name="uom[]"]'); 
             let articles = []; 
             let flag=0; 
             let pesan="";
 
-            $("#article_row input[name='article_id[]']").map(function(i) {  
+            $("#article_row input[name='articleId[]']").map(function(i) {  
                 let $this=$(this);
                 if ($this.val()){
                     let articleCode = $this.data("code");
+                    let articleDesc = $this.data("desc");
                     let articleUom = $this.data("uom");
-                    let articlePrice = $this.data("price");
-                    let article=$this.val().split("|");
-                    let plu=article[0];
-                    let articleName=article[1];
-                    // let qty=objQty.eq(i).val().replace(/,/gi, '') || 0;
+                    let articleSoCode = $this.data("so-code");
+                    let articleDnNumber = $this.data("dn-number");
+                    let poNumber = $this.data("po-number");
                     let qty=objQty.eq(i).val().replace(/,/gi, '') || 0;
-                    let qtyUom=objUom.eq(i).val() || articleUom;
-                    let qtyFree=objQtyFree.eq(i).val().replace(/,/gi, '') || 0;
-                    let qtyFreeUom=objUom.eq(i).val() || articleUom;
+                    let price=objPrice.eq(i).val().replace(/,/gi, '') || 0;
+                    let priceJasa=objPriceJasa.eq(i).val().replace(/,/gi, '') || 0;
                     
-                    articles.push({
-                        "article_code":articleCode,
-                        "qty":qty,
-                        "uom":qtyUom,
-                        "qty_free":qtyFree,
-                        "uom_free":qtyFreeUom,
-                        "price":price,
-                    });
+                    if ((articleCode!=='') && (qty> 0)){
+                        articles.push({
+                            "article_code":articleCode,
+                            "qty":qty,
+                            "uom":articleUom,
+                            "price":price,
+                            "price_service":priceJasa,
+                            "so_number":articleSoCode,
+                            "dn_number":articleDnNumber,
+                            "po_number":poNumber
+                        });
+                    }
+
+                    if (qty == 0){
+                        pesan +="QTY of items "+ articleDesc +" cannot be 0 <br>"; 
+                        flag=1;
+                    }
+                    // if (inisial !== customer){
+                    //     pesan +="This article "+ articleName +" does not belong to the customer "+custName +" <br>"; 
+                    //     flag=1;
+                    // }
                 }
             });
 
@@ -334,126 +413,107 @@
             }
 
             if (flag==0){
-                let recNumber = $('#recNumber').val();
-                let doNumber = $('#doNumber').val();
-                let doDate = $('#doDate').val();
-                let invNumber = $('#invNumber').val();
+
                 let invDate = $('#invDate').val();
-                let poNumber = $('#poNumber').val();
-                let supp = $('#supplier').val();
-                let recDate = $('#recDate').val();
+                let customer = $('#customer').val()
+                let ppn = $('#ppn').val().replace(/,/gi, '') || 10;
+                let pph23 = $('#pph23').val().replace(/,/gi, '') || 2;
+                let totalPpn = $('#totalPPN').val().replace(/,/gi, '') || 0;
+                let totalPph = $('#totalPPH').val().replace(/,/gi, '') || 0;
+                let invNumber = $('#invNumber').val();
                 let note = $('#note').val();
-            
+
                 $.ajax({
                     type: "post",
-                    url: "{{ route('receiving.update') }}",
+                    url: "{{ route('invoice.store') }}",
                     data: {
-                        recNumber:recNumber,
-                        doNumber:doNumber,
-                        doDate:doDate,
+                        articles:JSON.stringify(articles),
                         invNumber:invNumber,
                         invDate:invDate,
-                        poNumber:poNumber,
-                        supp:supp,
-                        recDate:recDate,
-                        note:note,
-                        articles:JSON.stringify(articles)
+                        customer:customer,
+                        ppn:ppn,
+                        pph23:pph23,
+                        totalPpn:totalPpn,
+                        totalPph:totalPph,
+                        note:note
                     },
                     dataType: "json",
                     success: function(data) {
                         if (data.status == 0 ){
-                            let message="";
                             for(let i = 0; i < data.message.length; i++) {
-                                message += "-"+data.message[i]+"<br>";                           
+                                show_msg(data.title, data.message[i], data.alert);
                             }
-                            $("#alert-message-success").addClass(data.alert);
-                            $("#alert-message-success .alert-body").html(message);
-                            $("#alert-message-success").show();
-                            $("#alert-message-success").fadeTo(5000, 500).slideUp(500, function(){
-                                $("#alert-message-success").slideUp(500);
-                            });
-                            $('#recNumber').attr('disabled','disabled');
-                            $('#cmdSave').show();
-                            $('#cmdPosting').hide();
-
+                            $('#invNumber').attr('disabled','disabled');
                         }else{
-                            $("#alert-message-success").addClass(data.alert);
-                            $("#alert-message-success .alert-body").html(data.message);
-                            $("#alert-message-success").show();
-                            $("#alert-message-success").fadeTo(5000, 500).slideUp(500, function(){
-                                $("#alert-message-success").slideUp(500);
-                            });
-                            $('#statusText').text(data.statusRec);
-                            // $('#recNumber').val(data.recNumber);
-                            // $('#cmdSave').hide();
-                            $('#deleteButton').hide();
-                            $('#cmdPosting').show();
-                            $('#recNumber').attr('disabled','disabled');
-                            $('#poNumber').attr('disabled','disabled');
-                            $('#supplier').attr('disabled','disabled');
-                            
+                            show_msg(data.title, data.message, data.alert);
+                            $('#invNumber').val(data.invNumber);
+                            $('#invNumber').attr('disabled','disabled');
+                            $('#customer').attr('disabled','disabled');
+                            // $('#cmdSave').attr('disabled','disabled');
                         }
+                        
                     },
                     error: function(error) {
                         console.log(error);
                     }
                 });
+
             }else{
                 Swal.fire('Warning..',pesan,'warning');
             }
         }
     });
 
-    $("#cmdPosting").click(function(){
+    // $("#cmdPosting").click(function(){
         
-        let recNumber = $('#recNumber').val();            
-        $.ajax({
-            type: "post",
-            url: "{{ route('receiving.posting') }}",
-            data: {
-                recNumber:recNumber
-            },
-            dataType: "json",
-            success: function(data) {
-                if (data.status == 0 ){
-                    let message="";
-                    for(let i = 0; i < data.message.length; i++) {
-                        message += "-"+data.message[i]+"<br>";                           
-                    }
-                    $("#alert-message-success").addClass(data.alert);
-                    $("#alert-message-success .alert-body").html(message);
-                    $("#alert-message-success").show();
-                    $("#alert-message-success").fadeTo(5000, 500).slideUp(500, function(){
-                        $("#alert-message-success").slideUp(500);
-                    });
-                    $('#recNumber').attr('disabled','disabled');
-                    $('#cmdSave').show();
-                    $('#cmdPosting').hide();
+    //     let recNumber = $('#recNumber').val();            
+    //     $.ajax({
+    //         type: "post",
+    //         url: "{{ route('receiving.posting') }}",
+    //         data: {
+    //             recNumber:recNumber
+    //         },
+    //         dataType: "json",
+    //         success: function(data) {
+    //             if (data.status == 0 ){
+    //                 let message="";
+    //                 for(let i = 0; i < data.message.length; i++) {
+    //                     message += "-"+data.message[i]+"<br>";                           
+    //                 }
+    //                 $("#alert-message-success").addClass(data.alert);
+    //                 $("#alert-message-success .alert-body").html(message);
+    //                 $("#alert-message-success").show();
+    //                 $("#alert-message-success").fadeTo(5000, 500).slideUp(500, function(){
+    //                     $("#alert-message-success").slideUp(500);
+    //                 });
+    //                 $('#recNumber').attr('disabled','disabled');
+    //                 $('#cmdSave').show();
+    //                 $('#cmdPosting').hide();
 
-                }else{
-                    $("#alert-message-success").addClass(data.alert);
-                    $("#alert-message-success .alert-body").html(data.message);
-                    $("#alert-message-success").show();
-                    $("#alert-message-success").fadeTo(5000, 500).slideUp(500, function(){
-                        $("#alert-message-success").slideUp(500);
-                    });
-                    $('#statusText').text(data.statusRec);
-                    $('#cmdSave').hide();
-                    $('#deleteButton').hide();
-                    $('#cmdPosting').hide();
-                    $('#recNumber').attr('disabled','disabled');
-                    $('#poNumber').attr('disabled','disabled');
-                    $('#addNewRow').attr('disabled','disabled');
+    //             }else{
+    //                 $("#alert-message-success").addClass(data.alert);
+    //                 $("#alert-message-success .alert-body").html(data.message);
+    //                 $("#alert-message-success").show();
+    //                 $("#alert-message-success").fadeTo(5000, 500).slideUp(500, function(){
+    //                     $("#alert-message-success").slideUp(500);
+    //                 });
+    //                 $('#statusText').text(data.statusRec);
+    //                 $('#cmdSave').hide();
+    //                 $('#deleteButton').hide();
+    //                 $('#cmdPosting').hide();
+    //                 $('#recNumber').attr('disabled','disabled');
+    //                 $('#poNumber').attr('disabled','disabled');
+    //                 $('#addNewRow').attr('disabled','disabled');
                     
-                }
-            },
-            error: function(error) {
-                console.log(error);
-            }
-        });
+    //             }
+    //         },
+    //         error: function(error) {
+    //             console.log(error);
+    //         }
+    //     });
             
         
-    });
+    // });
     
     let cloneCount=0;
     function add_new_row(article,articleCode,articleDesc,qty,uomGroup,uom,price,priceJasa,soCode,dnNumber) {
@@ -508,75 +568,75 @@
       })
     }
 
-    function hitungTotal(){
-        let objQtyRec= $('#article_row input[name="qty_rec[]"]');
-        let objQtyFree= $('#article_row input[name="qty_free[]"]');
-        let objTotalQty= $('#article_row span[name="totalQty[]"]');
+    // function hitungTotal(){
+    //     let objQtyRec= $('#article_row input[name="qty_rec[]"]');
+    //     let objQtyFree= $('#article_row input[name="qty_free[]"]');
+    //     let objTotalQty= $('#article_row span[name="totalQty[]"]');
         
-        objQtyRec.keyup(function() {
-            let indexnya= objQtyRec.index(this);
-            let qtyRec = parseInt(objQtyRec.eq(indexnya).val().replace(/,/gi, '') || 0); 
-            let qtyFree = parseInt(objQtyFree.eq(indexnya).val().replace(/,/gi, '') || 0); 
-            let totalQty = qtyRec+qtyFree;
-            objTotalQty.eq(indexnya).text(humanizeNumber(totalQty));
-            hitungGrandTotal();
-        });    
+    //     objQtyRec.keyup(function() {
+    //         let indexnya= objQtyRec.index(this);
+    //         let qtyRec = parseInt(objQtyRec.eq(indexnya).val().replace(/,/gi, '') || 0); 
+    //         let qtyFree = parseInt(objQtyFree.eq(indexnya).val().replace(/,/gi, '') || 0); 
+    //         let totalQty = qtyRec+qtyFree;
+    //         objTotalQty.eq(indexnya).text(humanizeNumber(totalQty));
+    //         hitungGrandTotal();
+    //     });    
 
-        objQtyFree.keyup(function() {
-            let indexnya= objQtyRec.index(this);
-            let qtyRec = parseInt(objQtyRec.eq(indexnya).val().replace(/,/gi, '') || 0); 
-            let qtyFree = parseInt(objQtyFree.eq(indexnya).val().replace(/,/gi, '') || 0); 
-            let totalQty = qtyRec+qtyFree;
-            objTotalQty.eq(indexnya).text(humanizeNumber(totalQty));
-            hitungGrandTotal();
-        });
+    //     objQtyFree.keyup(function() {
+    //         let indexnya= objQtyRec.index(this);
+    //         let qtyRec = parseInt(objQtyRec.eq(indexnya).val().replace(/,/gi, '') || 0); 
+    //         let qtyFree = parseInt(objQtyFree.eq(indexnya).val().replace(/,/gi, '') || 0); 
+    //         let totalQty = qtyRec+qtyFree;
+    //         objTotalQty.eq(indexnya).text(humanizeNumber(totalQty));
+    //         hitungGrandTotal();
+    //     });
             
-    }
+    // }
 
-    function hitungGrandTotal(){
-        let objArticle = $('#article_row input[name="article_id[]"]');
-        let objQtyRec= $('#article_row input[name="qty_rec[]"]');
-        let objQtyFree= $('#article_row input[name="qty_free[]"]');
-        let totalQty= 0;
-        let totalQtyFree= 0;
+    // function hitungGrandTotal(){
+    //     let objArticle = $('#article_row input[name="article_id[]"]');
+    //     let objQtyRec= $('#article_row input[name="qty_rec[]"]');
+    //     let objQtyFree= $('#article_row input[name="qty_free[]"]');
+    //     let totalQty= 0;
+    //     let totalQtyFree= 0;
 
-        var arr = objQtyRec.map(function (i) {
-            let qty = parseInt(objQtyRec.eq(i).val().replace(/,/gi, '')) || 0;
-            let qtyFree = parseInt(objQtyFree.eq(i).val().replace(/,/gi, '')) || 0;
-            totalQty+= qty;
-            totalQtyFree+= qtyFree;
-        }).get();
-        grandTotalQty=totalQty+totalQtyFree;
+    //     var arr = objQtyRec.map(function (i) {
+    //         let qty = parseInt(objQtyRec.eq(i).val().replace(/,/gi, '')) || 0;
+    //         let qtyFree = parseInt(objQtyFree.eq(i).val().replace(/,/gi, '')) || 0;
+    //         totalQty+= qty;
+    //         totalQtyFree+= qtyFree;
+    //     }).get();
+    //     grandTotalQty=totalQty+totalQtyFree;
         
-        $("#totalRow").val(objArticle.length);
-        $("#totalQTY").val(humanizeNumber(totalQty));
-        $("#totalQtyFree").val(humanizeNumber(totalQtyFree));
-        $("#grandTotalQty").val(humanizeNumber(grandTotalQty));
-    }
+    //     $("#totalRow").val(objArticle.length);
+    //     $("#totalQTY").val(humanizeNumber(totalQty));
+    //     $("#totalQtyFree").val(humanizeNumber(totalQtyFree));
+    //     $("#grandTotalQty").val(humanizeNumber(grandTotalQty));
+    // }
 
-    function hitungGrandTotalLoad(){
-        let objArticle = $('#article_row input[name="article_id[]"]');
-        let objQtyRec= $('#article_row input[name="qty_rec[]"]');
-        let objQtyFree= $('#article_row input[name="qty_free[]"]');
-        let objTotalQty= $('#article_row span[name="totalQty[]"]');
+    // function hitungGrandTotalLoad(){
+    //     let objArticle = $('#article_row input[name="article_id[]"]');
+    //     let objQtyRec= $('#article_row input[name="qty_rec[]"]');
+    //     let objQtyFree= $('#article_row input[name="qty_free[]"]');
+    //     let objTotalQty= $('#article_row span[name="totalQty[]"]');
         
-        let totalQty= 0;
-        let totalQtyFree= 0;
+    //     let totalQty= 0;
+    //     let totalQtyFree= 0;
 
-        var arr = objQtyRec.map(function (i) {
-            let qty = parseInt(objQtyRec.eq(i).val().replace(/,/gi, '')) || 0;
-            let qtyFree = parseInt(objQtyFree.eq(i).val().replace(/,/gi, '')) || 0;
-            totalQty+= qty;
-            totalQtyFree+= qtyFree;
-            objTotalQty.eq(i).text(humanizeNumber(qty+qtyFree));
-        }).get();
-        grandTotalQty=totalQty+totalQtyFree;
+    //     var arr = objQtyRec.map(function (i) {
+    //         let qty = parseInt(objQtyRec.eq(i).val().replace(/,/gi, '')) || 0;
+    //         let qtyFree = parseInt(objQtyFree.eq(i).val().replace(/,/gi, '')) || 0;
+    //         totalQty+= qty;
+    //         totalQtyFree+= qtyFree;
+    //         objTotalQty.eq(i).text(humanizeNumber(qty+qtyFree));
+    //     }).get();
+    //     grandTotalQty=totalQty+totalQtyFree;
         
-        $("#totalRow").val(objArticle.length);
-        $("#totalQTY").val(humanizeNumber(totalQty));
-        $("#totalQtyFree").val(humanizeNumber(totalQtyFree));
-        $("#grandTotalQty").val(humanizeNumber(grandTotalQty));
-    }
+    //     $("#totalRow").val(objArticle.length);
+    //     $("#totalQTY").val(humanizeNumber(totalQty));
+    //     $("#totalQtyFree").val(humanizeNumber(totalQtyFree));
+    //     $("#grandTotalQty").val(humanizeNumber(grandTotalQty));
+    // }
 
     // function tombolPanah(objname){
     //     // function kalo mau pindah filed dari atas ke bawah atau sebaliknya
