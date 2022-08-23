@@ -516,7 +516,7 @@
     // });
     
     let cloneCount=0;
-    function add_new_row(article,articleCode,articleDesc,qty,uomGroup,uom,price,priceJasa,soCode,dnNumber) {
+    function add_new_row(article,articleCode,articleDesc,qty,uomGroup,uom,price,priceJasa,soCode,dnNumber,poNumber) {
         $("#article_row").append($("#new_row").clone().html());
         cloneCount++;
         $("#article_row").find('#baru').attr('id', 'new_row'+ cloneCount);
@@ -535,6 +535,7 @@
         $('#articleId'+ cloneCount).attr('data-price-service', priceJasa);
         $('#articleId'+ cloneCount).attr('data-so-code', soCode);
         $('#articleId'+ cloneCount).attr('data-dn-number', dnNumber);
+        $('#articleId'+ cloneCount).attr('data-po-number', poNumber);
         // $('#articleId'+ cloneCount).val(articleCode +" - " + articleDesc);
         $('#articleId'+ cloneCount).val(articleDesc);
         $('#price'+ cloneCount).val(price);

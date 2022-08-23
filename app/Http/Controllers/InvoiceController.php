@@ -205,33 +205,35 @@ class InvoiceController extends Controller
 
     public function show(Request $request)
     {
-        $id=$request->id;
-        $data['title'] = "Details $this->title";
-        $data['subtitle'] = "Details $this->title";
+        $username =  Auth::user()->username;
+        $id=Crypt::decryptString($request->id);
+        $data['title'] = "Edit $this->title";
+        $data['subtitle'] = "Edit $this->title";
 
-        $data['header'] = DB::table('receiving_hdr')
+        $data['header'] = DB::table('invoice_hdr')
         ->where('id',$id)
         ->get()->first();
 
-        $data['detail'] = DB::table('receiving_det')
-        ->leftJoin('article','article.article_code','=','receiving_det.article_code')
-        ->leftJoin('uom','receiving_det.uom_rec','uom.code')
-        ->where('receiving_det.rec_number',$data['header']->rec_number)
-        ->orderBy('receiving_det.id')
-        // ->select('receiving_det.article_code')
-        ->get();       
+        $invoiceNumber = $data['header']->invoice_number;
 
-        $data['supps'] = DB::table('third_party')
-        ->where ('third_party_type','=','supp')
+        $data['detail'] = DB::table('invoice_det')
+        ->leftJoin('article','article.article_code','=','invoice_det.article_code')
+        ->leftJoin('uom','uom.code','invoice_det.uom')
+        ->where('invoice_det.invoice_number',$invoiceNumber)
+        ->orderBy('invoice_det.id')
+        ->get();
+
+        $data['customers'] = DB::table('third_party')
+        ->where ('third_party_type','=','cust')
         ->orderBy('nama')
         ->get();
 
-        $data['uoms'] = DB::table('uom')
-        ->orderBy('name')
-        ->get();
+        $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode,$invoiceNumber,$username);
+        $data['approveValidate'] = Approval::approveValidate($this->moduleCode,$invoiceNumber,$username);
 
-        $statusRec = ['Draft','Update','Posting','Cancel'];
-        $data['statusRec'] = $statusRec[$data['header']->status-1];
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','6'=>'PAID','7'=>'REVISED'];
+        $statusInv = ['NEW','VALIDATE','APPROVED','','','PAID','REVISED'];
+        $data['statusInv'] = $statusInv[$data['header']->status-1];
 
         return view("invoice.show",$data);
         
@@ -496,30 +498,23 @@ class InvoiceController extends Controller
 
     public function destroy(Request $request)
     {
-        // status
-        // 1. Draft
-        // 2. Update
-        // 3. Posting
-        // 4. Cancel
-
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED'];
         $username =  Auth::user()->username;       
         $id = $request->id;
-        $status = "4";
+        $status = "5";
 
-        $poHdr= DB::table('receiving_hdr')
+        $invHdr= DB::table('invoice_hdr')
         ->where('id',$id)
         ->get()->first();
 
-        $recNumber = $poHdr->rec_number;
-        $invNumber = $poHdr->inv_number;
-        $note = $poHdr->note;
+        $invNumber = $invHdr->invoice_number;
+        $note = $invHdr->note;
 
-        $rowAffected=DB::table('receiving_hdr')
-        ->where('rec_number',$recNumber)
+        $rowAffected=DB::table('invoice_hdr')
+        ->where('invoice_number',$invNumber)
         ->update(
             [   
-                'rec_number' => $recNumber."(C)",
-                'inv_number' => $invNumber."(C)",
+                'invocie_number' => $invNumber."(C)",
                 'status' => $status,
                 'note' => $note." (Cancel)",
                 'updated_by' => Auth::user()->username,
@@ -528,25 +523,27 @@ class InvoiceController extends Controller
         );
 
         if($rowAffected>0){
-            DB::table('receiving_det')
-            ->where('rec_number',$recNumber)
+            DB::table('invoice_det')
+            ->where('invoice_number',$invNumber)
             ->update(
                 [   
-                    'rec_number' => $recNumber."(C)",
+                    'inv_number' => $invNumber."(C)",
                     'updated_by' => Auth::user()->username,
                     'updated_at' => date('Y-m-d H:i:s')
                 ]
             );
 
-            $alert  ="alert-success";
-            $message  = "Rec $recNumber Successfully Cancel";
-            \LogActivity::addToLog('Rec cancel ',"username: $username Status $message");
-            return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);  
+            $title ="Cancel $this->title";
+            $alert  ="success";
+            $message  = "$title $invNumber Successfully Cancel";
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return redirect()->back()->with(['alert'=>$alert,'title' => $title,'message'=> $message]);   
         }else{
-            $alert  ="alert-warning";
-            $message  = "Rec $recNumber Failed to Cancel";
-            \LogActivity::addToLog('Rec cancel ',"username: $username Status $message");
-            return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);
+            $title ="Cancel $this->title";
+            $alert  ="warning";
+            $message  = "$title $invNumber Failed to Cancel";
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return redirect()->back()->with(['alert'=>$alert,'title' => $title,'message'=> $message]);
         }
     }
 
@@ -676,13 +673,13 @@ class InvoiceController extends Controller
             }
 
             // if ($data->status == '3'){
-                $buttons .=         '<a href="'. route('invoice.print', ['id'=>$data->id]) .'" target="_blank" class="dropdown-item">
+                $buttons .=         '<a href="'. route('invoice.print', ['id'=>Crypt::encryptString($data->id)]) .'" target="_blank" class="dropdown-item">
                                         <i data-feather="printer"></i>
                                         Print
                                     </a>';
 
             // }
-            $buttons .=         '<a href="'. route('invoice.show', ['id'=>$data->id]) .'" class="dropdown-item">
+            $buttons .=         '<a href="'. route('invoice.show', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                     <i data-feather="list"></i>
                                     Detail
                                 </a>';
@@ -694,7 +691,7 @@ class InvoiceController extends Controller
                                         class='dropdown-item'
                                         data-toggle='modal'
                                         data-target='#smallModalCancel'
-                                        data-href='". route("invoice.destroy", ["id"=>$data->id]) ."'>
+                                        data-href='". route("invoice.destroy", ['id'=>Crypt::encryptString($data->id)]) ."'>
                                         <i data-feather='trash-2'></i>
                                         Cancel
                                     </a>";
@@ -723,7 +720,7 @@ class InvoiceController extends Controller
 
     public function print(Request $request)
     {
-        $id = $request -> id;
+        $id=Crypt::decryptString($request->id);
 
         $data['companies']= array(
             "nama"=> "PT ABIMANYU SEKAR NUSANTARA",
@@ -748,6 +745,8 @@ class InvoiceController extends Controller
         ->first();
 
         $invNumber=$invHdr -> invoice_number;
+
+        $data['title']=$invNumber;
        
         $data['details']=DB::table('invoice_det')
         ->leftJoin('article','article.article_code','invoice_det.article_code')
@@ -755,9 +754,7 @@ class InvoiceController extends Controller
         ->get();
 
 
-        $data['listpo']=DB::select("SELECT 
-        distinct((select po_number from sales_order_hdr where so_code = a.so_number)) as po_number 
-        from invoice_det a where invoice_number = '$invNumber'");
+        $data['listpo']=DB::select("SELECT distinct po_number from invoice_det where invoice_number = '$invNumber'");
 
         $data['totals']=DB::select("SELECT *,(total_material+total_service) as sub_total,((total_material+total_service+ppn)-pph23) as grand_total from (
             select 

@@ -2,7 +2,7 @@
 <html lang="en">
     <head>
     <meta charset="UTF-8">
-    <title>INV</title>
+    <title>{{ $title }}</title>
     <style type="text/css">
 
         html { 
