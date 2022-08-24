@@ -750,7 +750,7 @@ class WorkingOrderSheetController extends Controller
         ->select('wo_det.*'
         ,'article.article_alternative_code'
         ,'article.article_desc'
-        ,DB::raw("(SELECT article_stock from article_stock where article_code = wo_det.article_rm_code and site_code ='HO' and location_number='WH') as qty_rm")
+        ,DB::raw("(SELECT article_qty from article_stock where article_code = wo_det.article_rm_code and site_code ='HO' and location_number='WH') as qty_rm")
         )
         ->where('wo_code',$woNumber)
         ->get();
