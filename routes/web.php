@@ -468,6 +468,9 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('production/print',['as'=>'production.print','uses'=>'ProductionController@print']);
 	Route::post('production/posting',['as'=>'production.posting','uses'=>'ProductionController@posting']);
 
+	Route::get('production/wos/detail',['as'=>'production.wos.detail','uses'=>'ProductionController@wosDetail']);
+
+
 	Route::get('pettyCashs',['as'=>'pettyCashs.index','uses'=>'PettyCashController@index','middleware' => ['permission:pettyCash-index']]);
 	Route::get('pettyCashs/create',['as'=>'pettyCash.create','uses'=>'PettyCashController@create','middleware' => ['permission:pettyCash-create']]);
 	Route::post('pettyCashs/store',['as'=>'pettyCash.store','uses'=>'PettyCashController@store']);

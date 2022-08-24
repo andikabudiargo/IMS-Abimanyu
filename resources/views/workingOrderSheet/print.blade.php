@@ -174,7 +174,7 @@
                     <td class="border-bottom" align="left">{{ $val->article_alternative_code }}</td>
                     <td class="border-bottom" align="left">{{ $val->plan_time_loading }}</td>
                     <td class="border-bottom" align="left"></td>
-                    <td class="border-bottom" align="right">{{ number_format($val->qty_rm) }}</td>
+                    <td class="border-bottom" align="right">{{ $val->qty_rm }}</td>
                     <td class="border-bottom" align="right">{{ number_format($val->plan_qty_fresh) }}</td>
                     <td class="border-bottom" align="right">{{ number_format($val->plan_qty_repaint) }}</td>
                     <td class="border-bottom" align="right">{{ number_format($val->plan_tag) }}</td>

@@ -32,7 +32,7 @@ class ProductionController extends Controller
         // 5 = Canceled
         // 6 = closed
 
-        $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'AUTHORIZED','4'=>'RECEIVED','5'=>'CANCELED','6'=>"CLOSE"];
+        $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'AUTHORIZED','4'=>'RECEIVED','5'=>'CANCELED','6'=>"CLOSED"];
             
         return view("production.index",$data);
     }
@@ -52,7 +52,7 @@ class ProductionController extends Controller
         ->value('code_number'); 
         $month = date('n');
         $year = date('Y');
-        $woNumber="$key/ASN/$year/$month/$newCode";
+        $woNumber="$key/PROD/$year/$month/$newCode";
         
         return $woNumber;
     }
@@ -61,7 +61,16 @@ class ProductionController extends Controller
     {
         $data['title'] = "Input Production";
         $data['subtitle'] = "Input Production";
-       
+
+        $data['listSo'] = DB::table('wo_hdr')
+        ->where('status','=','3')
+        ->select('wo_hdr.*'
+            ,DB::raw("to_char(wo_date, 'DD-MM-YYYY') as tanggal"))
+        ->get();
+
+        $data['statusPrd'] = 'NEW';
+        $data['oEdit'] = false;
+               
         return view("production.create",$data);
 
     }
@@ -417,6 +426,25 @@ class ProductionController extends Controller
         return view("purchaseOrder.show",$data);
         
     }
+
+    public function wosDetail(Request $request)
+    {
+        $woCode = $request->wosNumber;
+        $data = DB::table('wo_det')
+        ->leftJoin('article','article.article_code','=','wo_det.article_code')
+        ->where('wo_code',$woCode)
+        ->where('so_code','<>','other')
+        ->select('wo_det'.'.*'
+        ,DB::RAW("concat(article.article_alternative_code,article.article_desc) as article")
+        , 'article.article_alternative_code'
+        ,'article.article_desc')
+        ->orderBy('urutan')
+        ->get();
+
+        return response()->json($data);
+
+    }
+    
 
     public function edit(Request $request)
     {

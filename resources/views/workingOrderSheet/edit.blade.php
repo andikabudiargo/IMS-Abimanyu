@@ -22,7 +22,7 @@
                             <input type="text" id="article" name="article" hidden>
                             <div class="form-row">
                                 <div class="form-group col-md-2">
-                                    <label for="wosDate">Wo Number</label>
+                                    <label for="wosNumber">Wo Number</label>
                                     <input type="text" id="wosNumber" name="wosNumber" value="{{ $header->wo_code  }}" class="form-control form-control-sm disabled-el" disabled />
                                 </div>
                             </div>

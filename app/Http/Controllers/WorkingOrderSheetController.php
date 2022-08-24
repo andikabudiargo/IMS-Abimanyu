@@ -294,7 +294,7 @@ class WorkingOrderSheetController extends Controller
 
         $data['oEdit']=true;
 
-         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATED','3'=>'APPROVED','4'=>'','5'=>'CANCELED'];
+         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATED','3'=>'APPROVED','4'=>'','5'=>'CANCELED','6'=>'CLOSED'];
          $statusWo = ['NEW','VALIDATED','APPROVED','PROCESS','CANCELED'];
          $data['statusWo'] = $statusWo[$data['header']->status-1];
 
