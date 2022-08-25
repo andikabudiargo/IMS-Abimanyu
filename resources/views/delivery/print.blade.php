@@ -130,7 +130,39 @@
         <tr>
             <td colspan="5">Note: </td>
         </tr>
-    
+    </table>
+
+    <table width="100%" border="0">
+        <tr><td colspan="2" height="100"></td></tr>
+        <tr><td colspan="2" height="100"></td></tr>
+        <tr>
+            <td align="center">Created By</td>
+            <td align="center">Checked By</td>
+            <td align="center">Shipped By</td>
+            <td align="center">Security By</td>
+            <td align="center">Received By</td>
+        </tr>
+        <tr>
+            <td align="center"></td>
+            <td align="center"></td>
+            <td align="center"></td>
+            <td align="center"></td>
+            <td align="center"></td>
+        </tr>
+        <tr>
+            <td align="center"></td>
+            <td align="center"></td>
+            <td align="center"></td>
+            <td align="center"></td>
+            <td align="center"></td>
+        </tr>
+        <tr>
+            <td align="center">( <u>{{ str_pad($dnHdr->created_by, 10, "_", STR_PAD_BOTH)  }}</u> )</td>
+            <td align="center">( _____________  )</td>
+            <td align="center">( _____________  )</td>
+            <td align="center">( _____________  )</td>
+            <td align="center">( _____________  )</td>
+        </tr>
     </table>
         
 {{-- @if($poNumber == "oki")
