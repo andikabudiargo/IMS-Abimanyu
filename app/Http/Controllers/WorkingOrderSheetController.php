@@ -686,7 +686,7 @@ class WorkingOrderSheetController extends Controller
         })
         ->addColumn('status', function ($data) {
             $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-danger']; 
-            $status = ['NEW','VALIDATED','APPROVEd','PROCESS','CANCELED','','REVISION'];
+            $status = ['NEW','VALIDATED','APPROVED','PROCESS','CANCELED','','REVISION'];
             return "<div class='badge ".$badges[$data->status - 1]."'>".$status[$data->status - 1]."</div>";
         })
         ->rawColumns(['action','status','wo_code'])

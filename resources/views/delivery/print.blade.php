@@ -10,7 +10,9 @@
         }
 
         * {
-            font-family: Verdana, Arial, sans-serif;
+            /* font-family: Verdana, Arial, sans-serif; */
+            font-family: 'Courier New', monospace;
+
         }
 
         table{
