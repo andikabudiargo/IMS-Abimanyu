@@ -9,14 +9,43 @@
             margin: 10px;
         }
 
+        /** For screen preview **/
+        @media screen {
+            body { 
+                width: 200mm; height: 280mm ;
+            }
+        }
+
+        /** Fix for Chrome issue #273306 **/
+        @media print {
+            .hidden-print {
+                display: none !important;
+            }
+
+            @page {
+                size:  auto; 
+                margin: 0 !important;
+                margin-left:10px;
+            }
+
+            p { page-break-after: always; }
+
+            body { 
+                width: 200mm; 
+                height: 280mm;
+                margin:0 !important;
+            }
+        }
+        
         * {
-            /* font-family: Verdana, Arial, sans-serif; */
-            font-family: 'Courier New', monospace;
+            font-family: Verdana, Arial, sans-serif;
+            /* font-family: 'Courier New', monospace; */
 
         }
 
         table{
-            font-size: x-small;
+            /* font-size: x-small; */
+            font-size: medium;
         }
         
         tfoot tr td{
@@ -29,7 +58,7 @@
         }
 
         table {
-        width: 100%;
+            width: 100%;
         }
 
         th {
@@ -68,10 +97,10 @@
         <tr>
             <td width="30%" >
                 {{-- <img src="{{ public_path('app-assets/images/logo/logo_po.png') }}" alt="logo" style="width: 60%;">  --}}
-                <img src="{{ asset('app-assets/images/logo/logo_po.png') }}" alt="logo" style="width: 60%;"> 
+                <img src="{{ asset('app-assets/images/logo/logo_po.png') }}" alt="logo" style="width: 70%;"> 
                 <br>Kp. Karang Mulya RT 014 RW 005 Cikopo Bungursari Kab. Purwakarta
             </td>
-            <td valign="top" style="text-align:center"></td>
+            
             <td width="30%" ></td>
         </tr>
     </table>
@@ -123,14 +152,15 @@
         <tfoot>
             @foreach ($totals as $val )
                 <tr class="border-bottom">
-                    <td class="border-bottom" align="left" colspan="4">Total</td>
-                    <td class="border-bottom" align="right" >{{ number_format($val->qty) }}</td>
+                    <td class="border-bottom" align="left" colspan="3"></td>
+                    <td class="border-bottom" align="right" colspan="2">Total Qty : {{ number_format($val->qty) }}</td>
                 </tr>
             @endforeach
+        
+            <tr>
+                <td colspan="5">Note: </td>
+            </tr>
         </tfoot>
-        <tr>
-            <td colspan="5">Note: </td>
-        </tr>
     </table>
 
     <table width="100%" border="0">
@@ -158,11 +188,11 @@
             <td align="center"></td>
         </tr>
         <tr>
-            <td align="center">( <u>{{ str_pad($dnHdr->created_by, 10, "_", STR_PAD_BOTH)  }}</u> )</td>
-            <td align="center">( _____________  )</td>
-            <td align="center">( _____________  )</td>
-            <td align="center">( _____________  )</td>
-            <td align="center">( _____________  )</td>
+            <td align="center">(<u>{{ str_pad($dnHdr->created_by, 10, "_", STR_PAD_BOTH)  }}</u>)</td>
+            <td align="center">( _________ )</td>
+            <td align="center">( _________ )</td>
+            <td align="center">( _________ )</td>
+            <td align="center">( _________ )</td>
         </tr>
     </table>
         
