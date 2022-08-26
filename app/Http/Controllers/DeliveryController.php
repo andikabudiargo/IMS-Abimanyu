@@ -772,11 +772,13 @@ class DeliveryController extends Controller
         
         $data['status'] ='1';
         $data['no'] = 0 ;
+        
+        return view('delivery.print',$data);
 
-        view()->share($data);
+        // view()->share($data);
 
-        $pdf = PDF::loadView('delivery.print');
-        return $pdf->stream("DN_$dnNumber.pdf");
+        // $pdf = PDF::loadView('delivery.print');
+        // return $pdf->stream("DN_$dnNumber.pdf");
 
     }
 

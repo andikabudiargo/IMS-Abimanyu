@@ -67,7 +67,8 @@
     <table width="100%" border="0">
         <tr>
             <td width="30%" >
-                <img src="{{ public_path('app-assets/images/logo/logo_po.png') }}" alt="logo" style="width: 60%;"> 
+                {{-- <img src="{{ public_path('app-assets/images/logo/logo_po.png') }}" alt="logo" style="width: 60%;">  --}}
+                <img src="{{ asset('app-assets/images/logo/logo_po.png') }}" alt="logo" style="width: 60%;"> 
                 <br>Kp. Karang Mulya RT 014 RW 005 Cikopo Bungursari Kab. Purwakarta
             </td>
             <td valign="top" style="text-align:center"></td>
@@ -168,5 +169,13 @@
 {{-- @if($poNumber == "oki")
 </div>
 @endif --}}
+<script>
+    window.onload= function () { 
+        window.print();
+        window.onafterprint = function () {
+            window.close();
+        }
+    }
+</script>
 </body>
 </html>
