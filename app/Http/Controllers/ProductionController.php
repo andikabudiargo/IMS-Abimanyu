@@ -6,33 +6,83 @@ use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Crypt;
 use Response;
 use App\Permission;
 use DataTables;
 use DB;
 use PDF;
 use AppHelpers;
+use Approval;
 
 class ProductionController extends Controller
 {
+    private $title;
+    private $moduleCode;
+    public function __construct()
+    {
+        $this->title = "Production";
+        $this->moduleCode = "PRD";
+    }
+
+    public function getTableColoumn()
+    {
+        $kolom=
+        [
+            ['data'=>'action','name'=>'action','title'=>'action','orderable'=> false,'searchable'=>false],
+            ['data'=>'prod_code','name'=>'prod_code','title'=>'Prod. Code'],
+            ['data'=>'prod_date','name'=>'prod_date','title'=>'Prod. Date'],
+            ['data'=>'wo_code','name'=>'wo_code','title'=>'WOS. Code'],
+            ['data'=>'wo_date','name'=>'wo_date','title'=>'WOS. Date'],
+            ['data'=>'num_revision','name'=>'num_revision','title'=>'Revision'],
+            ['data'=>'prod_shift','name'=>'wo_shift','title'=>'Shift'],
+            ['data'=>'prod_group','name'=>'wo_group','title'=>'Group'],
+            ['data'=>'start_time','name'=>'start_time','title'=>'Start Time'],
+            ['data'=>'working_hour','name'=>'working_hour','title'=>'Working Hour'],
+            ['data'=>'status','name'=>'status','title'=>'Status']
+        ];
+        return json_encode($kolom, true);
+    }
+
+    public function getTableColoumnDetail()
+    {
+        $kolom=
+        [
+            ['data'=>'urutan','name'=>'urutan','title'=>'Urutan'],
+            ['data'=>'wo_code','name'=>'wo_code','title'=>'Wo Code'],
+            ['data'=>'num_revision','name'=>'num_revision','title'=>'Revision'],
+            ['data'=>'so_code','name'=>'so_code','title'=>'So Code'],
+            ['data'=>'wo_shift','name'=>'wo_shift','title'=>'Shift'],
+            ['data'=>'wo_group','name'=>'wo_group','title'=>'Group'],
+            ['data'=>'start_time','name'=>'start_time','title'=>'Start Time'],
+            ['data'=>'working_hour','name'=>'working_hour','title'=>'Working Hour'],
+            ['data'=>'so_qty','name'=>'so_qty','title'=>'So Qty'],
+            ['data'=>'article_fg','name'=>'article_fg','title'=>'Article FG'],
+            ['data'=>'article_fg_desc','name'=>'article_fg_desc','title'=>'Desc'],
+            ['data'=>'article_rm','name'=>'article_rm','title'=>'Article RM'],
+            ['data'=>'article_rm_desc','name'=>'article_rm_desc','title'=>'Desc'],
+            ['data'=>'plan_time_loading','name'=>'plan_time_loading','title'=>'Plan Time'],
+            ['data'=>'plan_qty_fresh','name'=>'plan_qty_fresh','title'=>'Plan Qty Frsh'],
+            ['data'=>'plan_qty_repaint','name'=>'plan_qty_repaint','title'=>'Plan Qty Rep'],
+            ['data'=>'plan_tag','name'=>'plan_tag','title'=>'Tag'],
+            ['data'=>'note_hdr','name'=>'note_hdr','title'=>'Note'],
+            ['data'=>'created_by','name'=>'created_by','title'=>'Created By'],
+            ['data'=>'created_at','name'=>'created_at','title'=>'Created At'],
+        ];
+        return json_encode($kolom, true);
+    }
+
     public function index(Request $request)
     {
-        $data['title'] = "Production";
+        $data['title'] = $this->title;
+        $data['subtitle'] = "$this->title";
 
-        $data['supps'] = DB::table('third_party')
-        ->where ('third_party_type','=','supp')
-        ->orderBy('nama')
-        ->get();
+        $data['kolom'] = $this->getTableColoumn();
+        $data['kolomDetail'] = $this->getTableColoumnDetail();
 
-        // status:
-        // 1 = New
-        // 2 = Validated
-        // 3 = Authorized
-        // 4 = Received
-        // 5 = Canceled
-        // 6 = closed
-
-        $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'AUTHORIZED','4'=>'RECEIVED','5'=>'CANCELED','6'=>"CLOSED"];
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','6'=>'CLOSED','7'='REVISED'];
+    
+        $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED'];
             
         return view("production.index",$data);
     }
@@ -52,17 +102,17 @@ class ProductionController extends Controller
         ->value('code_number'); 
         $month = date('n');
         $year = date('Y');
-        $woNumber="$key/PROD/$year/$month/$newCode";
+        $prdNumber="$key/$year/$month/$newCode";
         
-        return $woNumber;
+        return $prdNumber;
     }
 
     public function create(Request $request)
     {
-        $data['title'] = "Input Production";
-        $data['subtitle'] = "Input Production";
+        $data['title'] = "Input $this->title";
+        $data['subtitle'] = "Input $this->title";
 
-        $data['listSo'] = DB::table('wo_hdr')
+        $data['listWo'] = DB::table('wo_hdr')
         ->where('status','=','3')
         ->select('wo_hdr.*'
             ,DB::raw("to_char(wo_date, 'DD-MM-YYYY') as tanggal"))
@@ -101,12 +151,14 @@ class ProductionController extends Controller
     {
         $username =  Auth::user()->username;
         $articles = json_decode($request -> articles);
-        $prdDate = $request->prdDate;
-        $prdDate = date("Y-m-d", strtotime($prdDate) );
-        $shift = $request->shift;
-        $group = $request->group;
+        $prdNumber = $request->prdNumber;
+        $wosNumber = $request->wosNumber;
+        $wosTime = $request->wosTime;
+        $workHour = $request->workHour;
         $note = $request->note;
+        $prdDate = date("Y-m-d");
         $status = '1';
+        $oEdit = true;
 
         $messages = [
             'required' => 'The field is required.',
@@ -121,10 +173,8 @@ class ProductionController extends Controller
         });
 
         $validation = Validator::make($request->all(),$messages = [
-            // 'woNumber'=>'required|unique:purchase_order_hdr,po_number',
-            'prdDate'  => 'required',
-            'shift'  => 'required',
-            'group'  => 'required',
+            // 'woNumber'=>'required|unique:purchase_order_hdr,wo_code',
+            'wosNumber'  => 'required' 
         ]);
         
         $error_array = array();
@@ -138,44 +188,120 @@ class ProductionController extends Controller
             $alert ="error";
             return response()->json(array('status' => 0,'title' => $title, 'message' => $error_array,'alert' =>$alert));
         }else{
-            $hasilUpdate = AppHelpers::resetCode('PRD');
-            $prdNumber = $this->getLastCode('PRD');
+            $hasilUpdate = AppHelpers::resetCode($this->moduleCode);
+            $prdNumber = $this->getLastCode($this->moduleCode);
+
+            $sqlHdr = "INSERT into production_hdr 
+            (
+                prod_code,
+                wo_code,
+                original_prod_code,
+                prod_date,
+                prod_shift,
+                prod_group,
+                start_time,
+                working_hour,
+                num_revision,
+                status,
+                note,
+                created_by,
+                updated_by,
+                created_at,
+                updated_at
+            )
+            select 
+                '$prdNumber',
+                wo_code,
+                '$prdNumber',
+                wo_date,
+                wo_shift,
+                wo_group,
+                '$wosTime',
+                $workHour,
+                0,
+                '1',
+                note,
+                '$username',
+                '$username',
+                '".date('Y-m-d H:i:s')."',
+                '".date('Y-m-d H:i:s')."'
+            from wo_hdr where wo_code = '$wosNumber'";
+
+            $sqlDet="INSERT into production_det
+            (
+                prod_code,
+                so_code,
+                so_qty,
+                urutan,
+                article_code,
+                article_rm_code,
+                plan_time_loading,
+                plan_qty_fresh,
+                plan_qty_repaint,
+                plan_tag,
+                origin_tag,
+                qty_ok,
+                qty_repair,
+                qty_repaint,
+                note,
+                created_by,
+                updated_by,
+                created_at,
+                updated_at
+            )
+            select '$prdNumber',
+                so_code,
+                so_qty,
+                urutan,
+                article_code,
+                article_rm_code,
+                plan_time_loading,
+                plan_qty_fresh,
+                plan_qty_repaint,
+                plan_tag,
+                origin_tag,
+                qty_ok,
+                qty_repair,
+                qty_repaint,
+                note,
+                '$username',
+                '$username',
+                '".date('Y-m-d H:i:s')."',
+                '".date('Y-m-d H:i:s')."' 
+            from wo_det where wo_code = '$wosNumber'";
+
             DB::beginTransaction();
             try {
-                    DB::table('production_hdr')->insert([
-                        
-                        'prod_code' => $prdNumber,
-                        'prod_date' => $prdDate,
-                        'prod_shift' => $shift,
-                        'prod_group' => $group,
-                        'status' => $status,
-                        'note' =>$note ,
-                        'created_by' => Auth::user()->username,
-                        'updated_by' => Auth::user()->username,
-                        'created_at' => date('Y-m-d H:i:s'),
-                        'updated_at' => date('Y-m-d H:i:s')
-                    ]);
 
-                    $dataSet = [];
-                    foreach ($articles as $val) {
-                        $dataSet[] = [
-                            'prod_code' => $prdNumber,
-                            'so_code' => $val->so_code,
-                            'article_code' => $val->article_code,
-                            'qty' => $val->qty,
-                            'created_by' => Auth::user()->username,
-                            'created_at' => date('Y-m-d H:i:s'),
-                        ];
-                    }
+                $rowAffected =  DB::select($sqlHdr);
+                if ($rowAffected){
+                    DB::select($sqlDet);
+                }
 
-                    DB::table('production_det')->insert($dataSet);
+                $dataSet = [];
+                foreach ($articles as $val) {
+                    DB::table('production_det')
+                    ->where("prod_code", $prdNumber)
+                    ->where("urutan", $val->urutan)
+                    ->where("so_code",$val->so_code)
+                    ->where("article_code",$val->article_code)
+                    ->where("article_rm_code",$val->article_rm)
+                    ->update(
+                        [
+                            "act_time_loading" => $val->act_waktu,
+                            "act_qty_fresh" => $val->act_qty_prod,
+                            "act_qty_repaint" => $val->act_qty_repaint,
+                            "act_tag" => $val->act_tag,
+                        ]
+                    );
+                }
 
-                    DB::commit();
-                    $title ='Save Production';
-                    $alert  ="success";
-                    $message  = "$title $prdNumber is successfully saved";
-                    \LogActivity::addToLog($title,"username: $username Status $message");
-                    return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'prdNumber'=>$prdNumber));
+                DB::commit();
+                $title ='Save Production';
+                $alert  ="success";
+                $message  = "$title $prdNumber is successfully saved";
+                \LogActivity::addToLog($title,"username: $username Status $message");
+                return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'prdNumber'=>$prdNumber,'oEdit'=>$oEdit));
 
             } catch (Exception $e) {
                 DB::rollBack();
@@ -183,247 +309,232 @@ class ProductionController extends Controller
                 $alert  ="warning";
                 $message  = "$title $prdNumber is failed to save";
                 \LogActivity::addToLog($title,"username: $username Status $message");
-                return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'prdNumber'=>$prdNumber));
+                return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'prdNumber'=>$prdNumber,'oEdit'=>$oEdit));
             }
         }
     }
 
     public function posting(Request $request)
     {
-        // status
-        // 1. Draft
-        // 2. Update
-        // 3. Posted
-        // 4. Cancel
-
         $username =  Auth::user()->username;
-        $prdNumber = $request->prodNumber;
-        $recType = "NORMAL";
-        $statusRec ="Posted";
-        $status = '3';
-        $authorizedBy = Auth::user()->username;
-
-        // Update stock kalo article nya udah ada
-        $sqlUpdate = "UPDATE article_stock a set article_qty = COALESCE(a.article_qty,0)  + COALESCE(b.qty_prod,0)
-        from (
-            select art_code, qty_prod from 
-            (
-            select *,article.article_code as art_code,o.qty as qty_prod from (
-            select * from production_det where prod_code in (
-            select prod_code from production_hdr where prod_code = '$prdNumber' and (status != '3' and status != '4'))) o
-            left join article on article.article_code = o.article_code
-            ) c
-        ) b
-        where a.article_code=b.art_code";
-
-        $sqlIsiTemp="INSERT into production_detail_temp
-                    select prod_code,prod_code,article_code,qty from production_det where prod_code = '$prdNumber'";
-
-        $sqlUpdateChemical = "UPDATE article_stock a set article_qty = COALESCE(a.article_qty,0) - COALESCE(b.qty_total,0)
-        from (
-            select article_code,qty_total from 
-            (SELECT article.article_code,article_alternative_code,article_desc,article.uom,qty,qty_proses,qty_total ,article.article_type,(select name from article_types where code = article.article_type) as kelompok from (
-            select article_code,sum(oki.qty) as qty,sum(mari.qty) as qty_proses,sum(oki.qty*mari.qty) as qty_total from (
-            select * from bom_det where bom_code in (
-            select bom_code from bom_hdr 
-            left join production_detail_temp on bom_hdr.article_code = production_detail_temp.article_code
-            where bom_hdr.article_code in (select article_code from production_detail_temp))) oki
-            left join(
-            select bom_code,qty from bom_hdr 
-            left join production_detail_temp on bom_hdr.article_code = production_detail_temp.article_code
-            where bom_hdr.article_code in (select article_code from production_detail_temp)) mari
-            on oki.bom_code= mari.bom_code
-            group by article_code) so
-            left join article on article.article_code = so.article_code) as oki
-        ) b
-        where a.article_code=b.article_code";
-
-        //Insert ke stock kalo article nya belum ada
-        $sqlInsert = "INSERT into article_stock (site_code,article_code,dept_code,location_number,article_qty,uom)
-        select 'HO',art_code,art_type,'00', qty_prod,art_uom from 
-        (
-            select *,
-            article.article_code as art_code,
-            article.uom as art_uom,
-            article.article_type as art_type,
-            z.qty as qty_prod
-            from (
-            select * from production_det where prod_code in (
-                select prod_code from production_hdr where prod_code = '$prdNumber' and (status != '3' and status != '4')
-            )
-            ) z
-            left join article on article.article_code = z.article_code
-            where article.article_code not in (select article_code from article_stock)
-        ) y";
-
-
-        $sqlInsertChemical = "INSERT into article_stock (site_code,article_code,dept_code,location_number,article_qty,uom)
-        select 'HO',article_code,article_type,'00', qty_total,uom from 
-        (
-            select 'HO',article_code,article_type,'00', qty_total,uom from 
-            (SELECT article.article_code,article_alternative_code,article_desc,article.uom,qty,qty_proses,qty_total ,article.article_type,(select name from article_types where code = article.article_type) as kelompok from (
-            select article_code,sum(oki.qty) as qty,sum(mari.qty) as qty_proses,sum(oki.qty*mari.qty) as qty_total from (
-            select * from bom_det where bom_code in (
-            select bom_code from bom_hdr 
-            left join production_detail_temp on bom_hdr.article_code = production_detail_temp.article_code
-            where bom_hdr.article_code in (select article_code from production_detail_temp))) oki
-            left join(
-            select bom_code,qty from bom_hdr 
-            left join production_detail_temp on bom_hdr.article_code = production_detail_temp.article_code
-            where bom_hdr.article_code in (select article_code from production_detail_temp)) mari
-            on oki.bom_code= mari.bom_code
-            group by article_code) so
-            left join article on article.article_code = so.article_code
-            and article.article_code not in (select article_code from article_stock)
-            ) as oki
-        ) y
-        where article_code is not null";
+        $id=Crypt::decryptString($request->id);
+        $prdNumber = DB::table('production_hdr')
+                    ->where('id',$id)
+                    ->where('status','=','3')
+                    ->value('prod_code');
+        $siteCode = 'HO';
+        $location ='WH';
+        $status = '4';
+        $moduleCode = $this->moduleCode;
         
-        //Insert into table movement
-        $sqlMovement = "INSERT into movement
-        (movement_date,
-        artikel_code,
-        artikel_desc,
-        movement_min,
-        movement_plus,
-        movement_price,
-        movement_transnno,
-        movement_type,
-        movement_desc)
-        select 
-            now()::timestamp::date,
-            article_code,
-            (select concat(article_alternative_code,'-',article_desc) from article where article_code = a.article_code) as article_desc,
-            0,
-            qty,
-            (select price from sales_order_det where so_code = a.so_code and article_code = a.article_code limit 1) as price,
-            prod_code,
-            'PRD',
-            prod_code
-        from production_det a 
-        where prod_code in (
-            select prod_code 
-            from production_hdr 
-            where prod_code = '$prdNumber' and status = '3' and qty <> 0
-        )";
+        if ($prdNumber){
+            $data = DB::table('production_det')
+            ->leftJoin('production_hdr','production_hdr.prod_code','production_det.prod_code')
+            ->leftJoin('article','article.article_code','production_det.article_code')
+            ->where('production_det.prod_code',$prdNumber)
+            ->where('production_hdr.status','3')
+            ->where('production_det.so_code','<>','other')
+            ->select('production_det.*'
+            ,'article.article_type'
+            ,'article.uom as uom_article'
+            ,'production_det.act_qty_fresh as total_qty'
+            )
+            ->get();
 
-        $sqlMovementChemical = "INSERT into movement
-        (movement_date,
-        artikel_code,
-        artikel_desc,
-        movement_min,
-        movement_plus,
-        movement_price,
-        movement_transnno,
-        movement_type,
-        movement_desc)
-        select 
-            now()::timestamp::date,
-            article_code,
-            (select concat(article_alternative_code,'-',article_desc) from article where article_code = a.article_code) as article_desc,
-            qty_total,
-            0,
-            0,
-            '$prdNumber',
-            'PRDBOM',
-            '$prdNumber'
-            from (
-            select 'HO',article_code,article_type,'00', qty_total,uom from 
-            (SELECT article.article_code,article_alternative_code,article_desc,article.uom,qty,qty_proses,qty_total ,article.article_type,(select name from article_types where code = article.article_type) as kelompok from (
-            select article_code,sum(oki.qty) as qty,sum(mari.qty) as qty_proses,sum(oki.qty*mari.qty) as qty_total from (
-            select * from bom_det where bom_code in (
-            select bom_code from bom_hdr 
-            left join production_detail_temp on bom_hdr.article_code = production_detail_temp.article_code
-            where bom_hdr.article_code in (select article_code from production_detail_temp))) oki
-            left join(
-            select bom_code,qty from bom_hdr 
-            left join production_detail_temp on bom_hdr.article_code = production_detail_temp.article_code
-            where bom_hdr.article_code in (select article_code from production_detail_temp)) mari
-            on oki.bom_code= mari.bom_code
-            group by article_code) so
-            left join article on article.article_code = so.article_code) oki) a";
+            foreach($data as $val){
+                //insert article code kalo belum ada di tabel item_stock
+                DB::table('article_stock')
+                ->updateOrInsert(
+                    [ 'site_code' =>$siteCode,
+                      'article_code' => $val->article_code,
+                      'location_number'=> $location
+                    ],
+                    [
+                      'dept_code'=>$val->article_type,
+                      'uom'=>$val->uom_article,
+                    ]
+                );
 
-    
-        DB::select($sqlUpdate);
-        DB::select($sqlIsiTemp);
-        DB::select($sqlUpdateChemical);
-        DB::select($sqlInsertChemical);
-        DB::table('production_detail_temp')->where('code',$prdNumber)->delete();
+                DB::table('article_stock')
+                ->updateOrInsert(
+                    [ 'site_code' =>$siteCode,
+                      'article_code' => $val->article_rm_code,
+                      'location_number'=> $location
+                    ],
+                    [
+                      'dept_code'=>$val->article_type,
+                      'uom'=>$val->uom_article,
+                    ]
+                );
 
-        $rowAffected = DB::select($sqlInsert);
-        if ($rowAffected > 0){
-            DB::table('production_hdr')
-            ->where('prod_code',$prdNumber)
-            ->update(
-                [   
-                    'status' => $status,
-                    // 'authorized_by' => $authorizedBy,
-                    // 'authorized_at' => date('Y-m-d H:i:s'),
-                    'updated_by' => Auth::user()->username,
-                    'updated_at' => date('Y-m-d H:i:s')
-                ]
-            );
+                //update qty nya ditambahkan dengan qty baru FG
+                $rowAffectedFg = DB::table('article_stock')
+                ->where('site_code',$siteCode)
+                ->where('article_code',$val->article_code)
+                ->where('location_number',$location)
+                ->update([
+                    'article_qty' => DB::raw('coalesce(article_qty,0) + '.$val->total_qty)
+                ]);
 
-            DB::select($sqlMovement);
-            DB::select($sqlMovementChemical);
+                //update qty nya ditambahkan dengan qty baru RM
+                $rowAffectedRm = DB::table('article_stock')
+                ->where('site_code',$siteCode)
+                ->where('article_code',$val->article_rm_code)
+                ->where('location_number',$location)
+                ->update([
+                    'article_qty' => DB::raw('coalesce(article_qty,0) - '.$val->total_qty)
+                ]);
+            }
+                    
+            if ($rowAffectedFg > 0){
+                DB::table('production_hdr')
+                ->where('prod_code',$prdNumber)
+                ->update(
+                    [   
+                        'status' => $status,
+                        'updated_by' => Auth::user()->username,
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]
+                );
 
-            DB::commit();
-            $title ='Posting Production';
-            $alert  ="success";
-            $message  = "$title $prdNumber is successfully posted";
-            \LogActivity::addToLog($title,"username: $username Status $message");
-            return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'prdNumber'=>$prdNumber));
+                $movementFg = DB::table('production_det')
+                ->leftJoin('production_hdr','production_hdr.prod_code','production_det.prod_code')
+                ->leftJoin('article','article.article_code','production_det.article_code')
+                ->where('production_det.prod_code',$prdNumber)
+                ->where('production_hdr.status','4')
+                ->where('act_qty_fresh', '<>', 0)
+                ->where('production_det.so_code','<>','other')
+                ->select(
+                    DB::RAW("now()::timestamp::date as movement_date" )
+                    ,'production_det.article_code'
+                    ,'article.article_desc'
+                    ,DB::raw("0 as movement_min")
+                    ,DB::RAW("(production_det.act_qty_fresh) as movement_plus")
+                    ,DB::raw("0 as movement_price ")
+                    ,'production_hdr.prod_code as movement_transnno'
+                    ,DB::raw("'$moduleCode' as movement_type")
+                    ,'production_hdr.wo_code as movement_desc'
+                )
+                ->get();
+                
+                $dataSetMovementFg = [];
+                foreach ($movementFg as $val) {
+                    $dataSetMovementFg[] = [
+                        'movement_date' => $val->movement_date,
+                        'artikel_code' => $val->article_code,
+                        'artikel_desc' => $val->article_desc,
+                        'movement_min' => $val->movement_min,
+                        'movement_plus' => $val->movement_plus,
+                        'movement_price' => $val->movement_price,
+                        'movement_transnno' => $val->movement_transnno,
+                        'movement_type' => $val->movement_type,
+                        'movement_desc' => $val->movement_desc,
+                        'created_by' => Auth::user()->username,
+                        'created_at' => date('Y-m-d H:i:s'),
+                        'site_code' => $siteCode,
+                        'location_number' => $location
+                    ];
+                }
 
+                DB::table('movement')->insert($dataSetMovementFg);
+
+                $movementRm = DB::table('production_det')
+                ->leftJoin('production_hdr','production_hdr.prod_code','production_det.prod_code')
+                ->leftJoin('article','article.article_code','production_det.article_code')
+                ->where('production_det.prod_code',$prdNumber)
+                ->where('production_hdr.status','4')
+                ->where('act_qty_fresh', '<>', 0)
+                ->where('production_det.so_code','<>','other')
+                ->select(
+                    DB::RAW("now()::timestamp::date as movement_date" )
+                    ,'production_det.article_code'
+                    ,'article.article_desc'
+                    ,DB::raw("(production_det.act_qty_fresh) as movement_min")
+                    ,DB::RAW("0 as movement_plus")
+                    ,DB::raw("0 as movement_price ")
+                    ,'production_hdr.prod_code as movement_transnno'
+                    ,DB::raw("'$moduleCode' as movement_type")
+                    ,'production_hdr.wo_code as movement_desc'
+                )
+                ->get();
+                
+                $dataSetMovementRm = [];
+                foreach ($movementRm as $val) {
+                    $dataSetMovementRm[] = [
+                        'movement_date' => $val->movement_date,
+                        'artikel_code' => $val->article_code,
+                        'artikel_desc' => $val->article_desc,
+                        'movement_min' => $val->movement_min,
+                        'movement_plus' => $val->movement_plus,
+                        'movement_price' => $val->movement_price,
+                        'movement_transnno' => $val->movement_transnno,
+                        'movement_type' => $val->movement_type,
+                        'movement_desc' => $val->movement_desc,
+                        'created_by' => Auth::user()->username,
+                        'created_at' => date('Y-m-d H:i:s'),
+                        'site_code' => $siteCode,
+                        'location_number' => $location
+                    ];
+                }
+
+                DB::table('movement')->insert($dataSetMovementRm);
+
+                DB::commit();
+                $title ="Posting $this->title";
+                $alert  ="success";
+                $message  = "$title $prdNumber Successfully Posted";
+                \LogActivity::addToLog($title,"username: $username Status $message");
+                return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);
+            }else{
+                $title ="Posting $this->title";
+                $alert  ="warning";
+                $message  = "$title $prdNumber Failed to Posting";
+                \LogActivity::addToLog($title,"username: $username Status $message");
+                return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);
+            }
         }else{
-            DB::rollBack();
-            $title ='Posting Production';
+            $title ="Posting $this->title";
             $alert  ="warning";
-            $message  = "$title $prdNumber is failed to post";
+            $message  = "$title $prdNumber Failed to Posting";
             \LogActivity::addToLog($title,"username: $username Status $message");
-            return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'prdNumber'=>$prdNumber));
+            return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);
         }
 
     }
 
     public function show(Request $request)
     {
-        $id=$request->id;
-        $data['title'] = "Edit Working Order";
-        $data['subtitle'] = "Edit Working Order";
+        $id=Crypt::decryptString($request->id);
+        $username =  Auth::user()->username;
+        $data['title'] = "Edit $this->title";
+        $data['subtitle'] = "Edit $this->title";
 
-        $data['header'] = DB::table('purchase_order_hdr')
+        $data['header'] = DB::table('production_hdr')
         ->where('id',$id)
         ->get()->first();
 
-        $data['detail'] = DB::table('purchase_order_det')
-        ->leftJoin('article','article.article_code','=','purchase_order_det.article_code')
-        ->leftJoin('article_stock','article_stock.article_code','=','purchase_order_det.article_code')
-        ->where('po_number',$data['header']->po_number)
-        ->select('purchase_order_det'.'.*','article_stock.article_qty as qty_stock', DB::raw('(SELECT name from group_materials where code = group_of_material) as group'))
+        $prdNumber = $data['header']->prod_code;
+
+        $data['details'] = DB::table('production_det')
+        ->leftJoin('article','article.article_code','=','production_det.article_code')
+        ->where('prod_code',$prdNumber)
+        ->select('production_det.*'
+        ,DB::RAW("concat(article.article_alternative_code,article.article_desc) as article")
+        ,'article.article_alternative_code'
+        ,'article.article_desc')
         ->orderBy('id')
-        ->get();       
-
-        $data['articles']= DB::table('article') 
-        ->leftJoin('article_stock','article_stock.article_code','=','article.article_code')
-        ->leftJoin('group_materials','group_materials.code','=','article.group_of_material')
-        // ->where('third_party',$data['header']->customer_id)
-        ->where('article_type','CM')
-        ->orderBy('article_desc')
-        ->select('article'.'.*', 'article_stock.article_qty as qty','article.uom as uom1','group_materials.name as group')
-        ->get();   
-
-        $data['supps'] = DB::table('third_party')
-        ->where ('third_party_type','=','supp')
-        ->orderBy('nama')
         ->get();
 
-        $data['currency'] = ['IDR','USD'];
+        $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode,$prdNumber,$username);
+        $data['approveValidate'] = Approval::approveValidate($this->moduleCode,$prdNumber,$username);
 
-        $data['uoms'] = DB::table('uom')
-        ->orderBy('name')
-        ->get();
+        $data['oEdit']=true;
 
-        return view("purchaseOrder.show",$data);
+         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','6'=>'CLOSED'];
+        $statusPrd = ['NEW','VALIDATED','APPROVED','POSTED','','CANCELED'];
+        $data['statusPrd'] = $statusPrd[$data['header']->status-1];
+
+        return view("production.show",$data);
         
     }
 
@@ -433,7 +544,7 @@ class ProductionController extends Controller
         $data = DB::table('wo_det')
         ->leftJoin('article','article.article_code','=','wo_det.article_code')
         ->where('wo_code',$woCode)
-        ->where('so_code','<>','other')
+        // ->where('so_code','<>','other')
         ->select('wo_det'.'.*'
         ,DB::RAW("concat(article.article_alternative_code,article.article_desc) as article")
         , 'article.article_alternative_code'
@@ -444,78 +555,55 @@ class ProductionController extends Controller
         return response()->json($data);
 
     }
-    
 
     public function edit(Request $request)
     {
-        $id=$request->id;
-        $data['title'] = "Edit Production";
-        $data['subtitle'] = "Edit Production";
+        $id=Crypt::decryptString($request->id);
+        $username =  Auth::user()->username;
+        $data['title'] = "Edit $this->title";
+        $data['subtitle'] = "Edit $this->title";
 
         $data['header'] = DB::table('production_hdr')
         ->where('id',$id)
         ->get()->first();
 
-        $data['detail'] = DB::table('production_det')
-        ->leftJoin('article','article.article_code','=','purchase_order_det.article_code')
-        ->leftJoin('article_stock','article_stock.article_code','=','purchase_order_det.article_code')
-        ->where('po_number',$data['header']->po_number)
-        ->select('purchase_order_det'.'.*','article_stock.article_qty as qty_stock', DB::raw('(SELECT name from group_materials where code = group_of_material) as group'))
+        $prdNumber = $data['header']->prod_code;
+
+        $data['details'] = DB::table('production_det')
+        ->leftJoin('article','article.article_code','=','production_det.article_code')
+        ->where('prod_code',$prdNumber)
+        ->select('production_det.*'
+        ,DB::RAW("concat(article.article_alternative_code,article.article_desc) as article")
+        ,'article.article_alternative_code'
+        ,'article.article_desc')
         ->orderBy('id')
-        ->get();       
-
-        $data['articles']= DB::table('article') 
-        ->leftJoin('article_stock','article_stock.article_code','=','article.article_code')
-        ->leftJoin('group_materials','group_materials.code','=','article.group_of_material')
-        // ->where('third_party',$data['header']->customer_id)
-        ->where('article_type','CM')
-        ->orderBy('article_desc')
-        ->select('article'.'.*', 'article_stock.article_qty as qty','article.uom as uom1','group_materials.name as group')
-        ->get();   
-
-        $data['supps'] = DB::table('third_party')
-        ->where ('third_party_type','=','supp')
-        ->orderBy('nama')
         ->get();
 
-        $data['currency'] = ['IDR','USD'];
+        $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode,$prdNumber,$username);
+        $data['approveValidate'] = Approval::approveValidate($this->moduleCode,$prdNumber,$username);
 
-        $data['uoms'] = DB::table('uom')
-        ->orderBy('name')
-        ->get();
+        $data['oEdit']=true;
 
-        return view("purchaseOrder.edit",$data);
+         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','6'=>'CLOSED'];
+        $statusPrd = ['NEW','VALIDATED','APPROVED','POSTED','','CANCELED'];
+        $data['statusPrd'] = $statusPrd[$data['header']->status-1];
+
+        return view("production.edit",$data);
         
     }
 
     public function update(Request $request)
     {
         $username =  Auth::user()->username;
-        $woNumber = $request -> woNumber;
         $articles = json_decode($request -> articles);
-        $orderDate = $request->orderDate;
-        $deliveryDate = $request->deliveryDate;
-        $currency = $request->currency;
-        $supplier = $request->supplier;
-        $tax = $request->tax;
-        $ppn = $request->ppn;
-        $termin = $request -> term;
-        $pph = 0;
-        $kurs = $request -> kurs;
-        $totalPpn = $request->totalPpn;
-        $totalPph = $request->totalPph;
-        $discount = $request->discount;
+        $prdNumber = $request->prdNumber;
+        $wosNumber = $request->wosNumber;
+        $wosTime = $request->wosTime;
+        $workHour = $request->workHour;
         $note = $request->note;
-        $status = '1';
+        $prdDate = date("Y-m-d");
+        $oEdit = true;
 
-        // status:
-        // 1 = New
-        // 2 = Validated
-        // 3 = Authorized
-        // 4 = Received
-        // 5 = Canceled
-        // 6 = closed
-        
         $messages = [
             'required' => 'The field is required.',
             'unique' => 'The code has already been taken', 
@@ -529,11 +617,7 @@ class ProductionController extends Controller
         });
 
         $validation = Validator::make($request->all(),$messages = [
-            // 'woNumber'=>'required|unique:purchase_order_hdr,po_number',
-            // 'orderNumber' => 'required',
-            'orderDate'  => 'required',
-            'currency'  => 'required',
-            'supplier'  => 'required',
+            'wosNumber'  => 'required' 
         ]);
         
         $error_array = array();
@@ -548,76 +632,50 @@ class ProductionController extends Controller
         }else{
             DB::beginTransaction();
             try {
-                    $row_affected=DB::table('purchase_order_hdr')
-                    ->where('po_number',$woNumber)
+                $row_affected=DB::table('production_hdr')
+                ->where('prod_code',$prdNumber)
+                ->update(
+                    [
+                        'start_time' => $wosTime,
+                        'working_hour'=> $workHour,
+                        'note' => $note,
+                        'updated_by' => Auth::user()->username,
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]
+                );
+
+                $dataSet = [];
+                foreach ($articles as $val) {
+                    DB::table('production_det')
+                    ->where("prod_code", $prdNumber)
+                    ->where("urutan", $val->urutan)
+                    ->where("so_code",$val->so_code)
+                    ->where("article_code",$val->article_code)
+                    ->where("article_rm_code",$val->article_rm)
                     ->update(
                         [
-                            'po_number' => $woNumber,
-                            'supplier_id' => $supplier,
-                            'po_date' => $orderDate,
-                            'delivery_date' =>$deliveryDate,
-                            'currency' => $currency,
-                            'kurs' => $kurs,
-                            'ppn' => $ppn,
-                            'pph22' => $pph,
-                            'status' => $status,
-                            'note' =>  $note,
-                            'authorized_by' => '',
-                            'prepared_by' =>  '',
-                            'discount' => $discount,
-                            'pkp' => $tax,
-                            'termin' =>$termin,
-                            'updated_by' => Auth::user()->username,
-                            'updated_at' => date('Y-m-d H:i:s')
+                            "act_time_loading" => $val->act_waktu,
+                            "act_qty_fresh" => $val->act_qty_prod,
+                            "act_qty_repaint" => $val->act_qty_repaint,
+                            "act_tag" => $val->act_tag,
                         ]
                     );
-
-                    $dataset=[];
-                    foreach ($articles as $val) {
-                        $dataSet[] = [
-                            $woNumber.$val->article_code
-                        ];
-                        
-                    }
-
-                    //Delete kalo article tidak ada di po $woNumber dan article nya $val->article_code
-                    //berdasarkan 2 kondisi
-                    DB::table('purchase_order_det')
-                        ->whereNotIn(DB::raw("CONCAT(po_number,article_code)"),$dataSet)
-                        ->where('po_number',$woNumber)
-                        ->delete();
-
-                    foreach ($articles as $val) {
-                        DB::table('purchase_order_det')
-                        ->updateOrInsert(
-                            ['po_number' => $woNumber,'article_code' => $val->article_code],
-                            [
-                            'po_number' => $woNumber,
-                            'article_code' => $val->article_code,
-                            'qty' => $val->qty,
-                            'uom' => $val->uom,
-                            'old_price' => $val->price,
-                            'price' => $val->newPrice,
-                            'ppn' => $totalPpn,
-                            'pph22' => $totalPph,
-                            'updated_by' => Auth::user()->username,
-                            'updated_at' => date('Y-m-d H:i:s')
-                            ]
-                        );
-                    }
-                    
-                    DB::commit();
-                    $alert  ="alert-success";
-                    $message  = "PO $woNumber is successfully updated";
-                    \LogActivity::addToLog('PO update ',"username: $username Status $message");
-                    return response()->json(array('status' => 1, 'message' => $message,'alert'=>$alert,'woNumber'=>$woNumber));
+                }
+                                    
+                DB::commit();
+                $title ="Update $this->title";
+                $alert  ="success";
+                $message  = "$title $prdNumber is successfully updated";
+                \LogActivity::addToLog($title,"username: $username Status $message");
+                return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'prdNumber'=>$prdNumber,'oEdit'=>$oEdit));
 
             } catch (Exception $e) {
                 DB::rollBack();
-                $alert  ="alert-warning";
-                $message  = "PO $woNumber is failed to updated";
-                \LogActivity::addToLog('PO update ',"username: $username Status $message");
-                return response()->json(array('status' => 1, 'message' => $message,'alert'=>$alert,'woNumber'=>$woNumber));
+                $title ="Update $this->title";
+                $alert  ="warning";
+                $message  = "$title $prdNumber is failed to update";
+                \LogActivity::addToLog($title,"username: $username Status $message");
+                return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'prdNumber'=>$prdNumber,'oEdit'=>$oEdit));
             }
         }
 
@@ -626,40 +684,44 @@ class ProductionController extends Controller
     public function destroy(Request $request)
     {
         $username =  Auth::user()->username;       
-        $id = $request->id;
-        $po_number = DB::table('purchase_order_hdr')->where('id',$id)->where('status','1')->value('po_number');
-        $rowAffected = DB::table('purchase_order_hdr')->where('id',$id)->delete();
+        $id=Crypt::decryptString($request->id);
+        $prdNumber = DB::table('production_hdr')->where('id',$id)->where('status','1')->value('prod_code');
+        $rowAffected = DB::table('production_hdr')->where('id',$id)->delete();
         if($rowAffected>0){
-            DB::table('purchase_order_det')->where('po_number',$po_number)->delete();
-            $alert  ="alert-success";
-            $message  = "SO $po_number Successfully Deleted";
-            \LogActivity::addToLog('SO delete ',"username: $username Status $message");
-            return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);  
+            DB::table('production_det')->where('prod_code',$prdNumber)->delete();
+            $title ="Delete $this->title";
+            $alert  ="success";
+            $message  = "$title $prdNumber Successfully Deleted";
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);  
         }else{
-            $alert  ="alert-warning";
-            $message  = "SO $po_number Failed to Delete";
-            \LogActivity::addToLog('SO delete ',"username: $username Status $message");
-            return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);
+            $title ="Delete $this->title";
+            $alert  ="warning";
+            $message  = "$title $prdNumber Failed to Delete";
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);
         }
-
     }
 
     public function list(Request $request)
     {
-        // status
-        // 1. Draft
-        // 2. Update
-        // 3. Posted
-        // 4. Cancel
-
         $searchPrd = strtolower($request->searchPrd);
-        $articleCode = $request->articleCode;
+        $searchWos = strtolower($request->searchWos);
+
+        // searchPrd:searchPrd,
+        // prdDate:prdDate,
+        // searchWos:searchWos,
+        // wosDate:wosdate,
+        // searchStatus:searchStatus
 
         $data = DB::table('production_hdr')
-        ->where(function ($query) use ($searchPrd,$articleCode) {
-            $searchPrd ? $query->where('bom_code','ilike','%'.$searchPrd.'%') : '';
-            $articleCode ? $query->where('bom_hdr.article_code','ilike','%'.$articleCode.'%') : '';
+        ->leftJoin('wo_hdr','wo_hdr.wo_code','production_hdr.wo_code')
+        ->where(function ($query) use ($searchPrd,$searchWos) {
+            $searchPrd ? $query->where('prod_code','ilike','%'.$searchPrd.'%') : '';
+            $searchPrd ? $query->where('wo_code','ilike','%'.$searchWos.'%') : '';
         })
+        ->where('production_hdr.status','<>', '7')
+        ->select('production_hdr.*','wo_hdr.wo_date')
         ->orderBy('prod_code')
         ->get(); 
 
@@ -670,56 +732,77 @@ class ProductionController extends Controller
                                 <i data-feather="menu"></i>
                             </a>';
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
-            // if (Auth::user()->can('purchaseOrder-edit')) {
-            // $buttons .=         '<a href="'. route('production.edit', ['id'=>$data->id]) .'" class="dropdown-item">
-            //                         <i data-feather="file-text"></i>
-            //                         Edit
-            //                     </a>';
-            $buttons .=         '<a href="'. route('production.print', ['id'=>$data->id]) .'" target="_blank" class="dropdown-item">
+            if (Auth::user()->can('production-edit')) {
+                if($data->status == '1'){
+                    $buttons .=         '<a href="'. route('production.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+                                        <i data-feather="file-text"></i>
+                                        Edit
+                                    </a>';
+                }
+                
+            }
+
+            $buttons .=         '<a href="'. route('production.print', ['id'=>Crypt::encryptString($data->id)]) .'" target="_blank" class="dropdown-item">
                                     <i data-feather="printer"></i>
                                     Print
                                 </a>';
-            // }
+            if (Auth::user()->can('production-posting')) {
+                if($data->status == '3'){
+                    $buttons .="<a href='javascript:;'
+                    class='dropdown-item' 
+                    data-size='sm'
+                    data-ajax-delete='true'
+                    data-confirm='Are You Sure want to post This number?' 
+                    data-confirm-yes='document.getElementById(\""."delete-form-".$data->id."\").submit();'
+                    data-modal-id='".$data->id."'
+                    data-url='". route('production.posting', ['id'=>Crypt::encryptString($data->id)]) ."'>
+                    <i data-feather='check' class='feather-14-red'></i>
+                    <span>". __('Posting') ."</span>
+                    </a>";
+                }
+            }
 
-            if($data->status != '3'){
-                $buttons .= '<a href="javascript:;"
-                                onclick="posting(\''.$data->prod_code.'\')" class="dropdown-item">
-                                <i data-feather="arrow-down"></i>
-                                    Posting
-                            </a>';
+            if (Auth::user()->can('production-revision')) {
+                if (($data->status == '2') || ($data->status == '3') ){
+                    $buttons .=         '<a href="'. route('production.revision', ['id'=>Crypt::encryptString($data->id),'nR'=>$data->num_revision]) .'" class="dropdown-item">
+                                            <i data-feather="copy"></i>
+                                            <span>'. __("Revision") .'</span>
+                                        </a>';
+                }
             }
             
-            // $buttons .=         '<a href="'. route('production.show', ['id'=>$data->id]) .'" class="dropdown-item">
-            //                         <i data-feather="list"></i>
-            //                         Detail
-            //                     </a>';
+            $buttons .=         '<a href="'. route('production.show', ['id'=>$data->id]) .'" class="dropdown-item">
+                                    <i data-feather="list"></i>
+                                    Detail
+                                </a>';
                 
-            // if (Auth::user()->can('purchaseOrder-delete')) {
-            $buttons .=         "<a href='javascript:;'
-                                    id='deleteButton'
-                                    class='dropdown-item'
-                                    data-toggle='modal'
-                                    data-target='#smallModal'
-                                    data-href='". route("production.destroy", ["id"=>$data->id]) ."'>
-                                    <i data-feather='trash-2'></i>
-                                    Cancel
-                                </a>";
-            // }
+            if (Auth::user()->can('production-delete')) {
+                if ( $data->status == '1' ){
+                    if (Auth::user()->can('workingOrder-delete')) {
+                        $buttons .=         "<a href='javascript:;'
+                                            class='dropdown-item' 
+                                            data-size='sm'
+                                            data-ajax-delete='true'
+                                            data-confirm='Are You Sure want to Delete?|This action can not be undone. Do you want to continue?' 
+                                            data-confirm-yes='document.getElementById(\""."delete-form-".$data->id."\").submit();'
+                                            data-modal-id='".$data->id."'
+                                            data-url='". route('production.destroy', ['id'=>Crypt::encryptString($data->id)]) ."'>
+                                            <i data-feather='trash-2' class='feather-14-red'></i>
+                                            <span>". __('Delete') ."</span>
+                                        </a>";
+                    }
+                }
+            }
             $buttons .=     '</div>
                         </div>';
 
             return $buttons;
         })
 
-        // status
-        // 1. Draft
-        // 2. Update
-        // 3. Posted
-        // 4. Cancel
-
         ->addColumn('status', function ($data) {
+            // $data['status'] = ['1'=>'NEW','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','6'=>'CLOSED','REVISED'];
             $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary'];
-            $status = ['Draft','Update','Posted','Cancel'];
+            $status = ['NEW','VALIDATED','APPROVED','POSTED','CANCELED','CLOSED','REVISED'];
             return "<div class='badge ".$badges[$data->status - 1]."'>".$status[$data->status - 1]."</div>";
         })
         ->rawColumns(['action','status'])
@@ -809,35 +892,244 @@ class ProductionController extends Controller
 
     public function print(Request $request)
     {
-        $id = $request -> id;
-        
-        $prdHdr=DB::table('production_hdr')
-        ->where('id',$id)
-        ->first();
+        $id=Crypt::decryptString($request->id);
 
         $data['header']=DB::table('production_hdr')
         ->where('id',$id)
+        ->select('production_hdr.*'
+        ,DB::raw("(SELECT sum(act_tag) as total_tag from production_det where wo_code = production_hdr.wo_code) as total_tag")
+        )
         ->first();
 
-        $prdNumber=$prdHdr -> prod_code;
+        $prdNumber=$data['header'] -> prod_code;
        
         $data['details']=DB::table('production_det')
         ->leftJoin('article','article.article_code','production_det.article_code')
+        ->select('production_det.*'
+        ,'article.article_alternative_code'
+        ,'article.article_desc'
+        ,DB::raw("(SELECT article_qty from article_stock where article_code = production_det.article_rm_code and site_code ='HO' and location_number='WH') as qty_rm")
+        )
         ->where('prod_code',$prdNumber)
+        ->orderBy('urutan','asc')
         ->get();
 
-        $data['totals']=DB::select("SELECT sum(qty) as total_qty from production_det where prod_code = '$prdNumber' group by prod_code");
+        // $data['totals']=DB::select("SELECT sum(plan_tag) as total_tag from wo_det where wo_code = '$prdNumber'");
 
         $data['prdNumber'] = $prdNumber;
-        $data['prdDate'] = $prdHdr -> prod_date;
-        $data['prdShift'] = $prdHdr -> prod_shift;
-        $data['prdGroup'] = $prdHdr -> prod_group;
         $data['no'] = 0;
+
+        $data['title'] = $prdNumber;
+
 
         view()->share($data);
 
         $pdf = PDF::loadView('production.print');
-        return $pdf->stream("PRD_$prdNumber.pdf");
+        return $pdf->stream("$prdNumber.pdf");
 
+    }
+
+    public function approve(Request $request)
+    {
+        $username =  Auth::user()->username;
+        $prdNumber = $request->prdNumber;
+        $statusLevelApproval = Approval::approvalLevelPosition($this->moduleCode,$prdNumber,$username);        
+        $nextLevel = $statusLevelApproval[0]->next_level;
+        $status = $statusLevelApproval[0]->next_level == $statusLevelApproval[0]->max_level ? '3' :'2';
+                
+        DB::beginTransaction();
+        try {
+                $row_affected=DB::table('production_hdr')
+                ->where('prod_code',$prdNumber)
+                ->update(
+                    [
+                        'status' => $status,
+                        'updated_by' => Auth::user()->username,
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]
+                );
+
+                if ($row_affected){
+                    DB::table('approval_history')->insert([
+                        'module_code' => $this->moduleCode,
+                        'module_number' => $prdNumber,
+                        'username' => Auth::user()->username,
+                        'approval_order' => $nextLevel,
+                        'approval_date' => date('Y-m-d'),
+                        'status' => 1,
+                        'created_by' => Auth::user()->username,
+                        'updated_by' => Auth::user()->username,
+                        'created_at' => date('Y-m-d H:i:s'),
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]);
+                }
+                
+                DB::commit();
+                $title ="Approve $this->title";
+                $alert  ="success";
+                $message  = "$title $prdNumber is successfully Approve-".$nextLevel;
+                \LogActivity::addToLog($title,"username: $username Status $message");
+                return response()->json(array('statusWo' => $status,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'prdNumber'=>$prdNumber));
+
+        } catch (Exception $e) {
+            DB::rollBack();
+            $title ="Approve $this->title";
+            $alert  ="warning";
+            $message  = "$title $prdNumber is failed to Approve-".$nextLevel;
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return response()->json(array('statusWo' => $status,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'prdNumber'=>$prdNumber));
+        }
+    }
+
+    public function revision(Request $request){
+        $username =  Auth::user()->username;
+        $id=Crypt::decryptString($request->id);
+        $prdOrigin=DB::table('production_hdr')->where('id',$id)->value('prod_code');
+        $numRevision = $request->nR ? $request->nR +1 : 1 ;
+        $prdNew = $prdOrigin.'-R'.$numRevision;
+        $checkNewPrd=DB::table('production_hdr')->where('prod_code',$prdNew)->count();
+
+        if ($checkNewPrd > 0){
+            $prdNew = $prdOrigin.'-R'.$numRevision;
+        } 
+                
+        $sqlHdr = "INSERT into production_hdr 
+        (
+            prod_code,
+            wo_code,
+            original_prod_code,
+            prod_date,
+            prod_shift,
+            prod_group,
+            start_time,
+            working_hour,
+            num_revision,
+            status,
+            note,
+            created_by,
+            updated_by,
+            created_at,
+            updated_at
+        )
+        select 
+            '$prdNew',
+            wo_code,
+            '$prdOrigin',
+            prod_date,
+            prod_shift,
+            prod_group,
+            start_time,
+            working_hour,
+            $numRevision,
+            '7',
+            note,
+            '$username',
+            '$username',
+            '".date('Y-m-d H:i:s')."',
+            '".date('Y-m-d H:i:s')."'
+        from production_hdr where prod_code = '$prdOrigin'";
+
+        $sqlDet="INSERT into production_det
+        (
+            prod_code,
+            so_code,
+            so_qty,
+            urutan,
+            article_code,
+            article_rm_code,
+            plan_time_loading,
+            act_time_loading,
+            plan_qty_fresh,
+            plan_qty_repaint,
+            plan_tag,
+            act_qty_fresh,
+            act_qty_repaint,
+            act_tag,
+            origin_tag,
+            qty_ok,
+            qty_repair,
+            qty_repaint,
+            note,
+            status,
+            created_by,
+            updated_by,
+            created_at,
+            updated_at
+        )
+        select '$prdNew',
+            so_code,
+            so_qty,
+            urutan,
+            article_code,
+            article_rm_code,
+            plan_time_loading,
+            act_time_loading,
+            plan_qty_fresh,
+            plan_qty_repaint,
+            plan_tag,
+            act_qty_fresh,
+            act_qty_repaint,
+            act_tag,
+            origin_tag,
+            qty_ok,
+            qty_repair,
+            qty_repaint,
+            note,
+            status,
+            '$username',
+            '$username',
+            '".date('Y-m-d H:i:s')."',
+            '".date('Y-m-d H:i:s')."' 
+        from production_det where prod_code = '$prdOrigin'";
+
+        $rowAffected =  DB::select($sqlHdr);
+        if ($rowAffected){
+            DB::select($sqlDet);
+
+            // status:
+            // 1 = New
+            // 2 = Validated
+            // 3 = Authorized
+            // 4 = Received
+            // 5 = Canceled
+            // 6 = closed
+            // 7 = Revised
+
+            DB::table('production_hdr')
+            ->where('prod_code',$prdOrigin)
+            ->update(
+                [
+                    'num_revision' => $numRevision,
+                    'status' => '1',
+                    'revised_by'=>Auth::user()->username,
+                    'revised_at'=> date('Y-m-d H:i:s'),
+                    'updated_by' => Auth::user()->username,
+                    'updated_at' => date('Y-m-d H:i:s')
+                ]
+            );
+
+            DB::table('approval_history')
+            ->where('module_number',$prdOrigin)
+            ->update(
+                [
+                    'module_number' => $prdNew,
+                    'status' => '0',
+                    'updated_by' => Auth::user()->username,
+                    'updated_at' => date('Y-m-d H:i:s')
+                ]
+            );
+            
+            $title ="Save $this->title";
+            $alert  ="success";
+            $message  = "$title Revison PRD: $prdOrigin to $prdNew is successfully saved";
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return redirect()->route('production.edit', ['id'=>Crypt::encryptString($id)]);
+        }else{
+            $title ="Save $this->title";
+            $alert  ="warning";
+            $message  = "$title Revison PRD: $prdOrigin to $prdNew is failed to save";
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);
+        }
     }
 }

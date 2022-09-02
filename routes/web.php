@@ -455,21 +455,21 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('workOrderSheet/approve',['as'=>'workingOrderSheet.approve','uses'=>'WorkingOrderSheetController@approve']);
 	Route::get('workOrderSheet/revision',['as'=>'workingOrderSheet.revision','uses'=>'WorkingOrderSheetController@revision','middleware' => ['permission:workingOrder-revision']]);
 
-	Route::get('production',['as'=>'production.index','uses'=>'ProductionController@index','middleware' => ['permission:workingOrder-index']]);
-	Route::get('production/create',['as'=>'production.create','uses'=>'ProductionController@create','middleware' => ['permission:workingOrder-create']]);
+	Route::get('production',['as'=>'production.index','uses'=>'ProductionController@index','middleware' => ['permission:production-index']]);
+	Route::get('production/create',['as'=>'production.create','uses'=>'ProductionController@create','middleware' => ['permission:production-create']]);
 	Route::post('production/store',['as'=>'production.store','uses'=>'ProductionController@store']);
 	Route::get('production/list',['as'=>'production.list','uses'=>'ProductionController@list']);
 	Route::get('production/list/detail',['as'=>'production.detail.list','uses'=>'ProductionController@listDetail']);
 	Route::get('production/show',['as'=>'production.show','uses'=>'ProductionController@show']);
-	Route::get('production/edit',['as'=>'production.edit','uses'=>'ProductionController@edit','middleware' => ['permission:workingOrder-edit']]);
+	Route::get('production/edit',['as'=>'production.edit','uses'=>'ProductionController@edit','middleware' => ['permission:production-edit']]);
 	Route::post('production/update',['as'=>'production.update','uses'=>'ProductionController@update']);
 	Route::post('production/delete',['as'=>'production.destroy','uses'=>'ProductionController@destroy']);
 	Route::get('production/code/create',['as'=>'production.code.create','uses'=>'ProductionController@articleCodeCreate']);
 	Route::get('production/print',['as'=>'production.print','uses'=>'ProductionController@print']);
 	Route::post('production/posting',['as'=>'production.posting','uses'=>'ProductionController@posting']);
-
 	Route::get('production/wos/detail',['as'=>'production.wos.detail','uses'=>'ProductionController@wosDetail']);
-
+	Route::post('production/approve',['as'=>'production.approve','uses'=>'ProductionController@approve']);
+	Route::get('production/revision',['as'=>'production.revision','uses'=>'ProductionController@revision','middleware' => ['permission:production-revision']]);
 
 	Route::get('pettyCashs',['as'=>'pettyCashs.index','uses'=>'PettyCashController@index','middleware' => ['permission:pettyCash-index']]);
 	Route::get('pettyCashs/create',['as'=>'pettyCash.create','uses'=>'PettyCashController@create','middleware' => ['permission:pettyCash-create']]);

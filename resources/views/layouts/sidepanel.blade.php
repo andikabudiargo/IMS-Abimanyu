@@ -262,7 +262,7 @@
               </a>
             </li>
             @endcan --}}
-            @can('workingOrder-index')
+            @can('production-index')
             <li class="{{ \Request::segment(1) == 'production' ? 'active' : '' }}" >
               <a class="d-flex align-items-center" href="{{ route('production.index') }}">
                 <i data-feather="circle"></i>

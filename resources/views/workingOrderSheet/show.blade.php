@@ -37,7 +37,7 @@
                                     <form id="frmAdd{{ $key }}" name="frmAdd{{ $key }}" autocomplete="off">
                                         <div class="form-row">
                                             <div class="form-group col-md-2">
-                                                <label for="wosDate">Wo Number</label>
+                                                <label for="wosNumber">Wo Number</label>
                                                 <input type="text" id="wosNumber" name="wosNumber" value="{{ $header2->wo_code  }}" class="form-control form-control-sm disabled-el" disabled />
                                             </div>
                                         </div>

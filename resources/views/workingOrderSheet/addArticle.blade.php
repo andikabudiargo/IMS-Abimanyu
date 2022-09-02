@@ -369,6 +369,10 @@
         sumData();
     }); 
 
+    wosTime.change(function(e){
+        hitungWaktu();
+    });
+
     cmdSort.click(function(){
         let articles = []; 
         let flag=0;

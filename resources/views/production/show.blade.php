@@ -2,18 +2,12 @@
 @section('title', $title)
 @section('content')
 @include('layouts.breadcrumb')
-@include('partials.alert')
-<section id="add-index">
-    <div class="row">
+<section id="edit-form">
+    <div class="form-row">
         <div class="col-md-12">
             <div class="card">
                 <div class="card-header">
-                    <div class="form-group row">
-                        <label for="bomNumber" class="col-sm-4 col-form-label col-form-label-sm">BOM Number</label>
-                        <div class="col-md-8">
-                            <input type="text" id="bomNumber" name="bomNumber" class="form-control form-control-sm disabled-el" value="{{ $header->bom_code }}" disabled />
-                        </div>
-                    </div>                    
+                    <h4 class="card-title">Status: <span id="statusText">{{ $statusWo }}</span></h4>
                     <div class="heading-elements">
                         <ul class="list-inline mb-0">
                             <li><a data-action="collapse"><i data-feather="chevron-down"></i></a></li>
@@ -22,226 +16,191 @@
                 </div>
                 <div class="card-content collapse show">
                     <div class="card-body">
-                        <form id="frmAdd" name="frmAdd" autocomplete="off">
-                            @csrf
-                            <input type="text" id="article" name="article" hidden>
-                            <div class="row">
-                                <div class="form-group col-md-5">
-                                    <label class="form-label" for="articleCode">Article*</label>
-                                    <select class="select2 form-control" id="articleCode" name="articleCode" disabled>
-                                        <option value="">All</option>
-                                        @foreach($articleHeader as $val)
-                                            <option value="{{ $val->article_code }}|{{ $val->uom }}|{{ $val->cust_name }}|{{ $val->group }}|{{ $val->third_party }}|{{ $val->group_of_material }}" {{$val->article_code == $header->article_code ? "selected" : ""}}>{{ $val->article_alternative_code }} - {{ $val->article_desc }}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                                <div class="form-group col-md-3">
-                                    <label for="customer">Customer</label>
-                                    <input type="text" id="customer" name="customer" class="form-control disabled-el" disabled />
-                                </div>
-                                <div class="form-group col-md-2">
-                                    <label for="group">Group of material</label>
-                                    <input type="text" id="group" name="group" class="form-control disabled-el" disabled />
-                                </div>
-                                <div class="form-group col-md-2">
-                                    <label for="uom">UOM</label>
-                                    <input type="text" id="uom" name="uom" class="form-control disabled-el" disabled />
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="form-group col-md-12">
-                                    <label class="form-label" for="note">Notes</label>
-                                    <textarea type="text" id="note" name="note" class="form-control" rows="1" disabled>{{ $header->note }}</textarea>
-                                </div>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <h4 class="card-title">Article</h4>
-                </div>
-                <div class="card-body">
-                    <div>
-                        <table class="" style="width:98%;table-layout: fixed;">
-                            <tbody>
-                                <tr>
-                                    <td class="isian-satu" style="width: 25%">
-                                        <label>Article Code</label>
-                                    </td>
-                                    <td class="isian" style="width: 5%">
-                                        <label>QTY</label>
-                                    </td>
-                                    <td class="isian" style="width: 5%">
-                                        <label>UOM</label>
-                                    </td>
-                                    <td class="isian" style="width: 10%">
-                                        <label>Price</label>
-                                    </td>
-                                    <td class="isian" style="width: 10%">
-                                        <label>Type</label>
-                                    </td>
-                                    <td class="isian text-center" style="width: 5%">
-                                        <label>-</label>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <div class="" id="article_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;">
-                        <input type="text" id ="last_row_number" class="d-none" value="{{ count($detail) }}">
-                        @foreach ($detail as $key =>$item)
-                            <div id="new_row{{ $key }}" class="tanda-baris" >
-                                <table class="table-bordered" style="width: 98%;table-layout: fixed;">
-                                    <tbody>
-                                        <tr>
-                                            <td class="isian-satu" style="width: 25%">
-                                                <select class="select2 dynamicSelect sku-select-system" id="article_id{{ $key }}" name="article_id[]" data-dependent="article_id" disabled>
-                                                    @foreach($articles as $val)
-                                                        <option value="{{ $val->article_code }}|{{ $val->uom }}|{{ $val->costprice }}|{{ $val->article_type }}|{{ $val->type_name }}" {{$val->article_code == $item->article_code ? "selected" : ""}}>{{$val->article_code}} - {{$val->article_desc}}</option>
-                                                    @endforeach
+                        <ul class="nav nav-tabs" role="tablist">
+                            @foreach( $headers as $key =>$header )
+                                <li class="nav-item">
+                                    <a class="nav-link {{ $key == 0 ? 'active':'' }}" 
+                                    id="wo-tab" 
+                                    data-toggle="tab" 
+                                    href="#rev{{ $key }}" 
+                                    aria-controls="revisi{{ $key }}" 
+                                    role="tab" 
+                                    aria-selected="false" 
+                                    data-ajax-detail="true" 
+                                    data-wo-code="{{ $header->wo_code }}">{{ $key == 0 ? 'Main':'Revision '.$key }}</a>
+                                </li>
+                            @endforeach
+                        </ul>
+                        <div class="tab-content">
+                            @foreach( $headers as $key =>$header2 )
+                                <div class="tab-pane {{ $key == 0 ? 'active':'' }}" id="rev{{ $key }}" aria-labelledby="revison{{ $key }}-tab" role="tabpanel">
+                                    <form id="frmAdd{{ $key }}" name="frmAdd{{ $key }}" autocomplete="off">
+                                        <div class="form-row">
+                                            <div class="form-group col-md-2">
+                                                <label for="prdNumber">Production Number</label>
+                                                <input type="text" id="prdNumber" name="prdNumber" value="{{ $header2->prod_code  }}" class="form-control form-control-sm disabled-el" disabled />
+                                            </div>
+                                        </div>
+                                        <div class="form-row">
+                                            <div class="form-group col-md-2">
+                                                <label for="wosDate">Date*</label>
+                                                <input type="text" id="wosDate" name="wosDate" value="{{ $header2->prod_date  }}" class="form-control"  placeholder="DD-MM-YYYY" disabled />
+                                            </div>
+                                            <div class="form-group col-md-2">
+                                                <label for="shift">Shift*</label>
+                                                <select class="select2 form-control" id="shift" name="shift" disabled>
+                                                    <option value=""></option>
+                                                    <option value="pagi" {{ $header2->wo_shift == 'pagi' ? "selected" : "" }} >Pagi</option>
+                                                    <option value="siang" {{ $header2->wo_shift == 'siang' ? "selected" : "" }} >Siang</option>
                                                 </select>
-                                            </td>
-                                            <td class="isian" style="width: 5%">
-                                                <input type="text" class="form-control-plaintext numeral-mask text-right" id = "qtyBom" name="qtyBom[]" value="{{ $item->qty }}" disabled />
-                                            </td>
-                                            <td class="isian disabled" style="width: 5%">
-                                                <span class="" id = "uom" name="uom[]">{{ $item->uom }}</span>
-                                            </td>
-                                            <td class="isian disabled" style="width: 10%">
-                                                <input type="text" class="form-control-plaintext numeral-mask text-right" id = "price" name="price[]" value="{{ $item->cost_price }}" disabled>
-                                            </td>
-                                            <td class="isian disabled" style="width: 10%">
-                                                <span class="" id = "type" name="type[]">{{ $item->uom }}</span>
-                                            </td>
-                                        </tr>
-                                        
-                                    </tbody>
-                                </table>
-                            </div>
-                        @endforeach
+                                            </div>
+                                            <div class="form-group col-md-2">
+                                                <label for="group">Group*</label>
+                                                <select class="select2 form-control" id="group" name="group" disabled>
+                                                    <option value=""></option>
+                                                    <option value="A" {{ $header2->wo_group == 'A' ? "selected" : "" }} >A</option>
+                                                    <option value="B" {{ $header2->wo_group == 'B' ? "selected" : "" }} >B</option>
+                                                    <option value="C" {{ $header2->wo_group == 'C' ? "selected" : "" }} >C</option>
+                                                </select>
+                                            </div>
+                                            <div class="form-group col-md-2">
+                                                <label for="wosTime">Start Time*</label>
+                                                <input type="text" id="wosTime" name="wosTime" value="{{ $header2->start_time  }}" class="form-control"  placeholder="HH:MM" disabled />
+                                            </div>
+                                            <div class="form-group col-md-2">
+                                                <label for="workingHour">Working Hour*</label>
+                                                <input type="text" id="workingHour" name="workingHour" value="{{ $header2->working_hour  }}" class="form-control numeral-mask-satuan text-right" maxlength="2" disabled />
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="form-group col-md-10">
+                                                <label class="form-label" for="note">Notes</label>
+                                                <textarea type="text" id="note" name="note" value="{{ $header2->note  }}" class="form-control" rows="1" disabled></textarea>
+                                            </div>
+                                        </div>
+                                    </form>
+                                    <hr>
+                                    <h4 class="card-title">Article</h4>
+                                    <div class="table-responsive main-table">
+                                        <table class="table table-bordered w-100" >
+                                            <thead class="thead-dark">
+                                                <tr>
+                                                    <th >Urutan</th>
+                                                    <th >So Number</th>
+                                                    <th >Article Code</th>
+                                                    <th class="text-right">Qty SO</th>
+                                                    <th class="text-right">Qty Fresh</th>
+                                                    <th class="text-right">Qty Repaint</th>
+                                                    <th class="text-left">Waktu</th>
+                                                    <th class="text-right">Tag</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                            @foreach( $details as $key =>$item )
+                                                @if($item->wo_code === $header2->wo_code )
+                                                    <tr>
+                                                        <td >{{ $item->urutan }}</td>
+                                                        <td >{{ $item->so_code }}</td>
+                                                        <td >{{ $item->article }}</td>
+                                                        <td class="text-right">{{ number_format($item->so_qty) }}</td>
+                                                        <td class="text-right">{{ number_format($item->plan_qty_fresh) }}</td>
+                                                        <td class="text-right">{{ number_format($item->plan_qty_repaint) }}</td>
+                                                        <td class="text-left">{{ $item->plan_time_loading }}</td>
+                                                        <td class="text-right">{{ $item->plan_tag }}</td>
+                                                    </tr>
+                                                @endif
+                                            @endforeach
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <div class="col-md-10" style="padding-left:0">
+                                        <div class="table-responsive main-table mt-75">
+                                            <table class="table table-bordered w-100" >
+                                                <tr>
+                                                    <td rowspan="3">Total Tag</td>
+                                                    <td>Waktu tersedia <span id="sumWorkHour"></span> x3600"x95%</td>
+                                                    <td class="text-right" id="sumTimeRequired{{ $key }}">{{ number_format($header2->sum_time_required) }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>Waktu Dibutuhkan</td>
+                                                    <td class="text-right" id="sumAvailableTime{{ $key }}">{{ number_format($header2->sum_available_time) }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>Sisa Waktu</td>
+                                                    <td class="text-right" id="sumRemainTime{{ $key }}">{{ number_format($header2->sum_time_required-$header2->sum_available_time-10) }}</td>
+                                                </tr>
+                                            </table>
+                                        </div>
+                                    </div>
+                                    <br>
+                                    <a href="{{ route('workingOrderSheets.index') }}" class="btn btn-success">Back</a>
+                                    <a href="{{ route('workingOrderSheet.print', ['id'=>Crypt::encryptString($header2->id)]) }}" target="_blank" type="button" class="btn btn-primary">
+                                        <i data-feather="printer"></i>
+                                        <span>{{ __("Print") }}</span>
+                                    </a>
+                                </div>
+                            @endforeach
+                        </div>
+                        <hr>
+                        <div class="form-row card-statistics">
+                            @foreach($approvalHistory as $val)
+                                @if($val->status == true)
+                                    <div class="statistics-body">
+                                        <div class="col-xl-3 col-sm-6 col-12 mb-2 mb-xl-0">
+                                            <div class="media">
+                                                <div class="avatar bg-light-success mr-2">
+                                                    <div class="avatar-content">
+                                                        <i data-feather="check" class="avatar-icon"></i>
+                                                    </div>
+                                                </div>
+                                                <div class="media-body my-auto">
+                                                    <h4 class="font-weight-bolder mb-0">Approve-{{ $val->approval_order }}</h4>
+                                                    <p class="card-text mb-0">{{ $val->name }}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                @else
+                                    <div class="statistics-body">
+                                        <div class="col-xl-3 col-sm-6 col-12 mb-2 mb-xl-0">
+                                            <div class="media">
+                                                <div class="avatar bg-light-danger mr-2">
+                                                    <div class="avatar-content">
+                                                        <i data-feather="x" class="avatar-icon"></i>
+                                                    </div>
+                                                </div>
+                                                <div class="media-body my-auto">
+                                                    <h4 class="font-weight-bolder mb-0">Approve-{{ $val->approval_order }}</h4>
+                                                    <p class="card-text mb-0">{{ $val->petugas }}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                @endif
+                            @endforeach
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 </section>
-@include('bom.addArticle')
 @endsection
 @section('styles')
 <style>
-
     textarea {
         resize: none;
     }
-
-    .mb-03{
-        margin-bottom: 0.3rem;
-    }
-    
-    label.titik-dua::after{
-        content : ":"; 
-        position : absolute;
-        right : 1px;
-    }
-    td.isian{
-        padding-right:10px;
-        padding-left:10px;
-    }
-
-    td.isian-satu{
-        padding-right:5px;
-        padding-left:15px;
-        width: 25%;border-top: 1px solid #ffffff !important;
-        border-bottom: 1px solid #ffffff !important;
-        border-left: 1px solid #ffffff !important;
-    }
-
-    td.disabled{
-        background-color:#f8f8f8;
-        color:black;
-    }
-
-    label.tanpa-padding{
-        padding-top: 5px;
-        padding-bottom: 0px;
-    }
-
 </style>
 @endsection
 @section('scripts')
+@include('bom.addArticle')
 <script type="text/javascript">
     let currentDate = todayDate('dd-mm-yyyy');    
     $(document).ready(function(){           
-        validateForm('frmAdd');
-        $('#orderDate').val(currentDate);
-        isiDetailHeader();
-        tombolPanah('qtyBom');
-        activate_angka();
-        mask_thousand();
-        splitArticle();
+        mask_thousand_digit(numberOfDecimalDigit);
     });
-
-    orderDate = $('#orderDate');
-    if (orderDate.length) {
-        orderDate.flatpickr({
-            dateFormat: "d-m-Y",
-        });
-    }
-    
-    function reloadPage(){
-        window.location.reload();
-    }
-
-   
-    function isiDetailHeader(){
-        let $this = $("#articleCode");
-        let detail = $this.val().split("|");
-        $('#uom').val(detail[1]);
-        $('#customer').val(detail[2]);
-        $('#group').val(detail[3]);
-    }
-
-    function splitArticle(){
-        // split article with delimiter |
-        let objArticle = $('#article_row select[name="article_id[]"]');
-        let objUom= $('#article_row span[name="uom[]"]'); 
-        let objType= $('#article_row span[name="type[]"]'); 
-        let objPrice= $('#article_row input[name="price[]"]'); 
-        let objQty = $('input[name="qtyBom[]"]');
-        
-        objArticle.change(function(e){        
-            let objIndex = objArticle.index(this);
-            let detail = objArticle.eq(objIndex).val();
-            let arrDetail = detail.split("|");
-            objUom.eq(objIndex).text(arrDetail[1]);
-            objPrice.eq(objIndex).text(arrDetail[3]);
-            objType.eq(objIndex).text(arrDetail[4]);
-            if (detail){
-                setTimeout(() => {
-                    objQty.eq(objIndex).focus().select();
-                }, 5);
-            }
-		});
-    }
-
-    function changeselect(dependent,obj) {
-      $.ajax({
-        url:"{{route('dynamic.dependent')}}",
-        method:"POST",
-        data:{
-            dependent:dependent
-        },
-        success:function(result){
-            $('#'+obj).html(result);
-            $('#'+obj).val('').trigger('change');
-        }
-      })
-    }
-    
+       
     $.ajaxSetup({
         headers: {
             'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')

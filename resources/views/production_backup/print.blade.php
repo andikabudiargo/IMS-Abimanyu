@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SO</title>
+    <style type="text/css">
+
+        html { 
+            margin: 10px;
+        }
+
+        * {
+            font-family: Verdana, Arial, sans-serif;
+        }
+
+        table{
+            font-size: x-small;
+        }
+        
+        tfoot tr td{
+            /*font-weight: bold;*/
+            /* font-size: medium; */
+        }
+        .gray {
+            background-color: lightgray;
+            font-weight: bold;
+        }
+
+        table {
+        width: 100%;
+        }
+
+        th {
+            height: 30px;
+        }
+        td {
+            height: 20px;
+        }
+        th, td {
+            padding-left: 5px;
+            padding-right: 5px;
+            /*border-bottom: 1px solid #ddd;*/
+        }
+
+        .border-bottom{
+            border-bottom: 1px solid #ddd;
+        }
+
+        #watermark {
+            background: url('{{ asset('assets/img/lunas-stamp.png') }}') center;
+            background-size: 10px 10px;
+            background-repeat: no-repeat;
+            opacity: 0.1;
+        }
+
+        /* td {
+            white-space: nowrap;
+        } */
+    </style>
+</head>
+<body>
+    {{-- @if($status == "B")
+        <div id ="watermark">
+    @endif --}}
+    <table width="100%" border="0">
+        <tr>
+            <td width="30%" >
+                <img src="{{ public_path('app-assets/images/logo/logo_po.png') }}" alt="logo" style="width: 60%;"> 
+            </td>
+            <td valign="top" style="text-align:center"><h2>PRODUCTION</h2></td>
+            <td width="30%" ></td>
+        </tr>
+    </table>
+    <table width="100%" border="0" >
+        <tr>
+            <td width="45%" valign="top" >
+                Prd. Number : {{ $prdNumber }}<br>
+                Prd. Date   : {{ $prdDate }}<br>
+                Prd. Shift  : {{ $prdShift }}<br>
+                Prd. Group  : {{ $prdGroup }}
+            </td>
+            <td width="25%"></td>
+            <td width="30%">
+            </td>
+        </tr>
+    </table>
+    <table style="table-layout:fixed;">
+        <thead style="background-color: lightgray;">
+        <tr>
+            <th width="5%">No</th>
+            <th width="15%">Code</th>
+            <th width="50%">Description</th>
+            <th width="10%">Qty</th>
+        </tr>
+        </thead>
+        <tbody>
+            @foreach ($details as $val )
+                <tr class="border-bottom">
+                    <td scope="row" class="border-bottom" align="right">{{ ++$no }}</td>
+                    <td class="border-bottom" align="left">{{ $val->article_alternative_code }}</td>
+                    <td class="border-bottom" align="left">{{ $val->article_desc }}</td>
+                    <td class="border-bottom" align="right">{{ number_format($val->qty) }}</td>
+                </tr>
+            @endforeach
+        </tbody>
+        <tfoot>
+            @foreach ($totals as $val )
+                <tr class="border-bottom">
+                    <td class="border-bottom" align="left" colspan="3">Total</td>
+                    <td class="border-bottom" align="right" >{{ number_format($val->total_qty) }}</td>
+                    {{-- <td class="border-bottom" align="right" ></td>
+                    <td class="border-bottom" align="right" ></td>
+                    <td class="border-bottom" align="right" >{{ number_format($val->total_material)}}</td>
+                    <td class="border-bottom" align="right" >{{ number_format($val->total_service)}}</td> --}}
+                </tr>
+            @endforeach
+        </tfoot>
+        <tr>
+            <td colspan="7"> </td>
+        </tr>
+    </table>
+    <table width="100%" border="0">
+        <tr><td colspan="2" height="100"></td></tr>
+        <tr><td colspan="2" height="100"></td></tr>
+        <tr>
+            <td align="center">Dibuat Oleh</td>
+            <td align="center">Di Update Oleh</td>
+            {{-- <td align="center">Disiapkan</td> --}}
+        </tr>
+        <tr>
+            <td align="center"></td>
+            <td align="center"></td>
+            {{-- <td align="center"></td> --}}
+        </tr>
+        <tr>
+            <td align="center"></td>
+            <td align="center"></td>
+            {{-- <td align="center"></td> --}}
+        </tr>
+        <tr>
+            <td align="center">( {{ $header->created_by }} )</td>
+            <td align="center">({{ $header->updated_by }}  )</td>
+            {{-- <td align="center">( _____________  )</td> --}}
+        </tr>
+    </table>
+{{-- @if($poNumber == "oki")
+</div>
+@endif --}}
+</body>
+</html>

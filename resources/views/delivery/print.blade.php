@@ -36,9 +36,16 @@
                 margin:0 !important;
             }
         }
+
+        body { 
+            /* font-family: Courier New,Courier,Lucida Sans Typewriter,Lucida Typewriter,monospace;  */
+            font-family: Calibri,Arial, Helvetica, sans-serif;
+            /* background-color: aqua; */
+            width: 200mm; height: 280mm ;
+        } 
         
         * {
-            font-family: Verdana, Arial, sans-serif;
+            /* font-family: Verdana, Arial, sans-serif; */
             /* font-family: 'Courier New', monospace; */
 
         }
@@ -152,8 +159,8 @@
         <tfoot>
             @foreach ($totals as $val )
                 <tr class="border-bottom">
-                    <td class="border-bottom" align="left" colspan="3"></td>
-                    <td class="border-bottom" align="right" colspan="2">Total Qty : {{ number_format($val->qty) }}</td>
+                    <td class="border-bottom" align="right" colspan="3">Total Qty</td>
+                    <td class="border-bottom" align="left" colspan="2"> : {{ number_format($val->qty) }}</td>
                 </tr>
             @endforeach
         

@@ -20,11 +20,17 @@
                         <form id="frmAdd" name="frmAdd" autocomplete="off">
                             @csrf
                             <div class="form-row">
+                                <div class="form-group col-md-2">
+                                    <label for="prdNumber">Production Number</label>
+                                    <input type="text" id="prdNumber" name="prdNumber" class="form-control form-control-sm disabled-el" disabled />
+                                </div>
+                            </div>
+                            <div class="form-row">
                                 <div class="form-group col-md-4">
                                     <label for="wosNumber">WOS Number</label>
                                     <select class="select2 form-control" id="wosNumber" name="wosNumber" required>
                                         <option value=""></option>
-                                        @foreach($listSo as $val)
+                                        @foreach($listWo as $val)
                                             <option value="{{ $val->wo_code }}"   
                                                 data-shift="{{ $val->wo_shift }}"
                                                 data-group="{{ $val->wo_group }}"
@@ -56,7 +62,7 @@
                                 </div>
                                 <div class="form-group col-md-2">
                                     <label for="workingHour">Working Hour*</label>
-                                    <input type="text" id="workingHour" name="workingHour" value="9" class="form-control numeral-mask-satuan text-right" maxlength="2" required />
+                                    <input type="text" id="workingHour" name="workingHour" class="form-control numeral-mask-satuan text-right" maxlength="2" required />
                                 </div>
                             </div>
                             <div class="row">
@@ -95,7 +101,7 @@
                             <span class="align-middle d-sm-inline-block d-none">Proses</span>
                         </button> --}}
                     </div>
-                    @include('workingOrderSheet.summary')
+                    @include('production.summary')
                     <hr>
                     <div class="form-row mt-75">
                         <div class="col-md-12">
@@ -153,6 +159,7 @@
 @section('scripts')
 @include('production.addArticle')
 <script type="text/javascript">
+    
     const dWosNumber=$('#wosNumber');
     const dWosDate=$('#wosDate');
     const dShift=$('#shift');
@@ -183,6 +190,7 @@
                 if(result.length > 0 ){
                     for(let i=0;i< result.length;i++){
                         soCode = result[i].so_code;
+                        articleId= result[i].article_code;
                         articleCode = result[i].article;
                         articleRm = result[i].article_rm_code;
                         qtySo = result[i].so_qty; //belum ada
@@ -192,7 +200,7 @@
                         planTime = result[i].plan_time;
                         planTag = result[i].plan_tag;
                         originTag = result[i].origin_tag;
-                        add_new_row_edit(soCode,articleCode,articleRm,qtySo,uom,planQtyFresh,planQtyRepaint,planTime,planTag,originTag);
+                        add_new_row(soCode,articleCode,articleId,articleRm,qtySo,uom,planQtyFresh,planQtyRepaint,planTime,planTag,originTag);
                     }
                 }
             },
