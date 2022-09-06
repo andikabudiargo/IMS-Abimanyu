@@ -117,9 +117,13 @@
             <td width="60%"style="border: 1px solid #0c0c0c;padding-left:10px">
                 <h2>DELIVERY NOTE</h2>
             </td>
+           
             <td style="border: 1px solid #0c0c0c;padding-left:10px">
                 No:<br>{{ $dnHdr->delivery_number }}<br>
                 Status:{{ $statusDel }}
+            </td>
+            <td width="10%" style="border: 1px solid #0c0c0c;padding-left:10px">
+                {!! QrCode::size(50)->generate('12345'); !!}
             </td>
         </tr>
     </table>
@@ -202,6 +206,8 @@
             <td align="center">( _________ )</td>
         </tr>
     </table>
+
+     
         
 {{-- @if($poNumber == "oki")
 </div>
