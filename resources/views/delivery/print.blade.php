@@ -146,10 +146,10 @@
         </table>
         <table>
             <tr>
-                <td width="60%" valign="top" style="border: 1px solid #0c0c0c;padding-left:10px">
+                <td width="50%" valign="top" style="border: 1px solid #0c0c0c;padding-left:10px">
                     <table style="border-spacing: 0;border-collapse: collapse;">
                         <tr>
-                            <td class="font-14 " width="20%">SO Number</td><td>: {{ $dnHdr->so_number }}</td>
+                            <td class="font-14 " width="25%">SO Number</td><td>: {{ $dnHdr->so_number }}</td>
                         </tr>
                         <tr>
                             <td class="font-14 ">Tanggal</td><td>: {{ $dnHdr->delivery_date }}</td>
@@ -158,12 +158,12 @@
                             <td class="font-14 ">Jam</td><td>: {{ date('H:i:s') }}</td>
                         </tr>
                         <tr>
-                            <td class="font-14 ">No Mobil</td><td>: {{ $dnHdr->so_number }}</td>
+                            <td class="font-14 ">No Mobil</td><td>:</td>
                         </tr>
                     </table>
                 </td>
-                <td width="40%" valign="top" style="border: 1px solid #0c0c0c;padding-left:10px">
-                    <strong> VENDOR </strong><br>
+                <td width="50%" valign="top" style="border: 1px solid #0c0c0c;padding-left:10px">
+                    <strong>Kepada Yth.</strong><br>
                         {{ $customers->nama }} <br>
                         {{ $customers->alamat_kirim_1 }} <br>
                     
@@ -171,6 +171,7 @@
             </tr>
         </table>
         <table style="table-layout:fixed;">
+            {{-- <thead style="background-color: lightgray;"> --}}
             <thead style="background-color: lightgray;">
             <tr>
                 <th width="5%">No</th>
