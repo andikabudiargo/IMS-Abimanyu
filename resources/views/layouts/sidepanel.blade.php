@@ -355,21 +355,21 @@
             @endcan --}}
           </ul>
         </li>
-        <li class=" {{ in_array(\Request::segment(1), ['aps','banks','pettyCash','proforma','bankReceipt','invoice']) ? 'active' : '' }} nav-item">
+        <li class=" {{ in_array(\Request::segment(1), ['aps','banks','pettyCash','proforma','bankReceipt','invoice','dnReceipt']) ? 'active' : '' }} nav-item">
           <a class="d-flex align-items-center" href="javascript:void(0);">
             <i data-feather="dollar-sign"></i>
             <span class="menu-title text-truncate" data-i18n="Form Elements">Finance
             </span>
           </a>
           <ul class="menu-content">
-            {{-- @can('finance-index')
-            <li class="{{ \Request::segment(1) == 'aps'  ? 'active' : '' }}">
-              <a class="d-flex align-items-center" href="{{ route('aps.index') }}">
+            @can('dnReceipt-index')
+            <li class="{{ \Request::is(['dnReceipt','dnReceipt/create']) ? 'active' : '' }}">
+              <a class="d-flex align-items-center" href="{{ route('dnReceipt.index') }}">
                 <i data-feather="circle"></i>
-                <span class="menu-item text-truncate" data-i18n="Input">Account Payable</span>
+                <span class="menu-item text-truncate" data-i18n="Input">DN Receipt</span>
               </a>
             </li>
-            @endcan --}}
+            @endcan
             @can('ap-index')
             <li class="{{ \Request::segment(1) == 'aps'  ? 'active' : '' }}">
               <a class="d-flex align-items-center" href="{{ route('aps.index') }}">

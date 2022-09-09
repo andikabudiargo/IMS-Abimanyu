@@ -286,6 +286,12 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('delivery/posting',['as'=>'delivery.posting','uses'=>'DeliveryController@posting']);
 	Route::post('delivery/approve',['as'=>'delivery.approve','uses'=>'DeliveryController@approve']);
 
+	Route::get('dnReceipt',['as'=>'dnReceipt.index','uses'=>'DeliveryReceiptController@index','middleware' => ['permission:dnReceipt-index']]);
+	Route::get('dnReceipt/create',['as'=>'dnReceipt.create','uses'=>'DeliveryReceiptController@create','middleware' => ['permission:dnReceipt-create']]);
+	Route::post('dnReceipt/store',['as'=>'dnReceipt.store','uses'=>'DeliveryReceiptController@store']);
+	Route::get('dnReceipt/list',['as'=>'dnReceipt.list','uses'=>'DeliveryReceiptController@list']);
+	Route::post('dnReceipt/delete',['as'=>'dnReceipt.destroy','uses'=>'DeliveryReceiptController@destroy']);
+
 	Route::get('invoice',['as'=>'invoice.index','uses'=>'InvoiceController@index','middleware' => ['permission:receiving-index']]);
 	Route::get('invoice/create',['as'=>'invoice.create','uses'=>'InvoiceController@create','middleware' => ['permission:receiving-create']]);
 	Route::get('invoice/search',['as'=>'invoice.search','uses'=>'InvoiceController@search']);

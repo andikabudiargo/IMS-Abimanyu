@@ -41,8 +41,8 @@ class DeliveryController extends Controller
         // 3. Posting
         // 4. Cancel
 
-        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED'];
-        $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED'];
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED','8'=>'RECEIVED'];
+        $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED','8'=>'RECEIVED'];
             
         return view("delivery.index",$data);
     }
@@ -110,7 +110,7 @@ class DeliveryController extends Controller
         $gudang = 'false';
         $kurs = 1;
 
-        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED'];
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED','8'=>'RECEIVED'];
 
         $messages = [
             'required' => 'The field is required.',
@@ -226,7 +226,7 @@ class DeliveryController extends Controller
         $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode,$dnNumber,$username);
         $data['approveValidate'] = Approval::approveValidate($this->moduleCode,$dnNumber,$username);
 
-        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED'];
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED','8'=>'RECEIVED'];
         $statusDel = ['NEW','VALIDATE','APPROVED','POSTED','CANCELED','','REVISED'];
         $data['statusDel'] = $statusDel[$data['header']->status-1];
 
@@ -267,7 +267,7 @@ class DeliveryController extends Controller
         $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode,$dnNumber,$username);
         $data['approveValidate'] = Approval::approveValidate($this->moduleCode,$dnNumber,$username);
 
-        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED'];
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED','8'=>'RECEIVED'];
         $statusDel = ['NEW','VALIDATE','APPROVED','POSTED','CANCELED','','REVISED'];
         $data['statusDel'] = $statusDel[$data['header']->status-1];
 
@@ -569,7 +569,7 @@ class DeliveryController extends Controller
     public function destroy(Request $request)
     {
        
-        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED'];
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED','8'=>'RECEIVED'];
 
         $username =  Auth::user()->username;       
         $id=Crypt::decryptString($request->id);
@@ -710,14 +710,14 @@ class DeliveryController extends Controller
 
         ->addColumn('delivery_number', function ($data) {
             $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-danger'];            
-            $statusDel = ['NEW','VALIDATE','APPROVED','POSTED','CANCELED'];
-             // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED'];
+            $statusDel = ['NEW','VALIDATE','APPROVED','POSTED','CANCELED','','','RECEIPT'];
+             // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED','8'=>'RECEIVED'];
             return '<span style="display: none;">'.$data->delivery_number.'</span><a class="text-left badge d-block '.$badges[$data->status - 1].'" name="'.$data->delivery_number.'" href="'. route('delivery.show', ['id'=>Crypt::encryptString($data->id)]) .'" ><span>'.$data->delivery_number.'</span></a>';
         })
 
         ->addColumn('status', function ($data) {
             $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-danger'];            
-            $statusDel = ['NEW','VALIDATE','APPROVED','POSTED','CANCELED'];
+            $statusDel = ['NEW','VALIDATE','APPROVED','POSTED','CANCELED','','','RECEIPT'];
             return "<div class='badge ".$badges[$data->status - 1]."'>".$statusDel[$data->status - 1]."</div>";
         })
 
@@ -745,6 +745,9 @@ class DeliveryController extends Controller
         ->first();
 
         $dnNumber=$dnHdr -> delivery_number;
+        $data['dnNumberQr'] = strtr(base64_encode($dnNumber), '+/=', '-_,');
+        $data['dnNumberQr1'] = base64_decode(strtr($data['dnNumberQr'], '-_,', '+/='));
+             
         $data['title'] =$dnNumber;
 
         $statusDel = ['NEW','VALIDATE','APPROVED','','','PAID','REVISED'];
