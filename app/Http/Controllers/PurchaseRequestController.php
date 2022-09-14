@@ -791,7 +791,7 @@ class PurchaseRequestController extends Controller
         ,bom_det.uom as uom_bom
         ,bom_hdr.article_code 
         ,coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = production_detail_temp.uom),1) as factor_qty
-        ,(select min_package from article where article_code = bom_det.article_code) as min_package 
+        ,(select coalesce(min_package,1) from article where article_code = bom_det.article_code) as min_package 
         from production_detail_temp
         left join bom_hdr on bom_hdr.article_code=production_detail_temp.article_code
         join bom_det on  bom_det.bom_code = bom_hdr.bom_code

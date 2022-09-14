@@ -75,8 +75,8 @@
                 <div class="card-body" >
                     @include("purchaseRequest.headerColumn")
                     <div class="" id="article_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width:thin;margin-top:7px;padding-right:10px">
-                        <input type="text" id ="last_row_number" class="d-none" value="0">
                     </div>
+                    {{-- <input type="text" id ="last_row_number" class="d-none" value="0"> --}}
                     <div class="d-flex justify-content-between align-items-end mt-75">
                         <button class="btn btn-primary btn-prev" type="button" id="addNewRow" onclick="add_new_row();">
                             <i data-feather="plus" class="align-middle mr-sm-25 mr-0"></i>
@@ -104,7 +104,7 @@
 @endsection
 @section('scripts')
 <script type="text/javascript">
-    let cloneCount=1;
+    let cloneCount=0;
     let orderDate = $('#orderDate');
     let objPoType = $('#poType');
     let objTsoBox = $('#tsoBox');
@@ -113,6 +113,7 @@
     $(document).ready(function(){           
         validateFormToast("frmAdd");
         $('#orderDate').val("{{ $currentDate }}");
+        isiArticle('article_pr');
         objTsoBox.hide();
     });
     
@@ -124,6 +125,8 @@
 
     objPoType.change(function(e){
         let potype=$(this).val();
+        $('#article_row').empty();
+        cloneCount=0;
         objTsoBox.hide();
         if (potype ==='tso'){
             objTsoBox.show();
@@ -137,8 +140,9 @@
     });
 
     objTsoCode.change(function(e){
-        let tsoCode = $(this).val();    
+        let tsoCode = $(this).val();
         if (tsoCode){        
+            $(".loading-spinner-container").addClass("-show");
             $.ajax({
                 type: "GET",
                 url: "{{ route('purchaseRequest.article.tso') }}",
@@ -150,6 +154,10 @@
                     if (data){
                         for(let i=0;i<data.length;i++){
                             add_new_row_sto(data[i].article_code,data[i].grand_total,data[i].uom,'');
+                            if (i==(data.length-1)){
+                                $(".loading-spinner-container").removeClass("-show");
+                                isiUom();
+                            }
                         }
                     }
                 },
@@ -157,6 +165,9 @@
                     console.log(error);
                 }
             });
+        }else{
+            $('#article_row').empty();
+            cloneCount=0;
         }
 
         // add_new_row_sto(article,qty,note);
@@ -183,7 +194,6 @@
             $("#article_row select[name='article_id[]']").map(function(i) {  
                 let $this=$(this);
                 if ($this.val()){
-                    console.log($this.val());
                     let article=$this.find(":selected").data("detail").split('|');
                     let articleName=$this.select2('data')[0].text;
                     let plu=$this.val();
@@ -278,18 +288,17 @@
         $("#new_row"+ cloneCount).find('#qty_order').attr('id', 'qty_order'+ cloneCount);
         $("#new_row"+ cloneCount).find('#note').attr('id', 'note'+ cloneCount);
         $("#new_row"+ cloneCount).find('#uom').attr('id', 'uom'+ cloneCount);
-        changeselect('article_pr','article_id'+ cloneCount,articleCode);
+        changeselectSto('article_pr','article_id'+ cloneCount,'uom'+ cloneCount,articleCode);
         $('#qty_order'+ cloneCount).val(qty);
         $('#note'+ cloneCount).val(note);
         $('#uom'+ cloneCount).text(uom);       
         $('#article_id'+ cloneCount).attr('disabled','disabled');
-        $('#qty_order'+ cloneCount).attr('disabled','disabled');
+        // $('#qty_order'+ cloneCount).attr('readonly','readonly');
         $("#article_id"+cloneCount).select2();
         $('#remove_button').tooltip();
         tombolPanah('qty_order');
-        activate_angka();
+        // activate_angka();
         mask_thousand();
-        splitArticle();
     };
     
     add_new_row = () => {
@@ -319,50 +328,10 @@
         $("#article_id"+cloneCount).select2();
         $('#remove_button').tooltip();
         tombolPanah('qty_order');
-        activate_angka();
+        // activate_angka();
         mask_thousand();
         splitArticle();
     };
-
-    function splitArticle(){
-        // split article with delimiter |
-        let objArticle = $('#article_row select[name="article_id[]"]');
-        let objUom= $('#article_row span[name="uom[]"]'); 
-        let objQty= $('#article_row input[name="qty_order[]"]'); 
-        objArticle.change(function(e){    
-            let objIndex = objArticle.index(this);
-            let detail = objArticle.eq(objIndex).find(":selected").data("detail");
-            let arrDetail = detail.split("|");
-            let uomGroup = objArticle.eq(objIndex).find(":selected").data("uom-group");
-
-            objUom.eq(objIndex).text(arrDetail[1]);
-            if (detail){
-                setTimeout(() => {
-                    objQty.eq(objIndex).focus().select();
-                }, 5);
-            }
-
-            if ( uomGroup === 'PIECE' ){
-                objQty.eq(objIndex).removeClass("numeral-mask-digit");
-                objQty.eq(objIndex).addClass("numeral-mask-satuan");
-                mask_thousand_satuan();
-            }else{
-                objQty.eq(objIndex).removeClass("numeral-mask-satuan");
-                objQty.eq(objIndex).addClass("numeral-mask-digit");
-                mask_thousand_digit(numberOfDecimalDigit);
-            }
-
-		});
-    }
-
-    function changeselect(dependent,obj,value){
-        changeSelect({
-            dependent:dependent,
-            obj:obj,
-            value:value,
-            url:"{{ route('dynamic.dependent') }}"            
-        });
-    }
     
     $.ajaxSetup({
         headers: {

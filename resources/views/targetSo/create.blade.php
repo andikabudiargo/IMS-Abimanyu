@@ -114,7 +114,7 @@
 @section('scripts')
 @include('targetSo.addArticle')
 <script type="text/javascript">
-    let cloneCount=1;
+    // let cloneCount=1;
     $(document).ready(function(){           
         validateFormToast("frmAdd");
         isiArticle('tsoArticle');
