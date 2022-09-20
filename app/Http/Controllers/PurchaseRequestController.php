@@ -301,7 +301,8 @@ class PurchaseRequestController extends Controller
 
         $prNumber = $data['header']->pr_number;
         $orderType = $data['header']->order_type;
-        $data['detail'] = DB::table('purchase_request_det')
+        $data['details'] = DB::table('purchase_request_det')
+        ->leftJoin('uom','uom.code','=','purchase_request_det.uom')
         ->where('pr_number',$data['header']->pr_number)
         ->orderBy('purchase_request_det.id')
         ->get(); 

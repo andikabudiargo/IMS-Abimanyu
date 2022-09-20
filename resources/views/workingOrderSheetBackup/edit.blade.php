@@ -413,27 +413,6 @@
         }
       })
     }
-
-    // function tombolPanah(objname){
-    //     // function kalo mau pindah filed dari atas ke bawah atau sebaliknya
-    //     let obj = $('input[name="'+objname+'[]"]');
-    //     obj.keyup(function(e) {
-    //         indexnya= obj.index(this);
-    //         indexnya=parseInt(indexnya);
-    //         if (e.keyCode == 38) {
-    //             //panah atas
-    //             indexTarget = indexnya-1;
-    //             obj.eq(indexTarget).focus().select();
-    //             return false;
-    //         }
-    //         if (e.keyCode == 40) {
-    //             //panah bawah
-    //             indexTarget = indexnya+1;
-    //             obj.eq(indexTarget).focus().select();
-    //             return false;
-    //         }
-    //     });
-    // }
     
     $.ajaxSetup({
         headers: {

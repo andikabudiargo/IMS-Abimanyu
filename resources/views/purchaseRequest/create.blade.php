@@ -73,10 +73,11 @@
                     <h4 class="card-title">Article Detail</h4>
                 </div>
                 <div class="card-body" >
-                    @include("purchaseRequest.headerColumn")
-                    <div class="" id="article_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width:thin;margin-top:7px;padding-right:10px">
+                    <div style="padding-right:10px">
+                        @include("purchaseRequest.headerColumn")
                     </div>
-                    {{-- <input type="text" id ="last_row_number" class="d-none" value="0"> --}}
+                    <div class="" id="article_row" style="max-height: 30rem;overflow-x: hidden;scrollbar-width:thin;margin-top:7px;padding-right:10px">
+                    </div>
                     <div class="d-flex justify-content-between align-items-end mt-75">
                         <button class="btn btn-primary btn-prev" type="button" id="addNewRow" onclick="add_new_row();">
                             <i data-feather="plus" class="align-middle mr-sm-25 mr-0"></i>
@@ -85,7 +86,7 @@
                     </div>
                     <br>
                     <div class="mt-75">
-                        <button class="btn btn-success" type="reset" id="cmdNew" name="cmdCancel">New</button>
+                        {{-- <button class="btn btn-success" type="reset" id="cmdNew" name="cmdCancel">New</button> --}}
                         <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Save</button>
                     </div>
                 </div>
@@ -93,7 +94,7 @@
         </div>
     </div>
 </section>
-@include('purchaseRequest.addArticle')
+
 @endsection
 @section('styles')
 <style>
@@ -103,12 +104,8 @@
 </style>
 @endsection
 @section('scripts')
+@include('purchaseRequest.addArticle')
 <script type="text/javascript">
-    let cloneCount=0;
-    let orderDate = $('#orderDate');
-    let objPoType = $('#poType');
-    let objTsoBox = $('#tsoBox');
-    let objTsoCode = $('#tsoCode');
     
     $(document).ready(function(){           
         validateFormToast("frmAdd");
@@ -173,20 +170,15 @@
         // add_new_row_sto(article,qty,note);
     }); 
     
-    $("#cmdCancel,#cmdNew").click(function(){
-        reloadPage();
-    });
-
     $("#cmdSave").click(function(){
         if (!$("#frmAdd")[0].checkValidity()){
             $("#frmAdd").submit();
         }else{
             $('#cmdSave').attr('disabled','disabled');
             $('.disabled-el').removeAttr('disabled');
-            let objQty = $('input[name="qty_order[]"]');
-            let objNote = $('input[name="note[]"]');
-            let objUom = $('span[name="uom[]"]'); 
-            
+            let objQty = $('#article_row input[name="qty_order[]"]');
+            let objNote = $('#article_row input[name="note[]"]');
+            let objUom = $('#article_row span[name="uom[]"]'); 
             let articles = []; 
             let flag=0; 
             let pesan="";
@@ -278,60 +270,6 @@
             }
         }
     });
-
-    add_new_row_sto = (articleCode,qty,uom,note) => {
-        let poType = $('#poType').val();
-        $("#article_row").append($("#new_row").clone().html());
-        cloneCount++;
-        $("#article_row").find('#baru').attr('id', 'new_row'+ cloneCount);
-        $("#new_row"+ cloneCount).find('#article_id').attr('id', 'article_id'+ cloneCount);
-        $("#new_row"+ cloneCount).find('#qty_order').attr('id', 'qty_order'+ cloneCount);
-        $("#new_row"+ cloneCount).find('#note').attr('id', 'note'+ cloneCount);
-        $("#new_row"+ cloneCount).find('#uom').attr('id', 'uom'+ cloneCount);
-        changeselectSto('article_pr','article_id'+ cloneCount,'uom'+ cloneCount,articleCode);
-        $('#qty_order'+ cloneCount).val(qty);
-        $('#note'+ cloneCount).val(note);
-        $('#uom'+ cloneCount).text(uom);       
-        $('#article_id'+ cloneCount).attr('disabled','disabled');
-        // $('#qty_order'+ cloneCount).attr('readonly','readonly');
-        $("#article_id"+cloneCount).select2();
-        $('#remove_button').tooltip();
-        tombolPanah('qty_order');
-        // activate_angka();
-        mask_thousand();
-    };
-    
-    add_new_row = () => {
-        let poType = $('#poType').val();
-        $("#article_row").append($("#new_row").clone().html());
-        cloneCount++;
-        $("#article_row").find('#baru').attr('id', 'new_row'+ cloneCount);
-        $("#new_row"+ cloneCount).find('#article_id').attr('id', 'article_id'+ cloneCount);
-        let depentName;
-        switch(poType) {
-        case 'std':
-            depentName = 'article_pr';
-            break;
-        case 'sub':
-            depentName = 'article_pr_sub';
-            break;
-        case 'tso':
-            depentName = 'article_pr';
-            break;
-        case 'rm':
-            depentName = 'article_pr_rm';
-            break;
-        default:
-            depentName = 'article_pr';
-        } 
-        changeselect(depentName,'article_id'+ cloneCount);
-        $("#article_id"+cloneCount).select2();
-        $('#remove_button').tooltip();
-        tombolPanah('qty_order');
-        // activate_angka();
-        mask_thousand();
-        splitArticle();
-    };
     
     $.ajaxSetup({
         headers: {

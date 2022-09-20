@@ -168,7 +168,7 @@
 <script type="text/javascript">
     const updateBtn = document.querySelector('#cmdUpdate');
     const approveBtn = document.querySelector('#cmdApprove');
- 
+
     $(document).ready(function(){           
         validateForm('frmAdd');
         isiArticle('tsoArticle');
@@ -185,10 +185,8 @@
                 }
             }
         }
-
     });
 
-    
     if (updateBtn) {
         updateBtn.addEventListener('click',() =>{
             updateData('update','cmdUpdate');

@@ -125,8 +125,8 @@
         $('#'+objButton).attr('disabled','disabled');
         if (!$("#frmAdd")[0].checkValidity()){
             $("#frmAdd").submit();
-        }else{ 
-            $('.disabled-el').removeAttr('disabled');
+            $('#'+objButton).removeAttr('disabled');
+        }else{
             let objQtyTarget= $('#article_row input[name="qtyTarget[]"]');
             let objQtyForcast= $('#article_row input[name="qtyForcast[]"]');
             let objNote= $('#article_row input[name="note[]"]');
@@ -151,19 +151,25 @@
                         pesan +="Article "+articleName+" entered more than once !! <br>"; 
                         flag=1;
                     } else {
-                        if ((plu!=='') && (qtyTarget > 0) && (qtyForcast > 0)){
+                        // if ((plu!=='') && (qtyTarget > 0) && (qtyForcast > 0)){
+                        if ((plu!=='') && (qtyTarget > 0)){
                             articles.push({
                                 "article_code":plu,
                                 "qtyTarget":qtyTarget,
                                 "qtyForcast":qtyForcast,
-                                "uom":uom,
-                                // "note":note
+                                "uom":uom
                             });
                         }
                     } 
                 
-                    if (qtyTarget == 0 || qtyForcast == 0){
-                        pesan +="QTY of items "+ articleName +" cannot be 0 <br>"; 
+                    // if (qtyTarget == 0 || qtyForcast == 0){
+                    //     pesan +="QTY of items "+ articleName +" cannot be 0 <br>"; 
+                    //     flag=1;
+                    // }
+
+                    /* Permintaan dari ASN qty forcast boleh 0*/
+                    if ( qtyTarget == 0 ){
+                        pesan +="QTY Target of items "+ articleName +" cannot be 0 <br>"; 
                         flag=1;
                     }
                 
@@ -174,7 +180,9 @@
                 pesan +="Articles must be filled in completely <br>"; 
                 flag=1;
             }
+
             if (flag==0){
+                $('.disabled-el').removeAttr('disabled');
                 let tsoDate = $('#tsoDate').val();
                 let tsoName = $('#tsoName').val();
                 let note = $('#note').val();
@@ -211,6 +219,7 @@
                 });
 
             }else{
+                $('#'+objButton).removeAttr('disabled');
                 Swal.fire('Warning..',pesan,'warning');
             }
         }
@@ -247,19 +256,25 @@
                         pesan +="Article "+articleName+" entered more than once !! <br>"; 
                         flag=1;
                     } else {
-                        if ((plu!=='') && (qtyTarget > 0) && (qtyForcast > 0)){
+                        // if ((plu!=='') && (qtyTarget > 0) && (qtyForcast > 0)){
+                        if ((plu!=='') && (qtyTarget > 0)){
                             articles.push({
                                 "article_code":plu,
                                 "qtyTarget":qtyTarget,
                                 "qtyForcast":qtyForcast,
-                                "uom":uom,
-                                // "note":note
+                                "uom":uom
                             });
                         }
                     } 
-                
-                    if (qtyTarget == 0 || qtyForcast == 0){
-                        pesan +="QTY of items "+ articleName +" cannot be 0 <br>"; 
+                    
+                    /* Permintaan dari ASN qty forcast boleh 0*/
+                    // if (qtyTarget == 0 || qtyForcast == 0){
+                    //     pesan +="QTY of items "+ articleName +" cannot be 0 <br>"; 
+                    //     flag=1;
+                    // }
+
+                    if ( qtyTarget == 0 ){
+                        pesan +="QTY Target of items "+ articleName +" cannot be 0 <br>"; 
                         flag=1;
                     }
                 
@@ -398,22 +413,6 @@
             }
         })
     }
-
-    // function changeselect(dependent,obj,value,type) {
-    //   $.ajax({
-    //     url:"{{route('dynamic.dependent')}}",
-    //     method:"POST",
-    //     data:{
-    //         value:value,
-    //         type:type,
-    //         dependent:dependent
-    //     },
-    //     success:function(result){
-    //         $('#'+obj).html(result);
-    //         // $('#'+obj).val('').trigger('change');
-    //     }
-    //   })
-    // }
    
     function changeselect(dependent,obj,article) {
         $('#'+obj).attr('disabled','disabled');
@@ -479,4 +478,5 @@
             'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
         }
     });
+
 </script>
