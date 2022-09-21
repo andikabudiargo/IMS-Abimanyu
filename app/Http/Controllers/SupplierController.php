@@ -86,6 +86,7 @@ class SupplierController extends Controller
          
         $lastCode = DB::table('third_party')
         ->where('kode','like',$initial.'%SUPP')
+        ->orderBy('kode','desc')
         ->value('kode');
 
         if (!$lastCode){
@@ -115,6 +116,7 @@ class SupplierController extends Controller
          
         $lastCode = DB::table('third_party')
         ->where('kode','like',$initial.'%CUST')
+        ->orderBy('kode','desc')
         ->value('kode');
 
         if (!$lastCode){
@@ -218,6 +220,7 @@ class SupplierController extends Controller
                     'updated_at' => date('Y-m-d H:i:s')
                 ]);
 
+                //kalo supplier jadi supplier juga
                 if ($asCustomer){
                     DB::table('third_party')->insert([
                         'kode'=> $kodeCust,

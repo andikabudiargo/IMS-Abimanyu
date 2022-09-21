@@ -17,7 +17,7 @@ class CustomerController extends Controller
     private $title;
     public function __construct()
     {
-        $this->title = "Supplier";
+        $this->title = "Customer";
     }
 
     public function getTableColoumn(){
@@ -90,6 +90,7 @@ class CustomerController extends Controller
          
         $lastCode = DB::table('third_party')
         ->where('kode','like',$initial.'%CUST')
+        ->orderBy('kode','desc')
         ->value('kode');
 
         if (!$lastCode){
