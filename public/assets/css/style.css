@@ -158,3 +158,29 @@ table.dataTable th.dt-center{text-align:center}
 .form-group {
     margin-bottom: 0.5rem;
 } */
+
+@media (min-width: 992px) {
+	.modal-xls {
+	  max-width: 800px;
+	}
+  }
+  
+@media (min-width: 1200px) {
+	.modal-xls {
+		max-width: 1140px;
+	}
+}
+
+@media (min-width: 1200px) {
+	.modal-xls {
+		margin-left: 15%;
+		margin-right: 15%; 
+	} 
+}
+
+  
+@media (min-width: 1200px) {
+	.modal-xls {
+		max-width: 90%; 
+	} 
+}

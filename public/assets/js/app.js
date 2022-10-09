@@ -506,6 +506,9 @@
         let objKanan = $(elKanan+'[name="'+namaKanan+'[]"]');
         let indexTarget;
         let jumObj =  obj.length -1;
+        let tekanAdd = obj.data("click-add");
+        tekanAdd = typeof(tekanAdd) === 'undefined' ? 'true' : tekanAdd;
+        console.log(tekanAdd);
         indexnya=parseInt(indexnya);
         if (e.keyCode == 37) {
             //panah kiri
@@ -529,7 +532,9 @@
             //panah bawah
             indexTarget = indexnya+1;
             if (indexTarget == jumObj){
-                add_new_row();    
+                if (tekanAdd == 'true'){
+                    add_new_row();    
+                }
             }
             obj.eq(indexTarget).focus().select();    
             return false;

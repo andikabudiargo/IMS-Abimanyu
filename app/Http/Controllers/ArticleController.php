@@ -33,6 +33,7 @@ class ArticleController extends Controller
             ['data'=>'costprice','name'=>'costprice','title'=>'Price'],
             ['data'=>'article_qty','name'=>'article_qty','title'=>'Qty'],
             ['data'=>'uom','name'=>'uom','title'=>'UOM'],
+            ['data'=>'article_type','name'=>'article_type','title'=>'Type'],
             ['data'=>'safety_stock','name'=>'safety_stock','title'=>'Safety Stock'],
             ['data'=>'min_package','name'=>'min_package','title'=>'Min Package'],
             ['data'=>'group','name'=>'group_materials.name','title'=>'Group'],
@@ -115,6 +116,8 @@ class ArticleController extends Controller
         //membuat article code diaawali dengan leadCode yang isinya kode awal dari article
         
         $customer = $custCode;
+        // $customerInitial = substr($custCode,0,3);
+        $customerInitial = DB::table('third_party')->where('kode',$customer)->value('inisial');
         $leadingCode = $leadCode; 
 
         if (($leadingCode == "FG") or  ($leadingCode == "RMP") or ($leadingCode == "RMNP")){
@@ -124,9 +127,15 @@ class ArticleController extends Controller
             XXX= Initial dari customer
             */
 
+            /*
+            revisi 9-10-2022
+            Suapaya alternative code tidak bentrok dikarenakan ada inisial yang lebih dari satu
+            maka urutan hanya berdasarkan type+inisial
+            */
+
             $lastCode = DB::table('article')
-            ->where('third_party','=',$customer)
-            ->where('article_alternative_code','like',$leadingCode.'%')
+            // ->where('third_party','=',$customer)
+            ->where('article_alternative_code','like',$leadingCode.$customerInitial.'%')
             ->orderBy('article_alternative_code','DESC')->first();
 
             if (!$lastCode){
@@ -144,9 +153,16 @@ class ArticleController extends Controller
                 
             }
 
-            $artilceCode = DB::table('third_party')
-            ->where('kode',$customer)
-            ->select(DB::raw("CONCAT('$leadingCode',inisial,'$newCode','~','$leadingCode') AS new_code"))->value('new_code');
+            $articleCode = $leadingCode.$customerInitial.$newCode."~".$leadingCode;
+
+            /*
+            revisi 9-10-2022
+            tidak udah lihat database langsung bikin kode saja
+            */
+            // $articleCode = DB::table('third_party')
+            // ->where('kode',$customer)
+            // // ->where('inisial',$customerInitial)
+            // ->select(DB::raw("CONCAT('$leadingCode',inisial,'$newCode','~','c') AS new_code"))->value('new_code');
 
         }else{
             $lastCode = DB::table('article')
@@ -159,11 +175,11 @@ class ArticleController extends Controller
                 $newCode = str_pad(substr($lastCode->article_alternative_code,7)+1, 7, "0", STR_PAD_LEFT);
             }
 
-            $artilceCode = $leadingCode.$newCode."~".$leadingCode;
+            $articleCode = $leadingCode.$newCode."~".$leadingCode;
         }
         
         
-        return  $artilceCode;
+        return  $articleCode;
     
     }
 
@@ -239,7 +255,6 @@ class ArticleController extends Controller
                 
         DB::beginTransaction();
         try {
-               
                 $artCode = $this->getArticleCode();
                 $articleDet =  explode("~",$articleCode); 
                 DB::table('article')->insert([

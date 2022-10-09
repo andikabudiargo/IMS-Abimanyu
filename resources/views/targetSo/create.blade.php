@@ -64,12 +64,25 @@
                         </div>
                     </div>
                     <hr>
-                    <div class="d-flex justify-content-between align-items-end mt-75">
+                    <div class="form-row mt-75">
+                        <div class="col-md-12">
+                            <button class="btn btn-success btn-prev" type="button" id="addNewList" onclick="listItem()">
+                                <i data-feather="upload" class="align-middle mr-sm-25 mr-0"></i>
+                                <span class="align-middle d-sm-inline-block d-none">Add by supplier</span>
+                            </button>
+
+                            <button class="btn btn-primary btn-prev" type="button" id="addNewRow" onclick="add_new_row();hitungGrandTotal();">
+                                <i data-feather="plus" class="align-middle mr-sm-25 mr-0"></i>
+                                <span class="align-middle d-sm-inline-block d-none">Add Article</span>
+                            </button>
+                        </div>
+                    </div>
+                    {{-- <div class="d-flex justify-content-between align-items-end mt-75">
                         <button class="btn btn-primary btn-prev" type="button" id="addNewRow" onclick="add_new_row();hitungGrandTotal();">
                             <i data-feather="plus" class="align-middle mr-sm-25 mr-0"></i>
                             <span class="align-middle d-sm-inline-block d-none">Add Article</span>
                         </button>
-                    </div>
+                    </div> --}}
                     <div class="d-flex justify-content-between align-items-end mt-75">
                         <div class="col-md-4">
                             <div class="form-group row mb-03">
@@ -106,18 +119,21 @@
         </div>
     </div>
 </section>
+
 @endsection
 @section('styles')
 <style>
 </style>
 @endsection
 @section('scripts')
+@include('targetSo.listItem')
 @include('targetSo.addArticle')
 <script type="text/javascript">
     
     $(document).ready(function(){           
         validateFormToast("frmAdd");
         isiArticle('tsoArticle');
+        $('#customerList').select2();
         $('#tsoDate').val(currentDate);
     });
 

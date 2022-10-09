@@ -249,6 +249,7 @@ Route::group( ['middleware' => ['auth']], function() {
 	// Route::get('targetSo/price/list',['as'=>'targetSo.price.list','uses'=>'TargetSoController@priceList']);
 	// Route::get('targetSo/revision',['as'=>'targetSo.revision','uses'=>'TargetSoController@revision','middleware' => ['permission:targetSo-revision']]);
 	Route::get('targetSo/approve',['as'=>'targetSo.approve','uses'=>'TargetSoController@approve']);
+	Route::get('targetSo/itemList',['as'=>'targetSo.itemList','uses'=>'TargetSoController@listItemByCustomer']);
 	
 	Route::get('receivings',['as'=>'receivings.index','uses'=>'ReceivingController@index','middleware' => ['permission:receiving-index']]);
 	Route::get('receivings/create',['as'=>'receiving.create','uses'=>'ReceivingController@create','middleware' => ['permission:receiving-create']]);

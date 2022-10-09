@@ -18,7 +18,7 @@
             <div class="col-md-2 col-12">
                 <div class="form-group margin-nol">
                     <label for="qtyTarget" class="d-block d-md-none">QTY Target</label>
-                    <input type="text" class="form-control numeral-mask-digit text-right tombol-panah" 
+                    <input type="text" class="form-control numeral-mask-satuan text-right tombol-panah" 
                         data-type-el-kiri="select" 
                         data-nama-el-kiri='articleId'
                         data-type-el-kanan='input'
@@ -29,7 +29,7 @@
             <div class="col-md-2 col-12">
                 <div class="form-group margin-nol">
                     <label for="qtyForcast" class="d-block d-md-none">QTY Forcast</label>
-                    <input type="text" class="form-control numeral-mask-digit text-right tombol-panah" 
+                    <input type="text" class="form-control numeral-mask-satuan text-right tombol-panah" 
                         data-type-el-kiri="input" 
                         data-nama-el-kiri='qtyTarget'
                         data-type-el-kanan='select'
@@ -472,6 +472,7 @@
     $("input[type='text']").click(function () {
         $(this).select();
     });
+    
 
     $.ajaxSetup({
         headers: {

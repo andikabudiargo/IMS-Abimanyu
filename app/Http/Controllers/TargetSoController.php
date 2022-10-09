@@ -928,4 +928,20 @@ class TargetSoController extends Controller
 
     }
 
+    public function listItemByCustomer(Request $request)
+    {
+        $customer = $request->customer;
+        $data = DB::table('article')
+        ->where('third_party',$customer)
+        ->where('article_type','FG')
+        ->whereIn('article.article_code', function($query) {
+            $query->select('article_code')->from('bom_hdr')->where('status','3');
+        })
+        ->orderBy('article_desc')
+        ->get();
+
+        return response()->json(array('data' => $data));
+    }
+    
+
 }
