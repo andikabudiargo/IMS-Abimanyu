@@ -68,7 +68,7 @@
                         <div class="col-md-12">
                             <button class="btn btn-success btn-prev" type="button" id="addNewList" onclick="listItem()">
                                 <i data-feather="upload" class="align-middle mr-sm-25 mr-0"></i>
-                                <span class="align-middle d-sm-inline-block d-none">Add by supplier</span>
+                                <span class="align-middle d-sm-inline-block d-none">Add by customer</span>
                             </button>
 
                             <button class="btn btn-primary btn-prev" type="button" id="addNewRow" onclick="add_new_row();hitungGrandTotal();">
