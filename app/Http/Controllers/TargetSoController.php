@@ -511,25 +511,28 @@ class TargetSoController extends Controller
     {
         $username =  Auth::user()->username;       
         $id=Crypt::decryptString($request->id);
-        $tsoCode = DB::table('target_order_hdr')->where('id',$id)->where('status','1')->first();
-        $tsoCode = $tsoCode->tso_code;
-        $tsoStatus = $tsoCode->status;
-        if ($tsoStatus == 1){
-            $rowAffected = DB::table('target_order_hdr')->where('id',$id)->where('status','1')->delete();
+        // $tsoCode = DB::table('target_order_hdr')->where('id',$id)->where('status','1')->first();
+        $tsoQuery = DB::table('target_order_hdr')->where('id',$id)->first();
+        $tsoCode = $tsoQuery->tso_code;
+        $tsoStatus = $tsoQuery->status;
+        if ($tsoStatus != 3 ){
+            // $rowAffected = DB::table('target_order_hdr')->where('id',$id)->where('status','1')->delete();
+            $rowAffected = DB::table('target_order_hdr')->where('id',$id)->delete();
+            DB::table('target_order_det')->where('tso_code',$tsoCode)->delete();
         }else{
             // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','','5'=>'CANCELED'];
-            $row_affected=DB::table('target_order_hdr')
+            $rowAffected = DB::table('target_order_hdr')
             ->where('tso_code',$tsoCode)
             ->update(
                 [
-                    'status' => '3',
-                    'authorized_by' => Auth::user()->username,
-                    'authorized_at' => date('Y-m-d H:i:s')
+                    'status' => '5',
+                    'updated_by' => Auth::user()->username,
+                    'updated_at' => date('Y-m-d H:i:s')
                 ]
             );
         }
+
         if($rowAffected>0){
-            DB::table('target_order_det')->where('po_number',$tsoCode)->delete();
             $title ="Delete $this->title";
             $alert  ="success";
             $message  = "$title $tsoCode Successfully Deleted";
@@ -635,7 +638,7 @@ class TargetSoController extends Controller
             //     }
             // }
 
-            if ( $data->status == '1' ){
+            if ( $data->status <> '3' ){
                 if (Auth::user()->can('purchaseOrder-delete')) {
                     $buttons .=         "<a href='javascript:;'
                                         class='dropdown-item' 
@@ -648,6 +651,23 @@ class TargetSoController extends Controller
                                         data-url='". route('targetSo.destroy', ['id'=>Crypt::encryptString($data->id)]) ."'>
                                         <i data-feather='trash-2' class='feather-14-red'></i>
                                         <span>". __('Delete') ."</span>
+                                    </a>";
+                }
+            }
+
+            if ( $data->status == '3' ){
+                if (Auth::user()->can('purchaseOrder-delete')) {
+                    $buttons .=         "<a href='javascript:;'
+                                        class='dropdown-item' 
+                                        data-size='sm'
+                                        data-ajax-delete='true'
+                                        data-confirm='Are You Sure want to Delete?|This action can not be undone. Do you want to continue?' 
+                                        data-confirm-yes='document.getElementById(\""."delete-form-".$data->id."\").submit();'
+                                        data-modal-id='".$data->id."'
+                                        id='deleteButton'
+                                        data-url='". route('targetSo.destroy', ['id'=>Crypt::encryptString($data->id)]) ."'>
+                                        <i data-feather='trash-2' class='feather-14-red'></i>
+                                        <span>". __('Cancel') ."</span>
                                     </a>";
                 }
             }
