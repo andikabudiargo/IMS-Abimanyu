@@ -339,7 +339,7 @@ class PurchaseRequestController extends Controller
         $username =  Auth::user()->username;
         $articles = json_decode($request -> articles);
         $prNumber = $request->prNumber;
-        $orderType = $request->poType;
+        // $orderType = $request->poType;
         $orderDate = $request->orderDate;
         $dept = $request->dept;
         $note = $request->note;
@@ -394,7 +394,7 @@ class PurchaseRequestController extends Controller
                             'dept' => $dept,
                             'date' => $orderDate,
                             'status' => $status,
-                            'order_type' => $orderType,
+                            // 'order_type' => $orderType,
                             'note' =>  $note,
                             'authorized_by' => '',
                             'prepared_by' =>  '',
