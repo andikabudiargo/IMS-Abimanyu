@@ -32,8 +32,8 @@
                                     <select class="select2 form-control" id="poType" name="poType" required disabled>
                                         <option value="std">Standard</option>
                                         {{-- <option value="sub">Subcontracting</option> --}}
-                                        <option value="tso">Target SO</option>
-                                        <option value="rm">Raw Material</option>
+                                        <option value="tso" {{ $header->order_type == 'tso' ? "selected" : ""}}>Target SO</option>
+                                        <option value="rm" {{ $header->order_type == 'rm' ? "selected" : ""}}>Raw Material</option>
                                         <option value="std" {{ $header->order_type == 'std' ? "selected" : ""}}>Standard</option>
                                         {{-- <option value="sub" {{ $header->order_type == 'sub' ? "selected" : ""}}>Subcontracting</option> --}}
                                     </select>
