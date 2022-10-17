@@ -294,7 +294,7 @@
     $("#cmdApprove").click(function(){    
         let prNumber = $('#prNumber').val();
         $.ajax({
-            type: "post",
+            type: "get",
             url: "{{ route('purchaseRequest.approve') }}",
             data: {
                 prNumber:prNumber
@@ -312,7 +312,8 @@
                     show_msg(data.title, data.message, data.alert);
                     $('#prNumber').attr('disabled','disabled');
                     $('#cmdApprove').attr('disabled','disabled');
-                    $('#addNewRow').attr('disabled','disabled');                       
+                    $('#addNewRow').attr('disabled','disabled');  
+                    $('#cmdUpdate').attr('disabled','disabled');       
                 }
             },
             error: function(error) {

@@ -412,7 +412,7 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('purchaseRequests/delete',['as'=>'purchaseRequest.destroy','uses'=>'PurchaseRequestController@destroy']);
 	Route::get('purchaseRequests/code/create',['as'=>'purchaseRequest.code.create','uses'=>'PurchaseRequestController@articleCodeCreate']);
 	Route::get('purchaseRequests/print',['as'=>'purchaseRequest.print','uses'=>'PurchaseRequestController@print']);
-	Route::post('purchaseRequests/approve',['as'=>'purchaseRequest.approve','uses'=>'PurchaseRequestController@approve']);
+	Route::get('purchaseRequests/approve',['as'=>'purchaseRequest.approve','uses'=>'PurchaseRequestController@approve']);
 	Route::get('purchaseRequests/article/tso',['as'=>'purchaseRequest.article.tso','uses'=>'PurchaseRequestController@articleTso']);
 
 	Route::get('boms',['as'=>'boms.index','uses'=>'BomController@index','middleware' => ['permission:bom-index']]);

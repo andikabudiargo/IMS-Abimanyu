@@ -576,6 +576,16 @@ class PurchaseRequestController extends Controller
                                 <i data-feather="menu"></i>
                             </a>';
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
+
+            if ( $data->status == '2' or $data->status == '1') {
+                if (Auth::user()->can('purchaseRequest-edit')) {
+                $buttons .=     '<a href="'. route('purchaseRequest.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+                                    <i data-feather="check"></i>
+                                    <span>'. __("Approve") .'</span>
+                                </a>';
+                }
+            }
+
             if (Auth::user()->can('purchaseRequest-edit')) {
             $buttons .=         '<a href="'. route('purchaseRequest.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                     <i data-feather="file-text"></i>

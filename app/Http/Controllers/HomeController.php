@@ -81,6 +81,45 @@ class HomeController extends Controller
         ) as Oki
         where current_level+1 = berhak_approve");
 
+    $data['listPrHome'] = DB::select("SELECT * from (
+        select 
+            id
+            ,pr_number
+            ,date
+            ,dept
+            ,order_type
+            ,note
+            ,created_by
+            ,status
+            ,'$username' as username
+            ,coalesce((select max(approval_order) from approval_history where module_code ='PR' and module_number =a.pr_number),0) as current_level
+            ,(select approval_number from approval_master where module_code = 'PR') as max_level
+            ,coalesce((select min(approval_order) from approval_level where username = '$username' and module_code = 'PR' and approval_order not in(
+            select approval_order from approval_history where username = '$username' and module_code = 'PR' and module_number = a.pr_number)),0) as berhak_approve
+        from purchase_request_hdr a
+        where status not in ('3','4','5','6','7','8')
+        ) as Oki
+        where current_level+1 = berhak_approve");
+
+    $data['listTsoHome'] = DB::select("SELECT * from (
+        select 
+            id
+            ,tso_code
+            ,tso_date
+            ,tso_name
+            ,note
+            ,created_by
+            ,status
+            ,'$username' as username
+            ,coalesce((select max(approval_order) from approval_history where module_code ='TSO' and module_number =a.tso_code),0) as current_level
+            ,(select approval_number from approval_master where module_code = 'TSO') as max_level
+            ,coalesce((select min(approval_order) from approval_level where username = '$username' and module_code = 'TSO' and approval_order not in(
+            select approval_order from approval_history where username = '$username' and module_code = 'TSO' and module_number = a.tso_code)),0) as berhak_approve
+        from target_order_hdr a
+        where status not in ('3','4','5','6','7','8')
+        ) as Oki
+        where current_level+1 = berhak_approve");
+
         $data['greeting'] = self::greeting();            
 
         return view('home',$data);

@@ -214,6 +214,208 @@
         </div>
         <!--/ Company Table Card -->
     </div>
+    <div class="form-row">
+        <!-- Company Table Card -->
+        <div class="col-lg-12 col-12">
+            <div class="card">
+                <div class="card-header">PR that must be approve </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>PR Number</th>
+                                    <th>Order Type</th>
+                                    {{-- <th>Department</th> --}}
+                                    <th>Pr Date</th>
+                                    <th>Approved</th>
+                                    <th>Created_by</th>
+                                    <th>Status</th>
+                                    <th>Note</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($listPrHome as $key=>$val)
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div>
+                                                <div class="font-weight-bolder">{{ $val->pr_number }}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div>
+                                                <div class="font-weight-bolder">{{ $val->order_type }}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    {{-- <td>
+                                        <div class="d-flex align-items-center">
+                                            <div>
+                                                <div class="font-weight-bolder">{{ $val->dept }}</div>
+                                            </div>
+                                        </div>
+                                    </td> --}}
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div>
+                                                <div class="font-weight-bolder">{{ $val->date }}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="text-right">
+                                        #Approved: {{ $val->current_level }} of {{ $val->max_level }}
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div>
+                                                <div class="font-weight-bolder">{{ $val->created_by }}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div>
+                                                <div class="font-weight-bolder">{{ $val->status }}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div>
+                                                <div class="font-weight-bolder">{{ $val->note }}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <a class="btn btn-outline-info btn-sm" 
+                                            id="cmdDetailPrHome{{ $key }}" 
+                                            name="cmdDetailPrHome{{ $key }}" 
+                                            href="{{ route('purchaseRequest.show', ['id'=>Crypt::encryptString($val->id)]) }}"> 
+                                            <i data-feather='list'></i>
+                                            Detail
+                                        </a>
+                                        <a href='javascript:;'
+                                            onclick="action(this)"
+                                            id = 'buttonPrHome{{ $key }}'
+                                            class="btn btn-outline-success btn-sm buttonPr-{{ $val->id }}"
+                                            data-id-class = "buttonPr-{{ $val->id }}"
+                                            data-doc-number='{{ $val->pr_number }}'
+                                            data-url='{{ route("purchaseRequest.approve", ["prNumber"=>$val->pr_number]) }}'>
+                                            <i data-feather='check-circle'></i>
+                                            Approve
+                                        </a>
+                                    </td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!--/ Company Table Card -->
+    </div>
+    <div class="form-row">
+        <!-- Company Table Card -->
+        <div class="col-lg-12 col-12">
+            <div class="card">
+                <div class="card-header">TSO that must be approve </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>TSO Code</th>
+                                    <th>Desc</th>
+                                    <th>Date</th>
+                                    <th>Approved</th>
+                                    <th>Created_by</th>
+                                    <th>Status</th>
+                                    <th>Note</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($listTsoHome as $key=>$val)
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div>
+                                                <div class="font-weight-bolder">{{ $val->tso_code }}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div>
+                                                <div class="font-weight-bolder">{{ $val->tso_name }}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div>
+                                                <div class="font-weight-bolder">{{ $val->tso_date }}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="text-right">
+                                        #Approved: {{ $val->current_level }} of {{ $val->max_level }}
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div>
+                                                <div class="font-weight-bolder">{{ $val->created_by }}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div>
+                                                <div class="font-weight-bolder">{{ $val->status }}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div>
+                                                <div class="font-weight-bolder">{{ $val->note }}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <a class="btn btn-outline-info btn-sm" 
+                                            id="cmdDetailTsoHome{{ $key }}" 
+                                            name="cmdDetailTsoHome{{ $key }}" 
+                                            href="{{ route('targetSo.show', ['id'=>Crypt::encryptString($val->id)]) }}"> 
+                                            <i data-feather='list'></i>
+                                            Detail
+                                        </a>
+                                        <a href='javascript:;'
+                                            onclick="action(this)"
+                                            id = 'buttonTsoHome{{ $key }}'
+                                            class="btn btn-outline-success btn-sm buttonTso-{{ $val->id }}"
+                                            data-id-class = "buttonTso-{{ $val->id }}"
+                                            data-doc-number='{{ $val->tso_code }}'
+                                            data-url='{{ route("targetSo.approve", ["tsoCode"=>$val->tso_code]) }}'>
+                                            <i data-feather='check-circle'></i>
+                                            Approve
+                                        </a>
+                                    </td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!--/ Company Table Card -->
+    </div>
     
 </section>
 @endsection

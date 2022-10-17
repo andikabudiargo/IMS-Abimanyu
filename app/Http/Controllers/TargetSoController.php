@@ -305,12 +305,17 @@ class TargetSoController extends Controller
         // ->limit(10)
         ->get();
 
+        $data['custs'] = DB::table('third_party')
+        ->where ('third_party_type','=','cust')
+        ->orderBy('nama')
+        ->get();
+
         $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode,$tsoCode,$username);
         $data['approveValidate'] = Approval::approveValidate($this->moduleCode,$tsoCode,$username);
                    
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'','5'=>'CANCELED'];
         $statusTso = ['NEW','VALIDATED','APPROVED','','CANCELED'];
-        $data['statusPo'] = $statusTso[$data['header']->status-1];
+        $data['statusTso'] = $statusTso[$data['header']->status-1];
 
         return view("targetSo.edit",$data);
     }
@@ -587,7 +592,7 @@ class TargetSoController extends Controller
             if ( $data->status == '2' or $data->status == '1') {
                 if (Auth::user()->can('purchaseOrder-authorize')) {
                 $buttons .=         '<a href="'. route('targetSo.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
-                                        <i data-feather="file-text"></i>
+                                        <i data-feather="check"></i>
                                         <span>'. __("Approve") .'</span>
                                     </a>';
                 }
@@ -893,7 +898,6 @@ class TargetSoController extends Controller
         }       
     }
  
-
     public function print(Request $request)
     {
         $id=Crypt::decryptString($request->id);
@@ -963,5 +967,4 @@ class TargetSoController extends Controller
         return response()->json(array('data' => $data));
     }
     
-
 }

@@ -7,7 +7,7 @@
         <div class="col-md-12">
             <div class="card">
                 <div class="card-header">
-                    <h4 class="card-title">Status: <span id="statusText">{{ $statusPo }}</span></h4>
+                    <h4 class="card-title">Status: <span id="statusText">{{ $statusTso }}</span></h4>
                     <div class="heading-elements">
                         <ul class="list-inline mb-0">
                             <li><a data-action="collapse"><i data-feather="chevron-down"></i></a></li>
@@ -61,11 +61,24 @@
                     </div>
                     <hr>
                     <div class="d-flex justify-content-between align-items-end mt-75">
-                        @if( strtoupper($statusPo) != 'APPROVED' )
-                        <button class="btn btn-primary btn-prev" type="button" id="addNewRow" onclick="add_new_row();">
+                        @if( (strtoupper($statusTso) != 'APPROVED') && (strtoupper($statusTso) != 'VALIDATED') )
+                        <div class="form-row mt-75">
+                            <div class="col-md-12">
+                                <button class="btn btn-success btn-prev" type="button" id="addNewList" onclick="listItem()">
+                                    <i data-feather="upload" class="align-middle mr-sm-25 mr-0"></i>
+                                    <span class="align-middle d-sm-inline-block d-none">Add by customer</span>
+                                </button>
+    
+                                <button class="btn btn-primary btn-prev" type="button" id="addNewRow" onclick="add_new_row();hitungGrandTotal();">
+                                    <i data-feather="plus" class="align-middle mr-sm-25 mr-0"></i>
+                                    <span class="align-middle d-sm-inline-block d-none">Add Article</span>
+                                </button>
+                            </div>
+                        </div>
+                        {{-- <button class="btn btn-primary btn-prev" type="button" id="addNewRow" onclick="add_new_row();">
                             <i data-feather="plus" class="align-middle mr-sm-25 mr-0"></i>
                             <span class="align-middle d-sm-inline-block d-none">Add Article</span>
-                        </button>
+                        </button> --}}
                         @endif
                     </div>
                     <div class="d-flex justify-content-between align-items-end mt-75">
@@ -103,11 +116,11 @@
                                         <input type="text" id ="maxLevel" name ="maxLevel" class="d-none" value="{{ $approveValidate[0]->max_level }}">
                                         {{-- <button class="btn btn-danger" type="button" id="cmdDecline" name="cmdDecline">Decline</button> --}}
                                         <button class="btn btn-success" type="button" id="cmdApprove" name="cmdApprove">Approve</button>
-                                        @if( strtoupper($statusPo) == 'NEW' )
+                                        @if( strtoupper($statusTso) == 'NEW' )
                                             <button class="btn btn-primary" type="button" id="cmdUpdate" name="cmdUpdate">Update</button>
                                         @endif
                                     @else
-                                        @if( strtoupper($statusPo) == 'NEW' )
+                                        @if( strtoupper($statusTso) == 'NEW' )
                                             <button class="btn btn-primary" type="button" id="cmdUpdate" name="cmdUpdate">Update</button>
                                         @endif
                                     @endif
@@ -164,6 +177,7 @@
 </style>
 @endsection
 @section('scripts')
+@include('targetSo.listItem')
 @include('targetSo.addArticle')
 <script type="text/javascript">
     const updateBtn = document.querySelector('#cmdUpdate');
