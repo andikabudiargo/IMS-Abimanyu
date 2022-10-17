@@ -271,7 +271,7 @@
                 </li>
             </li>
         @endif
-        @if( count($listPrNotif)>0 )
+        @if( count($listPrNotif) > 0 )
             <li class="dropdown-menu-header">
                 <div class="dropdown-header d-flex">
                     <h4 class="notification-title mb-0 mr-auto">PR needs to be approved </h4>
@@ -310,7 +310,7 @@
                                     <a class="btn btn-outline-info btn-sm" 
                                         id="cmdDetailPr{{ $key }}" 
                                         name="cmdDetailPr{{ $key }}" 
-                                        href="{{ route('purchaseRequests.show', ['id'=>Crypt::encryptString($val->id)]) }}"> 
+                                        href="{{ route('purchaseRequest.show', ['id'=>Crypt::encryptString($val->id)]) }}"> 
                                         <i data-feather='list'></i>
                                         Detail
                                     </a>
@@ -320,7 +320,7 @@
                                         class="btn btn-outline-success btn-sm buttonPr-{{ $val->id }}"
                                         data-id-class = "buttonPr-{{ $val->id }}"
                                         data-doc-number='{{ $val->pr_number }}'
-                                        data-url='{{ route("purchaseRequests.approve", ["prNumber"=>$val->pr_number]) }}'>
+                                        data-url='{{ route("purchaseRequest.approve", ["prNumber"=>$val->pr_number]) }}'>
                                         <i data-feather='check-circle'></i>
                                         Approve
                                     </a>
