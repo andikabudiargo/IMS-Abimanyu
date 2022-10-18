@@ -27,7 +27,7 @@
                                     role="tab" 
                                     aria-selected="false" 
                                     data-ajax-detail="true" 
-                                    data-po-number="{{ $header->po_number }}">{{ $key == 0 ? 'Main':'Revision '.$key }}</a>
+                                    data-po-number="{{ $header->tso_code }}">{{ $key == 0 ? 'Main':'Revision '.$key }}</a>
                                 </li>
                             @endforeach
                         </ul>
@@ -79,14 +79,12 @@
                                             </thead>
                                             <tbody>
                                             @foreach( $details as $key =>$item )
-                                                @if($item->po_number === $header2->po_number )
+                                                @if($item->tso_code === $header2->tso_code )
                                                     <tr>
                                                         <td ></td>
                                                         <td >{{ $item->article }}</td>
                                                         <td class="text-right">{{ number_format($item->qty_target) }} </td>
                                                         <td class="text-right">{{ number_format($item->qty_forcast) }} </td>
-                                                        {{-- <td class="text-right">{{ $item->uom_group =='PIECE' ? number_format($item->qty_target) : number_format($item->qty_target,4) }} {{ $item->uom }}</td>
-                                                        <td class="text-right">{{ $item->uom_group =='PIECE' ? number_format($item->qty_forcast) : number_format($item->qty_forcast,4) }} {{ $item->uom }}</td> --}}
                                                     </tr>
                                                 @endif
                                             @endforeach
@@ -102,10 +100,6 @@
                                     </div>
                                     <br>
                                     <a href="{{ route('targetSo.index') }}" class="btn btn-success">Back</a>
-                                    {{-- <a href="{{ route('targetOrder.print', ['id'=>Crypt::encryptString($header2->id)]) }}" target="_blank" type="button" class="btn btn-primary">
-                                        <i data-feather="printer"></i>
-                                        <span>{{ __("Print") }}</span>
-                                    </a> --}}
                                 </div>
                             @endforeach
                         </div>

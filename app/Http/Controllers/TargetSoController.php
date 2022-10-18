@@ -30,6 +30,7 @@ class TargetSoController extends Controller
         [
             ['data'=>'action','name'=>'action','title'=>'action','orderable'=> false,'searchable'=>false],
             ['data'=>'tso_code','name'=>'tso_code','title'=>'TSO Code'],
+            ['data'=>'num_revision','name'=>'num_revision','title'=>'Revision'],
             ['data'=>'tso_name','name'=>'tso_name','title'=>'Name'],
             ['data'=>'tso_date','name'=>'tso_date','title'=>'Date'],
             ['data'=>'customer','name'=>'customer','title'=>'Customer'],
@@ -222,9 +223,10 @@ class TargetSoController extends Controller
         ->where('origin_tso_code', function($query) use ($id){
             $query->select('tso_code')->from('target_order_hdr')->where('id',$id);
         })
+        ->orderBy('id')
         ->get();
 
-        $tsoCode = $data['headers'][0]->tso_code;
+        $tsoCode = $data['headers'][0]->origin_tso_code;
         $customer = $data['headers'][0]->customer_id;
                 
         $data['details'] = DB::table('target_order_det')
@@ -233,18 +235,21 @@ class TargetSoController extends Controller
         })
         ->leftJoin('article','article.article_code','=','target_order_det.article_code')
         ->leftJoin('uom','uom.code','target_order_det.uom')
-        ->where('target_order_det.tso_code',$tsoCode)
+        // ->where('target_order_det.tso_code',$tsoCode)
         ->select('target_order_det'.'.*'
         ,'uom.uom_group as uom_group'
         ,DB::raw("concat(article.article_alternative_code,'-',article.article_desc) as article"))
         ->orderBy('id')
         ->get();
 
+        // dd($data['details']);
+
+            
         $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode,$tsoCode,$username);
         $data['approveValidate'] = Approval::approveValidate($this->moduleCode,$tsoCode,$username);
                    
-        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'','5'=>'CANCELED'];
-        $statusTso = ['NEW','VALIDATED','APPROVED','','CANCELED'];
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'','5'=>'CANCELED','','7'=>'REVISED'];
+        $statusTso = ['NEW','VALIDATED','APPROVED','','CANCELED','','REVISED'];
         $data['statusTso'] = $statusTso[$data['headers'][0]->status-1];
         
         return view("targetSo.show",$data);        
@@ -575,6 +580,7 @@ class TargetSoController extends Controller
             $searchStatus ? $query->where('target_order_hdr.status',$searchStatus) : '';
             $tsoDate ? $query->whereBetween(DB::raw("to_date(tso_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
         })
+        ->where('status','!=','7')
         ->select('target_order_hdr.*'
         ,'third_party.nama as customer'
         )
@@ -590,7 +596,7 @@ class TargetSoController extends Controller
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
             
             if ( $data->status == '2' or $data->status == '1') {
-                if (Auth::user()->can('purchaseOrder-authorize')) {
+                if (Auth::user()->can('targetSo-authorize')) {
                 $buttons .=         '<a href="'. route('targetSo.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                         <i data-feather="check"></i>
                                         <span>'. __("Approve") .'</span>
@@ -599,7 +605,7 @@ class TargetSoController extends Controller
             }
 
             if ( $data->status == '1' or $data->status == '2' ){
-                if (Auth::user()->can('purchaseOrder-edit')) {
+                if (Auth::user()->can('targetSo-edit')) {
                 $buttons .=         '<a href="'. route('targetSo.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                         <i data-feather="file-text"></i>
                                         <span>'. __("Edit") .'</span>
@@ -607,14 +613,14 @@ class TargetSoController extends Controller
                 }
             }
 
-            // if (($data->status == '2') || ($data->status == '3') ){
-            //     if (Auth::user()->can('purchaseOrder-revision')) {
-            //         $buttons .=         '<a href="'. route('targetSo.revision', ['id'=>Crypt::encryptString($data->id),'nR'=>$data->num_revision]) .'" class="dropdown-item">
-            //                                 <i data-feather="copy"></i>
-            //                                 <span>'. __("Revision") .'</span>
-            //                             </a>';
-            //     }
-            // }
+            if (($data->status == '2') || ($data->status == '3') ){
+                if (Auth::user()->can('targetSo-revision')) {
+                    $buttons .=         '<a href="'. route('targetSo.revision', ['id'=>Crypt::encryptString($data->id),'nR'=>$data->num_revision]) .'" class="dropdown-item">
+                                            <i data-feather="copy"></i>
+                                            <span>'. __("Revision") .'</span>
+                                        </a>';
+                }
+            }
             
             $buttons .=         '<a href="'. route('targetSo.print', ['id'=>Crypt::encryptString($data->id)]) .'" target="_blank" class="dropdown-item">
                                     <i data-feather="printer"></i>
@@ -684,13 +690,13 @@ class TargetSoController extends Controller
         })
         ->addColumn('tso_code', function ($data) {
             $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-danger'];            
-            $statusTso = ['NEW','VALIDATED','APPROVED','','CANCELED'];
-            // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','','5'=>'CANCELED'];
+            // $statusTso = ['NEW','VALIDATED','APPROVED','','CANCELED'];
+            // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','','5'=>'CANCELED',,'7'=>'REVISED'];
             return '<span style="display: none;">'.$data->tso_code.'</span><a class="text-left badge d-block '.$badges[$data->status - 1].'" name="'.$data->tso_code.'" href="'. route('targetSo.show', ['id'=>Crypt::encryptString($data->id)]) .'" ><span>'.$data->tso_code.'</span></a>';
         })
         ->addColumn('status', function ($data) {
             $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-danger'];            
-            $statusTso = ['NEW','VALIDATED','APPROVED','','CANCELED'];
+            $statusTso = ['NEW','VALIDATED','APPROVED','','CANCELED','','REVISED'];
             return "<div class='badge ".$badges[$data->status - 1]."'>".$statusTso[$data->status - 1]."</div>";
         })
         ->rawColumns(['action','status','tso_code'])
@@ -750,117 +756,86 @@ class TargetSoController extends Controller
     public function revision(Request $request){
         $username =  Auth::user()->username;
         $id=Crypt::decryptString($request->id);
-        $poOrigin=DB::table('purchase_order_hdr')->where('id',$id)->value('po_number');
+        $tsoOrigin=DB::table('target_order_hdr')->where('id',$id)->value('tso_code');
         $numRevision = $request->nR ? $request->nR +1 : 1 ;
-        $poNew = $poOrigin.'-R'.$numRevision;
-        $checkNewPo=DB::table('purchase_order_hdr')->where('po_number',$poNew)->count();
+        $tsoNew = $tsoOrigin.'-R'.$numRevision;
+        $checkNewTso=DB::table('target_order_hdr')->where('tso_code',$tsoNew)->count();
 
-        if ($checkNewPo > 0){
-            $poNew = $poOrigin.'-R'.$numRevision+1;
+        if ($checkNewTso > 0){
+            $tsoNew = $tsoOrigin.'-R'.$numRevision+1;
         } 
                 
-        $sqlHdr = "INSERT into purchase_order_hdr 
+        $sqlHdr = "INSERT into target_order_hdr 
         (
+            tso_code,
+            origin_tso_code,
             po_number,
-            origin_po_number,
-            supplier_id,
-            po_date,
-            delivery_date,
-            currency,
-            authorized_by,
-            authorized_at,
-            validate_by,
-            discount,
-            kurs,
-            pkp,
-            ppn,
-            pph22,
-            termin,
-            order_type,
+            tso_name,
+            tso_date,
+            customer_id,
             status,
+            note,
             num_revision,
             revised_by,
             revised_at,
-            note,
             created_by,
             updated_by,
             created_at,
-            updated_at
+            updated_at,
+            pr_number
         )
         select 
-            '$poNew',
-            '$poOrigin',
-            supplier_id,
-            po_date,
-            delivery_date,
-            currency,
-            authorized_by,
-            authorized_at,
-            validate_by,
-            discount,
-            kurs,
-            pkp,
-            ppn,
-            pph22,
-            termin,
-            order_type,
+            '$tsoNew',
+            '$tsoOrigin',
+            po_number,
+            tso_name,
+            tso_date,
+            customer_id,
             '7',
+            note,
             $numRevision,
             '$username',
             '".date('Y-m-d H:i:s')."',
-            note,
             '$username',
             '$username',
             '".date('Y-m-d H:i:s')."',
-            '".date('Y-m-d H:i:s')."'
-        from purchase_order_hdr where po_number = '$poOrigin'";
+            '".date('Y-m-d H:i:s')."',
+            pr_number
+        from target_order_hdr where tso_code = '$tsoOrigin'";
 
-        $sqlDet="INSERT into purchase_order_det
+        $sqlDet="INSERT into target_order_det
         (
+            tso_code,
             po_number,
-            pr_number,
             article_code,
-            qty,
+            qty_target,
+            qty_forcast,
+            qty_actual,
             uom,
-            old_price,
-            price,
-            ppn,
-            pph22,
             created_by,
             updated_by,
             created_at,
             updated_at
         )
-        select '$poNew',
-            pr_number,
+        select '$tsoNew',
+            po_number,
             article_code,
-            qty,
+            qty_target,
+            qty_forcast,
+            qty_actual,
             uom,
-            old_price,
-            price,
-            ppn,
-            pph22,
             '$username',
             '$username',
             '".date('Y-m-d H:i:s')."',
             '".date('Y-m-d H:i:s')."' 
-        from purchase_order_det where po_number = '$poOrigin'";
+        from target_order_det where tso_code = '$tsoOrigin'";
 
         $rowAffected =  DB::select($sqlHdr);
         if ($rowAffected){
             DB::select($sqlDet);
 
-            // status:
-            // 1 = New
-            // 2 = Validated
-            // 3 = Authorized
-            // 4 = Received
-            // 5 = Canceled
-            // 6 = closed
-            // 7 = Revised
-
-            DB::table('purchase_order_hdr')
-            ->where('po_number',$poOrigin)
+            DB::table('target_order_hdr')
+            ->where('tso_code',$tsoOrigin)
             ->update(
                 [
                     'num_revision' => $numRevision,
@@ -873,10 +848,10 @@ class TargetSoController extends Controller
             );
 
             DB::table('approval_history')
-            ->where('module_number',$poOrigin)
+            ->where('module_number',$tsoOrigin)
             ->update(
                 [
-                    'module_number' => $poNew,
+                    'module_number' => $tsoNew,
                     'status' => '0',
                     'updated_by' => Auth::user()->username,
                     'updated_at' => date('Y-m-d H:i:s')
@@ -885,14 +860,13 @@ class TargetSoController extends Controller
             
             $title ="Save $this->title";
             $alert  ="success";
-            $message  = "$title Revison PO: $poOrigin to $poNew is successfully saved";
+            $message  = "$title Revision Tso: $tsoOrigin to $tsoNew is successfully saved";
             \LogActivity::addToLog($title,"username: $username Status $message");
-            // return $this->showEdit(Crypt::encryptString($id));
-            return redirect()->route('targetSo.edit', ['id'=>Crypt::encryptString($data->id)]);
+            return redirect()->route('targetSo.edit', ['id'=>Crypt::encryptString($id)]);
         }else{
             $title ="Save $this->title";
             $alert  ="warning";
-            $message  = "$title Revison PO: $poOrigin to $poNew is failed to save";
+            $message  = "$title Revision Tso: $tsoOrigin to $tsoNew is failed to save";
             \LogActivity::addToLog($title,"username: $username Status $message");
             return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);
         }       
