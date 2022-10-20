@@ -291,11 +291,13 @@ class DependentController extends Controller
             ->leftJoin('article','article.article_code','=',$table.'.article_code')
             ->leftJoin('article_stock','article_stock.article_code','=',$table.'.article_code')
             ->leftJoin('group_materials','group_materials.code','=','article.group_of_material')
+            ->leftJoin('article_supplier','article_supplier.article_code','=','purchase_request_det.article_code')
             ->leftJoin('uom','uom.code','=',$table.'.uom')
             // Permintaan dari bu ifah tidak usah di filter by supplier
             // 11 04 2022 permintaan batal dari bu Yorin, jadi tetap di filter
-            ->where($field,$code)
+            //->where($field,$code)
             // ->where('po_number','=',null)
+            ->where('article_supplier.supplier_code',$code)
             ->where('pr_number','=',$prNumber)
             ->orderBy('article.article_desc')
             ->distinct('article.article_desc')

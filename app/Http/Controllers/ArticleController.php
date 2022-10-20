@@ -475,35 +475,34 @@ class ArticleController extends Controller
                         'brand' => $brand
                     ]
                 );
-
                 
                 $dataset=[];
                 foreach ($cust as $val) {
-                $dataSet[] = [
-                    $artCode.$val
-                ];
-                    
+                    $dataSet[] = [
+                        $artCode.$val
+                    ];
                 }
                     
                 //Delete kalo article tidak ada di po $poNumber dan article nya $val->article_code
                 //berdasarkan 2 kondisi
                 DB::table('article_supplier')
                 ->whereNotIn(DB::raw("CONCAT(article_code,supplier_code)"),$dataSet)
+                ->where('article_code',$artCode)
                 ->delete();
                     
                 foreach($cust as $val){
                     DB::table('article_supplier')
-                        ->updateOrInsert(
-                        ['article_code' => $artCode,'supplier_code' => $val],
-                        [ 
-                            'article_code' => $artCode,
-                            'supplier_code' => $val,
-                            'main_supplier' => $cust[0] == $val ? 'Y' : 'N',
-                            'created_by' => Auth::user()->username,
-                            'updated_by' => Auth::user()->username,
-                            'created_at' => date('Y-m-d H:i:s'),
-                            'updated_at' => date('Y-m-d H:i:s')
-                        ]); 
+                    ->updateOrInsert(
+                    ['article_code' => $artCode,'supplier_code' => $val],
+                    [ 
+                        'article_code' => $artCode,
+                        'supplier_code' => $val,
+                        'main_supplier' => $cust[0] == $val ? 'Y' : 'N',
+                        'created_by' => Auth::user()->username,
+                        'updated_by' => Auth::user()->username,
+                        'created_at' => date('Y-m-d H:i:s'),
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]); 
                 }
 
                 if($fileDihapus){
