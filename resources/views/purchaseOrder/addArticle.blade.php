@@ -739,9 +739,9 @@
         $("#totalQTY").val(humanizeNumber(totalQty));
         $("#totalAmount").val(humanizeNumber(totalAmount));
         $("#totalDiscount").val(humanizeNumber((totalAmount*parseInt(persenDiscount))/100));
-        $("#totalPPN").val(humanizeNumber((parseInt(ppn)*totalAmount)/100));
+        $("#totalPPN").val(humanizeNumber(parseInt((parseInt(ppn)*totalAmount)/100)));
         $("#totalPPH").val(0);
-        $("#totalNetto").val(humanizeNumber((totalAmount+((parseInt(ppn)*totalAmount)/100))-((totalAmount*parseInt(persenDiscount))/100)));
+        $("#totalNetto").val(humanizeNumber(parseInt((totalAmount+((parseInt(ppn)*totalAmount)/100))-((totalAmount*parseInt(persenDiscount))/100))));
 
     }
 

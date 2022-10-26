@@ -333,7 +333,7 @@
     if (updateBtn) {
         updateBtn.addEventListener('click',() =>{
             updateData('update');
-        },{ once:true});
+        });
     }
 
     if (approveBtn) {
