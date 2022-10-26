@@ -279,6 +279,8 @@
                             });
                         }
                     } 
+
+                    console.log(articles);
                 
                     if (qty == 0){
                         pesan +="QTY of items "+ articleName +" cannot be 0 <br>"; 
