@@ -412,7 +412,7 @@
                         return obj.article_code === plu;
                     })[0];
                     if(obj) {
-                        pesan +="Article "+plu+" entered more than once !! <br>"; 
+                        pesan +="Article "+articleName+" entered more than once !! <br>"; 
                         flag=1;
                     } else {
                         if ((plu!=='') && (qty> 0)){

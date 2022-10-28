@@ -141,10 +141,10 @@
                     <div class="d-flex justify-content-between align-items-end mt-75">
                         <div class="col-md-4">
                             <span>ROW : {{ number_format($header->sum_row) }}</span> <br>
-                            <span>QTY(s) : {{ number_format($header->sum_qty,$decimalPlaces) }}</span>
+                            <span>QTY(s) : {{ number_format($header->sum_qty) }}</span>
                         </div>
                         <div class="col-md-4">
-                            <div class="table-responsive">
+                            <div class="table">
                                 <table class="table table-bordered w-100">
                                     <tbody>
                                         <tr>

@@ -19,7 +19,7 @@ class NotificationComposer
         coalesce((select approval_order from approval_level where username = '$username' and module_code = 'SO' limit 1),0) as berhak_approve,
         (select nama from third_party where kode = customer_id) as customer_name
         from sales_order_hdr 
-        --where status <> '3'
+        where status <> '3'
         ) as Oki
         where berhak_approve-1 = sudah_approve");
 

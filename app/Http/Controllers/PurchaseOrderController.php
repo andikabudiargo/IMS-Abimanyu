@@ -232,7 +232,7 @@ class PurchaseOrderController extends Controller
                             'uom' => $val->uom,
                             'old_price' => $val->price,
                             'price' => $val->newPrice,
-                            'ppn' => round(($val->qty*$val->newPrice)*0.11),
+                            'ppn' => round(($val->qty*$val->newPrice)*($ppn/100)),
                             'pph22' => $totalPph,
                             'created_by' => Auth::user()->username,
                             'created_at' => date('Y-m-d H:i:s'),
@@ -711,8 +711,7 @@ class PurchaseOrderController extends Controller
                             'uom' => $val->uom,
                             'old_price' => $val->price,
                             'price' => $val->newPrice,
-                            'ppn' => round(($val->qty*$val->newPrice)*0.11),
-                            // 'ppn' => $totalPpn,
+                            'ppn' => round(($val->qty*$val->newPrice)*($ppn/100)),
                             'pph22' => $totalPph,
                             'updated_by' => Auth::user()->username,
                             'updated_at' => date('Y-m-d H:i:s')

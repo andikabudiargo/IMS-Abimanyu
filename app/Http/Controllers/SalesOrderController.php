@@ -60,7 +60,7 @@ class SalesOrderController extends Controller
 
         $month = date('m');
         $year = date('y');
-        $soNumber="$key/ASN/$month/$year/$newCode";
+        $soNumber="$key/ASN/$year/$month/$newCode";
         
         return $soNumber;
     }
