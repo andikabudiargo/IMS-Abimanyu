@@ -123,8 +123,6 @@
 
     simpanData = (objButton) => {
         $('#'+objButton).attr('disabled','disabled');
-        $('#addNewRow').attr('disabled','disabled');
-        $('#addNewList').attr('disabled','disabled');
         if (!$("#frmAdd")[0].checkValidity()){
             $("#frmAdd").submit();
             $('#'+objButton).removeAttr('disabled');
@@ -213,7 +211,7 @@
                             show_msg(data.title, data.message, data.alert);
                             $('#tsoCode').attr('disabled','disabled');
                             $('#tsoCode').val(data.tsoCode);
-                            // $('#'+objButton).removeAttr('disabled');
+                            $('#'+objButton).removeAttr('disabled');
                             $('#oEdit').val(data.oEdit);
                         }
                     },
@@ -262,7 +260,8 @@
                     } else {
                         // if ((plu!=='') && (qtyTarget > 0) && (qtyForcast > 0)){
                         //if ((plu!=='') && (qtyTarget > 0)){
-                        if ((plu!=='') && (qtyTarget != 0) && (qtyForcast != 0)){
+                            
+                        if ((plu!=='') && (qtyTarget != 0) || (qtyForcast != 0)){
                             articles.push({
                                 "article_code":plu,
                                 "qtyTarget":qtyTarget,
