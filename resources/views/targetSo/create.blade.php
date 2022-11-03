@@ -58,7 +58,7 @@
                     <div class="container-list-item">
                         <div class="lebar-list-item">
                             @include('targetSo.headerColumn')
-                            <div class="" id="article_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;">
+                            <div class="" id="article_row" style="max-height: 30rem;overflow-x: hidden;scrollbar-width: thin;">
                                 <input type="text" id ="last_row_number" class="d-none" value="0">
                             </div>
                         </div>
@@ -110,7 +110,7 @@
                     <hr>
                     <div class="form-row mt-75">
                         <div class="col-md-12">
-                            <button class="btn btn-success" type="reset" id="cmdNew" name="cmdCancel">New</button>
+                            <a href="{{ route('targetSo.index') }}" class="btn btn-warning">Back</a>
                             <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Save</button>
                         </div>
                     </div>

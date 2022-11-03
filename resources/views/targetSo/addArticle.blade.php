@@ -117,12 +117,14 @@
         });
     }
   
-    $("#cmdNew").click(function(){
-        window.location.reload();
-    });
+    // $("#cmdNew").click(function(){
+    //     window.location.reload();
+    // });
 
     simpanData = (objButton) => {
         $('#'+objButton).attr('disabled','disabled');
+        $('#addNewRow').attr('disabled','disabled');
+        $('#addNewList').attr('disabled','disabled');
         if (!$("#frmAdd")[0].checkValidity()){
             $("#frmAdd").submit();
             $('#'+objButton).removeAttr('disabled');
@@ -152,7 +154,8 @@
                         flag=1;
                     } else {
                         // if ((plu!=='') && (qtyTarget > 0) && (qtyForcast > 0)){
-                        if ((plu!=='') && (qtyTarget > 0)){
+                        // if ((plu!=='') && (qtyTarget > 0)){
+                        if ((plu!=='') && (qtyTarget != 0) || (qtyForcast != 0)){
                             articles.push({
                                 "article_code":plu,
                                 "qtyTarget":qtyTarget,
@@ -168,7 +171,8 @@
                     // }
 
                     /* Permintaan dari ASN qty forcast boleh 0*/
-                    if ( qtyTarget == 0 ){
+                    // if ( qtyTarget == 0 ){
+                    if ( qtyTarget == 0 &&  qtyForcast == 0){
                         pesan +="QTY Target of items "+ articleName +" cannot be 0 <br>"; 
                         flag=1;
                     }
@@ -209,7 +213,7 @@
                             show_msg(data.title, data.message, data.alert);
                             $('#tsoCode').attr('disabled','disabled');
                             $('#tsoCode').val(data.tsoCode);
-                            $('#'+objButton).removeAttr('disabled');
+                            // $('#'+objButton).removeAttr('disabled');
                             $('#oEdit').val(data.oEdit);
                         }
                     },
@@ -257,7 +261,8 @@
                         flag=1;
                     } else {
                         // if ((plu!=='') && (qtyTarget > 0) && (qtyForcast > 0)){
-                        if ((plu!=='') && (qtyTarget > 0)){
+                        //if ((plu!=='') && (qtyTarget > 0)){
+                        if ((plu!=='') && (qtyTarget != 0) && (qtyForcast != 0)){
                             articles.push({
                                 "article_code":plu,
                                 "qtyTarget":qtyTarget,
@@ -267,14 +272,16 @@
                         }
                     } 
                     
-                    /* Permintaan dari ASN qty forcast boleh 0*/
+                    /* Permintaan dari ASN qty forcast dan target boleh 0
+                        tapi kalau dua2nya 0 tidak boleh
+                    */
                     // if (qtyTarget == 0 || qtyForcast == 0){
                     //     pesan +="QTY of items "+ articleName +" cannot be 0 <br>"; 
                     //     flag=1;
                     // }
 
-                    if ( qtyTarget == 0 ){
-                        pesan +="QTY Target of items "+ articleName +" cannot be 0 <br>"; 
+                    if ( qtyTarget == 0 &&  qtyForcast == 0){
+                        pesan +="QTY Target/Forcast of items "+ articleName +" cannot be 0 <br>"; 
                         flag=1;
                     }
                 
