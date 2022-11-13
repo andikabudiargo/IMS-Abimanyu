@@ -17,9 +17,17 @@ use AppHelpers;
 
 class AccountPayableController extends Controller
 {
+    private $title;
+    private $moduleCode;
+    public function __construct()
+    {
+        $this->title = "Invoice Supplier";
+        $this->moduleCode = "AP";
+    }
+
     public function index(Request $request)
     {
-        $data['title'] = "List invoice";
+        $data['title'] = "List $this->title";
         
         $data['supps'] = DB::table('third_party')
         ->where ('third_party_type','=','supp')
@@ -111,7 +119,7 @@ class AccountPayableController extends Controller
 
         $data= DB::table("receiving_hdr") 
         ->where("po_number",$poNumber)
-        ->where("status","3")
+        ->where("status","4")
         // ->whereNotIn(DB::raw("rec_number"), function($query) use ($poNumber) {
         //     $query->select(DB::raw("rec_number"))
         //     ->from('ap_invoice') 
@@ -176,8 +184,8 @@ class AccountPayableController extends Controller
 
     public function create(Request $request)
     {
-        $data['title'] = "Create Invoice";
-        $data['subtitle'] = "Create Invoice";
+        $data['title'] = "Create $this->title";
+        $data['subtitle'] = "Create $this->title";
         
         $data['supps'] = DB::table('third_party')
         ->where ('third_party_type','=','supp')

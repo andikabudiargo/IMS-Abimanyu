@@ -100,7 +100,7 @@
                         <input type="text" class="form-control-plaintext text-hitam" id = "article_id" name="article_id[]" data-code="" data-uom=""  data-price="" disabled>
                     </td>
                     <td class="isian disabled" style="width: 5%">
-                        <input type="text" class="form-control-plaintext text-hitam numeral-mask-digit text-right" id = "qty_po" name="qty_po[]" disabled>
+                        <input type="text" class="form-control-plaintext text-hitam text-right" id = "qty_po" name="qty_po[]" disabled>
                     </td>
                     <td class="isian" style="width: 5%">
                         <input type="text" class="form-control-plaintext text-hitam numeral-mask-digit text-right" id = "qty_rec" name="qty_rec[]" maxlength="11">

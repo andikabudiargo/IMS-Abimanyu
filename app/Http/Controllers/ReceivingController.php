@@ -256,6 +256,7 @@ class ReceivingController extends Controller
         ->leftJoin('article','article.article_code','=','receiving_det.article_code')
         ->leftJoin('uom','receiving_det.uom_rec','uom.code')
         ->where('receiving_det.rec_number',$recNumber)
+        ->where('receiving_det.qty','>',0)
         ->orderBy('receiving_det.id')
         // ->select('receiving_det.article_code')
         ->get();       
@@ -1009,6 +1010,7 @@ class ReceivingController extends Controller
             $searchStatus ? $query->where('status',$searchStatus) : '';
             $recDate ? $query->whereBetween(DB::raw("to_date(rec_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
         })
+        ->where('receiving_det.qty','>',0)
         ->select('receiving_det.*'
         ,'receiving_hdr.*'
         ,'article_alternative_code'
@@ -1051,6 +1053,7 @@ class ReceivingController extends Controller
         $data['details']=DB::table('receiving_det')
         ->leftJoin('article','article.article_code','receiving_det.article_code')
         ->where('rec_number',$recNumber)
+        ->where('qty','>',0)
         ->get();
 
         $data['totals']=DB::select("SELECT * from (

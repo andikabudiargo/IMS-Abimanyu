@@ -13,16 +13,36 @@ use DB;
 
 class AccTypeController extends Controller
 {
+    private $title;
+    private $moduleCode;
+    public function __construct()
+    {
+        $this->title = "Account Type";
+        $this->moduleCode = "ATP";
+    }
+
+    public function getTableColoumn(){
+        $kolom=
+        [
+            ['data'=> 'action', 'name'=>'action','title'=>'action', 'orderable'=> false, 'searchable'=> false ],
+            ['data'=> 'code', 'name'=>'code','title'=>'Kode' ],
+            ['data'=> 'name', 'name'=>'name','title'=>'Nama' ],
+            ['data'=> 'description', 'name'=>'description','title'=>'Keterangan' ],
+        ];
+        return json_encode($kolom, true);
+    }
+
     public function index(Request $request)
     {
-        $data['title'] = "Account Type";
+        $data['title'] = $this->title;
+        $data['kolom'] = $this->getTableColoumn();
         return view("accTypes.index",$data);
     }
 
     public function create(Request $request)
     {
-        $data['title'] = "Create Account Type";
-        $data['subtitle'] = "Create New Account Type";
+        $data['title'] = "Create $this->title";
+        $data['subtitle'] = "Create New $this->title";
                         
         return view("accTypes.create",$data);
     }
@@ -88,8 +108,8 @@ class AccTypeController extends Controller
     {
 
         $id=$request->id;
-        $data['title'] = "Edit Account Type";
-        $data['subtitle'] = "Edit Account Type";
+        $data['title'] = "Edit $this->title";
+        $data['subtitle'] = "Edit $this->title";
         $data['types'] = DB::table('acc_types')
         ->where('id',$id)
         ->get()->first();
@@ -196,7 +216,7 @@ class AccTypeController extends Controller
         return Datatables::of($data)
         ->addColumn('action', function ($data) {
             $buttons = '<div class="d-inline-flex">
-                            <a class="pr-1 dropdown-toggle hide-arrow text-primary" data-toggle="dropdown">
+                            <a class="pr-1 dropdown-toggle hide-arrow" data-toggle="dropdown">
                                 <i data-feather="menu"></i>
                             </a>';
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';

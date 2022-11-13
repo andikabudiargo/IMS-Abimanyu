@@ -763,12 +763,22 @@ class ArticleController extends Controller
         return Datatables::of($data)
         ->addColumn('qty', function ($data) {
             // $artilceQty = $data->uom_group =='PIECE' ? number_format($data->article_qty) : number_format($data->article_qty,3);
-            $qty = number_format($data->qty,$this->decimalPlaces);
+            if (fmod($data->qty,1) !== 0.00){
+                $decimal = $this->decimalPlaces;
+            }else{
+                $decimal = 0;
+            }
+            $qty = number_format($data->qty,$decimal);
             return $data->qty < 0 ? "<div class='text-red'>$qty</div>" : "<div class='text-hitam'>$qty</div>";
         })
         ->addColumn('balanceqty', function ($data) {
             // $artilceQty = $data->uom_group =='PIECE' ? number_format($data->article_qty) : number_format($data->article_qty,3);
-            $balanceQty = number_format($data->balanceqty,$this->decimalPlaces);
+            if (fmod($data->balanceqty,1) !== 0.00){
+                $decimal = $this->decimalPlaces;
+            }else{
+                $decimal = 0;
+            }
+            $balanceQty = number_format($data->balanceqty,$decimal);
             return $data->balanceqty < 0 ? "<div class='text-red'>$balanceQty</div>" : "<div class='text-hitam'>$balanceQty</div>";
         })
         ->rawColumns(['qty','balanceqty'])

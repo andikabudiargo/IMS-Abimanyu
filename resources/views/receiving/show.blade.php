@@ -95,13 +95,13 @@
                             <div class="form-group row mb-03">
                                 <label for="totalQTY" class="col-sm-4 col-form-label titik-dua">Total Qty</label>
                                 <div class="col-sm-4">
-                                    <input type="text" class="form-control text-right font-weight-bold" id="totalQTY" disabled />
+                                    <input type="text" class="form-control text-right numeral-mask-digit font-weight-bold" id="totalQTY" disabled />
                                 </div>
                             </div>
                             <div class="form-group row mb-03">
                                 <label for="totalQtyFree" class="col-sm-4 col-form-label titik-dua">Total Qty Free</label>
                                 <div class="col-sm-4">
-                                    <input type="text" class="form-control text-right font-weight-bold" id="totalQtyFree" disabled />
+                                    <input type="text" class="form-control text-right numeral-mask-digit  font-weight-bold" id="totalQtyFree" disabled />
                                 </div>
                             </div>
                             <div class="form-group row mb-03">
@@ -175,8 +175,7 @@
             qtyFree =  detail[i].qty_free;
             uomFree =  detail[i].uom_free;
             add_new_row(article,articleCode,articleDesc,qtyPo,uomGroup,uom,qty,uomQty,qtyFree,uomFree);
-        }
-            
+        }            
     });
 
     recDate = $('#recDate');
@@ -211,11 +210,11 @@
         $('#uomFree'+ cloneCount).attr('disabled','disabled');
         $("#new_row"+ cloneCount).find('#totalQty').attr('id', 'totalQty'+ cloneCount);
         $('#totalQty'+ cloneCount).text(parseFloat(qty)+parseFloat(qtyFree));
-        mask_thousand_digit(numberOfDecimalDigit);
+        // mask_thousand_digit(numberOfDecimalDigit);
         hitungTotal();
         hitungGrandTotalLoad();
 
-        if ( uomGroup === 'PIECE' ){
+        if (qty == Math.floor(qty)){
             $('#qty_rec'+ cloneCount).removeClass("numeral-mask-digit");
             $('#qty_rec'+ cloneCount).addClass("numeral-mask-satuan");
             $('#qty_free'+ cloneCount).removeClass("numeral-mask-digit");
@@ -226,8 +225,22 @@
             $('#qty_rec'+ cloneCount).addClass("numeral-mask-digit");
             $('#qty_free'+ cloneCount).removeClass("numeral-mask-satuan");
             $('#qty_free'+ cloneCount).addClass("numeral-mask-digit");
-            mask_thousand_digit(numberOfDecimalDigit);
+            mask_thousand_digit(numberOfDecimalDigit);    
         }
+       
+        // if ( uomGroup === 'PIECE' ){
+        //     $('#qty_rec'+ cloneCount).removeClass("numeral-mask-digit");
+        //     $('#qty_rec'+ cloneCount).addClass("numeral-mask-satuan");
+        //     $('#qty_free'+ cloneCount).removeClass("numeral-mask-digit");
+        //     $('#qty_free'+ cloneCount).addClass("numeral-mask-satuan");
+        //     mask_thousand_satuan();
+        // }else{
+        //     $('#qty_rec'+ cloneCount).removeClass("numeral-mask-satuan");
+        //     $('#qty_rec'+ cloneCount).addClass("numeral-mask-digit");
+        //     $('#qty_free'+ cloneCount).removeClass("numeral-mask-satuan");
+        //     $('#qty_free'+ cloneCount).addClass("numeral-mask-digit");
+        //     mask_thousand_digit(numberOfDecimalDigit);
+        // }
     }
 
     function listUom(obj,value,uom,uomSelect) {

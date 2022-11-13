@@ -13,16 +13,38 @@ use DB;
 
 class AccountController extends Controller
 {
+
+    private $title;
+    private $moduleCode;
+    public function __construct()
+    {
+        $this->title = "Account";
+        $this->moduleCode = "ACC";
+    }
+
+    public function getTableColoumn(){
+        $kolom=
+        [
+            ['data'=> 'action', 'name'=>'action','title'=>'action', 'orderable'=> false, 'searchable'=> false ],
+            ['data'=> 'account', 'name'=>'account','title'=>'Account' ],
+            ['data'=> 'description', 'name'=>'description','title'=>'Description' ],
+            ['data'=> 'sub_account', 'name'=>'sub_account','title'=>'Sub account' ],
+            ['data'=> 'type', 'name'=>'type','title'=>'account type' ],
+        ];
+        return json_encode($kolom, true);
+    }
+
     public function index(Request $request)
     {
-        $data['title'] = "Account";
+        $data['title'] = $this->title;
+        $data['kolom'] = $this->getTableColoumn();
         return view("accounts.index",$data);
     }
 
     public function create(Request $request)
     {
-        $data['title'] = "Create Account";
-        $data['subtitle'] = "Create New Account";
+        $data['title'] = "Create $this->title";
+        $data['subtitle'] = "Create New $this->title";
                 
         $data['groups'] = DB::table('groups')
         ->where ('status','=',1)
@@ -237,19 +259,20 @@ class AccountController extends Controller
 
         $data=DB::table('accounts')
         ->leftJoin('acc_types', 'acc_types.code', '=', 'accounts.type_code')
-        ->leftJoin('groups', 'groups.code', '=', 'accounts.group_code')
-        ->leftJoin('depts', 'depts.code', '=', 'accounts.dept_code')
+        ->leftJoin('acc_sub', 'acc_sub.sub_code', '=', 'accounts.parent_id')
         ->where('account','ilike','%'.$code.'%')
-        ->where('accounts.description','ilike','%'.$name.'%')  // ilike untuk string to lower
-        ->orderBy('account')->get(['acc_types.name AS type','depts.name AS dept','groups.name AS group', 'accounts.*']);
+        ->where('accounts.description','ilike','%'.$name.'%')  
+        ->select('accounts.*','acc_types.name as type','acc_sub.description as sub_account')
+        ->orderBy('account')->get();
 
         return Datatables::of($data)
         ->addColumn('action', function ($data) {
             $buttons = '<div class="d-inline-flex">
-                            <a class="pr-1 dropdown-toggle hide-arrow text-primary" data-toggle="dropdown">
-                                <i data-feather="menu"></i>
-                            </a>';
+                    <a class="pr-1 dropdown-toggle hide-arrow" data-toggle="dropdown">
+                        <i data-feather="menu"></i>
+                    </a>';
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
+
             if (Auth::user()->can('account-edit')) {
                 $buttons .=         '<a href="'. route('account.edit', ['id'=>$data->id]) .'" class="dropdown-item">
                                         <i data-feather="file-text"></i>

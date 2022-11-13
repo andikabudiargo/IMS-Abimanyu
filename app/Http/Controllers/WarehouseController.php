@@ -88,7 +88,7 @@ class WarehouseController extends Controller
             ['data'=>'movement_date','name'=>'movement_date','title'=>'Date'],
             ['data'=>'movement_type','name'=>'movement_type','title'=>'Type'],
             ['data'=>'movement_transnno','name'=>'movement_transnno','title'=>'Ref'],
-            ['data'=>'movement_price','name'=>'movement_price','title'=>'Price'],
+            // ['data'=>'movement_price','name'=>'movement_price','title'=>'Price'],
             // ['data'=>'movement_min','name'=>'movement_min','title'=>'QTY Min'],
             // ['data'=>'movement_plus','name'=>'movement_plus','title'=>'QTY Plus'],
             ['data'=>'qty','name'=>'qty','title'=>'QTY'],
@@ -1019,15 +1019,6 @@ class WarehouseController extends Controller
             
             if ( $data->status == '2' or $data->status == '1') {
                 // if (Auth::user()->can('purchaseOrder-authorize')) {
-                // $buttons .=         '<a href="'. route('warehouse.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
-                //                         <i data-feather="file-text"></i>
-                //                         <span>'. __("Approve") .'</span>
-                //                     </a>';
-                // }
-            }
-
-            if ( $data->status == '2' or $data->status == '1') {
-                // if (Auth::user()->can('purchaseOrder-authorize')) {
                 $buttons .=         '<a href="'. route('warehouse.posting', ['trNumber'=>$data->tr_number,'trType'=>$data->tr_type]) .'" class="dropdown-item">
                                         <i data-feather="check"></i>
                                         <span>'. __("Posting") .'</span>
@@ -1042,58 +1033,6 @@ class WarehouseController extends Controller
                                         <span>'. __("Edit") .'</span>
                                     </a>';
                 }
-            }
-            // if (($data->status == '2') || ($data->status == '3') ){
-            //     if (Auth::user()->can('purchaseOrder-revision')) {
-            //         $buttons .=         '<a href="'. route('warehouse.revision', ['id'=>Crypt::encryptString($data->id),'nR'=>$data->num_revision]) .'" class="dropdown-item">
-            //                                 <i data-feather="copy"></i>
-            //                                 <span>'. __("Revision") .'</span>
-            //                             </a>';
-            //     }
-            // }
-            
-            // $buttons .=         '<a href="'. route('warehouse.print', ['id'=>Crypt::encryptString($data->id)]) .'" target="_blank" class="dropdown-item">
-            //                         <i data-feather="printer"></i>
-            //                         <span>'. __("Print") .'</span>
-            //                     </a>';
-            
-            // $buttons .=         '<a href="'. route('warehouse.show', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
-            //                         <i data-feather="list"></i>
-            //                         <span>'. __("Detail") .'</span>
-            //                     </a>';
-
-            // if ( $data->status == '1' or $data->status == '2' or $data->status == '3' ){
-            //     if (Auth::user()->can('purchaseOrder-delete')) {
-            //         $buttons .="<a href='javascript:;'
-            //         class='dropdown-item' 
-            //         data-size='sm'
-            //         data-ajax-delete='true'
-            //         data-confirm='Are You Sure want to Close?|This action can not be undone. Do you want to continue?' 
-            //         data-confirm-yes='document.getElementById(\""."delete-form-".$data->id."\").submit();'
-            //         data-modal-id='".$data->id."'
-            //         id='deleteButton'
-            //         data-url='". route('warehouse.clear', ['id'=>Crypt::encryptString($data->id)]) ."'>
-            //         <i data-feather='x' class='feather-14-red'></i>
-            //         <span>". __('Close') ."</span>
-            //         </a>";
-            //     }
-            // }
-
-            if ( $data->status == '1' ){
-                // if (Auth::user()->can('purchaseOrder-delete')) {
-                //     $buttons .=         "<a href='javascript:;'
-                //                         class='dropdown-item' 
-                //                         data-size='sm'
-                //                         data-ajax-delete='true'
-                //                         data-confirm='Are You Sure want to Delete?|This action can not be undone. Do you want to continue?' 
-                //                         data-confirm-yes='document.getElementById(\""."delete-form-".$data->id."\").submit();'
-                //                         data-modal-id='".$data->id."'
-                //                         id='deleteButton'
-                //                         data-url='". route('warehouse.destroy', ['id'=>Crypt::encryptString($data->id)]) ."'>
-                //                         <i data-feather='trash-2' class='feather-14-red'></i>
-                //                         <span>". __('Delete') ."</span>
-                //                     </a>";
-                // }
             }
 
             $buttons .=     '</div>
@@ -1224,7 +1163,12 @@ class WarehouseController extends Controller
         })
         ->addColumn('article_qty', function ($data) {
             // $artilceQty = $data->uom_group =='PIECE' ? number_format($data->article_qty) : number_format($data->article_qty,3);
-            $artilceQty = number_format($data->article_qty,$this->decimalPlaces);
+            if (fmod($data->article_qty,1) !== 0.00){
+                $decimal = $this->decimalPlaces;
+            }else{
+                $decimal = 0;
+            }
+            $artilceQty = number_format($data->article_qty,$decimal);
             return $data->article_qty < 0 ? "<div class='text-red'>$artilceQty</div>" : "<div class='text-hitam'>$artilceQty</div>";
         })
         ->addColumn('status', function ($data) {

@@ -181,7 +181,7 @@
       arrColPrint:[1,2,3,4,5,6,7,8,9,10],
       columnDefs :[
         { width: '5%', targets: 0 },
-        { className: 'text-right','targets': [5,7,8,9]},
+        { className: 'text-right','targets': [6,8,9]},
       ],
       dataSearch:  {
         name:name,
@@ -211,10 +211,10 @@
       tableId:"mdlmovetable",
       route:"{{ route('article.movement') }}",
       kolom:{!! $kolomMovement !!},
-      arrColPrint:[0,1,2,3,4,5,6,7,8],
+      arrColPrint:[0,1,2,3,4,5,6,7],
       columnDefs :[
         { width: '5%', targets: 0 },
-        { className: 'text-right','targets': [5,6,7] },
+        { className: 'text-right','targets': [5,6] },
       ],
       dataSearch:  {
         articleCode:artCode

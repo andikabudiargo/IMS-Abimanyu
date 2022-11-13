@@ -99,6 +99,10 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('accounts/update',['as'=>'account.update','uses'=>'AccountController@update']);
 	Route::post('accounts/delete',['as'=>'account.destroy','uses'=>'AccountController@destroy']);
 
+	Route::get('account/setting/barang',['as'=>'accountSetting.barang','uses'=>'AccountSettingController@barang']);
+	Route::post('account/setting/store',['as'=>'accountSetting.store','uses'=>'AccountSettingController@store']);
+	Route::get('account/setting/mataUang',['as'=>'accountSetting.mataUang','uses'=>'AccountSettingController@mataUang']);
+
 	Route::get('accTypes',['as'=>'accTypes.index','uses'=>'AccTypeController@index','middleware' => ['permission:accType-index']]);
 	Route::get('accTypes/create',['as'=>'accType.create','uses'=>'AccTypeController@create','middleware' => ['permission:accType-create']]);
 	Route::post('accTypes/store',['as'=>'accType.store','uses'=>'AccTypeController@store']);

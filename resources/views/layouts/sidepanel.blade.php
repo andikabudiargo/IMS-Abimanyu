@@ -358,7 +358,7 @@
         <li class=" {{ in_array(\Request::segment(1), ['aps','banks','pettyCash','proforma','bankReceipt','invoice','dnReceipt']) ? 'active' : '' }} nav-item">
           <a class="d-flex align-items-center" href="javascript:void(0);">
             <i data-feather="dollar-sign"></i>
-            <span class="menu-title text-truncate" data-i18n="Form Elements">Finance
+            <span class="menu-title text-truncate" data-i18n="Form Elements">Finance & acc
             </span>
           </a>
           <ul class="menu-content">
@@ -370,7 +370,23 @@
               </a>
             </li>
             @endcan
-            @can('ap-index')
+
+            <li><a class="d-flex align-items-center" href="#"><i data-feather="circle"></i><span class="menu-item text-truncate" data-i18n="Invoice">Invoice</span></a>
+              <ul class="menu-content">
+                @can('ap-index')
+                  <li class="{{ \Request::segment(1) == 'aps'  ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('aps.index') }}"><span class="menu-item text-truncate" data-i18n="Invoice supplier">Invoice Supplier</span></a>
+                  </li>
+                @endcan
+                  <li class="{{ \Request::segment(1) == 'invoice' ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('invoice.index') }}"><span class="menu-item text-truncate" data-i18n="Invoice customer">Invoice Customer</span></a>
+                  </li>
+                @can('ap-proforma-index')
+                  <li class="{{ \Request::segment(1) == 'proforma'  ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('apProforma.index') }}"><span class="menu-item text-truncate" data-i18n="Proforma Invoice">Proforma Invoice</span></a>
+                  </li>
+                @endcan
+              </ul>
+            </li>
+
+            {{-- @can('ap-index')
             <li class="{{ \Request::segment(1) == 'aps'  ? 'active' : '' }}">
               <a class="d-flex align-items-center" href="{{ route('aps.index') }}">
                 <i data-feather="circle"></i>
@@ -383,7 +399,7 @@
                 <i data-feather="circle"></i>
                 <span class="menu-item text-truncate" data-i18n="Input">Invoice Customer</span>
               </a>
-            </li>
+            </li> --}}
             {{-- @can('finance-index')
             <li class="{{ \Request::segment(1) == 'aps'  ? 'active' : '' }}">
               <a class="d-flex align-items-center" href="{{ route('aps.index') }}">
@@ -392,14 +408,14 @@
               </a>
             </li>
             @endcan --}}
-            @can('ap-proforma-index')
+            {{-- @can('ap-proforma-index')
             <li class="{{ \Request::segment(1) == 'proforma'  ? 'active' : '' }}">
               <a class="d-flex align-items-center" href="{{ route('apProforma.index') }}">
                 <i data-feather="circle"></i>
                 <span class="menu-item text-truncate" data-i18n="Input">Proforma Invoice</span>
               </a>
             </li>
-            @endcan
+            @endcan --}}
             @can('finance-index')
             <li class="{{ \Request::segment(1) == 'accountPayable'  ? 'active' : '' }} disabled">
               <a class="d-flex align-items-center" href="{{ route('accTypes.index') }}">
@@ -442,10 +458,10 @@
             @endcan
           </ul>
         </li>
-        <li class=" {{ in_array(\Request::segment(1), ['accounts','groups','accTypes']) ? 'active' : '' }} nav-item">
+        <li class=" {{ in_array(\Request::segment(1), ['accounts','groups','accTypes','account']) ? 'active' : '' }} nav-item">
           <a class="d-flex align-items-center" href="javascript:void(0);">
             <i data-feather="book"></i>
-            <span class="menu-title text-truncate" data-i18n="Form Elements">Accounting
+            <span class="menu-title text-truncate" data-i18n="Form Elements">COA
             </span>
           </a>
           <ul class="menu-content">
@@ -465,14 +481,25 @@
               </a>
             </li>
             @endcan
-            @can('group-index')
+            <li><a class="d-flex align-items-center" href="#"><i data-feather="circle"></i><span class="menu-item text-truncate" data-i18n="Account Setting">Account default</span></a>
+              <ul class="menu-content">
+                {{-- @can('ap-index') --}}
+                
+                  <li class="{{ \Request::is(['account/setting/mataUang'])  ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('accountSetting.mataUang') }}"><span class="menu-item text-truncate" data-i18n="Invoice supplier">Mata uang</span></a>
+                  </li>
+                {{-- @endcan --}}
+                  <li class="{{ \Request::is(['account/setting/barang']) ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('accountSetting.barang') }}"><span class="menu-item text-truncate" data-i18n="Invoice customer">Barang</span></a>
+                  </li>
+              </ul>
+            </li>
+            {{-- @can('group-index')
             <li class="{{ \Request::segment(1) == 'groups'  ? 'active' : '' }}">
               <a class="d-flex align-items-center" href="{{ route('groups.index') }}">
                 <i data-feather="circle"></i>
                 <span class="menu-item text-truncate" data-i18n="Input">Group Account</span>
               </a>
             </li>
-            @endcan
+            @endcan --}}
             @can('jobPosition-index')
             <li class="{{ \Request::segment(1) == 'jobPositionsjjj'  ? 'active' : '' }} disabled">
               <a class="d-flex align-items-center" href="{{ route('jobPositions.index') }}">
