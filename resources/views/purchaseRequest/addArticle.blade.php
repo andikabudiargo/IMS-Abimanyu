@@ -153,7 +153,7 @@
         $('#note'+ cloneCount).val(note);
         // $('#uom'+ cloneCount).text(uom);    
         $('#article_id'+ cloneCount).attr('disabled','disabled');
-        $('#qty_order'+ cloneCount).attr('disabled','disabled');
+        // $('#qty_order'+ cloneCount).attr('disabled','disabled');
         $("#article_id"+cloneCount).select2();
         $('#remove_button').tooltip();
         tombolPanah('qty_order');
@@ -174,7 +174,7 @@
         $('#note'+ cloneCount).val(note);
         $('#uom'+ cloneCount).text(uom);
         $('#article_id'+ cloneCount).attr('disabled','disabled');
-        objPoType.val() ==='tso' ? $('#qty_order'+ cloneCount).attr('disabled','disabled'):'';
+        // objPoType.val() ==='tso' ? $('#qty_order'+ cloneCount).attr('disabled','disabled'):'';
         $("#article_id"+cloneCount).select2();
         $('#remove_button').tooltip();        
         

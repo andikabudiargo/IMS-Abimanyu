@@ -787,31 +787,77 @@ class PurchaseRequestController extends Controller
 
         DB::table('production_detail_temp')->insert($dataSet);
 
+        /*
+            grand_total = qty order = qty_order di kali bom dikurangin stock dan ditambah minimum stock
+        */
+
+        //cara1
         $data=DB::select("SELECT 
         article_code_det as article_code
         ,min_package 
+        ,safety_stock
+        ,qty_stock
         ,sum(qty_order * qty_bom) as total
-        ,ceil(sum(qty_order * qty_bom)/min_package) * min_package as grand_total
-        ,uom_order as uom 
+        ,ceil(((sum(qty_order * qty_bom)-qty_stock)+safety_stock)/min_package) * min_package as grand_total
+        ,uom_order as uom
         from(
         select 
         bom_det.article_code as article_code_det
         ,production_detail_temp.qty as qty_order
         ,production_detail_temp.uom as uom_order
-        ,bom_det.qty * coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = production_detail_temp.uom),1) as qty_bom
+        ,bom_det.qty * coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = article.uom),1) as qty_bom
         ,bom_det.uom as uom_bom
+        ,article.uom as uom_article
+        ,bom_hdr.article_code 
+        ,coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = article.uom),1) as factor_qty
+        ,coalesce((select coalesce(min_package,1) from article where article_code = bom_det.article_code),1) as min_package 
+        ,coalesce(article.safety_stock,0) as safety_stock 
+        ,coalesce((select article_qty from article_stock where site_code = 'HO' and article_code = bom_det.article_code),0) as qty_stock
+        from production_detail_temp
+        left join bom_hdr on bom_hdr.article_code=production_detail_temp.article_code
+        left join bom_det on  bom_det.bom_code = bom_hdr.bom_code
+        left join article on article.article_code = bom_det.article_code
+        where production_detail_temp.code ='$randomCode'
+        and bom_hdr.status = '3'
+        order by bom_det.article_code
+        ) a
+        group by article_code_det,uom_order,min_package,safety_stock,qty_stock
+        having (ceil(((sum(qty_order * qty_bom)-qty_stock)+safety_stock)/min_package) * min_package) > 0
+        order by article_code_det");
+
+        /* cara2
+        $data=DB::select("SELECT 
+        article_code_det as article_code
+        ,factor_qty
+        ,min_package 
+        ,safety_stock
+        ,qty_stock
+        ,sum(qty_order * qty_bom) as total
+        ,ceil(((sum(qty_order * qty_bom)-qty_stock)+safety_stock)/min_package) * min_package as grand_total
+        ,uom_order as uom
+        from(
+        select 
+        bom_det.article_code as article_code_det
+        ,production_detail_temp.qty as qty_order
+        ,production_detail_temp.uom as uom_order
+        ,bom_det.qty * coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = (select uom from article where article_code = bom_det.article_code)),1) as qty_bom
+        ,bom_det.uom as uom_bom
+        --,(select uom from article where article_code = bom_det.article_code) as uom_article
         ,bom_hdr.article_code 
         ,coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = production_detail_temp.uom),1) as factor_qty
-        ,(select coalesce(min_package,1) from article where article_code = bom_det.article_code) as min_package 
+        ,coalesce((select coalesce(min_package,1) from article where article_code = bom_det.article_code),1) as min_package 
+        ,coalesce((select safety_stock from article where article_code = bom_det.article_code),0) as safety_stock 
+        ,coalesce((select article_qty from article_stock where site_code = 'HO' and article_code = bom_det.article_code),0) as qty_stock
         from production_detail_temp
         left join bom_hdr on bom_hdr.article_code=production_detail_temp.article_code
         join bom_det on  bom_det.bom_code = bom_hdr.bom_code
         where production_detail_temp.code ='$randomCode'
         and bom_hdr.status = '3'
         ) a
-        group by article_code_det,uom_order,min_package
+        group by article_code_det,uom_order,min_package,safety_stock,qty_stock,factor_qty
         order by article_code_det
         ");
+        */
 
         // $data=DB::select("SELECT 
         //     article.article_code
