@@ -575,6 +575,22 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('showLogLists', ['as'=>'show.log.lists','uses'=>'LogActivityController@showLogLists']);
 	Route::get('logActivity',['as'=>'log.activity','uses'=>'LogActivityController@index']);
 
+	Route::get('database-backup', function (Request $request) {
+		Artisan::call('database:backup');
+		$alert  = "alert-success";
+        $pesan  = "Cron sudah di jalankan";
+        $request->session()->flash($alert, $pesan);
+		return redirect()->back(); 
+	})->name('database.backup');
+
+	Route::get('git-pull', function (Request $request) {
+		Artisan::call('app:git_pull');
+		$alert  = "alert-success";
+        $pesan  = "Cron sudah di jalankan";
+        $request->session()->flash($alert, $pesan);
+		return redirect()->back(); 
+	})->name('git-pull');
+
 	// clear chace untuk browser
 	Route::get('/clear-cache', function() {
 		Artisan::call('cache:clear');
