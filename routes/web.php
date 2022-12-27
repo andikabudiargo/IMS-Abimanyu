@@ -11,6 +11,7 @@
 |
 */
 
+use Illuminate\Http\Request;
 
 // Route::auth();
 Auth::routes();
