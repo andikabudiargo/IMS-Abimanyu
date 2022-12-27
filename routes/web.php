@@ -585,8 +585,8 @@ Route::group( ['middleware' => ['auth']], function() {
 	})->name('database.backup');
 
 	Route::get('git-pull', function (Request $request) {
-		Artisan::call('app:git_pull');
-		$message  = "Git Pull Success";
+		$message = Artisan::call('app:git_pull');
+		// $message  = "Git Pull Success";
 		\LogActivity::addToLog('Command',"Jobs $message");
 		return redirect()->back()->with('success',$message); 
 	})->name('git.pull');
