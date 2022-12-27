@@ -578,19 +578,18 @@ Route::group( ['middleware' => ['auth']], function() {
 
 	Route::get('database-backup', function (Request $request) {
 		Artisan::call('database:backup');
-		$alert  = "alert-success";
-        $pesan  = "Cron sudah di jalankan";
-        $request->session()->flash($alert, $pesan);
-		return redirect()->back(); 
+		$message  = "Backup Database Success";
+		\LogActivity::addToLog('Command',"Jobs $message");
+		return redirect()->back()->with('success',$message); 
+
 	})->name('database.backup');
 
 	Route::get('git-pull', function (Request $request) {
 		Artisan::call('app:git_pull');
-		$alert  = "alert-success";
-        $pesan  = "Cron sudah di jalankan";
-        $request->session()->flash($alert, $pesan);
-		return redirect()->back(); 
-	})->name('git-pull');
+		$message  = "Git Pull Success";
+		\LogActivity::addToLog('Command',"Jobs $message");
+		return redirect()->back()->with('success',$message); 
+	})->name('git.pull');
 
 	// clear chace untuk browser
 	Route::get('/clear-cache', function() {
