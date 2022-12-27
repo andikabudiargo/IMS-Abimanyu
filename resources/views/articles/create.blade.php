@@ -95,7 +95,7 @@
                             <div class="col-6">
                                 <div class="form-group">
                                     <label for="safetyStock">Safety Stock</label>
-                                    <input type="text" id="safetyStock" name="safetyStock" class="form-control numeral-mask" value="{{ old('safetyStock',0) }}" maxlength="10"/>
+                                    <input type="text" id="safetyStock" name="safetyStock" class="form-control numeral-mask-digit" value="{{ old('safetyStock',0) }}" maxlength="10"/>
                                 </div>
                             </div>
                             <div class="col-6">
@@ -158,6 +158,7 @@
     $(document).ready(function(){    
         validateFormToast("frmAdd");
         mask_thousand();
+        mask_thousand_digit(2);
     });
 
     let availableTags ="{{ $articles }}";
@@ -190,20 +191,8 @@
                     $("#frmAdd").submit();
                 }
             });
-            // Update selector to match your button
-            // this.on('sending', function(file, xhr, formData) {
-            //     // Append all form inputs to the formData Dropzone will POST
-            //     var data = $('#frmAdd').serializeArray();
-            //     $.each(data, function(key, el) {
-            //         // console.log(el.name);
-            //         // console.log(el.value);
-            //         formData.append(el.name, el.value);
-            //     });
-            // });
         },
         success: function( file, response ){
-            // obj = JSON.parse(response);
-            // console.log(response.message); // <---- here is your filename
             jQuery.each( response.files, function( i, val ) {
                 if(!$('#files_'+i).length){
                     $('#fileUpload').append('<input type="text" id="files_'+ i+'" name="files[]" value="'+ val +'">');

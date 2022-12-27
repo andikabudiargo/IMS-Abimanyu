@@ -212,7 +212,6 @@ class ArticleController extends Controller
     public function store(Request $request)
     {
         // Dump, Die, Debug Fungsinya untuk nge-debug hasil dari submit
-        // ddd($request);
         $username =  Auth::user()->username;
         $type = $request->articleType;
         $cust = $request->cust;
