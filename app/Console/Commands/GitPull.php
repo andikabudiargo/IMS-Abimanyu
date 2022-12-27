@@ -5,7 +5,7 @@ namespace App\Console\Commands;
 use Illuminate\Console\Command;
 use Symfony\Component\Process\Process;
 
-class RefreshApp extends Command
+class GitPull extends Command
 {
     protected $signature = 'app:git_pull';
     protected $description = 'Pull files from GIT';
@@ -58,7 +58,7 @@ class RefreshApp extends Command
                 $this->alreadyUpToDate = TRUE;
             } 
         });
-        
+
         return $process->isSuccessful();
     }
 
