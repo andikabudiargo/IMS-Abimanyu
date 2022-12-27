@@ -22,7 +22,7 @@
               </div>
               <div class="form-group col-md-6">
                 <label class="form-label" for="articleCode">Article FG</label>
-                <select class="select2 form-control" id="articleCode" name="articleCode" required>
+                <select class="select2 form-control" id="articleCode" name="articleCode">
                     <option value="">All</option>
                     @foreach($articles as $val)
                         <option value="{{ $val->article_code }}" >{{ $val->article_alternative_code }} - {{ $val->article_desc }}</option>
@@ -31,7 +31,7 @@
               </div>
               <div class="form-group col-md-3">
                 <label class="form-label" for="status">Status</label>
-                <select class="select2 form-control" id="status" name="status" required>
+                <select class="select2 form-control" id="status" name="status">
                     <option value="">All</option>
                     @foreach($status as $key=>$val)
                         <option value="{{ $key }}" >{{ $val }}</option>

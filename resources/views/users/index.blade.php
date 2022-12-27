@@ -16,7 +16,7 @@
               <div class="col-md-4"> 
                 <div class="form-group">
                   <label for="basicInput">Username</label>
-                  <input type="text" class="form-control text-uppercase" id="SearchUser" name="SearchUser" placeholder="" />
+                  <input type="text" class="form-control" id="SearchUser" name="SearchUser" placeholder="" />
                 </div>
               </div>
             </div>

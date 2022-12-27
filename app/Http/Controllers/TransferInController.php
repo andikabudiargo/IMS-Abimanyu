@@ -220,9 +220,10 @@ class TransferInController extends Controller
             ->where('transfer_det.tr_number',$trNumber)
             ->where('transfer_hdr.status','3')
             ->select('transfer_det.*','article.article_type','article.uom as uom_article',
-                DB::RAW("transfer_det.qty*uom_conversion(transfer_det.uom,article.uom) as total_qty")
+                DB::RAW("transfer_det.qty*coalesce(uom_conversion(transfer_det.uom,article.uom),1) as total_qty")
             )
             ->get();
+
 
             foreach($data as $val){
                 //insert article code kalo belum ada di tabel item_stock
