@@ -48,7 +48,7 @@ class GitPull extends Command
 
     private function runPull()
     {
-        $process = new Process(['git','pull','master']);
+        $process = new Process(['git','pull','origin','master']);
         $this->info("Running 'git pull'");
 
         $process->run(function($type, $buffer) {
