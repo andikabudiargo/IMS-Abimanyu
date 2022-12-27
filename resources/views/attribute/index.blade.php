@@ -7,7 +7,7 @@
         <div class="col-md-6">
             <div class="card">
                 <div class="card-header">
-                    <h4 class="card-title">@yield('title') Test</h4>
+                    <h4 class="card-title">@yield('title')</h4>
                 </div>
                 <div class="card-body">
                     <form id="frmAdd" name="frmAdd" action="{{ route('setting.store') }}" method="post" autocomplete="off">
