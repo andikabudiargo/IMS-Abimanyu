@@ -727,7 +727,7 @@ class TargetSoController extends Controller
         ->leftJoin('uom','uom.code','target_order_det.uom')
         ->where(function ($query) use ($searchTso,$searchStatus,$tsoDate,$fromDate,$toDate,$searchCustomer) {
             $searchCustomer ? $query->where('customer_id',$searchCustomer) : '';
-            $searchTso ? $query->where('tso_code','ilike','%'.$searchTso.'%') : '';
+            $searchTso ? $query->where('target_order_det.tso_code','ilike','%'.$searchTso.'%') : '';
             $searchStatus ? $query->where('target_order_hdr.status',$searchStatus) : '';
             $tsoDate ? $query->whereBetween(DB::raw("to_date(tso_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
         })
@@ -737,18 +737,20 @@ class TargetSoController extends Controller
         ,'article.article_desc'
         ,'third_party.nama as customer'
         ,'uom_group'
-        ,DB::raw("case when uom_group = 'PIECE' then TO_CHAR(qty_target,'999,999,999') when uom_group <> 'PIECE' then TO_CHAR(qty_target,'999,999,999.999') end as qty_target")
-        ,DB::raw("case when uom_group = 'PIECE' then TO_CHAR(qty_forcast,'999,999,999') when uom_group <> 'PIECE' then TO_CHAR(qty_forcast,'999,999,999.999') end as qty_forcast")
+        ,'qty_target'
+        ,'qty_forcast'
+        // ,DB::raw("case when uom_group = 'PIECE' then TO_CHAR(qty_target,'999,999,999') when uom_group <> 'PIECE' then TO_CHAR(qty_target,'999,999,999.999') end as qty_target")
+        //,DB::raw("case when uom_group = 'PIECE' then TO_CHAR(qty_forcast,'999,999,999') when uom_group <> 'PIECE' then TO_CHAR(qty_forcast,'999,999,999.999') end as qty_forcast")
         )
         ->orderBy('target_order_det.id')
         ->get(); 
        
         return Datatables::of($data)
-        ->addColumn('status', function ($data) {
-            $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-danger'];            
-            $statusTso = ['NEW','VALIDATED','APPROVED'];
-            return "<div class='badge ".$badges[$data->status - 1]."'>".$statusTso[$data->status - 1]."</div>";
-        })
+        // ->addColumn('status', function ($data) {
+        //     $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-danger'];            
+        //     $statusTso = ['NEW','VALIDATED','APPROVED'];
+        //     return "<div class='badge ".$badges[$data->status - 1]."'>".$statusTso[$data->status - 1]."</div>";
+        // })
         ->rawColumns(['status'])
         ->make(true);
     }
