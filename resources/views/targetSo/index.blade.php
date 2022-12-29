@@ -196,7 +196,7 @@
         tsoDate:tsoDate
       },
       orderColumn:[[ 2, 'asc' ]],
-      excelFileName:'purchase_order'
+      excelFileName:'target_sales_order'
     });
   }
  
