@@ -47,6 +47,7 @@ class TargetSoController extends Controller
             ['data'=>'tso_name','name'=>'tso_name','title'=>'Name'],
             ['data'=>'tso_date','name'=>'tso_date','title'=>'Date'],
             ['data'=>'customer','name'=>'customer','title'=>'Customer'],
+            ['data'=>'article_alternative_code','name'=>'article_alternative_code','title'=>'Article code'],
             ['data'=>'article_desc','name'=>'article_desc','title'=>'Article desc'],
             ['data'=>'qty_target','name'=>'qty_target','title'=>'Qty Target'],
             ['data'=>'qty_forcast','name'=>'qty_forcast','title'=>'Qty Forcast'],
@@ -705,7 +706,6 @@ class TargetSoController extends Controller
 
     public function listDetail(Request $request)
     {
-
         $searchTso = strtolower($request->searchTso);
         $username = Auth::user()->username;
         $searchCustomer = $request->searchCustomer;
