@@ -46,6 +46,7 @@
                                         <option value="A">A</option>
                                         <option value="B">B</option>
                                         <option value="C">C</option>
+                                        <option value="O">OFFLINE</option>
                                     </select>
                                 </div>
                                 <div class="form-group col-md-2">
@@ -55,6 +56,10 @@
                                 <div class="form-group col-md-2">
                                     <label for="workingHour">Working Hour*</label>
                                     <input type="text" id="workingHour" name="workingHour" value="9" class="form-control numeral-mask-satuan text-right" maxlength="2" required />
+                                </div>
+                                <div class="form-group col-md-2">
+                                    <label for="efficiency">Efficiency*</label>
+                                    <input type="text" id="efficiency" name="efficiency" value="95" class="form-control numeral-mask-satuan text-right" maxlength="3" required />
                                 </div>
                             </div>
                             <div class="row">

@@ -132,6 +132,8 @@
     const cmdSort = $('#cmdSort');
     const cmdSave = $('#cmdSave');
     const workHour = $('#workingHour');
+    const efficiency = $('#efficiency');
+    const noEfficiency = $('#noEfficiency');
     const sumWorkHour = $('#sumWorkHour');
     const sumAvailableTime = $('#sumAvailableTime');
     const sumTimeRequired = $('#sumTimeRequired');
@@ -438,6 +440,10 @@
         }
     });
 
+    efficiency.keyup(function(e){
+        sumData();
+    });
+
     hitungWaktu = (s) => {
         let objWaktu = $('#article_row input[name="waktu[]"]');
         let objTag = $('#article_row input[name="tag[]"]');
@@ -463,9 +469,11 @@
 
     sumData = ()=>{
         let objTag = $('#article_row input[name="tag[]"]');
+        let efficiency = $('#efficiency').val() || 1;
         let dataTag = objTag.map(function(){return $(this).val();}).get();
         let sumTag = sumFromArray(dataTag);
-        let timeReq = parseInt((workHour.val())*3600*(95/100)/30);
+        let timeReq = parseInt((workHour.val())*3600*(parseInt(efficiency)/100)/30);
+        noEfficiency.text(efficiency);
         sumWorkHour.text(workHour.val());
         sumTimeRequired.text(timeReq);
         sumAvailableTime.text(sumTag);
@@ -538,6 +546,7 @@
             let sWosGroup = wosGroup.val();
             let sWosTime = wosTime.val();
             let sWorkHour = workHour.val();
+            let sEfficiency = efficiency.val();
             let sNote = note.val();
 
             objArticle.map(function(i) {  
@@ -619,6 +628,7 @@
                         shift:sWosShift,
                         group:sWosGroup,
                         workHour:sWorkHour,
+                        efficiency:sEfficiency,
                         note:sNote
                     },
                     dataType: "json",

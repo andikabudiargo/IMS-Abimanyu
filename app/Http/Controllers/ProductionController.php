@@ -31,6 +31,7 @@ class ProductionController extends Controller
         [
             ['data'=>'action','name'=>'action','title'=>'action','orderable'=> false,'searchable'=>false],
             ['data'=>'prod_code','name'=>'prod_code','title'=>'Prod. Code'],
+            ['data'=>'status','name'=>'status','title'=>'Status'],
             ['data'=>'prod_date','name'=>'prod_date','title'=>'Prod. Date'],
             ['data'=>'wo_code','name'=>'wo_code','title'=>'WOS. Code'],
             ['data'=>'wo_date','name'=>'wo_date','title'=>'WOS. Date'],
@@ -39,7 +40,7 @@ class ProductionController extends Controller
             ['data'=>'prod_group','name'=>'wo_group','title'=>'Group'],
             ['data'=>'start_time','name'=>'start_time','title'=>'Start Time'],
             ['data'=>'working_hour','name'=>'working_hour','title'=>'Working Hour'],
-            ['data'=>'status','name'=>'status','title'=>'Status']
+            ['data'=>'efficiency','name'=>'efficiency','title'=>'Efficiency']
         ];
         return json_encode($kolom, true);
     }
@@ -114,8 +115,10 @@ class ProductionController extends Controller
 
         $data['listWo'] = DB::table('wo_hdr')
         ->where('status','=','3')
-        ->select('wo_hdr.*'
-            ,DB::raw("to_char(wo_date, 'DD-MM-YYYY') as tanggal"))
+        ->whereNotIn('wo_hdr.wo_code', function($query) {
+            $query->select('wo_code')->from('production_hdr')->where('status','<>','5');
+        })
+        ->select('wo_hdr.*',DB::raw("to_char(wo_date, 'DD-MM-YYYY') as tanggal"))
         ->get();
 
         $data['statusPrd'] = 'NEW';
@@ -155,6 +158,7 @@ class ProductionController extends Controller
         $wosNumber = $request->wosNumber;
         $wosTime = $request->wosTime;
         $workHour = $request->workHour;
+        $efficiency = $request->efficiency;
         $note = $request->note;
         $prdDate = date("Y-m-d");
         $status = '1';
@@ -201,6 +205,7 @@ class ProductionController extends Controller
                 prod_group,
                 start_time,
                 working_hour,
+                efficiency,
                 num_revision,
                 status,
                 note,
@@ -218,6 +223,7 @@ class ProductionController extends Controller
                 wo_group,
                 '$wosTime',
                 $workHour,
+                $efficiency,
                 0,
                 '1',
                 note,
@@ -506,23 +512,33 @@ class ProductionController extends Controller
     {
         $id=Crypt::decryptString($request->id);
         $username =  Auth::user()->username;
-        $data['title'] = "Edit $this->title";
-        $data['subtitle'] = "Edit $this->title";
+        $data['title'] = "Detail $this->title";
+        $data['subtitle'] = "Detail $this->title";
 
-        $data['header'] = DB::table('production_hdr')
-        ->where('id',$id)
-        ->get()->first();
+        $data['headers'] = DB::table('production_hdr')
+        ->where('original_prod_code', function($query) use ($id){
+            $query->select('prod_code')->from('production_hdr')->where('id',$id);
+        })
+        ->select('production_hdr.*'
+        ,DB::raw("(working_hour*3600*(efficiency/100))/30 as sum_time_required")
+        ,DB::raw("(select sum(plan_tag) from production_det where prod_code=production_hdr.prod_code) as sum_available_time")
+        )
+        ->orderBy('id')
+        ->get();
 
-        $prdNumber = $data['header']->prod_code;
+        $prdNumber = $data['headers'][0]->prod_code;
 
         $data['details'] = DB::table('production_det')
         ->leftJoin('article','article.article_code','=','production_det.article_code')
-        ->where('prod_code',$prdNumber)
-        ->select('production_det.*'
-        ,DB::RAW("concat(article.article_alternative_code,article.article_desc) as article")
+        ->whereIn('production_det.prod_code', function($query) use ($prdNumber){
+            $query->select('prod_code')->from('production_hdr')->where('original_prod_code',$prdNumber);
+        })
+        ->select('production_det'.'.*'
         ,'article.article_alternative_code'
-        ,'article.article_desc')
-        ->orderBy('id')
+        ,'article.article_desc'
+        ,DB::raw("case when so_code ='other' then production_det.article_code else concat(article.article_alternative_code,' - ',article.article_desc) end as article")
+        )
+        ->orderBy('urutan')
         ->get();
 
         $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode,$prdNumber,$username);
@@ -532,7 +548,7 @@ class ProductionController extends Controller
 
          // $data['status'] = ['1'=>'NEW','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','6'=>'CLOSED'];
         $statusPrd = ['NEW','VALIDATED','APPROVED','POSTED','','CANCELED'];
-        $data['statusPrd'] = $statusPrd[$data['header']->status-1];
+        $data['statusPrd'] = $statusPrd[$data['headers'][0]->status-1];
 
         return view("production.show",$data);
         
@@ -600,6 +616,7 @@ class ProductionController extends Controller
         $wosNumber = $request->wosNumber;
         $wosTime = $request->wosTime;
         $workHour = $request->workHour;
+        $efficiency = $request->efficiency;
         $note = $request->note;
         $prdDate = date("Y-m-d");
         $oEdit = true;
@@ -638,6 +655,7 @@ class ProductionController extends Controller
                     [
                         'start_time' => $wosTime,
                         'working_hour'=> $workHour,
+                        'efficiency' => $efficiency,
                         'note' => $note,
                         'updated_by' => Auth::user()->username,
                         'updated_at' => date('Y-m-d H:i:s')
@@ -771,7 +789,7 @@ class ProductionController extends Controller
                 }
             }
             
-            $buttons .=         '<a href="'. route('production.show', ['id'=>$data->id]) .'" class="dropdown-item">
+            $buttons .=         '<a href="'. route('production.show', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                     <i data-feather="list"></i>
                                     Detail
                                 </a>';

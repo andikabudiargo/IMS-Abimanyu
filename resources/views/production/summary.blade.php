@@ -3,7 +3,7 @@
         <table class="table table-bordered w-100" >
             <tr>
                 <td rowspan="3">Total Tag</td>
-                <td>Waktu tersedia <span id="sumWorkHour"></span> x3600"x95%</td>
+                <td>Waktu tersedia <span id="sumWorkHour"></span> x3600"x<span id="noEfficiency"></span>%</td>
                 <td class="text-right" id="sumTimeRequired"></td>
             </tr>
             <tr>

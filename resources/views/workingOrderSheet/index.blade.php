@@ -141,7 +141,7 @@
       tableId:"detailedTable",
       route:"{{ route('workingOrderSheet.list') }}",
       kolom:{!! $kolom !!},
-      arrColPrint:[1,2,3,4,5,6,7,8],
+      arrColPrint:[1,2,3,4,5,6,7,8,10],
       columnDefs :[
         { width: '5%', targets: 0 },
       ],

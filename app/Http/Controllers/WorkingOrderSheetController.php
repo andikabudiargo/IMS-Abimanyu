@@ -31,13 +31,14 @@ class WorkingOrderSheetController extends Controller
         [
             ['data'=>'action','name'=>'action','title'=>'action','orderable'=> false,'searchable'=>false],
             ['data'=>'wo_code','name'=>'wo_code','title'=>'Wo Code'],
+            ['data'=>'status','name'=>'status','title'=>'Status'],
             ['data'=>'wo_date','name'=>'wo_date','title'=>'Wo Date'],
             ['data'=>'num_revision','name'=>'num_revision','title'=>'Revision'],
             ['data'=>'wo_shift','name'=>'wo_shift','title'=>'Shift'],
             ['data'=>'wo_group','name'=>'wo_group','title'=>'Group'],
             ['data'=>'start_time','name'=>'start_time','title'=>'Start Time'],
             ['data'=>'working_hour','name'=>'working_hour','title'=>'Working Hour'],
-            ['data'=>'status','name'=>'status','title'=>'Status']
+            ['data'=>'efficiency','name'=>'efficiency','title'=>'Efficiency'],
         ];
         return json_encode($kolom, true);
     }
@@ -121,6 +122,7 @@ class WorkingOrderSheetController extends Controller
         $woGroup = $request->group;
         $woTime = $request->wosTime;
         $workHour = $request->workHour;
+        $efficiency = $request->efficiency;
         $note = $request->note;
         $status = '1';
         $oEdit = true;
@@ -165,6 +167,7 @@ class WorkingOrderSheetController extends Controller
                         'wo_group' => $woGroup,
                         'start_time' => $woTime,
                         'working_hour'=> $workHour,
+                        'efficiency' => $efficiency,
                         'num_revision' => 0,
                         'status' => $status,
                         'note' => $note,
@@ -233,7 +236,7 @@ class WorkingOrderSheetController extends Controller
             $query->select('wo_code')->from('wo_hdr')->where('id',$id);
         })
         ->select('wo_hdr.*'
-        ,DB::raw("(working_hour*3600*0.95)/30 as sum_time_required")
+        ,DB::raw("(working_hour*3600*(efficiency/100))/30 as sum_time_required")
         ,DB::raw("(select sum(plan_tag) from wo_det where wo_code=wo_hdr.wo_code) as sum_available_time  ")
         )
         ->orderBy('id')
@@ -249,7 +252,7 @@ class WorkingOrderSheetController extends Controller
         ->select('wo_det'.'.*'
         ,'article.article_alternative_code'
         ,'article.article_desc'
-        ,DB::raw("case when so_code ='other' then wo_det.article_code else concat(article.article_alternative_code,'-',article.article_desc) end as article")
+        ,DB::raw("case when so_code ='other' then wo_det.article_code else concat(article.article_alternative_code,' - ',article.article_desc) end as article")
         )
         ->orderBy('urutan')
         ->get();
@@ -312,6 +315,7 @@ class WorkingOrderSheetController extends Controller
         $woGroup = $request->group;
         $woTime = $request->wosTime;
         $workHour = $request->workHour;
+        $efficiency = $request->efficiency;
         $note = $request->note;
         $oEdit = true;
         $woNumber = $request->wosNumber;
@@ -357,6 +361,7 @@ class WorkingOrderSheetController extends Controller
                             'wo_group' => $woGroup,
                             'start_time' => $woTime,
                             'working_hour'=> $workHour,
+                            'efficiency' => $efficiency,
                             'note' => $note,
                             'updated_by' => Auth::user()->username,
                             'updated_at' => date('Y-m-d H:i:s')
@@ -459,6 +464,7 @@ class WorkingOrderSheetController extends Controller
             wo_group,
             start_time,
             working_hour,
+            efficiency,
             num_revision,
             status,
             note,
@@ -475,6 +481,7 @@ class WorkingOrderSheetController extends Controller
             wo_group,
             start_time,
             working_hour,
+            efficiency,
             $numRevision,
             '7',
             note,

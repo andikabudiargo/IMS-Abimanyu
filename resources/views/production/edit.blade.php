@@ -65,6 +65,10 @@
                                     <label for="workingHour">Working Hour*</label>
                                     <input type="text" id="workingHour" name="workingHour" value="{{ $header->working_hour }}" class="form-control numeral-mask-satuan text-right" maxlength="2" required />
                                 </div>
+                                <div class="form-group col-md-2">
+                                    <label for="efficiency">Efficiency*</label>
+                                    <input type="text" id="efficiency" name="efficiency" value="{{ $header->efficiency ? $header->efficiency : '95' }}" class="form-control numeral-mask-satuan text-right" maxlength="3" required />
+                                </div>
                             </div>
                             <div class="row">
                                 <div class="form-group col-md-8">
@@ -212,6 +216,7 @@
     const dGroup=$('#group');
     const dWosTime=$('#wosTime');
     const dWorkingHour=$('#workingHour');
+    const dEfficiency=$('#efficiency');
     const dNote=$('#note');
     const approveBtn = document.querySelector('#cmdApprove');
 

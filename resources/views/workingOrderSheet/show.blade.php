@@ -64,12 +64,16 @@
                                                 </select>
                                             </div>
                                             <div class="form-group col-md-2">
-                                                <label for="wosTime">Start Time*</label>
+                                                <label for="wosTime">Start Time</label>
                                                 <input type="text" id="wosTime" name="wosTime" value="{{ $header2->start_time  }}" class="form-control"  placeholder="HH:MM" disabled />
                                             </div>
                                             <div class="form-group col-md-2">
-                                                <label for="workingHour">Working Hour*</label>
-                                                <input type="text" id="workingHour" name="workingHour" value="{{ $header2->working_hour  }}" class="form-control numeral-mask-satuan text-right" maxlength="2" disabled />
+                                                <label for="workingHour">Working Hour</label>
+                                                <input type="text" id="workingHour" name="workingHour" value="{{ $header2->working_hour  }}" class="form-control numeral-mask-satuan text-right" disabled />
+                                            </div>
+                                            <div class="form-group col-md-2">
+                                                <label for="efficiency">Efficiency</label>
+                                                <input type="text" id="efficiency" name="efficiency" value="{{ $header->efficiency }}" class="form-control numeral-mask-satuan text-right" disabled />
                                             </div>
                                         </div>
                                         <div class="row">

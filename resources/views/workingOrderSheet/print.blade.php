@@ -193,10 +193,10 @@
         <tr>
             <td rowspan="2" colspan="3">Total tag</td>
             <td >{{ $header->working_hour }}</td>
-            <td >x 3600" x 95% = </td>
+            <td >x 3600" x {{ $header->efficiency }}% = </td>
             <td colspan="2"></td>
             <td >Waktu tersedia</td>
-            <td colspan="6">{{ ($header->working_hour*3600*0.95)/30 }}</td>
+            <td colspan="6">{{ ($header->working_hour*3600*($header->efficiency/100))/30 }}</td>
             <td rowspan="2">Note: OT loading semua setingan WOS</td>
         </tr>
         <tr>

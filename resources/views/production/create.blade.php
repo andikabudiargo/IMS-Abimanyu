@@ -37,6 +37,7 @@
                                                 data-date="{{ $val->tanggal }}"
                                                 data-start-time="{{ $val->start_time }}"
                                                 data-working-hour="{{ $val->working_hour }}"
+                                                data-efficiency="{{ $val->efficiency }}"
                                                 data-note="{{ $val->note }}"
                                                 >{{$val->wo_code}}</option>
                                         @endforeach
@@ -63,6 +64,10 @@
                                 <div class="form-group col-md-2">
                                     <label for="workingHour">Working Hour*</label>
                                     <input type="text" id="workingHour" name="workingHour" class="form-control numeral-mask-satuan text-right" maxlength="2" required />
+                                </div>
+                                <div class="form-group col-md-2">
+                                    <label for="efficiency">Efficiency*</label>
+                                    <input type="text" id="efficiency" name="efficiency" value="95" class="form-control numeral-mask-satuan text-right" maxlength="3" required />
                                 </div>
                             </div>
                             <div class="row">
@@ -91,15 +96,6 @@
                                 <input type="text" id ="last_row_number" class="d-none" value="0">
                             </div>
                         </div>
-                    </div>
-                    <div class="d-flex justify-content-start align-items-end mt-75">
-                        {{-- <button class="btn btn-primary btn-prev" type="button" id="addNewRow" onclick="add_new_row();">
-                            <i data-feather="plus" class="align-middle mr-sm-25 mr-0"></i>
-                            <span class="align-middle d-sm-inline-block d-none">Add Article</span>
-                        </button> --}}
-                        {{-- <button class="btn btn-primary btn-prev ml-1" type="button" id="prosesWO" onclick="prosesWO();">
-                            <span class="align-middle d-sm-inline-block d-none">Proses</span>
-                        </button> --}}
                     </div>
                     @include('production.summary')
                     <hr>
@@ -159,13 +155,14 @@
 @section('scripts')
 @include('production.addArticle')
 <script type="text/javascript">
-    
+
     const dWosNumber=$('#wosNumber');
     const dWosDate=$('#wosDate');
     const dShift=$('#shift');
     const dGroup=$('#group');
     const dWosTime=$('#wosTime');
     const dWorkingHour=$('#workingHour');
+    const dEfficiency=$('#efficiency');
     const dNote=$('#note');
     $(document).ready(function(){           
         validateFormToast("frmAdd");
@@ -178,7 +175,9 @@
         dGroup.val($(this).find(":selected").data("group"));
         dWosTime.val($(this).find(":selected").data("start-time"));
         dWorkingHour.val($(this).find(":selected").data("working-hour"));
+        dEfficiency.val($(this).find(":selected").data("efficiency"));
         dNote.val($(this).find(":selected").data("note"));
+        sumData();
 
         $.ajax({
             url:"{{ route('production.wos.detail') }}",
