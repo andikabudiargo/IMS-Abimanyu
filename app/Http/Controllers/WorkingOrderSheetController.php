@@ -55,6 +55,7 @@ class WorkingOrderSheetController extends Controller
             ['data'=>'wo_group','name'=>'wo_group','title'=>'Group'],
             ['data'=>'start_time','name'=>'start_time','title'=>'Start Time'],
             ['data'=>'working_hour','name'=>'working_hour','title'=>'Working Hour'],
+            ['data'=>'efficiency','name'=>'efficiency','title'=>'Efficiency'],
             ['data'=>'so_qty','name'=>'so_qty','title'=>'So Qty'],
             ['data'=>'article_fg','name'=>'article_fg','title'=>'Article FG'],
             ['data'=>'article_fg_desc','name'=>'article_fg_desc','title'=>'Desc'],

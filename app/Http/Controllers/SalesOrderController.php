@@ -656,13 +656,10 @@ class SalesOrderController extends Controller
         $searchStatus = $request->searchStatus;
         $orderDate = $request->orderDate;
         $fromDate = "";
+        $toDate = "";
 
         if ($orderDate){
             $date = explode("to",$orderDate);
-            // $date1=trim($date[0]);
-            // $date2=trim($date[1]);
-            // $fromDate = date($date1);
-            // $toDate = date($date2);
             $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
             $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
         }      
@@ -670,7 +667,7 @@ class SalesOrderController extends Controller
         $data=DB::table('sales_order_hdr')
         ->select('sales_order_hdr.*','third_party.nama as cust_name')
         ->leftJoin('third_party', 'third_party.kode', '=', 'sales_order_hdr.customer_id')
-        ->where(function ($query) use ($seachPo,$searchOrder,$searchCustomer,$searchSalesman,$searchType,$searchStatus,$fromDate) {
+        ->where(function ($query) use ($seachPo,$searchOrder,$searchCustomer,$searchSalesman,$searchType,$searchStatus,$fromDate,$toDate) {
             $seachPo ? $query->where('po_number','ilike','%'.$seachPo.'%') :'';
             $searchOrder ? $query->where('so_code','ilike','%'.$searchOrder.'%') :'';
             $searchCustomer ? $query->where('customer_id',$searchCustomer) :'';
