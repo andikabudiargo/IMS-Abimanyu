@@ -83,7 +83,6 @@ class ProductionController extends Controller
         $data['kolomDetail'] = $this->getTableColoumnDetail();
 
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','6'=>'CLOSED','7'='REVISED'];
-    
         $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED'];
             
         return view("production.index",$data);
@@ -726,18 +725,45 @@ class ProductionController extends Controller
     {
         $searchPrd = strtolower($request->searchPrd);
         $searchWos = strtolower($request->searchWos);
+        $prdDate = $request->prdDate;
+        $wosDate = $request->wosDate;
+        $searchStatus = $request->searchStatus;
 
-        // searchPrd:searchPrd,
-        // prdDate:prdDate,
-        // searchWos:searchWos,
-        // wosDate:wosdate,
-        // searchStatus:searchStatus
+        $fromDate ="";
+        $toDate = "";
+
+        $fromDate1 ="";
+        $toDate1 = "";
+
+        if ($wosDate){
+            $date = explode("to",$wosDate);
+            if(count($date)>1){
+                $fromDate = implode("-", array_reverse(explode("-", trim($date[0]))));
+                $toDate = implode("-", array_reverse(explode("-", trim($date[1]))));
+            }else{
+                $fromDate = implode("-", array_reverse(explode("-", trim($date[0]))));
+                $toDate = $fromDate; 
+            }
+        }
+
+        if ($prdDate){
+            $date1 = explode("to",$prdDate);
+            if(count($date1)>1){
+                $fromDate1 = implode("-", array_reverse(explode("-", trim($date1[0]))));
+                $toDate1 = implode("-", array_reverse(explode("-", trim($date1[1]))));
+            }else{
+                $fromDate1 = implode("-", array_reverse(explode("-", trim($date1[0]))));
+                $toDate1 = $fromDate1; 
+            }
+        }
 
         $data = DB::table('production_hdr')
         ->leftJoin('wo_hdr','wo_hdr.wo_code','production_hdr.wo_code')
-        ->where(function ($query) use ($searchPrd,$searchWos) {
+        ->where(function ($query) use ($searchPrd,$searchWos,$wosDate,$prdDate,$fromDate,$fromDate1,$toDate,$toDate1) {
             $searchPrd ? $query->where('prod_code','ilike','%'.$searchPrd.'%') : '';
-            $searchPrd ? $query->where('wo_code','ilike','%'.$searchWos.'%') : '';
+            $searchWos ? $query->where('wo_code','ilike','%'.$searchWos.'%') : '';
+            $wosDate ? $query->whereBetween(DB::raw("wo_date"), [$fromDate, $toDate]) : '';
+            $prdDate ? $query->whereBetween(DB::raw("prod_date"), [$fromDate1, $toDate1]) : '';
         })
         ->where('production_hdr.status','<>', '7')
         ->select('production_hdr.*','wo_hdr.wo_date')

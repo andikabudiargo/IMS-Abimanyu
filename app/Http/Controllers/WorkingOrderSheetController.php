@@ -599,20 +599,29 @@ class WorkingOrderSheetController extends Controller
         $username = Auth::user()->username;
         $searchWos = strtolower($request->searchWos);
         $searchStatus = $request->searchStatus;
-        $wosDate = $request->wosdate;        
+        $wosDate = $request->wosDate;        
         $fromDate ="";
         $toDate = "";
+        
         if ($wosDate){
             $date = explode("to",$wosDate);
-            $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
-            $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
+            if(count($date)>1){
+                $fromDate = implode("-", array_reverse(explode("-", trim($date[0]))));
+                $toDate = implode("-", array_reverse(explode("-", trim($date[1]))));
+            }else{
+                $fromDate = implode("-", array_reverse(explode("-", trim($date[0]))));
+                $toDate = $fromDate; 
+            }
+
+            // $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+            // $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
         }
         
         $data = DB::table('wo_hdr')
         ->where(function ($query) use ($searchWos,$searchStatus,$wosDate,$fromDate,$toDate) {
             $searchWos ? $query->where('wo_code','ilike','%'.$searchWos.'%') : '';
             $searchStatus ? $query->where('wo_hdr.status','=',$searchStatus) : '';
-            $wosDate ? $query->whereBetween(DB::raw("to_date(wo_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
+            $wosDate ? $query->whereBetween(DB::raw("wo_date"), [$fromDate, $toDate]) : '';
         })
         ->where('status','<>','7')
         ->orderBy('wo_code')
@@ -711,8 +720,13 @@ class WorkingOrderSheetController extends Controller
         $toDate = "";
         if ($wosDate){
             $date = explode("to",$wosDate);
-            $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
-            $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
+            if(count($date)>1){
+                $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+                $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
+            }else{
+                $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+                $toDate = $fromDate; 
+            }
         }
         
         $data = DB::table('wo_det')

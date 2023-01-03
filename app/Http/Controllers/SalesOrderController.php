@@ -660,8 +660,13 @@ class SalesOrderController extends Controller
 
         if ($orderDate){
             $date = explode("to",$orderDate);
-            $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
-            $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
+            if(count($date)>1){
+                $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+                $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
+            }else{
+                $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+                $toDate = $fromDate; 
+            }
         }      
 
         $data=DB::table('sales_order_hdr')
@@ -674,7 +679,7 @@ class SalesOrderController extends Controller
             $searchSalesman ? $query->where('salesman_code',$searchSalesman) :'';
             $searchType ? $query->where('order_type',$searchType) :'';
             $searchStatus ? $query->where('status',$searchStatus) :'';
-            $fromDate ? $query->whereBetween('sales_order_hdr.created_at', [$fromDate, $toDate]):'';
+            $fromDate ? $query->whereBetween(DB::raw("to_date(so_date,'DD-MM-YYYY')"), [$fromDate, $toDate]):'';
         })->get();
 
         return Datatables::of($data)

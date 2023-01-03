@@ -723,8 +723,16 @@ class TransferInController extends Controller
         $toDate = "";
         if ($trDate){
             $date = explode("to",$trDate);
-            $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
-            $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
+            if(count($date)>1){
+                $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+                $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
+            }else{
+                $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+                $toDate = $fromDate; 
+            }
+
+            // $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+            // $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
         }
 
         $data = DB::table('transfer_hdr')
@@ -871,8 +879,16 @@ class TransferInController extends Controller
         
         if ($trDate){
             $date = explode("to",$trDate);
-            $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
-            $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
+            if(count($date)>1){
+                $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+                $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
+            }else{
+                $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+                $toDate = $fromDate; 
+            }
+
+            // $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+            // $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
         }
 
         $data = DB::table('transfer_det')

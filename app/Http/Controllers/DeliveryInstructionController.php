@@ -913,8 +913,15 @@ class DeliveryInstructionController extends Controller
         $toDate = "";
         if ($deliveryDate){
             $date = explode("to",$deliveryDate);
-            $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
-            $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
+            if(count($date)>1){
+                $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+                $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
+            }else{
+                $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+                $toDate = $fromDate; 
+            }
+            // $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+            // $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
         }
        
         $data = DB::table('delivery_instruction_hdr')

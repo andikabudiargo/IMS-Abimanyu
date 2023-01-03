@@ -569,8 +569,16 @@ class TargetSoController extends Controller
         $toDate = "";
         if ($tsoDate){
             $date = explode("to",$tsoDate);
-            $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
-            $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
+            if(count($date)>1){
+                $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+                $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
+            }else{
+                $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+                $toDate = $fromDate; 
+            }
+
+            // $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+            // $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
         }
 
         $data = DB::table('target_order_hdr')
@@ -716,8 +724,16 @@ class TargetSoController extends Controller
         
         if ($tsoDate){
             $date = explode("to",$tsoDate);
-            $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
-            $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
+            if(count($date)>1){
+                $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+                $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
+            }else{
+                $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+                $toDate = $fromDate; 
+            }
+
+            // $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+            // $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
         }
 
         $data = DB::table('target_order_det')

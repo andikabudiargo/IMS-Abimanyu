@@ -30,7 +30,7 @@
               </div>
               <div class="col-md-3 form-group">
                 <label for="wosDate">Wos Date</label>
-                <input type="text" id="wosDate" name="wosDate" class="form-control flatpickr-range" placeholder="YYYY-MM-DD to YYYY-MM-DD" />
+                <input type="text" id="wosDate" name="wosDate" class="form-control flatpickr-range-1" placeholder="YYYY-MM-DD to YYYY-MM-DD" />
               </div>
               <div class="form-group col-md-3"> 
                 <label class="form-label" for="searchStatus">Status</label>
@@ -99,6 +99,7 @@
   let search = document.querySelector('#btnSearch');
   let refresh = document.querySelector('a[data-action="reload"]');
   let rangePickr = document.querySelector('.flatpickr-range');
+  let rangePickr1 = document.querySelector('.flatpickr-range-1');
   let btnSummary = document.querySelector('#btnSummary');
   let btnDetail = document.querySelector('#btnDetail');
 
@@ -108,6 +109,13 @@
   });
 
   initDatePicker(rangePickr,{
+    minDate: "01/01/2010",
+    maxDate: "31/12/2030",
+    dateFormat: "d-m-Y",
+    mode: "range"
+  });
+
+  initDatePicker(rangePickr1,{
     minDate: "01/01/2010",
     maxDate: "31/12/2030",
     dateFormat: "d-m-Y",
@@ -124,19 +132,19 @@
   search.addEventListener("click", function(){ 
     btnDetail.style.display = "block";
     btnSummary.style.display = "none";
-    showList(searchPrd.value,prdDate.val,searchWos.value,wosDate.value,searchStatus.value);
+    showList(searchPrd.value,prdDate.value,searchWos.value,wosDate.value,searchStatus.value);
   });
 
   btnSummary.addEventListener("click", function(){
     btnSummary.style.display = "none";
     btnDetail.style.display = "block";
-    showList(searchPrd.value,prdDate.val,searchWos.value,wosDate.value,searchStatus.value);
+    showList(searchPrd.value,prdDate.value,searchWos.value,wosDate.value,searchStatus.value);
   });
   
   btnDetail.addEventListener("click", function(){
     btnSummary.style.display = "block";
     btnDetail.style.display = "none";
-    showList(searchPrd.value,prdDate.val,searchWos.value,wosDate.value,searchStatus.value);
+    showList(searchPrd.value,prdDate.value,searchWos.value,wosDate.value,searchStatus.value);
   });
 
   const showList = (searchPrd,prdDate,searchWos,wosdate,searchStatus) => {
@@ -180,7 +188,7 @@
       arrColPrint:[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19],
       dataSearch:  {
         searchPrd:searchPrd,
-        prdDate:prdDate,
+        prdDate:prddate,
         searchWos:searchWos,
         wosDate:wosdate,
         searchStatus:searchStatus

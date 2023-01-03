@@ -96,10 +96,26 @@ class DeliveryPlanController extends Controller
         
         if ($soDate){
             $date = explode("to",$soDate);
-            $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
-            $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
-            $fromDate1 = implode("-", array_reverse(explode("-", trim($date[0]))));
-            $toDate1 = implode("-", array_reverse(explode("-", trim($date[1]))));
+            if(count($date)>1){
+                $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+                $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
+            }else{
+                $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+                $toDate = $fromDate; 
+            }
+            // $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+            // $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
+            
+            if(count($date)>1){
+                $fromDate1 = implode("/", array_reverse(explode("-", trim($date[0]))));
+                $toDate1 = implode("/", array_reverse(explode("-", trim($date[1]))));
+            }else{
+                $fromDate1 = implode("/", array_reverse(explode("-", trim($date[0]))));
+                $toDate1 = $fromDate1; 
+            }
+            
+            // $fromDate1 = implode("-", array_reverse(explode("-", trim($date[0]))));
+            // $toDate1 = implode("-", array_reverse(explode("-", trim($date[1]))));
         }     
 
         // $fromDate = '2021-06-01';
