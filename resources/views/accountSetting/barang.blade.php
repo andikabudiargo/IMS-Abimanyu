@@ -19,8 +19,8 @@
                                             <select class="select2 form-control" id="{{ $valDefault->code }}" name="{{ $valDefault->code }}">
                                                 <option value=""></option>
                                                 @foreach($accounts as $val)
-                                                    <option value="{{$val->account}}" {{ $val->account == $valDefault->account ? "selected" : "" }}>
-                                                        {{$val->account}} - {{$val->description}}
+                                                    <option value="{{ $val->code }}" {{ $val->code == $valDefault->account ? "selected" : "" }}>
+                                                        {{ $val->code }} - {{ $val->name }}
                                                     </option>
                                                 @endforeach
                                             </select>

@@ -24,9 +24,14 @@ class AccountSettingController extends Controller
     public function barang(Request $request)
     {
         $data['title'] = "$this->title barang";
-        $data['accounts'] = DB::table('accounts')
-        ->orderBy('account')
-        ->orderBy('description')
+        // $data['accounts'] = DB::table('accounts')
+        // ->orderBy('account')
+        // ->orderBy('description')
+        // ->get();
+
+        $data['accounts'] = DB::table('acc_types')
+        ->orderBy('code')
+        ->orderBy('name')
         ->get();
 
         $data['accDefaults'] = DB::table('acc_default')
@@ -42,9 +47,14 @@ class AccountSettingController extends Controller
     {
         $data['title'] = "$this->title mata uang";
         
-        $data['accounts'] = DB::table('accounts')
-        ->orderBy('account')
-        ->orderBy('description')
+        // $data['accounts'] = DB::table('accounts')
+        // ->orderBy('account')
+        // ->orderBy('description')
+        // ->get();
+
+        $data['accounts'] = DB::table('acc_types')
+        ->orderBy('code')
+        ->orderBy('name')
         ->get();
 
         $data['accDefaults'] = DB::table('acc_default')
