@@ -267,9 +267,9 @@ class BomController extends Controller
         $bomNumber =  $data['headers'][0]->bom_code;
 
         $data['details'] = DB::table('bom_det')
-        // ->whereIn('bom_det.bom_code', function($query) use ($bomNumber){
-        //     $query->select('bom_code')->from('bom_hdr')->where('bom_code',$bomNumber);
-        // })
+        ->whereIn('bom_det.bom_code', function($query) use ($bomNumber){
+            $query->select('bom_code')->from('bom_hdr')->where('origin_bom_code',$bomNumber);
+        })
         ->leftJoin('article','article.article_code','=','bom_det.article_code')
         ->leftJoin('uom','uom.code','bom_det.uom')
         ->leftJoin('article_types','article_types.code','=','bom_det.article_type')
@@ -280,7 +280,7 @@ class BomController extends Controller
         ,DB::RAW("(select uom_conversion(bom_det.uom_con,article.uom) as factor_qty)")
         ,DB::raw("concat(article.article_alternative_code,'-',article.article_desc) as article")
         )
-        ->where('bom_det.bom_code',$bomNumber)
+        // ->where('bom_det.bom_code',$bomNumber)
         ->orderBy('bom_det.id')
         ->get();
 
@@ -834,7 +834,8 @@ class BomController extends Controller
             created_by,
             updated_by,
             created_at,
-            updated_at 
+            updated_at,
+            uom_con 
         )
         select 
             '$bomNew',
@@ -849,8 +850,9 @@ class BomController extends Controller
             '$username',
             '$username',
             '".date('Y-m-d H:i:s')."',
-            '".date('Y-m-d H:i:s')."' 
-        from bom_det where bom_code = '$bomOrigin'";
+            '".date('Y-m-d H:i:s')."',
+            uom_con
+        from bom_det where bom_code = '$bomOrigin' order by id";
 
         $rowAffected =  DB::select($sqlHdr);
         if ($rowAffected){

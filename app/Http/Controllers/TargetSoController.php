@@ -782,6 +782,11 @@ class TargetSoController extends Controller
         if ($checkNewTso > 0){
             $tsoNew = $tsoOrigin.'-R'.$numRevision+1;
         } 
+
+        /*
+            pada saat revisi kalo sudah jadi PR, PR nya juga di revisi
+            Kalau  PR nya sudah jadi PO, PO nya juga di Revisi
+        */
                 
         $sqlHdr = "INSERT into target_order_hdr 
         (
