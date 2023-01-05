@@ -282,6 +282,7 @@
                 if ($this.val()){
                     let articleName=$this.select2('data')[0].text;
                     let plu=$this.val();
+                    console.log(plu);
                     let uom=objUom.eq(i).val();
                     let uomCon=objUomCon.eq(i).val();
                     let detail = $this.find(":selected").data("detail").split("|");
@@ -312,6 +313,7 @@
                 }
             });
             
+            console.log(arrArticles);
             if (customer == ''){
                 pesan +="Customer must be filled in <br>"; 
                 flag=1;
@@ -333,6 +335,8 @@
                 articles = Object.values(obj)
                 articles = articles.sort((a, b) => (a.urutan > b.urutan) ? 1 : -1);
             }
+
+            console.log(articles);
 
             if (flag==0){
                 let bomNumber = "";

@@ -213,6 +213,7 @@ class BomController extends Controller
                             'status' => '1',
                             'created_by' => Auth::user()->username,
                             'created_at' => date('Y-m-d H:i:s'),
+                            'urutan' => $val->type
                         ];
                     }
 
@@ -470,10 +471,10 @@ class BomController extends Controller
                         
                     }
 
-                    //Delete kalo article tidak ada di po $bomNumber dan article nya $val->article_code
+                    //Delete kalo article tidak ada di $bomNumber dan article nya $val->article_code
                     //berdasarkan 2 kondisi
                     DB::table('bom_det')
-                        ->whereNotIn(DB::raw("CONCAT(bom_code,article_code)"),$dataSet)
+                        // ->whereNotIn(DB::raw("CONCAT(bom_code,article_code)"),$dataSet)
                         ->where('bom_code',$bomNumber)
                         ->delete();
 
@@ -493,6 +494,7 @@ class BomController extends Controller
                                 // 'note' => $val->note,
                                 'created_by' => Auth::user()->username,
                                 'created_at' => date('Y-m-d H:i:s'),
+                                'urutan' => $val->urutan
                             ]
                         );
                     }
@@ -835,7 +837,8 @@ class BomController extends Controller
             updated_by,
             created_at,
             updated_at,
-            uom_con 
+            uom_con,
+            urutan
         )
         select 
             '$bomNew',
@@ -851,7 +854,8 @@ class BomController extends Controller
             '$username',
             '".date('Y-m-d H:i:s')."',
             '".date('Y-m-d H:i:s')."',
-            uom_con
+            uom_con,
+            urutan
         from bom_det where bom_code = '$bomOrigin' order by id";
 
         $rowAffected =  DB::select($sqlHdr);
