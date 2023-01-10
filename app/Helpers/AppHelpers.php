@@ -7,10 +7,9 @@ use DB;
 
 class AppHelpers
 {
-
     public static function resetCode($condKey){
         $afterEffect = DB::select("UPDATE 
-            master_code set code_number = 1, 
+            master_code set code_number = 0,
             last_reset = now(),
             updated_at = now(),
             updated_by = 'system'
@@ -19,6 +18,4 @@ class AppHelpers
             code_key = '$condKey'");
         return $afterEffect;
     }
-    
-
 }

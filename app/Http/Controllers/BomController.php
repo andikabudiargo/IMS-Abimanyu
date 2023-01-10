@@ -213,7 +213,7 @@ class BomController extends Controller
                             'status' => '1',
                             'created_by' => Auth::user()->username,
                             'created_at' => date('Y-m-d H:i:s'),
-                            'urutan' => $val->type
+                            'urutan' => $val->urutan
                         ];
                     }
 
