@@ -242,9 +242,6 @@ class TargetSoController extends Controller
         ,DB::raw("concat(article.article_alternative_code,'-',article.article_desc) as article"))
         ->orderBy('id')
         ->get();
-
-        // dd($data['details']);
-
             
         $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode,$tsoCode,$username);
         $data['approveValidate'] = Approval::approveValidate($this->moduleCode,$tsoCode,$username);
@@ -500,6 +497,18 @@ class TargetSoController extends Controller
                         'updated_at' => date('Y-m-d H:i:s')
                     ]);
                 }
+
+                if ($statusTso == '3'){
+                    
+                    $tsoHdr=DB::table('target_order_hdr')->where('tso_code',$tsoCode)->first();
+                    $tsoOrigin = $tsoHdr->tso_code;
+                    $prNumber = $tsoHdr->pr_number;
+                    $reasonPr = $tsoHdr->note;
+
+                    if ( $prNumber ){
+                        $tsoCode = $this->revisionPrFromTso($tsoOrigin,$reasonPr);
+                    }
+                }
                 
                 DB::commit();
                 $title ="Approve $this->title";
@@ -624,10 +633,20 @@ class TargetSoController extends Controller
 
             if (($data->status == '2') || ($data->status == '3') ){
                 if (Auth::user()->can('targetSo-revision')) {
-                    $buttons .=         '<a href="'. route('targetSo.revision', ['id'=>Crypt::encryptString($data->id),'nR'=>$data->num_revision]) .'" class="dropdown-item">
-                                            <i data-feather="copy"></i>
-                                            <span>'. __("Revision") .'</span>
-                                        </a>';
+                    $buttons .=     "<a href='javascript:;'
+                                        id='revisionReasonButton'
+                                        class='dropdown-item'
+                                        data-toggle='modal'
+                                        data-target='#reasonModalRevision'
+                                        data-href='". route("targetSo.revision", ["id"=>Crypt::encryptString($data->id),"nR"=>$data->num_revision]) ."'>
+                                        <i data-feather='corner-down-left' class='feather-14-red'></i>
+                                        <span>". __('Revision') ."</span>
+                                    </a>";
+
+                    // $buttons .=         '<a href="'. route('targetSo.revision', ['id'=>Crypt::encryptString($data->id),'nR'=>$data->num_revision]) .'" class="dropdown-item">
+                    //                         <i data-feather="copy"></i>
+                    //                         <span>'. __("Revision") .'</span>
+                    //                     </a>';
                 }
             }
             
@@ -774,10 +793,17 @@ class TargetSoController extends Controller
     public function revision(Request $request){
         $username =  Auth::user()->username;
         $id=Crypt::decryptString($request->id);
-        $tsoOrigin=DB::table('target_order_hdr')->where('id',$id)->value('tso_code');
+        $tsoHdr=DB::table('target_order_hdr')->where('id',$id)->first();
+        $tsoOrigin = $tsoHdr->tso_code;
+        // $prNumber = $tsoHdr->prNumber;
         $numRevision = $request->nR ? $request->nR +1 : 1 ;
         $tsoNew = $tsoOrigin.'-R'.$numRevision;
         $checkNewTso=DB::table('target_order_hdr')->where('tso_code',$tsoNew)->count();
+
+        $reason = "(Revision by $username)";
+
+        // $reason = "(Revision by $username, Reason: $request->reason)";
+        // $reasonPr = $request->reason;
 
         if ($checkNewTso > 0){
             $tsoNew = $tsoOrigin.'-R'.$numRevision+1;
@@ -807,6 +833,7 @@ class TargetSoController extends Controller
             updated_at,
             pr_number
         )
+
         select 
             '$tsoNew',
             '$tsoOrigin',
@@ -851,7 +878,8 @@ class TargetSoController extends Controller
             '$username',
             '".date('Y-m-d H:i:s')."',
             '".date('Y-m-d H:i:s')."' 
-        from target_order_det where tso_code = '$tsoOrigin'";
+        from target_order_det where tso_code = '$tsoOrigin'
+        order by id";
 
         $rowAffected =  DB::select($sqlHdr);
         if ($rowAffected){
@@ -880,6 +908,10 @@ class TargetSoController extends Controller
                     'updated_at' => date('Y-m-d H:i:s')
                 ]
             );
+
+            // if ( $prNumber ){
+            //     $tsoCode = $this->revisionPrFromTso($tsoOrigin,$reasonPr);
+            // }
             
             $title ="Save $this->title";
             $alert  ="success";
@@ -963,5 +995,397 @@ class TargetSoController extends Controller
 
         return response()->json(array('data' => $data));
     }
+
+    public function revisionPrFromTso($tsoCode,$reason){
+
+        $username =  Auth::user()->username;
+        $siteCode = 'HO';
+        $location = 'WH';
+        $reason = "(Revison from TSO : $tsoCode, by $username, $reason)";
+
+        $prNumber = DB::table('target_order_hdr')
+        ->where('tso_code',$tsoCode)
+        ->value('pr_number');
+
+        if ($prNumber){
+
+            $prOrigin = $prNumber;
+            $prHdr = DB::table('purchase_request_hdr')
+            ->where('pr_number',$prNumber)
+            ->first(); 
     
+            $stockDate = $prHdr->stock_date;
+                            
+            $numRevision = $prHdr->num_revision ? $prHdr->num_revision+1 : 1 ;
+            $prNew = $prOrigin.'-R'.$numRevision;
+            
+            $checkNewPr=DB::table('purchase_request_hdr')
+            ->where('pr_number',$prNew)->count();
+    
+            if ($checkNewPr > 0){
+                $prNew = $prOrigin.'-R'.($numRevision+1);
+            }
+        
+            //header nya di clone, jadi yang laam pake tanda revisi
+            $sqlHdr = "INSERT into purchase_request_hdr 
+            (
+                pr_number,
+                dept,
+                date,
+                authorized_by,
+                prepared_by,
+                order_type,
+                status,
+                note,
+                print_seq,
+                created_by,
+                updated_by,
+                created_at,
+                updated_at,
+                stock_date,
+                tso_code,
+                origin_pr_number,
+                num_revision,
+                revised_by,
+                revised_at
+            )
+            select 
+                '$prNew',
+                dept,
+                date,
+                authorized_by,
+                prepared_by,
+                order_type,
+                '8',
+                CONCAT(note,', $reason'),
+                print_seq,
+                '$username',
+                '$username',
+                '".date('Y-m-d H:i:s')."',
+                '".date('Y-m-d H:i:s')."',
+                stock_date,
+                tso_code,
+                '$prOrigin',
+                $numRevision,
+                '$username',
+                '".date('Y-m-d H:i:s')."'
+            from purchase_request_hdr where pr_number = '$prOrigin'";
+    
+            $sqlDet="INSERT into purchase_request_det
+            (
+                pr_number,
+                article_code,
+                qty,
+                uom,
+                supp_code,
+                qty_hitung,
+                qty_stock,
+                created_by,
+                created_at
+            )
+            select 
+            '$prNumber' as pr_number
+            ,article_code
+            ,ceil(((sum(qty_target * qty_bom)-qty_stock)+safety_stock)/min_package) * min_package as qty
+            ,mari.uom
+            ,(select third_party from article where article_code = mari.article_code) as supp_code
+            ,ceil(((sum(qty_target * qty_bom)-qty_stock)+safety_stock)/min_package) * min_package as qty_hitung
+            ,qty_stock
+            ,'$username'
+            ,now()
+            from 
+            (
+                select 
+                bom_code
+                ,oki.article_bom as article_code
+                ,(select article_alternative_code from article where article_code = oki.article_bom) as alternative
+                ,(select qty_target from target_order_det where tso_code = '$tsoCode' and target_order_det.article_code = oki.article_code_fg ) as qty_target
+                ,qty 
+                --,oki.uom
+                ,article.uom as uom
+                ,uom_con
+                ,nilai_konversi
+                ,qty_hasil_konversi as qty_bom
+                ,(select qty_target from target_order_det where tso_code = '$tsoCode' and target_order_det.article_code = oki.article_code_fg ) * qty_hasil_konversi  as qty_total_order
+                ,coalesce(min_package,1) as min_package
+                ,coalesce(safety_stock,0) as safety_stock
+                ,get_last_qty(oki.article_bom,'$stockDate','$siteCode','$location') as qty_stock
+                from 
+                (
+                    select bom_code
+                    ,bom_det.article_code as article_bom
+                    ,(select article_code from bom_hdr where bom_code = bom_det.bom_code) as article_code_fg
+                    ,qty
+                    ,uom
+                    ,uom_con
+                    ,coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = bom_det.uom),1) as nilai_konversi
+                    ,qty * coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = bom_det.uom),1) as qty_hasil_konversi
+                    from bom_det where bom_code in 
+                    (
+                        select bom_code
+                        from (select article_code,qty_target as qty from target_order_det where tso_code = '$tsoCode') as production_detail_temp
+                        left join bom_hdr on bom_hdr.article_code=production_detail_temp.article_code
+                        where bom_hdr.status = '3'
+                    )
+                ) as oki
+                left join article on article.article_code = oki.article_bom
+                order by alternative
+            ) as mari 
+            group by mari.article_code,alternative,mari.safety_stock,mari.qty_stock,mari.min_package,mari.uom
+            having (ceil(((sum(qty_target * qty_bom)-qty_stock)+safety_stock)/min_package) * min_package) > 0
+            order by alternative";
+    
+            $rowAffected =  DB::select($sqlHdr);
+            
+            if ($rowAffected){
+                //update PR lama diisi dengan nomor yang baru
+                $oki = DB::table('purchase_request_det')
+                ->where('pr_number',$prOrigin)
+                ->update([
+                    'pr_number' => $prNew
+                ]);
+
+                if ($oki){
+                // Update isi dari PR detail dengan data yang baru hitung ulang
+                    DB::select($sqlDet);
+                }
+        
+                //update PR isi jumlah revisi nya
+                DB::table('purchase_request_hdr')
+                ->where('pr_number',$prOrigin)
+                ->update(
+                    [
+                        'num_revision' => $numRevision,
+                        'status' => '1',
+                        'note'=> DB::raw("CONCAT(note,', $reason')"),
+                        'revised_by'=>Auth::user()->username,
+                        'revised_at'=> date('Y-m-d H:i:s'),
+                        'updated_by' => Auth::user()->username,
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]
+                );
+    
+                //update history approve PR yang lama  jadi tidak aktif
+                DB::table('approval_history')
+                ->where('module_number',$prOrigin)
+                ->update(
+                    [
+                        'module_number' => $prNew,
+                        'status' => '0',
+                        'updated_by' => Auth::user()->username,
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]
+                );
+
+                //cari apakah PR sudah jadi PO
+                $listPO = DB::table("purchase_request_det")
+                ->where("pr_number",$prOrigin)
+                ->where("po_number","<>",null)
+                ->distinct('po_number')
+                ->get();
+
+                if(count($listPO)> 1){
+                    foreach($listPO as $val){
+                        $this->revisionPoFromPr($val->po_number,$prOrigin,$reason);
+                    }
+                }
+                  
+                $title ="Save $this->title";
+                $alert  ="success";
+                $message  = "$title Revision PR from TSO: $prOrigin to $prNew TSO:$tsoCode is successfully saved";
+                \LogActivity::addToLog($title,"username: $username Status $message");
+                return 'success';
+            }else{
+                $title ="Save $this->title";
+                $alert  ="warning";
+                $message  = "$title Revision PR from TSO: $prOrigin to $prNew TSO:$tsoCode is failed to save";
+                \LogActivity::addToLog($title,"username: $username Status $message");
+                return 'failed';
+            }       
+        }else{
+            $title ="Save $this->title";
+            $alert  ="warning";
+            $message  = "$title Revision PR from TSO, PR:$prNumber not found";
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return 'failed';
+        }
+
+    }
+
+    public function revisionPoFromPr($poNumber,$prNumber,$reason){
+        $username =  Auth::user()->username;
+        $poOrigin = $poNumber;
+        $reason = "(Revison from PR : $prNumber, by $username, $reason)";
+
+        $poHdr = DB::table('purchase_order_hdr')
+        ->where('po_number',$poOrigin)
+        ->get(); 
+
+        $prNumber = DB::table('purchase_request_det')
+        ->where('po_number',$poOrigin)
+        ->first();
+
+        $prNumber = $prNumber->pr_number;
+
+        $checkNewPo=DB::table('purchase_order_hdr')->where('po_number',$poNew)->count();
+        $numRevision = $poHdr->num_revision ? $poHdr->num_revision+1 : 1 ;
+        $poNew = $poOrigin.'-R'.$numRevision;
+        $checkNewPo=DB::table('purchase_order_hdr')->where('po_number',$poNew)->count();
+
+        if ($checkNewPo > 0){
+            $poNew = $poOrigin.'-R'.$numRevision+1;
+        } 
+                
+        $sqlHdr = "INSERT into purchase_order_hdr 
+        (
+            po_number,
+            origin_po_number,
+            supplier_id,
+            po_date,
+            delivery_date,
+            currency,
+            authorized_by,
+            authorized_at,
+            validate_by,
+            discount,
+            kurs,
+            pkp,
+            ppn,
+            pph22,
+            termin,
+            order_type,
+            status,
+            num_revision,
+            revised_by,
+            revised_at,
+            note,
+            created_by,
+            updated_by,
+            created_at,
+            updated_at
+        )
+        select 
+            '$poNew',
+            '$poOrigin',
+            supplier_id,
+            po_date,
+            delivery_date,
+            currency,
+            authorized_by,
+            authorized_at,
+            validate_by,
+            discount,
+            kurs,
+            pkp,
+            ppn,
+            pph22,
+            termin,
+            order_type,
+            '7',
+            $numRevision,
+            '$username',
+            '".date('Y-m-d H:i:s')."',
+            CONCAT(note,', $reason'),
+            '$username',
+            '$username',
+            '".date('Y-m-d H:i:s')."',
+            '".date('Y-m-d H:i:s')."'
+        from purchase_order_hdr where po_number = '$poOrigin'";
+
+        $sqlDet="INSERT into purchase_order_det
+        (
+            po_number,
+            pr_number,
+            article_code,
+            qty,
+            uom,
+            old_price,
+            price,
+            ppn,
+            pph22,
+            created_by,
+            updated_by,
+            created_at,
+            updated_at
+        )
+        select '$poNew',
+            pr_number,
+            article_code,
+            qty,
+            uom,
+            old_price,
+            price,
+            ppn,
+            pph22,
+            '$username',
+            '$username',
+            '".date('Y-m-d H:i:s')."',
+            '".date('Y-m-d H:i:s')."' 
+        from purchase_order_det where po_number = '$poOrigin'";
+
+        $rowAffected =  DB::select($sqlHdr);
+        if ($rowAffected){
+            DB::select($sqlDet);
+
+            // status:
+            // 1 = New
+            // 2 = Validated
+            // 3 = Authorized
+            // 4 = Received
+            // 5 = Canceled
+            // 6 = closed
+            // 7 = Revised
+
+            DB::table('purchase_order_hdr')
+            ->where('po_number',$poOrigin)
+            ->update(
+                [
+                    'num_revision' => $numRevision,
+                    'status' => '1',
+                    'note'=> DB::raw("CONCAT(note,', $reason')"),
+                    'revised_by'=>Auth::user()->username,
+                    'revised_at'=> date('Y-m-d H:i:s'),
+                    'updated_by' => Auth::user()->username,
+                    'updated_at' => date('Y-m-d H:i:s')
+                ]
+            );
+
+            //update qty sesuai dengan yang sudah di update di PR
+            DB::table('purchase_order_det')
+            ->where('po_number',$poOrigin)
+            ->update(
+                [
+                    'qty' => DB::RAW("purchase_request_det.pr_number = purchase_order_det.pr_number and 
+                    purchase_request_det.article_code = purchase_order_det.article_code
+                    and purchase_request_det.po_number = purchase_order_det.po_number"),
+                    'updated_by' => Auth::user()->username,
+                    'updated_at' => date('Y-m-d H:i:s')
+                ]
+            );
+
+            DB::table('approval_history')
+            ->where('module_number',$poOrigin)
+            ->update(
+                [
+                    'module_number' => $poNew,
+                    'status' => '0',
+                    'updated_by' => Auth::user()->username,
+                    'updated_at' => date('Y-m-d H:i:s')
+                ]
+            );
+            
+            $title ="Save $this->title";
+            $alert  ="success";
+            $message  = "$title Revision PO From PR PO: $poOrigin to $poNew PR:$prNumber is successfully saved";
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return "success";
+        }else{
+            $title ="Save $this->title";
+            $alert  ="warning";
+            $message  = "$title Revision PO From PR  PO: $poOrigin to $poNew PR:$prNumber is failed to save";
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return "failed";
+        }
+        
+    }
 }

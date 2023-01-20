@@ -37,9 +37,10 @@
                                 </div>
                                 <div class="form-group col-md-2">
                                     <label for="orderDate">Request Date*</label>
-                                    <input type="text" id="orderDate" name="orderDate" class="form-control" placeholder="DD-MM-YYYY" required disabled/>
+                                    <input type="text" id="orderDate" name="orderDate" class="form-control" placeholder="DD-MM-YYYY" disabled/>
                                 </div>
-                                <div class="form-group col-md-3">
+                                
+                                <div class="form-group col-md-4">
                                     <label class="form-label" for="dept">Department*</label>
                                     <select class="select2 form-control" id="dept" name="dept" required>
                                         <option value=""></option>
@@ -50,14 +51,18 @@
                                 </div>
                             </div>
                             <div class="form-row" id="tsoBox">
-                                <div class="form-group col-md-7">
+                                <div class="form-group col-md-2">
+                                    <label for="stockDate">Stock Date*</label>
+                                    <input type="text" id="stockDate" name="stockDate" class="form-control" placeholder="DD-MM-YYYY" required/>
+                                </div>
+                                <div class="form-group col-md-6">
                                     <label class="form-label" for="tsoCode">Target SO Number</label>
                                     <select class="select2 form-control" id="tsoCode" name="tsoCode">
                                     </select>
                                 </div>
                             </div>
                             <div class="form-row">
-                                <div class="form-group col-md-7">
+                                <div class="form-group col-md-8">
                                     <label class="form-label" for="note">Notes</label>
                                     <textarea type="text" id="note" name="note" class="form-control" rows="1" ></textarea>
                                 </div>
@@ -83,10 +88,11 @@
                             <i data-feather="plus" class="align-middle mr-sm-25 mr-0"></i>
                             <span class="align-middle d-sm-inline-block d-none">Add Article</span>
                         </button>
+                        <h6>Line:<span id="records"></span></h6>
                     </div>
-                    <br>
+                    <hr>
                     <div class="mt-75">
-                        {{-- <button class="btn btn-success" type="reset" id="cmdNew" name="cmdCancel">New</button> --}}
+                        <a href="{{ route('purchaseRequests.index') }}" class="btn btn-warning">Back</a>
                         <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Save</button>
                     </div>
                 </div>
@@ -94,7 +100,6 @@
         </div>
     </div>
 </section>
-
 @endsection
 @section('styles')
 <style>
@@ -106,12 +111,13 @@
 @section('scripts')
 @include('purchaseRequest.addArticle')
 <script type="text/javascript">
-    
+    let currentDate = todayDate('dd-mm-yyyy');
     $(document).ready(function(){           
         validateFormToast("frmAdd");
         $('#orderDate').val("{{ $currentDate }}");
         isiArticle('article_pr');
         objTsoBox.hide();
+        add_new_row();
     });
     
     if (orderDate.length) {
@@ -120,9 +126,17 @@
         });
     }
 
+    if (stockDate.length) {
+        stockDate.flatpickr({
+            dateFormat: "d-m-Y",
+            // defaultDate:currentDate
+        });
+    }   
+
     objPoType.change(function(e){
         let potype=$(this).val();
         $('#article_row').empty();
+        oDept.val("").trigger("change");
         cloneCount=0;
         objTsoBox.hide();
         if (potype ==='tso'){
@@ -133,38 +147,50 @@
                 obj:'tsoCode',
                 url:"{{ route('dynamic.dependent') }}"            
             });
+            addNewRow.attr('disabled','disabled');
+        }else{
+            stockDate.val("");
+            add_new_row();
+            addNewRow.removeAttr('disabled');
         }
     });
 
     objTsoCode.change(function(e){
-        let tsoCode = $(this).val();
-        if (tsoCode){        
-            $(".loading-spinner-container").addClass("-show");
-            $.ajax({
-                type: "GET",
-                url: "{{ route('purchaseRequest.article.tso') }}",
-                data: {
-                    tsoCode:tsoCode
-                },
-                dataType: "json",
-                success: function(data) {
-                    if (data){
-                        for(let i=0;i<data.length;i++){
-                            add_new_row_sto(data[i].article_code,data[i].grand_total,data[i].uom,'');
-                            if (i==(data.length-1)){
-                                $(".loading-spinner-container").removeClass("-show");
-                                isiUom();
+        if (!$("#frmAdd")[0].checkValidity() && $(this).val()){
+            $("#frmAdd").submit();
+            $(this).val("").trigger('change');
+        }else{
+            let tsoCode = $(this).val();
+            let dStockDate = stockDate.val();
+            if (tsoCode){        
+                $(".loading-spinner-container").addClass("-show");
+                $.ajax({
+                    type: "GET",
+                    url: "{{ route('purchaseRequest.article.tso') }}",
+                    data: {
+                        tsoCode:tsoCode,
+                        stockDate:dStockDate
+                    },
+                    dataType: "json",
+                    success: function(data) {
+                        if (data){
+                            for(let i=0;i<data.length;i++){
+                                add_new_row_sto(data[i].article_code,data[i].grand_total,data[i].uom,'',data[i].qty_stock,data[i].alternative,data[i].article_desc,data[i].uom_group,data[i].supp);
+                                if (i==(data.length-1)){
+                                    $(".loading-spinner-container").removeClass("-show");
+                                    isiUom();
+                                }
                             }
                         }
+                    },
+                    error: function(error) {
+                        Swal.fire('Error..',error,'error');
                     }
-                },
-                error: function(error) {
-                    console.log(error);
-                }
-            });
-        }else{
-            $('#article_row').empty();
-            cloneCount=0;
+                });
+            }else{
+                $('#article_row').empty();
+                cloneCount=0;
+            }
         }
 
         // add_new_row_sto(article,qty,note);
@@ -179,9 +205,12 @@
             let objQty = $('#article_row input[name="qty_order[]"]');
             let objNote = $('#article_row input[name="note[]"]');
             let objUom = $('#article_row span[name="uom[]"]'); 
+            let objHitung = $('#article_row input[name="qtyHitung[]"]'); 
+            let objStock = $('#article_row input[name="qtyStock[]"]'); 
             let articles = []; 
             let flag=0; 
             let pesan="";
+            let poType = $('#poType').val();
 
             $("#article_row select[name='article_id[]']").map(function(i) {  
                 let $this=$(this);
@@ -193,6 +222,8 @@
                     let uom=objUom.eq(i).text();
                     let qty=objQty.eq(i).val().replace(/,/gi, '') || 0;
                     let note=objNote.eq(i).val();
+                    let qtyHitung=objHitung.eq(i).val() || 0;
+                    let qtyStock=objStock.eq(i).val() || 0;
                             
                     let obj = $.grep(articles, function(obj){
                         return obj.article_code === plu;
@@ -209,41 +240,48 @@
                                 "uom":uom,
                                 "supp":supp,
                                 "note":note,
+                                "qty_hitung":qtyHitung,
+                                "qty_stock":qtyStock,
                             });
                         }
                     } 
+
                     if ( qty == 0 ){
-                        pesan +="QTY of items "+ articleName +" cannot be 0 <br>"; 
+                        pesan +=`QTY of items ${articleName} cannot be 0 <br>`; 
+                        flag=1;
+                    }
+
+                    if ( (poType=='tso') && (qty > qtyHitung) ){
+                        pesan +=`QTY of items ${articleName} tidak boleh melebihi qty hasil hitung ${qtyHitung} <br>`; 
                         flag=1;
                     }
                 }
-            });
+            });            
 
-            if (dept == ''){
-                pesan +="Department must be filled in <br>"; 
-                flag=1;
-            }
             if (articles.length == 0){
                 pesan +="Articles must be filled in completely <br>"; 
                 flag=1;
             }
+
             if (flag==0){
-                let orderDate = $('#orderDate').val();
+                let dOrderDate = $('#orderDate').val();
+                let dStockDate = $('#stockDate').val();
                 let dept = $('#dept').val();
-                let poType = $('#poType').val();
+                
                 let tsoCode = $('#tsoCode').val();
                 let note = $('#note').val();
-
+                
                 $.ajax({
                     type: "post",
                     url: "{{ route('purchaseRequest.store') }}",
                     data: {
                         articles:JSON.stringify(articles),
-                        orderDate:orderDate,
+                        orderDate:dOrderDate,
                         poType:poType,
                         dept:dept,
                         note:note,
-                        tsoCode:tsoCode
+                        tsoCode:tsoCode,
+                        stockDate:dStockDate
                     },
                     dataType: "json",
                     success: function(data) {
@@ -261,7 +299,7 @@
                         }
                     },
                     error: function(error) {
-                        console.log(error);
+                        Swal.fire('Error..',error,'error');
                     }
                 });
             }else{

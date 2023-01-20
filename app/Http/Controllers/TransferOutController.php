@@ -212,6 +212,7 @@ class TransferOutController extends Controller
         $siteCode = 'HO';
         $location ='WH';
         $status = '4';
+        $todayDate = date('Y-m-d');
 
         if ($trNumber){
             $data = DB::table('transfer_det')
@@ -299,7 +300,8 @@ class TransferOutController extends Controller
                         'created_by' => Auth::user()->username,
                         'created_at' => date('Y-m-d H:i:s'),
                         'site_code' => $siteCode,
-                        'location_number' => $location
+                        'location_number' => $location,
+                        'last_qty' => DB::raw("get_last_qty('$val->article_code','$todayDate','$siteCode','$location') - ($val->movement_min+$val->movement_plus)")
                     ];
                 }
 
@@ -342,6 +344,7 @@ class TransferOutController extends Controller
         $authorizedBy = Auth::user()->username;
         $rowAffected = 0;
         $location = 'WH';
+        $todayDate = date('Y-m-d');
 
         $data = DB::table('transfer_det')
         ->leftJoin('transfer_hdr','transfer_hdr.tr_number','transfer_det.tr_number')
@@ -429,7 +432,8 @@ class TransferOutController extends Controller
                     'created_by' => Auth::user()->username,
                     'created_at' => date('Y-m-d H:i:s'),
                     'site_code' => $siteCode,
-                    'location_number' => $location
+                    'location_number' => $location,
+                    'last_qty' => DB::raw("get_last_qty('$val->article_code','$todayDate','$siteCode','$location') + ($val->movement_min+$val->movement_plus)")
                 ];
             }
 

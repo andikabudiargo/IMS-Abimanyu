@@ -209,6 +209,7 @@ class TransferInController extends Controller
         $id=Crypt::decryptString($request->id);
         $trNumber = DB::table('transfer_hdr')->where('id',$id)->where('status','3')->value('tr_number');
         $trType = $this->moduleCode;
+        $todayDate = date('Y-m-d');
         $siteCode = 'HO';
         $location ='WH';
         $status = '4';
@@ -299,7 +300,8 @@ class TransferInController extends Controller
                         'created_by' => Auth::user()->username,
                         'created_at' => date('Y-m-d H:i:s'),
                         'site_code' => $siteCode,
-                        'location_number' => $location
+                        'location_number' => $location,
+                        'last_qty' => DB::raw("get_last_qty('$val->article_code','$todayDate','$siteCode','$location') + ($val->movement_min+$val->movement_plus)")
                     ];
                 }
 
@@ -340,6 +342,7 @@ class TransferInController extends Controller
         $authorizedBy = Auth::user()->username;
         $rowAffected = 0;
         $location = 'WH';
+        $todayDate = date('Y-m-d');
 
         $data = DB::table('transfer_det')
         ->leftJoin('transfer_hdr','transfer_hdr.tr_number','transfer_det.tr_number')
@@ -426,7 +429,8 @@ class TransferInController extends Controller
                     'created_by' => Auth::user()->username,
                     'created_at' => date('Y-m-d H:i:s'),
                     'site_code' => $siteCode,
-                    'location_number' => $location
+                    'location_number' => $location,
+                    'last_qty' => DB::raw("get_last_qty('$val->article_code','$todayDate','$siteCode','$location') - ($val->movement_min+$val->movement_plus)")
                 ];
             }
 

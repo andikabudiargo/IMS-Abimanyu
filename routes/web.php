@@ -249,9 +249,9 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('targetSo/delete',['as'=>'targetSo.destroy','uses'=>'TargetSoController@destroy']);
 	Route::get('targetSo/code/create',['as'=>'targetSo.code.create','uses'=>'TargetSoController@articleCodeCreate']);
 	Route::get('targetSo/print',['as'=>'targetSo.print','uses'=>'TargetSoController@print']);
-	Route::get('targetSo/revision',['as'=>'targetSo.revision','uses'=>'TargetSoController@revision','middleware' => ['permission:targetSo-revision']]);
 	Route::get('targetSo/approve',['as'=>'targetSo.approve','uses'=>'TargetSoController@approve']);
 	Route::get('targetSo/itemList',['as'=>'targetSo.itemList','uses'=>'TargetSoController@listItemByCustomer']);
+	Route::post('targetSo/revision',['as'=>'targetSo.revision','uses'=>'TargetSoController@revision','middleware' => ['permission:targetSo-revision']]);
 	
 	Route::get('receivings',['as'=>'receivings.index','uses'=>'ReceivingController@index','middleware' => ['permission:receiving-index']]);
 	Route::get('receivings/create',['as'=>'receiving.create','uses'=>'ReceivingController@create','middleware' => ['permission:receiving-create']]);
@@ -416,6 +416,8 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('purchaseRequests/print',['as'=>'purchaseRequest.print','uses'=>'PurchaseRequestController@print']);
 	Route::get('purchaseRequests/approve',['as'=>'purchaseRequest.approve','uses'=>'PurchaseRequestController@approve']);
 	Route::get('purchaseRequests/article/tso',['as'=>'purchaseRequest.article.tso','uses'=>'PurchaseRequestController@articleTso']);
+	Route::post('purchaseRequests/revision',['as'=>'purchaseRequest.revision','uses'=>'PurchaseRequestController@revision']);
+	// Route::get('purchaseRequests/revision/tso',['as'=>'purchaseRequest.revision.tso','uses'=>'PurchaseRequestController@revisionFromTso']);
 
 	Route::get('boms',['as'=>'boms.index','uses'=>'BomController@index','middleware' => ['permission:bom-index']]);
 	Route::get('boms/create',['as'=>'bom.create','uses'=>'BomController@create','middleware' => ['permission:bom-create']]);
@@ -598,8 +600,8 @@ Route::group( ['middleware' => ['auth']], function() {
 	});
 	
 	//kalo routing nya tidak di temukan maka keluar error 404
-	Route::any('{all}', function(){
-	    return view('errors.404_2');
-	})->where('all', '.*');
+	// Route::any('{all}', function(){
+	//     return view('errors.404_2');
+	// })->where('all', '.*');
     
 });

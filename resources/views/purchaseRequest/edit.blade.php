@@ -39,10 +39,10 @@
                                     </select>
                                 </div>
                                 <div class="form-group col-md-2">
-                                    <label for="orderDate">Order Date*</label>
-                                    <input type="text" id="orderDate" name="orderDate" class="form-control" placeholder="DD-MM-YYYY" value="{{ $header->date }}"required />
+                                    <label for="orderDate">Order Date</label>
+                                    <input type="text" id="orderDate" name="orderDate" class="form-control disabled-el" placeholder="DD-MM-YYYY" value="{{ $header->date }}" disabled/>
                                 </div>
-                                <div class="form-group col-md-3">
+                                <div class="form-group col-md-4">
                                     <label class="form-label" for="dept">Department*</label>
                                     <select class="select2 form-control" id="dept" name="dept" required>
                                         <option value=""></option>
@@ -52,8 +52,20 @@
                                     </select>
                                 </div>
                             </div>
+                            @if($header->order_type == 'tso')
+                            <div class="form-row" id="tsoBox">
+                                <div class="form-group col-md-2">
+                                    <label for="stockDate">Stock Date</label>
+                                    <input type="text" id="stockDate" name="stockDate" class="form-control disabled-el" placeholder="DD-MM-YYYY" value="{{ date_format(date_create($header->stock_date),'d-m-Y') }}" disabled/>
+                                </div>
+                                <div class="form-group col-md-6">
+                                    <label for="tsoCode">Target SO Number</label>
+                                    <input type="text" id="tsoCode" name="tsoCode" class="form-control disabled-el" value="{{ $header->tso_code }}" disabled/>
+                                </div>
+                            </div>
+                            @endif
                             <div class="form-row">
-                                <div class="form-group col-md-7">
+                                <div class="form-group col-md-8">
                                     <label class="form-label" for="note">Notes</label>
                                     <textarea type="text" id="note" name="note" class="form-control" rows="1" >{{ $header->note }}</textarea>
                                 </div>
@@ -178,15 +190,21 @@
         if (data){
             for(let i=0;i<data.length;i++){
                 article = data[i].article_code;
-                qty = data[i].qty;
+                qty = data[i].qty*1;
                 uom =  data[i].uom;
                 uomGroup = data[i].uom_group;
                 note = data[i].note;
-                add_new_row_edit(article,qty,uom,uomGroup,note);
+                qtyStock = data[i].qty_stock;
+                qtyHitung = data[i].qty_hitung;
+                alternative = data[i].article_alternative_code;
+                desc = data[i].article_desc;
+                supp = data[i].third_party;
+                add_new_row_edit(article,qty,uom,uomGroup,note,qtyStock,qtyHitung,alternative,desc,supp);
                 if (i==(data.length-1)){
                     $(".loading-spinner-container").removeClass("-show");
                 }
             }
+            recordCount();
         }
     }
 
@@ -203,10 +221,13 @@
         let objQty = $('#article_row input[name="qty_order[]"]');
         let objNote = $('#article_row input[name="note[]"]');
         let objUom = $('#article_row span[name="uom[]"]'); 
+        let objHitung = $('#article_row input[name="qtyHitung[]"]'); 
+        let objStock = $('#article_row input[name="qtyStock[]"]'); 
         let dept = $('#dept').val(); 
         let articles = []; 
         let flag=0; 
         let pesan="";
+        let poType = $('#poType').val();
 
         $("#article_row select[name='article_id[]']").map(function(i) {  
 		    let $this=$(this);
@@ -218,6 +239,9 @@
                 let uom=objUom.eq(i).text();
                 let qty=objQty.eq(i).val().replace(/,/gi, '') || 0;
                 let note=objNote.eq(i).val();
+                let qtyHitung=objHitung.eq(i).val() || 0;
+                let qtyStock=objStock.eq(i).val() || 0;
+
                 let obj = $.grep(articles, function(obj){
                     return obj.article_code === plu;
                 })[0];
@@ -233,24 +257,30 @@
                             "uom":uom,
                             "supp":supp,
                             "note":note,
+                            "qty_hitung":qtyHitung,
+                            "qty_stock":qtyStock,
                         });
                     }
                 } 
+                
                 if (qty == 0){
                     pesan +="QTY of items "+ articleName +" cannot be 0 <br>"; 
                     flag=1;
                 }
+
+                if ( (poType=='tso') && (parseFloat(qty) > parseFloat(qtyHitung)) ){
+                    pesan +=`QTY of items ${articleName} tidak boleh melebihi qty hasil hitung ${qtyHitung} <br>`; 
+                    flag=1;
+                }
+
             }
         });
 
-        if (dept == ''){
-			pesan +="Department must be filled in <br>"; 
-			flag=1;
-		}
         if (articles.length == 0){
 			pesan +="Articles must be filled in completely <br>"; 
 			flag=1;
 		}
+
         if (flag==0){
             let orderDate = $('#orderDate').val();
             let dept = $('#dept').val();
@@ -278,6 +308,7 @@
                     }else{
                         show_msg(data.title, data.message, data.alert);
                         $('#prNumber').attr('disabled','disabled');
+                        $('.disabled-el').attr('disabled','disabled');
                         // $('#addNewRow').attr('disabled','disabled');                        
                     }
                     
@@ -313,7 +344,8 @@
                     $('#prNumber').attr('disabled','disabled');
                     $('#cmdApprove').attr('disabled','disabled');
                     $('#addNewRow').attr('disabled','disabled');  
-                    $('#cmdUpdate').attr('disabled','disabled');       
+                    $('#cmdUpdate').attr('disabled','disabled');
+                    location.reload();       
                 }
             },
             error: function(error) {

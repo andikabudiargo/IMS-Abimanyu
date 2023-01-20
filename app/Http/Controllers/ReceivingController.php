@@ -461,6 +461,7 @@ class ReceivingController extends Controller
         $location ='WH';
         $status = '4';
         $moduleCode = $this->moduleCode;
+        $todayDate = date('Y-m-d');
         
         if ($recNumber){
             $data = DB::table('receiving_det')
@@ -563,7 +564,8 @@ class ReceivingController extends Controller
                         'created_by' => Auth::user()->username,
                         'created_at' => date('Y-m-d H:i:s'),
                         'site_code' => $siteCode,
-                        'location_number' => $location
+                        'location_number' => $location,
+                        'last_qty' => DB::raw("get_last_qty('$val->article_code','$todayDate','$siteCode','$location') + ($val->movement_min+$val->movement_plus)")
                     ];
                 }
 
@@ -605,6 +607,7 @@ class ReceivingController extends Controller
         $status = '5';
         $moduleCode = $this->moduleCode;
         $reason = "(Cancel by $username, Reason: $request->reason)";
+        $todayDate = date('Y-m-d');
 
         $data = DB::table('receiving_det')
         ->leftJoin('receiving_hdr','receiving_hdr.rec_number','receiving_det.rec_number')
@@ -707,7 +710,8 @@ class ReceivingController extends Controller
                     'created_by' => Auth::user()->username,
                     'created_at' => date('Y-m-d H:i:s'),
                     'site_code' => $siteCode,
-                    'location_number' => $location
+                    'location_number' => $location,
+                    'last_qty' => DB::raw("get_last_qty('$val->article_code','$todayDate','$siteCode','$location') - ($val->movement_min+$val->movement_plus)")
                 ];
             }
 

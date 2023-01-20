@@ -332,6 +332,7 @@ class ProductionController extends Controller
         $location ='WH';
         $status = '4';
         $moduleCode = $this->moduleCode;
+        $todayDate = date('Y-m-d');
         
         if ($prdNumber){
             $data = DB::table('production_det')
@@ -438,7 +439,8 @@ class ProductionController extends Controller
                         'created_by' => Auth::user()->username,
                         'created_at' => date('Y-m-d H:i:s'),
                         'site_code' => $siteCode,
-                        'location_number' => $location
+                        'location_number' => $location,
+                        'last_qty' => DB::raw("get_last_qty('$val->article_code','$todayDate','$siteCode','$location') + ($val->movement_min+$val->movement_plus)")
                     ];
                 }
 
@@ -479,7 +481,8 @@ class ProductionController extends Controller
                         'created_by' => Auth::user()->username,
                         'created_at' => date('Y-m-d H:i:s'),
                         'site_code' => $siteCode,
-                        'location_number' => $location
+                        'location_number' => $location,
+                        'last_qty' => DB::raw("get_last_qty('$val->article_code','$todayDate','$siteCode','$location') - ($val->movement_min+$val->movement_plus)")
                     ];
                 }
 

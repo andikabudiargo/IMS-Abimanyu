@@ -36,6 +36,9 @@
         td {
             height: 20px;
         }
+        .tdKu {
+            height: 10px;
+        }
         th, td {
             padding-left: 5px;
             padding-right: 5px;
@@ -67,102 +70,51 @@
             <td width="30%" >
                 <img src="{{ public_path('app-assets/images/logo/logo_po.png') }}" alt="logo" style="width: 60%;"> 
             </td>
-            <td valign="top" style="text-align:center"><h2>SALES ORDER</h2></td>
+            <td valign="top" style="text-align:center"><h2>PO REQUEST</h2></td>
             <td width="30%" ></td>
         </tr>
     </table>
     <table width="100%" border="0" >
         <tr>
-            <td width="45%" valign="top" >
-                Order Number : {{ $soNumber }}<br>
-                PO Number    : {{ $soPoNumber }}<br>
-                Customer     : {{ $customers->nama }}
-            </td>
-            <td width="25%"></td>
-            <td width="30%">
-                Tanggal  : {{ $soDate }}<br>
-                Salesman : {{ $soSalesman }}<br>
-                Currency : {{ $soCurrency }}
-            </td>
+            <td width="10%" class="tdKu">Nomor</td>
+            <td class="tdKu">: {{ $prNumber }}</td>
+        </tr>
+        <tr>
+            <td class="tdKu">Permintaan</td>
+            <td class="tdKu">: {{ $prRequest }}</td>
+        </tr>
+        <tr>
+            <td class="tdKu">Tanggal</td>
+            <td class="tdKu">: {{ $prDate }}</td>
+        </tr>
+        <tr>
+            <td class="tdKu">Status</td>
+            <td class="tdKu">: {{ $prStatus }}</td>
         </tr>
     </table>
     <table style="table-layout:fixed;">
         <thead style="background-color: lightgray;">
         <tr>
             <th width="5%">No</th>
-            {{-- <th width="10%">Code</th> --}}
+            <th width="10%">Kode barang</th>
             <th width="45%">Description</th>
-            <th width="10%">Qty</th>
-            <th width="10%">Material Price</th>
-            <th width="10%">Service Price</th>
-            <th width="10%">Total Material</th>
-            <th width="10%">Total Service</th>
+            <th width="10%">QTY</th>
+            <th width="10%">Uom</th>
         </tr>
         </thead>
         <tbody>
             @foreach ($details as $val )
                 <tr class="border-bottom">
                     <td scope="row" class="border-bottom" align="right">{{ ++$no }}</td>
-                    {{-- <td class="border-bottom" align="left">{{ $val->article_alternative_code }}</td> --}}
+                    <td class="border-bottom" align="left">{{ $val->article_alternative_code }}</td>
                     <td class="border-bottom" align="left">{{ $val->article_desc }}</td>
                     <td class="border-bottom" align="right">{{ number_format($val->qty) }}</td>
-                    <td class="border-bottom" align="right">{{ number_format($val->price) }}</td>
-                    <td class="border-bottom" align="right">{{ number_format($val->price_service) }}</td>
-                    <td class="border-bottom" align="right">{{ number_format(($val->qty*$val->price)) }}</td>
-                    <td class="border-bottom" align="right">{{ number_format(($val->qty*$val->price_service)) }}</td>
+                    <td class="border-bottom" align="left">{{ $val->uom }}</td>
                 </tr>
             @endforeach
         </tbody>
-        <tfoot>
-            @foreach ($totals as $val )
-                <tr class="border-bottom">
-                    <td class="border-bottom" align="left" colspan="2">Total</td>
-                    <td class="border-bottom" align="right" >{{ number_format($val->qty) }}</td>
-                    <td class="border-bottom" align="right" ></td>
-                    <td class="border-bottom" align="right" ></td>
-                    <td class="border-bottom" align="right" >{{ number_format($val->total_material)}}</td>
-                    <td class="border-bottom" align="right" >{{ number_format($val->total_service)}}</td>
-                </tr>
-            @endforeach
-        </tfoot>
-        <tr>
-            <td colspan="7"> </td>
-        </tr>
-        <tr>
-            <td colspan="3" rowspan="4" valign="top" style="border: 1px solid #0c0c0c;padding-left:10px">
-                    <br>
-                    {{-- Syarat Bayar : {{ $customers->syarat_bayar }}<br>
-                    Waktu Kirim : {{ $customers->syarat_kirim }}<br> --}}
-                    Alamat Kirim:{{ $customers->alamat_kirim_1 }}<br>
-                    Note:{{ $keterangan }}<br>
-            </td>
-            <td></td>
-            <td></td>
-            <td>Sub Total</td>
-            <td align="right">{{ number_format($val->sub_total) }}</td>
-        </tr>
-        <tr>
-            <td></td>
-            <td></td>
-            <td>PPN</td>
-            <td align="right">{{ number_format($val->ppn) }}</td>
-        </tr>
-        <tr>
-            <td></td>
-            <td></td>
-            <td>PPH23</td>
-            <td align="right">-{{ number_format($val->pph23) }}</td>
-        </tr>
-        <tr>
-            <td></td>
-            <td></td>
-            <td>Grand total</td>
-            <td align="right">{{ number_format($val->grand_total) }}</td>
-        </tr>
-        <tr>
-            {{-- <td colspan="7">Keterangan:<br> {{ $keterangan }}</td> --}}
-        </tr>
     </table>
+    <p style="font-size: x-small;">Note:{{ $prNote }}</p>
     <table width="100%" border="0">
         <tr><td colspan="2" height="100"></td></tr>
         <tr><td colspan="2" height="100"></td></tr>

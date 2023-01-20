@@ -1,4 +1,3 @@
-{{-- table row untuk di clone--}}  
 <div id="new_row" name="new_row[]" class="d-none">
     <div id="baru" class="tanda-baris" >
         <div class="form-row d-flex align-items-center">
@@ -48,7 +47,6 @@
         </div>
     </div>
 </div>
-{{-- \.table row --}} 
 
 <style>
 
@@ -80,7 +78,7 @@
     and (max-device-width: 1600px) 
     and (-webkit-min-device-pixel-ratio: 1) { 
         .lebar-list-item{
-            width:110%;
+            width:100%;
         }
         .container-list-item{
             max-width:100%;
@@ -94,7 +92,7 @@
     and (max-width: 1200px)
     {
         .lebar-list-item{
-            width:200%;
+            width:100%;
         }
         .container-list-item{
             max-width:100%;

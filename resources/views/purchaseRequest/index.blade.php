@@ -86,6 +86,7 @@
     </div>
   </div>
 </section>
+@include('partials.delete-modal')
 @endsection
 @section('styles')
 <style>
@@ -152,7 +153,7 @@
       tableId:"detailedTable",
       route:"{{ route("purchaseRequest.list") }}",
       kolom:{!! $kolom !!},
-      arrColPrint:[1,2,3,4,5,6,7,8,9,10],
+      arrColPrint:[1,2,3,4,5,6,7,8,9,10,11],
       columnDefs :[
         { width: '5%', targets: 0 },
       ],
@@ -193,6 +194,14 @@
       excelFileName:'purchase_request'
     });
   }
+
+
+  let href;
+  $(document).on('click', '#revisionReasonButton', function(event) {
+      event.preventDefault();
+      href = $(this).data('href');
+      $('#modalReasonRevision').attr("action", href);
+  });
 
   $.ajaxSetup({
     headers: {

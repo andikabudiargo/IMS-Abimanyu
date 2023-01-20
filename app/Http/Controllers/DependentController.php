@@ -360,9 +360,10 @@ class DependentController extends Controller
             ->get();          
 
         }elseif($dependent =='article_pr'){
+            /*  Pertmintaan bu lupi untuk yang FG juga bisa dibikinin PR */
             $data= DB::table($table)
             ->leftJoin('uom','uom.code','=',$table.'.uom')
-            ->whereNotIn('article_type',['FG'])
+            // ->whereNotIn('article_type',['FG'])
             ->orderBy($order)
             ->get();
         }elseif($dependent =='article_pr_sub'){

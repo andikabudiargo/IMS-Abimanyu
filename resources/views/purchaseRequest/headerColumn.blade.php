@@ -4,9 +4,14 @@
     }
 </style>
 <div class="form-row d-flex align-items-end judul">
-    <div class="col-md-6 col-12 d-none d-md-block">
+    <div class="col-md-5 col-12 d-none d-md-block">
         <div class="form-group">
             <label class="d-none d-md-block">Article Code</label>
+        </div>
+    </div>
+    <div class="col-md-1 col-12 d-none d-md-block">
+        <div class="form-group">
+            <label class="d-none d-md-block text-right">Qty Stock</label>
         </div>
     </div>
     <div class="col-md-2 col-12 d-none d-md-block">
@@ -16,7 +21,7 @@
     </div>
     <div class="col-md-1 col-12 d-none d-md-block">
         <div class="form-group">
-            <label class="d-none d-md-block text-right">Uom</label>
+            <label class="d-none d-md-block text-left">Uom</label>
         </div>
     </div>
     <div class="col-md-2 col-12 d-none d-md-block">

@@ -85,6 +85,7 @@
     </div>
   </div>
 </section>
+@include('partials.delete-modal')
 @endsection
 @section('styles')
 <style>
@@ -199,6 +200,13 @@
       excelFileName:'target_sales_order'
     });
   }
+
+  let href;
+  $(document).on('click', '#revisionReasonButton', function(event) {
+      event.preventDefault();
+      href = $(this).data('href');
+      $('#modalReasonRevision').attr("action", href);
+  });
  
   $.ajaxSetup({
     headers: {

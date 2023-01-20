@@ -32,6 +32,7 @@ class PurchaseRequestController extends Controller
         [
             ['data'=>'action','name'=>'action','title'=>'action','orderable'=>false,'searchable'=>false],
             ['data'=>'pr_number','name'=>'pr_number','title'=>'PR Number'],
+            ['data'=>'num_revision','name'=>'num_revision','title'=>'Revision'],
             ['data'=>'order_type','name'=>'order_type','title'=>'Order Type'],
             ['data'=>'dept','name'=>'dept','title'=>'Department'],
             ['data'=>'date','name'=>'date','title'=>'PR Date'],
@@ -126,13 +127,15 @@ class PurchaseRequestController extends Controller
         $username =  Auth::user()->username;
         $articles = json_decode($request -> articles);
         $orderDate = $request->orderDate;
+        $stockDate = $request->stockDate ? date('Y-m-d', strtotime($request->stockDate)) : '';
         $orderType = $request->poType;
         $dept = $request->dept;
         $note = $request->note;
         $tsoCode = $request->tsoCode;
         $status = '1';
         $print_seq = 0;
-        switch ($orderType) { 
+        
+        switch ($orderType) {
             case 'std':
                 $prLeadCode = 'PR';
                 break;
@@ -183,56 +186,60 @@ class PurchaseRequestController extends Controller
             $prNumber = $this->getLastCode($prLeadCode);
             DB::beginTransaction();
             try {
-                    DB::table('purchase_request_hdr')->insert([
+                DB::table('purchase_request_hdr')->insert([
+                    'pr_number' => $prNumber,
+                    'dept' => $dept,
+                    'date' => $orderDate,
+                    'order_type' => $orderType,
+                    'status' => $status,
+                    'note' =>  $note,
+                    'authorized_by' => '',
+                    'prepared_by' =>  '',
+                    'print_seq' => $print_seq,
+                    'created_by' => Auth::user()->username,
+                    'updated_by' => Auth::user()->username,
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s'),
+                    'stock_date' => $stockDate,
+                    'tso_code' => $tsoCode
+                ]);
+
+                $dataSet = [];
+                foreach ($articles as $val) {
+                    $dataSet[] = [
                         'pr_number' => $prNumber,
-                        'dept' => $dept,
-                        'date' => $orderDate,
-                        'order_type' => $orderType,
-                        'status' => $status,
-                        'note' =>  $note,
-                        'authorized_by' => '',
-                        'prepared_by' =>  '',
-                        'print_seq' => $print_seq,
+                        'article_code' => $val->article_code,
+                        'qty' => $val->qty,
+                        'uom' => $val->uom,
+                        'supp_code' => $val->supp,
+                        'note' => $val->note,
                         'created_by' => Auth::user()->username,
-                        'updated_by' => Auth::user()->username,
                         'created_at' => date('Y-m-d H:i:s'),
-                        'updated_at' => date('Y-m-d H:i:s')
-                    ]);
+                        'qty_hitung' => $val->qty_hitung,
+                        'qty_stock' => $val->qty_stock,
+                    ];
+                }
 
-                    $dataSet = [];
-                    foreach ($articles as $val) {
-                        $dataSet[] = [
+                DB::table('purchase_request_det')->insert($dataSet);
+
+                if($orderType == 'tso'){
+                    DB::table('target_order_hdr')
+                    ->where('tso_code',$tsoCode)
+                    ->update(
+                        [
                             'pr_number' => $prNumber,
-                            'article_code' => $val->article_code,
-                            'qty' => $val->qty,
-                            'uom' => $val->uom,
-                            'supp_code' => $val->supp,
-                            'note' => $val->note,
-                            'created_by' => Auth::user()->username,
-                            'created_at' => date('Y-m-d H:i:s'),
-                        ];
-                    }
+                            'updated_by' => Auth::user()->username,
+                            'updated_at' => date('Y-m-d H:i:s')
+                        ]
+                    );
+                }
 
-                    if($orderType == 'tso'){
-                        DB::table('target_order_hdr')
-                        ->where('tso_code',$tsoCode)
-                        ->update(
-                            [
-                                'pr_number' => $prNumber,
-                                'updated_by' => Auth::user()->username,
-                                'updated_at' => date('Y-m-d H:i:s')
-                            ]
-                        );
-                    }
-
-                    DB::table('purchase_request_det')->insert($dataSet);
-
-                    DB::commit();
-                    $title ="Save $this->title";
-                    $alert  ="success";
-                    $message  = "$title $prNumber is successfully saved";
-                    \LogActivity::addToLog($title,"username: $username Status $message");
-                    return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'prNumber'=>$prNumber));
+                DB::commit();
+                $title ="Save $this->title";
+                $alert  ="success";
+                $message  = "$title $prNumber is successfully saved";
+                \LogActivity::addToLog($title,"username: $username Status $message");
+                return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'prNumber'=>$prNumber));
 
             } catch (Exception $e) {
                 DB::rollBack();
@@ -252,20 +259,25 @@ class PurchaseRequestController extends Controller
         $data['title'] = "Detail $this->title";
         $data['subtitle'] = "Detail $this->title";
 
-        $data['header'] = DB::table('purchase_request_hdr')
-        ->where('id',$id)
+        $data['headers'] = DB::table('purchase_request_hdr')
         ->select('purchase_request_hdr.*'
         ,DB::raw('(select sum(qty) from purchase_request_det where pr_number = purchase_request_hdr.pr_number) as sum_qty') 
         ,DB::raw('(select count(*) from purchase_request_det where pr_number = purchase_request_hdr.pr_number) as sum_row')
         )
-        ->get()->first();       
+        ->where('origin_pr_number', function($query) use ($id){
+            $query->select('pr_number')->from('purchase_request_hdr')->where('id',$id);
+        })
+        ->orderBy('id')
+        ->get();
 
-        $prNumber = $data['header']->pr_number;
+        $prNumber = $data['headers'][0]->pr_number;
 
         $data['details'] = DB::table('purchase_request_det')
+        ->whereIn('purchase_request_det.pr_number', function($query) use ($prNumber){
+            $query->select('pr_number')->from('purchase_request_hdr')->where('origin_pr_number',$prNumber);
+        })
         ->leftJoin('uom','uom.code','=','purchase_request_det.uom')
         ->leftJoin('article','article.article_code','=','purchase_request_det.article_code')
-        ->where('pr_number',$data['header']->pr_number)
         ->select('purchase_request_det'.'.*'
             ,'uom.uom_group'
             ,DB::raw("concat(article_alternative_code,'-',article_desc) as article")
@@ -282,7 +294,7 @@ class PurchaseRequestController extends Controller
 
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATED','3'=>'APPROVED','4'=>'RECEIVED','5'=>'CANCELED','6'=>"CLOSE",'7'=>'PO'];
         $statusPr = ['NEW','VALIDATED','APPROVED','RECEIVED','CANCELED','CLOSED','PO'];
-        $data['statusPr'] = $statusPr[$data['header']->status-1];
+        $data['statusPr'] = $statusPr[$data['headers'][0]->status-1];
 
         return view("purchaseRequest.show",$data);
         
@@ -292,8 +304,8 @@ class PurchaseRequestController extends Controller
     {   
         $username =  Auth::user()->username;
         $id=Crypt::decryptString($request->id);
-        $data['title'] = "Edit Purchase Request";
-        $data['subtitle'] = "Edit Purchase Request";
+        $data['title'] = "Edit $this->title";
+        $data['subtitle'] = "Edit $this->title";
 
         $data['header'] = DB::table('purchase_request_hdr')
         ->where('id',$id)
@@ -302,9 +314,10 @@ class PurchaseRequestController extends Controller
         $prNumber = $data['header']->pr_number;
         $orderType = $data['header']->order_type;
         $data['details'] = DB::table('purchase_request_det')
+        ->leftJoin('article','article.article_code','=','purchase_request_det.article_code')
         ->leftJoin('uom','uom.code','=','purchase_request_det.uom')
         ->where('pr_number',$data['header']->pr_number)
-        ->orderBy('purchase_request_det.id')
+        ->orderBy('article.article_alternative_code')
         ->get(); 
 
         $data['articles']= DB::table('article')
@@ -545,13 +558,15 @@ class PurchaseRequestController extends Controller
         // 5 = Canceled
         // 6 = closed
         // 7 = po
+        // 8 = revised   
 
-        $seachPr = strtolower($request->seachPr);
+        $searchPr = strtolower($request->searchPr);
         $orderType = strtolower($request->orderType);
         $searchStatus = $request->searchStatus;
         $requestDate = $request->requestDate;
         $fromDate ="";
         $toDate = "";
+ 
         if ($requestDate){
             $date = explode("to",$requestDate);
             if(count($date)>1){
@@ -566,12 +581,13 @@ class PurchaseRequestController extends Controller
         }
 
         $data = DB::table('purchase_request_hdr')
-        ->where(function ($query) use ($orderType,$seachPr,$searchStatus,$requestDate,$fromDate,$toDate) {
+        ->where(function ($query) use ($orderType,$searchPr,$searchStatus,$requestDate,$fromDate,$toDate) {
             $orderType ? $query->where('order_type',$orderType) : '';
-            $seachPr ? $query->where('pr_number','ilike','%'.$seachPr.'%') : '';
+            $searchPr ? $query->where('pr_number','ilike','%'.$searchPr.'%') : '';
             $searchStatus ? $query->where('status',$searchStatus) : '';
             $requestDate ? $query->whereBetween(DB::raw("to_date(date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
         })
+        ->where('status','!=','8')
         ->select('purchase_request_hdr.*',DB::raw("(select concat(code,'-',name) from depts where code = purchase_request_hdr.dept limit 1) as dept_name"))
         ->orderBy('id')
         ->get(); 
@@ -593,16 +609,30 @@ class PurchaseRequestController extends Controller
                 }
             }
 
-            if (Auth::user()->can('purchaseRequest-edit')) {
+            if (Auth::user()->can('purchaseRequest-edit') and ( $data->status == '2' or $data->status == '1')) {
             $buttons .=         '<a href="'. route('purchaseRequest.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                     <i data-feather="file-text"></i>
                                     Edit
                                 </a>';
-            // $buttons .=         '<a href="'. route('purchaseRequest.print', ['id'=>Crypt::encryptString($data->id)]) .'" target="_blank" class="dropdown-item">
-            //                         <i data-feather="printer"></i>
-            //                         Print
-            //                     </a>';
             }
+
+            if ( $data->status == '3' or $data->status == '2'){
+            $buttons .=         "<a href='javascript:;'
+                                    id='revisionReasonButton'
+                                    class='dropdown-item'
+                                    data-toggle='modal'
+                                    data-target='#reasonModalRevision'
+                                    data-href='". route("purchaseRequest.revision", ["id"=>Crypt::encryptString($data->id),"nR"=>$data->num_revision]) ."'>
+                                    <i data-feather='corner-down-left' class='feather-14-red'></i>
+                                    <span>". __('Revision') ."</span>
+                                </a>";
+            }
+
+            $buttons .=         '<a href="'. route('purchaseRequest.print', ['id'=>Crypt::encryptString($data->id)]) .'" target="_blank" class="dropdown-item">
+                                    <i data-feather="printer"></i>
+                                    Print
+                                </a>';
+
             $buttons .=         '<a href="'. route('purchaseRequest.show', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                     <i data-feather="list"></i>
                                     Detail
@@ -629,7 +659,7 @@ class PurchaseRequestController extends Controller
         })
         ->addColumn('status', function ($data) {
             $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary'];
-            $statusPo = ['NEW','VALIDATED','APPROVED','RECEIVED','CANCELED','CLOSED','PO'];
+            $statusPo = ['NEW','VALIDATED','APPROVED','RECEIVED','CANCELED','CLOSED','PO','REVISED'];
             return "<div class='badge ".$badges[$data->status - 1]."'>".$statusPo[$data->status - 1]."</div>";
         })
         ->addColumn('order_type', function ($data) {
@@ -729,54 +759,45 @@ class PurchaseRequestController extends Controller
     public function print(Request $request)
     {
         $id=Crypt::decryptString($request->id);
-
-        $data['companies']=DB::table('company')
-        ->where('code','ASN')
-        ->select('name as nama', 'address as alamat', DB::RAW('(select region_name from regions where region_code = city::integer)  as kota'),'tlp')
-        ->get()->first();
                 
-        $poHdr=DB::table('purchase_request_hdr')
-        ->where('id',$id)
+        $prHdr=DB::table('purchase_request_hdr')
+        ->leftJoin('depts','depts.code','purchase_request_hdr.dept')
+        ->where('purchase_request_hdr.id',$id)
         ->first();
 
-        $prNumber=$poHdr -> po_number;
+        $prNumber=$prHdr -> pr_number;
        
-
         $data['details']=DB::table('purchase_request_det')
         ->leftJoin('article','article.article_code','purchase_request_det.article_code')
-        ->where('po_number',$prNumber)
+        ->select('article_alternative_code','article_desc','qty','purchase_request_det.uom')
+        ->where('pr_number',$prNumber)
+        ->orderBy('purchase_request_det.id')
         ->get();
 
-        $data['totals']=DB::select("SELECT *,(gross-discount)+ppn as netto from (
-            select a.po_number,authorized_by,prepared_by,sum(qty) as qty,sum(qty*price) as gross,sum(discount) as discount,sum(a.ppn) as ppn from purchase_request_det a
-            left join purchase_request_hdr b
-            on a.po_number = b.po_number 
-            where a.po_number = '$prNumber'
-            group by a.po_number,authorized_by,prepared_by) as oki");
-
-        $data['suppliers']=DB::table('third_party')
-        ->where('kode',$poHdr -> supplier_id)
-        ->get();
-
-        $data['keterangan']=$poHdr -> note;
         $data['prNumber'] =$prNumber;
-        $data['poDate'] =$poHdr -> po_date;
-        $data['poTerm'] =$poHdr -> termin;
-        $data['poDelDate'] =$poHdr -> delivery_date;
-        
-        $data['status'] ='1';
-        $data['no'] =1;
+        $data['prDate'] =$prHdr->date;
+        $data['prType'] =$prHdr->order_type;
+        $data['prNote'] =$prHdr->note;
+        $data['prRequest'] =$prHdr->name;
+
+        $statusPr = ['NEW','VALIDATED','APPROVED','RECEIVED','CANCELED','CLOSED','PO'];
+        $data['prStatus'] = $statusPr[$prHdr->status-1];
+
+        $data['no'] =0;
 
         view()->share($data);
 
         $pdf = PDF::loadView('purchaseRequest.print');
-        return $pdf->stream("PO_$prNumber.pdf");
+        return $pdf->stream("PR_$prNumber.pdf");
 
     }
 
     public function articleTso(Request $request)
     {
         $tsoCode = $request->tsoCode;
+        $stockDate = $request->stockDate ? date('Y-m-d', strtotime($request->stockDate)) : '';
+        $siteCode = 'HO';
+        $location = 'WH';
         $articles = DB::table('target_order_det')
         ->where('tso_code',$tsoCode)
         ->get();
@@ -806,20 +827,26 @@ class PurchaseRequestController extends Controller
         ,qty_stock
         ,sum(qty_order * qty_bom) as total
         ,ceil(((sum(qty_order * qty_bom)-qty_stock)+safety_stock)/min_package) * min_package as grand_total
-        ,uom_order as uom
+        ,uom_article as uom
+        ,(select uom_group from uom where uom.code = uom_article) as uom_group
+        ,(select third_party from article where article.article_code = article_code_det) as supp
+        ,alternative
+        ,article_desc
         from(
         select 
         bom_det.article_code as article_code_det
         ,production_detail_temp.qty as qty_order
         ,production_detail_temp.uom as uom_order
-        ,bom_det.qty * coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = article.uom),1) as qty_bom
+        ,bom_det.qty * coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = bom_det.uom),1) as qty_bom
         ,bom_det.uom as uom_bom
         ,article.uom as uom_article
         ,bom_hdr.article_code 
         ,coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = article.uom),1) as factor_qty
         ,coalesce((select coalesce(min_package,1) from article where article_code = bom_det.article_code),1) as min_package 
         ,coalesce(article.safety_stock,0) as safety_stock 
-        ,coalesce((select article_qty from article_stock where site_code = 'HO' and article_code = bom_det.article_code),0) as qty_stock
+        ,get_last_qty(bom_det.article_code,'$stockDate','$siteCode','$location') as qty_stock
+        ,article_alternative_code as alternative
+        ,article_desc
         from production_detail_temp
         left join bom_hdr on bom_hdr.article_code=production_detail_temp.article_code
         left join bom_det on  bom_det.bom_code = bom_hdr.bom_code
@@ -828,9 +855,9 @@ class PurchaseRequestController extends Controller
         and bom_hdr.status = '3'
         order by bom_det.article_code
         ) a
-        group by article_code_det,uom_order,min_package,safety_stock,qty_stock
+        group by article_code_det,alternative,article_desc,uom_article,min_package,safety_stock,qty_stock
         having (ceil(((sum(qty_order * qty_bom)-qty_stock)+safety_stock)/min_package) * min_package) > 0
-        order by article_code_det");
+        order by alternative");
 
         /* cara2
         $data=DB::select("SELECT 
@@ -905,4 +932,143 @@ class PurchaseRequestController extends Controller
         
         return response()->json($data);                        
     }
+
+    public function revision(Request $request){
+        $username =  Auth::user()->username;
+        $id=Crypt::decryptString($request->id);
+        $prOrigin=DB::table('purchase_request_hdr')
+        ->where('id',$id)
+        ->value('pr_number');
+        $numRevision = $request->nR ? $request->nR +1 : 1 ;
+        $prNew = $prOrigin.'-R'.$numRevision;
+        
+        $checkNewPr=DB::table('purchase_request_hdr')
+        ->where('pr_number',$prNew)->count();
+
+        $reason = "(Revision by $username, Reason: $request->reason)";
+
+        if ($checkNewPr > 0){
+            $prNew = $prOrigin.'-R'.($numRevision+1);
+        } 
+                
+        $sqlHdr = "INSERT into purchase_request_hdr 
+        (
+            pr_number,
+            dept,
+            date,
+            authorized_by,
+            prepared_by,
+            order_type,
+            status,
+            note,
+            print_seq,
+            created_by,
+            updated_by,
+            created_at,
+            updated_at,
+            stock_date,
+            tso_code,
+            origin_pr_number,
+            num_revision,
+            revised_by,
+            revised_at
+        )
+        select 
+            '$prNew',
+            dept,
+            date,
+            authorized_by,
+            prepared_by,
+            order_type,
+            '8',
+            CONCAT(note,', $reason'),
+            print_seq,
+            '$username',
+            '$username',
+            '".date('Y-m-d H:i:s')."',
+            '".date('Y-m-d H:i:s')."',
+            stock_date,
+            tso_code,
+            '$prOrigin',
+            $numRevision,
+            '$username',
+            '".date('Y-m-d H:i:s')."'
+        from purchase_request_hdr where pr_number = '$prOrigin'";
+
+        $sqlDet="INSERT into purchase_request_det
+        (
+            pr_number,
+            po_number,
+            article_code,
+            qty,
+            uom,
+            supp_code,
+            status,
+            note,
+            created_by,
+            updated_by,
+            created_at,
+            updated_at,
+            qty_hitung,
+            qty_stock
+        )
+        select '$prNew',
+            po_number,
+            article_code,
+            qty,
+            uom,
+            supp_code,
+            status,
+            note,
+            '$username',
+            '$username',
+            '".date('Y-m-d H:i:s')."',
+            '".date('Y-m-d H:i:s')."',
+            qty_hitung,
+            qty_stock
+        from purchase_request_det where pr_number = '$prOrigin'";
+
+        $rowAffected =  DB::select($sqlHdr);
+        if ($rowAffected){
+            DB::select($sqlDet);
+
+            DB::table('purchase_request_hdr')
+            ->where('pr_number',$prOrigin)
+            ->update(
+                [
+                    'num_revision' => $numRevision,
+                    'status' => '1',
+                    'note'=> DB::raw("CONCAT(note,', $reason')"),
+                    'revised_by'=>Auth::user()->username,
+                    'revised_at'=> date('Y-m-d H:i:s'),
+                    'updated_by' => Auth::user()->username,
+                    'updated_at' => date('Y-m-d H:i:s')
+                ]
+            );
+
+            DB::table('approval_history')
+            ->where('module_number',$prOrigin)
+            ->update(
+                [
+                    'module_number' => $prNew,
+                    'status' => '0',
+                    'updated_by' => Auth::user()->username,
+                    'updated_at' => date('Y-m-d H:i:s')
+                ]
+            );
+            
+            $title ="Save $this->title";
+            $alert  ="success";
+            $message  = "$title Revision Pr: $prOrigin to $prNew is successfully saved";
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return redirect()->route('purchaseRequest.edit', ['id'=>Crypt::encryptString($id)]);
+        }else{
+            $title ="Save $this->title";
+            $alert  ="warning";
+            $message  = "$title Revision Pr: $prOrigin to $prNew is failed to save";
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);
+        }       
+    }
+
 }
