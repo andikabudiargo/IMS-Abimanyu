@@ -37,8 +37,8 @@
         }
 
         body { 
-            /* font-family: Courier New,Courier,Lucida Sans Typewriter,Lucida Typewriter,monospace;  */
-            font-family: Calibri,Arial, Helvetica, sans-serif;
+            font-family: Courier New,Courier,Lucida Sans Typewriter,Lucida Typewriter,monospace; 
+            /* font-family: Calibri,Arial, Helvetica, sans-serif; */
             /* background-color: aqua; */
             width: 200mm; height: 280mm ;
         } 

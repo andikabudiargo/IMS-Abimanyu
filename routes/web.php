@@ -599,7 +599,7 @@ Route::group( ['middleware' => ['auth']], function() {
 		return "Cache is cleared";
 	});
 	
-	//kalo routing nya tidak di temukan maka keluar error 404
+	// kalo routing nya tidak di temukan maka keluar error 404
 	// Route::any('{all}', function(){
 	//     return view('errors.404_2');
 	// })->where('all', '.*');
