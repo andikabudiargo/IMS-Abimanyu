@@ -2,10 +2,126 @@
 <html lang="en">
     <head>
     <meta charset="UTF-8">
-    <title>REC</title>
+    <title>{{ $title }}</title>
     <style type="text/css">
+    html { 
+            margin: 10px;
+        }
 
-        html { 
+        /** For screen preview **/
+        @media screen {
+            body { 
+                width: 200mm; height: 280mm ;
+            }
+        }
+
+        /** Fix for Chrome issue #273306 **/
+        @media print {
+            .hidden-print {
+                display: none !important;
+            }
+
+            @page {
+                size:  auto; 
+                margin: 0 !important;
+                margin-left:10px;
+            }
+
+            p { page-break-after: always; }
+
+            body { 
+                width: 200mm; 
+                height: 280mm;
+                margin:0 !important;
+            }
+        }
+
+        body { 
+            /* font-family: Courier New,Courier,Lucida Sans Typewriter,Lucida Typewriter,monospace;  */
+            font-family: Calibri,Arial, Helvetica, sans-serif;
+            /* background-color: aqua; */
+            width: 200mm; height: 280mm ;
+        } 
+        
+        * {
+            /* font-family: Verdana, Arial, sans-serif; */
+            /* font-family: 'Courier New', monospace; */
+
+        }
+
+        table{
+            /* font-size: x-small; */
+            font-size: medium;
+        }
+        
+        tfoot tr td{
+            /*font-weight: bold;*/
+            /* font-size: medium; */
+        }
+        .gray {
+            background-color: lightgray;
+            font-weight: bold;
+        }
+
+        table {
+            width: 100%;
+        }
+
+        /* th {
+            height: 30px;
+        }
+        td {
+            height: 20px;
+        } */
+        th, td {
+            padding-left: 5px;
+            padding-right: 5px;
+            /*border-bottom: 1px solid #ddd;*/
+        }
+
+        .border-header{
+            border: 1px solid black;
+            border-collapse: collapse; 
+        }
+
+        
+            /* border: 1px solid black;
+            border-collapse: collapse; */
+        
+
+        .border-bottom{
+            border-bottom: 1px solid #ddd;
+        }
+
+        #watermark {
+            background: url('{{ asset('assets/img/lunas-stamp.png') }}') center;
+            background-size: 10px 10px;
+            background-repeat: no-repeat;
+            opacity: 0.1;
+        }
+
+        .{
+            padding : 0 2px 0 2px;
+        }
+
+        .font-12 {
+            font-size: 10px;
+        }
+
+        .font-10 {
+            font-size: 10px;
+        }
+
+        .font-9 {
+            font-size: 9px;
+        }
+
+        .font-8 {
+            font-size: 8px;
+        }
+
+
+        /* html { 
             margin: 10px;
         }
 
@@ -16,12 +132,12 @@
         table{
             font-size: x-small;
         }
-        
-        tfoot tr td{
+         */
+        /* tfoot tr td{ */
             /*font-weight: bold;*/
             /* font-size: medium; */
-        }
-        .gray {
+        /* } */
+        /* .gray {
             background-color: lightgray;
             font-weight: bold;
         }
@@ -39,10 +155,10 @@
         th, td {
             padding-left: 5px;
             padding-right: 5px;
-            /*border-bottom: 1px solid #ddd;*/
-        }
+            
+        } */
 
-        .border-bottom{
+        /* .border-bottom{
             border-bottom: 1px solid #ddd;
         }
 
@@ -51,7 +167,7 @@
             background-size: 10px 10px;
             background-repeat: no-repeat;
             opacity: 0.1;
-        }
+        } */
 
         /* td {
             white-space: nowrap;
@@ -65,7 +181,8 @@
     <table width="100%" border="0">
         <tr>
             <td width="30%" >
-                <img src="{{ public_path('app-assets/images/logo/logo_po.png') }}" alt="logo" style="width: 60%;"> 
+                {{-- <img src="{{ public_path('app-assets/images/logo/logo_po.png') }}" alt="logo" style="width: 60%;">  --}}
+                <img src="{{ asset('app-assets/images/logo/logo_po.png') }}" alt="logo" style="width: 70%;"> 
             </td>
             <td valign="top" style="text-align:center"><h2>LEMBAR PENERIMAAN BARANG</h2></td>
             <td width="30%" ></td>
@@ -86,14 +203,14 @@
             </td>
         </tr>
     </table>
-    <table style="table-layout:fixed;">
+    <table style="table-layout:fixed;" id="okiTable">
         <thead style="background-color: lightgray;">
-        <tr>
-            <th width="5%">No</th>
-            <th width="10%">Code</th>
-            <th width="45%">Description</th>
-            <th width="10%">Qty</th>
-        </tr>
+            <tr >
+                <th width="5%" class="border-header">No</th>
+                <th width="10%" class="border-header">Code</th>
+                <th width="45%" class="border-header">Description</th>
+                <th width="10%" class="border-header">Qty</th>
+            </tr>
         </thead>
         <tbody>
             @foreach ($details as $val )
@@ -118,27 +235,32 @@
         </tfoot>
     </table>
     <table width="100%" border="0">
-        <tr><td colspan="2" height="100"></td></tr>
-        <tr><td colspan="2" height="100"></td></tr>
+        <tr><td colspan="2" height="10"></td></tr>
         <tr>
             <td align="center">Authorized By</td>
             <td align="center">Prepared By</td>
         </tr>
         <tr>
-            <td align="center"></td>
-            <td align="center"></td>
+            <td align="center" height="30"></td>
+            <td align="center" height="30"></td>
         </tr>
         <tr>
-            <td align="center"></td>
-            <td align="center"></td>
-        </tr>
-        <tr>
-            <td align="center"> {{ $approved }} </td>
-            <td align="center"> {{ $recHdr->created_by }} </td>
+            {{-- <td align="center"> {{ $approved }} </td>
+            <td align="center"> {{ $recHdr->created_by }} </td> --}}
+            <td align="center">( _________ )</td>
+            <td align="center">( _________ )</td>
         </tr>
     </table>
 {{-- @if($poNumber == "oki")
 </div>
 @endif --}}
+<script>
+    window.onload= function () {
+        window.print();
+        window.onafterprint = function () {
+            window.close();
+        }
+    }
+</script>
 </body>
 </html>

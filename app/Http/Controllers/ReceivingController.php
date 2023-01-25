@@ -1089,10 +1089,14 @@ class ReceivingController extends Controller
 
         $data['no'] =0;
 
-        view()->share($data);
+        $data['title'] =$recNumber;
 
-        $pdf = PDF::loadView('receiving.print');
-        return $pdf->stream("PO_$recNumber.pdf");
+        return view('receiving.print',$data);
+
+        // view()->share($data);
+
+        // $pdf = PDF::loadView('receiving.print');
+        // return $pdf->stream("PO_$recNumber.pdf");
 
     }
 

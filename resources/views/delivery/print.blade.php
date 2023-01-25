@@ -84,6 +84,11 @@
             border-bottom: 1px solid #ddd;
         }
 
+        .border-header{
+            border: 1px solid black;
+            border-collapse: collapse; 
+        }
+
         #watermark {
             background: url('{{ asset('assets/img/lunas-stamp.png') }}') center;
             background-size: 10px 10px;
@@ -174,11 +179,11 @@
             {{-- <thead style="background-color: lightgray;"> --}}
             <thead style="background-color: lightgray;">
             <tr>
-                <th width="5%">No</th>
-                <th width="15%">Code</th>
-                <th width="60%">Description</th>
-                <th width="10%">Qty</th>
-                <th width="10%">UOM</th>
+                <th width="5%" class="border-header">No</th>
+                <th width="15%" class="border-header">Code</th>
+                <th width="60%" class="border-header">Description</th>
+                <th width="10%" class="border-header">Qty</th>
+                <th width="10%" class="border-header">UOM</th>
             </tr>
             </thead>
             <tbody>
