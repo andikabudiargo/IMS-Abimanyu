@@ -195,7 +195,7 @@
 @endsection
 @section('styles')
 <link rel="stylesheet" type="text/css" href="{{ asset('assets/css/jquery-ui.css') }}">
-<link rel="stylesheet" type="text/css" href="{{asset('app-assets/css/pages/app-ecommerce.css')}}">
+{{-- <link rel="stylesheet" type="text/css" href="{{asset('app-assets/css/pages/app-ecommerce.css')}}"> --}}
 <style>
     textarea {
         resize: none;
@@ -231,7 +231,7 @@
 @endsection
 @section('scripts')
 <script src="{{ asset('assets/js/ui.1.13.0.jquery-ui.js') }}"></script>
-<script src="{{asset('app-assets/vendors/js/extensions/dropzone.min.js')}}"></script>
+{{-- <script src="{{asset('app-assets/vendors/js/extensions/dropzone.min.js')}}"></script> --}}
 <script type="text/javascript">
     let hapusCount=1;
     $(document).ready(function(){           

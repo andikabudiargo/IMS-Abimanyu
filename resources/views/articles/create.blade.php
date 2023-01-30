@@ -152,7 +152,7 @@
 @endsection
 @section('scripts')
 <script src="{{ asset('assets/js/ui.1.13.0.jquery-ui.js') }}"></script>
-<script src="{{asset('app-assets/vendors/js/extensions/dropzone.min.js')}}"></script>
+{{-- <script src="{{asset('app-assets/vendors/js/extensions/dropzone.min.js')}}"></script> --}}
 <script type="text/javascript">
 
     $(document).ready(function(){    

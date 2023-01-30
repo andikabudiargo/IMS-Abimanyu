@@ -91,13 +91,13 @@
                             <div class="col-6">
                                 <div class="form-group">
                                     <label for="safetyStock">Safety Stock</label>
-                                    <input type="text" id="safetyStock" name="safetyStock" class="form-control numeral-mask-digit" value="{{ old('safetyStock',$article->safety_stock) }}" maxlength="10"/>
+                                    <input type="text" id="safetyStock" name="safetyStock" class="form-control numeral-mask-digit" value="{{ old('safetyStock',$article->safety_stock) }}" maxlength="10" disabled/>
                                 </div>
                             </div>
                             <div class="col-6">
                                 <div class="form-group">
                                     <label for="minimumPackage">Minimum package</label>
-                                    <input type="text" id="minimumPackage" name="minimumPackage" class="form-control numeral-mask" value="{{ old('minimumPackage',$article->min_package) }}" maxlength="10"/>
+                                    <input type="text" id="minimumPackage" name="minimumPackage" class="form-control numeral-mask" value="{{ old('minimumPackage',$article->min_package) }}" maxlength="10" disabled/>
                                 </div>
                             </div>
                         </div>
@@ -126,7 +126,7 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-6">
+        {{-- <div class="col-md-6">
             <div class="ecommerce-application">
                 <div class="grid-view wishlist-items">
                     @foreach ($images as $item)
@@ -144,10 +144,10 @@
                     @endforeach
                 </div>
             </div>
-        </div>
+        </div> --}}
     </div>
 </section>
-<div id="viewImg" class="modal bisa-geser fade text-left" tabindex="-1" role="dialog" aria-hidden="true">
+{{-- <div id="viewImg" class="modal bisa-geser fade text-left" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
         <div class="modal-content">
           <div class="modal-header" >
@@ -162,16 +162,16 @@
           </div>
         </div>
     </div>
-</div>
+</div> --}}
 @endsection
 @section('styles')
-<link rel="stylesheet" type="text/css" href="{{asset('app-assets/css/pages/app-ecommerce.css')}}">
+{{-- <link rel="stylesheet" type="text/css" href="{{asset('app-assets/css/pages/app-ecommerce.css')}}"> --}}
 <style>
     textarea {
         resize: none;
     }
 
-    #imgViewer::-webkit-scrollbar {
+    /* #imgViewer::-webkit-scrollbar {
         -webkit-appearance: none;
         height: 10px;
     }
@@ -195,12 +195,12 @@
 
     .ecommerce-application .grid-view .ecommerce-card .item-name {
         margin-top: 0.1rem;
-    }
+    } */
 
 </style>
 @endsection
 @section('scripts')
-<script src="{{asset('app-assets/vendors/js/extensions/dropzone.min.js')}}"></script>
+{{-- <script src="{{asset('app-assets/vendors/js/extensions/dropzone.min.js')}}"></script> --}}
 <script type="text/javascript">
     let hapusCount=1;
     $(document).ready(function(){           
@@ -213,14 +213,14 @@
         $(this).valid();
     });
     
-    $('.img-list').on('click', function(e) {
-        $('#imgViewer').html('').append( $(e.currentTarget).clone())
-        $('#viewImg').modal('show')
-    })
+    // $('.img-list').on('click', function(e) {
+    //     $('#imgViewer').html('').append( $(e.currentTarget).clone())
+    //     $('#viewImg').modal('show')
+    // })
 
-    $('.img-list').each(function(i,e) {
-        $(e).wrap('<div class="img-wrapper"></div>')
-    })
+    // $('.img-list').each(function(i,e) {
+    //     $(e).wrap('<div class="img-wrapper"></div>')
+    // })
 
 </script>
 @endsection

@@ -333,9 +333,9 @@ class ArticleController extends Controller
         ->where('id',$id)
         ->get(['brand','article_code','costprice','article_alternative_code as code','article_desc as desc','uom','quality','note','id','group_of_material as group','third_party as cust','quality','status','article_type','imgfile','color_code','variant','safety_stock','min_package'])->first();
 
-        $data['images'] = DB::table('images')
-        ->where('key',$data['article']->article_code)
-        ->get();
+        // $data['images'] = DB::table('images')
+        // ->where('key',$data['article']->article_code)
+        // ->get();
 
         $data['types'] = DB::table('article_types')
         ->where ('status','=',1)
