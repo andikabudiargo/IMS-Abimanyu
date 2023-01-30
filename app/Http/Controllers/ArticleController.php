@@ -104,10 +104,10 @@ class ArticleController extends Controller
         ->orderBy('name')
         ->get();
 
-        $data['articles']= DB::table('article') 
-        ->orderBy('article_desc')
-        ->distinct('article_desc')
-        ->pluck('article_desc');
+        // $data['articles']= DB::table('article') 
+        // ->orderBy('article_desc')
+        // ->distinct('article_desc')
+        // ->pluck('article_desc');
                         
         return view("articles.create",$data);
     }
@@ -357,10 +357,10 @@ class ArticleController extends Controller
         ->orderBy('name')
         ->get();
 
-        $data['articles']= DB::table('article') 
-        ->orderBy('article_desc')
-        ->distinct('article_desc')
-        ->pluck('article_desc');
+        // $data['articles']= DB::table('article') 
+        // ->orderBy('article_desc')
+        // ->distinct('article_desc')
+        // ->pluck('article_desc');
 
         $data['suppliers']= DB::table('article_supplier') 
         ->where('article_code',$data['article']->article_code)

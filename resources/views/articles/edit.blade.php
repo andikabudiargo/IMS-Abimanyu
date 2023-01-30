@@ -123,7 +123,7 @@
                             </div>
                         </div>                        
                     </form>
-                    <div class="form-row">
+                    {{-- <div class="form-row">
                         <div class="col-md-12">
                             <div class="card">
                                 <div class="card-header">
@@ -138,19 +138,17 @@
                                 </form>
                             </div>
                         </div>
-                    </div>
+                    </div> --}}
                     <div class="form-row">
                         <div class="col-12">
-                            <a href="{{ route('articles.index') }}" class="btn btn-outline-secondary">
-                                Back
-                            </a>
+                            <a href="{{ route('articles.index') }}" class="btn btn-outline-secondary">Back</a>
                             <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Update</button>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-6">
+        {{-- <div class="col-md-6">
             <div class="ecommerce-application">
                 <div class="grid-view wishlist-items">
                     @foreach ($images as $item)
@@ -163,9 +161,7 @@
                                 </div>                                
                             </div>
                             <div class="card-body">
-                                {{-- <div class="item-name">
-                                    {{ $item->name }}
-                                </div> --}}
+                                
                             </div>
                             <div class="text-center">
                                 <button type="button" class="btn btn-light btn-wishlist btn-block removeItem">
@@ -177,10 +173,10 @@
                     @endforeach
                 </div>
             </div>
-        </div>
+        </div> --}}
     </div>
 </section>
-<div id="viewImg" class="modal bisa-geser fade text-left" tabindex="-1" role="dialog" aria-hidden="true">
+{{-- <div id="viewImg" class="modal bisa-geser fade text-left" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
         <div class="modal-content">
           <div class="modal-header" >
@@ -195,7 +191,7 @@
           </div>
         </div>
     </div>
-</div>
+</div> --}}
 @endsection
 @section('styles')
 <link rel="stylesheet" type="text/css" href="{{ asset('assets/css/jquery-ui.css') }}">
@@ -205,7 +201,7 @@
         resize: none;
     }
 
-    #imgViewer::-webkit-scrollbar {
+    /* #imgViewer::-webkit-scrollbar {
         -webkit-appearance: none;
         height: 10px;
     }
@@ -229,7 +225,7 @@
 
     .ecommerce-application .grid-view .ecommerce-card .item-name {
         margin-top: 0.1rem;
-    }
+    } */
 
 </style>
 @endsection
@@ -244,79 +240,90 @@
         mask_thousand_digit(2);
     });
 
-    let availableTags ="{{ $articles }}";
-    availableTags=availableTags.replace(/[[\]]/g,'');
-    availableTags=availableTags.replace(/&quot;/g,'').split(",");
-    $("#nama").autocomplete({
-        source: availableTags
+    $("#cmdSave").click(function (e) {
+        e.preventDefault();
+        if (!$("#frmAdd")[0].checkValidity()){
+            $('.disabled-el').removeAttr('disabled');
+            $("#frmAdd").submit();
+        }else{
+            $('.disabled-el').removeAttr('disabled');
+            $("#frmAdd").submit();
+        }
     });
+
+    // let availableTags ="{{-- $articles --}}";
+    // availableTags=availableTags.replace(/[[\]]/g,'');
+    // availableTags=availableTags.replace(/&quot;/g,'').split(",");
+    // $("#nama").autocomplete({
+    //     source: availableTags
+    // });
 
     $(".select2").on('change', function() {
         $(this).valid();
     });
     
     // Dropzone.autoDiscover = false;
-    Dropzone.options.dropzone = {
-        maxFilesize: 3, // MB
-        acceptedFiles: ".jpeg,.jpg,.png,.gif",
-        addRemoveLinks: true,
-        dictRemoveFile: 'Delete',
-        parallelUploads:10,
-        uploadMultiple:true,
-        timeout: 5000,
-        autoProcessQueue: false,
-        init: function () {
-            let myDropzone = this;
-            $("#cmdSave").click(function (e) {
-                e.preventDefault();
-                // let jumFile = myDropzone.getAcceptedFiles().length;
-                let jumFile = myDropzone.getQueuedFiles().length
-                if (jumFile > 0){
-                    myDropzone.processQueue();
-                }else{
-                    $('.disabled-el').removeAttr('disabled');
-                    $("#frmAdd").submit();
-                }
-            });
-        },
-        success: function( file, response ){
-            // obj = JSON.parse(response);
-            // console.log(response.message); // <---- here is your filename
+    // Dropzone.options.dropzone = {
+    //     maxFilesize: 3, // MB
+    //     acceptedFiles: ".jpeg,.jpg,.png,.gif",
+    //     addRemoveLinks: true,
+    //     dictRemoveFile: 'Delete',
+    //     parallelUploads:10,
+    //     uploadMultiple:true,
+    //     timeout: 5000,
+    //     autoProcessQueue: false,
+    //     init: function () {
+    //         let myDropzone = this;
+    //         $("#cmdSave").click(function (e) {
+    //             e.preventDefault();
+    //             // let jumFile = myDropzone.getAcceptedFiles().length;
+    //             let jumFile = myDropzone.getQueuedFiles().length
+    //             if (jumFile > 0){
+    //                 myDropzone.processQueue();
+    //             }else{
+    //                 $('.disabled-el').removeAttr('disabled');
+    //                 $("#frmAdd").submit();
+    //             }
+    //         });
+    //     },
+    //     success: function( file, response ){
+    //         // obj = JSON.parse(response);
+    //         // console.log(response.message); // <---- here is your filename
 
-            jQuery.each( response.files, function( i, val ) {
-                if(!$('#files_'+i).length){
-                    $('#fileUpload').append('<input type="text" id="files_'+ i+'" name="files[]" value="'+ val +'">');
-                }
-            });
+    //         jQuery.each( response.files, function( i, val ) {
+    //             if(!$('#files_'+i).length){
+    //                 $('#fileUpload').append('<input type="text" id="files_'+ i+'" name="files[]" value="'+ val +'">');
+    //             }
+    //         });
             
-            $('.disabled-el').removeAttr('disabled');
-            $("#frmAdd").submit();
-        }
-    };
+    //         $('.disabled-el').removeAttr('disabled');
+    //         $("#frmAdd").submit();
+    //     }
+    // };
 
-    $('.img-list').on('click', function(e) {
-        $('#imgViewer').html('').append( $(e.currentTarget).clone())
-        $('#viewImg').modal('show')
-    })
+    // $('.img-list').on('click', function(e) {
+    //     $('#imgViewer').html('').append( $(e.currentTarget).clone())
+    //     $('#viewImg').modal('show')
+    // })
 
-    $('.img-list').each(function(i,e) {
-        $(e).wrap('<div class="img-wrapper"></div>')
-    })
+    // $('.img-list').each(function(i,e) {
+    //     $(e).wrap('<div class="img-wrapper"></div>')
+    // })
 
-    let removeItem = $('.removeItem');
-    removeItem.on('click', function () {
-        $(this).closest('.ecommerce-card').remove();
-        let namaFile = $(this).closest('.ecommerce-card').data('namafile');
+    // let removeItem = $('.removeItem');
+    // removeItem.on('click', function () {
+    //     $(this).closest('.ecommerce-card').remove();
+    //     let namaFile = $(this).closest('.ecommerce-card').data('namafile');
         
-        toastr['error']('', 'Removed Item 🗑️', {
-            closeButton: true,
-            tapToDismiss: false
-        });
+    //     toastr['error']('', 'Removed Item 🗑️', {
+    //         closeButton: true,
+    //         tapToDismiss: false
+    //     });
 
-        $('#fileUpload').append('<input type="text" id="fileDihapus_'+ hapusCount+'" name="fileDihapus[]" value="'+ namaFile +'">');
+    //     $('#fileUpload').append('<input type="text" id="fileDihapus_'+ hapusCount+'" name="fileDihapus[]" value="'+ namaFile +'">');
 
-        hapusCount++;
-    });
+    //     hapusCount++;
+    // });
 
 </script>
 @endsection

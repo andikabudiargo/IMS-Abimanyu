@@ -155,9 +155,9 @@
         // let numberOfDecimalDigit = {{ env('APP_NUMBER_OFF_DECIMAL_DIGIT',2) }}
         let numberOfDecimalDigit = {{ $decimalPlaces }};
 
-        $("input[type='text']").click(function () {
-            $(this).select();
-        });
+        // $("input[type='text']").click(function () {
+        //     $(this).select();
+        // });
 
     </script>
     <script src="{{ asset('assets/js/app.js') }}"></script>

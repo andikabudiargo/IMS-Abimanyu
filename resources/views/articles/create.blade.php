@@ -114,7 +114,7 @@
                         <div id="fileUpload" class="d-none">
                         </div>
                     </form>
-                    <div class="form-row">
+                    {{-- <div class="form-row">
                         <div class="col-md-12">
                             <div class="card">
                                 <div class="card-header">
@@ -129,7 +129,7 @@
                                 </form>
                             </div>
                         </div>
-                    </div>
+                    </div> --}}
                     <div class="form-row">
                         <div class="col-12">
                             <button class="btn btn-success" type="reset" id="cmdNew" name="cmdNew">New</button>
@@ -161,48 +161,59 @@
         mask_thousand_digit(2);
     });
 
-    let availableTags ="{{ $articles }}";
-    availableTags=availableTags.replace(/[[\]]/g,'');
-    availableTags=availableTags.replace(/&quot;/g,'').split(",");
-    $("#nama").autocomplete({
-        source: availableTags
-    });
+    // let availableTags ="{{-- $articles --}}";
+    // availableTags=availableTags.replace(/[[\]]/g,'');
+    // availableTags=availableTags.replace(/&quot;/g,'').split(",");
+    // $("#nama").autocomplete({
+    //     source: availableTags
+    // });
     
     // Dropzone.autoDiscover = false;
-    Dropzone.options.dropzone = {
-        maxFilesize: 3, // MB
-        acceptedFiles: ".jpeg,.jpg,.png,.gif",
-        addRemoveLinks: true,
-        dictRemoveFile: 'Delete',
-        parallelUploads:10,
-        uploadMultiple:true,
-        timeout: 5000,
-        autoProcessQueue: false,
-        init: function () {
-            let myDropzone = this;
-            $("#cmdSave").click(function (e) {
-                e.preventDefault();
-                // let jumFile = myDropzone.getAcceptedFiles().length;
-                let jumFile = myDropzone.getQueuedFiles().length
-                if (jumFile > 0){
-                    myDropzone.processQueue();
-                }else{
-                    $('.disabled-el').removeAttr('disabled');
-                    $("#frmAdd").submit();
-                }
-            });
-        },
-        success: function( file, response ){
-            jQuery.each( response.files, function( i, val ) {
-                if(!$('#files_'+i).length){
-                    $('#fileUpload').append('<input type="text" id="files_'+ i+'" name="files[]" value="'+ val +'">');
-                }
-            });
+    // Dropzone.options.dropzone = {
+    //     maxFilesize: 3, // MB
+    //     acceptedFiles: ".jpeg,.jpg,.png,.gif",
+    //     addRemoveLinks: true,
+    //     dictRemoveFile: 'Delete',
+    //     parallelUploads:10,
+    //     uploadMultiple:true,
+    //     timeout: 5000,
+    //     autoProcessQueue: false,
+    //     init: function () {
+    //         let myDropzone = this;
+    //         $("#cmdSave").click(function (e) {
+    //             e.preventDefault();
+    //             // let jumFile = myDropzone.getAcceptedFiles().length;
+    //             let jumFile = myDropzone.getQueuedFiles().length
+    //             if (jumFile > 0){
+    //                 myDropzone.processQueue();
+    //             }else{
+    //                 $('.disabled-el').removeAttr('disabled');
+    //                 $("#frmAdd").submit();
+    //             }
+    //         });
+    //     },
+    //     success: function( file, response ){
+    //         jQuery.each( response.files, function( i, val ) {
+    //             if(!$('#files_'+i).length){
+    //                 $('#fileUpload').append('<input type="text" id="files_'+ i+'" name="files[]" value="'+ val +'">');
+    //             }
+    //         });
             
+    //         $('.disabled-el').removeAttr('disabled');
+    //         $("#frmAdd").submit();
+    //     }
+    // };
+
+    $("#cmdSave").click(function (e) {
+        e.preventDefault();
+        if (!$("#frmAdd")[0].checkValidity()){
+            $('.disabled-el').removeAttr('disabled');
+            $("#frmAdd").submit();
+        }else{
             $('.disabled-el').removeAttr('disabled');
             $("#frmAdd").submit();
         }
-    };
+    });
       
     $("#cmdNew").click(function() {
         window.location.reload();
