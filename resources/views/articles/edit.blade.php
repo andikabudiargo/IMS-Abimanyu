@@ -152,7 +152,7 @@
             <div class="ecommerce-application">
                 <div class="grid-view wishlist-items">
                     @foreach ($images as $item)
-                        <div class="card ecommerce-card" data-namafile="{{ $item->path }}" style="padding: 5px;">
+                        <div class="card ecommerce-card" data-namafile="{{ --$item->path }}" style="padding: 5px;">
                             <div class="item-img text-center">
                                 <div style="max-height:350px;overflow:hidden">
                                     <img src="{{ asset('storage/'. $item->path) }}" alt="{{ $item->name }}" 
