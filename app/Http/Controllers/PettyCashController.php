@@ -408,12 +408,12 @@ class PettyCashController extends Controller
 
             // $idBaru = DB::table('purchase_order_hdr')->where('po_number',$poNew)->value('id');
             $alert  ="alert-success";
-            $message  = "Revison PO: $poOrigin to $poNew is successfully saved";
+            $message  = "Revision PO: $poOrigin to $poNew is successfully saved";
             \LogActivity::addToLog('SO save ',"username: $username Status $message");
             return $this->showEdit($id);
         }else{
             $alert  ="alert-warning";
-            $message  = "Revison PO: $poOrigin to $poNew is successfully failed";
+            $message  = "Revision PO: $poOrigin to $poNew is successfully failed";
             \LogActivity::addToLog('PO delete ',"username: $username Status $message");
             return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);
         }

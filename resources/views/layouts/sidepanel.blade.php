@@ -247,7 +247,7 @@
             @endcan
           </ul>
         </li>
-        <li class=" {{ in_array(\Request::segment(1), ['boms','workingOrders','workOrderSheet','deliveryPlan']) ? 'active' : '' }} nav-item">
+        <li class=" {{ in_array(\Request::segment(1), ['boms','workingOrders','workOrderSheet','deliveryPlan','wosMixing']) ? 'active' : '' }} nav-item">
           <a class="d-flex align-items-center" href="javascript:void(0);">
             <i data-feather='tool'></i>
             <span class="menu-title text-truncate" data-i18n="Form Elements">PPIC
@@ -262,6 +262,7 @@
               </a>
             </li>
             @endcan --}}
+
             @can('production-index')
             <li class="{{ \Request::segment(1) == 'production' ? 'active' : '' }}" >
               <a class="d-flex align-items-center" href="{{ route('production.index') }}">
@@ -276,6 +277,15 @@
               <a class="d-flex align-items-center" href="{{ route('workingOrderSheets.index') }}">
                 <i data-feather="circle"></i>
                 <span class="menu-item text-truncate" data-i18n="Input">Work Order Sheet</span>
+              </a>
+            </li>
+            @endcan
+
+            @can('wosMixing-index')
+            <li class="{{ \Request::segment(1) == 'wosMixing' ? 'active' : '' }}" >
+              <a class="d-flex align-items-center" href="{{ route('wosMixing.index') }}">
+                <i data-feather="circle"></i>
+                <span class="menu-item text-truncate" data-i18n="Input">Wos Mixing</span>
               </a>
             </li>
             @endcan

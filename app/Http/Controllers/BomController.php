@@ -795,7 +795,8 @@ class BomController extends Controller
             revised_by,
             revised_at,
             part_no,
-            model
+            model,
+            article_code_rm
         )
         select 
             '$bomNew',
@@ -819,7 +820,8 @@ class BomController extends Controller
             '$username',
             '".date('Y-m-d H:i:s')."',
             part_no,
-            model
+            model,
+            article_code_rm
         from bom_hdr where bom_code = '$bomOrigin'";
 
         $sqlDet="INSERT into bom_det
@@ -888,14 +890,14 @@ class BomController extends Controller
             
             $title ="Save $this->title";
             $alert  ="success";
-            $message  = "$title Revison PO: $bomOrigin to $bomNew is successfully saved";
+            $message  = "$title Revision PO: $bomOrigin to $bomNew is successfully saved";
             \LogActivity::addToLog($title,"username: $username Status $message");
             // return $this->showEdit(Crypt::encryptString($id));
             return redirect()->route('bom.edit', ['id'=>Crypt::encryptString($id)]);
         }else{
             $title ="Save $this->title";
             $alert  ="warning";
-            $message  = "$title Revison PO: $bomOrigin to $bomNew is failed to save";
+            $message  = "$title Revision PO: $bomOrigin to $bomNew is failed to save";
             \LogActivity::addToLog($title,"username: $username Status $message");
             return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);
         }

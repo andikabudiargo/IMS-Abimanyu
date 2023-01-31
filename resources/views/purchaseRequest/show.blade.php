@@ -33,99 +33,100 @@
                         </ul>
                         <div class="tab-content">
                             @foreach( $headers as $key =>$header2 )
-                            <div class="tab-pane {{ $key == 0 ? 'active':'' }}" id="rev{{ $key }}" aria-labelledby="revison{{ $key }}-tab" role="tabpanel">
-                                <form id="frmAdd" name="frmAdd" autocomplete="off">
-                                    @csrf
-                                    <input type="text" id="article" name="article" hidden>
-                                    <div class="form-row">
-                                        <div class="form-group col-md-3">
-                                            <label for="prNumber">Request Number</label> <small class="text-muted"> automatic</small>
-                                            <input type="text" id="prNumber" name="prNumber" class="form-control disabled-el" value="{{ $header2->pr_number }}" disabled />
+                                <div class="tab-pane {{ $key == 0 ? 'active':'' }}" id="rev{{ $key }}" aria-labelledby="revison{{ $key }}-tab" role="tabpanel">
+                                    <form id="frmAdd" name="frmAdd" autocomplete="off">
+                                        @csrf
+                                        <input type="text" id="article" name="article" hidden>
+                                        <div class="form-row">
+                                            <div class="form-group col-md-3">
+                                                <label for="prNumber">Request Number</label> <small class="text-muted"> automatic</small>
+                                                <input type="text" id="prNumber" name="prNumber" class="form-control disabled-el" value="{{ $header2->pr_number }}" disabled />
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div class="form-row">
-                                        <div class="form-group col-md-2">
-                                            <label class="form-label" for="poType">PO Type*</label>
-                                            <select class="select2 form-control" id="poType" name="poType" required disabled >
-                                                <option value="std" {{ $header2->order_type == 'tso' ? "selected" : ""}}>Target SO</option>
-                                                <option value="std" {{ $header2->order_type == 'std' ? "selected" : ""}}>Standard</option>
-                                                <option value="sub" {{ $header2->order_type == 'rm' ? "selected" : ""}}>Raw Material</option>
-                                                <option value="sub" {{ $header2->order_type == 'sub' ? "selected" : ""}}>Subcontracting</option>
-                                            </select>
+                                        <div class="form-row">
+                                            <div class="form-group col-md-2">
+                                                <label class="form-label" for="poType">PO Type*</label>
+                                                <select class="select2 form-control" id="poType" name="poType" required disabled >
+                                                    <option value="std" {{ $header2->order_type == 'tso' ? "selected" : ""}}>Target SO</option>
+                                                    <option value="std" {{ $header2->order_type == 'std' ? "selected" : ""}}>Standard</option>
+                                                    <option value="sub" {{ $header2->order_type == 'rm' ? "selected" : ""}}>Raw Material</option>
+                                                    <option value="sub" {{ $header2->order_type == 'sub' ? "selected" : ""}}>Subcontracting</option>
+                                                </select>
+                                            </div>
+                                            <div class="form-group col-md-2">
+                                                <label for="orderDate">Order Date*</label>
+                                                <input type="text" id="orderDate" name="orderDate" class="form-control" placeholder="DD-MM-YYYY" value="{{ $header2->date }}"required disabled />
+                                            </div>
+                                            <div class="form-group col-md-3">
+                                                <label class="form-label" for="dept">Department*</label>
+                                                <select class="select2 form-control" id="dept" name="dept" required disabled >
+                                                    <option value=""></option>
+                                                    @foreach($depts as $val)
+                                                        <option value="{{$val->code}}" {{$val->code == $header2->dept ? "selected" : ""}}>{{$val->code}} - {{$val->name}}</option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
                                         </div>
-                                        <div class="form-group col-md-2">
-                                            <label for="orderDate">Order Date*</label>
-                                            <input type="text" id="orderDate" name="orderDate" class="form-control" placeholder="DD-MM-YYYY" value="{{ $header2->date }}"required disabled />
+                                        @if($header2->order_type == 'tso')
+                                        <div class="form-row" id="tsoBox">
+                                            <div class="form-group col-md-2">
+                                                <label for="stockDate">Stock Date</label>
+                                                <input type="text" id="stockDate" name="stockDate" class="form-control disabled-el" placeholder="DD-MM-YYYY" value="{{ date_format(date_create($header2->stock_date),'d-m-Y') }}" disabled/>
+                                            </div>
+                                            <div class="form-group col-md-5">
+                                                <label for="tsoCode">Target SO Number</label>
+                                                <input type="text" id="tsoCode" name="tsoCode" class="form-control disabled-el" value="{{ $header2->tso_code }}" disabled/>
+                                            </div>
                                         </div>
-                                        <div class="form-group col-md-3">
-                                            <label class="form-label" for="dept">Department*</label>
-                                            <select class="select2 form-control" id="dept" name="dept" required disabled >
-                                                <option value=""></option>
-                                                @foreach($depts as $val)
-                                                    <option value="{{$val->code}}" {{$val->code == $header2->dept ? "selected" : ""}}>{{$val->code}} - {{$val->name}}</option>
-                                                @endforeach
-                                            </select>
+                                        @endif
+                                        <div class="form-row">
+                                            <div class="form-group col-md-7">
+                                                <label class="form-label" for="note">Notes</label>
+                                                <textarea type="text" id="note" name="note" class="form-control" rows="1" disabled >{{ $header2->note }}</textarea>
+                                            </div>
                                         </div>
-                                    </div>
-                                    @if($header2->order_type == 'tso')
-                                    <div class="form-row" id="tsoBox">
-                                        <div class="form-group col-md-2">
-                                            <label for="stockDate">Stock Date</label>
-                                            <input type="text" id="stockDate" name="stockDate" class="form-control disabled-el" placeholder="DD-MM-YYYY" value="{{ date_format(date_create($header2->stock_date),'d-m-Y') }}" disabled/>
-                                        </div>
-                                        <div class="form-group col-md-5">
-                                            <label for="tsoCode">Target SO Number</label>
-                                            <input type="text" id="tsoCode" name="tsoCode" class="form-control disabled-el" value="{{ $header2->tso_code }}" disabled/>
-                                        </div>
-                                    </div>
-                                    @endif
-                                    <div class="form-row">
-                                        <div class="form-group col-md-7">
-                                            <label class="form-label" for="note">Notes</label>
-                                            <textarea type="text" id="note" name="note" class="form-control" rows="1" disabled >{{ $header2->note }}</textarea>
-                                        </div>
-                                    </div>
-                                </form>
-                                <hr>               
-                                <div class="table-responsive main-table">
-                                    <table class="table table-bordered w-100" >
-                                        <thead class="thead-dark">
-                                            <tr>
-                                                <th>No</th>
-                                                <th>Article</th>
-                                                <th class="text-right">QTY</th>
-                                                <th class="text-left">UOM</th>
-                                                <th class="text-right">Note</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                        @foreach( $details as $key =>$item )
-                                            @if($item->pr_number === $header2->pr_number )
+                                    </form>
+                                    <hr>               
+                                    <div class="table-responsive main-table">
+                                        <table class="table table-bordered w-100" >
+                                            <thead class="thead-dark">
                                                 <tr>
-                                                    <td ></td>
-                                                    <td >{{ $item->article }}</td>
-                                                    <td class="text-right">{{ number_format($item->qty) }} </td>
-                                                    <td>{{ $item->uom }}</td>
-                                                    <td class="text-right">{{ $item->note }}</td>
+                                                    <th>No</th>
+                                                    <th>Article</th>
+                                                    <th class="text-right">QTY</th>
+                                                    <th class="text-left">UOM</th>
+                                                    <th class="text-right">Note</th>
                                                 </tr>
-                                            @endif
-                                        @endforeach
-                                        </tbody>
-                                    </table>
-                                </div>
-                                <div class="d-flex justify-content-between align-items-end mt-75">
-                                    <div class="col-md-4">
-                                        <span>ROW : {{ $header2->sum_row }}</span> <br>
-                                        <span>QTY : {{ number_format($header2->sum_qty) }}</span>
+                                            </thead>
+                                            <tbody>
+                                            @foreach( $details as $key =>$item )
+                                                @if($item->pr_number === $header2->pr_number )
+                                                    <tr>
+                                                        <td ></td>
+                                                        <td >{{ $item->article }}</td>
+                                                        <td class="text-right">{{ number_format($item->qty) }} </td>
+                                                        <td>{{ $item->uom }}</td>
+                                                        <td class="text-right">{{ $item->note }}</td>
+                                                    </tr>
+                                                @endif
+                                            @endforeach
+                                            </tbody>
+                                        </table>
                                     </div>
-                                    <div class="col-md-4">
+                                    <div class="d-flex justify-content-between align-items-end mt-75">
+                                        <div class="col-md-4">
+                                            <span>ROW : {{ $header2->sum_row }}</span> <br>
+                                            <span>QTY : {{ number_format($header2->sum_qty) }}</span>
+                                        </div>
+                                        <div class="col-md-4">
+                                        </div>
+                                    </div>
+                                    <hr>
+                                    <div class="mt-75">
+                                        <a href="{{ route('purchaseRequests.index') }}" class="btn btn-warning">Back</a>
+                                        <a href="{{ route('purchaseRequest.print',['id'=>Crypt::encryptString($header2->id)]) }}" target="_blank" class="btn btn-success">Print</a>
                                     </div>
                                 </div>
-                                <hr>
-                                <div class="mt-75">
-                                    <a href="{{ route('purchaseRequests.index') }}" class="btn btn-warning">Back</a>
-                                </div>
-                            </div>
                             @endforeach
                         </div>
                         <hr>

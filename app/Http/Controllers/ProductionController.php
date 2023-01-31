@@ -1169,13 +1169,13 @@ class ProductionController extends Controller
             
             $title ="Save $this->title";
             $alert  ="success";
-            $message  = "$title Revison PRD: $prdOrigin to $prdNew is successfully saved";
+            $message  = "$title Revision PRD: $prdOrigin to $prdNew is successfully saved";
             \LogActivity::addToLog($title,"username: $username Status $message");
             return redirect()->route('production.edit', ['id'=>Crypt::encryptString($id)]);
         }else{
             $title ="Save $this->title";
             $alert  ="warning";
-            $message  = "$title Revison PRD: $prdOrigin to $prdNew is failed to save";
+            $message  = "$title Revision PRD: $prdOrigin to $prdNew is failed to save";
             \LogActivity::addToLog($title,"username: $username Status $message");
             return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);
         }

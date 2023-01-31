@@ -188,6 +188,7 @@ class PurchaseRequestController extends Controller
             try {
                 DB::table('purchase_request_hdr')->insert([
                     'pr_number' => $prNumber,
+                    'origin_pr_number' => $prNumber,
                     'dept' => $dept,
                     'date' => $orderDate,
                     'order_type' => $orderType,
@@ -474,7 +475,6 @@ class PurchaseRequestController extends Controller
         $username =  Auth::user()->username;
         $prNumber = $request->prNumber;
         $statusLevelApproval = Approval::approvalLevelPosition($this->moduleCode,$prNumber,$username);        
-        // dd($statusLevelApproval);
         $nextLevel = $statusLevelApproval[0]->next_level;
         $statusPr = $statusLevelApproval[0]->next_level == $statusLevelApproval[0]->max_level ? '3' :'2';
 
@@ -819,7 +819,87 @@ class PurchaseRequestController extends Controller
             grand_total = qty order = qty_order di kali bom dikurangin stock dan ditambah minimum stock
         */
 
-        //cara1
+        /* RM Di masukan juga ke PR*/
+
+        $data=DB::select("SELECT * from 
+        (SELECT 
+        article_code_det as article_code
+        ,min_package 
+        ,safety_stock
+        ,qty_stock
+        ,sum(qty_order * qty_bom) as total
+        ,ceil(((sum(qty_order * qty_bom)-qty_stock)+safety_stock)/min_package) * min_package as grand_total
+        ,uom_article as uom
+        ,(select uom_group from uom where uom.code = uom_article) as uom_group
+        ,(select third_party from article where article.article_code = article_code_det) as supp
+        ,alternative
+        ,article_desc
+        from(
+        select 
+        bom_det.article_code as article_code_det
+        ,production_detail_temp.qty as qty_order
+        ,production_detail_temp.uom as uom_order
+        ,bom_det.qty * coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = bom_det.uom),1) as qty_bom
+        ,bom_det.uom as uom_bom
+        ,article.uom as uom_article
+        ,bom_hdr.article_code 
+        ,coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = article.uom),1) as factor_qty
+        ,coalesce((select coalesce(min_package,1) from article where article_code = bom_det.article_code),1) as min_package 
+        ,coalesce(article.safety_stock,0) as safety_stock 
+        ,get_last_qty(bom_det.article_code,'$stockDate','$siteCode','$location') as qty_stock
+        ,article_alternative_code as alternative
+        ,article_desc
+        from production_detail_temp
+        left join bom_hdr on bom_hdr.article_code=production_detail_temp.article_code
+        left join bom_det on  bom_det.bom_code = bom_hdr.bom_code
+        left join article on article.article_code = bom_det.article_code
+        where production_detail_temp.code ='$randomCode'
+        and bom_hdr.status = '3'
+        order by article_alternative_code
+        ) a
+        group by article_code_det,alternative,article_desc,uom_article,min_package,safety_stock,qty_stock
+        having (ceil(((sum(qty_order * qty_bom)-qty_stock)+safety_stock)/min_package) * min_package) > 0
+        union
+        SELECT 
+        article_code_det as article_code
+        ,min_package 
+        ,safety_stock
+        ,qty_stock
+        ,sum(qty_order * qty_bom) as total
+        ,ceil(((sum(qty_order * qty_bom)-qty_stock)+safety_stock)/min_package) * min_package as grand_total
+        ,uom_article as uom
+        ,(select uom_group from uom where uom.code = uom_article) as uom_group
+        ,(select third_party from article where article.article_code = article_code_det) as supp
+        ,alternative
+        ,article_desc
+        from(
+        select 
+        bom_hdr.article_code_rm as article_code_det
+        ,production_detail_temp.qty as qty_order
+        ,production_detail_temp.uom as uom_order
+        ,1 as qty_bom
+        ,article.uom as uom_bom
+        ,article.uom as uom_article
+        ,bom_hdr.article_code_rm 
+        ,1 as factor_qty
+        ,coalesce(article.min_package,1) as min_package
+        ,coalesce(article.safety_stock,0) as safety_stock 
+        ,get_last_qty(production_detail_temp.article_code,'$stockDate','$siteCode','$location') as qty_stock
+        ,article_alternative_code as alternative
+        ,article_desc
+        from production_detail_temp
+        left join bom_hdr on bom_hdr.article_code=production_detail_temp.article_code
+        left join article on article.article_code = bom_hdr.article_code_rm
+        where production_detail_temp.code ='$randomCode'
+        and bom_hdr.status = '3'
+        and article_alternative_code is not null
+        order by article_alternative_code
+        ) a
+        group by article_code_det,alternative,article_desc,uom_article,min_package,safety_stock,qty_stock
+        having (ceil(((sum(qty_order * qty_bom)-qty_stock)+safety_stock)/min_package) * min_package) > 0) oki
+        order by alternative");
+
+        /*cara1 tanpa gabung dengan RM
         $data=DB::select("SELECT 
         article_code_det as article_code
         ,min_package 
@@ -858,6 +938,7 @@ class PurchaseRequestController extends Controller
         group by article_code_det,alternative,article_desc,uom_article,min_package,safety_stock,qty_stock
         having (ceil(((sum(qty_order * qty_bom)-qty_stock)+safety_stock)/min_package) * min_package) > 0
         order by alternative");
+        */
 
         /* cara2
         $data=DB::select("SELECT 

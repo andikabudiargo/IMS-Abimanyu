@@ -582,13 +582,13 @@ class WorkingOrderSheetController extends Controller
             
             $title ="Save $this->title";
             $alert  ="success";
-            $message  = "$title Revison PO: $woOrigin to $woNew is successfully saved";
+            $message  = "$title Revision PO: $woOrigin to $woNew is successfully saved";
             \LogActivity::addToLog($title,"username: $username Status $message");
             return redirect()->route('workingOrderSheet.edit', ['id'=>Crypt::encryptString($id)]);
         }else{
             $title ="Save $this->title";
             $alert  ="warning";
-            $message  = "$title Revison PO: $woOrigin to $woNew is failed to save";
+            $message  = "$title Revision PO: $woOrigin to $woNew is failed to save";
             \LogActivity::addToLog($title,"username: $username Status $message");
             return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);
         }

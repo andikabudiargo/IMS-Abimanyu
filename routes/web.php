@@ -555,6 +555,19 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('transferOut/print',['as'=>'transferOut.print','uses'=>'TransferOutController@print']);
 	Route::get('transferOut/article/tso',['as'=>'transferOut.article.tso','uses'=>'TransferOutController@articleTso']);
 
+	Route::get('wosMixing',['as'=>'wosMixing.index','uses'=>'WosMixingController@index','middleware' => ['permission:wosMixing-index']]);
+	Route::get('wosMixing/create',['as'=>'wosMixing.create','uses'=>'WosMixingController@create','middleware' => ['permission:wosMixing-create']]);
+	Route::post('wosMixing/store',['as'=>'wosMixing.store','uses'=>'WosMixingController@store']);
+	Route::get('wosMixing/list',['as'=>'wosMixing.list','uses'=>'WosMixingController@list']);
+	Route::get('wosMixing/list/detail',['as'=>'wosMixing.list.detail','uses'=>'WosMixingController@listDetail']);
+	Route::get('wosMixing/show',['as'=>'wosMixing.show','uses'=>'WosMixingController@show']);
+	Route::get('wosMixing/edit',['as'=>'wosMixing.edit','uses'=>'WosMixingController@edit','middleware' => ['permission:wosMixing-edit']]);
+	Route::post('wosMixing/update',['as'=>'wosMixing.update','uses'=>'WosMixingController@update']);
+	Route::post('wosMixing/delete',['as'=>'wosMixing.destroy','uses'=>'WosMixingController@destroy']);
+	Route::get('wosMixing/approve',['as'=>'wosMixing.approve','uses'=>'WosMixingController@approve']);
+	Route::post('wosMixing/posting',['as'=>'wosMixing.posting','uses'=>'WosMixingController@posting']);
+	
+
 	Route::get('deliveryInstruction',['as'=>'deliveryInstruction.index','uses'=>'DeliveryInstructionController@index','middleware' => ['permission:purchaseOrder-index']]);
 	Route::get('deliveryInstruction/create',['as'=>'deliveryInstruction.create','uses'=>'DeliveryInstructionController@create','middleware' => ['permission:deliveryInstruction-create']]);
 	Route::post('deliveryInstruction/store',['as'=>'deliveryInstruction.store','uses'=>'DeliveryInstructionController@store']);

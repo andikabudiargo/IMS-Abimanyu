@@ -1001,7 +1001,7 @@ class TargetSoController extends Controller
         $username =  Auth::user()->username;
         $siteCode = 'HO';
         $location = 'WH';
-        $reason = "(Revison from TSO : $tsoCode, by $username, $reason)";
+        $reason = "(Revision from TSO : $tsoCode, by $username, $reason)";
 
         $prNumber = DB::table('target_order_hdr')
         ->where('tso_code',$tsoCode)
@@ -1070,7 +1070,138 @@ class TargetSoController extends Controller
                 '$username',
                 '".date('Y-m-d H:i:s')."'
             from purchase_request_hdr where pr_number = '$prOrigin'";
-    
+
+
+            /*Dilengkapi dengan dengan RM*/
+            $sqlDet="INSERT into purchase_request_det
+            (
+                pr_number,
+                article_code,
+                qty,
+                uom,
+                supp_code,
+                qty_hitung,
+                qty_stock,
+                created_by,
+                created_at
+            )
+            select 
+            '$prNumber' as pr_number
+            ,article_code
+            ,qty
+            ,uom
+            ,supp_code
+            ,qty_hitung
+            ,qty_stock
+            ,'$username'
+            ,now()
+            from 
+            (select 
+            alternative
+            ,'$prNumber' as pr_number
+            ,article_code
+            ,ceil(((sum(qty_target * qty_bom)-qty_stock)+safety_stock)/min_package) * min_package as qty
+            ,mari.uom
+            ,(select third_party from article where article_code = mari.article_code) as supp_code
+            ,ceil(((sum(qty_target * qty_bom)-qty_stock)+safety_stock)/min_package) * min_package as qty_hitung
+            ,qty_stock
+            ,'$username'
+            ,now()
+            from 
+            (
+            select 
+            bom_code
+            ,oki.article_bom as article_code
+            ,(select article_alternative_code from article where article_code = oki.article_bom) as alternative
+            ,(select qty_target from target_order_det where tso_code = '$tsoCode' and target_order_det.article_code = oki.article_code_fg ) as qty_target
+            ,qty 
+            ,article.uom as uom
+            ,uom_con
+            ,nilai_konversi
+            ,qty_hasil_konversi as qty_bom
+            ,(select qty_target from target_order_det where tso_code = '$tsoCode' and target_order_det.article_code = oki.article_code_fg ) * qty_hasil_konversi  as qty_total_order
+            ,coalesce(min_package,1) as min_package
+            ,coalesce(safety_stock,0) as safety_stock
+            ,get_last_qty(oki.article_bom,'$stockDate','$siteCode','$location') as qty_stock
+            from 
+            (
+            select bom_code
+            ,bom_det.article_code as article_bom
+            ,(select article_code from bom_hdr where bom_code = bom_det.bom_code) as article_code_fg
+            ,qty
+            ,uom
+            ,uom_con
+            ,coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = bom_det.uom),1) as nilai_konversi
+            ,qty * coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = bom_det.uom),1) as qty_hasil_konversi
+            from bom_det where bom_code in 
+            (
+            select bom_code
+            from (select article_code,qty_target as qty from target_order_det where tso_code = '$tsoCode') as production_detail_temp
+            left join bom_hdr on bom_hdr.article_code=production_detail_temp.article_code
+            where bom_hdr.status = '3'
+            )
+            ) as oki
+            left join article on article.article_code = oki.article_bom
+            order by alternative
+            ) as mari 
+            group by mari.article_code,alternative,mari.safety_stock,mari.qty_stock,mari.min_package,mari.uom
+            having (ceil(((sum(qty_target * qty_bom)-qty_stock)+safety_stock)/min_package) * min_package) > 0
+            union
+            select 
+            alternative
+            ,'$prNumber' as pr_number
+            ,article_code
+            ,ceil(((sum(qty_target * qty_bom)-qty_stock)+safety_stock)/min_package) * min_package as qty
+            ,mari.uom
+            ,(select third_party from article where article_code = mari.article_code) as supp_code
+            ,ceil(((sum(qty_target * qty_bom)-qty_stock)+safety_stock)/min_package) * min_package as qty_hitung
+            ,qty_stock
+            ,'$username'
+            ,now()
+            from 
+            (
+            select 
+            bom_code
+            ,oki.article_bom as article_code
+            ,(select article_alternative_code from article where article_code = oki.article_bom) as alternative
+            ,(select qty_target from target_order_det where tso_code = '$tsoCode' and target_order_det.article_code = oki.article_code_fg ) as qty_target
+            ,qty 
+            ,article.uom as uom
+            ,uom_con
+            ,nilai_konversi
+            ,qty_hasil_konversi as qty_bom
+            ,(select qty_target from target_order_det where tso_code = '$tsoCode' and target_order_det.article_code = oki.article_code_fg ) * qty_hasil_konversi  as qty_total_order
+            ,coalesce(min_package,1) as min_package
+            ,coalesce(safety_stock,0) as safety_stock
+            ,get_last_qty(oki.article_bom,'$stockDate','$siteCode','$location') as qty_stock
+            from 
+            (
+            select 
+            article_alternative_code
+            ,bom_code
+            ,bom_hdr.article_code_rm as article_bom
+            ,bom_hdr.article_code as article_code_fg
+            ,1 as qty
+            ,article.uom as uom
+            ,article.uom as uom_con
+            ,1 as nilai_konversi
+            ,1 as qty_hasil_konversi
+            from (select article_code,qty_target as qty from target_order_det where tso_code = '$tsoCode') as production_detail_temp
+            left join bom_hdr on bom_hdr.article_code=production_detail_temp.article_code
+            left join article on article.article_code = bom_hdr.article_code_rm
+            where bom_hdr.status = '3'
+            and article_alternative_code is not null
+            ) as oki
+            left join article on article.article_code = oki.article_bom
+            order by alternative
+            ) as mari 
+            group by mari.article_code,alternative,mari.safety_stock,mari.qty_stock,mari.min_package,mari.uom
+            having (ceil(((sum(qty_target * qty_bom)-qty_stock)+safety_stock)/min_package) * min_package) > 0) ijo
+            order by alternative
+            ";
+
+
+            /*tanpa RM
             $sqlDet="INSERT into purchase_request_det
             (
                 pr_number,
@@ -1134,6 +1265,7 @@ class TargetSoController extends Controller
             group by mari.article_code,alternative,mari.safety_stock,mari.qty_stock,mari.min_package,mari.uom
             having (ceil(((sum(qty_target * qty_bom)-qty_stock)+safety_stock)/min_package) * min_package) > 0
             order by alternative";
+            */
     
             $rowAffected =  DB::select($sqlHdr);
             
@@ -1143,12 +1275,12 @@ class TargetSoController extends Controller
                 ->where('pr_number',$prOrigin)
                 ->update([
                     'pr_number' => $prNew
-                ]);
+                ]);                
 
-                if ($oki){
+                // if ($oki){
                 // Update isi dari PR detail dengan data yang baru hitung ulang
                     DB::select($sqlDet);
-                }
+                // }
         
                 //update PR isi jumlah revisi nya
                 DB::table('purchase_request_hdr')
@@ -1215,7 +1347,7 @@ class TargetSoController extends Controller
     public function revisionPoFromPr($poNumber,$prNumber,$reason){
         $username =  Auth::user()->username;
         $poOrigin = $poNumber;
-        $reason = "(Revison from PR : $prNumber, by $username, $reason)";
+        $reason = "(Revision from PR : $prNumber, by $username, $reason)";
 
         $poHdr = DB::table('purchase_order_hdr')
         ->where('po_number',$poOrigin)

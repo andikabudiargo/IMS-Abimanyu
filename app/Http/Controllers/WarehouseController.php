@@ -642,14 +642,14 @@ class WarehouseController extends Controller
             
     //         $title ="Save $this->title";
     //         $alert  ="success";
-    //         $message  = "$title Revison PO: $poOrigin to $poNew is successfully saved";
+    //         $message  = "$title Revision PO: $poOrigin to $poNew is successfully saved";
     //         \LogActivity::addToLog($title,"username: $username Status $message");
     //         // return $this->showEdit(Crypt::encryptString($id));
     //         return redirect()->route('warehouse.edit', ['id'=>Crypt::encryptString($data->id)]);
     //     }else{
     //         $title ="Save $this->title";
     //         $alert  ="warning";
-    //         $message  = "$title Revison PO: $poOrigin to $poNew is failed to save";
+    //         $message  = "$title Revision PO: $poOrigin to $poNew is failed to save";
     //         \LogActivity::addToLog($title,"username: $username Status $message");
     //         return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);
     //     }
