@@ -16,7 +16,7 @@
     </div>
     <div class="col-md-2 col-12 d-none d-md-block d-none">
         <div class="form-group">
-            <label class="d-none d-md-block">Note</label>
+            <label class="d-none d-md-block">Qty Actual</label>
         </div>
     </div>
     <div class="col-md-1 col-12 d-none d-md-block">

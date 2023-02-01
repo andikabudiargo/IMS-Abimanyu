@@ -30,12 +30,15 @@ class WosMixingController extends Controller
         $kolom=
         [
             ['data'=>'action','name'=>'action','title'=>'action','orderable'=> false,'searchable'=>false],
-            ['data'=>'tr_number','name'=>'tr_number','title'=>'Tr Number'],
-            ['data'=>'tr_date','name'=>'tr_date','title'=>'Date'],
-            ['data'=>'tr_type','name'=>'tr_type','title'=>'Type'],
+            ['data'=>'mix_number','name'=>'mix_number','title'=>'Mix Number'],
+            ['data'=>'wos_number','name'=>'wos_number','title'=>'WOS Number'],
+            ['data'=>'mix_date','name'=>'mix_date','title'=>'Date'],
             ['data'=>'status','name'=>'status','title'=>'Status'],
             ['data'=>'note','name'=>'note','title'=>'Note'],
-            ['data'=>'approval_by','name'=>'approval_by','title'=>'Approved By']
+            ['data'=>'created_by','name'=>'created_by','title'=>'Created By'],
+            ['data'=>'created_at','name'=>'created_at','title'=>'Created At'],
+            ['data'=>'posted_by','name'=>'posted_by','title'=>'Posted By'],
+            ['data'=>'posted_at','name'=>'posted_at','title'=>'Posted At']
         ];
         return json_encode($kolom, true);
     }
@@ -44,19 +47,20 @@ class WosMixingController extends Controller
     {
         $kolom=
         [
-            ['data'=>'tr_number','name'=>'tr_number','title'=>'TSO Code'],
-            ['data'=>'tr_date','name'=>'tr_date','title'=>'Date'],
+            ['data'=>'mix_number','name'=>'mix_number','title'=>'MIX Number'],
+            ['data'=>'wos_number','name'=>'wos_number','title'=>'WOS Number'],
+            ['data'=>'mix_date','name'=>'mix_date','title'=>'Date'],
             ['data'=>'article_alternative_code','name'=>'article_alternative_code','title'=>'Article Code'],
             ['data'=>'article_desc','name'=>'article_desc','title'=>'Article desc'],
             ['data'=>'qty','name'=>'qty','title'=>'Qty'],
+            ['data'=>'qty_actual','name'=>'qty_actual','title'=>'Qty Actual'],
             ['data'=>'uom','name'=>'uom','title'=>'UOM'],
             ['data'=>'note','name'=>'note','title'=>'Note'],
             ['data'=>'status','name'=>'status','title'=>'Status'],
-            ['data'=>'approval_by','name'=>'approval_by','title'=>'Approved By'],
             ['data'=>'created_by','name'=>'created_by','title'=>'Created By'],
-            ['data'=>'created_at','name'=>'created_at','title'=>'Created Date'],
-            ['data'=>'updated_by','name'=>'updated_by','title'=>'Updated By'],
-            ['data'=>'updated_at','name'=>'updated_at','title'=>'Updated Date']
+            ['data'=>'created_at','name'=>'created_at','title'=>'Created At'],
+            ['data'=>'posted_by','name'=>'posted_by','title'=>'Posted By'],
+            ['data'=>'posted_at','name'=>'posted_at','title'=>'Posted At']
             
         ];
         return json_encode($kolom, true);
@@ -93,7 +97,7 @@ class WosMixingController extends Controller
         
         $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED'];
     
-        return view("transferOut.index",$data);
+        return view("wosMixing.index",$data);
     }
 
     public function create(Request $request)
@@ -102,7 +106,7 @@ class WosMixingController extends Controller
         $data['subtitle'] = "Create $this->title";
         $data['oEdit']=false;
 
-        return view("transferOut.create",$data);
+        return view("wosMixing.create",$data);
 
     }
 
@@ -110,13 +114,13 @@ class WosMixingController extends Controller
     {
         $username =  Auth::user()->username;
         $articles = json_decode($request->articles);
-        $trDate = $request->trDate;
-        $trType = $this->moduleCode;
+        $mixDate = $request->mixDate;
         $note = $request->note;
         $status = '1';
-        $poLeadCode = $trType; 
-
-        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','5'=>'CANCELED'];
+        $leadCode = $this->moduleCode;
+        $wosNumber =$request->wosNumber;
+        
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED'];
 
         $messages = [
             'required' => 'The field is required.',
@@ -131,7 +135,7 @@ class WosMixingController extends Controller
         });
 
         $validation = Validator::make($request->all(),$messages = [
-            'trDate'  => 'required'
+            'mixDate'  => 'required'
         ]);
         
         $error_array = array();
@@ -147,15 +151,13 @@ class WosMixingController extends Controller
             return response()->json(array('status' => 0,'title' => $title, 'message' => $error_array,'alert' =>$alert));
 
         }else{
-            $hasilUpdate = AppHelpers::resetCode($poLeadCode);
-            $trNumber = $this->getLastCode($poLeadCode);
+            $hasilUpdate = AppHelpers::resetCode($leadCode);
+            $mixNumber = $this->getLastCode($leadCode);
             DB::beginTransaction();
             try {
-                    $rowAffected = DB::table('transfer_hdr')->insert([
-                        'tr_number' => $trNumber,
-                        'ref_number' => '' ,
-                        'tr_date' => $trDate,
-                        'tr_type' => $trType,
+                    $rowAffected = DB::table('wos_mixing_hdr')->insert([
+                        'mix_number' => $mixNumber,
+                        'mix_date' => $mixDate,
                         'status' => $status,
                         'note' => $note,
                         'created_by' => Auth::user()->username,
@@ -167,11 +169,11 @@ class WosMixingController extends Controller
                     $dataSet = [];
                     foreach ($articles as $val) {
                         $dataSet[] = [
-                            'tr_number' => $trNumber,
+                            'mix_number' => $mixNumber,
                             'article_code' => $val->article_code,
                             'qty' => $val->qty,
+                            'qty_actual' => $val->qtyAct,
                             'uom' => $val->uom,
-                            'note' => $val->note,
                             'created_by' => Auth::user()->username,
                             'updated_by' => Auth::user()->username,
                             'created_at' => date('Y-m-d H:i:s'),
@@ -180,23 +182,23 @@ class WosMixingController extends Controller
                     }
 
                     if ($rowAffected){
-                        DB::table('transfer_det')->insert($dataSet);
+                        DB::table('wos_mixing_det')->insert($dataSet);
                     }
 
                     DB::commit();
                     $title ="Save $this->title";
                     $alert  ="success";
-                    $message  = "$title $trNumber is successfully saved";
+                    $message  = "$title $mixNumber is successfully saved";
                     \LogActivity::addToLog($title,"username: $username Status $message");
-                    return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'trNumber'=>$trNumber,'oEdit'=>true));
+                    return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'mixNumber'=>$mixNumber,'oEdit'=>true));
 
             } catch (Exception $e) {
                 DB::rollBack();
                 $title ="Save $this->title";
                 $alert  ="warning";
-                $message  = "$title $trNumber is failed to save";
+                $message  = "$title $mixNumber is failed to save";
                 \LogActivity::addToLog($title,"username: $username Status $message");
-                return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'trNumber'=>$trNumber));
+                return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'mixNumber'=>$mixNumber));
 
             }
         }
@@ -205,23 +207,24 @@ class WosMixingController extends Controller
     public function posting(Request $request)
     {
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED'];
+
         $username =  Auth::user()->username;
         $id=Crypt::decryptString($request->id);
-        $trNumber = DB::table('transfer_hdr')->where('id',$id)->where('status','3')->value('tr_number');
+        $mixNumber = DB::table('wos_mixing_hdr')->where('id',$id)->where('status','3')->value('mix_number');
         $trType = $this->moduleCode;
         $siteCode = 'HO';
         $location ='WH';
         $status = '4';
         $todayDate = date('Y-m-d');
 
-        if ($trNumber){
-            $data = DB::table('transfer_det')
-            ->leftJoin('transfer_hdr','transfer_hdr.tr_number','transfer_det.tr_number')
-            ->leftJoin('article','article.article_code','transfer_det.article_code')
-            ->where('transfer_det.tr_number',$trNumber)
-            ->where('transfer_hdr.status','3')
-            ->select('transfer_det.*','article.article_type','article.uom as uom_article',
-                DB::RAW("transfer_det.qty*uom_conversion(transfer_det.uom,article.uom) as total_qty")
+        if ($mixNumber){
+            $data = DB::table('wos_mixing_det')
+            ->leftJoin('wos_mixing_hdr','wos_mixing_hdr.mix_number','wos_mixing_det.mix_number')
+            ->leftJoin('article','article.article_code','wos_mixing_det.article_code')
+            ->where('wos_mixing_det.mix_number',$mixNumber)
+            ->where('wos_mixing_hdr.status','3')
+            ->select('wos_mixing_det.*','article.article_type','article.uom as uom_article',
+                DB::RAW("wos_mixing_det.qty_actual*uom_conversion(wos_mixing_det.uom,article.uom) as total_qty")
             )
             ->get();
 
@@ -247,17 +250,11 @@ class WosMixingController extends Controller
                 ->update([
                     'article_qty' => DB::raw('coalesce(article_qty,0) - '.$val->total_qty)
                 ]);
-
-                //update qty nya ditambahkan dengan qty baru
-                // $rowAffected = DB::table('article_stock')
-                // ->where('site_code',$siteCode)
-                // ->where('article_code',$val->article_code)
-                // ->decrement('article_qty', $val->total_qty);
             }
                     
             if ($rowAffected > 0){
-                DB::table('transfer_hdr')
-                ->where('tr_number',$trNumber)
+                DB::table('wos_mixing_hdr')
+                ->where('mix_number',$mixNumber)
                 ->update(
                     [   
                         'status' => $status,
@@ -266,22 +263,22 @@ class WosMixingController extends Controller
                     ]
                 );
 
-                $movements = DB::table('transfer_det')
-                ->leftJoin('transfer_hdr','transfer_hdr.tr_number','transfer_det.tr_number')
-                ->leftJoin('article','article.article_code','transfer_det.article_code')
-                ->where('transfer_det.tr_number',$trNumber)
-                ->where('transfer_hdr.status','4')
+                $movements = DB::table('wos_mixing_det')
+                ->leftJoin('wos_mixing_hdr','wos_mixing_hdr.mix_number','wos_mixing_det.mix_number')
+                ->leftJoin('article','article.article_code','wos_mixing_det.article_code')
+                ->where('wos_mixing_det.mix_number',$mixNumber)
+                ->where('wos_mixing_hdr.status','4')
                 ->where('qty', '<>', 0)
                 ->select(
                     DB::RAW("now()::timestamp::date as movement_date" )
-                    ,'transfer_det.article_code'
+                    ,'wos_mixing_det.article_code'
                     ,'article.article_desc'
                     ,DB::raw("0 as movement_plus")
-                    ,DB::RAW("(uom_conversion(transfer_det.uom,article.uom)*transfer_det.qty) as movement_min")
+                    ,DB::RAW("(uom_conversion(wos_mixing_det.uom,article.uom)*wos_mixing_det.qty_actual) as movement_min")
                     ,DB::raw(" 0 as movement_price ")
-                    ,'transfer_hdr.tr_number as movement_transnno'
+                    ,'wos_mixing_hdr.mix_number as movement_transnno'
                     ,DB::raw("'$trType' as movement_type")
-                    ,'transfer_hdr.note as movement_desc'
+                    ,'wos_mixing_hdr.note as movement_desc'
                 )
                 ->get();
                 
@@ -310,22 +307,20 @@ class WosMixingController extends Controller
                 DB::commit();
                 $title ="Posting $this->title";
                 $alert  ="success";
-                $message  = "$title $trNumber Successfully Posted";
+                $message  = "$title $mixNumber Successfully Posted";
                 \LogActivity::addToLog($title,"username: $username Status $message");
                 return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);
-                // return response()->json(array('statusRec' => $statusRec,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'trNumber'=>$trNumber));
             }else{
                 $title ="Posting $this->title";
                 $alert  ="warning";
-                $message  = "$title $trNumber Failed to Posting";
+                $message  = "$title $mixNumber Failed to Posting";
                 \LogActivity::addToLog($title,"username: $username Status $message");
                 return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);
-                // return response()->json(array('statusRec' => $statusRec,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'trNumber'=>$trNumber));
             }
         }else{
             $title ="Posting $this->title";
             $alert  ="warning";
-            $message  = "$title $trNumber Failed to Posting";
+            $message  = "$title $mixNumber Failed to Posting";
             \LogActivity::addToLog($title,"username: $username Status $message");
             return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);
         }
@@ -334,25 +329,25 @@ class WosMixingController extends Controller
     public function cancel(Request $request)
     {
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED'];
+
         $username =  Auth::user()->username;
         $id=Crypt::decryptString($request->id);
-        $trNumber = DB::table('transfer_hdr')->where('id',$id)->where('status','4')->value('tr_number');
+        $mixNumber = DB::table('wos_mixing_hdr')->where('id',$id)->where('status','4')->value('mix_number');
         $trType = $this->moduleCode;
         $siteCode = 'HO';
         $status = '5';
         $reason = "(Cancel by $username, Reason: $request->reason)";
-        $authorizedBy = Auth::user()->username;
         $rowAffected = 0;
         $location = 'WH';
         $todayDate = date('Y-m-d');
 
-        $data = DB::table('transfer_det')
-        ->leftJoin('transfer_hdr','transfer_hdr.tr_number','transfer_det.tr_number')
-        ->leftJoin('article','article.article_code','transfer_det.article_code')
-        ->where('transfer_det.tr_number',$trNumber)
-        ->where('transfer_hdr.status','4')
-        ->select('transfer_det.*','article.article_type','article.uom as uom_article',
-            DB::RAW("transfer_det.qty*uom_conversion(transfer_det.uom,article.uom) as total_qty")
+        $data = DB::table('wos_mixing_det')
+        ->leftJoin('wos_mixing_hdr','wos_mixing_hdr.mix_number','wos_mixing_det.mix_number')
+        ->leftJoin('article','article.article_code','wos_mixing_det.article_code')
+        ->where('wos_mixing_det.mix_number',$mixNumber)
+        ->where('wos_mixing_hdr.status','4')
+        ->select('wos_mixing_det.*','article.article_type','article.uom as uom_article',
+            DB::RAW("wos_mixing_det.qty_actual*uom_conversion(wos_mixing_det.uom,article.uom) as total_qty")
         )
         ->get();
 
@@ -387,8 +382,8 @@ class WosMixingController extends Controller
         }
         
         if ($rowAffected > 0){
-            DB::table('transfer_hdr')
-            ->where('tr_number',$trNumber)
+            DB::table('wos_mixing_hdr')
+            ->where('mix_number',$mixNumber)
             ->update(
                 [   
                     'status' => $status,
@@ -398,20 +393,20 @@ class WosMixingController extends Controller
                 ]
             );
 
-            $movements = DB::table('transfer_det')
-            ->leftJoin('transfer_hdr','transfer_hdr.tr_number','transfer_det.tr_number')
-            ->leftJoin('article','article.article_code','transfer_det.article_code')
-            ->where('transfer_det.tr_number',$trNumber)
-            ->where('transfer_hdr.status','5')
+            $movements = DB::table('wos_mixing_det')
+            ->leftJoin('wos_mixing_hdr','wos_mixing_hdr.mix_number','wos_mixing_det.mix_number')
+            ->leftJoin('article','article.article_code','wos_mixing_det.article_code')
+            ->where('wos_mixing_det.mix_number',$mixNumber)
+            ->where('wos_mixing_hdr.status','5')
             ->where('qty', '<>', 0)
             ->select(
                 DB::RAW("now()::timestamp::date as movement_date" )
-                ,'transfer_det.article_code'
+                ,'wos_mixing_det.article_code'
                 ,'article.article_desc'
                 ,DB::raw("0 as movement_min")
-                ,DB::RAW("(uom_conversion(transfer_det.uom,article.uom)*transfer_det.qty) as movement_plus")
+                ,DB::RAW("(uom_conversion(wos_mixing_det.uom,article.uom)*wos_mixing_det.qty_actual) as movement_plus")
                 ,DB::raw(" 0 as movement_price ")
-                ,'transfer_hdr.tr_number as movement_transnno'
+                ,'wos_mixing_hdr.mix_number as movement_transnno'
                 ,DB::raw("'$trType' as movement_type")
                 ,DB::raw("'$reason' as movement_desc")
             )
@@ -442,13 +437,13 @@ class WosMixingController extends Controller
             DB::commit();
             $title ="Cancel $this->title";
             $alert  ="success";
-            $message  = "$title $trNumber Successfully Canceled";
+            $message  = "$title $mixNumber Successfully Canceled";
             \LogActivity::addToLog($title,"username: $username Status $message");
             return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);
         }else{
             $title ="Cancel $this->title";
             $alert  ="warning";
-            $message  = "$title $trNumber Failed to Cancel";
+            $message  = "$title $mixNumber Failed to Cancel";
             \LogActivity::addToLog($title,"username: $username Status $message");
             return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);
         }
@@ -461,36 +456,34 @@ class WosMixingController extends Controller
         $data['title'] = "Detail $this->title";
         $data['subtitle'] = "Detail $this->title";
 
-        $data['header'] = DB::table('transfer_hdr')
+        $data['header'] = DB::table('wos_mixing_hdr')
         ->where('id',$id)
-        ->where('tr_type',$this->moduleCode)
-        ->select('transfer_hdr.*'
-        ,DB::raw('(select count(*) from transfer_det where tr_number = transfer_hdr.tr_number) as sum_row')
-        ,DB::raw('(select sum(qty) from transfer_det where tr_number = transfer_hdr.tr_number) as sum_qty'))
-
+        ->select('wos_mixing_hdr.*'
+        ,DB::raw('(select count(*) from wos_mixing_det where mix_number = wos_mixing_hdr.mix_number) as sum_row')
+        ,DB::raw('(select sum(qty) from wos_mixing_det where mix_number = wos_mixing_hdr.mix_number) as sum_qty'))
         ->get()->first();
         
-        $trNumber = $data['header']->tr_number;
+        $mixNumber = $data['header']->mix_number;
         
-        $data['details'] = DB::table('transfer_det')
-        ->leftJoin('article','article.article_code','=','transfer_det.article_code')
-        ->leftJoin('uom','uom.code','transfer_det.uom')
-        ->where('tr_number',$trNumber)
-        ->select('transfer_det.*'
+        $data['details'] = DB::table('wos_mixing_det')
+        ->leftJoin('article','article.article_code','=','wos_mixing_det.article_code')
+        ->leftJoin('uom','uom.code','wos_mixing_det.uom')
+        ->where('mix_number',$mixNumber)
+        ->select('wos_mixing_det.*'
         ,'uom.uom_group as uom_group'
         ,DB::raw("concat(article.article_alternative_code,'-',article.article_desc) as article")
         )
         ->orderBy('id')
         ->get();
 
-        $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode,$trNumber,$username);
-        $data['approveValidate'] = Approval::approveValidate($this->moduleCode,$trNumber,$username);
+        $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode,$mixNumber,$username);
+        $data['approveValidate'] = Approval::approveValidate($this->moduleCode,$mixNumber,$username);
         
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'','5'=>'CANCELED'];
         $statusTr = ['NEW','VALIDATED','APPROVED','POSTED','CANCELED'];
         $data['statusTr'] = $statusTr[$data['header']->status-1];
        
-        return view("transferOut.show",$data);        
+        return view("wosMixing.show",$data);        
     }
 
     public function showEdit($key)
@@ -500,31 +493,34 @@ class WosMixingController extends Controller
         $data['title'] = "Edit $this->title";
         $data['subtitle'] = "Edit $this->title";
 
-        $data['header'] = DB::table('transfer_hdr')
+        $data['header'] = DB::table('wos_mixing_hdr')
         ->where('id',$id)
-        ->where('tr_type',$this->moduleCode)
         ->get()->first();
         
-        $trNumber = $data['header']->tr_number;
+        $mixNumber = $data['header']->mix_number;
         
-        $data['details'] = DB::table('transfer_det')
-        ->where('tr_number',$trNumber)
-        ->select('transfer_det.*'
-        ,DB::RAW("(select string_agg(unit_to,',' order by unit_from) as uom_member from uom_con where unit_from = transfer_det.uom)")
+        $data['details'] = DB::table('wos_mixing_det')
+        ->leftJoin('article','article.article_code','=','wos_mixing_det.article_code')
+        ->where('mix_number',$mixNumber)
+        ->select('wos_mixing_det.*'
+        ,'article.article_alternative_code as alternative'
+        ,'article.article_desc as article_desc'
+        ,DB::RAW("(select string_agg(unit_to,',' order by unit_from) as uom_member from uom_con where unit_from = wos_mixing_det.uom)
+        ")
         )
         ->orderBy('id')
         ->get();
 
-        $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode,$trNumber,$username);
-        $data['approveValidate'] = Approval::approveValidate($this->moduleCode,$trNumber,$username);
+        $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode,$mixNumber,$username);
+        $data['approveValidate'] = Approval::approveValidate($this->moduleCode,$mixNumber,$username);
         
-        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'','5'=>'CANCELED'];
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED'];
         $statusTr = ['NEW','VALIDATED','APPROVED','POSTED','CANCELED'];
         $data['statusTr'] = $statusTr[$data['header']->status-1];
 
         $data['oEdit']=true;
 
-        return view("transferOut.edit",$data);
+        return view("wosMixing.edit",$data);
     }
 
     public function edit(Request $request)
@@ -536,14 +532,15 @@ class WosMixingController extends Controller
     {
         $username =  Auth::user()->username;
         $articles = json_decode($request->articles);
-        $trNumber = $request->trNumber;
-        $trDate = $request->trDate;
+        $mixNumber = $request->mixNumber;
+        $wosNumber =$request->wosNumber;
+        $mixDate = $request->mixDate;
         $trType = $this->moduleCode;
         $note = $request->note;
         $status = '1';
-        $poLeadCode = $trType; 
+        $leadCode = $trType; 
               
-        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','5'=>'CANCELED'];
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED'];
 
         $messages = [
             'required' => 'The field is required.',
@@ -558,7 +555,7 @@ class WosMixingController extends Controller
         });
 
         $validation = Validator::make($request->all(),$messages = [
-            'trDate'  => 'required'
+            'mixDate'  => 'required'
         ]);
         
         $error_array = array();
@@ -576,13 +573,12 @@ class WosMixingController extends Controller
         }else{
             DB::beginTransaction();
             try {
-                $rowAffected=DB::table('transfer_hdr')
-                ->where('tr_number',$trNumber)
+                $rowAffected=DB::table('wos_mixing_hdr')
+                ->where('mix_number',$mixNumber)
                 ->update(
                     [
-                        'ref_number' => '' ,
-                        'tr_date' => $trDate,
-                        'tr_type' => $trType,
+                        'wos_number' => $wosNumber,
+                        'mix_date' => $mixDate,
                         'status' => $status,
                         'note' => $note,
                         'updated_by' => Auth::user()->username,
@@ -593,26 +589,30 @@ class WosMixingController extends Controller
                 $dataset=[];
                 foreach ($articles as $val) {
                     $dataSet[] = [
-                        $trNumber.$val->article_code
+                        $mixNumber.$val->article_code
                     ];
                     
                 }
 
-                //Delete kalo article tidak ada di tr $trNumber dan article nya $val->article_code
+                //Delete kalo article tidak ada di tr $mixNumber dan article nya $val->article_code
                 //berdasarkan 2 kondisi
-                DB::table('transfer_det')
-                    ->whereNotIn(DB::raw("CONCAT(tr_number,article_code)"),$dataSet)
-                    ->where('tr_number',$trNumber)
+                DB::table('wos_mixing_det')
+                    ->whereNotIn(DB::raw("CONCAT(mix_number,article_code)"),$dataSet)
+                    ->where('mix_number',$mixNumber)
                     ->delete();
 
                 foreach ($articles as $val) {
-                    DB::table('transfer_det')
+                    DB::table('wos_mixing_det')
                     ->updateOrInsert(
-                        ['tr_number' => $trNumber,'article_code' => $val->article_code],
                         [
-                            'tr_number' => $trNumber,
+                            'mix_number' => $mixNumber,
+                            'article_code' => $val->article_code
+                        ],
+                        [
+                            'mix_number' => $mixNumber,
                             'article_code' => $val->article_code,
                             'qty' => $val->qty,
+                            'qty_actual' => $val->qtyAct,
                             'uom' => $val->uom,
                             'updated_by' => Auth::user()->username,
                             'updated_at' => date('Y-m-d H:i:s')
@@ -624,17 +624,17 @@ class WosMixingController extends Controller
 
                 $title ="Save $this->title";
                 $alert  ="success";
-                $message  = "$title $trNumber is successfully updated";
+                $message  = "$title $mixNumber is successfully updated";
                 \LogActivity::addToLog($title,"username: $username Status $message");
-                return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'trNumber'=>$trNumber,'oEdit'=>true));
+                return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'mixNumber'=>$mixNumber,'oEdit'=>true));
 
             } catch (Exception $e) {
                 DB::rollBack();
                 $title ="Save $this->title";
                 $alert ="warning";
-                $message  = "$title $trNumber is failed to updated";
+                $message  = "$title $mixNumber is failed to updated";
                 \LogActivity::addToLog($title,"username: $username Status $message");
-                return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'trNumber'=>$trNumber));
+                return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'mixNumber'=>$mixNumber));
             }
         }
 
@@ -643,18 +643,18 @@ class WosMixingController extends Controller
     public function approve(Request $request)
     {
         $username =  Auth::user()->username;
-        $trNumber = $request->trNumber;
-        $statusLevelApproval = Approval::approvalLevelPosition($this->moduleCode,$trNumber,$username);        
+        $mixNumber = $request->mixNumber;
+        $statusLevelApproval = Approval::approvalLevelPosition($this->moduleCode,$mixNumber,$username);        
         $nextLevel = $statusLevelApproval[0]->next_level;
-        $statusTso = $statusLevelApproval[0]->next_level == $statusLevelApproval[0]->max_level ? '3' :'2';
+        $statusMix = $statusLevelApproval[0]->next_level == $statusLevelApproval[0]->max_level ? '3' :'2';
                 
         DB::beginTransaction();
         try {
-                $row_affected=DB::table('transfer_hdr')
-                ->where('tr_number',$trNumber)
+                $row_affected=DB::table('wos_mixing_hdr')
+                ->where('mix_number',$mixNumber)
                 ->update(
                     [
-                        'status' => $statusTso,
+                        'status' => $statusMix,
                         'updated_by' => Auth::user()->username,
                         'updated_at' => date('Y-m-d H:i:s')
                     ]
@@ -663,7 +663,7 @@ class WosMixingController extends Controller
                 if ($row_affected){
                     DB::table('approval_history')->insert([
                         'module_code' => $this->moduleCode,
-                        'module_number' => $trNumber,
+                        'module_number' => $mixNumber,
                         'username' => Auth::user()->username,
                         'approval_order' => $nextLevel,
                         'approval_date' => date('Y-m-d'),
@@ -678,17 +678,17 @@ class WosMixingController extends Controller
                 DB::commit();
                 $title ="Approve $this->title";
                 $alert  ="success";
-                $message  = "$title $trNumber is successfully Approve-".$nextLevel;
+                $message  = "$title $mixNumber is successfully Approve-".$nextLevel;
                 \LogActivity::addToLog($title,"username: $username Status $message");
-                return response()->json(array('statusPo' => $statusTso,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'trNumber'=>$trNumber));
+                return response()->json(array('statusPo' => $statusMix,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'mixNumber'=>$mixNumber));
 
         } catch (Exception $e) {
             DB::rollBack();
             $title ="Approve $this->title";
             $alert  ="warning";
-            $message  = "$title $trNumber is failed to Approve-".$nextLevel;
+            $message  = "$title $mixNumber is failed to Approve-".$nextLevel;
             \LogActivity::addToLog($title,"username: $username Status $message");
-            return response()->json(array('statusPo' => $statusTso,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'trNumber'=>$trNumber));
+            return response()->json(array('statusPo' => $statusMix,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'mixNumber'=>$mixNumber));
         }
     }
 
@@ -696,23 +696,23 @@ class WosMixingController extends Controller
     {
         $username =  Auth::user()->username;       
         $id=Crypt::decryptString($request->id);
-        $trNumber = DB::table('transfer_hdr')->where('id',$id)
+        $mixNumber = DB::table('wos_mixing_hdr')->where('id',$id)
         ->where('status','<>','4')
         ->where('status','<>','5')
-        ->value('tr_number');
-        $rowAffected = DB::table('transfer_hdr')->where('tr_number',$trNumber)->delete();
+        ->value('mix_number');
+        $rowAffected = DB::table('wos_mixing_hdr')->where('mix_number',$mixNumber)->delete();
         
         if($rowAffected>0){
-            DB::table('transfer_det')->where('tr_number',$trNumber)->delete();
+            DB::table('wos_mixing_det')->where('mix_number',$mixNumber)->delete();
             $title ="Delete $this->title";
             $alert  ="success";
-            $message  = "$title $trNumber Successfully Deleted";
+            $message  = "$title $mixNumber Successfully Deleted";
             \LogActivity::addToLog($title,"username: $username Status $message");
             return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);  
         }else{
             $title ="Delete $this->title";
             $alert  ="warning";
-            $message  = "$title $trNumber Failed to Delete";
+            $message  = "$title $mixNumber Failed to Delete";
             \LogActivity::addToLog($title,"username: $username Status $message");
             return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);
         }
@@ -721,15 +721,13 @@ class WosMixingController extends Controller
     public function list(Request $request)
     {
         $username = Auth::user()->username;
-        $searchTr = strtolower($request->searchTr);
-        $searchType = $request->searchType;
+        $searchMix = strtolower($request->searchMix);
         $searchStatus = $request->searchStatus;
-        $trDate = $request->trDate;
-        $trType = $this->moduleCode;
+        $mixDate = $request->mixDate;
         $fromDate ="";
         $toDate = "";
-        if ($trDate){
-            $date = explode("to",$trDate);
+        if ($mixDate){
+            $date = explode("to",$mixDate);
             if(count($date)>1){
                 $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
                 $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
@@ -742,17 +740,15 @@ class WosMixingController extends Controller
             // $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
         }
 
-        $data = DB::table('transfer_hdr')
-        ->where(function ($query) use ($searchTr,$searchStatus,$trDate,$fromDate,$toDate,$searchType) {
-            $searchType ? $query->where('tr_type',$searchType) : '';
-            $searchTr ? $query->where('tr_number','ilike','%'.$searchTr.'%') : '';
+        $data = DB::table('wos_mixing_hdr')
+        ->where(function ($query) use ($searchMix,$searchStatus,$mixDate,$fromDate,$toDate) {
+            $searchMix ? $query->where('mix_number','ilike','%'.$searchMix.'%') : '';
             $searchStatus ? $query->where('status',$searchStatus) : '';
-            $trDate ? $query->whereBetween(DB::raw("to_date(tr_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
+            $mixDate ? $query->whereBetween(DB::raw("to_date(mix_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
         })
-        ->select('transfer_hdr.*'
-        ,DB::raw("(select STRING_AGG((select name from users where username = a.username), ' -> ' ORDER BY approval_order) AS main from approval_history a where module_number = transfer_hdr.tr_number) as approval_by")
+        ->select('wos_mixing_hdr.*'
+        ,DB::raw("(select STRING_AGG((select name from users where username = a.username), ' -> ' ORDER BY approval_order) AS main from approval_history a where module_number = wos_mixing_hdr.mix_number) as approval_by")
         )
-        ->where('tr_type',$trType)
         ->orderBy('id')
         ->get(); 
        
@@ -765,8 +761,8 @@ class WosMixingController extends Controller
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
             
             if ( $data->status == '1' or $data->status == '2') {
-                if (Auth::user()->can('transferIn-approve')) {
-                $buttons .=         '<a href="'. route('transferOut.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+                if (Auth::user()->can('wosMixing-approve')) {
+                $buttons .=         '<a href="'. route('wosMixing.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                         <i data-feather="file-text"></i>
                                         <span>'. __("Approve") .'</span>
                                     </a>';
@@ -774,7 +770,7 @@ class WosMixingController extends Controller
             }
 
             if ( $data->status == '3' ) {                
-                if (Auth::user()->can('transferIn-posting')) {
+                if (Auth::user()->can('wosMixing-posting')) {
                     $buttons .="<a href='javascript:;'
                     class='dropdown-item' 
                     data-size='sm'
@@ -782,7 +778,7 @@ class WosMixingController extends Controller
                     data-confirm='Are You Sure want to post This number?' 
                     data-confirm-yes='document.getElementById(\""."delete-form-".$data->id."\").submit();'
                     data-modal-id='".$data->id."'
-                    data-url='". route('transferOut.posting', ['id'=>Crypt::encryptString($data->id)]) ."'>
+                    data-url='". route('wosMixing.posting', ['id'=>Crypt::encryptString($data->id)]) ."'>
                     <i data-feather='check' class='feather-14-red'></i>
                     <span>". __('Posting') ."</span>
                     </a>";
@@ -791,8 +787,8 @@ class WosMixingController extends Controller
             }
             
             if ( $data->status == '1' or $data->status == '2' ){
-                if (Auth::user()->can('transferIn-edit')) {
-                $buttons .=         '<a href="'. route('transferOut.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+                if (Auth::user()->can('wosMixing-edit')) {
+                $buttons .=         '<a href="'. route('wosMixing.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                         <i data-feather="file-text"></i>
                                         <span>'. __("Edit") .'</span>
                                     </a>';
@@ -800,40 +796,26 @@ class WosMixingController extends Controller
             }
   
             if ( $data->status == '4' ){
-                if (Auth::user()->can('transferIn-delete')) {
+                if (Auth::user()->can('wosMixing-delete')) {
                     $buttons .=         "<a href='javascript:;'
                                             id='cancelReasonButton'
                                             class='dropdown-item'
                                             data-toggle='modal'
                                             data-target='#reasonModalCancel'
-                                            data-href='". route("transferOut.cancel", ["id"=>Crypt::encryptString($data->id)]) ."'>
+                                            data-href='". route("wosMixing.cancel", ["id"=>Crypt::encryptString($data->id)]) ."'>
                                             <i data-feather='corner-down-left' class='feather-14-red'></i>
                                             <span>". __('Cancel') ."</span>
                                         </a>";
                 }
-
-                // if (Auth::user()->can('transferIn-delete')) {
-                //     $buttons .="<a href='javascript:;'
-                //     class='dropdown-item' 
-                //     data-size='sm'
-                //     data-ajax-delete='true'
-                //     data-confirm='Are You Sure want to Cancel?|This action can not be undone. Do you want to continue?' 
-                //     data-confirm-yes='document.getElementById(\""."delete-form-".$data->id."\").submit();'
-                //     data-modal-id='".$data->id."'
-                //     data-url='". route('transferOut.cancel', ['id'=>Crypt::encryptString($data->id)]) ."'>
-                //     <i data-feather='corner-down-left' class='feather-14-red'></i>
-                //     <span>". __('Cancel') ."</span>
-                //     </a>";
-                // }
             }
 
-            $buttons .= '<a href="'. route('transferOut.show', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+            $buttons .= '<a href="'. route('wosMixing.show', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                             <i data-feather="list"></i>
                             <span>'. __("Detail") .'</span>
                         </a>';
 
             if ( $data->status != '4' and $data->status != '5' ){
-                if (Auth::user()->can('transferIn-delete')) {
+                if (Auth::user()->can('wosMixing-delete')) {
                     $buttons .=         "<a href='javascript:;'
                                         class='dropdown-item' 
                                         data-size='sm'
@@ -841,14 +823,14 @@ class WosMixingController extends Controller
                                         data-confirm='Are You Sure want to Delete?|This action can not be undone. Do you want to continue?' 
                                         data-confirm-yes='document.getElementById(\""."delete-form-".$data->id."\").submit();'
                                         data-modal-id='".$data->id."'
-                                        data-url='". route('transferOut.destroy', ['id'=>Crypt::encryptString($data->id)]) ."'>
+                                        data-url='". route('wosMixing.destroy', ['id'=>Crypt::encryptString($data->id)]) ."'>
                                         <i data-feather='trash-2' class='feather-14-red'></i>
                                         <span>". __('Delete') ."</span>
                                     </a>";
                 }
             }
             
-            $buttons .=     '<a href="'. route('transferOut.print', ['id'=>Crypt::encryptString($data->id)]) .'" target="_blank" class="dropdown-item">
+            $buttons .=     '<a href="'. route('wosMixing.print', ['id'=>Crypt::encryptString($data->id)]) .'" target="_blank" class="dropdown-item">
                                 <i data-feather="printer"></i>
                                 <span>'. __("Print") .'</span>
                             </a>';
@@ -858,34 +840,32 @@ class WosMixingController extends Controller
 
             return $buttons;
         })
-        ->addColumn('tr_number', function ($data) {
+        ->addColumn('mix_number', function ($data) {
             $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-danger'];            
             // $statusTr = ['NEW','VALIDATED','APPROVED','POSTED','CANCELED'];
             // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED'];
-            return '<span style="display: none;">'.$data->tr_number.'</span><a class="text-left badge d-block '.$badges[$data->status - 1].'" name="'.$data->tr_number.'" href="'. route('transferOut.show', ['id'=>Crypt::encryptString($data->id)]) .'" ><span>'.$data->tr_number.'</span></a>';
+            return '<span style="display: none;">'.$data->mix_number.'</span><a class="text-left badge d-block '.$badges[$data->status - 1].'" name="'.$data->mix_number.'" href="'. route('wosMixing.show', ['id'=>Crypt::encryptString($data->id)]) .'" ><span>'.$data->mix_number.'</span></a>';
         })
         ->addColumn('status', function ($data) {
             $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-danger'];            
             $statusTr = ['NEW','VALIDATED','APPROVED','POSTED','CANCELED'];
             return "<div class='badge ".$badges[$data->status - 1]."'>".$statusTr[$data->status - 1]."</div>";
         })
-        ->rawColumns(['action','status','tr_number'])
+        ->rawColumns(['action','status','mix_number'])
         ->make(true);
     }
 
     public function listDetail(Request $request)
     {
-        $searchTr = strtolower($request->searchTr);
+        $searchMix = strtolower($request->searchMix);
         $username = Auth::user()->username;
-        $searchType = $request->searchType;
         $searchStatus = $request->searchStatus;
-        $trDate = $request->trDate;
-        $trType = $this->moduleCode;
+        $mixDate = $request->mixDate;
         $fromDate ="";
         $toDate = "";
         
-        if ($trDate){
-            $date = explode("to",$trDate);
+        if ($mixDate){
+            $date = explode("to",$mixDate);
             if(count($date)>1){
                 $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
                 $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
@@ -898,33 +878,31 @@ class WosMixingController extends Controller
             // $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
         }
 
-        $data = DB::table('transfer_det')
-        ->leftJoin('transfer_hdr','transfer_hdr.tr_number','transfer_det.tr_number')
-        ->leftJoin('article','article.article_code','transfer_det.article_code')
-        ->leftJoin('uom','uom.code','transfer_det.uom')
-        ->where(function ($query) use ($searchTr,$searchStatus,$trDate,$fromDate,$toDate,$searchType) {
-            $searchType ? $query->where('tr_type',$searchType) : '';
-            $searchTr ? $query->where('tr_number','ilike','%'.$searchTr.'%') : '';
-            $searchStatus ? $query->where('transfer_hdr.status',$searchStatus) : '';
-            $trDate ? $query->whereBetween(DB::raw("to_date(tr_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
+        $data = DB::table('wos_mixing_det')
+        ->leftJoin('wos_mixing_hdr','wos_mixing_hdr.mix_number','wos_mixing_det.mix_number')
+        ->leftJoin('article','article.article_code','wos_mixing_det.article_code')
+        ->leftJoin('uom','uom.code','wos_mixing_det.uom')
+        ->where(function ($query) use ($searchMix,$searchStatus,$mixDate,$fromDate,$toDate) {
+            $searchMix ? $query->where('mix_number','ilike','%'.$searchMix.'%') : '';
+            $searchStatus ? $query->where('wos_mixing_hdr.status',$searchStatus) : '';
+            $mixDate ? $query->whereBetween(DB::raw("to_date(mix_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
         })
-        ->where('tr_type',$trType)
-        ->select('transfer_det.*'
-        ,'transfer_hdr.*'
+        ->select('wos_mixing_det.*'
+        ,'wos_mixing_hdr.*'
         ,'article.article_alternative_code'
         ,'article.article_desc'
         ,'uom_group'
-        ,DB::raw("(select STRING_AGG((select name from users where username = a.username), ' -> ' ORDER BY approval_order) AS main from approval_history a where module_number = transfer_hdr.tr_number) as approval_by")
+        ,DB::raw("(select STRING_AGG((select name from users where username = a.username), ' -> ' ORDER BY approval_order) AS main from approval_history a where module_number = wos_mixing_hdr.mix_number) as approval_by")
         // ,DB::raw("case when uom_group = 'PIECE' then TO_CHAR(qty,'999,999,999') when uom_group <> 'PIECE' then TO_CHAR(qty,'999,999,999.999') end as qty")
         )
-        ->orderBy('transfer_det.id')
+        ->orderBy('wos_mixing_det.id')
         ->get(); 
        
         return Datatables::of($data)
         ->addColumn('status', function ($data) {
             $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-danger'];            
-            $statusTso = ['NEW','VALIDATED','POSTED','APPROVED','DELETED'];
-            return "<div class='badge ".$badges[$data->status - 1]."'>".$statusTso[$data->status - 1]."</div>";
+            $statusMix = ['NEW','VALIDATED','POSTED','APPROVED','DELETED'];
+            return "<div class='badge ".$badges[$data->status - 1]."'>".$statusMix[$data->status - 1]."</div>";
         })
         ->rawColumns(['status'])
         ->make(true);
@@ -939,47 +917,53 @@ class WosMixingController extends Controller
         ->select('name as nama', 'address as alamat', DB::RAW('(select region_name from regions where region_code = city::integer)  as kota'),'tlp')
         ->get()->first();
             
-        $trHdr=DB::table('transfer_hdr')
+        $mixHdr=DB::table('wos_mixing_hdr')
         ->where('id',$id)
         ->first();
 
-        $trNumber=$trHdr->tr_number;
+        $mixNumber=$mixHdr->mix_number;
+        $wosNumber=$mixHdr->wos_number;
     
-        $data['details']=DB::table('transfer_det')
-        ->leftJoin('article','article.article_code','transfer_det.article_code')
-        ->where('tr_number',$trNumber)
+        $data['details']=DB::table('wos_mixing_det')
+        ->leftJoin('article','article.article_code','wos_mixing_det.article_code')
+        ->where('mix_number',$mixNumber)
         ->get();
 
         // $data['totals']=DB::select("SELECT *,(gross-discount)+ppn as netto from (
-        //     select a.tr_number,authorized_by,validate_by,sum(qty) as qty,sum(qty*price) as gross,sum(discount) as discount,sum(qty*price*b.ppn/100) as ppn from purchase_order_det a
+        //     select a.mix_number,authorized_by,validate_by,sum(qty) as qty,sum(qty*price) as gross,sum(discount) as discount,sum(qty*price*b.ppn/100) as ppn from purchase_order_det a
         //     left join purchase_order_hdr b
-        //     on a.tr_number = b.tr_number 
-        //     where a.tr_number = '$trNumber'
+        //     on a.mix_number = b.mix_number 
+        //     where a.mix_number = '$mixNumber'
         //     group by a.po_number,authorized_by,validate_by) as oki");
 
-        $data['keterangan']=$trHdr->note;
-        $data['trNumber'] =$trNumber;
-        $data['trDate'] =$trHdr->tr_date;
+        $data['keterangan']=$mixHdr->note;
+        $data['mixNumber'] =$mixNumber;
+        $data['wosNumber'] =$wosNumber;
+        $data['mixDate'] =$mixHdr->mix_date;
+        $data['postedBy'] =$mixHdr->posted_by;
         $data['no'] = 0;
         $statusTr = ['NEW','VALIDATED','APPROVED','POSTED','CANCELED'];
-        $data['status'] = $statusTr[$trHdr->status-1];
-        $data['createdBy'] = $trHdr->created_by;
+        $data['status'] = $statusTr[$mixHdr->status-1];
+        $data['createdBy'] = $mixHdr->created_by;
 
         $data['approved'] = DB::table('approval_history')
         ->leftJoin('users','users.username','approval_history.username')
-        ->where('module_number',$trNumber)
+        ->where('module_number',$mixNumber)
         ->orderBy('approval_order','desc')
         ->value('users.name');
         
         view()->share($data);
 
-        $pdf = PDF::loadView('transferOut.print');
-        return $pdf->stream("$trNumber.pdf");
+        $pdf = PDF::loadView('wosMixing.print');
+        return $pdf->stream("$mixNumber.pdf");
     }
 
-    public function articleTso(Request $request)
+    public function articleMix(Request $request)
     {
-        $woCode = $request->tsoCode;
+        $woCode = $request->wosCode;
+        $siteCode = 'HO';
+        $location = 'WH';
+
         $articles = DB::table('wo_det')
         ->where('wo_code',$woCode)
         ->where('so_code','<>','other')
@@ -1003,29 +987,67 @@ class WosMixingController extends Controller
         $data=DB::select("SELECT 
         article_code_det as article_code
         ,min_package 
+        ,safety_stock
         ,sum(qty_order * qty_bom) as total
         ,sum(qty_order * qty_bom) as grand_total
-        ,uom_bom as uom 
-        ,(select string_agg(unit_to,',' order by unit_from) as uom_member from uom_con where unit_from = a.uom_bom)
+        ,uom_article as uom
+        --,(select string_agg(unit_to,',' order by unit_from) as uom_member from uom_con where unit_from = a.uom_bom)
+        ,(select uom_group from uom where uom.code = uom_article) as uom_group
+        ,(select third_party from article where article.article_code = article_code_det) as supp
+        ,alternative
+        ,article_desc
         from(
         select 
         bom_det.article_code as article_code_det
         ,wo_detail_temp.qty as qty_order
         ,wo_detail_temp.uom as uom_order
-        ,bom_det.qty * coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = wo_detail_temp.uom),1) as qty_bom
+        ,bom_det.qty * coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = bom_det.uom),1) as qty_bom
         ,bom_det.uom as uom_bom
+        ,article.uom as uom_article
         ,bom_hdr.article_code 
-        ,coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = wo_detail_temp.uom),1) as factor_qty
-        ,(select min_package from article where article_code = bom_det.article_code) as min_package 
+        ,coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = article.uom),1) as factor_qty
+        ,coalesce((select coalesce(min_package,1) from article where article_code = bom_det.article_code),1) as min_package 
+        ,coalesce(article.safety_stock,0) as safety_stock 
+        ,article_alternative_code as alternative
+        ,article_desc
         from wo_detail_temp
         left join bom_hdr on bom_hdr.article_code=wo_detail_temp.article_code
-        join bom_det on  bom_det.bom_code = bom_hdr.bom_code
+        left join bom_det on  bom_det.bom_code = bom_hdr.bom_code
+        left join article on article.article_code = bom_det.article_code
         where wo_detail_temp.code ='$randomCode'
         and bom_hdr.status = '3'
+        order by article_alternative_code
         ) a
-        group by article_code_det,uom_bom,min_package
-        order by article_code_det
-        ");
+        group by article_code_det,alternative,article_desc,uom_article,min_package,safety_stock
+        having sum(qty_order * qty_bom) > 0
+        order by alternative");
+
+        // $data=DB::select("SELECT 
+        // article_code_det as article_code
+        // ,min_package 
+        // ,sum(qty_order * qty_bom) as total
+        // ,sum(qty_order * qty_bom) as grand_total
+        // ,uom_bom as uom 
+        // ,(select string_agg(unit_to,',' order by unit_from) as uom_member from uom_con where unit_from = a.uom_bom)
+        // from(
+        // select 
+        // bom_det.article_code as article_code_det
+        // ,wo_detail_temp.qty as qty_order
+        // ,wo_detail_temp.uom as uom_order
+        // ,bom_det.qty * coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = wo_detail_temp.uom),1) as qty_bom
+        // ,bom_det.uom as uom_bom
+        // ,bom_hdr.article_code 
+        // ,coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = wo_detail_temp.uom),1) as factor_qty
+        // ,(select min_package from article where article_code = bom_det.article_code) as min_package 
+        // from wo_detail_temp
+        // left join bom_hdr on bom_hdr.article_code=wo_detail_temp.article_code
+        // join bom_det on  bom_det.bom_code = bom_hdr.bom_code
+        // where wo_detail_temp.code ='$randomCode'
+        // and bom_hdr.status = '3'
+        // ) a
+        // group by article_code_det,uom_bom,min_package
+        // order by article_code_det
+        // ");
 
         if ($data){
             DB::table('wo_detail_temp')

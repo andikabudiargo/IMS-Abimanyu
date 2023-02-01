@@ -21,12 +21,18 @@
                             <input type="text" id="article" name="article" hidden>
                             <div class="form-row">
                                 <div class="form-group col-md-3">
-                                    <label for="trNumber">Transfer Out Number</label> <small class="text-muted"> automatic</small>
-                                    <input type="text" id="trNumber" name="trNumber" value="{{ $header->tr_number }}" class="form-control disabled-el" disabled />
+                                    <label for="mixNumber">WOS Mixing Number</label> <small class="text-muted"> automatic</small>
+                                    <input type="text" id="mixNumber" name="mixNumber" value="{{ $header->mix_number }}" class="form-control disabled-el" disabled />
                                 </div>
                                 <div class="form-group col-md-2">
-                                    <label for="trDate">Date*</label>
-                                    <input type="text" id="trDate" name="trDate" value="{{ $header->tr_date }}" class="form-control" placeholder="DD-MM-YYYY" required disabled/>
+                                    <label for="mixDate">Date*</label>
+                                    <input type="text" id="mixDate" name="mixDate" value="{{ $header->mix_date }}" class="form-control" placeholder="DD-MM-YYYY" disabled/>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group col-md-6">
+                                    <label class="form-label" for="wosCode">WOS Number</label>
+                                    <input type="text" id="wosCode" name="wosCode" value="{{ $header->wos_number }}" class="form-control" disabled />
                                 </div>
                             </div>
                             <div class="form-row">
@@ -45,7 +51,7 @@
                                         <th>No</th>
                                         <th>Article Code</th>
                                         <th class="text-right">Qty</th>
-                                        <th >Note</th>
+                                        <th class="text-right">Qty Act</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -54,7 +60,7 @@
                                         <td ></td>
                                         <td >{{ $item->article }}</td>
                                         <td class="text-right">{{ number_format($item->qty) }} {{ $item->uom }}</td>
-                                        <td class="text-right">{{ $item->note }}</td>
+                                        <td class="text-right">{{ number_format($item->qty_actual) }} {{ $item->uom }}</td>
                                     </tr>
                                 @endforeach
                                 </tbody>
@@ -69,8 +75,8 @@
                             </div>
                         </div>
                         <br>
-                        <a href="{{ route('transferOut.index') }}" class="btn btn-success">Back</a>
-                        <a href="{{ route('transferOut.print', ['id'=>Crypt::encryptString($header->id)]) }}" target="_blank" type="button" class="btn btn-primary">
+                        <a href="{{ route('wosMixing.index') }}" class="btn btn-success">Back</a>
+                        <a href="{{ route('wosMixing.print', ['id'=>Crypt::encryptString($header->id)]) }}" target="_blank" type="button" class="btn btn-primary">
                             <i data-feather="printer"></i>
                             <span>{{ __("Print") }}</span>
                         </a>

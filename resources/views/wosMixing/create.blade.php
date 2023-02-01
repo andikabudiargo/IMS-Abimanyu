@@ -22,31 +22,21 @@
                             <input type="text" id="article" name="article" hidden>
                             <div class="form-row">
                                 <div class="form-group col-md-3">
-                                    <label for="trNumber">Transfer Out Number</label> <small class="text-muted"> automatic</small>
-                                    <input type="text" id="trNumber" name="trNumber" class="form-control disabled-el" disabled />
+                                    <label for="mixNumber">WOS Mixing Number</label> <small class="text-muted"> automatic</small>
+                                    <input type="text" id="mixNumber" name="mixNumber" class="form-control disabled-el" disabled />
                                 </div>
-                                <div class="form-group col-md-2">
-                                    <label for="trDate">Date*</label>
-                                    <input type="text" id="trDate" name="trDate" class="form-control" placeholder="DD-MM-YYYY" required/>
+                                <div class="form-group col-md-3">
+                                    <label for="tmixate">Date*</label>
+                                    <input type="text" id="mixDate" name="mixDate" class="form-control" placeholder="DD-MM-YYYY" required/>
                                 </div>
                             </div>
                             <div class="form-row">
-                                <div class="form-group col-md-2">
-                                    <label class="form-label" for="toType">TO Type</label>
-                                    <select class="select2 form-control" id="toType" name="toType" required>
-                                        <option value="std">Standard</option>
-                                        <option value="prd">Production</option>
-                                    </select>
-                                </div>
-                                <div class="form-group col-md-4" id="tsoBox">
-                                    <label class="form-label" for="tsoCode">Production</label>
-                                    <select class="select2 form-control" id="tsoCode" name="tsoCode">
+                                <div class="form-group col-md-6">
+                                    <label class="form-label" for="wosCode">WOS Number</label>
+                                    <select class="select2 form-control" id="wosCode" name="wosCode">
                                     </select>
                                 </div>
                             </div>
-                            {{-- <div class="form-row" id="tsoBox">
-                                
-                            </div> --}}
                             <div class="form-row">
                                 <div class="form-group col-md-6">
                                     <label class="form-label" for="note">Notes</label>
@@ -66,8 +56,8 @@
                 <div class="card-body" >
                     <div class="container-list-item">
                         <div class="lebar-list-item">
-                            @include('transferOut.headerColumn')
-                            <div class="" id="article_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;">
+                            @include('wosMixing.headerColumn')
+                            <div class="" id="article_row" style="max-height: 30rem;overflow-x: hidden;scrollbar-width: thin;">
                                 <input type="text" id ="last_row_number" class="d-none" value="0">
                             </div>
                         </div>
@@ -100,8 +90,8 @@
                     <hr>
                     <div class="form-row mt-75">
                         <div class="col-md-12">
-                            <button class="btn btn-success" type="reset" id="cmdNew" name="cmdCancel" data-trType="TROUT">New</button>
-                            <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave" data-trType="TROUT">Save</button>
+                            <a href="{{ route('wosMixing.index') }}" class="btn btn-warning">Back</a>
+                            <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Save</button>
                         </div>
                     </div>
                 </div>
@@ -115,52 +105,41 @@
 </style>
 @endsection
 @section('scripts')
-@include('transferOut.addArticle')
+@include('wosMixing.addArticle')
 <script type="text/javascript">
-    let objToType = $('#toType');
-    let objTsoCode = $('#tsoCode');
-    let objTsoBox = $('#tsoBox');
+    let objWosCode = $('#wosCode');
+
+    $(document).ready(function(){           
+        validateFormToast("frmAdd");
+        $('#trmixte').val(currentDate);
+        isiArticle('trArticle');
+        changeSelect({
+            dependent:'wos_list',
+            obj:'wosCode',
+            url:"{{ route('dynamic.dependent') }}"            
+        });
+    });
+    
     document.querySelector('#cmdSave').addEventListener('click',() =>{
         let element = document.getElementById('cmdSave');
         let oEdit = document.getElementById('oEdit');
         simpanData(oEdit.value);
-    });
+    });  
 
-    $(document).ready(function(){           
-        validateFormToast("frmAdd");
-        $('#trDate').val(currentDate);
-        isiArticle('trArticle');
-        objTsoBox.hide();
-    });
-
-    objToType.change(function(e){
-        let toType=$(this).val();
-        objTsoBox.hide();
-        if (toType ==='prd'){
-            objTsoBox.show();
-            dependent = 'wos_list'
-            changeSelect({
-                dependent:dependent,
-                obj:'tsoCode',
-                url:"{{ route('dynamic.dependent') }}"            
-            });
-        }
-    });
-
-    objTsoCode.change(function(e){
-        let tsoCode = $(this).val();    
-        if (tsoCode){        
+    objWosCode.change(function(e){
+        let wosCode = $(this).val();    
+        if (wosCode){        
             $.ajax({
                 type: "GET",
-                url: "{{ route('transferOut.article.tso') }}",
+                url: "{{ route('wosMixing.article.mix') }}",
                 data: {
-                    tsoCode:tsoCode
+                    wosCode:wosCode
                 },
                 dataType: "json",
                 success: function(data) {
                     if (data){
                         for(let i=0;i<data.length;i++){
-                            add_new_row_edit(data[i].article_code,data[i].grand_total,data[i].uom,data[i].uom_member,'');
+                            add_new_row_edit(data[i].article_code,data[i].grand_total,data[i].uom,data[i].uom_member,'',data[i].alternative,data[i].article_desc);
                         }
                     }
                 },

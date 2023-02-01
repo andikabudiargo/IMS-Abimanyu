@@ -285,7 +285,7 @@
             <li class="{{ \Request::segment(1) == 'wosMixing' ? 'active' : '' }}" >
               <a class="d-flex align-items-center" href="{{ route('wosMixing.index') }}">
                 <i data-feather="circle"></i>
-                <span class="menu-item text-truncate" data-i18n="Input">Wos Mixing</span>
+                <span class="menu-item text-truncate" data-i18n="Input">WOS Mixing</span>
               </a>
             </li>
             @endcan

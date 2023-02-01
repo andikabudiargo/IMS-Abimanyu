@@ -192,8 +192,6 @@
                 cloneCount=0;
             }
         }
-
-        // add_new_row_sto(article,qty,note);
     }); 
     
     $("#cmdSave").click(function(){

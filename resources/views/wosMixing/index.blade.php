@@ -2,7 +2,7 @@
 @section('title', $title)
 @section('content')
 @include('layouts.breadcrumb')
-<section id="transfer-index">
+<section id="mixing-index">
   <div class="card">
     <div class="card-header">  
       <h4 class="card-title">Filter</h4>
@@ -17,12 +17,12 @@
         <form class="needs-validation" novalidate>
             <div class="form-row">
               <div class="form-group col-md-3"> 
-                <label for="searchTr">Transfer Number</label>
-                <input type="text" class="form-control text-uppercase" id="searchTr" name="searchTr" placeholder=""  />
+                <label for="searchMix">Wos Mixing Number</label>
+                <input type="text" class="form-control text-uppercase" id="searchMix" name="searchMix" placeholder=""  />
               </div>
               <div class="col-md-3 form-group">
-                <label for="trDate">Date</label>
-                <input type="text" id="trDate" name="trDate" class="form-control flatpickr-range" placeholder="YYYY-MM-DD to YYYY-MM-DD" />
+                <label for="mixDate">Date</label>
+                <input type="text" id="mixDate" name="mixDate" class="form-control flatpickr-range" placeholder="YYYY-MM-DD to YYYY-MM-DD" />
               </div>
               <div class="form-group col-md-2"> 
                 <label class="form-label" for="searchStatus">Status</label>
@@ -37,8 +37,8 @@
             <div class="form-row">
                 <div class="col-12"> 
                     <button type="button" class="btn btn-primary" id ="btnSearch" name="btnSearch">Search</button>
-                    @can('transferIn-create')
-                    <a href="{{ route('transferOut.create') }}" class="btn btn-info"><i class="fa fa-plus"></i> Create</a>
+                    @can('wosMixing-create')
+                    <a href="{{ route('wosMixing.create') }}" class="btn btn-info"><i class="fa fa-plus"></i> Create</a>
                     @endcan
                 </div>
             </div>
@@ -85,10 +85,10 @@
 @section('scripts')
 <script type="text/javascript">
 
-  let searchTr = document.querySelector("#searchTr");
+  let searchMix = document.querySelector("#searchMix");
   let searchType = 'TROUT';
   let searchStatus = document.querySelector("#searchStatus");
-  let trDate = document.querySelector("#trDate");
+  let mixDate = document.querySelector("#mixDate");
   let search = document.querySelector('#btnSearch');
   let refresh = document.querySelector('a[data-action="reload"]');
   let rangePickr = document.querySelector('.flatpickr-range');
@@ -118,28 +118,28 @@
   refresh.addEventListener("click",function(){
     btnDetail.style.display = "block";
     btnSummary.style.display = "none";
-    showList(searchTr.value,searchType.value,searchStatus.value,trDate.value);
+    showList(searchMix.value,searchType.value,searchStatus.value,mixDate.value);
   })
 
   search.addEventListener("click", function(){ 
     btnDetail.style.display = "block";
     btnSummary.style.display = "none";
-    showList(searchTr.value,searchType.value,searchStatus.value,trDate.value);
+    showList(searchMix.value,searchType.value,searchStatus.value,mixDate.value);
   });
 
   btnSummary.addEventListener("click", function(){
     btnSummary.style.display = "none";
     btnDetail.style.display = "block";
-    showList(searchTr.value,searchType.value,searchStatus.value,trDate.value);
+    showList(searchMix.value,searchType.value,searchStatus.value,mixDate.value);
   });
   
   btnDetail.addEventListener("click", function(){
     btnSummary.style.display = "block";
     btnDetail.style.display = "none";
-    showListDetail(searchTr.value,searchType.value,searchStatus.value,trDate.value);
+    showListDetail(searchMix.value,searchType.value,searchStatus.value,mixDate.value);
   });
 
-  const showList = (searchTr,searchType,searchStatus,trDate) => {
+  const showList = (searchMix,searchType,searchStatus,mixDate) => {
     if ($('#detailedTable tr').length >0){
         let table= $('#detailedTable').DataTable();
         table.destroy();
@@ -148,24 +148,23 @@
     }
     showDataTables({
       tableId:"detailedTable",
-      route:"{{ route('transferOut.list') }}",
+      route:"{{ route('wosMixing.list') }}",
       kolom:{!! $kolom !!},
-      arrColPrint:[1,2,3,4,5],
+      arrColPrint:[1,2,3,4,5,6,7,8,9],
       columnDefs :[
         { width: '5%', targets: 0 },
       ],
       dataSearch:  {
-        searchTr:searchTr,
-        searchType:searchType,
+        searchMix:searchMix,
         searchStatus:searchStatus,
-        trDate:trDate
+        mixDate:mixDate
       },
       orderColumn:[[ 1, 'desc' ]],
-      excelFileName:'transfer_in'
+      excelFileName:'wos_mixing'
     });
   }
 
-  const showListDetail = (searchTr,searchType,searchStatus,trDate) => {
+  const showListDetail = (searchMix,searchStatus,mixDate) => {
     if ($('#detailedTable tr').length >0){
         let table= $('#detailedTable').DataTable();
         table.destroy();
@@ -174,21 +173,20 @@
     }
     showDataTables({
       tableId:"detailedTable",
-      route:"{{ route('transferOut.list.detail') }}",
+      route:"{{ route('wosMixing.list.detail') }}",
       kolom:{!! $kolomDetail !!},
-      arrColPrint:[0,1,2,3,4,5,6,7,8,10,11],
+      arrColPrint:[0,1,2,3,4,5,6,7,8,10,11,12,13],
       columnDefs :[
         { width: '5%', targets: 0 },
         { className: 'text-right','targets': [4] },
       ],
       dataSearch:  {
-        searchTr:searchTr,
-        searchType:searchType,
+        searchMix:searchMix,
         searchStatus:searchStatus,
-        trDate:trDate
+        mixDate:mixDate
       },
-      orderColumn:[[ 0, 'asc' ],[ 1, 'asc' ],[ 2, 'asc' ]],
-      excelFileName:'transfer_in'
+      orderColumn:[[ 0, 'asc' ],[ 1, 'asc' ],[ 2, 'asc' ],[ 3, 'asc' ]],
+      excelFileName:'wos_mixing'
     });
   }
  

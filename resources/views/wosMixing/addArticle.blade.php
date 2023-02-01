@@ -16,7 +16,7 @@
                         data-type-el-kiri="select" 
                         data-nama-el-kiri='articleId'
                         data-type-el-kanan='input'
-                        data-nama-el-kanan='note'
+                        data-nama-el-kanan='qtyAct'
                         id ="qty" name="qty[]" maxlength="10" />
                 </div>
             </div>
@@ -29,11 +29,11 @@
             </div>
             <div class="col-md-2 col-12">
                 <div class="form-group margin-nol">
-                    <label for="note" class="d-block d-md-none">Note</label>
-                    <input type="text" class="form-control tombol-panah"
+                    <label for="qtyAct" class="d-block d-md-none">Qty Act</label>
+                    <input type="text" class="form-control numeral-mask-digit tombol-panah"
                         data-type-el-kiri="input"
                         data-nama-el-kiri='qty'
-                        id = "note" name="note[]"  maxlength="150">
+                        id = "qtyAct" name="qtyAct[]"  maxlength="10">
                 </div>
             </div>
             <div class="col-md-1 col-12">
@@ -136,11 +136,11 @@
 
 <script type="text/javascript">
     const currentDate = "{{ $currentDateValue }}";
-    const trDate = $('#trDate');
+    const mixDate = $('#mixDate');
     let dataArticle=""; 
 
-    if (trDate.length) {
-        trDate.flatpickr({
+    if (mixDate.length) {
+        mixDate.flatpickr({
             dateFormat: "d-m-Y",
         });
     }
@@ -159,8 +159,8 @@
         }else{ 
             $('.disabled-el').removeAttr('disabled');
             let objQty= $('#article_row input[name="qty[]"]');
+            let objQtyAct= $('#article_row input[name="qtyAct[]"]');
             let objUom= $('#article_row select[name="uom[]"]');
-            let objNote= $('#article_row input[name="note[]"]');            
             let arrArticles = [];
             let articles;
             let flag=0; 
@@ -172,7 +172,7 @@
                     let articleName=$this.select2('data')[0].text;
                     let plu=$this.val();
                     let qty=objQty.eq(i).val().replace(/,/gi,'')||0;
-                    let note=objNote.eq(i).val();
+                    let qtyAct=objQtyAct.eq(i).val().replace(/,/gi,'')||0;
                     let uom=objUom.eq(i).val();
                 
                     // es6
@@ -182,20 +182,21 @@
                     //     pesan +="Article "+articleName+" entered more than once !! <br>"; 
                     //     flag=1;
                     // } else {
-                        if ((plu!=='') && (qty > 0)){
+                        // if ((plu!=='') && (qty > 0)){
+                        if ((plu!=='')){
                             arrArticles.push({
                                 "article_code":plu,
                                 "qty":parseFloat(qty),
-                                "uom":uom,
-                                "note":note
+                                "qtyAct":parseFloat(qtyAct),
+                                "uom":uom
                             });
                         }
                     // } 
                 
-                    if (qty == 0 ){
-                        pesan +="QTY of items "+ articleName +" cannot be 0 <br>"; 
-                        flag=1;
-                    }
+                    // if (qty == 0 ){
+                    //     pesan +="QTY of items "+ articleName +" cannot be 0 <br>"; 
+                    //     flag=1;
+                    // }
                 
                 }
             });
@@ -217,23 +218,25 @@
             }
 
             if (flag==0){
-                let trNumber = "";
+                let mixNumber = "";
                 if (oEdit){
-                    trNumber = $('#trNumber').val();
-                    url ="{{ route('transferOut.update') }}";
+                    mixNumber = $('#mixNumber').val();
+                    url ="{{ route('wosMixing.update') }}";
                 }else{
-                    url ="{{ route('transferOut.store') }}";
+                    url ="{{ route('wosMixing.store') }}";
                 }
                 
-                let trDate = $('#trDate').val();
+                let mixDate = $('#mixDate').val();
                 let note = $('#note').val();
+                let wosNumber = $('#wosCode').val();
                 $.ajax({
                     type: "post",
                     url: url,
                     data: {
                         articles:JSON.stringify(articles),
-                        trNumber:trNumber,
-                        trDate:trDate,
+                        mixNumber:mixNumber,
+                        mixDate:mixDate,
+                        wosNumber:wosNumber,
                         note:note
                     },
                     dataType: "json",
@@ -242,11 +245,11 @@
                             for(let i = 0; i < data.message.length; i++) {
                                 show_msg(data.title, data.message[i], data.alert);
                             }
-                            $('#trNumber').attr('disabled','disabled');
+                            $('#mixNumber').attr('disabled','disabled');
                         }else{
                             show_msg(data.title, data.message, data.alert);
-                            $('#trNumber').attr('disabled','disabled');
-                            $('#trNumber').val(data.trNumber);
+                            $('#mixNumber').attr('disabled','disabled');
+                            $('#mixNumber').val(data.mixNumber);
                             $('#oEdit').val(data.oEdit);
                         }
                     },
@@ -261,13 +264,13 @@
         }
     }
 
-    approve = (trNumber,objButton) => {
+    approve = (mixNumber,objButton) => {
         $('#'+objButton).attr('disabled','disabled');
         $.ajax({
             type: "GET",
-            url: "{{ route('transferOut.approve') }}",
+            url: "{{ route('wosMixing.approve') }}",
             data: {
-                trNumber:trNumber
+                mixNumber:mixNumber
             },
             dataType: "json",
             success: function(data) {
@@ -276,10 +279,10 @@
                     for(let i = 0; i < data.message.length; i++) {
                         show_msg(data.title, data.message[i], data.alert);
                     }
-                    $('#trNumber').attr('disabled','disabled');
+                    $('#mixNumber').attr('disabled','disabled');
                 }else{
                     show_msg(data.title, data.message, data.alert);
-                    $('#trNumber').attr('disabled','disabled');
+                    $('#mixNumber').attr('disabled','disabled');
                     $('#cmdApprove').attr('disabled','disabled');
                     $('#addNewRow').attr('disabled','disabled');      
                     window.location.reload();                 
@@ -292,16 +295,18 @@
     }
 
     let cloneCount=0;
-    add_new_row_edit = (article,qty,uom,uomMember,note) => {
+    add_new_row_edit = (articleCode,qty,uom,uomMember,qtyAct,alternative,articleDesc) => {
         $("#article_row").append($("#new_row").clone().html());
         cloneCount++;
         $("#article_row").find('#baru').attr('id', 'new_row'+ cloneCount);
         $("#new_row"+ cloneCount).find('#articleId').attr('id', 'articleId'+ cloneCount);
-        changeselect('trArticle','articleId'+ cloneCount,article);
+        // changeselect('trArticle','articleId'+ cloneCount,articleCode);
+        let articleList =`<option value="${articleCode}" >${alternative} - ${articleDesc}</option>`;
+        changeSelectByItem('articleId'+ cloneCount,articleList,articleCode)
         $("#new_row"+ cloneCount).find('#qty').attr('id', 'qty'+ cloneCount);
+        $("#new_row"+ cloneCount).find('#qtyAct').attr('id', 'qtyAct'+ cloneCount);
         $("#qty"+ cloneCount).val(qty);
-        $("#new_row"+ cloneCount).find('#note').attr('id', 'note'+ cloneCount);
-        $("#note"+ cloneCount).text(note);
+        $("#qtyAct"+ cloneCount).val(qtyAct);
         let uomOption="";
         if (uomMember){
             let arrUomMember = uomMember.split(',');
@@ -327,6 +332,8 @@
         cloneCount++;
         $("#article_row").find('#baru').attr('id', 'new_row'+ cloneCount);
         $("#new_row"+ cloneCount).find('#articleId').attr('id', 'articleId'+ cloneCount);
+        $("#new_row"+ cloneCount).find('#qty').attr('id', 'qty'+ cloneCount);
+        $("#new_row"+ cloneCount).find('#qtyAct').attr('id', 'qtyAct'+ cloneCount);
         changeselect('trArticle','articleId'+ cloneCount,'');
         $('#remove_button').tooltip();
         splitArticle();
@@ -335,6 +342,15 @@
         mask_thousand_digit(numberOfDecimalDigit);
         $('[data-toggle="tooltip"]').tooltip();
     };
+
+    function changeSelectByItem(obj,article,articleCode) {
+        $('#'+obj).attr('disabled','disabled');
+        $('#'+obj).html(article);
+        $('#'+obj).select2();
+        $('#'+obj).val(articleCode).trigger('change');
+        $('#'+obj).removeAttr('disabled');
+        $('#'+obj).select2('focus');
+    }
 
     function isiArticle(dependent) {
         $.ajax({

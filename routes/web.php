@@ -566,6 +566,9 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('wosMixing/delete',['as'=>'wosMixing.destroy','uses'=>'WosMixingController@destroy']);
 	Route::get('wosMixing/approve',['as'=>'wosMixing.approve','uses'=>'WosMixingController@approve']);
 	Route::post('wosMixing/posting',['as'=>'wosMixing.posting','uses'=>'WosMixingController@posting']);
+	Route::get('wosMixing/article/mix',['as'=>'wosMixing.article.mix','uses'=>'WosMixingController@articleMix']);
+	Route::get('wosMixing/print',['as'=>'wosMixing.print','uses'=>'WosMixingController@print']);
+	Route::post('wosMixing/cancel',['as'=>'wosMixing.cancel','uses'=>'WosMixingController@cancel']);
 	
 
 	Route::get('deliveryInstruction',['as'=>'deliveryInstruction.index','uses'=>'DeliveryInstructionController@index','middleware' => ['permission:purchaseOrder-index']]);

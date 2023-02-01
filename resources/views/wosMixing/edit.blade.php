@@ -22,18 +22,24 @@
                             <input type="text" id="article" name="article" hidden>
                             <div class="form-row">
                                 <div class="form-group col-md-3">
-                                    <label for="trNumber">Transfer Out Number</label> <small class="text-muted"> automatic</small>
-                                    <input type="text" id="trNumber" name="trNumber" value="{{ old('trNumber',$header->tr_number) }}" class="form-control disabled-el" disabled />
+                                    <label for="mixNumber">WOS Mixing Number</label> <small class="text-muted"> automatic</small>
+                                    <input type="text" id="mixNumber" name="mixNumber" value="{{ old('mixNumber',$header->mix_number) }}" class="form-control disabled-el" disabled />
                                 </div>
-                                <div class="form-group col-md-2">
-                                    <label for="trDate">Date*</label>
-                                    <input type="text" id="trDate" name="trDate" value="{{ old('trDate',$header->tr_date) }}" class="form-control" placeholder="DD-MM-YYYY" required />
+                                <div class="form-group col-md-3">
+                                    <label for="mixDate">Date*</label>
+                                    <input type="text" id="mixDate" name="mixDate" value="{{ old('mixDate',$header->mix_date) }}" class="form-control" placeholder="DD-MM-YYYY" required />
                                 </div>
                             </div>
                             <div class="form-row">
-                                <div class="form-group col-md-5">
+                                <div class="form-group col-md-6">
+                                    <label class="form-label" for="wosCode">WOS Number</label>
+                                    <input type="text" id="wosCode" name="wosCode" value="{{ old('wosCode',$header->wos_number) }}" class="form-control" required />
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group col-md-6">
                                     <label class="form-label" for="note">Notes</label>
-                                    <textarea type="text" id="note" name="note" class="form-control" rows="1" >{{ old('trDate',$header->note) }}</textarea>
+                                    <textarea type="text" id="note" name="note" class="form-control" rows="1" >{{ old('mixDate',$header->note) }}</textarea>
                                 </div>
                             </div>                            
                         </form>
@@ -49,7 +55,7 @@
                 <div class="card-body" >
                     <div class="container-list-item">
                         <div class="lebar-list-item">
-                            @include('transferOut.headerColumn')
+                            @include('wosMixing.headerColumn')
                             <div class="" id="article_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;">
                                 <input type="text" id ="last_row_number" class="d-none" value="0">
                             </div>
@@ -85,17 +91,17 @@
                         <div class="col-md-12">
                             <div class="form-row">
                                 <div class="col-md-12">
-                                    <a href="{{ route('transferOut.index') }}" class="btn btn-warning">Back</a>
+                                    <a href="{{ route('wosMixing.index') }}" class="btn btn-warning">Back</a>
                                     @if( $approveValidate ? $approveValidate[0]->validate : '')
                                         <input type="text" id ="approveLevel" name ="approveLevel" class="d-none" value="{{ $approveValidate[0]->next_level }}">
                                         <input type="text" id ="maxLevel" name ="maxLevel" class="d-none" value="{{ $approveValidate[0]->max_level }}">
                                         <button class="btn btn-success" type="button" id="cmdApprove" name="cmdApprove">Approve</button>
                                         @if( $statusTr =='NEW')
-                                            <button class="btn btn-primary" type="button" id="cmdUpdate" name="cmdUpdate" data-trType="TROUT">Update</button>
+                                            <button class="btn btn-primary" type="button" id="cmdUpdate" name="cmdUpdate">Update</button>
                                         @endif
                                     @else
                                         @if( !$approveValidate && $statusTr =='NEW')
-                                            <button class="btn btn-primary" type="button" id="cmdUpdate" name="cmdUpdate" data-trType="TROUT">Update</button>
+                                            <button class="btn btn-primary" type="button" id="cmdUpdate" name="cmdUpdate">Update</button>
                                         @endif
                                     @endif
                                 </div>
@@ -151,7 +157,7 @@
 </style>
 @endsection
 @section('scripts')
-@include('transferOut.addArticle')
+@include('wosMixing.addArticle')
 <script type="text/javascript">
     const updateBtn = document.querySelector('#cmdUpdate');
     const approveBtn = document.querySelector('#cmdApprove');
@@ -166,8 +172,8 @@
 
     if (approveBtn) {
         approveBtn.addEventListener('click',() =>{
-            let trNumber = $('#trNumber').val();
-            approve(trNumber,'cmdApprove');
+            let mixNumber = $('#mixNumber').val();
+            approve(mixNumber,'cmdApprove');
         },{ once:true});
     }
     
@@ -178,14 +184,9 @@
         function checkVariable() {
             if (dataArticle.length > 0) {
                 clearInterval(timerId);
-                let detail = {!!  $details !!};
-                for(let i=0;i<detail.length;i++){
-                    article = detail[i].article_code;
-                    qty = detail[i].qty;
-                    uom =  detail[i].uom;
-                    uomMember = detail[i].uom_member;
-                    note = detail[i].note;
-                    add_new_row_edit(article,qty,uom,uomMember,note);
+                let data = {!!  $details !!};
+                for(let i=0;i<data.length;i++){                    
+                    add_new_row_edit(data[i].article_code,data[i].qty,data[i].uom,data[i].uom_member,data[i].qty_actual,data[i].alternative,data[i].article_desc);
                 }
             }
         }

@@ -30,7 +30,7 @@ class TransferOutController extends Controller
         $kolom=
         [
             ['data'=>'action','name'=>'action','title'=>'action','orderable'=> false,'searchable'=>false],
-            ['data'=>'tr_number','name'=>'tr_number','title'=>'Tr Number'],
+            ['data'=>'tr_number','name'=>'tr_number','title'=>'Transfer Number'],
             ['data'=>'tr_date','name'=>'tr_date','title'=>'Date'],
             ['data'=>'tr_type','name'=>'tr_type','title'=>'Type'],
             ['data'=>'status','name'=>'status','title'=>'Status'],
@@ -44,7 +44,7 @@ class TransferOutController extends Controller
     {
         $kolom=
         [
-            ['data'=>'tr_number','name'=>'tr_number','title'=>'TSO Code'],
+            ['data'=>'tr_number','name'=>'tr_number','title'=>'Transfer Number'],
             ['data'=>'tr_date','name'=>'tr_date','title'=>'Date'],
             ['data'=>'article_alternative_code','name'=>'article_alternative_code','title'=>'Article Code'],
             ['data'=>'article_desc','name'=>'article_desc','title'=>'Article desc'],
