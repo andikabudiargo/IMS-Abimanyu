@@ -377,15 +377,17 @@
         let objPcCashOut= $('#item_row input[name="pcCashOut[]"]');
 
         objPcCashIn.keyup(function() {
-            if (objPcCashOut.val()){
-                objPcCashIn.val('');
+            let theIndex = objPcCashIn.index(this);
+            if (objPcCashOut.eq(theIndex).val()){
+                objPcCashIn.eq(theIndex).val('');
             }
             hitungGrandTotal();
         });    
 
         objPcCashOut.keyup(function() {
-            if (objPcCashIn.val()){
-                objPcCashOut.val('');
+            let theIndex1 = objPcCashOut.index(this);
+            if (objPcCashIn.eq(theIndex1).val()){
+                objPcCashOut.eq(theIndex1).val('');
             }
             hitungGrandTotal();
         });    
