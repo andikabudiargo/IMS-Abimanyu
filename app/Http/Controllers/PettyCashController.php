@@ -120,8 +120,10 @@ class PettyCashController extends Controller
             foreach ($validation->messages()->getMessages() as $field_name => $messages){
                 $error_array[] = $messages;
             }
-            $alert ="alert-danger";
-            return response()->json(array('status' => 0, 'message' => $error_array,'alert' =>$alert));
+
+            $title="Save Petty Cash";
+            $alert ="error";
+            return response()->json(array('status' => 0,'title' => $title, 'message' => $error_array,'alert' =>$alert));
         }else{
             $hasilUpdate = AppHelpers::resetCode($pcLeadCode);
             $pcNumber = $this->getLastCode($pcLeadCode);

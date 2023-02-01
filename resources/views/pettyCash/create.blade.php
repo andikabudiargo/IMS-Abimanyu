@@ -25,8 +25,8 @@
                                     <input type="text" id="pcNumber" name="pcNumber" class="form-control disabled-el"  disabled />
                                 </div>
                                 <div class="form-group col-md-3">
-                                    <label for="voucherNumber">Voucher Number</label>
-                                    <input type="text" id="voucherNumber" name="voucherNumber" class="form-control" />
+                                    <label for="voucherNumber">Voucher Number*</label>
+                                    <input type="text" id="voucherNumber" name="voucherNumber" class="form-control" required/>
                                 </div>
                                 <div class="form-group col-md-2">
                                     <label for="pcDate">Date*</label>
@@ -235,101 +235,105 @@
         reloadPage();
     });
 
-    $("#cmdSave").click(function(){     
-        $('.disabled-el').removeAttr('disabled');
-        // ambil semua data article
-        let objPcDesc= $('#item_row input[name="pcDesc[]"]');
-        let objPcCg= $('#item_row input[name="pcCg[]"]');
-        let objPcCashIn= $('#item_row input[name="pcCashIn[]"]');
-        let objPcCashOut= $('#item_row input[name="pcCashOut[]"]');
-        let objAccount= $('#item_row select[name="account[]"]');
-        let details = []; 
-        let flag=0; 
-        let pesan="";
+    $("#cmdSave").click(function(){  
+        if (!$("#frmAdd")[0].checkValidity()){
+            $("#frmAdd").submit();
+        }else{   
+            $('.disabled-el').removeAttr('disabled');
+            // ambil semua data article
+            let objPcDesc= $('#item_row input[name="pcDesc[]"]');
+            let objPcCg= $('#item_row input[name="pcCg[]"]');
+            let objPcCashIn= $('#item_row input[name="pcCashIn[]"]');
+            let objPcCashOut= $('#item_row input[name="pcCashOut[]"]');
+            let objAccount= $('#item_row select[name="account[]"]');
+            let details = []; 
+            let flag=0; 
+            let pesan="";
 
-        objPcDesc.map(function(i) {  
-		    let $this=$(this);
-            if ($this.val()){
-                let sDesc=$this.val();
-                let sCg=objPcCg.eq(i).val();
-                let sCashIn=objPcCashIn.eq(i).val().replace(/,/gi, '') || 0;
-                let sCashOut=objPcCashOut.eq(i).val().replace(/,/gi, '') || 0;
-                let sAccount=objAccount.eq(i).val();
+            objPcDesc.map(function(i) {  
+                let $this=$(this);
+                if ($this.val()){
+                    let sDesc=$this.val();
+                    let sCg=objPcCg.eq(i).val();
+                    let sCashIn=objPcCashIn.eq(i).val().replace(/,/gi, '') || 0;
+                    let sCashOut=objPcCashOut.eq(i).val().replace(/,/gi, '') || 0;
+                    let sAccount=objAccount.eq(i).val();
 
-                //jquery
-                //cek apakah article ada yang double input ato ngk
-                let obj = $.grep(details, function(obj){
-                    return obj.description === sDesc;
-                })[0];
-                
-                if(obj) {
-                    pesan +="Description "+sDesc+" entered more than once !! <br>"; 
-                    flag=1;
-                } else {
-                    if ((sDesc!=='') && ((sCashIn + sCashOut) > 0)){
-                        details.push({
-                            "description":sDesc,
-                            "cg":sCg,
-                            "cash_in":sCashIn,
-                            "cash_out":sCashOut,
-                            "account":sAccount
-                        });
-                    }
-                }             
-            }
-        });
-
-        if (details.length == 0){
-			pesan +="Detail must be filled Out completely <br>"; 
-			flag=1;
-        }
-
-        if (flag == 0){
-
-            // let pcNumber = $('#pcNumber').val();
-            let voucherNumber = $('#voucherNumber').val();
-            let pcDate = $('#pcDate').val();
-            let period = $('#period').val();
-            let currency = $('#currency').val();
-            let kurs = $('#kurs').val() || 1;
-            let note = $('#note').val();
-
-            $.ajax({
-                type: "post",
-                url: "{{ route('pettyCash.store') }}",
-                data: {
-                    details:JSON.stringify(details),
-                    // pcNumber:pcNumber,
-                    voucherNumber:voucherNumber,
-                    pcDate:pcDate,
-                    period:period,
-                    currency:currency,
-                    kurs:kurs,
-                    note:note
-                },
-                dataType: "json",
-                success: function(data) {
-                    if (data.status == 0 ){
-                        let message="";
-                        for(let i = 0; i < data.message.length; i++) {
-                            show_msg(data.title, data.message[i], data.alert);
-                        }                        
-                        $('#pcNumber').attr('disabled','disabled');
-                    }else{
-                        show_msg(data.title, data.message, data.alert);
-                        $('#pcNumber').val(data.pcNumber);
-                        $('#pcNumber').attr('disabled','disabled');
-                        $('#cmdSave').attr('disabled','disabled');
-                        $('#addNewRow').attr('disabled','disabled');
-                    }
-                },
-                error: function(error) {
-                    console.log(error);
+                    //jquery
+                    //cek apakah article ada yang double input ato ngk
+                    let obj = $.grep(details, function(obj){
+                        return obj.description === sDesc;
+                    })[0];
+                    
+                    // if(obj) {
+                    //     pesan +="Description "+sDesc+" entered more than once !! <br>"; 
+                    //     flag=1;
+                    // } else {
+                        if ((sDesc!=='') && ((sCashIn + sCashOut) > 0)){
+                            details.push({
+                                "description":sDesc,
+                                "cg":sCg,
+                                "cash_in":sCashIn,
+                                "cash_out":sCashOut,
+                                "account":sAccount
+                            });
+                        }
+                    // }             
                 }
             });
 
-        }else{
-            Swal.fire('Warning..',pesan,'warning');
+            if (details.length == 0){
+                pesan +="Detail must be filled Out completely <br>"; 
+                flag=1;
+            }
+
+            if (flag == 0){
+
+                // let pcNumber = $('#pcNumber').val();
+                let voucherNumber = $('#voucherNumber').val();
+                let pcDate = $('#pcDate').val();
+                let period = $('#period').val();
+                let currency = $('#currency').val();
+                let kurs = $('#kurs').val() || 1;
+                let note = $('#note').val();
+
+                $.ajax({
+                    type: "post",
+                    url: "{{ route('pettyCash.store') }}",
+                    data: {
+                        details:JSON.stringify(details),
+                        // pcNumber:pcNumber,
+                        voucherNumber:voucherNumber,
+                        pcDate:pcDate,
+                        period:period,
+                        currency:currency,
+                        kurs:kurs,
+                        note:note
+                    },
+                    dataType: "json",
+                    success: function(data) {
+                        if (data.status == 0 ){
+                            let message="";
+                            for(let i = 0; i < data.message.length; i++) {
+                                show_msg(data.title, data.message[i], data.alert);
+                            }                        
+                            $('#pcNumber').attr('disabled','disabled');
+                        }else{
+                            show_msg(data.title, data.message, data.alert);
+                            $('#pcNumber').val(data.pcNumber);
+                            $('#pcNumber').attr('disabled','disabled');
+                            $('#cmdSave').attr('disabled','disabled');
+                            $('#addNewRow').attr('disabled','disabled');
+                        }
+                    },
+                    error: function(error) {
+                        console.log(error);
+                    }
+                });
+
+            }else{
+                Swal.fire('Warning..',pesan,'warning');
+            }
         }
     
     });
