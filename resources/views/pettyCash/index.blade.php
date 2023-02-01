@@ -19,7 +19,7 @@
         <form class="needs-validation" novalidate>
             <div class="form-row">
               <div class="form-group col-md-3"> 
-                <label for="seachPc">PC Number</label>
+                <label for="seachPc">Petty Cash Number</label>
                 <input type="text" class="form-control text-uppercase" id="seachPc" name="seachPc" placeholder=""  />
               </div>
               <div class="col-md-3 form-group">

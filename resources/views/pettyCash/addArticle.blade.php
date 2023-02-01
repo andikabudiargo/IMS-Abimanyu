@@ -64,3 +64,48 @@
     </div>
 </div>
 {{-- \.table row --}} 
+<script type="text/javascript">
+    function hitungTotal(){
+        let objPcCashIn= $('#item_row input[name="pcCashIn[]"]');
+        let objPcCashOut= $('#item_row input[name="pcCashOut[]"]');
+
+        objPcCashIn.keyup(function() {
+            let theIndex = objPcCashIn.index(this);
+            if (objPcCashOut.eq(theIndex).val()){
+                objPcCashIn.eq(theIndex).val('');
+            }
+            hitungGrandTotal();
+        });    
+
+        objPcCashOut.keyup(function() {
+            let theIndex1 = objPcCashOut.index(this);
+            if (objPcCashIn.eq(theIndex1).val()){
+                objPcCashOut.eq(theIndex1).val('');
+            }
+            hitungGrandTotal();
+        });    
+    }
+
+    function hitungGrandTotal(){
+        let objPcCashIn= $('#item_row input[name="pcCashIn[]"]');
+        let objTotalPcCashIn= $('#pcTotalCashIn');
+        let objPcCashOut= $('#item_row input[name="pcCashOut[]"]');
+        let objTotalPcCashOut= $('#pcTotalCashOut');
+        let totalCashIn=0;
+        let totalCashOut=0;
+
+        var arr = objPcCashIn.map(function (i) {
+            let cashIn = parseInt(objPcCashIn.eq(i).val().replace(/,/gi, '')) || 0;
+            totalCashIn+= cashIn;
+        }).get();
+
+        var arr = objPcCashOut.map(function (i) {
+            let cashOut = parseInt(objPcCashOut.eq(i).val().replace(/,/gi, '')) || 0;
+            totalCashOut+= cashOut;
+        }).get();
+
+        objTotalPcCashIn.val(humanizeNumber(totalCashIn));
+        objTotalPcCashOut.val(humanizeNumber(totalCashOut));
+
+    }
+</script>

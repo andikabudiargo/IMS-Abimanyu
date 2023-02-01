@@ -22,11 +22,19 @@
                 display: none !important;
             }
 
-            @page {
-                size:  auto; 
+            @page
+            {
+                /* size: 8.5in 11in;  */
+                size: 8.5in 6in landscape; 
                 margin: 0 !important;
                 margin-left:10px;
             }
+
+            /* @page {
+                size:  auto; 
+                margin: 0 !important;
+                margin-left:10px;
+            } */
 
             p { page-break-after: always; }
 
