@@ -418,6 +418,7 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('purchaseRequests/article/tso',['as'=>'purchaseRequest.article.tso','uses'=>'PurchaseRequestController@articleTso']);
 	Route::post('purchaseRequests/revision',['as'=>'purchaseRequest.revision','uses'=>'PurchaseRequestController@revision']);
 	// Route::get('purchaseRequests/revision/tso',['as'=>'purchaseRequest.revision.tso','uses'=>'PurchaseRequestController@revisionFromTso']);
+	Route::get('purchaseRequests/warning',['as'=>'purchaseRequest.warning','uses'=>'PurchaseRequestController@warning']);
 
 	Route::get('boms',['as'=>'boms.index','uses'=>'BomController@index','middleware' => ['permission:bom-index']]);
 	Route::get('boms/create',['as'=>'bom.create','uses'=>'BomController@create','middleware' => ['permission:bom-create']]);

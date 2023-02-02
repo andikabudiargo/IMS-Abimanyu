@@ -505,9 +505,10 @@ class TargetSoController extends Controller
                     $prNumber = $tsoHdr->pr_number;
                     $reasonPr = $tsoHdr->note;
 
-                    if ( $prNumber ){
-                        $tsoCode = $this->revisionPrFromTso($tsoOrigin,$reasonPr);
-                    }
+                    /*tidak jadi dari TSO untuk revisi dari PR*/
+                    // if ( $prNumber ){
+                    //     $tsoCode = $this->revisionPrFromTso($tsoOrigin,$reasonPr);
+                    // }
                 }
                 
                 DB::commit();
@@ -908,10 +909,6 @@ class TargetSoController extends Controller
                     'updated_at' => date('Y-m-d H:i:s')
                 ]
             );
-
-            // if ( $prNumber ){
-            //     $tsoCode = $this->revisionPrFromTso($tsoOrigin,$reasonPr);
-            // }
             
             $title ="Save $this->title";
             $alert  ="success";
@@ -1113,13 +1110,13 @@ class TargetSoController extends Controller
             bom_code
             ,oki.article_bom as article_code
             ,(select article_alternative_code from article where article_code = oki.article_bom) as alternative
-            ,(select qty_target from target_order_det where tso_code = '$tsoCode' and target_order_det.article_code = oki.article_code_fg ) as qty_target
+            ,(select sum(qty_target) from target_order_det where tso_code = '$tsoCode' and target_order_det.article_code = oki.article_code_fg group by target_order_det.article_code) as qty_target
             ,qty 
             ,article.uom as uom
             ,uom_con
             ,nilai_konversi
             ,qty_hasil_konversi as qty_bom
-            ,(select qty_target from target_order_det where tso_code = '$tsoCode' and target_order_det.article_code = oki.article_code_fg ) * qty_hasil_konversi  as qty_total_order
+            ,(select sum(qty_target) from target_order_det where tso_code = '$tsoCode' and target_order_det.article_code = oki.article_code_fg group by target_order_det.article_code) * qty_hasil_konversi  as qty_total_order
             ,coalesce(min_package,1) as min_package
             ,coalesce(safety_stock,0) as safety_stock
             ,get_last_qty(oki.article_bom,'$stockDate','$siteCode','$location') as qty_stock
@@ -1162,24 +1159,24 @@ class TargetSoController extends Controller
             (
             select 
             bom_code
-            ,oki.article_bom as article_code
-            ,(select article_alternative_code from article where article_code = oki.article_bom) as alternative
-            ,(select qty_target from target_order_det where tso_code = '$tsoCode' and target_order_det.article_code = oki.article_code_fg ) as qty_target
+            ,oki.article_code_rm as article_code
+            ,(select article_alternative_code from article where article_code = oki.article_code_rm) as alternative
+            ,(select sum(qty_target) from target_order_det where tso_code = '$tsoCode' and target_order_det.article_code = oki.article_code_fg group by target_order_det.article_code) as qty_target
             ,qty 
             ,article.uom as uom
             ,uom_con
             ,nilai_konversi
             ,qty_hasil_konversi as qty_bom
-            ,(select qty_target from target_order_det where tso_code = '$tsoCode' and target_order_det.article_code = oki.article_code_fg ) * qty_hasil_konversi  as qty_total_order
+            ,(select sum(qty_target) from target_order_det where tso_code = '$tsoCode' and target_order_det.article_code = oki.article_code_fg group by target_order_det.article_code) * qty_hasil_konversi  as qty_total_order
             ,coalesce(min_package,1) as min_package
             ,coalesce(safety_stock,0) as safety_stock
-            ,get_last_qty(oki.article_bom,'$stockDate','$siteCode','$location') as qty_stock
+            ,get_last_qty(oki.article_code_rm,'$stockDate','$siteCode','$location') as qty_stock
             from 
             (
             select 
             article_alternative_code
             ,bom_code
-            ,bom_hdr.article_code_rm as article_bom
+            ,bom_hdr.article_code_rm as article_code_rm
             ,bom_hdr.article_code as article_code_fg
             ,1 as qty
             ,article.uom as uom
@@ -1192,13 +1189,12 @@ class TargetSoController extends Controller
             where bom_hdr.status = '3'
             and article_alternative_code is not null
             ) as oki
-            left join article on article.article_code = oki.article_bom
+            left join article on article.article_code = oki.article_code_rm
             order by alternative
             ) as mari 
             group by mari.article_code,alternative,mari.safety_stock,mari.qty_stock,mari.min_package,mari.uom
             having (ceil(((sum(qty_target * qty_bom)-qty_stock)+safety_stock)/min_package) * min_package) > 0) ijo
-            order by alternative
-            ";
+            order by alternative";
 
 
             /*tanpa RM

@@ -86,6 +86,7 @@
     </div>
   </div>
 </section>
+@include('partials.modals')
 @include('partials.delete-modal')
 @endsection
 @section('styles')

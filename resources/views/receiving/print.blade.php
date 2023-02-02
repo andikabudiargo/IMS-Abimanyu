@@ -38,7 +38,7 @@
             p { page-break-after: always; }
 
             body { 
-                width: 200mm; 
+                width: 250mm; 
                 height: 140mm;
                 margin:0 !important;
             }

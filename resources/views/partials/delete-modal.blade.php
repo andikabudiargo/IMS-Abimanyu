@@ -101,7 +101,7 @@
               <div class="text-center">
                 <i data-feather='alert-circle' class='feather-72-red'></i>
                 <h1 class="text-center">
-                    Are you sure you want to revision?
+                    Are you sure you want to revise this number?
                 </h1>
               </div>
               <br>
@@ -114,7 +114,7 @@
             </div>
             <div class="modal-footer">
               <button type="button" class="btn btn-outline-dark waves-effect" data-dismiss="modal">Cancel</button>
-              <button type="submit" class="btn btn-danger waves-effect">Yes, Revice It</button>
+              <button type="submit" class="btn btn-danger waves-effect">Yes, Revise It</button>
             </div>
           </form>
       </div>
