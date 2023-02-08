@@ -127,6 +127,7 @@ class PurchaseOrderController extends Controller
         
         $data['supps'] = DB::table('third_party')
         ->where ('third_party_type','=','supp')
+        // ->where('top_batas_1',"<>",30)
         ->orderBy('nama')
         ->get();
 
@@ -1347,6 +1348,47 @@ class PurchaseOrderController extends Controller
 
         $pdf = PDF::loadView('purchaseOrder.print');
         return $pdf->stream("PO_$poNumber.pdf");
+
+    }
+
+    public function listArticleByPr(Request $request)
+    {
+        $prNumber = $request->prNumber;
+        $suppCode = $request->suppCode;
+        /* 
+            Permintaan dari bu ifah tidak usah di filter by supplier
+            11 04 2022 permintaan batal dari bu Yorin, jadi tetap di filter
+            ->where($field,$code)
+            ->where('po_number','=',null)
+        */
+        
+        $data= DB::table('purchase_request_det') 
+            ->leftJoin('article','article.article_code','=','purchase_request_det.article_code')
+            ->leftJoin('article_stock','article_stock.article_code','=','purchase_request_det.article_code')
+            ->leftJoin('group_materials','group_materials.code','=','article.group_of_material')
+            ->leftJoin('article_supplier','article_supplier.article_code','=','purchase_request_det.article_code')
+            ->leftJoin('uom','uom.code','=','purchase_request_det.uom')            
+            ->where('article_supplier.supplier_code',$suppCode)
+            ->where('pr_number','=',$prNumber)
+            ->orderBy('article.article_desc')
+            ->distinct('article.article_desc')
+            ->select(DB::raw("concat(article.article_alternative_code,' - ',article.article_desc) as article_desc")
+            ,'article.article_code as artikel_code'
+            ,'article.article_desc','article.costprice'
+            ,'article_stock.article_qty as qty_stock'
+            ,'purchase_request_det.uom as uom1'
+            ,'group_materials.name as group'
+            ,'uom.uom_group'
+            ,DB::raw("(SELECT price as last_price from purchase_order_det where article_code = purchase_request_det.article_code order by updated_at,created_at desc limit 1) as last_price")
+            ,DB::raw("(select coalesce(sum(qty),0) from purchase_order_det 
+                where article_code = purchase_request_det.article_code 
+                and  pr_number = purchase_request_det.pr_number
+                and po_number in (select po_number from purchase_order_hdr where status = '3')
+                ) as qty_po")
+            )
+            ->get();
+            
+        return response()->json(array('data' => $data));
 
     }
 

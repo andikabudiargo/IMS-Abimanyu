@@ -46,7 +46,7 @@
                                     <select class="select2 form-control" id="supplier" name="supplier" required>
                                         <option value=""></option>
                                         @foreach($supps as $val)
-                                            <option value="{{$val->kode}}" data-pkp="{{ $val->pkp }}" data-top="{{ $val->top_batas_1 }}" >{{$val->kode}} - {{$val->nama}}</option>
+                                            <option value="{{$val->kode}}" >{{$val->kode}} - {{$val->nama}}</option>
                                         @endforeach
                                     </select>
                                 </div>
@@ -100,34 +100,22 @@
                 <div class="card-header">
                     <h4 class="card-title">Article</h4>
                 </div>
-                <div class="card-body">
-                    <form action="">
-                        <div class="form-row">
-                            <div class="col-md-4 col-12">
-                                <div class="form-group margin-nol">
-                                    <label class="form-label" for="prSelect">Purchase Request</label>
-                                    <select class="dynamicSelect form-control select2 " id="prSelect" name="prSelect">
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                    </form>
-                    <hr>
+                <div class="card-body" >
                     <div class="container-list-item">
                         <div class="lebar-list-item">
                             @include('purchaseOrder.headerColumn')
-                            <div class="" id="article_row" style="max-height: 25rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px">
+                            <div class="" id="article_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px">
                                 <input type="text" id ="last_row_number" class="d-none" value="0">
                             </div>
                         </div>
                     </div>
                     <hr>
-                    {{-- <div class="d-flex justify-content-between align-items-end mt-75">
+                    <div class="d-flex justify-content-between align-items-end mt-75">
                         <button class="btn btn-primary btn-prev" type="button" id="addNewRow" onclick="add_new_row();hitungGrandTotal();">
                             <i data-feather="plus" class="align-middle mr-sm-25 mr-0"></i>
                             <span class="align-middle d-sm-inline-block d-none">Add Article</span>
                         </button>
-                    </div> --}}
+                    </div>
                     <div class="d-flex justify-content-between align-items-end mt-75">
                         <div class="col-md-4">
                             <div class="form-group row mb-03">
@@ -201,36 +189,13 @@
 @include('purchaseOrder.addArticle')
 <script type="text/javascript">
     let cloneCount=1;
-
-    $(document).ready(function(){           
-        validateFormToast("frmAdd");
-        $('#orderDate').val(currentDate);
-        // disabledEnabledSelect2();
-    });
-
     document.querySelector('#cmdSave').addEventListener('click',() =>{
         simpanData();
     });
 
-    prSelect.change(function(e){        
-        let prNumber = $(this).val();
-        let suppCode = $('#supplier').val();
-        changeSelectPr(suppCode,prNumber);
+    $(document).ready(function(){           
+        validateFormToast("frmAdd");
+        $('#orderDate').val(currentDate);
     });
-
-    objSupplier.change(function(e){        
-        let suppCode = $(this).val();
-        let pkp = $(this).find(":selected").data("pkp") || 'Y';
-        let top = $(this).find(":selected").data("top") || 30;
-        $("#term").val(top);
-        if (pkp =='Y'){
-            $("#pkp").attr('checked','checked');
-        }else{
-            $("#pkp").removeAttr('checked');
-        }
-        
-        changeselect('pRequest','prSelect',suppCode);
-    });
-
 </script>
 @endsection
