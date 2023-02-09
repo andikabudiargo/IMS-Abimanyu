@@ -282,6 +282,7 @@ class PurchaseRequestController extends Controller
         ->select('purchase_request_det'.'.*'
             ,'uom.uom_group'
             ,DB::raw("concat(article_alternative_code,'-',article_desc) as article")
+            ,DB::raw("(select STRING_AGG( (qty::real)::text,' -> ' ORDER BY pr_number) AS main from purchase_request_det p where article_code = purchase_request_det.article_code and pr_number like '$prNumber%' ) as notes")
         )
         ->orderBy('purchase_request_det.id')
         ->get();       
@@ -792,7 +793,12 @@ class PurchaseRequestController extends Controller
        
         $data['details']=DB::table('purchase_request_det')
         ->leftJoin('article','article.article_code','purchase_request_det.article_code')
-        ->select('article_alternative_code','article_desc','qty','purchase_request_det.uom')
+        ->select('article_alternative_code'
+        ,'article_desc'
+        ,'qty'
+        ,'purchase_request_det.uom'
+        ,DB::raw("(select STRING_AGG( (qty::real)::text,' -> ' ORDER BY pr_number) AS main from purchase_request_det p where article_code = purchase_request_det.article_code and pr_number like '$prNumber%' ) as notes")
+        )
         ->where('pr_number',$prNumber)
         ->orderBy('purchase_request_det.id')
         ->get();

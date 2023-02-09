@@ -97,9 +97,10 @@
         <tr>
             <th width="5%">No</th>
             <th width="10%">Kode barang</th>
-            <th width="45%">Description</th>
+            <th width="40%">Description</th>
             <th width="10%">QTY</th>
             <th width="10%">Uom</th>
+            <th width="15%">Note</th>
         </tr>
         </thead>
         <tbody>
@@ -110,6 +111,7 @@
                     <td class="border-bottom" align="left">{{ $val->article_desc }}</td>
                     <td class="border-bottom" align="right">{{ number_format($val->qty) }}</td>
                     <td class="border-bottom" align="left">{{ $val->uom }}</td>
+                    <td class="border-bottom" align="left">{{ $val->notes }}</td>
                 </tr>
             @endforeach
         </tbody>
