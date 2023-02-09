@@ -114,7 +114,7 @@
                                 <p class="clearfix mb-0">
                                     <span class="float-md-left d-block d-md-inline-block mt-25">COPYRIGHT &copy; {{ env('APP_YEAR_CREATED') }} | {{ env('APP_COMPANY') }}, All rights Reserved
                                         {{-- <span class="d-sm-inline-block">{{ env('APP_VERSION') }}</span> --}}
-                                        <span class="d-sm-inline-block"> V.2.2.0 </span>
+                                        <span class="d-sm-inline-block"> V.3.0.0 </span>
                                     </span>
                                 </p>
                             </div>
