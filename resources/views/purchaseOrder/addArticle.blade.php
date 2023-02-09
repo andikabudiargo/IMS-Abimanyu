@@ -223,20 +223,20 @@
             $('.disabled-el').removeAttr('disabled');
             // ambil semua data article
             let objQty= $('input[name="qtyOrder[]"]');
+            let objArticleDesc = $('input[name="articleDesc[]"]');
             let objPrice= $('input[name="price[]"]');
             let objNewPrice= $('input[name="newPrice[]"]');
             let objUom= $('span[name="uom[]"]'); 
-            let objpr= $('select[name="pRequest[]"]'); 
+            let objpr= $('input[name="pRequest[]"]'); 
             let articles = []; 
             let flag=0; 
             let pesan="";
 
-            $("#article_row select[name='articleId[]']").map(function(i) {  
+            $("#article_row input[name='articleId[]']").map(function(i) {  
                 let $this=$(this);
                 if ($this.val()){
-                    let article=$this.val().split("|");
-                    let articleName=$this.select2('data')[0].text;
-                    let plu=article[0];
+                    let plu=$this.val();
+                    let articleName=objArticleDesc.eq(i).val();
                     let qty=objQty.eq(i).val().replace(/,/gi, '') || 0;
                     let newPrice=objNewPrice.eq(i).val().replace(/,/gi, '') || 0;
                     let price=objPrice.eq(i).val().replace(/,/gi, '') || 0;
@@ -352,22 +352,21 @@
             $("#frmAdd").submit();
         }else{  
             $('.disabled-el').removeAttr('disabled');
-            // ambil semua data article
             let objQty= $('input[name="qtyOrder[]"]');
+            let objArticleDesc = $('input[name="articleDesc[]"]');
             let objPrice= $('input[name="price[]"]');
             let objNewPrice= $('input[name="newPrice[]"]');
             let objUom= $('span[name="uom[]"]'); 
-            let objpr= $('select[name="pRequest[]"]'); 
+            let objpr= $('input[name="pRequest[]"]'); 
             let articles = []; 
             let flag=0; 
             let pesan="";
             
-            $("#article_row select[name='articleId[]']").map(function(i) {  
+            $("#article_row input[name='articleId[]']").map(function(i) {  
                 let $this=$(this);
                 if ($this.val()){
-                    let article=$this.val().split("|");
-                    let articleName=$this.select2('data')[0].text;
-                    let plu=article[0];
+                    let plu=$this.val();
+                    let articleName=objArticleDesc.eq(i).val();
                     let qty=objQty.eq(i).val().replace(/,/gi, '') || 0;
                     let newPrice=objNewPrice.eq(i).val().replace(/,/gi, '') || 0;
                     let price=objPrice.eq(i).val().replace(/,/gi, '') || 0;
@@ -534,7 +533,7 @@
         $("#articleId"+cloneCount).val(articleCode);
         $("#articleDesc"+cloneCount).val(articleDesc);
         $("#qtyStock"+cloneCount).val(qtyStock*1);
-        $("#uom"+cloneCount).val(uom);
+        $("#uom"+cloneCount).text(uom);
         $("#qtyOrder"+cloneCount).val(qty);
         $("#price"+cloneCount).val(costPrice);
         $("#newPrice"+cloneCount).val(lastPrice);
@@ -574,7 +573,7 @@
                 },
                 success:function(result){
                     for(let i=0;i<result.data.length;i++){
-                        add_new_row_pr(result.data[i].artikel_code,result.data[i].article_desc,result.data[i].group,result.data[i].qty_stock,result.data[i].qty_po,result.data[i].uom1,result.data[i].uom_group,result.data[i].cost_price,result.data[i].last_price,prNumber);
+                        add_new_row_pr(result.data[i].artikel_code,result.data[i].article_description,result.data[i].group,result.data[i].qty_stock,result.data[i].qty_po,result.data[i].uom1,result.data[i].uom_group,result.data[i].cost_price,result.data[i].last_price,prNumber);
                     }
                     disabledEnabledSelect2();
                     $('#prSelect').val("").trigger("change");

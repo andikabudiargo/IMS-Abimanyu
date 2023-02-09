@@ -10,7 +10,7 @@ class LogActivity
     	$log = [];
     	$log['subject'] = $subject;
 		$log['description'] = $description;
-    	$log['url'] = Request::fullUrl();
+    	$log['url'] = substr(Request::fullUrl(),250);
     	$log['method'] = Request::method();
     	$log['ip'] = Request::getClientIp();
     	$log['agent'] = Request::header('user-agent');

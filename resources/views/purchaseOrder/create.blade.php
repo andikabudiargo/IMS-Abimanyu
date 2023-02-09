@@ -24,7 +24,7 @@
                                     <label for="poNumber">Order Number</label> <small class="text-muted"> automatic</small>
                                     <input type="text" id="poNumber" name="poNumber" class="form-control disabled-el"  disabled />
                                 </div>
-                                <div class="form-group col-md-2">
+                                <div class="form-group col-md-2 d-none">
                                     <label class="form-label" for="poType">PO Type*</label>
                                     <select class="select2 form-control" id="poType" name="poType" required disabled>
                                         <option value="std">Standard</option>
@@ -36,12 +36,12 @@
                                     <input type="text" id="orderDate" name="orderDate" class="form-control" placeholder="DD-MM-YYYY" required disabled/>
                                 </div>
                                 <div class="form-group col-md-2">
-                                    <label for="deliveryDate">Delivery Date</label>
-                                    <input type="text" id="deliveryDate" name="deliveryDate" class="form-control" placeholder="DD-MM-YYYY" />
+                                    <label for="deliveryDate">Delivery Date*</label>
+                                    <input type="text" id="deliveryDate" name="deliveryDate" class="form-control" placeholder="DD-MM-YYYY" required/>
                                 </div>
                             </div>
                             <div class="form-row">
-                                <div class="form-group col-md-5">
+                                <div class="form-group col-md-6">
                                     <label class="form-label" for="supplier">Supplier*</label>
                                     <select class="select2 form-control" id="supplier" name="supplier" required>
                                         <option value=""></option>
@@ -85,7 +85,7 @@
                                 </div>
                             </div>
                             <div class="form-row">
-                                <div class="form-group col-md-9">
+                                <div class="form-group col-md-8">
                                     <label class="form-label" for="note">Notes</label>
                                     <textarea type="text" id="note" name="note" class="form-control" rows="1" ></textarea>
                                 </div>
@@ -182,7 +182,7 @@
                     <hr>
                     <div class="form-row mt-75">
                         <div class="col-md-12">
-                            <button class="btn btn-success" type="reset" id="cmdNew" name="cmdCancel">New</button>
+                            <a href="{{ route('purchaseOrders.index') }}" class="btn btn-warning">Back</a>
                             <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Save</button>
                         </div>
                     </div>

@@ -30,7 +30,9 @@ class PurchaseOrderController extends Controller
         [
             ['data'=>'action','name'=>'action','title'=>'action','orderable'=> false,'searchable'=>false],
             ['data'=>'po_number','name'=>'po_number','title'=>'PO Number'],
+            ['data'=>'po_number_1','name'=>'po_number_1','title'=>'PO Number','orderable'=> false,'searchable'=>false,'visible'=>false],
             ['data'=>'num_revision','name'=>'num_revision','title'=>'Revision'],
+            ['data'=>'status','name'=>'status','title'=>'Status'],
             ['data'=>'supp_name','name'=>'supp_name','title'=>'Supplier'],
             ['data'=>'po_date','name'=>'po_date','title'=>'PO Date'],
             ['data'=>'delivery_date','name'=>'delivery_date','title'=>'Delivery Date'],
@@ -44,8 +46,8 @@ class PurchaseOrderController extends Controller
             ['data'=>'discount','name'=>'discount','title'=>'Discount'],
             ['data'=>'ppn','name'=>'ppn','title'=>'PPN'],
             ['data'=>'netto','name'=>'netto','title'=>'Netto'],
-            ['data'=>'status','name'=>'status','title'=>'Status'],
-            ['data'=>'approval_by','name'=>'approval_by','title'=>'Approved By']
+            ['data'=>'approval_by','name'=>'approval_by','title'=>'Approved By'],
+            ['data'=>'note','name'=>'note','title'=>'Note']
         ];
         return json_encode($kolom, true);
     }
@@ -380,25 +382,25 @@ class PurchaseOrderController extends Controller
         ->get();
 
         $data['articles'] = DB::table('purchase_request_det')
-            ->leftJoin('article','article.article_code','=','purchase_request_det'.'.article_code')
-            ->leftJoin('article_stock','article_stock.article_code','=','purchase_request_det'.'.article_code')
-            ->leftJoin('group_materials','group_materials.code','=','article.group_of_material')
-            ->leftJoin('uom','uom.code','=','purchase_request_det.uom')
-            ->where('supp_code',$data['header']->supplier_id)
-            ->where('po_number','=',$poNumber)
-            // ->where('pr_number','=',$data['header']->pr_number)
-            ->orderBy('article.article_desc')
-            ->distinct('article.article_desc')
-            ->select('purchase_request_det'.'.*'
-                ,'article.article_alternative_code'
-                ,'article.article_code as artikel_code'
-                ,'article.article_desc'
-                ,'article.costprice'
-                ,'article_stock.article_qty as qty_stock'
-                ,'purchase_request_det.uom as uom1'
-                ,'uom.uom_group'
-                ,'group_materials.name as group')
-            ->get();
+        ->leftJoin('article','article.article_code','=','purchase_request_det'.'.article_code')
+        ->leftJoin('article_stock','article_stock.article_code','=','purchase_request_det'.'.article_code')
+        ->leftJoin('group_materials','group_materials.code','=','article.group_of_material')
+        ->leftJoin('uom','uom.code','=','purchase_request_det.uom')
+        ->where('supp_code',$data['header']->supplier_id)
+        ->where('po_number','=',$poNumber)
+        // ->where('pr_number','=',$data['header']->pr_number)
+        ->orderBy('article.article_desc')
+        ->distinct('article.article_desc')
+        ->select('purchase_request_det'.'.*'
+            ,'article.article_alternative_code'
+            ,'article.article_code as artikel_code'
+            ,'article.article_desc'
+            ,'article.costprice'
+            ,'article_stock.article_qty as qty_stock'
+            ,'purchase_request_det.uom as uom1'
+            ,'uom.uom_group'
+            ,'group_materials.name as group')
+        ->get();
 
         $data['detail'] = DB::table('purchase_order_det')
         ->leftJoin('article','article.article_code','=','purchase_order_det.article_code')
@@ -410,6 +412,9 @@ class PurchaseOrderController extends Controller
         ->leftJoin('uom','uom.code','=','purchase_order_det.uom')
         ->where('purchase_order_det.po_number',$poNumber)
         ->select('purchase_order_det'.'.*'
+            ,'article.article_alternative_code'
+            ,'article.article_code as artikel_code'
+            ,'article.article_desc'
             ,'purchase_order_det.pr_number'
             ,'article_stock.article_qty as qty_stock'
             ,'uom.uom_group'
@@ -450,10 +455,14 @@ class PurchaseOrderController extends Controller
         $numRevision = $request->nR ? $request->nR +1 : 1 ;
         $poNew = $poOrigin.'-R'.$numRevision;
         $checkNewPo=DB::table('purchase_order_hdr')->where('po_number',$poNew)->count();
+        $reasonRequest = $request->reason;
+        $reason = "(Revision by $username, Reason: $reasonRequest)";
 
         if ($checkNewPo > 0){
             $poNew = $poOrigin.'-R'.$numRevision+1;
         } 
+
+        
                 
         $sqlHdr = "INSERT into purchase_order_hdr 
         (
@@ -504,7 +513,7 @@ class PurchaseOrderController extends Controller
             $numRevision,
             '$username',
             '".date('Y-m-d H:i:s')."',
-            note,
+            regexp_replace(CONCAT(note,', $reason'),', ',''),
             '$username',
             '$username',
             '".date('Y-m-d H:i:s')."',
@@ -561,6 +570,7 @@ class PurchaseOrderController extends Controller
                 [
                     'num_revision' => $numRevision,
                     'status' => '1',
+                    'note'=> DB::raw("regexp_replace(CONCAT(note,', $reason'),', ','')"),
                     'revised_by'=>Auth::user()->username,
                     'revised_at'=> date('Y-m-d H:i:s'),
                     'updated_by' => Auth::user()->username,
@@ -996,8 +1006,8 @@ class PurchaseOrderController extends Controller
             $filter.="status = '$searchStatus' and ";            
         }
         
-        $filter.="status <> '7' and ";            
-     
+        $filter.="status <> '7' and ";
+             
         if ($orderDate  != '' ){
             $date = explode("to",$orderDate);
             $date1=trim($date[0]);
@@ -1010,6 +1020,7 @@ class PurchaseOrderController extends Controller
         }
 
         $data=DB::select("SELECT *,oki.id as idku,
+        (select note from purchase_order_hdr where po_number = oki.po_number) as note,
         -- case when uom_group = 'PIECE' then TO_CHAR(qtyku,'999,999,999') when uom_group <> 'PIECE' then TO_CHAR(qtyku,'999,999,999.999') end as qty,
         qtyku as qty,
         TO_CHAR(grossku,'999,999,999') as gross,
@@ -1034,6 +1045,7 @@ class PurchaseOrderController extends Controller
                 b.created_by,
                 b.status,b.id,
                 a.po_number,
+                a.po_number as po_number_1,
                 supplier_id,
                 po_date,
                 delivery_date,
@@ -1066,6 +1078,7 @@ class PurchaseOrderController extends Controller
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
             
             if ( $data->statusku and ($data->status == '2' or $data->status == '1') ){
+            // if ( $data->status == '2' or $data->status == '1' ){
                 if (Auth::user()->can('purchaseOrder-authorize')) {
                 $buttons .=         '<a href="'. route('purchaseOrder.edit', ['id'=>Crypt::encryptString($data->idku)]) .'" class="dropdown-item">
                                         <i data-feather="check"></i>
@@ -1082,12 +1095,34 @@ class PurchaseOrderController extends Controller
                 }
             }
             if (($data->status == '2') || ($data->status == '3') ){
-                if (Auth::user()->can('purchaseOrder-revision')) {
-                    $buttons .=         '<a href="'. route('purchaseOrder.revision', ['id'=>Crypt::encryptString($data->idku),'nR'=>$data->num_revision]) .'" class="dropdown-item">
-                                            <i data-feather="copy"></i>
-                                            <span>'. __("Revision") .'</span>
-                                        </a>';
-                }
+                // if( $data->order_type == 'tso' and $data->status_tso != 3 ){
+                //     $buttons .= "<a href='javascript:void(0);'
+                //                     data-url='". route('purchaseRequest.warning',['tsoCode'=>$data->tso_code]) ."'
+                //                     data-size='sm'
+                //                     data-ajax-popup='true'
+                //                     data-title='Warning'
+                //                     class='dropdown-item'>
+                //                     <i data-feather='corner-down-left' class='feather-14-red'></i>
+                //                     <span>". __('Revision') ."</span>
+                //                 </a>";
+                // }else{
+                    $buttons .= "<a href='javascript:;'
+                                    id='revisionReasonButton'
+                                    class='dropdown-item'
+                                    data-toggle='modal'
+                                    data-target='#reasonModalRevision'
+                                    data-href='". route('purchaseOrder.revision', ['id'=>Crypt::encryptString($data->idku),'nR'=>$data->num_revision]) ."'>
+                                    <i data-feather='corner-down-left' class='feather-14-red'></i>
+                                    <span>". __('Revision') ."</span>
+                                </a>";
+                // }
+
+                // if (Auth::user()->can('purchaseOrder-revision')) {
+                //     $buttons .=         '<a href="'. route('purchaseOrder.revision', ['id'=>Crypt::encryptString($data->idku),'nR'=>$data->num_revision]) .'" class="dropdown-item">
+                //                             <i data-feather="copy"></i>
+                //                             <span>'. __("Revision") .'</span>
+                //                         </a>';
+                // }
             }
             
             $buttons .=         '<a href="'. route('purchaseOrder.print', ['id'=>Crypt::encryptString($data->idku)]) .'" target="_blank" class="dropdown-item">
@@ -1372,7 +1407,7 @@ class PurchaseOrderController extends Controller
             ->where('pr_number','=',$prNumber)
             ->orderBy('article.article_desc')
             ->distinct('article.article_desc')
-            ->select(DB::raw("concat(article.article_alternative_code,' - ',article.article_desc) as article_desc")
+            ->select(DB::raw("concat(article.article_alternative_code,' - ',article.article_desc) as article_description")
             ,'article.article_code as artikel_code'
             ,'article.article_desc','article.costprice'
             ,'article_stock.article_qty as qty_stock'

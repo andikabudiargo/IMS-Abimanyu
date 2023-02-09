@@ -85,6 +85,7 @@
     </div>
   </div>
 </section>
+@include('partials.delete-modal')
 @endsection
 @section('styles')
 <style>
@@ -158,10 +159,10 @@
       tableId:"detailedTable",
       route:"{{ route('purchaseOrder.list') }}",
       kolom:{!! $kolom !!},
-      arrColPrint:[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16],
+      arrColPrint:[2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19],
       columnDefs :[
         { width: '5%', targets: 0 },
-        { className: 'text-right','targets': [ 11,12,13,14,15 ] },
+        { className: 'text-right','targets': [ 12,13,14,15,16,17 ] },
       ],
       dataSearch:  {
         searchPo:searchPo,
@@ -200,6 +201,13 @@
       excelFileName:'purchase_order'
     });
   }
+
+  let href;
+  $(document).on('click', '#revisionReasonButton', function(event) {
+      event.preventDefault();
+      href = $(this).data('href');
+      $('#modalReasonRevision').attr("action", href);
+  });
  
   $.ajaxSetup({
     headers: {

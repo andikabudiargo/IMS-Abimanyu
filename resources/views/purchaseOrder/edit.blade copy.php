@@ -24,7 +24,7 @@
                                     <label for="poNumber">Order Number</label> <small class="text-muted"> automatic</small>
                                     <input type="text" id="poNumber" name="poNumber" class="form-control disabled-el" value="{{ $header->po_number }}" disabled />
                                 </div>
-                                <div class="form-group col-md-2 d-none">
+                                <div class="form-group col-md-2">
                                     <label class="form-label" for="poType">PO Type*</label>
                                     <select class="select2 form-control" id="poType" name="poType" disabled required>
                                         <option value="std" {{ $header->order_type == 'std' ? "selected" : "" }}>Standard</option>
@@ -37,11 +37,11 @@
                                 </div>
                                 <div class="form-group col-md-2">
                                     <label for="deliveryDate">Delivery Date</label>
-                                    <input type="text" id="deliveryDate" name="deliveryDate" class="form-control" value="{{ $header->delivery_date }}" placeholder="DD-MM-YYYY" required />
+                                    <input type="text" id="deliveryDate" name="deliveryDate" class="form-control" value="{{ $header->delivery_date }}" placeholder="DD-MM-YYYY" />
                                 </div>
                             </div>
                             <div class="form-row">
-                                <div class="form-group col-md-6">
+                                <div class="form-group col-md-5">
                                     <label class="form-label" for="supplier">Supplier*</label>
                                     <select class="select2 form-control" id="supplier" name="supplier" required>
                                         <option value="">All</option>
@@ -60,7 +60,7 @@
                                         <label class="custom-control-label" for="pkp">PKP</label>
                                     </div>
                                 </div>
-                                <div class="form-group col-md-2 d-none">
+                                <div class="col-md-2">
                                     <label class="form-label" for="ppn">PPN</label>
                                     <div class="input-group">
                                         <input type="text" class="form-control angka text-right" id="ppn" name="ppn" value="{{ $header->ppn }}" maxlength="2" />
@@ -85,7 +85,7 @@
                                 </div>
                             </div>
                             <div class="form-row">
-                                <div class="form-group col-md-8">
+                                <div class="form-group col-md-9">
                                     <label class="form-label" for="note">Notes</label>
                                     <textarea type="text" id="note" name="note" class="form-control" rows="1" >{{ $header->note }} </textarea>
                                 </div>
@@ -108,7 +108,7 @@
                                 @foreach ($detail as $key =>$item)
                                     <div id="new_row{{ $key }}" class="tanda-baris" >
                                         <div class="form-row d-flex align-items-center">
-                                            {{-- <div class="col-md-2 col-12">
+                                            <div class="col-md-2 col-12">
                                                 <div class="form-group margin-nol">
                                                     <label for="pRequest" class="d-block d-md-none">Purchase Request</label>
                                                     <select class="form-control dynamicSelect sku-select-system" id="pRequest{{ $key }}" name="pRequest[]" data-dependent="pRequest">
@@ -117,26 +117,31 @@
                                                         @endforeach
                                                     </select>
                                                 </div>
-                                            </div> --}}
-                                            <div class="col-md-5 col-12">
+                                            </div>
+                                            <div class="col-md-3 col-12">
                                                 <div class="form-group margin-nol">
-                                                    <label for="articleDesc" class="d-block d-md-none">Article</label>
-                                                    <input type="text" class="form-control disabled-el" id = "articleDesc" name="articleDesc[]" value="{{ $item->article_alternative_code }} - {{ $item->article_desc }}" disabled>
-                                                    <input type="hidden" class="form-control disabled-el" id = "articleId" name="articleId[]" value="{{ $item->article_code }}">
-                                                    <input type="hidden" class="form-control disabled-el" id = "pRequest" name="pRequest[]" value="{{ $item->pr_number }}">
+                                                    <label for="article_id" class="d-block d-md-none">Article</label>
+                                                    <select class="form-control dynamicSelect sku-select-system" id="article_id{{ $key }}" name="article_id[]" data-dependent="article_id">
+                                                        @foreach($articles as $val)
+                                                            <option value="{{ $val->article_code }}|{{ $val->group }}|{{ $val->qty_stock }}|{{ $val->qty }}|{{ $val->uom1 }}|{{ $val->costprice }}" 
+                                                                    data-uom-group="{{ $val->uom_group }}'" {{ $val->article_code == $item->article_code && $val->pr_number == $item->pr_number ? "selected" :"" }}>
+                                                                    {{ $val->article_alternative_code }} - {{ $val->article_desc }}
+                                                            </option>
+                                                        @endforeach
+                                                    </select>
                                                 </div>
                                             </div>
                                             <div class="col-md-1 col-12">
                                                 <div class="form-group margin-nol">
                                                     <label for="qty_stock" class="d-block d-md-none">Stock</label>
-                                                    <input type="text" class="form-control {{ $item->uom_group  == 'PIECE' ? 'numeral-mask-satuan' : 'numeral-mask-digit' }} text-right" id="qty_stock" name="qty_stock[]" value="{{ $item->qty_stock == 0 ? 0 :$item->qty_stock*1 }}" disabled>
+                                                    <input type="text" class="form-control {{ $item->uom_group  == 'PIECE' ? 'numeral-mask-satuan' : 'numeral-mask-digit' }} text-right" id="qty_stock" name="qty_stock[]" value="{{ $item->qty_stock == 0 ? 0 :$item->qty_stock }}" disabled>
                                                 </div>
                                             </div>
                                             <div class="col-md-1 col-12">
                                                 <div class="form-group margin-nol">
-                                                    <label for="qtyOrder" class="d-block d-md-none">QTY Order</label>
+                                                    <label for="qty_order" class="d-block d-md-none">QTY Order</label>
                                                     <div class="input-group input-group-merge">
-                                                        <input type="text" class="form-control {{ $item->uom_group  == 'PIECE' ? 'numeral-mask-satuan' : 'numeral-mask-digit' }} text-right" id="qtyOrder" name="qtyOrder[]" value="{{ $item->qty*1 }}" maxlength="9" />
+                                                        <input type="text" class="form-control {{ $item->uom_group  == 'PIECE' ? 'numeral-mask-satuan' : 'numeral-mask-digit' }} text-right" id="qty_order" name="qty_order[]" value="{{ $item->qty }}" maxlength="9" />
                                                         <div class="input-group-append">
                                                             <span class="input-group-text" id ="uom" name="uom[]">{{ $item->uom }}</span>
                                                         </div>
@@ -191,12 +196,12 @@
                         </div>
                     </div>
                     <hr>
-                    {{-- <div class="d-flex justify-content-between align-items-end mt-75">
+                    <div class="d-flex justify-content-between align-items-end mt-75">
                         <button class="btn btn-primary btn-prev" type="button" id="addNewRow" onclick="add_new_row();">
                             <i data-feather="plus" class="align-middle mr-sm-25 mr-0"></i>
                             <span class="align-middle d-sm-inline-block d-none">Add Article</span>
                         </button>
-                    </div> --}}
+                    </div>
                     <div class="d-flex justify-content-between align-items-end mt-75">
                         <div class="col-md-4">
                             <div class="form-group row mb-03">
@@ -258,26 +263,12 @@
                                         <input type="text" id ="approveLevel" name ="approveLevel" class="d-none" value="{{ $approveValidate[0]->next_level }}">
                                         <input type="text" id ="maxLevel" name ="maxLevel" class="d-none" value="{{ $approveValidate[0]->max_level }}">
                                         <button class="btn btn-danger" type="button" id="cmdDecline" name="cmdDecline">Decline</button>
-                                        <button class="btn btn-success" type="button" id="cmdApprove" name="cmdApprove">Approve</button>
-                                        @if( $statusPo =='NEW')
-                                            <button class="btn btn-primary" type="button" id="cmdUpdate" name="cmdUpdate" >Update</button>
-                                        @endif
-                                    @else
-                                        @if( !$approveValidate && $statusPo =='NEW')
-                                            <button class="btn btn-primary" type="button" id="cmdUpdate" name="cmdUpdate" >Update</button>
-                                        @endif
-                                    @endif
-
-                                    {{-- @if( $approveValidate ? $approveValidate[0]->validate : '')
-                                        <input type="text" id ="approveLevel" name ="approveLevel" class="d-none" value="{{ $approveValidate[0]->next_level }}">
-                                        <input type="text" id ="maxLevel" name ="maxLevel" class="d-none" value="{{ $approveValidate[0]->max_level }}">
-                                        <button class="btn btn-danger" type="button" id="cmdDecline" name="cmdDecline">Decline</button>
                                         <button class="btn btn-primary" type="button" id="cmdApprove" name="cmdApprove">Approve</button>
                                     @else
                                         @if( strtoupper($statusPo) == 'NEW' )
                                             <button class="btn btn-primary" type="button" id="cmdUpdate" name="cmdUpdate">Update</button>
                                         @endif
-                                    @endif --}}
+                                    @endif
                                 </div>
                             </div>
                         </div>
@@ -289,13 +280,13 @@
                                 <div class="statistics-body">
                                     <div class="col-xl-3 col-sm-6 col-12 mb-2 mb-xl-0">
                                         <div class="media">
-                                            <div class="avatar bg-light-success mr-2">
+                                            <div class="avatar bg-light-{{ $val->statusapprove == 1 ? 'success':'warning' }} mr-2">
                                                 <div class="avatar-content">
-                                                    <i data-feather="check" class="avatar-icon"></i>
+                                                    <i data-feather="{{ $val->statusapprove == 1 ? 'check':'x' }}" class="avatar-icon"></i>
                                                 </div>
                                             </div>
                                             <div class="media-body my-auto">
-                                                <h4 class="font-weight-bolder mb-0">Approve-{{ $val->approval_order }}</h4>
+                                                <h4 class="font-weight-bolder mb-0">{{ $val->statusapprove == 1 ? 'Approve':'Decline' }}-{{ $val->approval_order }}</h4>
                                                 <p class="card-text mb-0">{{ $val->name }}</p>
                                             </div>
                                         </div>
@@ -359,10 +350,12 @@
 
     $(document).ready(function(){           
         validateForm('frmAdd');
-        tombolPanah('qtyOrder');
+        tombolPanah('qty_order');
         tombolPanah('price');
         activate_angka();
         mask_thousand();
+        splitArticle();
+        isiListArticle();
         hitungTotal();
         hitungGrandTotal();
         $('.sku-select-system').select2();

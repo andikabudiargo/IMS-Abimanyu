@@ -196,7 +196,6 @@
     });
   }
 
-
   let href;
   $(document).on('click', '#revisionReasonButton', function(event) {
       event.preventDefault();

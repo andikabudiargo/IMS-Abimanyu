@@ -1,9 +1,9 @@
 <div class="form-row d-flex align-items-end">
-    <div class="col-md-2 col-12 d-none d-md-block">
+    <!-- <div class="col-md-2 col-12 d-none d-md-block">
         <div class="form-group">
             <label class="d-none d-md-block">Purchase Request</label>
         </div>
-    </div>
+    </div> -->
     <div class="col-md-3 col-12 d-none d-md-block">
         <div class="form-group">
             <label class="d-none d-md-block">Article Code</label>

@@ -1119,7 +1119,7 @@ class PurchaseRequestController extends Controller
                 prepared_by,
                 order_type,
                 '8',
-                CONCAT(note,', $reason'),
+                regexp_replace(CONCAT(note,', $reason'),', ',''),
                 print_seq,
                 '$username',
                 '$username',
@@ -1176,7 +1176,7 @@ class PurchaseRequestController extends Controller
                     [
                         'num_revision' => $numRevision,
                         'status' => '1',
-                        'note'=> DB::raw("CONCAT(note,', $reason')"),
+                        'note'=> DB::raw("regexp_replace(CONCAT(note,', $reason'),', ','')"),
                         'revised_by'=>Auth::user()->username,
                         'revised_at'=> date('Y-m-d H:i:s'),
                         'updated_by' => Auth::user()->username,
