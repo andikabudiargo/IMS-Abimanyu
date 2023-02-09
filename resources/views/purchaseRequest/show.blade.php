@@ -95,7 +95,10 @@
                                                     <th>Article</th>
                                                     <th class="text-right">QTY</th>
                                                     <th class="text-left">UOM</th>
-                                                    <th class="text-left">History</th>
+                                                    {{-- <th class="text-left">History</th> --}}
+                                                    @foreach( $headers as $key =>$header2 )
+                                                        <th class="text-left">R-{{ $key }}</th>
+                                                    @endforeach
                                                     <th class="text-right">Note</th>
                                                 </tr>
                                             </thead>
@@ -107,7 +110,13 @@
                                                         <td >{{ $item->article }}</td>
                                                         <td class="text-right">{{ number_format($item->qty) }} </td>
                                                         <td>{{ $item->uom }}</td>
-                                                        <td class="text-left">{{ $item->notes }}</td>
+                                                        {{-- <td class="text-left">{{ $item->notes }}</td> --}}
+                                                        @php
+                                                            $histori = explode("->",$item->notes);
+                                                        @endphp
+                                                        @foreach( $headers as $key =>$header2 )
+                                                            <td class="text-left">{{ $histori[$key] }}</td>
+                                                        @endforeach
                                                         <td class="text-right">{{ $item->note }}</td>
                                                     </tr>
                                                 @endif
@@ -194,6 +203,10 @@
         content: counter(rowNumber);
         min-width: 1em;
         margin-right: 0.5em;
+    }
+
+    .text-merah{
+        color:red;
     }
 
 </style>
