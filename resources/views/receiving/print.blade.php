@@ -12,8 +12,8 @@
             /*size: 210mm 94mm; 
             margin-left: 20mm; 
             margin-top: 20mm; */
-            size: A5;
-            /* size:  210mm 148.5mm; */
+            /* size: A4; */
+            size: 210mm 210mm;
             margin:0;
             mergin-left:10px;
         }
@@ -26,7 +26,7 @@
         @media screen {
             body { 
                 width: 210mm; 
-                height: 148.5mm;
+                height: 210mm;
                 margin:0;
             }
         }
@@ -41,8 +41,8 @@
             {
                 /* size: 8.5in 11in;  */
                 /* size: 8.5in 6in;  */
-                size: A5;
-                /* size: 210mm 148.5mm; */
+                /* size: A5; */
+                size: 210mm 210mm ;
                 /* margin: 0 !important; */
                 margin-left:10px;
             }
@@ -50,8 +50,8 @@
             p { page-break-after: always; }
 
             html, body { 
-                height:210mm;
-                width:148.5mm;
+                height: 210mm;
+                width: 210mm;
                 margin:0 !important;
             }
         }
@@ -60,8 +60,8 @@
             /* font-family: Courier New,Courier,Lucida Sans Typewriter,Lucida Typewriter,monospace;  */
             /* font-family: Calibri,Arial, Helvetica, sans-serif; */
             /* background-color: aqua; */
-            height:210mm;
-            width:148.5mm;
+            height: 210mm;
+            width: 210mm;
         } 
         
         * {
