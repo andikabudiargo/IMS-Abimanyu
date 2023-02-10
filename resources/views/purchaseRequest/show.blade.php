@@ -96,8 +96,8 @@
                                                     <th class="text-right">QTY</th>
                                                     <th class="text-left">UOM</th>
                                                     {{-- <th class="text-left">History</th> --}}
-                                                    @foreach( $headers as $key =>$header2 )
-                                                        <th class="text-left">R-{{ $key }}</th>
+                                                    @foreach( $headers as $key1 =>$header2 )
+                                                        <th class="text-left">R-{{ $key1 }}</th>
                                                     @endforeach
                                                     <th class="text-right">Note</th>
                                                 </tr>
@@ -114,8 +114,8 @@
                                                         @php
                                                             $histori = explode("->",$item->notes);
                                                         @endphp
-                                                        @foreach( $headers as $key =>$header2 )
-                                                            <td class="text-left">{{ $histori[$key] }}</td>
+                                                        @foreach( $headers as $key1 =>$header2 )
+                                                            <td class="text-left">{{ $histori[$key1] }}</td>
                                                         @endforeach
                                                         <td class="text-right">{{ $item->note }}</td>
                                                     </tr>

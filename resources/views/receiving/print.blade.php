@@ -4,14 +4,30 @@
     <meta charset="UTF-8">
     <title>{{ $title }}</title>
     <style type="text/css">
-    html { 
+        html { 
             margin: 10px;
         }
 
-        /** For screen preview **/
+        @page { 
+            /*size: 210mm 94mm; 
+            margin-left: 20mm; 
+            margin-top: 20mm; */
+            /* size: A4; */
+            size: 148.5mm 210mm;
+            margin:0;
+            mergin-left:10px;
+        }
+
+        .print:last-child {
+            page-break-after: auto;
+        }
+
+        * For screen preview *
         @media screen {
             body { 
-                width: 200mm; height: 280mm ;
+                width: 148.5mm; 
+                height: 210mm;
+                margin:0;
             }
         }
 
@@ -24,37 +40,33 @@
             @page
             {
                 /* size: 8.5in 11in;  */
-                size: 8.5in 6in; 
-                margin: 0 !important;
+                /* size: 8.5in 6in;  */
+                /* size: A5; */
+                size: 148.5mm 210mm ;
+                /* margin: 0 !important; */
                 margin-left:10px;
             }
 
-            /* @page {
-                size:  auto; 
-                margin: 0 !important;
-                margin-left:10px;
-            } */
-
             p { page-break-after: always; }
 
-            body { 
-                width: 250mm; 
-                height: 140mm;
+            html, body { 
+                height: 148.5mm;
+                width: 210mm;
                 margin:0 !important;
             }
         }
 
         body { 
-            font-family: Courier New,Courier,Lucida Sans Typewriter,Lucida Typewriter,monospace; 
+            /* font-family: Courier New,Courier,Lucida Sans Typewriter,Lucida Typewriter,monospace;  */
             /* font-family: Calibri,Arial, Helvetica, sans-serif; */
             /* background-color: aqua; */
-            width: 200mm; height: 140mm ;
+            height: 148.5mm;
+            width: 210mm;
         } 
         
         * {
             /* font-family: Verdana, Arial, sans-serif; */
-            /* font-family: 'Courier New', monospace; */
-
+            font-family: 'Courier New', monospace;
         }
 
         table{
@@ -81,6 +93,7 @@
         td {
             height: 20px;
         } */
+
         th, td {
             padding-left: 5px;
             padding-right: 5px;
@@ -90,12 +103,7 @@
         .border-header{
             border: 1px solid black;
             border-collapse: collapse; 
-        }
-
-        
-            /* border: 1px solid black;
-            border-collapse: collapse; */
-        
+        }        
 
         .border-bottom{
             border-bottom: 1px solid #ddd;
@@ -128,58 +136,6 @@
             font-size: 8px;
         }
 
-
-        /* html { 
-            margin: 10px;
-        }
-
-        * {
-            font-family: Verdana, Arial, sans-serif;
-        }
-
-        table{
-            font-size: x-small;
-        }
-         */
-        /* tfoot tr td{ */
-            /*font-weight: bold;*/
-            /* font-size: medium; */
-        /* } */
-        /* .gray {
-            background-color: lightgray;
-            font-weight: bold;
-        }
-
-        table {
-        width: 100%;
-        }
-
-        th {
-            height: 30px;
-        }
-        td {
-            height: 20px;
-        }
-        th, td {
-            padding-left: 5px;
-            padding-right: 5px;
-            
-        } */
-
-        /* .border-bottom{
-            border-bottom: 1px solid #ddd;
-        }
-
-        #watermark {
-            background: url('{{ asset('assets/img/lunas-stamp.png') }}') center;
-            background-size: 10px 10px;
-            background-repeat: no-repeat;
-            opacity: 0.1;
-        } */
-
-        /* td {
-            white-space: nowrap;
-        } */
     </style>
     </head>
 <body>
