@@ -17,14 +17,15 @@
         /** Paper sizes **/
         body.A3           .sheet { width: 297mm; height: 419mm }
         body.A3.landscape .sheet { width: 420mm; height: 296mm }
-        body.A4           .sheet { width: 210mm; height: 296mm }
+        /* body.A4           .sheet { width: 210mm; height: 296mm } */
+        body.A4           .sheet { width: 210mm; height: 148mm }
         body.A4.landscape .sheet { width: 297mm; height: 209mm }
         body.A5           .sheet { width: 148mm; height: 209mm }
         body.A5.landscape .sheet { width: 210mm; height: 147mm }
 
         /** Padding area **/
         .sheet.padding-10mm { padding: 10mm }
-        .sheet.padding-10mm { padding: 5mm }
+        .sheet.padding-5mm { padding: 5mm }
         .sheet.padding-15mm { padding: 15mm }
         .sheet.padding-20mm { padding: 20mm }
         .sheet.padding-25mm { padding: 25mm }
@@ -48,7 +49,7 @@
         }
 
         .header, .header-space{
-                height: 170px;
+                height: 135px;
         }
 
         .footer, .footer-space {
@@ -75,11 +76,13 @@
                 position: fixed;
                 bottom: 0;
             }
+
         }
         
         * {
-            /* font-family: Verdana, Arial, sans-serif; */
-            font-family: 'Courier New', monospace;
+            font-family: "Calibri";
+            /* font-family: Calibri,sans-serif,Verdana,Arial; */
+            /* font-family: 'Courier New', monospace; */
         }
 
         table{
@@ -112,7 +115,7 @@
         }
     </style>
     </head>
-<body class="A5 landscape">
+<body class="A4">
     <section class="sheet padding-5mm">
     <table>
         <thead><tr><td>
@@ -123,7 +126,7 @@
                             {{-- <img src="{{ public_path('app-assets/images/logo/logo_po.png') }}" alt="logo" style="width: 60%;">  --}}
                             <img src="{{ asset('app-assets/images/logo/logo_po.png') }}" alt="logo" style="width: 70%;"> 
                         </td>
-                        <td valign="top" style="text-align:center"><h2>LEMBAR PENERIMAAN BARANG</h2></td>
+                        <td valign="top" style="text-align:center"><h3>LEMBAR PENERIMAAN BARANG</h3></td>
                         <td width="30%" ></td>
                     </tr>
                 </table>
