@@ -797,7 +797,7 @@ class PurchaseRequestController extends Controller
         ,'article_desc'
         ,'qty'
         ,'purchase_request_det.uom'
-        ,DB::raw("(select STRING_AGG( (qty::real)::text,' -> ' ORDER BY pr_number) AS main from purchase_request_det p where article_code = purchase_request_det.article_code and pr_number like '$prNumber%' ) as notes")
+        ,DB::raw("(select STRING_AGG( (qty::real)::text,' -> ' ORDER BY pr_number) AS main from (select * from purchase_request_det p where article_code = purchase_request_det.article_code and pr_number like '$prNumber%' limit 2) sub) as notes")
         )
         ->where('pr_number',$prNumber)
         ->orderBy('purchase_request_det.id')

@@ -88,7 +88,7 @@
                                     </form>
                                     <hr>               
                                     <div class="table-responsive main-table">
-                                        <table class="table table-bordered w-100" >
+                                        <table class="table table-bordered w-100" id="tableDetail" >
                                             <thead class="thead-dark">
                                                 <tr>
                                                     <th>No</th>
@@ -96,28 +96,57 @@
                                                     <th class="text-right">QTY</th>
                                                     <th class="text-left">UOM</th>
                                                     {{-- <th class="text-left">History</th> --}}
-                                                    @foreach( $headers as $key1 =>$header2 )
-                                                        <th class="text-left">R-{{ $key1 }}</th>
-                                                    @endforeach
+                                                    @if ($key !=0)
+                                                        @foreach( $headers as $key1 => $oki )
+                                                            @if ($key1 < $key and $key1!= 0 )
+                                                                <th class="text-center">R-{{ $key1 }}</th>
+                                                            @endif
+                                                        @endforeach
+                                                    @else
+                                                        @foreach( $headers as $key1 => $oki )
+                                                            @if ($key1 > $key and $key1!= 0 )
+                                                                <th class="text-center">R-{{ $key1 }}</th>
+                                                            @endif
+                                                        @endforeach
+                                                    @endif
                                                     <th class="text-right">Note</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                            @foreach( $details as $key =>$item )
+                                            @foreach( $details as $item )
                                                 @if($item->pr_number === $header2->pr_number )
                                                     <tr>
-                                                        <td ></td>
+                                                        <td class="text-right"></td>
                                                         <td >{{ $item->article }}</td>
                                                         <td class="text-right">{{ number_format($item->qty) }} </td>
                                                         <td>{{ $item->uom }}</td>
                                                         {{-- <td class="text-left">{{ $item->notes }}</td> --}}
                                                         @php
-                                                            $histori = explode("->",$item->notes);
-                                                        @endphp
-                                                        @foreach( $headers as $key1 =>$header2 )
-                                                            <td class="text-left">{{ $histori[$key1] }}</td>
-                                                        @endforeach
-                                                        <td class="text-right">{{ $item->note }}</td>
+                                                            {{ $histori = explode("->",$item->notes);}}
+                                                        @endphp 
+                                                        @if ($key !=0)
+                                                            @foreach( $headers as $key1 => $oki )
+                                                                @if ($key1 < $key and $key1!= 0)
+                                                                    @if( $key1 < count($histori) )
+                                                                        <td class="text-right">{{ number_format(intval($histori[$key1])) }}</td>
+                                                                    @else
+                                                                        <td class="text-right"></td>
+                                                                    @endif
+                                                                @endif
+                                                            @endforeach
+                                                        @else
+                                                            @foreach( $headers as $key1 => $oki )
+                                                                @if ($key1 > $key and $key1!= 0)
+                                                                    @if( $key1 < count($histori) )
+                                                                        <td class="text-right">{{ number_format(intval($histori[$key1])) }}</td>
+                                                                    @else
+                                                                        <td class="text-right"></td>
+                                                                    @endif
+                                                                @endif
+                                                            @endforeach
+                                                        @endif
+                                                        
+                                                        <td>{{ $item->note }}</td>
                                                     </tr>
                                                 @endif
                                             @endforeach
@@ -207,6 +236,11 @@
 
     .text-merah{
         color:red;
+    }
+
+    #tableDetail th, #tableDetail td {
+        padding: 0.4rem 0.6rem;
+        vertical-align: middle;
     }
 
 </style>
