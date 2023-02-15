@@ -952,6 +952,8 @@ class WosMixingController extends Controller
         ->orderBy('approval_order','desc')
         ->value('users.name');
         
+        $data['title'] = $mixNumber;
+
         view()->share($data);
 
         $pdf = PDF::loadView('wosMixing.print');

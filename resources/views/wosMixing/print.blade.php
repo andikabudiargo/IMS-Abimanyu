@@ -3,7 +3,7 @@
 <head>
     <meta http-equiv="content-type" content="text/html;charset=UTF-8" />
     <meta charset="utf-8" />
-    <title>Transfer In</title>
+    <title>{{ $title }}</title>
     <style>
         /** Define the margins of your page **/
         @page {
@@ -47,11 +47,11 @@
         }
 
         table{
-            font-size: x-small;
+            font-size: 10px;
         }
         
         tfoot tr td{
-            font-size: medium;
+            font-size: x-small;
         }
 
         .gray {
@@ -70,10 +70,11 @@
             height: 20px;
         }
         .detail > th, td {
-            padding-left: 15px;
-            padding-right: 15px;
+            padding-left: 10px;
+            padding-right: 10px;
             border-bottom: 1px solid #ddd;
         }
+
     </style>
 </head>
 <body>
@@ -129,15 +130,19 @@
     </footer>
     <!-- Wrap the content of your PDF inside a main tag -->
     <main>
-        <table>
+        <table width="100%" style="table-layout: fixed;" id="detail">
             <thead style="background-color: lightgray;">
                 <tr>
-                    <th width="5%">No</th>
-                    <th width="10%">Article</th>
-                    <th width="45%">Description</th>
-                    <th width="10%">Qty</th>
-                    <th width="10%">Qty Act</th>
-                    <th width="10%">Uom</th>
+                    <th width="4%">No</th>
+                    <th width="8%">Part No.</th>
+                    <th width="20%">Nama Part</th>
+                    <th width="5%">Stock</th>
+                    <th width="5%">Comp.</th>
+                    <th width="5%">Supply</th>
+                    <th width="5%">Actual</th>
+                    <th width="5%">Return</th>
+                    <th width="5%">Sisa</th>
+                    <th width="5%">Keterangan</th>
                 </tr>
             </thead>
             <tbody>
@@ -146,9 +151,13 @@
                         <td scope="row" class="border-bottom" align="right">{{ ++$no }}</td>
                         <td class="border-bottom" align="left">{{ $val->article_alternative_code }}</td>
                         <td class="border-bottom" align="left">{{ $val->article_desc }}</td>
+                        <td class="border-bottom" align="right"></td>
                         <td class="border-bottom" align="right">{{ number_format($val->qty,4) }}</td>
+                        <td class="border-bottom" align="right"></td>
                         <td class="border-bottom" align="right">{{ number_format($val->qty_actual,4) }}</td>
-                        <td class="border-bottom" align="right">{{ $val->uom }}</td>
+                        <td class="border-bottom" align="right"></td>
+                        <td class="border-bottom" align="right"></td>
+                        <td class="border-bottom" align="right"></td>
                     </tr>
                 @endforeach
             </tbody>
