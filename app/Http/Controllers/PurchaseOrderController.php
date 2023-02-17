@@ -1414,10 +1414,11 @@ class PurchaseOrderController extends Controller
             ,'purchase_request_det.uom as uom1'
             ,'group_materials.name as group'
             ,'uom.uom_group'
+            ,'purchase_request_det.qty'
             ,DB::raw("(SELECT price as last_price from purchase_order_det where article_code = purchase_request_det.article_code order by updated_at,created_at desc limit 1) as last_price")
             ,DB::raw("(select coalesce(sum(qty),0) from purchase_order_det 
                 where article_code = purchase_request_det.article_code 
-                and  pr_number = purchase_request_det.pr_number
+                and pr_number = purchase_request_det.pr_number
                 and po_number in (select po_number from purchase_order_hdr where status = '3')
                 ) as qty_po")
             )
