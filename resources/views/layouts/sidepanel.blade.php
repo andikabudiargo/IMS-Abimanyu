@@ -273,13 +273,26 @@
             @endcan
             
             @can('workingOrder-index')
-            <li class="{{ \Request::is(['workOrderSheet','workOrderSheet/create','workOrderSheet/edit']) ? 'active' : '' }}">
+            <li class="{{ \Request::is(['workOrderSheet','workOrderSheet/create','workOrderSheet/edit','wosMixing/actualLoading','wosMixing/actualLoadingFinishGoods']) ? 'active' : '' }}">
               <a class="d-flex align-items-center" href="{{ route('workingOrderSheets.index') }}">
                 <i data-feather="circle"></i>
                 <span class="menu-item text-truncate" data-i18n="Input">Work Order Sheet</span>
               </a>
             </li>
             @endcan
+
+            <li><a class="d-flex align-items-center" href="#"><i data-feather="circle"></i><span class="menu-item text-truncate" data-i18n="Invoice">WOS Mixing</span></a>
+              <ul class="menu-content">
+                @can('actualLoading-index')
+                  <li class="{{ \Request::is(['wosMixing/actualLoading']) }}"><a class="d-flex align-items-center" href="{{ route('actualLoading.index') }}"><span class="menu-item text-truncate" data-i18n="Invoice supplier">Actual Loading</span></a>
+                  </li>
+                @endcan
+                @can('actualLoadingFinishGoods-index')
+                  <li class="{{ \Request::is(['wosMixing/actualLoadingFinishGoods']) }}"><a class="d-flex align-items-center" href="{{ route('actualLoadingFinishGoods.index') }}"><span class="menu-item text-truncate" data-i18n="Proforma Invoice">Actual Finish Goods</span></a>
+                  </li>
+                @endcan
+              </ul>
+            </li>
 
             @can('wosMixing-index')
             <li class="{{ \Request::segment(1) == 'wosMixing' ? 'active' : '' }}" >

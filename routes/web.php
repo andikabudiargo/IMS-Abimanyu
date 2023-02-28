@@ -572,8 +572,37 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('wosMixing/article/mix',['as'=>'wosMixing.article.mix','uses'=>'WosMixingController@articleMix']);
 	Route::get('wosMixing/print',['as'=>'wosMixing.print','uses'=>'WosMixingController@print']);
 	Route::post('wosMixing/cancel',['as'=>'wosMixing.cancel','uses'=>'WosMixingController@cancel']);
-	
 
+	Route::get('wosMixing/actualLoading',['as'=>'wosMixing.actualLoading.index','uses'=>'ActualLoadingController@index','middleware' => ['permission:actualLoading-index']]);
+	Route::get('wosMixing/actualLoading/create',['as'=>'wosMixing.actualLoading.create','uses'=>'ActualLoadingController@create','middleware' => ['permission:actualLoading-create']]);
+	Route::post('wosMixing/actualLoading/store',['as'=>'wosMixing.actualLoading.store','uses'=>'ActualLoadingController@store']);
+	Route::get('wosMixing/actualLoading/list',['as'=>'wosMixing.actualLoading.list','uses'=>'ActualLoadingController@list']);
+	Route::get('wosMixing/actualLoading/list/detail',['as'=>'wosMixing.actualLoading.list.detail','uses'=>'ActualLoadingController@listDetail']);
+	Route::get('wosMixing/actualLoading/show',['as'=>'wosMixing.actualLoading.show','uses'=>'ActualLoadingController@show']);
+	Route::get('wosMixing/actualLoading/edit',['as'=>'wosMixing.actualLoading.edit','uses'=>'ActualLoadingController@edit','middleware' => ['permission:actualLoading-edit']]);
+	Route::post('wosMixing/actualLoading/update',['as'=>'wosMixing.actualLoading.update','uses'=>'ActualLoadingController@update']);
+	Route::post('wosMixing/actualLoading/delete',['as'=>'wosMixing.actualLoading.destroy','uses'=>'ActualLoadingController@destroy']);
+	Route::get('wosMixing/actualLoading/approve',['as'=>'wosMixing.actualLoading.approve','uses'=>'ActualLoadingController@approve']);
+	Route::post('wosMixing/actualLoading/posting',['as'=>'wosMixing.actualLoading.posting','uses'=>'ActualLoadingController@posting']);
+	Route::get('wosMixing/actualLoading/article/mix',['as'=>'wosMixing.actualLoading.article.mix','uses'=>'ActualLoadingController@articleMix']);
+	Route::get('wosMixing/actualLoading/print',['as'=>'wosMixing.actualLoading.print','uses'=>'ActualLoadingController@print']);
+	Route::post('wosMixing/actualLoading/cancel',['as'=>'wosMixing.actualLoading.cancel','uses'=>'ActualLoadingController@cancel']);
+
+	Route::get('wosMixing/actualLoadingFinishGoods',['as'=>'wosMixing.actualLoadingFinishGoods.index','uses'=>'ActualLoadingFinishGoodsController@index','middleware' => ['permission:actualLoadingFinishGoods-index']]);
+	Route::get('wosMixing/actualLoadingFinishGoods/create',['as'=>'wosMixing.actualLoadingFinishGoods.create','uses'=>'ActualLoadingFinishGoodsController@create','middleware' => ['permission:actualLoadingFinishGoods-create']]);
+	Route::post('wosMixing/actualLoadingFinishGoods/store',['as'=>'wosMixing.actualLoadingFinishGoods.store','uses'=>'ActualLoadingFinishGoodsController@store']);
+	Route::get('wosMixing/actualLoadingFinishGoods/list',['as'=>'wosMixing.actualLoadingFinishGoods.list','uses'=>'ActualLoadingFinishGoodsController@list']);
+	Route::get('wosMixing/actualLoadingFinishGoods/list/detail',['as'=>'wosMixing.actualLoadingFinishGoods.list.detail','uses'=>'ActualLoadingFinishGoodsController@listDetail']);
+	Route::get('wosMixing/actualLoadingFinishGoods/show',['as'=>'wosMixing.actualLoadingFinishGoods.show','uses'=>'ActualLoadingFinishGoodsController@show']);
+	Route::get('wosMixing/actualLoadingFinishGoods/edit',['as'=>'wosMixing.actualLoadingFinishGoods.edit','uses'=>'ActualLoadingFinishGoodsController@edit','middleware' => ['permission:actualLoadingFinishGoods-edit']]);
+	Route::post('wosMixing/actualLoadingFinishGoods/update',['as'=>'wosMixing.actualLoadingFinishGoods.update','uses'=>'ActualLoadingFinishGoodsController@update']);
+	Route::post('wosMixing/actualLoadingFinishGoods/delete',['as'=>'wosMixing.actualLoadingFinishGoods.destroy','uses'=>'ActualLoadingFinishGoodsController@destroy']);
+	Route::get('wosMixing/actualLoadingFinishGoods/approve',['as'=>'wosMixing.actualLoadingFinishGoods.approve','uses'=>'ActualLoadingFinishGoodsController@approve']);
+	Route::post('wosMixing/actualLoadingFinishGoods/posting',['as'=>'wosMixing.actualLoadingFinishGoods.posting','uses'=>'ActualLoadingFinishGoodsController@posting']);
+	Route::get('wosMixing/actualLoadingFinishGoods/article/mix',['as'=>'wosMixing.actualLoadingFinishGoods.article.mix','uses'=>'ActualLoadingFinishGoodsController@articleMix']);
+	Route::get('wosMixing/actualLoadingFinishGoods/print',['as'=>'wosMixing.actualLoadingFinishGoods.print','uses'=>'ActualLoadingFinishGoodsController@print']);
+	Route::post('wosMixing/actualLoadingFinishGoods/cancel',['as'=>'wosMixing.actualLoadingFinishGoods.cancel','uses'=>'ActualLoadingFinishGoodsController@cancel']);
+	
 	Route::get('deliveryInstruction',['as'=>'deliveryInstruction.index','uses'=>'DeliveryInstructionController@index','middleware' => ['permission:purchaseOrder-index']]);
 	Route::get('deliveryInstruction/create',['as'=>'deliveryInstruction.create','uses'=>'DeliveryInstructionController@create','middleware' => ['permission:deliveryInstruction-create']]);
 	Route::post('deliveryInstruction/store',['as'=>'deliveryInstruction.store','uses'=>'DeliveryInstructionController@store']);
