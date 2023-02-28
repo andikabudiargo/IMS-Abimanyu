@@ -30,6 +30,7 @@ class PurchaseOrderController extends Controller
         [
             ['data'=>'action','name'=>'action','title'=>'action','orderable'=> false,'searchable'=>false],
             ['data'=>'po_number','name'=>'po_number','title'=>'PO Number'],
+            ['data'=>'po_number','name'=>'po_number','title'=>'PO Number', 'visible'=>false],
             ['data'=>'po_number_1','name'=>'po_number_1','title'=>'PO Number','orderable'=> false,'searchable'=>false,'visible'=>false],
             ['data'=>'num_revision','name'=>'num_revision','title'=>'Revision'],
             ['data'=>'status','name'=>'status','title'=>'Status'],

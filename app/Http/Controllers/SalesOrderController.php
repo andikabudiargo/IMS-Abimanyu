@@ -25,9 +25,52 @@ class SalesOrderController extends Controller
         $this->moduleCode = "SO";
     }
 
+    public function getTableColoumn(){
+        $kolom=
+        [
+            ['data'=>'action', 'name'=>'action','title'=>'action', 'orderable'=>false, 'searchable'=>false],
+            ['data'=>'so_code', 'name'=>'so_code','title'=>'SO Code'],
+            ['data'=>'so_code', 'name'=>'so_code','title'=>'SO Code','visible'=>false],
+            ['data'=>'po_number', 'name'=>'po_number','title'=>'PO Number'],
+            ['data'=>'customer_id', 'name'=>'customer_id','title'=>'Customer'],
+            ['data'=>'cust_name', 'name'=>'cust_name','title'=>'Name'],
+            ['data'=>'salesman_code', 'name'=>'salesman_code','title'=>'Salesman'],
+            ['data'=>'so_date', 'name'=>'so_date','title'=>'Date'],
+            ['data'=>'order_type', 'name'=>'order_type','title'=>'Type'],
+            ['data'=>'status', 'name'=>'status','title'=>'Status'],
+            ['data'=>'note', 'name'=>'note','title'=>'Note']
+
+        ];
+        return json_encode($kolom, true);
+    }
+
+    public function getTableColoumnDetail(){
+        $kolom=
+        [
+            ['data'=>'tso_code','name'=>'tso_code','title'=>'TSO Code'],
+            ['data'=>'tso_name','name'=>'tso_name','title'=>'Name'],
+            ['data'=>'tso_date','name'=>'tso_date','title'=>'Date'],
+            ['data'=>'customer','name'=>'customer','title'=>'Customer'],
+            ['data'=>'article_alternative_code','name'=>'article_alternative_code','title'=>'Article code'],
+            ['data'=>'article_desc','name'=>'article_desc','title'=>'Article desc'],
+            ['data'=>'qty_target','name'=>'qty_target','title'=>'Qty Target'],
+            ['data'=>'qty_forcast','name'=>'qty_forcast','title'=>'Qty Forcast'],
+            ['data'=>'qty_actual','name'=>'qty_actual','title'=>'Qty Actual'],
+            ['data'=>'uom','name'=>'uom','title'=>'UOM'],
+            // ['data'=>'approval_by','name'=>'approval_by','title'=>'Approved By'],
+            ['data'=>'created_by','name'=>'created_by','title'=>'Created By'],
+            ['data'=>'created_at','name'=>'created_at','title'=>'Created Date'],
+            ['data'=>'updated_by','name'=>'updated_by','title'=>'Updated By'],
+            ['data'=>'updated_at','name'=>'updated_at','title'=>'Updated Date'],
+        ];
+        return json_encode($kolom, true);
+    }
+
     public function index(Request $request)
     {
         $data['title'] = "$this->title";
+        $data['kolom'] = $this->getTableColoumn();
+        $data['kolomDetail'] = $this->getTableColoumnDetail();
 
         $data['custs'] = DB::table('third_party')
         ->where ('third_party_type','=','cust')

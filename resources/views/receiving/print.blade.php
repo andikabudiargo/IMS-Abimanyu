@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en">
-    <head>
+<head>
     <meta charset="UTF-8">
     <title>{{ $title }}</title>
     <style type="text/css">
@@ -77,26 +77,35 @@
                 bottom: 0;
             }
 
+            @page :footer {
+                display: none
+            }
+            @page :header {
+                display: none
+            }
+
         }
         
         * {
             font-family: "Calibri";
+            font-size:12pt;
             /* font-family: Calibri,sans-serif,Verdana,Arial; */
             /* font-family: 'Courier New', monospace; */
         }
 
         table{
-            font-size: medium;
+            /* font-size: medium; */
+            font-family: "Calibri",Verdana,Arial;
+            font-size:12pt;
         }
         
         table {
             width: 100%;
         }
 
-
         #tblContent{
             /* font-family: verdana,arial,sans-serif; */
-            font-size:16px;
+            font-size:12pt;
             color:#333333;
             border-width: 1px;
             border-color: #666666;
@@ -131,7 +140,7 @@
         }
          
     </style>
-    </head>
+</head>
 <body class="A4">
 {{-- <section class="sheet padding-5mm"> --}}
     <table class="sheet padding-5mm">
@@ -191,46 +200,6 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach ($details as $val )
-                            <tr class="border-bottom">
-                                <td scope="row" class="border-bottom" align="right">{{ ++$no }}</td>
-                                <td class="border-bottom" align="left">{{ $val->article_alternative_code }}</td>
-                                <td class="border-bottom" align="left">{{ $val->article_desc }}</td>
-                                <td class="border-bottom" align="right">{{ number_format($val->qty) }}</td>
-                            </tr>
-                        @endforeach
-                        @foreach ($details as $val )
-                            <tr class="border-bottom">
-                                <td scope="row" class="border-bottom" align="right">{{ ++$no }}</td>
-                                <td class="border-bottom" align="left">{{ $val->article_alternative_code }}</td>
-                                <td class="border-bottom" align="left">{{ $val->article_desc }}</td>
-                                <td class="border-bottom" align="right">{{ number_format($val->qty) }}</td>
-                            </tr>
-                        @endforeach
-                        @foreach ($details as $val )
-                            <tr class="border-bottom">
-                                <td scope="row" class="border-bottom" align="right">{{ ++$no }}</td>
-                                <td class="border-bottom" align="left">{{ $val->article_alternative_code }}</td>
-                                <td class="border-bottom" align="left">{{ $val->article_desc }}</td>
-                                <td class="border-bottom" align="right">{{ number_format($val->qty) }}</td>
-                            </tr>
-                        @endforeach
-                        @foreach ($details as $val )
-                            <tr class="border-bottom">
-                                <td scope="row" class="border-bottom" align="right">{{ ++$no }}</td>
-                                <td class="border-bottom" align="left">{{ $val->article_alternative_code }}</td>
-                                <td class="border-bottom" align="left">{{ $val->article_desc }}</td>
-                                <td class="border-bottom" align="right">{{ number_format($val->qty) }}</td>
-                            </tr>
-                        @endforeach
-                        @foreach ($details as $val )
-                            <tr class="border-bottom">
-                                <td scope="row" class="border-bottom" align="right">{{ ++$no }}</td>
-                                <td class="border-bottom" align="left">{{ $val->article_alternative_code }}</td>
-                                <td class="border-bottom" align="left">{{ $val->article_desc }}</td>
-                                <td class="border-bottom" align="right">{{ number_format($val->qty) }}</td>
-                            </tr>
-                        @endforeach
                         @foreach ($details as $val )
                             <tr class="border-bottom">
                                 <td scope="row" class="border-bottom" align="right">{{ ++$no }}</td>
