@@ -142,7 +142,8 @@
         <tbody>
             <tr>
                 <td rowspan='5' valign="top" style="border: 1px solid #0c0c0c;padding-left:10px;width: 65%;font-size: 10px;">
-                Notes:{{ $keterangan }}<br>
+                {{-- Notes:{{ $keterangan }}<br> --}}
+                Notes:<br>
                 1. Surat jalan harus mencantumkan No. PO<br>
                 2. Barang harus diterima di gudang kami paling lambat jam 15:30 WIB<br>
                 3. Pembayaran sesuai dengan schedule yang telah ditentukan perusahaan<br>

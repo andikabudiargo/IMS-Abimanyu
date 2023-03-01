@@ -508,6 +508,23 @@ class PurchaseRequestController extends Controller
                         'updated_at' => date('Y-m-d H:i:s')
                     ]);
                 }
+
+                if($statusPr == '3'){
+                    //kalau status nya sudah approved makan akan update PO kalo PR ini sudah jadi PO
+                    //cek apakah ada po yang pake PR ini atau tidak, kalo ada maka PO nya harus di edit juga                
+                    $poList = DB::table('purchase_order_det')
+                    ->leftJoin('purchase_order_hdr','purchase_order_hdr.po_number','purchase_order_det.po_number')
+                    ->where('pr_number',$prNumber)
+                    ->where('status','!=','7')
+                    ->distinct('purchase_order_det.po_number')
+                    ->get();
+    
+                    if (count($poList)>0){
+                        foreach($poList as $val){
+                            $this->revisionPoFromPr($val->po_number,$prNumber,'Revisi');
+                        }
+                    }
+                }
                 
                 DB::commit();
                 $title ="Approve $this->title";
@@ -622,7 +639,7 @@ class PurchaseRequestController extends Controller
                                 </a>';
             }
 
-            if ( $data->status_pr == '3' or $data->status_pr == '2'){
+            if ( $data->status_pr == '3' or $data->status_pr == '2' or $data->status_pr == '7'){ 
                 
                 if( $data->order_type == 'tso' and $data->status_tso != 3 ){
                     $buttons .= "<a href='javascript:void(0);'
@@ -1058,15 +1075,33 @@ class PurchaseRequestController extends Controller
         $tsoIsApproved = 0;       
         $reasonRequest = $request->reason;
 
+       
         if ($tsoCode){
+            //kalo PR dari TSO, maka di revisi tapi lihat status TSO nya
             $tsoIsApproved=DB::table('target_order_hdr')
             ->where('tso_code',$tsoCode)
             ->where('status','3')
             ->count();  
 
+            // kalau status TSO sudah approve maka bisa di revisi , kala belum tidak bisa di revisi
             if($tsoIsApproved > 0){
                 $hasilRevisi = $this->revisionPrFromTso($tsoCode,$reasonRequest,$id);
                 if($hasilRevisi['success']){
+
+                    // //kalau PR nya sudah ada PO nya maka PO nya akan di revisi juga, nilai PO seusai dengan nilai PR
+                    // $poList = DB::table('purchase_order_det')
+                    // ->leftJoin('purchase_order_hdr','purchase_order_hdr.po_number','purchase_order_det.po_number')
+                    // ->where('pr_number',$prOrigin)
+                    // ->where('status','!=','7')
+                    // ->distinct('purchase_order_det.po_number')
+                    // ->get();
+    
+                    // if (count($poList)>0){
+                    //     foreach($poList as $val){
+                    //         $this->revisionPoFromPr($val->po_number,$prOrigin,$reasonRequest);
+                    //     }
+                    // }
+
                     $title ="Save $this->title";
                     $alert  ="success";
                     $message  = "$title Revision Pr: ".$hasilRevisi['prOrigin'] ." to ".$hasilRevisi['prNew']." is successfully saved";
@@ -1082,6 +1117,7 @@ class PurchaseRequestController extends Controller
             }
         }else{
 
+            //kalo bukan dari TSO, maka langsung di revisi saja
             $numRevision = $request->nR ? $request->nR +1 : 1 ;
             $prNew = $prOrigin.'-R'.$numRevision;
             
@@ -1200,6 +1236,20 @@ class PurchaseRequestController extends Controller
                         'updated_at' => date('Y-m-d H:i:s')
                     ]
                 );
+
+                // //cek apakah ada po yang pake PR ini atau tidak, kalo ada maka PO nya harus di revisi juga                
+                // $poList = DB::table('purchase_order_det')
+                // ->leftJoin('purchase_order_hdr','purchase_order_hdr.po_number','purchase_order_det.po_number')
+                // ->where('pr_number',$prOrigin)
+                // ->where('status','!=','7')
+                // ->distinct('purchase_order_det.po_number')
+                // ->get();
+
+                // if (count($poList)>0){
+                //     foreach($poList as $val){
+                //         $this->revisionPoFromPr($val->po_number,$prOrigin,$reasonRequest);
+                //     }
+                // }
                 
                 $title ="Save $this->title";
                 $alert  ="success";
@@ -1591,22 +1641,15 @@ class PurchaseRequestController extends Controller
 
     }
 
-    public function revisionPoFromPr($poNumber,$prNumber,$reason){
+    public function revisionPoFromPr($poOrigin,$prNumber,$reason){
         $username =  Auth::user()->username;
-        $poOrigin = $poNumber;
+
         $reason = "(Revision from PR : $prNumber, by $username, $reason)";
 
         $poHdr = DB::table('purchase_order_hdr')
         ->where('po_number',$poOrigin)
-        ->get(); 
+        ->first(); 
 
-        $prNumber = DB::table('purchase_request_det')
-        ->where('po_number',$poOrigin)
-        ->first();
-
-        $prNumber = $prNumber->pr_number;
-
-        $checkNewPo=DB::table('purchase_order_hdr')->where('po_number',$poNew)->count();
         $numRevision = $poHdr->num_revision ? $poHdr->num_revision+1 : 1 ;
         $poNew = $poOrigin.'-R'.$numRevision;
         $checkNewPo=DB::table('purchase_order_hdr')->where('po_number',$poNew)->count();
@@ -1734,9 +1777,10 @@ class PurchaseRequestController extends Controller
             ->where('po_number',$poOrigin)
             ->update(
                 [
-                    'qty' => DB::RAW("purchase_request_det.pr_number = purchase_order_det.pr_number and 
-                    purchase_request_det.article_code = purchase_order_det.article_code
-                    and purchase_request_det.po_number = purchase_order_det.po_number"),
+                    'qty' => DB::RAW("(select qty from purchase_request_det a 
+                    where a.pr_number = purchase_order_det.pr_number and 
+                          a.article_code = purchase_order_det.article_code and
+                          a.po_number = '$poOrigin')"),
                     'updated_by' => Auth::user()->username,
                     'updated_at' => date('Y-m-d H:i:s')
                 ]
@@ -1755,13 +1799,13 @@ class PurchaseRequestController extends Controller
             
             $title ="Save $this->title";
             $alert  ="success";
-            $message  = "$title Revision PO From PR PO: $poOrigin to $poNew PR:$prNumber is successfully saved";
+            $message  = "$title Revision PO From PR, PO: $poOrigin to $poNew ,PR:$prNumber is successfully saved";
             \LogActivity::addToLog($title,"username: $username Status $message");
             return "success";
         }else{
             $title ="Save $this->title";
             $alert  ="warning";
-            $message  = "$title Revision PO From PR  PO: $poOrigin to $poNew PR:$prNumber is failed to save";
+            $message  = "$title Revision PO From PR, PO: $poOrigin to $poNew ,PR:$prNumber is failed to save";
             \LogActivity::addToLog($title,"username: $username Status $message");
             return "failed";
         }

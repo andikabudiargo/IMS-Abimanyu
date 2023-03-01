@@ -310,10 +310,10 @@ class PurchaseOrderController extends Controller
         $data['details'] = DB::table('purchase_order_det')
         ->leftJoin('article','article.article_code','=','purchase_order_det.article_code')
         ->leftJoin('article_stock','article_stock.article_code','=','purchase_order_det.article_code')
-        ->leftJoin('purchase_request_det', function($join) {
-            $join->on('purchase_request_det.po_number','purchase_order_det.po_number')
-            ->on('purchase_request_det.article_code','purchase_order_det.article_code');
-        })
+        // ->leftJoin('purchase_request_det', function($join) {
+        //     $join->on('purchase_request_det.po_number','purchase_order_det.po_number')
+        //     ->on('purchase_request_det.article_code','purchase_order_det.article_code');
+        // })
         ->leftJoin('uom','uom.code','=','purchase_order_det.uom')
         ->whereIn('purchase_order_det.po_number', function($query) use ($poNumber){
             $query->select('po_number')->from('purchase_order_hdr')->where('origin_po_number',$poNumber);
@@ -406,10 +406,10 @@ class PurchaseOrderController extends Controller
         $data['detail'] = DB::table('purchase_order_det')
         ->leftJoin('article','article.article_code','=','purchase_order_det.article_code')
         ->leftJoin('article_stock','article_stock.article_code','=','purchase_order_det.article_code')
-        ->leftJoin('purchase_request_det', function($join) {
-            $join->on('purchase_request_det.po_number','purchase_order_det.po_number')
-            ->on('purchase_request_det.article_code','purchase_order_det.article_code');
-        })
+        // ->leftJoin('purchase_request_det', function($join) {
+        //     $join->on('purchase_request_det.po_number','purchase_order_det.po_number')
+        //     ->on('purchase_request_det.article_code','purchase_order_det.article_code');
+        // })
         ->leftJoin('uom','uom.code','=','purchase_order_det.uom')
         ->where('purchase_order_det.po_number',$poNumber)
         ->select('purchase_order_det'.'.*'
@@ -422,6 +422,8 @@ class PurchaseOrderController extends Controller
             , DB::raw('(SELECT name from group_materials where code = group_of_material) as group'))
         ->orderBy('id')
         ->get();       
+
+        // dd($data['detail']);
 
         $data['supps'] = DB::table('third_party')
         ->where ('third_party_type','=','supp')

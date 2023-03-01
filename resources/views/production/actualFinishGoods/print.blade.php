@@ -100,7 +100,7 @@
             <td width="30%" rowspan="5" class="no-wrap h-tengah" >
                 <img src="{{ public_path('app-assets/images/logo/logo_po.png') }}" alt="logo" style="width: 60%;"> 
             </td>
-            <td width="40%" rowspan="5" class="no-wrap h-tengah" style="text-align:center"><h2>WORK ORDER SHEET</h2>{{ $woNumber }}</td>
+            <td width="40%" rowspan="5" class="no-wrap h-tengah" style="text-align:center"><h2>WORK ORDER SHEET</h2>{{ $prdNumber }}</td>
             <td valign="" class="font-10 header-padding" >No Doc</td>
             <td valign="" class="font-10 header-padding" >: PPC-01.01-FM</td>
         </tr>
@@ -125,15 +125,15 @@
                 <table>
                     <tr>
                         <td width="5%" valign="top">Tanggal</td>
-                        <td width="20%">: {{ $header->wo_date }}</td>
+                        <td width="20%">: {{ $header->prod_date }}</td>
                         <td width="5%">Shift</td>
-                        <td >: {{ ucfirst($header->wo_shift) }} </td>
+                        <td >: {{ ucfirst($header->prod_shift) }} </td>
                     </tr>
                     <tr>
                         <td width="5%" valign="top">Rev</td>
                         <td >: {{ $header->num_revision }}</td>
                         <td width="5%">Group</td>
-                        <td >: {{ $header->wo_group }}</td>
+                        <td >: {{ $header->prod_group }}</td>
                     </tr>   
                 </table>
             </td>
@@ -173,14 +173,14 @@
                     <td class="border-bottom" align="left">{{ $val->article_desc }}</td>
                     <td class="border-bottom" align="left">{{ $val->article_alternative_code }}</td>
                     <td class="border-bottom" align="left">{{ $val->plan_time_loading }}</td>
-                    <td class="border-bottom" align="left"></td>
+                    <td class="border-bottom" align="left">{{ $val->act_time_loading }}</td>
                     <td class="border-bottom" align="right">{{ number_format($val->qty_rm) }}</td>
                     <td class="border-bottom" align="right">{{ number_format($val->plan_qty_fresh) }}</td>
                     <td class="border-bottom" align="right">{{ number_format($val->plan_qty_repaint) }}</td>
+                    <td class="border-bottom" align="right">{{ number_format($val->act_tag) }}</td>
                     <td class="border-bottom" align="right">{{ number_format($val->plan_tag) }}</td>
-                    <td class="border-bottom" align="right"></td>
-                    <td class="border-bottom" align="right"></td>
-                    <td class="border-bottom" align="right"></td>
+                    <td class="border-bottom" align="right">{{ number_format($val->act_qty_fresh) }}</td>
+                    <td class="border-bottom" align="right">{{ number_format($val->act_qty_repaint) }}</td>
                     <td class="border-bottom" align="right"></td>
                     <td class="border-bottom" align="right"></td>
                     <td class="border-bottom" align="right"></td>
@@ -203,8 +203,7 @@
             <td colspan="2" >Waktu Dibutuhkan</td>
             <td colspan="2" >{{ $header->total_tag }}</td>
             <td >Sisa waktu</td>
-            {{-- <td colspan="6">{{ (($header->working_hour*3600*0.95)/30)-$header->total_tag-10 }}</td> --}}
-            <td colspan="6">{{ (($header->working_hour*3600*0.95)/30)-$header->total_tag }}</td>
+            <td colspan="6">{{ (($header->working_hour*3600*0.95)/30)-$header->total_tag-10 }}</td>
         </tr>
     </table>
    

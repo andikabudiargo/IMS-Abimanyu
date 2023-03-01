@@ -28,17 +28,17 @@ class SalesOrderController extends Controller
     public function getTableColoumn(){
         $kolom=
         [
-            ['data'=>'action', 'name'=>'action','title'=>'action', 'orderable'=>false, 'searchable'=>false],
-            ['data'=>'so_code', 'name'=>'so_code','title'=>'SO Code'],
-            ['data'=>'so_code', 'name'=>'so_code','title'=>'SO Code','visible'=>false],
-            ['data'=>'po_number', 'name'=>'po_number','title'=>'PO Number'],
-            ['data'=>'customer_id', 'name'=>'customer_id','title'=>'Customer'],
-            ['data'=>'cust_name', 'name'=>'cust_name','title'=>'Name'],
-            ['data'=>'salesman_code', 'name'=>'salesman_code','title'=>'Salesman'],
-            ['data'=>'so_date', 'name'=>'so_date','title'=>'Date'],
-            ['data'=>'order_type', 'name'=>'order_type','title'=>'Type'],
-            ['data'=>'status', 'name'=>'status','title'=>'Status'],
-            ['data'=>'note', 'name'=>'note','title'=>'Note']
+            ['data'=>'action','name'=>'action','title'=>'action', 'orderable'=>false, 'searchable'=>false],
+            ['data'=>'so_code','name'=>'so_code','title'=>'SO Code'],
+            ['data'=>'so_code_1','name'=>'so_code_1','title'=>'SO Code','visible'=>false],
+            ['data'=>'po_number','name'=>'po_number','title'=>'PO Number'],
+            ['data'=>'customer_id','name'=>'customer_id','title'=>'Customer'],
+            ['data'=>'cust_name','name'=>'cust_name','title'=>'Name'],
+            ['data'=>'salesman_code','name'=>'salesman_code','title'=>'Salesman'],
+            ['data'=>'so_date','name'=>'so_date','title'=>'Date'],
+            ['data'=>'order_type','name'=>'order_type','title'=>'Type'],
+            ['data'=>'status','name'=>'status','title'=>'Status'],
+            ['data'=>'note','name'=>'note','title'=>'Note']
 
         ];
         return json_encode($kolom, true);
@@ -47,17 +47,21 @@ class SalesOrderController extends Controller
     public function getTableColoumnDetail(){
         $kolom=
         [
-            ['data'=>'tso_code','name'=>'tso_code','title'=>'TSO Code'],
-            ['data'=>'tso_name','name'=>'tso_name','title'=>'Name'],
-            ['data'=>'tso_date','name'=>'tso_date','title'=>'Date'],
+            ['data'=>'so_code_1','name'=>'so_code_1','title'=>'SO Code'],
+            ['data'=>'po_number','name'=>'po_number','title'=>'PO Number'],
+            ['data'=>'so_date','name'=>'so_date','title'=>'Date'],
             ['data'=>'customer','name'=>'customer','title'=>'Customer'],
+            ['data'=>'salesman','name'=>'salesman','title'=>'Salesman'],
+            ['data'=>'ppn','name'=>'ppn','title'=>'PPN'],
+            ['data'=>'order_type','name'=>'order_type','title'=>'Order Type'],
             ['data'=>'article_alternative_code','name'=>'article_alternative_code','title'=>'Article code'],
             ['data'=>'article_desc','name'=>'article_desc','title'=>'Article desc'],
-            ['data'=>'qty_target','name'=>'qty_target','title'=>'Qty Target'],
-            ['data'=>'qty_forcast','name'=>'qty_forcast','title'=>'Qty Forcast'],
-            ['data'=>'qty_actual','name'=>'qty_actual','title'=>'Qty Actual'],
+            ['data'=>'qty','name'=>'qty','title'=>'Qty'],
             ['data'=>'uom','name'=>'uom','title'=>'UOM'],
-            // ['data'=>'approval_by','name'=>'approval_by','title'=>'Approved By'],
+            ['data'=>'price','name'=>'price','title'=>'Price'],
+            ['data'=>'price_service','name'=>'price_service','title'=>'Price Service'],
+            ['data'=>'ppn_price','name'=>'ppn_price','title'=>'PPN'],
+            ['data'=>'status','name'=>'status','title'=>'Status'],
             ['data'=>'created_by','name'=>'created_by','title'=>'Created By'],
             ['data'=>'created_at','name'=>'created_at','title'=>'Created Date'],
             ['data'=>'updated_by','name'=>'updated_by','title'=>'Updated By'],
@@ -713,7 +717,12 @@ class SalesOrderController extends Controller
         }      
 
         $data=DB::table('sales_order_hdr')
-        ->select('sales_order_hdr.*','third_party.nama as cust_name')
+        ->select(
+            'sales_order_hdr.*'
+            ,'sales_order_hdr.so_code as so_code_1'
+            ,'third_party.nama as cust_name'
+
+         )
         ->leftJoin('third_party', 'third_party.kode', '=', 'sales_order_hdr.customer_id')
         ->where(function ($query) use ($seachPo,$searchOrder,$searchCustomer,$searchSalesman,$searchType,$searchStatus,$fromDate,$toDate) {
             $seachPo ? $query->where('po_number','ilike','%'.$seachPo.'%') :'';
@@ -788,6 +797,70 @@ class SalesOrderController extends Controller
             return "<div class='badge ".$badges[$data->status - 1]."'>".$statusSo[$data->status - 1]."</div>";
         })
         ->rawColumns(['action','status','so_code'])
+        ->make(true);
+    }
+
+    public function listDetail(Request $request)
+    {
+        $searchOrder = strtolower($request->searchOrder);
+        $seachPo = strtolower($request->seachPo);
+        $searchCustomer = $request->searchCustomer;
+        $searchSalesman = $request->searchSalesman;
+        $searchType = $request->searchType;
+        $searchStatus = $request->searchStatus;
+        $orderDate = $request->orderDate;
+        $fromDate = "";
+        $toDate = "";
+
+        if ($orderDate){
+            $date = explode("to",$orderDate);
+            if(count($date)>1){
+                $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+                $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
+            }else{
+                $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+                $toDate = $fromDate; 
+            }
+        }      
+
+        $data = DB::table('sales_order_det')
+        ->leftJoin('sales_order_hdr','sales_order_hdr.so_code','sales_order_det.so_code')
+        ->leftJoin('third_party','third_party.kode','sales_order_hdr.customer_id')
+        ->leftJoin('article','article.article_code','sales_order_det.article_code')
+        ->leftJoin('uom','uom.code','sales_order_det.uom')
+        ->leftJoin('employees','employees.employee_id','sales_order_hdr.salesman_code')
+        ->where(function ($query) use ($seachPo,$searchOrder,$searchCustomer,$searchSalesman,$searchType,$searchStatus,$fromDate,$toDate) {
+            $seachPo ? $query->where('po_number','ilike','%'.$seachPo.'%') :'';
+            $searchOrder ? $query->where('so_code','ilike','%'.$searchOrder.'%') :'';
+            $searchCustomer ? $query->where('customer_id',$searchCustomer) :'';
+            $searchSalesman ? $query->where('salesman_code',$searchSalesman) :'';
+            $searchType ? $query->where('order_type',$searchType) :'';
+            $searchStatus ? $query->where('status',$searchStatus) :'';
+            $fromDate ? $query->whereBetween(DB::raw("to_date(so_date,'DD-MM-YYYY')"), [$fromDate, $toDate]):'';
+        })
+        ->select('sales_order_det.*'
+        ,'sales_order_hdr.*'
+        ,'sales_order_hdr.so_code as so_code_1'
+        ,'article_alternative_code'
+        ,'article.article_desc'
+        ,'third_party.nama as customer'
+        ,'sales_order_det.ppn as ppn_price'
+        ,'employees.name as salesman'
+        // ,'uom_group'
+        // ,'qty_target'
+        // ,'qty_forcast'
+        // ,DB::raw("case when uom_group = 'PIECE' then TO_CHAR(qty_target,'999,999,999') when uom_group <> 'PIECE' then TO_CHAR(qty_target,'999,999,999.999') end as qty_target")
+        //,DB::raw("case when uom_group = 'PIECE' then TO_CHAR(qty_forcast,'999,999,999') when uom_group <> 'PIECE' then TO_CHAR(qty_forcast,'999,999,999.999') end as qty_forcast")
+        )
+        ->orderBy('sales_order_det.id')
+        ->get(); 
+       
+        return Datatables::of($data)
+        ->addColumn('status', function ($data) {
+            $statusSo = ['NEW','VALIDATED','APPROVED','RECEIVED','CANCELED','CLOSED','PAID'];
+            return $statusSo[$data->status - 1];
+        })
+        ->rawColumns(['status'])
         ->make(true);
     }
 

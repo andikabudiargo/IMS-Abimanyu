@@ -7,7 +7,7 @@
         <div class="col-md-12">
             <div class="card">
                 <div class="card-header">
-                    <h4 class="card-title">Status: <span id="statusText">{{ $statusWo }}</span></h4>
+                    <h4 class="card-title">Status: <span id="statusText">{{ $statusPrd }}</span></h4>
                     <div class="heading-elements">
                         <ul class="list-inline mb-0">
                             <li><a data-action="collapse"><i data-feather="chevron-down"></i></a></li>
@@ -27,7 +27,7 @@
                                     role="tab" 
                                     aria-selected="false" 
                                     data-ajax-detail="true" 
-                                    data-wo-code="{{ $header->wo_code }}">{{ $key == 0 ? 'Main':'Revision '.$key }}</a>
+                                    data-wo-code="{{ $header->prod_code }}">{{ $key == 0 ? 'Main':'Revision '.$key }}</a>
                                 </li>
                             @endforeach
                         </ul>
@@ -37,30 +37,30 @@
                                     <form id="frmAdd{{ $key }}" name="frmAdd{{ $key }}" autocomplete="off">
                                         <div class="form-row">
                                             <div class="form-group col-md-2">
-                                                <label for="wosNumber">Wo Number</label>
-                                                <input type="text" id="wosNumber" name="wosNumber" value="{{ $header2->wo_code  }}" class="form-control form-control-sm disabled-el" disabled />
+                                                <label for="prdNumber">Production Number</label>
+                                                <input type="text" id="prdNumber" name="prdNumber" value="{{ $header2->prod_code  }}" class="form-control form-control-sm disabled-el" disabled />
                                             </div>
                                         </div>
                                         <div class="form-row">
                                             <div class="form-group col-md-2">
-                                                <label for="wosDate">Date*</label>
-                                                <input type="text" id="wosDate" name="wosDate" value="{{ $header2->wo_date  }}" class="form-control"  placeholder="DD-MM-YYYY" disabled />
+                                                <label for="wosDate">Date</label>
+                                                <input type="text" id="wosDate" name="wosDate" value="{{ $header2->prod_date  }}" class="form-control"  placeholder="DD-MM-YYYY" disabled />
                                             </div>
                                             <div class="form-group col-md-2">
-                                                <label for="shift">Shift*</label>
+                                                <label for="shift">Shift</label>
                                                 <select class="select2 form-control" id="shift" name="shift" disabled>
                                                     <option value=""></option>
-                                                    <option value="pagi" {{ $header2->wo_shift == 'pagi' ? "selected" : "" }} >Pagi</option>
-                                                    <option value="siang" {{ $header2->wo_shift == 'siang' ? "selected" : "" }} >Siang</option>
+                                                    <option value="pagi" {{ $header2->prod_shift == 'pagi' ? "selected" : "" }} >Pagi</option>
+                                                    <option value="siang" {{ $header2->prod_shift == 'siang' ? "selected" : "" }} >Siang</option>
                                                 </select>
                                             </div>
                                             <div class="form-group col-md-2">
-                                                <label for="group">Group*</label>
+                                                <label for="group">Group</label>
                                                 <select class="select2 form-control" id="group" name="group" disabled>
                                                     <option value=""></option>
-                                                    <option value="A" {{ $header2->wo_group == 'A' ? "selected" : "" }} >A</option>
-                                                    <option value="B" {{ $header2->wo_group == 'B' ? "selected" : "" }} >B</option>
-                                                    <option value="C" {{ $header2->wo_group == 'C' ? "selected" : "" }} >C</option>
+                                                    <option value="A" {{ $header2->prod_group == 'A' ? "selected" : "" }} >A</option>
+                                                    <option value="B" {{ $header2->prod_group == 'B' ? "selected" : "" }} >B</option>
+                                                    <option value="C" {{ $header2->prod_group == 'C' ? "selected" : "" }} >C</option>
                                                 </select>
                                             </div>
                                             <div class="form-group col-md-2">
@@ -69,11 +69,11 @@
                                             </div>
                                             <div class="form-group col-md-2">
                                                 <label for="workingHour">Working Hour</label>
-                                                <input type="text" id="workingHour" name="workingHour" value="{{ $header2->working_hour  }}" class="form-control numeral-mask-satuan text-right" disabled />
+                                                <input type="text" id="workingHour" name="workingHour" value="{{ $header2->working_hour  }}" class="form-control numeral-mask-satuan text-right" maxlength="2" disabled />
                                             </div>
                                             <div class="form-group col-md-2">
                                                 <label for="efficiency">Efficiency</label>
-                                                <input type="text" id="efficiency" name="efficiency" value="{{ $header->efficiency }}" class="form-control numeral-mask-satuan text-right" disabled />
+                                                <input type="text" id="efficiency" name="efficiency" value="{{ $header2->efficiency ? $header->efficiency : '95' }}" class="form-control numeral-mask-satuan text-right" maxlength="3" disabled />
                                             </div>
                                         </div>
                                         <div class="row">
@@ -95,22 +95,24 @@
                                                     <th class="text-right">Qty SO</th>
                                                     <th class="text-right">Qty Fresh</th>
                                                     <th class="text-right">Qty Repaint</th>
+                                                    <th class="text-right">Qty FG</th>
                                                     <th class="text-left">Waktu</th>
                                                     <th class="text-right">Tag</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
                                             @foreach( $details as $key =>$item )
-                                                @if($item->wo_code === $header2->wo_code )
+                                                @if($item->prod_code === $header2->prod_code )
                                                     <tr>
                                                         <td >{{ $item->urutan }}</td>
                                                         <td >{{ $item->so_code }}</td>
                                                         <td >{{ $item->article }}</td>
                                                         <td class="text-right">{{ number_format($item->so_qty) }}</td>
-                                                        <td class="text-right">{{ number_format($item->plan_qty_fresh) }}</td>
-                                                        <td class="text-right">{{ number_format($item->plan_qty_repaint) }}</td>
-                                                        <td class="text-left">{{ $item->plan_time_loading }}</td>
-                                                        <td class="text-right">{{ $item->plan_tag }}</td>
+                                                        <td class="text-right">{{ number_format($item->act_qty_fresh) }}</td>
+                                                        <td class="text-right">{{ number_format($item->act_qty_repaint) }}</td>
+                                                        <td class="text-right">{{ number_format($item->act_finish_goods) }}</td>
+                                                        <td class="text-left">{{ $item->act_time_loading }}</td>
+                                                        <td class="text-right">{{ $item->act_tag }}</td>
                                                     </tr>
                                                 @endif
                                             @endforeach
@@ -122,7 +124,7 @@
                                             <table class="table table-bordered w-100" >
                                                 <tr>
                                                     <td rowspan="3">Total Tag</td>
-                                                    <td>Waktu tersedia <span id="sumWorkHour"></span> x3600"x95%</td>
+                                                    <td>Waktu tersedia <span id="sumWorkHour"></span> x3600"x{{ $header2->efficiency ? $header->efficiency : '95' }}%</td>
                                                     <td class="text-right" id="sumTimeRequired{{ $key }}">{{ number_format($header2->sum_time_required) }}</td>
                                                 </tr>
                                                 <tr>
@@ -195,21 +197,7 @@
 <style>
     textarea {
         resize: none;
-    }   
-
-    /* table {
-        counter-reset: rowNumber+1;
     }
-
-    table tr:not(:first-child) {
-        counter-increment: rowNumber;
-    }
-
-    table tr td:first-child::before {
-        content: counter(rowNumber);
-        min-width: 1em;
-        margin-right: 0.5em;
-    } */
 </style>
 @endsection
 @section('scripts')
@@ -218,7 +206,6 @@
     let currentDate = todayDate('dd-mm-yyyy');    
     $(document).ready(function(){           
         mask_thousand_digit(numberOfDecimalDigit);
-        $('.sku-select-system').select2();
     });
        
     $.ajaxSetup({

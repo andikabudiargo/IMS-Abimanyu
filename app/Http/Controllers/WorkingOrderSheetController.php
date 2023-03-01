@@ -640,7 +640,7 @@ class WorkingOrderSheetController extends Controller
             if ( $data->status == '1' or $data->status == '2') {
                 if (Auth::user()->can('workingOrder-approve')) {
                 $buttons .=         '<a href="'. route('workingOrderSheet.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
-                                        <i data-feather="file-text"></i>
+                                        <i data-feather="check"></i>
                                         <span>'. __("Approve") .'</span>
                                     </a>';
                 }

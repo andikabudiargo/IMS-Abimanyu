@@ -558,6 +558,7 @@ class InvoiceController extends Controller
         })
         ->leftJoin('article','article.article_code','=','delivery_det.article_code')
         ->leftJoin('uom','delivery_det.uom','uom.code')
+        ->select('delivery_det.*','article.*','uom.uom_group','sales_order_det.*','delivery_det.qty as qty_dn')
         ->where('delivery_det.delivery_number',$dn)
         ->where('delivery_det.so_number',$so)
         ->orderBy('delivery_det.id')
@@ -666,7 +667,7 @@ class InvoiceController extends Controller
             if (($data->status != '3') && ($data->status != '4')){
                 if (Auth::user()->can('receiving-edit')) {
                 $buttons .=         '<a href="'. route('invoice.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
-                                        <i data-feather="file-text"></i>
+                                        <i data-feather="check"></i>
                                         Approve
                                     </a>';
                 }

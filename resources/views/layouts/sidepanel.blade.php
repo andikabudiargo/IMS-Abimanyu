@@ -247,7 +247,7 @@
             @endcan
           </ul>
         </li>
-        <li class=" {{ in_array(\Request::segment(1), ['boms','workingOrders','workOrderSheet','deliveryPlan','wosMixing','production/actualLoading','production/actualLoadingFinishGoods']) ? 'active' : '' }} nav-item">
+        <li class=" {{ in_array(\Request::segment(1), ['boms','workingOrders','workOrderSheet','deliveryPlan','wosMixing','production/actualLoading','production/actualFinishGoods']) ? 'active' : '' }} nav-item">
           <a class="d-flex align-items-center" href="javascript:void(0);">
             <i data-feather='tool'></i>
             <span class="menu-title text-truncate" data-i18n="Form Elements">PPIC
@@ -293,15 +293,15 @@
             <li><a class="d-flex align-items-center" href="#"><i data-feather="circle"></i><span class="menu-item text-truncate" data-i18n="Wos Mixing">Production</span></a>
               <ul class="menu-content">
                 @can('actualLoading-index')
-                  <li class="{{ \Request::is(['production/actualLoading']) ? 'active' : '' }}">
+                  <li class="{{ \Request::is(['production/actualLoading','production/actualLoading/create']) ? 'active' : '' }}">
                     <a class="d-flex align-items-center" href="{{ route('production.actualLoading.index') }}">
                       <span class="menu-item text-truncate" data-i18n="Invoice supplier">Actual Loading</span>
                     </a>
                   </li>
                 @endcan
-                @can('actualLoadingFinishGoods-index')
-                  <li class="{{ \Request::is(['production/actualLoadingFinishGoods']) ? 'active' : '' }}">
-                    <a class="d-flex align-items-center" href="{{ route('production.actualLoadingFinishGoods.index') }}">
+                @can('actualFinishGoods-index')
+                  <li class="{{ \Request::is(['production/actualFinishGoods']) ? 'active' : '' }}">
+                    <a class="d-flex align-items-center" href="{{ route('production.actualFinishGoods.index') }}">
                       <span class="menu-item text-truncate" data-i18n="Proforma Invoice">Actual Finish Goods</span>
                     </a>
                   </li>

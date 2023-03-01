@@ -87,7 +87,7 @@
         }
         
         * {
-            font-family: "Calibri";
+            font-family: "Calibri",monospace;
             font-size:12pt;
             /* font-family: Calibri,sans-serif,Verdana,Arial; */
             /* font-family: 'Courier New', monospace; */
@@ -95,7 +95,7 @@
 
         table{
             /* font-size: medium; */
-            font-family: "Calibri",Verdana,Arial;
+            font-family: "Calibri",monospace,Verdana,Arial;
             font-size:12pt;
         }
         

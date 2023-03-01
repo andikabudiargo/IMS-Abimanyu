@@ -144,7 +144,7 @@
                             article=result[i].article_code;
                             articleCode=result[i].article_alternative_code;
                             articleDesc=result[i].article_desc;
-                            qtySo=result[i].qty;
+                            qtyDn=result[i].qty_dn;
                             uomGroup=result[i].uom_group;
                             uom=result[i].uom;
                             price=result[i].price;
@@ -152,12 +152,12 @@
                             soCode=result[i].so_number;
                             dnNumber=result[i].delivery_number;
                             poNumber=result[i].po_number;
-                            add_new_row(article,articleCode,articleDesc,qtySo,uomGroup,uom,price,priceService,soCode,dnNumber,poNumber);
+                            add_new_row(article,articleCode,articleDesc,qtyDn,uomGroup,uom,price,priceService,soCode,dnNumber,poNumber);
                         }
                     }
                 },
                 error: function (response) {
-                    Swal.fire("Warning","Get detail PO failed","warning");
+                    Swal.fire("Warning","Get detail DN failed","warning");
                 }
             })
         }
