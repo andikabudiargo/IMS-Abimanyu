@@ -502,18 +502,18 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('production/actualLoading/approve',['as'=>'production.actualLoading.approve','uses'=>'Production\ActualLoadingController@approve']);
 	Route::get('production/actualLoading/revision',['as'=>'production.actualLoading.revision','uses'=>'Production\ActualLoadingController@revision','middleware' => ['permission:actualLoading-revision']]);
 
-	Route::get('production/actualFinishGoods',['as'=>'production.actualFinishGoods.index','uses'=>'Production\actualFinishGoodsController@index','middleware' => ['permission:actualFinishGoods-index']]);
-	Route::get('production/actualFinishGoods/list',['as'=>'production.actualFinishGoods.list','uses'=>'Production\actualFinishGoodsController@list']);
-	Route::get('production/actualFinishGoods/list/detail',['as'=>'production.actualFinishGoods.list.detail','uses'=>'Production\actualFinishGoodsController@listDetail']);
-	Route::get('production/actualFinishGoods/show',['as'=>'production.actualFinishGoods.show','uses'=>'Production\actualFinishGoodsController@show']);
-	Route::get('production/actualFinishGoods/edit',['as'=>'production.actualFinishGoods.edit','uses'=>'Production\actualFinishGoodsController@edit','middleware' => ['permission:actualFinishGoods-edit']]);
-	Route::post('production/actualFinishGoods/update',['as'=>'production.actualFinishGoods.update','uses'=>'Production\actualFinishGoodsController@update']);
-	Route::post('production/actualFinishGoods/delete',['as'=>'production.actualFinishGoods.destroy','uses'=>'Production\actualFinishGoodsController@destroy']);
-	Route::get('production/actualFinishGoods/code/create',['as'=>'production.actualFinishGoods.code.create','uses'=>'Production\actualFinishGoodsController@articleCodeCreate']);
-	Route::get('production/actualFinishGoods/print',['as'=>'production.actualFinishGoods.print','uses'=>'Production\actualFinishGoodsController@print']);
-	Route::post('production/actualFinishGoods/posting',['as'=>'production.actualFinishGoods.posting','uses'=>'Production\actualFinishGoodsController@posting']);
-	Route::post('production/actualFinishGoods/approve',['as'=>'production.actualFinishGoods.approve','uses'=>'Production\actualFinishGoodsController@approve']);
-	Route::get('production/actualFinishGoods/revision',['as'=>'production.actualFinishGoods.revision','uses'=>'Production\actualFinishGoodsController@revision','middleware' => ['permission:actualFinishGoods-revision']]);
+	Route::get('production/actualFinishGoods',['as'=>'production.actualFinishGoods.index','uses'=>'Production\ActualFinishGoodsController@index','middleware' => ['permission:actualFinishGoods-index']]);
+	Route::get('production/actualFinishGoods/list',['as'=>'production.actualFinishGoods.list','uses'=>'Production\ActualFinishGoodsController@list']);
+	Route::get('production/actualFinishGoods/list/detail',['as'=>'production.actualFinishGoods.list.detail','uses'=>'Production\ActualFinishGoodsController@listDetail']);
+	Route::get('production/actualFinishGoods/show',['as'=>'production.actualFinishGoods.show','uses'=>'Production\ActualFinishGoodsController@show']);
+	Route::get('production/actualFinishGoods/edit',['as'=>'production.actualFinishGoods.edit','uses'=>'Production\ActualFinishGoodsController@edit','middleware' => ['permission:actualFinishGoods-edit']]);
+	Route::post('production/actualFinishGoods/update',['as'=>'production.actualFinishGoods.update','uses'=>'Production\ActualFinishGoodsController@update']);
+	Route::post('production/actualFinishGoods/delete',['as'=>'production.actualFinishGoods.destroy','uses'=>'Production\ActualFinishGoodsController@destroy']);
+	Route::get('production/actualFinishGoods/code/create',['as'=>'production.actualFinishGoods.code.create','uses'=>'Production\ActualFinishGoodsController@articleCodeCreate']);
+	Route::get('production/actualFinishGoods/print',['as'=>'production.actualFinishGoods.print','uses'=>'Production\ActualFinishGoodsController@print']);
+	Route::post('production/actualFinishGoods/posting',['as'=>'production.actualFinishGoods.posting','uses'=>'Production\ActualFinishGoodsController@posting']);
+	Route::post('production/actualFinishGoods/approve',['as'=>'production.actualFinishGoods.approve','uses'=>'Production\ActualFinishGoodsController@approve']);
+	Route::get('production/actualFinishGoods/revision',['as'=>'production.actualFinishGoods.revision','uses'=>'Production\ActualFinishGoodsController@revision','middleware' => ['permission:actualFinishGoods-revision']]);
 
 	Route::get('pettyCashs',['as'=>'pettyCashs.index','uses'=>'PettyCashController@index','middleware' => ['permission:pettyCash-index']]);
 	Route::get('pettyCashs/create',['as'=>'pettyCash.create','uses'=>'PettyCashController@create','middleware' => ['permission:pettyCash-create']]);

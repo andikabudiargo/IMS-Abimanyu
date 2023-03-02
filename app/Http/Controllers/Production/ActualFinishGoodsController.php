@@ -556,7 +556,7 @@ class ActualFinishGoodsController extends Controller
                                     Print
                                 </a>';
 
-            // if (Auth::user()->can('actualFinishGoods-posting')) {
+            if (Auth::user()->can('actualFinishGoods-posting')) {
                 if($data->status == '8'){
                     $buttons .="<a href='javascript:;'
                     class='dropdown-item' 
@@ -570,39 +570,39 @@ class ActualFinishGoodsController extends Controller
                     <span>". __('Posting') ."</span>
                     </a>";
                 }
-            // }
-
-            if (Auth::user()->can('actualFinishGoods-revision')) {
-                if (($data->status == '2') || ($data->status == '3') ){
-                    $buttons .=         '<a href="'. route('production.actualFinishGoods.revision', ['id'=>Crypt::encryptString($data->id),'nR'=>$data->num_revision]) .'" class="dropdown-item">
-                                            <i data-feather="copy"></i>
-                                            <span>'. __("Revision") .'</span>
-                                        </a>';
-                }
             }
+
+            // if (Auth::user()->can('actualFinishGoods-revision')) {
+            //     if (($data->status == '2') || ($data->status == '3') ){
+            //         $buttons .=         '<a href="'. route('production.actualFinishGoods.revision', ['id'=>Crypt::encryptString($data->id),'nR'=>$data->num_revision]) .'" class="dropdown-item">
+            //                                 <i data-feather="copy"></i>
+            //                                 <span>'. __("Revision") .'</span>
+            //                             </a>';
+            //     }
+            // }
             
             $buttons .=         '<a href="'. route('production.actualFinishGoods.show', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                     <i data-feather="list"></i>
                                     Detail
                                 </a>';
                 
-            if (Auth::user()->can('actualFinishGoods-delete')) {
-                if ( $data->status == '1' ){
-                    if (Auth::user()->can('workingOrder-delete')) {
-                        $buttons .=         "<a href='javascript:;'
-                                            class='dropdown-item' 
-                                            data-size='sm'
-                                            data-ajax-delete='true'
-                                            data-confirm='Are You Sure want to Delete?|This action can not be undone. Do you want to continue?' 
-                                            data-confirm-yes='document.getElementById(\""."delete-form-".$data->id."\").submit();'
-                                            data-modal-id='".$data->id."'
-                                            data-url='". route('production.actualFinishGoods.destroy', ['id'=>Crypt::encryptString($data->id)]) ."'>
-                                            <i data-feather='trash-2' class='feather-14-red'></i>
-                                            <span>". __('Delete') ."</span>
-                                        </a>";
-                    }
-                }
-            }
+            // if (Auth::user()->can('actualFinishGoods-delete')) {
+            //     if ( $data->status == '1' ){
+            //         if (Auth::user()->can('workingOrder-delete')) {
+            //             $buttons .=         "<a href='javascript:;'
+            //                                 class='dropdown-item' 
+            //                                 data-size='sm'
+            //                                 data-ajax-delete='true'
+            //                                 data-confirm='Are You Sure want to Delete?|This action can not be undone. Do you want to continue?' 
+            //                                 data-confirm-yes='document.getElementById(\""."delete-form-".$data->id."\").submit();'
+            //                                 data-modal-id='".$data->id."'
+            //                                 data-url='". route('production.actualFinishGoods.destroy', ['id'=>Crypt::encryptString($data->id)]) ."'>
+            //                                 <i data-feather='trash-2' class='feather-14-red'></i>
+            //                                 <span>". __('Delete') ."</span>
+            //                             </a>";
+            //         }
+            //     }
+            // }
             $buttons .=     '</div>
                         </div>';
 
