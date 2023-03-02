@@ -13,6 +13,10 @@
 
 use Illuminate\Http\Request;
 
+Route::get('testPrint', function (Request $request) {
+	return view("testPrint"); 
+});
+
 // Route::auth();
 Auth::routes();
 Route::group( ['middleware' => ['auth']], function() {
