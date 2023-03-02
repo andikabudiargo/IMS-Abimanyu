@@ -17,7 +17,7 @@
         <form class="needs-validation" novalidate>
             <div class="form-row">
               <div class="form-group col-md-3"> 
-                <label for="searchPrd">actualLoading Number</label>
+                <label for="searchPrd">Production Number</label>
                 <input type="text" class="form-control text-uppercase" id="searchPrd" name="searchPrd" placeholder=""  />
               </div>
               <div class="col-md-3 form-group">
@@ -45,9 +45,9 @@
             <div class="form-row">
                 <div class="col-12"> 
                     <button type="button" class="btn btn-primary" id ="btnSearch" name="btnSearch">Search</button>
-                    @can('actualLoading-create')
-                    <a href="{{ route('production.actualLoading.create') }}" class="btn btn-info"><i class="fa fa-plus"></i> Create</a>
-                    @endcan
+                    {{-- @can('actualFinishGoods-create')
+                    <a href="{{ route('production.actualFinishGoods.create') }}" class="btn btn-info"><i class="fa fa-plus"></i> Create</a>
+                    @endcan --}}
                 </div>
             </div>
         </form>
@@ -170,7 +170,7 @@
         searchStatus:searchStatus
       },
       orderColumn:[[ 1, 'asc' ]],
-      excelFileName:'actualLoading_data'
+      excelFileName:'actualFinishGoods_data'
     });
   }
 

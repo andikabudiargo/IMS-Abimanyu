@@ -17,7 +17,7 @@
         <form class="needs-validation" novalidate>
             <div class="form-row">
               <div class="form-group col-md-3"> 
-                <label for="searchPrd">actualLoading Number</label>
+                <label for="searchPrd">Production Number</label>
                 <input type="text" class="form-control text-uppercase" id="searchPrd" name="searchPrd" placeholder=""  />
               </div>
               <div class="col-md-3 form-group">
