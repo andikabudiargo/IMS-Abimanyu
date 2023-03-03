@@ -14,6 +14,16 @@
     </div>
     <div class="card-content collapse show">
       <div class="card-body">
+
+        <form action="{{ route('stockTake.import') }}" method="POST" name="importform" enctype="multipart/form-data">
+          {{ csrf_field() }}
+          <div class="form-group">
+            <label for="file">File:</label>
+            <input id="file" type="file" name="file" class="form-control">
+          </div>
+          <button class="btn btn-success">Import File</button>
+        </form>
+
         <form class="needs-validation" novalidate>
             <div class="form-row">
               <div class="form-group col-md-3"> 

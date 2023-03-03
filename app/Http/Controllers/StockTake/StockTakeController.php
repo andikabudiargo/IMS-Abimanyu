@@ -14,6 +14,10 @@ use DB;
 use PDF;
 use AppHelpers;
 use Approval;
+use App\Models\ImportStake;
+use App\Imports\StockTakeImport;
+use App\Exports\StockTakeExport;
+use Maatwebsite\Excel\Facades\Excel;
 
 class StockTakeController extends Controller
 {
@@ -93,7 +97,7 @@ class StockTakeController extends Controller
         
         $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED'];
     
-        return view("transferIn.index",$data);
+        return view("stockTake.index",$data);
     }
 
     public function create(Request $request)
@@ -973,6 +977,28 @@ class StockTakeController extends Controller
         $pdf = PDF::loadView('transferIn.print');
         return $pdf->stream("$trNumber.pdf");
 
+    }
+
+    /**
+
+    * @return \Illuminate\Support\Collection
+
+    */
+
+    public function importExportView()
+    {
+       return view('import');
+    }
+
+    public function export() 
+    {
+        return Excel::download(new StockTakeExport, 'file_export.xlsx');
+    }
+
+    public function import() 
+    {
+        Excel::import(new StockTakeImport,request()->file('file'));
+        return back();
     }
 
 }
