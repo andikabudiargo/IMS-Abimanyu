@@ -112,7 +112,7 @@
 
         #tblContent{
             /* font-family: verdana,arial,sans-serif; */
-            font-size:16pt;
+            /* font-size:14pt; */
             color:#333333;
             border-width: 1px;
             border-color: #666666;
@@ -209,7 +209,7 @@
         </td></tr></thead>
         <tbody><tr><td>
             <div class="content">
-                <table id="tblContent">
+                <table id="tblContent" class="font-14">
                     <thead>
                         <tr >
                             <th width="5%" class="border-header">No</th>
@@ -229,7 +229,7 @@
                         @endforeach
                     </tbody>
                 </table>
-                <table width="100%" border="0" class="font-16">
+                <table width="100%" border="0" class="font-14">
                     <tr colspan="2" class="border-bottom">
                         <td class="border-bottom" align="left" colspan="3">Total</td>
                         <td class="border-bottom" align="right" >{{ number_format($totals[0]->qty) }}</td>
@@ -262,17 +262,17 @@
     </table>
 {{-- </section> --}}
 <script>
-    window.onload= function () {
-        window.print();
-        window.onafterprint = function () {
-            window.close();
-        }
-        window.onfocus = function () { 
-            setTimeout(function () { 
-                window.close(); 
-            }, 200); 
-        }
-    }
+    // window.onload= function () {
+    //     window.print();
+    //     window.onafterprint = function () {
+    //         window.close();
+    //     }
+    //     window.onfocus = function () { 
+    //         setTimeout(function () { 
+    //             window.close(); 
+    //         }, 200); 
+    //     }
+    // }
 </script>
 </body>
 </html>
