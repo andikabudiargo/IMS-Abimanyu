@@ -157,6 +157,7 @@ class WosMixingController extends Controller
             try {
                     $rowAffected = DB::table('wos_mixing_hdr')->insert([
                         'mix_number' => $mixNumber,
+                        'wos_number' => $wosNumber,
                         'mix_date' => $mixDate,
                         'status' => $status,
                         'note' => $note,
@@ -918,11 +919,14 @@ class WosMixingController extends Controller
         ->get()->first();
             
         $mixHdr=DB::table('wos_mixing_hdr')
-        ->where('id',$id)
+        ->leftJoin('wo_hdr','wo_hdr.wo_code','wos_mixing_hdr.wos_number')
+        ->select('wos_mixing_hdr.*','wo_hdr.wo_shift')
+        ->where('wos_mixing_hdr.id',$id)
         ->first();
 
         $mixNumber=$mixHdr->mix_number;
         $wosNumber=$mixHdr->wos_number;
+        $shift=$mixHdr->wo_shift;
     
         $data['details']=DB::table('wos_mixing_det')
         ->leftJoin('article','article.article_code','wos_mixing_det.article_code')
@@ -939,6 +943,7 @@ class WosMixingController extends Controller
         $data['keterangan']=$mixHdr->note;
         $data['mixNumber'] =$mixNumber;
         $data['wosNumber'] =$wosNumber;
+        $data['shift'] =$shift;
         $data['mixDate'] =$mixHdr->mix_date;
         $data['postedBy'] =$mixHdr->posted_by;
         $data['no'] = 0;
