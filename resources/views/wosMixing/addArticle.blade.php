@@ -306,6 +306,9 @@
         $("#new_row"+ cloneCount).find('#qty').attr('id', 'qty'+ cloneCount);
         $("#new_row"+ cloneCount).find('#qtyAct').attr('id', 'qtyAct'+ cloneCount);
         $("#qty"+ cloneCount).val(qty);
+        $("#qty"+ cloneCount).attr('disabled','disabled');
+
+        qtyAct = qtyAct == 0 ? '' : qtyAct;
         $("#qtyAct"+ cloneCount).val(qtyAct);
         let uomOption="";
         if (uomMember){
@@ -321,6 +324,7 @@
         $("#new_row"+ cloneCount).find('#uom').attr('id', 'uom'+ cloneCount);
         $("#uom"+ cloneCount).html(uomOption);
         $("#uom"+ cloneCount).val(uom).trigger('change');
+        $("#uom"+ cloneCount).attr('disabled','disabled');
         $('#remove_button').tooltip();
         hitungTotal();
         hitungGrandTotal();

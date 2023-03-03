@@ -87,17 +87,24 @@
         }
         
         * {
-            font-family: "Calibri",monospace;
-            font-size:12pt;
+            /* font-family: "Calibri",monospace; */
+            font-family: "Lucida Console","Calibri", "Courier New", monospace;
+            /* font-size:16pt; */
             /* font-family: Calibri,sans-serif,Verdana,Arial; */
             /* font-family: 'Courier New', monospace; */
         }
 
         table{
             /* font-size: medium; */
-            font-family: "Calibri",monospace,Verdana,Arial;
-            font-size:12pt;
+            /* font-family: "Calibri",monospace,Verdana,Arial; */
+            font-family: "Lucida Console","Calibri", "Courier New", monospace;
+            /* font-size:16pt; */
         }
+
+        /* table {
+            border-collapse:collapse;
+            table-layout:fixed
+        } */
         
         table {
             width: 100%;
@@ -105,7 +112,7 @@
 
         #tblContent{
             /* font-family: verdana,arial,sans-serif; */
-            font-size:12pt;
+            font-size:16pt;
             color:#333333;
             border-width: 1px;
             border-color: #666666;
@@ -138,6 +145,18 @@
             padding-bottom: 0px;
             padding-top: 0px;
         }
+
+        .font-12{
+            font-size:12pt;
+        }
+
+        .font-14{
+            font-size:14pt;
+        }
+
+        .font-16{
+            font-size:16pt;
+        }
          
     </style>
 </head>
@@ -155,12 +174,12 @@
                         <td width="30%" ></td>
                     </tr>
                 </table>
-                <table width="100%" border="0" >
+                <table width="100%" border="0" class="font-12">
                     <tr>
                         <td width="45%" valign="top" >
                             <table class="tableHeader">
                                 <tr>
-                                    <td width="30%">Rec. Number </td><td>: {{ $recHdr->rec_number }}</td>
+                                    <td width="35%" >Rec. Number </td><td>: {{ $recHdr->rec_number }}</td>
                                 </tr>
                                 <tr>
                                     <td>PO Number </td><td>: {{ $recHdr->po_number }}</td>
@@ -171,10 +190,10 @@
                             </table>
                         </td>
                         <td width="5%"></td>
-                        <td width="45%">
+                        <td width="50%">
                             <table class="tableHeader">
                                 <tr>
-                                    <td width="30%">Customer </td><td>: {{ $suppliers[0]->nama }}</td>
+                                    <td width="25%">Customer </td><td>: {{ $suppliers[0]->nama }}</td>
                                 </tr>
                                 <tr>
                                     <td>DO Number </td><td>: {{ $recHdr->do_number }}</td>
@@ -210,7 +229,7 @@
                         @endforeach
                     </tbody>
                 </table>
-                <table width="100%" border="0">
+                <table width="100%" border="0" class="font-16">
                     <tr colspan="2" class="border-bottom">
                         <td class="border-bottom" align="left" colspan="3">Total</td>
                         <td class="border-bottom" align="right" >{{ number_format($totals[0]->qty) }}</td>

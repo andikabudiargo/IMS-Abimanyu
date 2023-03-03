@@ -181,6 +181,7 @@ return [
         App\Providers\ApprovalServiceProvider::class,
         Barryvdh\DomPDF\ServiceProvider::class,
         App\Providers\ComposerServiceProvider::class,
+        Maatwebsite\Excel\ExcelServiceProvider::class,
 
     ],
 
@@ -237,6 +238,7 @@ return [
         'AppHelpers' => App\Helpers\AppHelpers::class,
         'PDF' => Barryvdh\DomPDF\Facade::class,
         'Approval' => App\Helpers\Approval::class,
+        'Excel' => Maatwebsite\Excel\Facades\Excel::class,
 
     ],
 
