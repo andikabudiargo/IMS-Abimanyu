@@ -88,7 +88,8 @@
         
         * {
             /* font-family: "Calibri",monospace; */
-            font-family: "Lucida Console","Calibri", "Courier New", monospace;
+            /* font-family: "Lucida Console","Calibri", "Courier New", monospace; */
+            font-family: Calibri,Arial, Helvetica, sans-serif;
             /* font-size:16pt; */
             /* font-family: Calibri,sans-serif,Verdana,Arial; */
             /* font-family: 'Courier New', monospace; */
@@ -97,7 +98,8 @@
         table{
             /* font-size: medium; */
             /* font-family: "Calibri",monospace,Verdana,Arial; */
-            font-family: "Lucida Console","Calibri", "Courier New", monospace;
+            /* font-family: "Lucida Console","Calibri", "Courier New", monospace; */
+            font-family: Calibri,Arial, Helvetica, sans-serif;
             /* font-size:16pt; */
         }
 
@@ -147,15 +149,18 @@
         }
 
         .font-12{
-            font-size:12pt;
+            /* font-size:12pt; */
+            font-size: medium;
         }
 
         .font-14{
-            font-size:14pt;
+            /* font-size:14pt; */
+            font-size: medium;
         }
 
         .font-16{
-            font-size:16pt;
+            /* font-size:16pt; */
+            font-size: medium;
         }
          
     </style>

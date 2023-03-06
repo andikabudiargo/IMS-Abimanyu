@@ -39,9 +39,9 @@
                     <td class="isian disabled" style="width: 40%">
                         <input type="text" class="form-control-plaintext text-hitam" id = "articleId" name="articleId[]" data-code="" data-uom=""  data-price="" data-po-number="" disabled>
                     </td>
-                    {{-- <td class="isian disabled" style="width: 5%">
+                    <td class="isian disabled" style="width: 5%">
                         <input type="text" class="form-control-plaintext text-hitam numeral-mask-digit text-right" id = "qtySo" name="qtySo[]" disabled>
-                    </td> --}}
+                    </td>
                     <td class="isian" style="width: 5%">
                         <input type="text" class="form-control-plaintext text-hitam numeral-mask text-right" id = "qtyInv" name="qtyInv[]" maxlength="9">
                     </td>

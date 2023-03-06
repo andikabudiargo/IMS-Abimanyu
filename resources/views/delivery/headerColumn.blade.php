@@ -5,9 +5,9 @@
                 <td class="" style="width: 40%">
                     <label>Article Code</label>
                 </td>
-                {{-- <td class="isian" style="width: 5%">
+                <td class="isian" style="width: 5%">
                     <label>Qty SO</label>
-                </td> --}}
+                </td>
                 <td class="isian" style="width: 5%">
                     <label>Qty</label>
                 </td>
