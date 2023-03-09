@@ -30,8 +30,7 @@ class PurchaseOrderController extends Controller
         [
             ['data'=>'action','name'=>'action','title'=>'action','orderable'=> false,'searchable'=>false],
             ['data'=>'po_number','name'=>'po_number','title'=>'PO Number'],
-            ['data'=>'po_number','name'=>'po_number','title'=>'PO Number', 'visible'=>false],
-            ['data'=>'po_number_1','name'=>'po_number_1','title'=>'PO Number','orderable'=> false,'searchable'=>false,'visible'=>false],
+            ['data'=>'po_number_1','name'=>'po_number_1','title'=>'PO Number','orderable'=> false,'searchable'=>false,'visible'=>false],            
             ['data'=>'num_revision','name'=>'num_revision','title'=>'Revision'],
             ['data'=>'status','name'=>'status','title'=>'Status'],
             ['data'=>'supp_name','name'=>'supp_name','title'=>'Supplier'],
@@ -48,7 +47,9 @@ class PurchaseOrderController extends Controller
             ['data'=>'ppn','name'=>'ppn','title'=>'PPN'],
             ['data'=>'netto','name'=>'netto','title'=>'Netto'],
             ['data'=>'approval_by','name'=>'approval_by','title'=>'Approved By'],
-            ['data'=>'note','name'=>'note','title'=>'Note']
+            ['data'=>'note','name'=>'note','title'=>'Note'],
+            ['data'=> 'created_by', 'name'=> 'created_by','title'=>'Created By'],
+            ['data'=> 'created_at', 'name'=> 'created_at','title'=>'Created At']
         ];
         return json_encode($kolom, true);
     }
@@ -1046,6 +1047,7 @@ class PurchaseOrderController extends Controller
         from (
             select 
                 b.created_by,
+                b.created_at,
                 b.status,b.id,
                 a.po_number,
                 a.po_number as po_number_1,
@@ -1066,7 +1068,7 @@ class PurchaseOrderController extends Controller
             left join purchase_order_hdr b
             on a.po_number = b.po_number    
             $filter
-            group by b.id,a.po_number,supplier_id,po_date,delivery_date,pkp,termin,authorized_by,validate_by,b.created_by,b.status,b.num_revision
+            group by b.id,a.po_number,supplier_id,po_date,delivery_date,pkp,termin,authorized_by,validate_by,b.created_by,b.created_at,b.status,b.num_revision
         ) as oki
         order by oki.id desc");
 

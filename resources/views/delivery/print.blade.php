@@ -127,6 +127,38 @@
         /* td {
             white-space: nowrap;
         } */
+
+        #tblContent{
+            /* font-family: verdana,arial,sans-serif; */
+            /* font-size:14pt; */
+            color:#333333;
+            border-width: 1px;
+            border-color: #666666;
+            border-collapse: collapse;
+        }
+
+        #tblContent  th {
+            border-width: 1px;
+            border-style: solid;
+            border-color: #666666;
+            background-color: #dedede;
+        }
+
+        #tblContent  td {
+            border-width: 1px;
+            background-color: #ffffff;
+            padding : 3px 10px 3px 10px;
+            border-bottom: none;
+            border-left: 1px solid black;
+            border-right: 1px solid black;
+        }
+
+        #tblContent tr:last-child{
+            border-bottom: 1px solid black;
+            border-left: 1px solid black;
+            border-right: 1px solid black;
+        }
+
     </style>
     </head>
 <body>
@@ -136,13 +168,11 @@
     <div style="border: 1px solid #0c0c0c;">
         <table width="100%" style="border: 1px solid #0c0c0c;padding-left:10px">
             <tr>
-                <td rowspan="3" width="50%" class="font-12 " >
-                    <img src="{{ asset('app-assets/images/logo/logo_po.png') }}" alt="logo" style="width: 70%;"> 
+                <td width="30%" class="font-12 " >
+                    <img src="{{ asset('app-assets/images/logo/logo_po.png') }}" alt="logo" style="width: 60%;"> 
                 </td>
-                <td colspan="3" class=""><h2>DELIVERY NOTE</h2></td>
-            </tr>
-            <tr>
-                <td> 
+                <td  width="50%" >
+                    <h3 class="padding:0px;">DELIVERY NOTE</h3>
                     <table>
                         <tr>
                             <td class="font-14 ">Nomor</td>
@@ -154,7 +184,6 @@
                         </tr>
                     </table>
                 </td>
-                <td class="font-14 " align="center" rowspan="2" >{!! QrCode::size(70)->generate($dnNumberQr); !!}</td>
             </tr>
         </table>
         <table>
@@ -183,8 +212,8 @@
                 </td>
             </tr>
         </table>
-        <table style="table-layout:fixed;">
-            {{-- <thead style="background-color: lightgray;"> --}}
+        {{-- <table style="table-layout:fixed;"> --}}
+        <table id="tblContent" class="font-14">
             <thead style="background-color: lightgray;">
             <tr>
                 <th width="5%" class="border-header">No</th>
@@ -235,7 +264,8 @@
             <td align="center"></td>
         </tr>
         <tr>
-            <td align="center">(<u>{{ str_pad($dnHdr->created_by, 10, "_", STR_PAD_BOTH)  }}</u>)</td>
+            {{-- <td align="center">(<u>{{ str_pad($dnHdr->created_by, 10, "_", STR_PAD_BOTH)  }}</u>)</td> --}}
+            <td align="center">( _________ )</td>
             <td align="center">( _________ )</td>
             <td align="center">( _________ )</td>
             <td align="center">( _________ )</td>
@@ -246,12 +276,19 @@
 </div>
 @endif --}}
 <script>
+
     window.onload= function () {
         window.print();
         window.onafterprint = function () {
             window.close();
         }
+        window.onfocus = function () { 
+            setTimeout(function () { 
+                window.close(); 
+            }, 200); 
+        }
     }
+
 </script>
 </body>
 </html>

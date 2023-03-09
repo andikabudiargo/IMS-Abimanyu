@@ -295,6 +295,7 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('delivery/print',['as'=>'delivery.print','uses'=>'DeliveryController@print']);
 	Route::post('delivery/posting',['as'=>'delivery.posting','uses'=>'DeliveryController@posting']);
 	Route::post('delivery/approve',['as'=>'delivery.approve','uses'=>'DeliveryController@approve']);
+	Route::post('delivery/revision',['as'=>'delivery.revision','uses'=>'DeliveryController@revision']);
 
 	Route::get('dnReceipt',['as'=>'dnReceipt.index','uses'=>'DeliveryReceiptController@index','middleware' => ['permission:dnReceipt-index']]);
 	Route::get('dnReceipt/create',['as'=>'dnReceipt.create','uses'=>'DeliveryReceiptController@create','middleware' => ['permission:dnReceipt-create']]);

@@ -26,6 +26,63 @@ class DeliveryController extends Controller
         $this->moduleCode = "DN";
     }
 
+    public function getTableColoumn()
+    {
+        $kolom=
+        [
+
+            ['data'=> 'action', 'name'=> 'action','title'=>'action', 'orderable'=> false, 'searchable'=> false],
+            ['data'=> 'delivery_number', 'name'=> 'delivery_number','title'=>'Delivery Number'],
+            ['data'=> 'delivery_number_1', 'name'=> 'delivery_number_1','title'=>'Delivery Number','visible'=>false],
+            ['data'=> 'status', 'name'=> 'status','title'=>'Status'],
+            ['data'=> 'delivery_date', 'name'=> 'delivery_date','title'=>'Date'],
+            ['data'=> 'so_number', 'name'=> 'so_number','title'=>'SO Number'],
+            ['data'=> 'po_number', 'name'=> 'po_number','title'=>'PO Number'],
+            ['data'=> 'customer_name', 'name'=> 'customer_name','title'=>'Customer'],
+            ['data'=> 'num_revision', 'name'=> 'num_revision','title'=>'Revision'],            
+            ['data'=> 'note', 'name'=> 'note','title'=>'Note'],
+            ['data'=> 'created_by', 'name'=> 'created_by','title'=>'Created By'],
+            ['data'=> 'created_at', 'name'=> 'created_at','title'=>'Created At']
+            
+        ];
+        return json_encode($kolom, true);
+    }
+
+    public function getTableColoumnDetail()
+    {
+        $kolom=
+        [
+            ['data'=>'po_number','name'=>'po_number','title'=>'PO Number'],
+            ['data'=>'delivery_number','name'=>'delivery_number','title'=>'PR Number'],
+            ['data'=>'po_date','name'=>'po_date','title'=>'PO Date'],
+            ['data'=>'delivery_date','name'=>'delivery_date','title'=>'Delivery Date'],
+            ['data'=>'article_alternative_code','name'=>'article_alternative_code','title'=>'Article code'],
+            ['data'=>'article_desc','name'=>'article_desc','title'=>'Article desc'],
+            ['data'=>'qtyku','name'=>'qtyku','title'=>'Qty'],
+            ['data'=>'uom','name'=>'uom','title'=>'UOM'],
+            ['data'=>'price','name'=>'price','title'=>'Price'],
+            ['data'=>'discount','name'=>'discount','title'=>'Discount'],
+            ['data'=>'total_ppn','name'=>'total_ppn','title'=>'PPN'],
+            ['data'=>'total_pph22','name'=>'total_pph22','title'=>'PPH22'],
+            ['data'=>'grand_total','name'=>'grand_total','title'=>'Grand Total'],
+            ['data'=>'currency','name'=>'currency','title'=>'Currency'],
+            ['data'=>'kurs','name'=>'kurs','title'=>'Kurs'],
+            ['data'=>'ppn','name'=>'ppn','title'=>'PPN'],
+            ['data'=>'pph22','name'=>'pph22','title'=>'PPH22'],
+            ['data'=>'pkp','name'=>'pkp','title'=>'PKP'],
+            ['data'=>'termin','name'=>'termin','title'=>'Termin'],
+            ['data'=>'num_revision','name'=>'num_revision','title'=>'Revision'],
+            ['data'=>'supplier_id','name'=>'supplier_id','title'=>'Supplier code'],
+            ['data'=>'supp_name','name'=>'supp_name','title'=>'Supplier'],
+            ['data'=>'approval_by','name'=>'approval_by','title'=>'Approved By'],
+            ['data'=>'created_by','name'=>'created_by','title'=>'Created By'],
+            ['data'=>'created_at','name'=>'created_at','title'=>'Created Date'],
+            ['data'=>'updated_by','name'=>'updated_by','title'=>'Updated By'],
+            ['data'=>'updated_at','name'=>'updated_at','title'=>'Updated Date'],
+        ];
+        return json_encode($kolom, true);
+    }
+
     public function index(Request $request)
     {
         $data['title'] = $this->title;
@@ -34,12 +91,8 @@ class DeliveryController extends Controller
         ->where ('third_party_type','=','cust')
         ->orderBy('nama')
         ->get();
-
-        // status
-        // 1. Draft
-        // 2. Update
-        // 3. Posting
-        // 4. Cancel
+        $data['kolom'] = $this->getTableColoumn();
+        $data['kolomDetail'] = $this->getTableColoumnDetail();
 
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED','8'=>'RECEIVED'];
         $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED','8'=>'RECEIVED'];
@@ -85,13 +138,18 @@ class DeliveryController extends Controller
     public function soDetail(Request $request)
     {
         $so = $request->value;
-        $data = DB::table('sales_order_det')
-        ->leftJoin('article','article.article_code','=','sales_order_det.article_code')
-        ->leftJoin('sales_order_hdr','sales_order_hdr.so_code','=','sales_order_det.so_code')
-        ->leftJoin('uom','sales_order_det.uom','uom.code')
-        ->select('sales_order_det.*','article.*','sales_order_hdr.po_number')
-        ->where('sales_order_det.so_code',$so)
-        ->orderBy('sales_order_det.id')
+        $data = DB::table('sales_order_det as a')
+        ->leftJoin('article','article.article_code','=','a.article_code')
+        ->leftJoin('sales_order_hdr','sales_order_hdr.so_code','=','a.so_code')
+        ->leftJoin('uom','a.uom','uom.code')
+        ->select('a.*'
+        ,'article.*'
+        ,'sales_order_hdr.po_number'
+        ,DB::RAW("(coalesce((select sum(qty) as qty_delivery from delivery_det where delivery_number in (select delivery_number from delivery_hdr where so_number = a.so_code) and article_code = a.article_code group by article_code),0)) as qty_delivery")
+        ,DB::RAW("(a.qty - coalesce((select sum(qty) as qty_delivery from delivery_det where delivery_number in (select delivery_number from delivery_hdr where so_number = a.so_code) and article_code = a.article_code group by article_code),0)) as qty_so")
+        )
+        ->where('a.so_code',$so)
+        ->orderBy('a.id')
         ->get();
 
         return response()->json($data);
@@ -148,6 +206,7 @@ class DeliveryController extends Controller
             try {
                     DB::table('delivery_hdr')->insert([
                         'delivery_number' => $dnCode,
+                        'origin_delivery_number' => $dnCode,
                         'delivery_date' => $dnDate,
                         'customer_id' => $customer,
                         'so_number' => $soNumber,
@@ -171,6 +230,7 @@ class DeliveryController extends Controller
                             'uom' => $val->uom,
                             'created_by' => Auth::user()->username,
                             'created_at' => date('Y-m-d H:i:s'),
+                            'qty_so'=>$val->qty_so,
                         ];
                     }
 
@@ -201,16 +261,30 @@ class DeliveryController extends Controller
         $data['title'] = "Detail $this->title";
         $data['subtitle'] = "Detail $this->title";
 
-        $data['header'] = DB::table('delivery_hdr')
-        ->where('id',$id)
-        ->get()->first();
+        $data['headers'] = DB::table('delivery_hdr')
+        ->select('delivery_hdr.*'
+        ,DB::raw('(select sum(qty) from delivery_det where delivery_number = delivery_hdr.delivery_number) as sum_qty') 
+        ,DB::raw('(select count(*) from delivery_det where delivery_number = delivery_hdr.delivery_number) as sum_row')
+        )
+        ->where('origin_delivery_number', function($query) use ($id){
+            $query->select('delivery_number')->from('delivery_hdr')->where('id',$id);
+        })
+        ->orderBy('id')
+        ->get();
 
-        $dnNumber = $data['header']->delivery_number;
+        $dnNumber = $data['headers'][0]->delivery_number;
 
-        $data['detail'] = DB::table('delivery_det')
+        $data['details'] = DB::table('delivery_det')
+        ->whereIn('delivery_det.delivery_number', function($query) use ($dnNumber){
+            $query->select('delivery_number')->from('delivery_hdr')->where('origin_delivery_number',$dnNumber);
+        })
+        ->leftJoin('uom','uom.code','=','delivery_det.uom')
         ->leftJoin('article','article.article_code','=','delivery_det.article_code')
-        ->leftJoin('uom','delivery_det.uom','uom.code')
-        ->where('delivery_det.delivery_number',$dnNumber)
+        ->select('delivery_det'.'.*'
+            ,'uom.uom_group'
+            ,DB::raw("concat(article_alternative_code,'-',article_desc) as article")
+            ,DB::raw("(select STRING_AGG( (qty::real)::text,' -> ' ORDER BY delivery_number) AS main from delivery_det p where article_code = delivery_det.article_code and delivery_number like '$dnNumber%' ) as notes")
+        )
         ->orderBy('delivery_det.id')
         ->get();
 
@@ -219,16 +293,12 @@ class DeliveryController extends Controller
         ->orderBy('nama')
         ->get();
 
-        $data['uoms'] = DB::table('uom')
-        ->orderBy('name')
-        ->get();
-
         $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode,$dnNumber,$username);
         $data['approveValidate'] = Approval::approveValidate($this->moduleCode,$dnNumber,$username);
 
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED','8'=>'RECEIVED'];
         $statusDel = ['NEW','VALIDATE','APPROVED','POSTED','CANCELED','','REVISED'];
-        $data['statusDel'] = $statusDel[$data['header']->status-1];
+        $data['statusDel'] = $statusDel[$data['headers'][0]->status-1];
 
         return view("delivery.show",$data);
         
@@ -285,7 +355,7 @@ class DeliveryController extends Controller
         $poNumber = $request->poNumber;
         $dnNumber=$request->dnNumber;
         $note=$request->note;
-        $status = '2';
+        // $status = '2';
         
         // status
         // 1. Draft
@@ -335,7 +405,7 @@ class DeliveryController extends Controller
                         'customer_id' => $customer,
                         'so_number' => $soNumber,
                         'po_number' => $poNumber,
-                        'status' => $status,
+                        // 'status' => $status,
                         'note' =>  $note,
                         'updated_by' => Auth::user()->username,
                         'updated_at' => date('Y-m-d H:i:s')
@@ -380,6 +450,7 @@ class DeliveryController extends Controller
                     $message  = "$title $dnNumber is successfully updated";
                     \LogActivity::addToLog($title,"username: $username Status $message");
                     return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'dnNumber'=>$dnNumber));
+
             } catch (Exception $e) {
                 DB::rollBack();
                 $title ="Update $this->title";
@@ -623,24 +694,178 @@ class DeliveryController extends Controller
         }
     }
 
+    public function revision(Request $request)
+    {
+        $username =  Auth::user()->username;
+        $id=Crypt::decryptString($request->id);
+        $dnOrigin=DB::table('delivery_hdr')->where('id',$id)->value('delivery_number');
+        $numRevision = $request->nR ? $request->nR +1 : 1 ;
+        $dnNew = $dnOrigin.'-R'.$numRevision;
+        $checkNewDn=DB::table('delivery_hdr')->where('delivery_number',$dnNew)->count();
+        $reason = $request->reason;
+
+        if ($checkNewDn > 0){
+            $dnNew = $dnOrigin.'-R'.$numRevision+1;
+        } 
+                
+        $sqlHdr = "INSERT into delivery_hdr 
+        (
+            delivery_number,
+            delivery_date,
+            customer_id,
+            so_number,
+            po_number,
+            approved_by,
+            approved_at,
+            status,
+            note,
+            created_by,
+            updated_by,
+            created_at,
+            updated_at,
+            origin_delivery_number,
+            num_revision,
+            revised_by,
+            revised_at,
+            reason
+        )
+        select 
+            '$dnNew',
+            delivery_date,
+            customer_id,
+            so_number,
+            po_number,
+            approved_by,
+            approved_at,
+            '7',
+            note,
+            created_by,
+            '$username',
+            created_at,
+            '".date('Y-m-d H:i:s')."',
+            '$dnOrigin',
+            $numRevision,
+            '$username',
+            '".date('Y-m-d H:i:s')."',
+            '$reason'
+        from delivery_hdr where delivery_number = '$dnOrigin'";
+
+        $sqlDet="INSERT into delivery_det
+        (
+            delivery_number,
+            article_code,
+            so_number,
+            po_number,
+            qty,
+            uom,
+            updated_by,
+            updated_at,
+            qty_so
+        )
+        select 
+            '$dnNew',
+            article_code,
+            so_number,
+            po_number,
+            qty,
+            uom,
+            '$username',
+            '".date('Y-m-d H:i:s')."',
+            qty_so
+        from delivery_det where delivery_number = '$dnOrigin'";
+
+        $rowAffected =  DB::select($sqlHdr);
+        if ($rowAffected){
+            DB::select($sqlDet);
+
+            // status:
+            // 1 = New
+            // 2 = Validated
+            // 3 = Authorized
+            // 4 = Received
+            // 5 = Canceled
+            // 6 = closed
+            // 7 = Revised
+
+            DB::table('delivery_hdr')
+            ->where('delivery_number',$dnOrigin)
+            ->update(
+                [
+                    'num_revision' => $numRevision,
+                    'status' => '1',
+                    'updated_by' => Auth::user()->username,
+                    'updated_at' => date('Y-m-d H:i:s')
+                ]
+            );
+
+            DB::table('approval_history')
+            ->where('module_number',$dnOrigin)
+            ->update(
+                [
+                    'module_number' => $dnNew,
+                    'status' => '0',
+                    'updated_by' => Auth::user()->username,
+                    'updated_at' => date('Y-m-d H:i:s')
+                ]
+            );
+            
+            $title ="Save $this->title";
+            $alert  ="success";
+            $message  = "$title Revision DN: $dnOrigin to $dnNew is successfully saved";
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return redirect()->route('delivery.edit', ['id'=>Crypt::encryptString($id)]);
+        }else{
+            $title ="Save $this->title";
+            $alert  ="warning";
+            $message  = "$title Revision DN: $dnOrigin to $dnNew is failed to save";
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);
+        }
+        
+    }
+
     public function list(Request $request)
     {
-        $searchInv = strtolower($request->searchInv);
+        $searchDn = strtolower($request->searchDn);
         $searchSo = strtolower($request->searchSo);
         $searchCustomer = $request->searchCustomer; 
         $searchStatus = $request->searchStatus;
-        $recDate = $request->recDate;       
+        $requestDate = $request->dnDate;       
 
-        $filter='';
-                
-        $data = DB::select("SELECT *,
-        (select concat(kode,'-',nama) from third_party where kode = customer_id limit 1) as customer_name 
-        from delivery_hdr a $filter");
+        $fromDate ="";
+        $toDate = "";
+ 
+        if ($requestDate){
+            $date = explode("to",$requestDate);
+            if(count($date)>1){
+                $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+                $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
+            }else{
+                $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+                $toDate = $fromDate; 
+            }
+        }
+
+        $data = DB::table('delivery_hdr')
+        ->leftJoin('third_party','third_party.kode','delivery_hdr.customer_id')
+        ->where(function ($query) use ($searchDn,$searchSo,$searchCustomer,$searchStatus,$requestDate,$fromDate,$toDate) {
+            $searchDn ? $query->where('delivery_number','ilike','%'.$searchDn.'%') : '';
+            $searchSo ? $query->where('so_number','ilike','%'.$searchSo.'%') : '';
+            $searchStatus ? $query->where('delivery_hdr.status',$searchStatus) : '';
+            $requestDate ? $query->whereBetween(DB::raw("to_date(delivery_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
+        })
+        ->where('delivery_hdr.status','!=','7')
+        ->select('delivery_hdr.*'
+        ,'delivery_hdr.delivery_number as delivery_number_1'
+        ,DB::raw("concat(kode,'-',nama) as customer_name")
+        )
+        ->orderBy('id')
+        ->get(); 
 
         return Datatables::of($data)
         ->addColumn('action', function ($data) {
             $buttons = '<div class="d-inline-flex">
-                            <a class="pr-1 dropdown-toggle hide-arrow text-primary" data-toggle="dropdown">
+                            <a class="pr-1 dropdown-toggle hide-arrow" data-toggle="dropdown">
                                 <i data-feather="menu"></i>
                             </a>';
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
@@ -677,6 +902,18 @@ class DeliveryController extends Controller
                     <span>". __('Posting') ."</span>
                     </a>";
                 }   
+            }
+
+            if (($data->status == '2') || ($data->status == '3') ){
+                $buttons .= "<a href='javascript:;'
+                                id='revisionReasonButton'
+                                class='dropdown-item'
+                                data-toggle='modal'
+                                data-target='#reasonModalRevision'
+                                data-href='". route('delivery.revision', ['id'=>Crypt::encryptString($data->id),'nR'=>$data->num_revision]) ."'>
+                                <i data-feather='corner-down-left' class='feather-14-red'></i>
+                                <span>". __('Revision') ."</span>
+                            </a>";            
             }
 
             // if ($data->status == '3'){

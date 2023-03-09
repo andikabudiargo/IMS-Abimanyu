@@ -140,7 +140,6 @@
     const sumRemainTime = $('#sumRemainTime');
     const oEdit = $('#oEdit');
     
-
     approve = (woNumber,objButton) => {
         $('#'+objButton).attr('disabled','disabled');
         $.ajax({

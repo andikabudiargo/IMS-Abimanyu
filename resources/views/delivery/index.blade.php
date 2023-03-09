@@ -19,8 +19,8 @@
         <form class="needs-validation" novalidate>
             <div class="form-row">
               <div class="form-group col-md-3"> 
-                <label for="searchInv">Delivery Number</label>
-                <input type="text" class="form-control text-uppercase" id="searchInv" name="searchInv" placeholder=""  />
+                <label for="searchDn">Delivery Number</label>
+                <input type="text" class="form-control text-uppercase" id="searchDn" name="searchDn" placeholder=""  />
               </div>
               <div class="form-group col-md-3"> 
                 <label for="searchSo">SO Number</label>
@@ -36,15 +36,15 @@
                 </select>
               </div>
               <div class="col-md-3 form-group">
-                <label for="recDate">Date</label>
-                <input type="text" id="recDate" name="recDate" class="form-control flatpickr-range" placeholder="YYYY-MM-DD to YYYY-MM-DD" />
+                <label for="dnDate">Delivery Date</label>
+                <input type="text" id="dnDate" name="dnDate" class="form-control flatpickr-range" placeholder="YYYY-MM-DD to YYYY-MM-DD" />
               </div>
               <div class="form-group col-md-2"> 
                 <label class="form-label" for="searchStatus">Delivery Status</label>
                 <select class="select2 form-control" id="searchStatus" name="searchStatus">
                     <option value="">All</option>
                     @foreach($status as $index=>$val)
-                        <option value="{{ $index }}">{{ $index }} - {{ $val }}</option>
+                        <option value="{{ $index }}">{{ $val }}</option>
                     @endforeach
                 </select>
               </div>
@@ -92,7 +92,6 @@
 </section>
 
 @include('partials.delete-modal')
-
 @endsection
 @section('styles')
 <style>
@@ -133,124 +132,48 @@
   }
 
   $("#btnSearch").click(function(e){
-    let searchInv = $("#searchInv").val();
+    let searchDn = $("#searchDn").val();
     let searchSo = $("#searchSo").val();
     let searchCustomer = $("#searchCustomer").val(); 
     let searchStatus = $("#searchStatus").val();
-    let recDate = $("#recDate").val();
-    showList(searchInv,searchSo,searchCustomer,searchStatus,recDate);
+    let dnDate = $("#dnDate").val();
+    showList(searchDn,searchSo,searchCustomer,searchStatus,dnDate);
 
   });
 
-  function showList(searchInv,searchSo,searchCustomer,searchStatus,recDate){
-    let dtdom ='<"d-flex justify-content-between align-items-center header-actiDelivery1 row mt-75"' +
-        '<"col-lg-12 col-xl-6" l>' +
-        '<"col-lg-12 col-xl-6 pl-xl-75 pl-0"<"dt-action-buttons text-xl-right text-lg-left text-md-right text-left d-flex align-items-center justify-content-lg-end align-items-center flex-sm-nowrap flex-wrap mr-1"<"mr-1"f>B>>' +
-        '>t' +
-        '<"d-flex justify-content-between mx-2 row mb-1"' +
-        '<"col-sm-12 col-md-6"i>' +
-        '<"col-sm-12 col-md-6"p>' +
-        '>';
-    let arr_col_print =[1,2,3,4,5,6,7,8,9]; 
-    $(function(){
-      let oTable =$("#detailedTable").DataTable({
-        ajax:
-        {
-          url:'{{ route("delivery.list")}}',
-          data:{
-              searchInv:searchInv,
-              searchSo:searchSo,
-              searchCustomer:searchCustomer,
-              searchStatus:searchStatus,
-              recDate:recDate
-          }
-        },
-        processing: true,
-        serverSide: true,
-        buttons: true,
-        dom:dtdom,
-        lengthMenu: [
-          [ 10, 25, 50, -1 ],
-          [ '10', '25', '50', 'all' ]
-        ],
-        buttons: [
-          {
-            extend: 'collection',
-            className: 'btn btn-outline-secondary dropdown-toggle mr-2 mt-07',
-            text: feather.icons['share'].toSvg({ class: 'font-small-4 mr-50' }) + 'Export',
-            buttons: [
-              {
-                extend: 'print',
-                text: feather.icons['printer'].toSvg({ class: 'font-small-4 mr-50' }) + 'Print',
-                className: 'dropdown-item',
-                exportOptions: { columns: arr_col_print }
-              },
-              {
-                extend: 'csv',
-                text: feather.icons['file-text'].toSvg({ class: 'font-small-4 mr-50' }) + 'Csv',
-                className: 'dropdown-item',
-                exportOptions: { columns: arr_col_print }
-              },
-              {
-                extend: 'excel',
-                text: feather.icons['file'].toSvg({ class: 'font-small-4 mr-50' }) + 'Excel',
-                className: 'dropdown-item',
-                exportOptions: { columns: arr_col_print }
-              },
-              {
-                extend: 'pdf',
-                text: feather.icons['clipboard'].toSvg({ class: 'font-small-4 mr-50' }) + 'Pdf',
-                className: 'dropdown-item',
-                exportOptions: { columns: arr_col_print }
-              },
-              {
-                extend: 'copy',
-                text: feather.icons['copy'].toSvg({ class: 'font-small-4 mr-50' }) + 'Copy',
-                className: 'dropdown-item',
-                exportOptions: { columns: arr_col_print }
-              }
-            ],
-            init: function (api, node, config) {
-              $(node).removeClass('btn-secondary');
-              $(node).parent().removeClass('btn-group');
-              setTimeout(function () {
-                $(node).closest('.dt-buttons').removeClass('btn-group').addClass('d-inline-flex');
-              }, 50);
-            }
-          },
-        ],
-        language: {
-          paginate: {
-            // remove previous & next text from pagination
-            previous: '&nbsp;',
-            next: '&nbsp;'
-          }
-        },
-        columnDefs: [
-          { width: '10%', targets: 0 },
-        ],
-        drawCallback: function( settings ) {
-          feather.replace({
-                width: 14,
-                height: 14
-          });
-        },
-        order: [[ 1, 'asc' ]],
-        bDestroy: true, //pakai ini supaya bisa di load berulang2
-        // scrollX: true, //pakai ini supaya waktu responsive  bisa di scroll horizontal
-        columns: [
-            { data: 'action', name: 'action',title:'action', orderable: false, searchable: false },
-            { data: 'delivery_number', name: 'delivery_number',title:'Delivery Number' },
-            { data: 'delivery_date', name: 'delivery_date',title:'Date' },
-            { data: 'customer_name', name: 'customer_name',title:'Customer' },
-            { data: 'approved_by', name: 'approved_by',title:'Approved By' },
-            { data: 'created_by', name: 'created_by',title:'Preapred By' },
-            { data: 'status', name: 'status',title:'Status' },
-        ],
-      });
+  const showList = (searchDn,searchSo,searchCustomer,searchStatus,dnDate) => {
+    if ($('#detailedTable tr').length >0){
+        let table= $('#detailedTable').DataTable();
+        table.destroy();
+        $('#detailedTable tbody > tr').remove();
+        $("#detailedTable thead > tr").remove();
+    }
+    showDataTables({
+      tableId:"detailedTable",
+      route:"{{ route('delivery.list') }}",
+      kolom:{!! $kolom !!},
+      arrColPrint:[2,3,4,5,6,7,8,9,10,11],
+      columnDefs :[
+        { width: '5%', targets: 0 },
+      ],
+      dataSearch:  {
+        searchDn:searchDn,
+        searchSo:searchSo,
+        searchCustomer:searchCustomer,
+        searchStatus:searchStatus,
+        dnDate:dnDate
+      },
+      orderColumn:[[ 1, 'desc' ]],
+      excelFileName:'delivery_note'
     });
-    //$('div.head-label').html('<h6 class="mb-0">Data Users</h6>');    
   }
+
+  let href;
+  $(document).on('click', '#revisionReasonButton', function(event) {
+      event.preventDefault();
+      href = $(this).data('href');
+      $('#modalReasonRevision').attr("action", href);
+  });
 
   $.ajaxSetup({
     headers: {

@@ -466,8 +466,9 @@ class DependentController extends Controller
             ->orderBy($order)
             ->get();
         }elseif($dependent =='wos_list'){
+            //untuk wos minimal sudah di approved sekali statusnya udah validated
             $data= DB::table($table)
-            ->where('status','=','3')
+            ->where('status','=','2')
             ->orderBy($order)
             ->get();
         }else{

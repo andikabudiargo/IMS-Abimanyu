@@ -19,9 +19,6 @@
                     <div class="card-body">
                         <form id="frmAdd" name="frmAdd" autocomplete="off">
                             @csrf
-                            {{-- <input type="text" id="article" name="article" hidden> --}}
-                            {{-- <input type="text" id="ppn" name="ppn"  values="10" hidden>
-                            <input type="text" id="pph23" name="ppn23" values="2" hidden> --}}
                             <div class="form-row">
                                 <div class="form-group col-md-3">
                                     <label for="dnNumber">Delivery Note Number</label> <small class="text-muted"> automatic</small>
@@ -91,7 +88,7 @@
                     <div class="form-row">
                         <div class="col-12">
                             {{-- <button class="btn btn-warning" type="reset" id="cmdCancel" name="cmdCancel">Cancel</button> --}}
-                            <button class="btn btn-success" type="reset" id="cmdNew" name="cmdCancel">New</button>
+                            {{-- <button class="btn btn-success" type="reset" id="cmdNew" name="cmdCancel">New</button> --}}
                             <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Save</button>
                             {{-- @can('receiving-posting') --}}
                                 <button class="btn btn-primary" type="button" id="cmdPosting" name="cmdPosting">Posting</button>
@@ -191,6 +188,7 @@
             $("#frmAdd").submit();
         }else{ 
             $('.disabled-el').removeAttr('disabled');
+            let objQtySo= $('#article_row input[name="qtySo[]"]');
             let objQty= $('#article_row input[name="qtyInv[]"]');
             let objUom= $('#article_row span[name="uom[]"]'); 
             let articles = []; 
@@ -206,6 +204,7 @@
                     let articleSoCode = $this.data("so-code");
                     let poNumber = $this.data("po-number");
                     let qty=objQty.eq(i).val().replace(/,/gi, '') || 0;
+                    let qtySo=objQtySo.eq(i).val().replace(/,/gi, '') || 0;
                     
                     if ((articleCode!=='') && (qty> 0)){
                         articles.push({
@@ -213,13 +212,15 @@
                             "qty":qty,
                             "uom":articleUom,
                             "so_number":articleSoCode,
-                            "po_number":poNumber
+                            "po_number":poNumber,
+                            "qty_so":qtySo
                         });
                     }
-                    // if (qty == 0){
-                    //     pesan +="QTY of items "+ articleDesc +" cannot be 0 <br>"; 
-                    //     flag=1;
-                    // }
+
+                    if (qty > qtySo){
+                        pesan +="Items "+ articleDesc +" QTY Delivery is higher than QTY SO<br>"; 
+                        flag=1;
+                    }
                 }
             });
 
@@ -347,6 +348,7 @@
         $("#article_row").append($("#new_row").clone().html());
         cloneCount++;
         $("#article_row").find('#baru').attr('id', 'new_row'+ cloneCount);
+        $("#new_row"+ cloneCount).find('#qtySo').attr('id', 'qtySo'+ cloneCount);
         $("#new_row"+ cloneCount).find('#uom').attr('id', 'uom'+ cloneCount);
         $("#new_row"+ cloneCount).find('#articleId').attr('id', 'articleId'+ cloneCount);
         $('#articleId'+ cloneCount).attr('data-code', article);
@@ -356,11 +358,14 @@
         $('#articleId'+ cloneCount).attr('data-price-service', priceJasa);
         $('#articleId'+ cloneCount).attr('data-so-code', soCode);
         $('#articleId'+ cloneCount).attr('data-po-number', poNumber);
+        $('#articleId'+ cloneCount).attr('data-so-qty', qtySo);
         $('#articleId'+ cloneCount).val(articleCode+'-'+articleDesc);
         $('#uom'+ cloneCount).val(uom);
+        $('#qtySo'+ cloneCount).val(qtySo*1);
         tombolPanah('qtyInv');
         mask_thousand();
         hitungTotal();
+        cekQty();
     }
 
     function searchSoDet(value) {
@@ -428,6 +433,23 @@
         
         $("#totalRow").val(objArticle.length);
         $("#totalQTY").val(humanizeNumber(totalQty));
+    }
+
+    function cekQty(){
+        let objQtySo= $('#article_row input[name="qtySo[]"]');
+        let objQtyDel= $('#article_row input[name="qtyInv[]"]');
+
+        objQtyDel.keyup(function() {
+            let indexnya= objQtyDel.index(this);
+            let qtyDel = parseFloat(objQtyDel.eq(indexnya).val().replace(/,/gi, '') || 0);
+            let qtySo = parseFloat(objQtySo.eq(indexnya).val().replace(/,/gi, '') || 0); 
+            if ( qtyDel > qtySo ){
+                objQtyDel.eq(indexnya).delay(3000).css("background-color","rgba(255,0,0, 0.5)");
+            }else{
+                objQtyDel.eq(indexnya).delay(3000).css("background-color","");
+            }
+            hitungGrandTotal();
+        });    
     }
 
     $.ajaxSetup({
