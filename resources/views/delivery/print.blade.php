@@ -22,11 +22,11 @@
                 display: none !important;
             }
 
-            @page
-            {
+            @page{
                 /* size: 8.5in 11in;  */
                 size: 8.5in 6in landscape; 
                 margin: 0 !important;
+                margin-top:4px !important;
                 margin-left:10px;
             }
 
@@ -159,13 +159,14 @@
             border-right: 1px solid black;
         }
 
+        .tanpa-padding{
+            padding:0px;
+        }
+
     </style>
     </head>
 <body>
-    {{-- @if($status == "B")
-        <div id ="watermark">
-    @endif --}}
-    <div style="border: 1px solid #0c0c0c;">
+    <div>
         <table width="100%" style="border: 1px solid #0c0c0c;padding-left:10px">
             <tr>
                 <td width="30%" class="font-12 " >
@@ -174,37 +175,37 @@
                 <td  width="50%" >
                     <h3 class="padding:0px;">DELIVERY NOTE</h3>
                     <table>
-                        <tr>
-                            <td class="font-14 ">Nomor</td>
-                            <td class="font-14 ">: {{ $dnHdr->delivery_number }}</td>
+                        <tr class="tanpa-padding">
+                            <td class="font-14 tanpa-padding">Nomor</td>
+                            <td class="font-14 tanpa-padding">: {{ $dnHdr->delivery_number }}</td>
                         </tr>
-                        <tr>
-                            <td class="font-14 ">No.PO#</td>
-                            <td class="font-14 ">: {{ $dnHdr->po_number }}</td>
+                        <tr class="tanpa-padding">
+                            <td class="font-14 tanpa-padding">No.PO#</td>
+                            <td class="font-14 tanpa-padding">: {{ $dnHdr->po_number }}</td>
                         </tr>
                     </table>
                 </td>
             </tr>
         </table>
-        <table>
+        <table style="border-left: 1px solid #0c0c0c;border-right: 1px solid #0c0c0c;padding-left:10px" class="font-14 tanpa-padding">
             <tr>
-                <td width="50%" valign="top" style="border: 1px solid #0c0c0c;padding-left:10px">
-                    <table style="border-spacing: 0;border-collapse: collapse;">
+                <td width="50%" valign="top">
+                    <table>
                         <tr>
-                            <td class="font-14 " width="25%">SO Number</td><td>: {{ $dnHdr->so_number }}</td>
+                            <td width="25%" class="tanpa-padding">SO Number</td><td class="tanpa-padding">: {{ $dnHdr->so_number }}</td>
                         </tr>
                         <tr>
-                            <td class="font-14 ">Tanggal</td><td>: {{ $dnHdr->delivery_date }}</td>
+                            <td class="tanpa-padding">Tanggal</td><td class="tanpa-padding">: {{ $dnHdr->delivery_date }}</td>
                         </tr>
                         <tr>
-                            <td class="font-14 ">Jam</td><td>: {{ date('H:i:s') }}</td>
+                            <td class="tanpa-padding">Jam</td><td class="tanpa-padding">: {{ date('H:i:s') }}</td>
                         </tr>
                         <tr>
-                            <td class="font-14 ">No Mobil</td><td>:</td>
+                            <td class="tanpa-padding">No Mobil</td><td class="tanpa-padding">:</td>
                         </tr>
                     </table>
                 </td>
-                <td width="50%" valign="top" style="border: 1px solid #0c0c0c;padding-left:10px">
+                <td width="50%" valign="top" style="border-left: 1px solid #0c0c0c;" >
                     <strong>Kepada Yth.</strong><br>
                         {{ $customers->nama }} <br>
                         {{ $customers->alamat_kirim_1 }} <br>
@@ -212,7 +213,6 @@
                 </td>
             </tr>
         </table>
-        {{-- <table style="table-layout:fixed;"> --}}
         <table id="tblContent" class="font-14">
             <thead style="background-color: lightgray;">
             <tr>
@@ -230,15 +230,16 @@
                         <td class="border-bottom" align="left">{{ $val->article_alternative_code }}</td>
                         <td class="border-bottom" align="left">{{ $val->article_desc }}</td>
                         <td class="border-bottom" align="right">{{ number_format($val->qty) }}</td>
-                        <td class="border-bottom" align="right">{{ $val->uom }}</td>
+                        <td class="border-bottom" align="left">{{ $val->uom }}</td>
                     </tr>
                 @endforeach
             </tbody>
             <tfoot>
                 @foreach ($totals as $val )
-                    <tr class="border-bottom">
-                        <td class="border-bottom" align="right" colspan="3">Total Qty</td>
-                        <td class="border-bottom" align="left" colspan="2"> : {{ number_format($val->qty) }}</td>
+                    <tr >
+                        <td align="right" colspan="3" style="border-right:none">Total Qty :</td>
+                        <td align="right" style="border-left:none;border-right:none"> {{ number_format($val->qty) }}</td>
+                        <td style="border-left:none"></td>
                     </tr>
                 @endforeach
                 <tr>
@@ -248,7 +249,7 @@
         </table>
     </div>
     <table width="100%">
-        <tr><td colspan="2" height="25"></td></tr>
+        <tr><td colspan="5" height="10"></td></tr>
         <tr>
             <td align="center">Created By</td>
             <td align="center">Checked By</td>
@@ -257,7 +258,7 @@
             <td align="center">Received By</td>
         </tr>
         <tr>
-            <td align="center" height="50"></td>
+            <td align="center" height="20"></td>
             <td align="center"></td>
             <td align="center"></td>
             <td align="center"></td>
@@ -272,11 +273,7 @@
             <td align="center">( _________ )</td>
         </tr>
     </table>
-{{-- @if($poNumber == "oki")
-</div>
-@endif --}}
 <script>
-
     window.onload= function () {
         window.print();
         window.onafterprint = function () {
@@ -288,7 +285,6 @@
             }, 200); 
         }
     }
-
 </script>
 </body>
 </html>
