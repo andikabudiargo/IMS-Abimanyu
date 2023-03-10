@@ -17,8 +17,8 @@
         /** Paper sizes **/
         body.A3           .sheet { width: 297mm; height: 419mm }
         body.A3.landscape .sheet { width: 420mm; height: 296mm }
-        /* body.A4           .sheet { width: 210mm; height: 296mm } */
-        body.A4           .sheet { width: 210mm; height: 148mm }
+        body.A4           .sheet { width: 210mm; height: 296mm }
+        body.A4A5           .sheet { width: 210mm; height: 148mm } */
         body.A4.landscape .sheet { width: 297mm; height: 209mm }
         body.A5           .sheet { width: 148mm; height: 209mm }
         body.A5.landscape .sheet { width: 210mm; height: 147mm }
@@ -46,6 +46,12 @@
             body.A3, body.A4.landscape { width: 297mm }
             body.A4, body.A5.landscape { width: 210mm }
             body.A5                    { width: 148mm }
+
+           
+        }
+
+        .putih{
+            color:white;
         }
 
         .header, .header-space{
@@ -86,6 +92,10 @@
 
             .tanpa-padding{
                 padding:0px;
+            }
+
+            .putih{
+                color:white;
             }
 
         }
@@ -158,9 +168,9 @@
         }
     </style>
 </head>
-<body class="A4">
-{{-- <section class="sheet padding-5mm"> --}}
-    <table class="sheet padding-5mm">
+<body class="{{ (count($details)) < 7 ? "A4A5" : "A4" }}">
+<div class="sheet padding-5mm">
+    <table>
         <thead>
             <tr>
             <td>
@@ -203,7 +213,7 @@
                             </tr>
                         </table>
                     </td>
-                    <td width="50%" valign="top" style="border-left: 1px solid #0c0c0c;" >
+                    <td width="50%" valign="top" style="border-left: 1px solid #0c0c0c;padding-left:5px" >
                         <strong>Kepada Yth.</strong><br>
                             {{ $customers->nama }} <br>
                             {{ $customers->alamat_kirim_1 }} <br>
@@ -230,17 +240,35 @@
                     </tr>
                     </thead>
                     <tbody>
-                        @foreach ($details as $val )
-                            <tr class="border-bottom">
-                                <td scope="row" class="border-bottom" align="right">{{ ++$no }}</td>
-                                <td class="border-bottom" align="left">{{ $val->article_alternative_code }}</td>
-                                <td class="border-bottom" align="left">{{ $val->article_desc }}</td>
-                                <td class="border-bottom" align="right">{{ number_format($val->qty) }}</td>
-                                <td class="border-bottom" align="left">{{ $val->uom }}</td>
-                            </tr>
-                        @endforeach
                         
-                        <tr>
+                        @foreach ($details as $val )
+                            <tr >
+                                <td align="center">{{ ++$no }}</td>
+                                <td align="left">{{ $val->article_alternative_code }}</td>
+                                <td align="left">{{ $val->article_desc }}</td>
+                                <td align="right">{{ number_format($val->qty) }}</td>
+                                <td align="left">{{ $val->uom }}</td>
+                            </tr>
+                        @endforeach      
+                                             
+                        
+                        @if(count($details)>7)
+                            <?php $totalBaris = 16 ?>
+                        @else
+                            <?php $totalBaris = 7 ?>
+                        @endif
+
+                        @for ($i=1;$i< $totalBaris-(count($details));$i++)
+                            <tr >
+                                <td align="right" class="putih" height="20"></td>
+                                <td align="left"></td>
+                                <td align="left"></td>
+                                <td align="right"></td>
+                                <td align="left"></td>
+                            </tr>
+                        @endfor
+                                                
+                        <tr style="border: 1px solid #0c0c0c;padding-left:10px">
                             <td align="right" colspan="3" style="border-right:none">Total Qty :</td>
                             <td align="right" style="border-left:none;border-right:none"> {{ number_format($totals[0]->qty) }}</td>
                             <td style="border-left:none"></td>
@@ -289,7 +317,7 @@
             </tr>
         </tfoot>
     </table>
-{{-- </section> --}}
+</div>
 <script>
     window.onload= function () {
         window.print();
