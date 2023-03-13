@@ -55,7 +55,7 @@
         }
 
         .header, .header-space{
-                height: 200px;
+                height: 215px;
         }
 
         .footer, .footer-space {
@@ -175,6 +175,7 @@
             <tr>
             <td>
             <div class="header-space">
+            <br>
             <table width="100%" style="border: 1px solid #0c0c0c;padding-left:10px">
                 <tr>
                     <td width="30%" class="font-12 " >
