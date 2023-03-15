@@ -224,7 +224,6 @@
                                     <strong>Kepada Yth.</strong><br>
                                         {{ $customers->nama }} <br>
                                         {{ $customers->alamat_kirim_1 }} <br>
-                                    
                                 </td>
                             </tr>
                         </table>
@@ -237,17 +236,17 @@
                 <td>
                     <div class="content">
                         <table id="tblContent" class="font-14">
-                            <thead style="background-color: lightgray;">
-                            <tr>
-                                <th width="5%" class="border-header">No</th>
-                                <th width="15%" class="border-header">Code</th>
-                                <th width="60%" class="border-header">Description</th>
-                                <th width="10%" class="border-header">Qty</th>
-                                <th width="10%" class="border-header">UOM</th>
-                            </tr>
+                            {{-- <thead style="background-color: lightgray;"> --}}
+                            <thead>
+                                <tr>
+                                    <th width="5%" class="border-header">No</th>
+                                    <th width="15%" class="border-header">Code</th>
+                                    <th width="60%" class="border-header">Description</th>
+                                    <th width="10%" class="border-header">Qty</th>
+                                    <th width="10%" class="border-header">UOM</th>
+                                </tr>
                             </thead>
                             <tbody>
-                                
                                 @foreach ($details as $val )
                                     <tr >
                                         <td align="center">{{ ++$no }}</td>
@@ -258,7 +257,6 @@
                                     </tr>
                                 @endforeach      
                                                     
-                                
                                 @if(count($details)>7)
                                     <?php $totalBaris = 16 ?>
                                 @else

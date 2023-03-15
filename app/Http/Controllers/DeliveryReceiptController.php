@@ -108,10 +108,10 @@ class DeliveryReceiptController extends Controller
         $username =  Auth::user()->username;
         $deliveryDate = $request->deliveryDate;
         $dnNumber = $request->dnNumber;
-        $submitAt = $request->submitAt;
+        $submitAt = $request->submitAt ? date('Y-m-d', strtotime($request->submitAt)) : '';
         $submitBy = $request->submitBy;
         $receiveBy = $request->receiveBy;
-        $receiveAt = $request->receiveAt;
+        $receiveAt = $request->receiveAt ? date('Y-m-d', strtotime($request->receiveAt)) : '';
         $note = $request->note;
         $status = '1';
        
