@@ -125,12 +125,12 @@
             border-width: 1px;
             border-style: solid;
             border-color: #666666;
-            background-color: #dedede;
+            /* background-color: #dedede; */
         }
 
         #tblContent  td {
             border-width: 1px;
-            background-color: #ffffff;
+            /* background-color: #ffffff; */
             padding : 3px 10px 3px 10px;
             border-bottom: none;
             border-left: 1px solid black;
@@ -239,11 +239,11 @@
                             {{-- <thead style="background-color: lightgray;"> --}}
                             <thead>
                                 <tr>
-                                    <th width="5%" class="border-header">No</th>
-                                    <th width="15%" class="border-header">Code</th>
-                                    <th width="60%" class="border-header">Description</th>
-                                    <th width="10%" class="border-header">Qty</th>
-                                    <th width="10%" class="border-header">UOM</th>
+                                    <th width="5%" align="center">No</th>
+                                    <th width="15%" align="center">Code</th>
+                                    <th width="60%" align="center">Description</th>
+                                    <th width="10%" align="center">Qty</th>
+                                    <th width="10%" align="center">UOM</th>
                                 </tr>
                             </thead>
                             <tbody>
