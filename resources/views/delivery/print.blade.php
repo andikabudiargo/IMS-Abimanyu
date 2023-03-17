@@ -10,7 +10,7 @@
             margin: 0;
             overflow: hidden;
             position: relative;
-            box-sizing: border-box;
+            /* box-sizing: border-box; */
             page-break-after: always;
         }
 
@@ -55,7 +55,7 @@
         }
 
         .header, .header-space{
-                height: 212px;
+                height: 215px;
         }
 
         .footer, .footer-space {
@@ -115,9 +115,12 @@
         #tblContent{
             /* font-family: verdana,arial,sans-serif; */
             /* font-size:14pt; */
-            color:#333333;
-            border-width: 1px;
-            border-color: #666666;
+            /* color:#333333; */
+            color:#0c0c0c;
+            /* border-width: 1px;
+            border-color: #0c0c0c; */
+
+            border: 1px solid #0c0c0c;
             border-collapse: collapse;
         }
 
@@ -125,7 +128,7 @@
             /* border-width: 1px; */
             /* border-style: solid; */
             background-color: #ffffff;
-            border: 1px solid black;
+            border: 1px solid #0c0c0c;
             /* border-color: #666666; */
             /* background-color: #dedede; */
         }
@@ -135,14 +138,14 @@
             background-color: #ffffff;
             padding : 3px 10px 3px 10px;
             border-bottom: none;
-            border-left: 1px solid black;
-            border-right: 1px solid black;
+            border-left: 1px solid #0c0c0c;
+            border-right: 1px solid #0c0c0c;
         }
 
         #tblContent tr:last-child{
-            border-bottom: 1px solid black;
-            border-left: 1px solid black;
-            border-right: 1px solid black;
+            border-bottom: 1px solid #0c0c0c;
+            border-left: 1px solid #0c0c0c;
+            border-right: 1px solid #0c0c0c;
         }
 
         .tableHeader td{
@@ -344,17 +347,17 @@
     </table>
 </div>
 <script>
-    window.onload= function () {
-        window.print();
-        window.onafterprint = function () {
-            window.close();
-        }
-        window.onfocus = function () { 
-            setTimeout(function () { 
-                window.close(); 
-            }, 200); 
-        }
-    }
+    // window.onload= function () {
+    //     window.print();
+    //     window.onafterprint = function () {
+    //         window.close();
+    //     }
+    //     window.onfocus = function () { 
+    //         setTimeout(function () { 
+    //             window.close(); 
+    //         }, 200); 
+    //     }
+    // }
 </script>
 </body>
 </html>
