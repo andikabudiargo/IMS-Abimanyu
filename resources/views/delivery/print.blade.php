@@ -55,7 +55,7 @@
         }
 
         .header, .header-space{
-                height: 195px;
+                height: 212px;
         }
 
         .footer, .footer-space {
@@ -158,6 +158,11 @@
             font-size: medium;
         }
 
+        .font-13{
+            font-size:11pt;
+            /* font-size: medium; */
+        }
+
         .font-16{
             font-size:16pt;
             /* font-size: medium; */
@@ -188,25 +193,28 @@
                         <table width="100%" style="border: 1px solid #0c0c0c;padding-left:10px">
                             <tr>
                                 <td width="30%">
-                                    <img src="{{ asset('app-assets/images/logo/logo_po.png') }}" alt="logo" style="width: 80%;"> 
+                                    <img src="{{ asset('app-assets/images/logo/logo_po.png') }}" alt="logo" style="width: 100%;"> 
                                 </td>
-                                <td width="30%"></td>
-                                <td width="40%" align="right" class="font-16" >
-                                    <div class="huruf-tebal" style="padding-right:10px">DELIVERY NOTE</div>
+                                <td width="20%"></td>
+                                <td width="50%" style="vertical-align: bottom;">
+                                    <div class="huruf-tebal font-16" style="padding-right:10px">DELIVERY NOTE</div>
+                                    <br>
                                     <table>
                                         <tr class="tanpa-padding">
-                                            <td class="tanpa-padding">Nomor</td>
-                                            <td class="tanpa-padding">: {{ $dnHdr->delivery_number }}</td>
+                                            <td class="tanpa-padding font-14" width="50"></td>
+                                            <td class="tanpa-padding font-14">Nomor</td>
+                                            <td class="tanpa-padding font-14">: {{ $dnHdr->delivery_number }}</td>
                                         </tr>
                                         <tr class="tanpa-padding">
-                                            <td class="tanpa-padding">No.PO#</td>
-                                            <td class="tanpa-padding">: {{ $dnHdr->po_number }}</td>
+                                            <td class="tanpa-padding font-14"></td>
+                                            <td class="tanpa-padding font-14">No.PO#</td>
+                                            <td class="tanpa-padding font-14">: {{ $dnHdr->po_number }}</td>
                                         </tr>
                                     </table>
                                 </td>
                             </tr>
                         </table>
-                        <table style="border-left: 1px solid #0c0c0c;border-right: 1px solid #0c0c0c;padding-left:10px" class="font-14 tanpa-padding">
+                        <table style="border-left: 1px solid #0c0c0c;border-right: 1px solid #0c0c0c;padding-left:10px" class="font-13 tanpa-padding">
                             <tr>
                                 <td width="50%" valign="top">
                                     <table>
@@ -220,7 +228,7 @@
                                             <td class="tanpa-padding">Jam</td><td class="tanpa-padding">: {{ date('H:i:s') }}</td>
                                         </tr>
                                         <tr>
-                                            <td class="tanpa-padding">No Mobil</td><td class="tanpa-padding">:</td>
+                                            <td class="tanpa-padding">No mobil</td><td class="tanpa-padding">:</td>
                                         </tr>
                                     </table>
                                 </td>
@@ -268,7 +276,7 @@
 
                                 @for ($i=1;$i< $totalBaris-(count($details));$i++)
                                     <tr >
-                                        <td align="right" class="putih" height="20"></td>
+                                        <td align="right" class="putih" height="16"></td>
                                         <td align="left"></td>
                                         <td align="left"></td>
                                         <td align="right"></td>
@@ -283,12 +291,12 @@
                                 </tr> --}}
                                 
                                 <tr style="border: 1px solid #0c0c0c;">
-                                    <td colspan="5" >Note: </td>
+                                    <td colspan="5">Description: </td>
                                 </tr>
                             </tbody>
                         </table>
                         <table width="100%">
-                            <tr><td colspan="5" height="5"></td></tr>
+                            <tr><td colspan="5" height="3"></td></tr>
                             <tr>
                                 <td align="center">Created By</td>
                                 <td align="center">Checked By</td>
@@ -297,7 +305,7 @@
                                 <td align="center">Received By</td>
                             </tr>
                             <tr>
-                                <td align="center" height="30"></td>
+                                <td align="center" height="25"></td>
                                 <td align="center"></td>
                                 <td align="center"></td>
                                 <td align="center"></td>
@@ -334,17 +342,17 @@
     </table>
 </div>
 <script>
-    // window.onload= function () {
-    //     window.print();
-    //     window.onafterprint = function () {
-    //         window.close();
-    //     }
-    //     window.onfocus = function () { 
-    //         setTimeout(function () { 
-    //             window.close(); 
-    //         }, 200); 
-    //     }
-    // }
+    window.onload= function () {
+        window.print();
+        window.onafterprint = function () {
+            window.close();
+        }
+        window.onfocus = function () { 
+            setTimeout(function () { 
+                window.close(); 
+            }, 200); 
+        }
+    }
 </script>
 </body>
 </html>
