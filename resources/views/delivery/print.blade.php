@@ -122,14 +122,16 @@
         }
 
         #tblContent  th {
-            border-width: 1px;
-            border-style: solid;
-            border-color: #666666;
+            /* border-width: 1px; */
+            /* border-style: solid; */
+            background-color: #ffffff;
+            border: 1px solid black;
+            /* border-color: #666666; */
             /* background-color: #dedede; */
         }
 
         #tblContent  td {
-            border-width: 1px;
+            /* border-width: 1px; */
             background-color: #ffffff;
             padding : 3px 10px 3px 10px;
             border-bottom: none;
@@ -342,17 +344,17 @@
     </table>
 </div>
 <script>
-    window.onload= function () {
-        window.print();
-        window.onafterprint = function () {
-            window.close();
-        }
-        window.onfocus = function () { 
-            setTimeout(function () { 
-                window.close(); 
-            }, 200); 
-        }
-    }
+    // window.onload= function () {
+    //     window.print();
+    //     window.onafterprint = function () {
+    //         window.close();
+    //     }
+    //     window.onfocus = function () { 
+    //         setTimeout(function () { 
+    //             window.close(); 
+    //         }, 200); 
+    //     }
+    // }
 </script>
 </body>
 </html>
