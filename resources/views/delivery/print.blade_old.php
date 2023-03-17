@@ -168,11 +168,11 @@
     <div>
         <table width="100%" style="border: 1px solid #0c0c0c;padding-left:10px">
             <tr>
-                <td width="30%" class="font-12 " >
+                <td width="30%">
                     <img src="{{ asset('app-assets/images/logo/logo_po.png') }}" alt="logo" style="width: 60%;"> 
                 </td>
-                <td  width="50%" >
-                    <h3 class="padding:0px;">DELIVERY NOTE</h3>
+                <td width="50%" align="right">
+                    <h2 class="padding:0px;">DELIVERY NOTE</h2>
                     <table>
                         <tr class="tanpa-padding">
                             <td class="font-14 tanpa-padding">Nomor</td>
@@ -248,7 +248,7 @@
             <td align="center">Received By</td>
         </tr>
         <tr>
-            <td align="center" height="20"></td>
+            <td align="center" height="30"></td>
             <td align="center"></td>
             <td align="center"></td>
             <td align="center"></td>
@@ -264,17 +264,17 @@
         </tr>
     </table>
 <script>
-    window.onload= function () {
-        window.print();
-        window.onafterprint = function () {
-            window.close();
-        }
-        window.onfocus = function () { 
-            setTimeout(function () { 
-                window.close(); 
-            }, 200); 
-        }
-    }
+    // window.onload= function () {
+    //     window.print();
+    //     window.onafterprint = function () {
+    //         window.close();
+    //     }
+    //     window.onfocus = function () { 
+    //         setTimeout(function () { 
+    //             window.close(); 
+    //         }, 200); 
+    //     }
+    // }
 </script>
 </body>
 </html>

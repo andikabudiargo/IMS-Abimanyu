@@ -55,7 +55,7 @@
         }
 
         .header, .header-space{
-                height: 190px;
+                height: 195px;
         }
 
         .footer, .footer-space {
@@ -130,7 +130,7 @@
 
         #tblContent  td {
             border-width: 1px;
-            /* background-color: #ffffff; */
+            background-color: #ffffff;
             padding : 3px 10px 3px 10px;
             border-bottom: none;
             border-left: 1px solid black;
@@ -159,8 +159,12 @@
         }
 
         .font-16{
-            /* font-size:16pt; */
-            font-size: medium;
+            font-size:16pt;
+            /* font-size: medium; */
+        }
+
+        .font-small{
+            font-size: small;
         }
 
         .tanpa-padding{
@@ -183,20 +187,20 @@
                         <br>
                         <table width="100%" style="border: 1px solid #0c0c0c;padding-left:10px">
                             <tr>
-                                <td width="30%" class="font-12 " >
-                                    <img src="{{ asset('app-assets/images/logo/logo_po.png') }}" alt="logo" style="width: 60%;"> 
+                                <td width="30%">
+                                    <img src="{{ asset('app-assets/images/logo/logo_po.png') }}" alt="logo" style="width: 80%;"> 
                                 </td>
-                                <td  width="50%" >
-                                    {{-- <h3 class="padding:0px;">DELIVERY NOTE</h3> --}}
-                                    <div class="huruf-tebal">DELIVERY NOTE</div>
+                                <td width="30%"></td>
+                                <td width="40%" align="right" class="font-16" >
+                                    <div class="huruf-tebal" style="padding-right:10px">DELIVERY NOTE</div>
                                     <table>
                                         <tr class="tanpa-padding">
-                                            <td class="font-14 tanpa-padding">Nomor</td>
-                                            <td class="font-14 tanpa-padding">: {{ $dnHdr->delivery_number }}</td>
+                                            <td class="tanpa-padding">Nomor</td>
+                                            <td class="tanpa-padding">: {{ $dnHdr->delivery_number }}</td>
                                         </tr>
                                         <tr class="tanpa-padding">
-                                            <td class="font-14 tanpa-padding">No.PO#</td>
-                                            <td class="font-14 tanpa-padding">: {{ $dnHdr->po_number }}</td>
+                                            <td class="tanpa-padding">No.PO#</td>
+                                            <td class="tanpa-padding">: {{ $dnHdr->po_number }}</td>
                                         </tr>
                                     </table>
                                 </td>
@@ -220,7 +224,7 @@
                                         </tr>
                                     </table>
                                 </td>
-                                <td width="50%" valign="top" style="border-left: 1px solid #0c0c0c;padding-left:5px" >
+                                <td width="50%" valign="top" style="border-left: 1px solid #0c0c0c;padding-left:5px" class="font-small">
                                     <strong>Kepada Yth.</strong><br>
                                         {{ $customers->nama }} <br>
                                         {{ $customers->alamat_kirim_1 }} <br>
@@ -236,7 +240,6 @@
                 <td>
                     <div class="content">
                         <table id="tblContent" class="font-14">
-                            {{-- <thead style="background-color: lightgray;"> --}}
                             <thead>
                                 <tr>
                                     <th width="5%" align="center">No</th>
@@ -273,19 +276,19 @@
                                     </tr>
                                 @endfor
                                                         
-                                <tr style="border: 1px solid #0c0c0c;padding-left:10px">
+                                {{-- <tr style="border: 1px solid #0c0c0c;padding-left:10px">
                                     <td align="right" colspan="3" style="border-right:none">Total Qty :</td>
                                     <td align="right" style="border-left:none;border-right:none"> {{ number_format($totals[0]->qty) }}</td>
                                     <td style="border-left:none"></td>
-                                </tr>
+                                </tr> --}}
                                 
-                                <tr>
-                                    <td colspan="5">Note: </td>
+                                <tr style="border: 1px solid #0c0c0c;">
+                                    <td colspan="5" >Note: </td>
                                 </tr>
                             </tbody>
                         </table>
                         <table width="100%">
-                            <tr><td colspan="5" height="10"></td></tr>
+                            <tr><td colspan="5" height="5"></td></tr>
                             <tr>
                                 <td align="center">Created By</td>
                                 <td align="center">Checked By</td>
@@ -294,7 +297,7 @@
                                 <td align="center">Received By</td>
                             </tr>
                             <tr>
-                                <td align="center" height="20"></td>
+                                <td align="center" height="30"></td>
                                 <td align="center"></td>
                                 <td align="center"></td>
                                 <td align="center"></td>
@@ -302,11 +305,18 @@
                             </tr>
                             <tr>
                                 {{-- <td align="center">(<u>{{ str_pad($dnHdr->created_by, 10, "_", STR_PAD_BOTH)  }}</u>)</td> --}}
-                                <td align="center">( _________ )</td>
-                                <td align="center">( _________ )</td>
-                                <td align="center">( _________ )</td>
-                                <td align="center">( _________ )</td>
-                                <td align="center">( _________ )</td>
+                                <td align="center">  _____________  </td>
+                                <td align="center">  _____________  </td>
+                                <td align="center">  _____________  </td>
+                                <td align="center">  _____________  </td>
+                                <td align="center">  _____________  </td>
+                            </tr>
+                            <tr>
+                                <td align="left" style="padding-left:20px">Date: </td>
+                                <td align="left" style="padding-left:20px">Date:</td>
+                                <td align="left" style="padding-left:20px">Date:</td>
+                                <td align="left" style="padding-left:20px">Date:</td>
+                                <td align="left" style="padding-left:20px">Date:</td>
                             </tr>
                         </table>
                     </div>
@@ -324,17 +334,17 @@
     </table>
 </div>
 <script>
-    window.onload= function () {
-        window.print();
-        window.onafterprint = function () {
-            window.close();
-        }
-        window.onfocus = function () { 
-            setTimeout(function () { 
-                window.close(); 
-            }, 200); 
-        }
-    }
+    // window.onload= function () {
+    //     window.print();
+    //     window.onafterprint = function () {
+    //         window.close();
+    //     }
+    //     window.onfocus = function () { 
+    //         setTimeout(function () { 
+    //             window.close(); 
+    //         }, 200); 
+    //     }
+    // }
 </script>
 </body>
 </html>
