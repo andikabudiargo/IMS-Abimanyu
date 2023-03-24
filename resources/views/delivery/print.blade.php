@@ -120,7 +120,7 @@
             /* border-width: 1px;
             border-color: #0c0c0c; */
 
-            border: 1px solid #0c0c0c;
+            border: 1px solid #abaaaa;
             border-collapse: collapse;
         }
 
@@ -128,8 +128,8 @@
             /* border-width: 1px; */
             /* border-style: solid; */
             background-color: #ffffff;
-            border: 1px solid #0c0c0c;
-            /* border-color: #666666; */
+            border: 1px solid #abaaaa;
+            /* border-color: #abaaaa; */
             /* background-color: #dedede; */
         }
 
@@ -138,14 +138,14 @@
             background-color: #ffffff;
             padding : 3px 10px 3px 10px;
             border-bottom: none;
-            border-left: 1px solid #0c0c0c;
-            border-right: 1px solid #0c0c0c;
+            border-left: 1px solid #abaaaa;
+            border-right: 1px solid #abaaaa;
         }
 
         #tblContent tr:last-child{
-            border-bottom: 1px solid #0c0c0c;
-            border-left: 1px solid #0c0c0c;
-            border-right: 1px solid #0c0c0c;
+            border-bottom: 1px solid #abaaaa;
+            border-left: 1px solid #abaaaa;
+            border-right: 1px solid #abaaaa;
         }
 
         .tableHeader td{
@@ -195,7 +195,7 @@
                 <td>
                     <div class="header-space">
                         <br>
-                        <table width="100%" style="border: 1px solid #0c0c0c;padding-left:10px">
+                        <table width="100%" style="border: 1px solid #abaaaa;;padding-left:10px"
                             <tr>
                                 <td width="30%">
                                     <img src="{{ asset('app-assets/images/logo/logo_po.png') }}" alt="logo" style="width: 100%;"> 
@@ -219,7 +219,7 @@
                                 </td>
                             </tr>
                         </table>
-                        <table style="border-left: 1px solid #0c0c0c;border-right: 1px solid #0c0c0c;padding-left:10px" class="font-13 tanpa-padding">
+                        <table style="border-left: 1px solid #abaaaa;border-right: 1px solid #abaaaa;padding-left:10px" class="font-13 tanpa-padding">
                             <tr>
                                 <td width="50%" valign="top">
                                     <table>
@@ -237,7 +237,7 @@
                                         </tr>
                                     </table>
                                 </td>
-                                <td width="50%" valign="top" style="border-left: 1px solid #0c0c0c;padding-left:5px" class="font-small">
+                                <td width="50%" valign="top" style="border-left: 1px solid #abaaaa;padding-left:5px" class="font-small">
                                     <strong>Kepada Yth.</strong><br>
                                         {{ $customers->nama }} <br>
                                         {{ $customers->alamat_kirim_1 }} <br>
@@ -289,13 +289,13 @@
                                     </tr>
                                 @endfor
                                                         
-                                {{-- <tr style="border: 1px solid #0c0c0c;padding-left:10px">
+                                {{-- <tr style="border: 1px solid #abaaaa;;padding-left:10px"
                                     <td align="right" colspan="3" style="border-right:none">Total Qty :</td>
                                     <td align="right" style="border-left:none;border-right:none"> {{ number_format($totals[0]->qty) }}</td>
                                     <td style="border-left:none"></td>
                                 </tr> --}}
                                 
-                                <tr style="border: 1px solid #0c0c0c;">
+                                <tr style="border: 1px solid #abaaaa">
                                     <td colspan="5">Description: </td>
                                 </tr>
                             </tbody>
