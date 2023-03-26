@@ -72,6 +72,11 @@
             bottom: 0;
         }
 
+        :root {
+            /*half black*/
+            --line-color: rgba(0, 0, 0, 0.5);
+        }
+
         @media print {
             header, footer {
                 position: fixed;
@@ -113,39 +118,25 @@
         }
 
         #tblContent{
-            /* font-family: verdana,arial,sans-serif; */
-            /* font-size:14pt; */
-            /* color:#333333; */
-            color:#0c0c0c;
-            /* border-width: 1px;
-            border-color: #0c0c0c; */
-
-            border: thin solid #4e4e4e;
+            border: thin solid var(--line-color);
             border-collapse: collapse;
         }
 
         #tblContent  th {
-            /* border-width: 1px; */
-            /* border-style: solid; */
-            background-color: #ffffff;
-            border: thin solid #4e4e4e;
-            /* border-color: #4e4e4e; */
-            /* background-color: #dedede; */
+            border: thin solid var(--line-color);
         }
 
         #tblContent  td {
-            /* border-width: 1px; */
-            background-color: #ffffff;
             padding : 3px 10px 3px 10px;
             border-bottom: none;
-            border-left: thin solid #4e4e4e;
-            border-right: thin solid #4e4e4e;
+            border-left: thin solid var(--line-color);
+            border-right: thin solid var(--line-color);
         }
 
         #tblContent tr:last-child{
-            border-bottom: thin solid #4e4e4e;
-            border-left: thin solid #4e4e4e;
-            border-right: thin solid #4e4e4e;
+            border-bottom: thin solid var(--line-color);
+            border-left: thin solid var(--line-color);
+            border-right: thin solid var(--line-color);
         }
 
         .tableHeader td{
@@ -195,7 +186,7 @@
                 <td>
                     <div class="header-space">
                         <br>
-                        <table width="100%" style="border: thin solid #4e4e4e;;padding-left:10px">
+                        <table width="100%" style="border: thin solid var(--line-color);padding-left:10px">
                             <tr>
                                 <td width="30%">
                                     <img src="{{ asset('app-assets/images/logo/logo_po.png') }}" alt="logo" style="width: 100%;"> 
@@ -219,7 +210,7 @@
                                 </td>
                             </tr>
                         </table>
-                        <table style="border-left: thin solid #4e4e4e;border-right: thin solid #4e4e4e;padding-left:10px" class="font-13 tanpa-padding">
+                        <table style="border-left: thin solid var(--line-color);border-right: thin solid var(--line-color);padding-left:10px" class="font-13 tanpa-padding">
                             <tr>
                                 <td width="50%" valign="top">
                                     <table>
@@ -237,7 +228,7 @@
                                         </tr>
                                     </table>
                                 </td>
-                                <td width="50%" valign="top" style="border-left: thin solid #4e4e4e;padding-left:5px" class="font-small">
+                                <td width="50%" valign="top" style="border-left: thin solid var(--line-color);padding-left:5px" class="font-small">
                                     <strong>Kepada Yth.</strong><br>
                                         {{ $customers->nama }} <br>
                                         {{ $customers->alamat_kirim_1 }} <br>
@@ -255,11 +246,11 @@
                         <table id="tblContent" class="font-14">
                             <thead>
                                 <tr>
-                                    <th width="5%" align="center">No</th>
-                                    <th width="15%" align="center">Code</th>
-                                    <th width="60%" align="center">Description</th>
-                                    <th width="10%" align="center">Qty</th>
-                                    <th width="10%" align="center">UOM</th>
+                                    <td width="5%" align="center">No</td>
+                                    <td width="15%" align="center">Code</td>
+                                    <td width="60%" align="center">Description</td>
+                                    <td width="10%" align="center">Qty</td>
+                                    <td width="10%" align="center">UOM</td>
                                 </tr>
                             </thead>
                             <tbody>
@@ -289,13 +280,7 @@
                                     </tr>
                                 @endfor
                                                         
-                                {{-- <tr style="border: thin solid #4e4e4e;;padding-left:10px"
-                                    <td align="right" colspan="3" style="border-right:none">Total Qty :</td>
-                                    <td align="right" style="border-left:none;border-right:none"> {{ number_format($totals[0]->qty) }}</td>
-                                    <td style="border-left:none"></td>
-                                </tr> --}}
-                                
-                                <tr style="border: thin solid #4e4e4e">
+                                <tr style="border: thin solid var(--line-color)">
                                     <td colspan="5">Description: </td>
                                 </tr>
                             </tbody>

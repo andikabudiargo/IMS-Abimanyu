@@ -33,7 +33,7 @@
             <span class="menu-title text-truncate" data-i18n="Dashboards">Dashboards</span>
           </a>
         </li>
-        <li class=" navigation-header"><span data-i18n="Apps &amp; Pages">Apps &amp; Pages</span><i data-feather="more-horizontal"></i>
+        <li class=" navigation-header"><span data-i18n="Inventory">Inventory</span><i data-feather="more-horizontal"></i>
         </li>
         <li class=" {{ in_array(\Request::segment(1), ['articles','articles','articles/create','articles/edit','articles/show','stockTake','uoms','uomCons','groupMaterials','articleTypes']) ? 'active' : '' }} nav-item">
           <a class="d-flex align-items-center" href="javascript:void(0);">
@@ -95,6 +95,8 @@
               </a>
             </li>
           </ul>
+        </li>
+        <li class=" navigation-header"><span data-i18n="Marketing">Marketing</span><i data-feather="more-horizontal"></i>
         </li>
         <li class=" {{ in_array(\Request::segment(1), ['salesOrders','customers','targetSo']) ? 'active' : '' }} nav-item">
           <a class="d-flex align-items-center" href="javascript:void(0);">
@@ -181,6 +183,8 @@
             </li>
           </ul>
         </li>
+        <li class=" navigation-header"><span data-i18n="Logistic">Logistic</span><i data-feather="more-horizontal"></i>
+        </li>
         <li class=" {{ in_array(\Request::segment(1), ['receivings','receivingsRm']) ? 'active' : '' }} nav-item">
           <a class="d-flex align-items-center" href="javascript:void(0);">
             <i data-feather='package'></i>
@@ -246,6 +250,65 @@
             </li>
             @endcan
           </ul>
+        </li>
+        <li class=" {{ in_array(\Request::segment(1), ['subContracts']) ? 'active' : '' }} nav-item">
+          <a class="d-flex align-items-center" href="javascript:void(0);">
+            <i data-feather='link-2'></i>
+            <span class="menu-title text-truncate" data-i18n="Form Elements">Subcontracting
+            </span>
+          </a>
+          <ul class="menu-content">
+            @can('subContract-index')
+            <li class="{{ \Request::segment(1) == 'subContracts1' ? 'active' : '' }} disabled" >
+              <a class="d-flex align-items-center" href="{{ route('subContracts.index') }}">
+                <i data-feather="circle"></i>
+                <span class="menu-item text-truncate" data-i18n="Input">PO</span>
+              </a>
+            </li>
+            @endcan
+            @can('subContract-create')
+            <li class="{{ \Request::segment(1) == 'subContracts' ? 'active' : '' }}" >
+              <a class="d-flex align-items-center" href="{{ route('subContract.delivery') }}">
+                <i data-feather="circle"></i>
+                <span class="menu-item text-truncate" data-i18n="Input">Delivery</span>
+              </a>
+            </li>
+            @endcan
+            @can('subContract-index')
+            <li class="{{ \Request::segment(1) == 'subContracts1' ? 'active' : '' }} disabled" >
+              <a class="d-flex align-items-center" href="{{ route('subContracts.index') }}">
+                <i data-feather="circle"></i>
+                <span class="menu-item text-truncate" data-i18n="Input">Receiving</span>
+              </a>
+            </li>
+            @endcan
+          </ul>
+        </li>
+        <li class=" {{ in_array(\Request::segment(1), ['delivery']) ? 'active' : '' }} nav-item">
+          <a class="d-flex align-items-center" href="javascript:void(0);">
+            <i data-feather='truck'></i>
+            <span class="menu-title text-truncate" data-i18n="Form Elements">Delivery
+            </span>
+          </a>
+          <ul class="menu-content">
+            <li class="{{ \Request::segment(1) == 'delivery' ? 'active' : '' }} " >
+              <a class="d-flex align-items-center" href="{{ route('delivery.index') }}">
+                <i data-feather="circle"></i>
+                <span class="menu-item text-truncate" data-i18n="Input">Delivery Note</span>
+              </a>
+            </li>
+
+            {{-- @can('purchaseOrder-index')
+            <li class="{{ \Request::segment(1) == 'purchaseOrdersSSS' ? 'active' : '' }} disabled">
+              <a class="d-flex align-items-center" href="{{ route('purchaseOrders.index') }}">
+                <i data-feather="circle"></i>
+                <span class="menu-item text-truncate" data-i18n="Input">Delivery Order</span>
+              </a>
+            </li>
+            @endcan --}}
+          </ul>
+        </li>
+        <li class=" navigation-header"><span data-i18n="PPIC">PPIC</span><i data-feather="more-horizontal"></i>
         </li>
         <li class=" {{ in_array(\Request::segment(1), ['boms','workingOrders','workOrderSheet','deliveryPlan','wosMixing','production/actualLoading','production/actualFinishGoods']) ? 'active' : '' }} nav-item">
           <a class="d-flex align-items-center" href="javascript:void(0);">
@@ -328,62 +391,8 @@
             @endcan
           </ul>
         </li>
-        <li class=" {{ in_array(\Request::segment(1), ['subContracts']) ? 'active' : '' }} nav-item">
-          <a class="d-flex align-items-center" href="javascript:void(0);">
-            <i data-feather='link-2'></i>
-            <span class="menu-title text-truncate" data-i18n="Form Elements">Subcontracting
-            </span>
-          </a>
-          <ul class="menu-content">
-            @can('subContract-index')
-            <li class="{{ \Request::segment(1) == 'subContracts1' ? 'active' : '' }} disabled" >
-              <a class="d-flex align-items-center" href="{{ route('subContracts.index') }}">
-                <i data-feather="circle"></i>
-                <span class="menu-item text-truncate" data-i18n="Input">PO</span>
-              </a>
-            </li>
-            @endcan
-            @can('subContract-create')
-            <li class="{{ \Request::segment(1) == 'subContracts' ? 'active' : '' }}" >
-              <a class="d-flex align-items-center" href="{{ route('subContract.delivery') }}">
-                <i data-feather="circle"></i>
-                <span class="menu-item text-truncate" data-i18n="Input">Delivery</span>
-              </a>
-            </li>
-            @endcan
-            @can('subContract-index')
-            <li class="{{ \Request::segment(1) == 'subContracts1' ? 'active' : '' }} disabled" >
-              <a class="d-flex align-items-center" href="{{ route('subContracts.index') }}">
-                <i data-feather="circle"></i>
-                <span class="menu-item text-truncate" data-i18n="Input">Receiving</span>
-              </a>
-            </li>
-            @endcan
-          </ul>
-        </li>
-        <li class=" {{ in_array(\Request::segment(1), ['delivery']) ? 'active' : '' }} nav-item">
-          <a class="d-flex align-items-center" href="javascript:void(0);">
-            <i data-feather='truck'></i>
-            <span class="menu-title text-truncate" data-i18n="Form Elements">Delivery
-            </span>
-          </a>
-          <ul class="menu-content">
-            <li class="{{ \Request::segment(1) == 'delivery' ? 'active' : '' }} " >
-              <a class="d-flex align-items-center" href="{{ route('delivery.index') }}">
-                <i data-feather="circle"></i>
-                <span class="menu-item text-truncate" data-i18n="Input">Delivery Note</span>
-              </a>
-            </li>
-
-            {{-- @can('purchaseOrder-index')
-            <li class="{{ \Request::segment(1) == 'purchaseOrdersSSS' ? 'active' : '' }} disabled">
-              <a class="d-flex align-items-center" href="{{ route('purchaseOrders.index') }}">
-                <i data-feather="circle"></i>
-                <span class="menu-item text-truncate" data-i18n="Input">Delivery Order</span>
-              </a>
-            </li>
-            @endcan --}}
-          </ul>
+       
+        <li class=" navigation-header"><span data-i18n="Finance Accounting">Finance Accounting</span><i data-feather="more-horizontal"></i>
         </li>
         <li class=" {{ in_array(\Request::segment(1), ['aps','banks','pettyCash','proforma','bankReceipt','invoice','dnReceipt']) ? 'active' : '' }} nav-item">
           <a class="d-flex align-items-center" href="javascript:void(0);">
@@ -589,88 +598,8 @@
             @endcan --}}
           </ul>
         </li>
-        {{-- <li class=" {{ in_array(\Request::segment(1), []) ? 'active' : '' }} nav-item">
-          <a class="d-flex align-items-center" href="javascript:void(0);">
-            <i data-feather="share"></i>
-            <span class="menu-title text-truncate" data-i18n="Form Elements">Pembelian
-            </span>
-          </a>
-          <ul class="menu-content">
-              @can('user-index')
-              <li class="{{ \Request::segment(1) == '' && \Request::segment(2) == '' ? 'active' : '' }}">
-                <a class="d-flex align-items-center" href="{{ route('users.index') }}">
-                  <i data-feather="circle"></i>
-                  <span class="menu-item text-truncate" data-i18n="Input">Purchase Order</span>
-                </a>
-              @endcan
-              </li>
-              @can('permission-index')
-              <li class="{{ \Request::segment(1) == '' && \Request::segment(2) == '' ? 'active' : '' }}">
-                <a class="d-flex align-items-center" href="{{ route('permissions.index') }}">
-                  <i data-feather="circle"></i>
-                  <span class="menu-item text-truncate" data-i18n="Input">Lists PO</span>
-                </a>
-              </li>
-              @endcan
-              @can('role-index')
-              <li class="{{ \Request::segment(1) == '' && \Request::segment(2) == '' ? 'active' : '' }}">
-                <a class="d-flex align-items-center" href="{{ route('roles.index') }}">
-                  <i data-feather="circle"></i>
-                  <span class="menu-item text-truncate" data-i18n="Input">Jenis barang</span>
-                </a>
-              </li>
-              @endcan
-              @can('role-index')
-              <li class="{{ \Request::segment(1) == '' && \Request::segment(2) == '' ? 'active' : '' }}">
-                <a class="d-flex align-items-center" href="{{ route('roles.index') }}">
-                  <i data-feather="circle"></i>
-                  <span class="menu-item text-truncate" data-i18n="Input">No Rak</span>
-                </a>
-              </li>
-              @endcan
-          </ul>
+        <li class=" navigation-header"><span data-i18n="Settings">Settings</span><i data-feather="more-horizontal"></i>
         </li>
-        <li class=" {{ in_array(\Request::segment(1), []) ? 'active' : '' }} nav-item">
-          <a class="d-flex align-items-center" href="javascript:void(0);">
-            <i data-feather="shopping-cart"></i>
-            <span class="menu-title text-truncate" data-i18n="Form Elements">Penjualan
-            </span>
-          </a>
-          <ul class="menu-content">
-              @can('user-index')
-              <li class="{{ \Request::segment(1) == '' && \Request::segment(2) == '' ? 'active' : '' }}">
-                <a class="d-flex align-items-center" href="{{ route('users.index') }}">
-                  <i data-feather="circle"></i>
-                  <span class="menu-item text-truncate" data-i18n="Input">Purchase Order</span>
-                </a>
-              @endcan
-              </li>
-              @can('permission-index')
-              <li class="{{ \Request::segment(1) == '' && \Request::segment(2) == '' ? 'active' : '' }}">
-                <a class="d-flex align-items-center" href="{{ route('permissions.index') }}">
-                  <i data-feather="circle"></i>
-                  <span class="menu-item text-truncate" data-i18n="Input">Lists PO</span>
-                </a>
-              </li>
-              @endcan
-              @can('role-index')
-              <li class="{{ \Request::segment(1) == '' && \Request::segment(2) == '' ? 'active' : '' }}">
-                <a class="d-flex align-items-center" href="{{ route('roles.index') }}">
-                  <i data-feather="circle"></i>
-                  <span class="menu-item text-truncate" data-i18n="Input">Jenis barang</span>
-                </a>
-              </li>
-              @endcan
-              @can('role-index')
-              <li class="{{ \Request::segment(1) == '' && \Request::segment(2) == '' ? 'active' : '' }}">
-                <a class="d-flex align-items-center" href="{{ route('roles.index') }}">
-                  <i data-feather="circle"></i>
-                  <span class="menu-item text-truncate" data-i18n="Input">No Rak</span>
-                </a>
-              </li>
-              @endcan
-          </ul>
-        </li> --}}
         <li class=" {{ in_array(\Request::segment(1), ['setting','users','roles','permissions','company','approval']) ? 'active' : '' }} nav-item">
           <a class="d-flex align-items-center" href="javascript:void(0);">
             <i data-feather="settings"></i>
@@ -757,6 +686,8 @@
             <span class="menu-title text-truncate" data-i18n="Disabled Menu">Disabled Menu</span>
           </a>
         </li> --}}
+        <li class=" navigation-header"><span data-i18n="Logs"></span><i data-feather="more-horizontal"></i>
+        </li>
         <li class="nav-item">
           <a class="d-flex align-items-center" href="javascript:void(0);" onclick="event.preventDefault();document.getElementById('logout-form').submit();">
             <i data-feather="power"></i>

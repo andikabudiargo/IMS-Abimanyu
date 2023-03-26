@@ -1151,7 +1151,8 @@ class PurchaseRequestController extends Controller
                 origin_pr_number,
                 num_revision,
                 revised_by,
-                revised_at
+                revised_at,
+                reason
             )
             select 
                 '$prNew',
@@ -1160,8 +1161,8 @@ class PurchaseRequestController extends Controller
                 authorized_by,
                 prepared_by,
                 order_type,
-                '8',
-                regexp_replace(CONCAT(note,', $reason'),', ',''),
+                '8', 
+                note,
                 print_seq,
                 '$username',
                 '$username',
@@ -1172,8 +1173,11 @@ class PurchaseRequestController extends Controller
                 '$prOrigin',
                 $numRevision,
                 '$username',
-                '".date('Y-m-d H:i:s')."'
+                '".date('Y-m-d H:i:s')."',
+                '$reasonRequest'
             from purchase_request_hdr where pr_number = '$prOrigin'";
+
+            // regexp_replace(CONCAT(note,', $reason'),', ',''),
     
             $sqlDet="INSERT into purchase_request_det
             (
@@ -1218,7 +1222,7 @@ class PurchaseRequestController extends Controller
                     [
                         'num_revision' => $numRevision,
                         'status' => '1',
-                        'note'=> DB::raw("regexp_replace(CONCAT(note,', $reason'),', ','')"),
+                        // 'note'=> DB::raw("regexp_replace(CONCAT(note,', $reason'),', ','')"),
                         'revised_by'=>Auth::user()->username,
                         'revised_at'=> date('Y-m-d H:i:s'),
                         'updated_by' => Auth::user()->username,
@@ -1278,6 +1282,7 @@ class PurchaseRequestController extends Controller
         $username =  Auth::user()->username;
         $siteCode = 'HO';
         $location = 'WH';
+        $reasonRequest = $reason;
         $reason = "(Revision from TSO : $tsoCode, by $username, $reason)";
 
         $prNumber = DB::table('target_order_hdr')
@@ -1324,7 +1329,8 @@ class PurchaseRequestController extends Controller
                 origin_pr_number,
                 num_revision,
                 revised_by,
-                revised_at
+                revised_at,
+                reason
             )
             select 
                 '$prNew',
@@ -1334,7 +1340,7 @@ class PurchaseRequestController extends Controller
                 prepared_by,
                 order_type,
                 '8',
-                CONCAT(note,', $reason'),
+                note,
                 print_seq,
                 '$username',
                 '$username',
@@ -1345,8 +1351,11 @@ class PurchaseRequestController extends Controller
                 '$prOrigin',
                 $numRevision,
                 '$username',
-                '".date('Y-m-d H:i:s')."'
+                '".date('Y-m-d H:i:s')."',
+                '$reasonRequest'
             from purchase_request_hdr where pr_number = '$prOrigin'";
+
+            // CONCAT(note,', $reason'),
 
 
             /*Dilengkapi dengan dengan RM*/
@@ -1565,7 +1574,7 @@ class PurchaseRequestController extends Controller
                     [
                         'num_revision' => $numRevision,
                         'status' => '1',
-                        'note'=> DB::raw("CONCAT(note,', $reason')"),
+                        // 'note'=> DB::raw("CONCAT(note,', $reason')"),
                         'revised_by'=>Auth::user()->username,
                         'revised_at'=> date('Y-m-d H:i:s'),
                         'updated_by' => Auth::user()->username,
@@ -1643,7 +1652,7 @@ class PurchaseRequestController extends Controller
 
     public function revisionPoFromPr($poOrigin,$prNumber,$reason){
         $username =  Auth::user()->username;
-
+        $reasonRequest = $reason;
         $reason = "(Revision from PR : $prNumber, by $username, $reason)";
 
         $poHdr = DB::table('purchase_order_hdr')
@@ -1684,7 +1693,8 @@ class PurchaseRequestController extends Controller
             created_by,
             updated_by,
             created_at,
-            updated_at
+            updated_at,
+            reason
         )
         select 
             '$poNew',
@@ -1707,12 +1717,15 @@ class PurchaseRequestController extends Controller
             $numRevision,
             '$username',
             '".date('Y-m-d H:i:s')."',
-            CONCAT(note,', $reason'),
+            note,
             '$username',
             '$username',
             '".date('Y-m-d H:i:s')."',
-            '".date('Y-m-d H:i:s')."'
+            '".date('Y-m-d H:i:s')."',
+            '$reasonRequest'
         from purchase_order_hdr where po_number = '$poOrigin'";
+
+        // CONCAT(note,', $reason'),
 
         $sqlDet="INSERT into purchase_order_det
         (
@@ -1742,7 +1755,7 @@ class PurchaseRequestController extends Controller
             '$username',
             '$username',
             '".date('Y-m-d H:i:s')."',
-            '".date('Y-m-d H:i:s')."' 
+            '".date('Y-m-d H:i:s')."'
         from purchase_order_det where po_number = '$poOrigin'";
 
         $rowAffected =  DB::select($sqlHdr);
@@ -1764,7 +1777,7 @@ class PurchaseRequestController extends Controller
                 [
                     'num_revision' => $numRevision,
                     'status' => '1',
-                    'note'=> DB::raw("CONCAT(note,', $reason')"),
+                    // 'note'=> DB::raw("CONCAT(note,', $reason')"),
                     'revised_by'=>Auth::user()->username,
                     'revised_at'=> date('Y-m-d H:i:s'),
                     'updated_by' => Auth::user()->username,

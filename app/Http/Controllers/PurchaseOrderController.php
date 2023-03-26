@@ -464,9 +464,7 @@ class PurchaseOrderController extends Controller
 
         if ($checkNewPo > 0){
             $poNew = $poOrigin.'-R'.$numRevision+1;
-        } 
-
-        
+        }        
                 
         $sqlHdr = "INSERT into purchase_order_hdr 
         (
@@ -517,12 +515,15 @@ class PurchaseOrderController extends Controller
             $numRevision,
             '$username',
             '".date('Y-m-d H:i:s')."',
-            regexp_replace(CONCAT(note,', $reason'),', ',''),
+            note,
             '$username',
             '$username',
             '".date('Y-m-d H:i:s')."',
-            '".date('Y-m-d H:i:s')."'
+            '".date('Y-m-d H:i:s')."',
+            '$reasonRequest'
         from purchase_order_hdr where po_number = '$poOrigin'";
+
+        // regexp_replace(CONCAT(note,', $reason'),', ',''),
 
         $sqlDet="INSERT into purchase_order_det
         (
@@ -574,7 +575,7 @@ class PurchaseOrderController extends Controller
                 [
                     'num_revision' => $numRevision,
                     'status' => '1',
-                    'note'=> DB::raw("regexp_replace(CONCAT(note,', $reason'),', ','')"),
+                    // 'note'=> DB::raw("regexp_replace(CONCAT(note,', $reason'),', ','')"),
                     'revised_by'=>Auth::user()->username,
                     'revised_at'=> date('Y-m-d H:i:s'),
                     'updated_by' => Auth::user()->username,

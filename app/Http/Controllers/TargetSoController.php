@@ -832,7 +832,8 @@ class TargetSoController extends Controller
             updated_by,
             created_at,
             updated_at,
-            pr_number
+            pr_number,
+            reason
         )
 
         select 
@@ -851,7 +852,8 @@ class TargetSoController extends Controller
             '$username',
             '".date('Y-m-d H:i:s')."',
             '".date('Y-m-d H:i:s')."',
-            pr_number
+            pr_number,
+            '$reason'
         from target_order_hdr where tso_code = '$tsoOrigin'";
 
         $sqlDet="INSERT into target_order_det
@@ -998,6 +1000,7 @@ class TargetSoController extends Controller
         $username =  Auth::user()->username;
         $siteCode = 'HO';
         $location = 'WH';
+        $reasonRequest = $reason;
         $reason = "(Revision from TSO : $tsoCode, by $username, $reason)";
 
         $prNumber = DB::table('target_order_hdr')
@@ -1044,7 +1047,8 @@ class TargetSoController extends Controller
                 origin_pr_number,
                 num_revision,
                 revised_by,
-                revised_at
+                revised_at,
+                reason
             )
             select 
                 '$prNew',
@@ -1054,7 +1058,7 @@ class TargetSoController extends Controller
                 prepared_by,
                 order_type,
                 '8',
-                CONCAT(note,', $reason'),
+                note,
                 print_seq,
                 '$username',
                 '$username',
@@ -1065,8 +1069,11 @@ class TargetSoController extends Controller
                 '$prOrigin',
                 $numRevision,
                 '$username',
-                '".date('Y-m-d H:i:s')."'
+                '".date('Y-m-d H:i:s')."',
+                '$reasonRequest'
             from purchase_request_hdr where pr_number = '$prOrigin'";
+
+            // CONCAT(note,', $reason'),
 
 
             /*Dilengkapi dengan dengan RM*/
@@ -1285,7 +1292,7 @@ class TargetSoController extends Controller
                     [
                         'num_revision' => $numRevision,
                         'status' => '1',
-                        'note'=> DB::raw("CONCAT(note,', $reason')"),
+                        // 'note'=> DB::raw("CONCAT(note,', $reason')"),
                         'revised_by'=>Auth::user()->username,
                         'revised_at'=> date('Y-m-d H:i:s'),
                         'updated_by' => Auth::user()->username,
@@ -1343,6 +1350,7 @@ class TargetSoController extends Controller
     public function revisionPoFromPr($poNumber,$prNumber,$reason){
         $username =  Auth::user()->username;
         $poOrigin = $poNumber;
+        $reasonRequest = $reason;
         $reason = "(Revision from PR : $prNumber, by $username, $reason)";
 
         $poHdr = DB::table('purchase_order_hdr')
@@ -1390,7 +1398,8 @@ class TargetSoController extends Controller
             created_by,
             updated_by,
             created_at,
-            updated_at
+            updated_at,
+            reason
         )
         select 
             '$poNew',
@@ -1413,12 +1422,15 @@ class TargetSoController extends Controller
             $numRevision,
             '$username',
             '".date('Y-m-d H:i:s')."',
-            CONCAT(note,', $reason'),
+            note,
             '$username',
             '$username',
             '".date('Y-m-d H:i:s')."',
-            '".date('Y-m-d H:i:s')."'
+            '".date('Y-m-d H:i:s')."',
+            '$reasonRequest'
         from purchase_order_hdr where po_number = '$poOrigin'";
+
+        // CONCAT(note,', $reason'),
 
         $sqlDet="INSERT into purchase_order_det
         (
@@ -1470,7 +1482,7 @@ class TargetSoController extends Controller
                 [
                     'num_revision' => $numRevision,
                     'status' => '1',
-                    'note'=> DB::raw("CONCAT(note,', $reason')"),
+                    // 'note'=> DB::raw("CONCAT(note,', $reason')"),
                     'revised_by'=>Auth::user()->username,
                     'revised_at'=> date('Y-m-d H:i:s'),
                     'updated_by' => Auth::user()->username,

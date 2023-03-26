@@ -97,6 +97,14 @@
                                                 <textarea type="text" id="note{{ $key }}" name="note{{ $key }}" class="form-control" rows="1" disabled>{{$header2->note }} </textarea>
                                             </div>
                                         </div>
+                                        @if($key!=0)
+                                        <div class="form-row">
+                                            <div class="form-group col-md-7">
+                                                <label class="form-label" for="note">Revision reason</label>
+                                                <textarea type="text" id="rReason" name="rReason" class="form-control" rows="1" disabled >{{ $header2->reason }}</textarea>
+                                            </div>
+                                        </div>
+                                        @endif
                                     </form>
                                     <hr>
                                     <h4 class="card-title">Article</h4>
