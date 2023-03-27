@@ -74,7 +74,7 @@
 
         :root {
             /*half black*/
-            --line-color: rgba(0, 0, 0, 0.5);
+            --line-color: rgba(0, 0, 0, 0.8);
         }
 
         @media print {
@@ -332,17 +332,17 @@
     </table>
 </div>
 <script>
-    window.onload= function () {
-        window.print();
-        window.onafterprint = function () {
-            window.close();
-        }
-        window.onfocus = function () { 
-            setTimeout(function () { 
-                window.close(); 
-            }, 200); 
-        }
-    }
+    // window.onload= function () {
+    //     window.print();
+    //     window.onafterprint = function () {
+    //         window.close();
+    //     }
+    //     window.onfocus = function () { 
+    //         setTimeout(function () { 
+    //             window.close(); 
+    //         }, 200); 
+    //     }
+    // }
 </script>
 </body>
 </html>
