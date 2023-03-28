@@ -125,12 +125,12 @@
             border-width: 1px;
             border-style: solid;
             border-color: #666666;
-            background-color: #dedede;
+            /* background-color: #dedede; */
         }
 
         #tblContent  td {
             border-width: 1px;
-            background-color: #ffffff;
+            /* background-color: #ffffff; */
             padding : 3px 10px 3px 10px;
             border-bottom: none;
             border-left: 1px solid black;
