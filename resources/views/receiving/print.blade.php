@@ -163,7 +163,7 @@
          
     </style>
 </head>
-<body class="{{ (count($details)) < 7 ? "A4A5" : "A4" }}">
+<body class="{{ (count($details)) < 8 ? "A4A5" : "A4" }}">
 <div class="sheet padding-5mm">
     <table >
         <thead><tr><td>
@@ -233,10 +233,10 @@
                     </tbody>
                 </table>
                 <table width="100%" border="0" class="font-14">
-                    <tr colspan="2" class="border-bottom">
+                    {{-- <tr colspan="2" class="border-bottom">
                         <td class="border-bottom" align="left" colspan="3">Total</td>
                         <td class="border-bottom" align="right" >{{ number_format($totals[0]->qty) }}</td>
-                    </tr>
+                    </tr> --}}
                     <tr colspan="2" class="border-bottom">
                         <td class="border-bottom" align="left" colspan="3" style="border:none">Status:{{ $status }}</td>
                     </tr>
