@@ -18,7 +18,9 @@
         body.A3           .sheet { width: 297mm; height: 419mm }
         body.A3.landscape .sheet { width: 420mm; height: 296mm }
         /* body.A4           .sheet { width: 210mm; height: 296mm } */
-        body.A4           .sheet { width: 210mm; height: 148mm }
+        body.A4A5           .sheet { width: 210mm; height: 148mm }
+        body.A4           .sheet { width: 210mm; height: 296mm }
+        /* body.A4           .sheet { width: 210mm; height: 148mm } */
         body.A4.landscape .sheet { width: 297mm; height: 209mm }
         body.A5           .sheet { width: 148mm; height: 209mm }
         body.A5.landscape .sheet { width: 210mm; height: 147mm }
@@ -161,9 +163,9 @@
          
     </style>
 </head>
-<body class="A4">
-{{-- <section class="sheet padding-5mm"> --}}
-    <table class="sheet padding-5mm">
+<body class="{{ (count($details)) < 7 ? "A4A5" : "A4" }}">
+<div class="sheet padding-5mm">
+    <table >
         <thead><tr><td>
             <div class="header-space">
                 <table width="100%" border="0">
@@ -261,7 +263,8 @@
             </div>
         </td></tr></tfoot>
     </table>
-{{-- </section> --}}
+</div>
+
 <script>
     window.onload= function () {
         window.print();
