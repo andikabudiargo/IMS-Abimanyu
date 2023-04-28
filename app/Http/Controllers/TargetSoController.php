@@ -643,41 +643,19 @@ class TargetSoController extends Controller
                                         <i data-feather='corner-down-left' class='feather-14-red'></i>
                                         <span>". __('Revision') ."</span>
                                     </a>";
-
-                    // $buttons .=         '<a href="'. route('targetSo.revision', ['id'=>Crypt::encryptString($data->id),'nR'=>$data->num_revision]) .'" class="dropdown-item">
-                    //                         <i data-feather="copy"></i>
-                    //                         <span>'. __("Revision") .'</span>
-                    //                     </a>';
                 }
             }
+
+            $buttons .=         '<a href="'. route('targetSo.show', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+                                    <i data-feather="list"></i>
+                                    <span>'. __("Detail") .'</span>
+                                </a>';
             
             $buttons .=         '<a href="'. route('targetSo.print', ['id'=>Crypt::encryptString($data->id)]) .'" target="_blank" class="dropdown-item">
                                     <i data-feather="printer"></i>
                                     <span>'. __("Print") .'</span>
                                 </a>';
             
-            $buttons .=         '<a href="'. route('targetSo.show', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
-                                    <i data-feather="list"></i>
-                                    <span>'. __("Detail") .'</span>
-                                </a>';
-
-            // if ( $data->status == '1' or $data->status == '2' or $data->status == '3' ){
-            //     if (Auth::user()->can('purchaseOrder-delete')) {
-            //         $buttons .="<a href='javascript:;'
-            //         class='dropdown-item' 
-            //         data-size='sm'
-            //         data-ajax-delete='true'
-            //         data-confirm='Are You Sure want to Close?|This action can not be undone. Do you want to continue?' 
-            //         data-confirm-yes='document.getElementById(\""."delete-form-".$data->id."\").submit();'
-            //         data-modal-id='".$data->id."'
-            //         id='deleteButton'
-            //         data-url='". route('targetSo.clear', ['id'=>Crypt::encryptString($data->id)]) ."'>
-            //         <i data-feather='x' class='feather-14-red'></i>
-            //         <span>". __('Close') ."</span>
-            //         </a>";
-            //     }
-            // }
-
             if ( $data->status <> '3' ){
                 if (Auth::user()->can('purchaseOrder-delete')) {
                     $buttons .=         "<a href='javascript:;'

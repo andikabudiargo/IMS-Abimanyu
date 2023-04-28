@@ -491,7 +491,7 @@ class SalesOrderController extends Controller
         $note = $request->note;
         $gudang = 'false';
         $kurs = 1;
-        $modulCode = 'SO';
+        $modulCode = $this->moduleCode;
         $approveLevel = $request->approveLevel;
         $statusSimpan = $request->statusSimpan;
 
@@ -504,11 +504,14 @@ class SalesOrderController extends Controller
         // 6 = Closed
         // 7 = Paid
 
-        $maxApproval = DB::table('approval_master')
-        ->where('module_code',$modulCode)
-        ->value('approval_number');
-
-        $status = $maxApproval == $approveLevel ? '3': $status = '2';
+        if($statusSimpan == 'approve'){
+            $maxApproval = DB::table('approval_master')
+            ->where('module_code',$modulCode)
+            ->value('approval_number');
+            $status = $maxApproval == $approveLevel ? '3': $status = '2';
+        }else{
+            $status = '1';
+        }
         
         $messages = [
             'required' => 'The field is required.',
@@ -741,27 +744,45 @@ class SalesOrderController extends Controller
                                 <i data-feather="menu"></i>
                             </a>';
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
+            
             if (Auth::user()->can('salesOrder-edit') and ($data->status == 1 or $data->status == 2)) {
             $buttons .=         '<a href="'. route('salesOrder.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
-                                    <i data-feather="file-text"></i>
-                                    Edit
+                                    <i data-feather="check"></i>
+                                    <span>'. __("Approve") .'</span>
                                 </a>';
             }
-            if (Auth::user()->can('salesOrder-edit') and ($data->status == 1 or $data->status == 2)) {
+
+            // if (Auth::user()->can('salesOrder-edit') and ($data->status == 1 or $data->status == 2)) {
+            if (Auth::user()->can('salesOrder-edit') and ($data->status == 1)) {
             $buttons .=         '<a href="'. route('salesOrder.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                     <i data-feather="file-text"></i>
-                                    Approve
+                                    <span>'. __("Edit") .'</span>
                                 </a>';
             }
+
+            // if (($data->status == '2') || ($data->status == '3') ){
+            //     if (Auth::user()->can('salesOrder-revision')) {
+            //         $buttons .=     "<a href='javascript:;'
+            //                             id='revisionReasonButton'
+            //                             class='dropdown-item'
+            //                             data-toggle='modal'
+            //                             data-target='#reasonModalRevision'
+            //                             data-href='". route("salesOrder.revision", ["id"=>Crypt::encryptString($data->id),"nR"=>$data->num_revision]) ."'>
+            //                             <i data-feather='corner-down-left' class='feather-14-red'></i>
+            //                             <span>". __('Revision') ."</span>
+            //                         </a>";
+            //     }
+            // }
+            
             $buttons .=         '<a href="'. route('salesOrder.show', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                     <i data-feather="list"></i>
-                                    Detail
+                                    <span>'. __("Detail") .'</span>
                                 </a>';
 
             if ( $data->status == 3){
             $buttons .=         '<a href="'. route('salesOrder.print', ['id'=>Crypt::encryptString($data->id)]) .'" target="_blank" class="dropdown-item">
                                 <i data-feather="printer"></i>
-                                    Print
+                                    <span>'. __("Print") .'</span>
                                 </a>';
             }
             if (Auth::user()->can('salesOrder-delete') and  ($data->status == 1 or $data->status == 2 or $data->status == 3)) {
@@ -772,14 +793,14 @@ class SalesOrderController extends Controller
                                     data-target='#smallModal'
                                     data-href='". route("salesOrder.destroy", ["id"=>Crypt::encryptString($data->id)]) ."'>
                                     <i data-feather='trash-2' class='feather-14-red'></i>
-                                    Delete
+                                    <span>". __('Delete') ."</span>
                                 </a>";
             }
             if (Auth::user()->can('salesOrder-delete') ) {
 
                 $buttons .=     '<a href="'. route('salesOrder.close', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                     <i data-feather="x-circle"></i>
-                                    Close
+                                    <span>'. __("Close") .'</span>
                                 </a>';
             }
             $buttons .=     '</div>
