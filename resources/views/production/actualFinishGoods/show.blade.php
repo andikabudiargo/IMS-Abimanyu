@@ -140,11 +140,11 @@
                                         </div>
                                     </div>
                                     <br>
-                                    <a href="{{ route('workingOrderSheets.index') }}" class="btn btn-success">Back</a>
-                                    <a href="{{ route('workingOrderSheet.print', ['id'=>Crypt::encryptString($header2->id)]) }}" target="_blank" type="button" class="btn btn-primary">
+                                    <a href="{{ route('production.actualFinishGoods.index') }}" class="btn btn-success">Back</a>
+                                    {{-- <a href="{{ route('workingOrderSheet.print', ['id'=>Crypt::encryptString($header2->id)]) }}" target="_blank" type="button" class="btn btn-primary">
                                         <i data-feather="printer"></i>
                                         <span>{{ __("Print") }}</span>
-                                    </a>
+                                    </a> --}}
                                 </div>
                             @endforeach
                         </div>

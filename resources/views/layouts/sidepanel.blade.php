@@ -310,7 +310,7 @@
         </li>
         <li class=" navigation-header"><span data-i18n="PPIC">PPIC</span><i data-feather="more-horizontal"></i>
         </li>
-        <li class=" {{ in_array(\Request::segment(1), ['boms','workingOrders','workOrderSheet','deliveryPlan','wosMixing','production/actualLoading','production/actualFinishGoods']) ? 'active' : '' }} nav-item">
+        <li class=" {{ in_array(\Request::segment(1), ['boms','workingOrders','workOrderSheet','deliveryPlan','wosMixing']) ? 'active' : '' }} nav-item">
           <a class="d-flex align-items-center" href="javascript:void(0);">
             <i data-feather='tool'></i>
             <span class="menu-title text-truncate" data-i18n="Form Elements">PPIC
@@ -353,7 +353,7 @@
             </li>
             @endcan
 
-            <li><a class="d-flex align-items-center" href="#"><i data-feather="circle"></i><span class="menu-item text-truncate" data-i18n="Wos Mixing">Production</span></a>
+            {{-- <li><a class="d-flex align-items-center" href="#"><i data-feather="circle"></i><span class="menu-item text-truncate" data-i18n="Wos Mixing">Production</span></a>
               <ul class="menu-content">
                 @can('actualLoading-index')
                   <li class="{{ \Request::is(['production/actualLoading','production/actualLoading/create']) ? 'active' : '' }}">
@@ -370,7 +370,7 @@
                   </li>
                 @endcan
               </ul>
-            </li>
+            </li> --}}
 
             {{-- @can('workingOrder-index')
             <li class="{{ \Request::segment(1) == 'workingOrders' ? 'active' : '' }}" >
@@ -391,6 +391,36 @@
             @endcan
           </ul>
         </li>
+        <li class=" navigation-header"><span data-i18n="Production">Production</span><i data-feather="more-horizontal"></i>
+        </li>
+
+        <li class=" {{ in_array(\Request::segment(1), ['production/actualLoading','production/actualFinishGoods']) ? 'active' : '' }} nav-item">
+          <a class="d-flex align-items-center" href="javascript:void(0);">
+            <i data-feather='tool'></i>
+            <span class="menu-title text-truncate" data-i18n="Form Elements">Production
+            </span>
+          </a>
+          <ul class="menu-content">
+            @can('actualLoading-index')
+            <li class="{{ \Request::is(['production/actualLoading','production/actualLoading/create']) ? 'active' : '' }}" >
+              <a class="d-flex align-items-center" href="{{ route('production.actualLoading.index') }}">
+                <i data-feather="circle"></i>
+                <span class="menu-item text-truncate" data-i18n="Actual Loading">Actual Loading</span>
+              </a>
+            </li>
+            @endcan
+
+            @can('actualLoading-index')
+            <li class="{{ \Request::is(['production/actualFinishGoods','production/actualFinishGoods/edit']) ? 'active' : '' }}" >
+              <a class="d-flex align-items-center" href="{{ route('production.actualFinishGoods.index') }}">
+                <i data-feather="circle"></i>
+                <span class="menu-item text-truncate" data-i18n="Actual Loading">Actual Finish Goods</span>
+              </a>
+            </li>
+            @endcan
+          </ul>
+        </li>
+
        
         <li class=" navigation-header"><span data-i18n="Finance Accounting">Finance Accounting</span><i data-feather="more-horizontal"></i>
         </li>

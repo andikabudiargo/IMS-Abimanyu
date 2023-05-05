@@ -852,7 +852,7 @@ class SalesOrderController extends Controller
         ->leftJoin('employees','employees.employee_id','sales_order_hdr.salesman_code')
         ->where(function ($query) use ($seachPo,$searchOrder,$searchCustomer,$searchSalesman,$searchType,$searchStatus,$fromDate,$toDate) {
             $seachPo ? $query->where('po_number','ilike','%'.$seachPo.'%') :'';
-            $searchOrder ? $query->where('so_code','ilike','%'.$searchOrder.'%') :'';
+            $searchOrder ? $query->where('sales_order_hdr.so_code','ilike','%'.$searchOrder.'%') :'';
             $searchCustomer ? $query->where('customer_id',$searchCustomer) :'';
             $searchSalesman ? $query->where('salesman_code',$searchSalesman) :'';
             $searchType ? $query->where('order_type',$searchType) :'';
