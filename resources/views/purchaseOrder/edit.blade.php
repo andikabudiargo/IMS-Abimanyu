@@ -267,17 +267,6 @@
                                             <button class="btn btn-primary" type="button" id="cmdUpdate" name="cmdUpdate" >Update</button>
                                         @endif
                                     @endif
-
-                                    {{-- @if( $approveValidate ? $approveValidate[0]->validate : '')
-                                        <input type="text" id ="approveLevel" name ="approveLevel" class="d-none" value="{{ $approveValidate[0]->next_level }}">
-                                        <input type="text" id ="maxLevel" name ="maxLevel" class="d-none" value="{{ $approveValidate[0]->max_level }}">
-                                        <button class="btn btn-danger" type="button" id="cmdDecline" name="cmdDecline">Decline</button>
-                                        <button class="btn btn-primary" type="button" id="cmdApprove" name="cmdApprove">Approve</button>
-                                    @else
-                                        @if( strtoupper($statusPo) == 'NEW' )
-                                            <button class="btn btn-primary" type="button" id="cmdUpdate" name="cmdUpdate">Update</button>
-                                        @endif
-                                    @endif --}}
                                 </div>
                             </div>
                         </div>

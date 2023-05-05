@@ -8,7 +8,8 @@
                         {{-- <li class="breadcrumb-item"><a href="{{route('home')}}">Home</a> --}}
                         </li>
                         @if(\Request::segment(2) != "")
-                            <li class="breadcrumb-item"><a href="{{url(\Request::segment(1))}}">{{ucwords(\Request::segment(1))}}</a></li>
+                        <li class="breadcrumb-item"><a href="{{url(\Request::segment(1))}}">{{ ucwords(preg_replace('/([a-z])([A-Z])/s','$1 $2', \Request::segment(1))) }}</a></li>
+                            {{-- <li class="breadcrumb-item"><a href="{{url(\Request::segment(1))}}">{{ucwords(\Request::segment(1))}}</a></li> --}}
                             <li class="breadcrumb-item active">@yield('title')</li>
                         @else
                             <li class="breadcrumb-item active">@yield('title')</li>

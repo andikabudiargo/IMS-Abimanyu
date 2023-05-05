@@ -602,7 +602,7 @@ class PurchaseRequestController extends Controller
         ->leftJoin('target_order_hdr','target_order_hdr.tso_code','purchase_request_hdr.tso_code')
         ->where(function ($query) use ($orderType,$searchPr,$searchStatus,$requestDate,$fromDate,$toDate) {
             $orderType ? $query->where('order_type',$orderType) : '';
-            $searchPr ? $query->where('pr_number','ilike','%'.$searchPr.'%') : '';
+            $searchPr ? $query->where('purchase_request_hdr.pr_number','ilike','%'.$searchPr.'%') : '';
             $searchStatus ? $query->where('purchase_request_hdr.status',$searchStatus) : '';
             $requestDate ? $query->whereBetween(DB::raw("to_date(date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
         })
