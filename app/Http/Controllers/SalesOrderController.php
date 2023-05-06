@@ -61,7 +61,7 @@ class SalesOrderController extends Controller
             ['data'=>'price','name'=>'price','title'=>'Price'],
             ['data'=>'price_service','name'=>'price_service','title'=>'Price Service'],
             ['data'=>'ppn_price','name'=>'ppn_price','title'=>'PPN'],
-            ['data'=>'status','name'=>'status','title'=>'Status'],
+            ['data'=>'statusKu','name'=>'statusKu','title'=>'Status'],
             ['data'=>'created_by','name'=>'created_by','title'=>'Created By'],
             ['data'=>'created_at','name'=>'created_at','title'=>'Created Date'],
             ['data'=>'updated_by','name'=>'updated_by','title'=>'Updated By'],
@@ -856,9 +856,10 @@ class SalesOrderController extends Controller
             $searchCustomer ? $query->where('customer_id',$searchCustomer) :'';
             $searchSalesman ? $query->where('salesman_code',$searchSalesman) :'';
             $searchType ? $query->where('order_type',$searchType) :'';
-            $searchStatus ? $query->where('status',$searchStatus) :'';
+            $searchStatus ? $query->where('sales_order_hdr.status',$searchStatus) :'';
             $fromDate ? $query->whereBetween(DB::raw("to_date(so_date,'DD-MM-YYYY')"), [$fromDate, $toDate]):'';
         })
+        ->where('sales_order_hdr.so_code','<>',null)
         ->select('sales_order_det.*'
         ,'sales_order_hdr.*'
         ,'sales_order_hdr.so_code as so_code_1'
@@ -867,6 +868,8 @@ class SalesOrderController extends Controller
         ,'third_party.nama as customer'
         ,'sales_order_det.ppn as ppn_price'
         ,'employees.name as salesman'
+        ,'sales_order_det.id as id_det'
+        ,'sales_order_hdr.status as statusKu'
         // ,'uom_group'
         // ,'qty_target'
         // ,'qty_forcast'
@@ -877,11 +880,15 @@ class SalesOrderController extends Controller
         ->get(); 
        
         return Datatables::of($data)
-        ->addColumn('status', function ($data) {
-            $statusSo = ['NEW','VALIDATED','APPROVED','RECEIVED','CANCELED','CLOSED','PAID'];
-            return $statusSo[$data->status - 1];
+        ->addColumn('statusKu', function ($data) {
+            if($data->statusKu){
+                $statusSo = ['NEW','VALIDATED','APPROVED','RECEIVED','CANCELED','CLOSED','PAID'];
+                return $statusSo[$data->statusKu - 1];
+            }else{
+                return "No Status";
+            }
         })
-        ->rawColumns(['status'])
+        ->rawColumns(['statusKu'])
         ->make(true);
     }
 
