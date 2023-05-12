@@ -36,7 +36,7 @@
         <table class="table-bordered" style="width: 98%;table-layout: fixed;">
             <tbody>
                 <tr>
-                    <td class="isian" style="width: 20%">
+                    <td class="isian" style="width: 30%">
                         <select class="dynamicSelect form-control sku-select-system" id="account" name="account[]">
                         </select>
                     </td>
@@ -99,6 +99,7 @@
         let objTotalVcDebit= $('#vcTotalDebit');
         let objVcCredit= $('#item_row input[name="vcCredit[]"]');
         let objTotalVcCredit= $('#vcTotalCredit');
+        let objTotalAmount= $('#totalAmount');
         let TotalDebit=0;
         let TotalCredit=0;
 
@@ -115,5 +116,10 @@
         objTotalVcDebit.val(humanizeNumber(TotalDebit));
         objTotalVcCredit.val(humanizeNumber(TotalCredit));
 
+        if (type =='penerimaan'){
+            objTotalAmount.val(humanizeNumber(TotalCredit));
+        }else{
+            objTotalAmount.val(TotalDebit);
+        }
     }
 </script>

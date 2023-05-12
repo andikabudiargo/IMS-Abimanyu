@@ -20,7 +20,7 @@
                             @csrf
                             <input type="text" id="article" name="article" hidden>
                             <div class="form-row">
-                                <div class="form-group col-md-3">
+                                <div class="form-group col-md-4">
                                     <label for="accountNumber">Account*</label>
                                     <select class="select2 form-control" id="accountNumber" name="accountNumber" required>
                                         <option value=""></option>
@@ -62,15 +62,15 @@
                                         <input type="text" id="kurs" name="kurs" value="1" class="form-control angka" maxlength="6"  />
                                     </div>
                                 </div>
-                                <div class="form-group col-md-2">
+                                <div class="form-group col-md-3">
                                     <div class="form-group">
                                         <label for="totalAmount">Amount</label>
-                                        <input type="text" id="totalAmount" name="totalAmount" class="form-control angka" maxlength="6" disabled />
+                                        <input type="text" id="totalAmount" name="totalAmount" class="form-control text-right" maxlength="6" disabled />
                                     </div>
                                 </div>
                             </div>
                             <div class="form-row">
-                                <div class="form-group col-md-8">
+                                <div class="form-group col-md-9">
                                     <label class="form-label" for="note">Notes</label>
                                     <textarea type="text" id="note" name="note" class="form-control" rows="1" ></textarea>
                                 </div>
@@ -97,7 +97,7 @@
                         <table class="" style="width:98%;table-layout: fixed;">
                             <tbody>
                                 <tr>
-                                    <td class="isian" style="width: 20%">
+                                    <td class="isian" style="width: 30%">
                                         <label>Account</label>
                                     </td>
                                     <td class="isian" style="width: 10%">
@@ -128,7 +128,7 @@
                     <table class="" style="width: 98%;table-layout: fixed;">
                         <tbody>
                             <tr>
-                                <td class="isian" style="width: 20%">
+                                <td class="isian" style="width: 30%">
                                     <label>Total</label>
                                 </td>
                                 <td class="isian" style="width: 10%">
@@ -166,7 +166,7 @@
     </div>
 </section>
 
-@include('accounting.bank.addArticle')
+@include('accounting.kas.addArticle')
 @endsection
 @section('styles')
 <link rel="stylesheet" type="text/css" href="{{ asset('assets/css/jquery-ui.css') }}">
@@ -222,7 +222,8 @@
 @section('scripts')
 <script src="{{ asset('assets/js/ui.1.13.0.jquery-ui.js') }}"></script>
 <script type="text/javascript">
-    let currentDate = todayDate('dd-mm-yyyy');     
+    let currentDate = todayDate('dd-mm-yyyy');   
+    let type = "{{ $type }}";
     // var availableTags =;
     // availableTags=availableTags.replace(/[[\]]/g,'');
     // availableTags=availableTags.replace(/&quot;/g,'').split(",");
@@ -256,105 +257,112 @@
         reloadPage();
     });
 
-    $("#cmdSave1").click(function(){  
-        if (!$("#frmAdd")[0].checkValidity()){
-            $("#frmAdd").submit();
-        }else{   
-            $('.disabled-el').removeAttr('disabled');
-            // ambil semua data article
-            let objPcDesc= $('#item_row input[name="pcDesc[]"]');
-            let objPcCg= $('#item_row input[name="pcCg[]"]');
-            let objPcDebit= $('#item_row input[name="pcDebit[]"]');
-            let objPcCredit= $('#item_row input[name="pcCredit[]"]');
-            let objAccount= $('#item_row select[name="account[]"]');
-            let details = []; 
-            let flag=0; 
-            let pesan="";
+    $("#cmdSave").click(function(){  
+        let objTotalVcDebit= $('#vcTotalDebit');
+        let objTotalVcCredit= $('#vcTotalCredit');
+        if (parseInt(objTotalVcDebit)-parseInt(objTotalVcCredit) > 0){
 
-            objPcDesc.map(function(i) {  
-                let $this=$(this);
-                if ($this.val()){
-                    let sDesc=$this.val();
-                    let sCc=objPcCg.eq(i).val();
-                    let sDebit=objPcDebit.eq(i).val().replace(/,/gi, '') || 0;
-                    let sCredit=objPcCredit.eq(i).val().replace(/,/gi, '') || 0;
-                    let sAccount=objAccount.eq(i).val();
+            if (!$("#frmAdd")[0].checkValidity()){
+                $("#frmAdd").submit();
+            }else{   
+                $('.disabled-el').removeAttr('disabled');
+                // ambil semua data article
+                let objPcDesc= $('#item_row input[name="pcDesc[]"]');
+                let objPcCg= $('#item_row input[name="pcCg[]"]');
+                let objPcDebit= $('#item_row input[name="pcDebit[]"]');
+                let objPcCredit= $('#item_row input[name="pcCredit[]"]');
+                let objAccount= $('#item_row select[name="account[]"]');
+                let details = []; 
+                let flag=0; 
+                let pesan="";
 
-                    //jquery
-                    //cek apakah article ada yang double input ato ngk
-                    let obj = $.grep(details, function(obj){
-                        return obj.description === sDesc;
-                    })[0];
-                    
-                    // if(obj) {
-                    //     pesan +="Description "+sDesc+" entered more than once !! <br>"; 
-                    //     flag=1;
-                    // } else {
-                        if ((sDesc!=='') && ((sDebit + sCredit) > 0)){
-                            details.push({
-                                "description":sDesc,
-                                "cc":sCc,
-                                "debit":sDebit,
-                                "credit":sCredit,
-                                "account":sAccount
-                            });
-                        }
-                    // }             
-                }
-            });
+                objPcDesc.map(function(i) {  
+                    let $this=$(this);
+                    if ($this.val()){
+                        let sDesc=$this.val();
+                        let sCc=objPcCg.eq(i).val();
+                        let sDebit=objPcDebit.eq(i).val().replace(/,/gi, '') || 0;
+                        let sCredit=objPcCredit.eq(i).val().replace(/,/gi, '') || 0;
+                        let sAccount=objAccount.eq(i).val();
 
-            if (details.length == 0){
-                pesan +="Detail must be filled Out completely <br>"; 
-                flag=1;
-            }
-
-            if (flag == 0){
-
-                let vcDate = $('#vcDate').val();
-                let period = $('#period').val();
-                let currency = $('#currency').val();
-                let totalAmount = $('#totalAmount').val();
-                let kurs = $('#kurs').val() || 1;
-                let note = $('#note').val();
-
-                $.ajax({
-                    type: "post",
-                    url: "{{ route('kasPenerimaan.store') }}",
-                    data: {
-                        details:JSON.stringify(details),
-                        vcDate:vcDate,
-                        period:period,
-                        currency:currency,
-                        kurs:kurs,
-                        note:note,
-                        totalAmount:totalAmount
-                    },
-                    dataType: "json",
-                    success: function(data) {
-                        if (data.status == 0 ){
-                            let message="";
-                            for(let i = 0; i < data.message.length; i++) {
-                                show_msg(data.title, data.message[i], data.alert);
-                            }                        
-                            $('#voucherNumber').attr('disabled','disabled');
-                        }else{
-                            show_msg(data.title, data.message, data.alert);
-                            $('#voucherNumber').val(data.voucherNumber);
-                            $('#voucherNumber').attr('disabled','disabled');
-                            $('#cmdSave').attr('disabled','disabled');
-                            $('#addNewRow').attr('disabled','disabled');
-                        }
-                    },
-                    error: function(error) {
-                        console.log(error);
+                        //jquery
+                        //cek apakah article ada yang double input ato ngk
+                        let obj = $.grep(details, function(obj){
+                            return obj.description === sDesc;
+                        })[0];
+                        
+                        // if(obj) {
+                        //     pesan +="Description "+sDesc+" entered more than once !! <br>"; 
+                        //     flag=1;
+                        // } else {
+                            if ((sDesc!=='') && ((sDebit + sCredit) > 0)){
+                                details.push({
+                                    "description":sDesc,
+                                    "cc":sCc,
+                                    "debit":sDebit,
+                                    "credit":sCredit,
+                                    "account":sAccount
+                                });
+                            }
+                        // }             
                     }
                 });
 
-            }else{
-                Swal.fire('Warning..',pesan,'warning');
+                if (details.length == 0){
+                    pesan +="Detail must be filled Out completely <br>"; 
+                    flag=1;
+                }
+
+                if (flag == 0){
+
+                    let vcDate = $('#vcDate').val();
+                    let period = $('#period').val();
+                    let currency = $('#currency').val();
+                    let totalAmount = $('#totalAmount').val();
+                    let kurs = $('#kurs').val() || 1;
+                    let note = $('#note').val();
+
+                    $.ajax({
+                        type: "post",
+                        url: "{{ route('kasPenerimaan.store') }}",
+                        data: {
+                            details:JSON.stringify(details),
+                            vcDate:vcDate,
+                            period:period,
+                            currency:currency,
+                            kurs:kurs,
+                            note:note,
+                            totalAmount:totalAmount
+                        },
+                        dataType: "json",
+                        success: function(data) {
+                            if (data.status == 0 ){
+                                let message="";
+                                for(let i = 0; i < data.message.length; i++) {
+                                    show_msg(data.title, data.message[i], data.alert);
+                                }                        
+                                $('#voucherNumber').attr('disabled','disabled');
+                            }else{
+                                show_msg(data.title, data.message, data.alert);
+                                $('#voucherNumber').val(data.voucherNumber);
+                                $('#voucherNumber').attr('disabled','disabled');
+                                $('#cmdSave').attr('disabled','disabled');
+                                $('#addNewRow').attr('disabled','disabled');
+                            }
+                        },
+                        error: function(error) {
+                            console.log(error);
+                        }
+                    });
+
+                }else{
+                    Swal.fire('Warning..',pesan,'warning');
+                }
             }
+
+        }else{
+            Swal.fire('Warning..',"Data belum balance",'warning');
         }
-    
     });
 
     let cloneCount=1;
