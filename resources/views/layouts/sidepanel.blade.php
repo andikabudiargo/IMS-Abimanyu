@@ -424,7 +424,7 @@
        
         <li class=" navigation-header"><span data-i18n="Finance Accounting">Finance Accounting</span><i data-feather="more-horizontal"></i>
         </li>
-        <li class=" {{ in_array(\Request::segment(1), ['aps','banks','pettyCash','proforma','bankReceipt','invoice','dnReceipt']) ? 'active' : '' }} nav-item">
+        <li class=" {{ in_array(\Request::segment(1), ['aps','banks','pettyCash','proforma','bankReceipt','invoice','dnReceipt','kasPenerimaan']) ? 'active' : '' }} nav-item">
           <a class="d-flex align-items-center" href="javascript:void(0);">
             <i data-feather="dollar-sign"></i>
             <span class="menu-title text-truncate" data-i18n="Form Elements">Finance & acc
@@ -452,6 +452,28 @@
                   <li class="{{ \Request::segment(1) == 'proforma'  ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('apProforma.index') }}"><span class="menu-item text-truncate" data-i18n="Proforma Invoice">Proforma Invoice</span></a>
                   </li>
                 @endcan
+              </ul>
+            </li>
+
+            {{-- <li><a class="d-flex align-items-center" href="#"><i data-feather="circle"></i><span class="menu-item text-truncate" data-i18n="Account Setting">Bank</span></a>
+              <ul class="menu-content"> --}}
+                {{-- @can('ap-index') --}}
+                  {{-- <li class="{{ \Request::is(['bankPenerimaan'])  ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('bankPenerimaan.index') }}"><span class="menu-item text-truncate" data-i18n="Bank Penerimaan">Penerimaan</span></a>
+                  </li> --}}
+                {{-- @endcan --}}
+                  {{-- <li class="{{ \Request::is(['account/setting/barang']) ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('accountSetting.barang') }}"><span class="menu-item text-truncate" data-i18n="Invoice customer">Pembayaran</span></a>
+                  </li>
+              </ul>
+            </li> --}}
+
+            <li><a class="d-flex align-items-center" href="#"><i data-feather="circle"></i><span class="menu-item text-truncate" data-i18n="Account Setting">Kas</span></a>
+              <ul class="menu-content">
+                {{-- @can('ap-index') --}}
+                  <li class="{{ \Request::is(['kasPenerimaan'])  ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('kasPenerimaan.index') }}"><span class="menu-item text-truncate" data-i18n="Invoice supplier">Penerimaan</span></a>
+                  </li>
+                {{-- @endcan --}}
+                  {{-- <li class="{{ \Request::is(['account/setting/barang']) ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('accountSetting.barang') }}"><span class="menu-item text-truncate" data-i18n="Invoice customer">Penerimaan</span></a>
+                  </li> --}}
               </ul>
             </li>
 
@@ -485,6 +507,7 @@
               </a>
             </li>
             @endcan --}}
+
             @can('finance-index')
             <li class="{{ \Request::segment(1) == 'accountPayable'  ? 'active' : '' }} disabled">
               <a class="d-flex align-items-center" href="{{ route('accTypes.index') }}">
@@ -550,6 +573,8 @@
               </a>
             </li>
             @endcan
+            
+
             <li><a class="d-flex align-items-center" href="#"><i data-feather="circle"></i><span class="menu-item text-truncate" data-i18n="Account Setting">Account default</span></a>
               <ul class="menu-content">
                 {{-- @can('ap-index') --}}
