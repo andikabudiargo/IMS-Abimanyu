@@ -258,9 +258,10 @@
     });
 
     $("#cmdSave").click(function(){  
-        let objTotalVcDebit= $('#vcTotalDebit');
-        let objTotalVcCredit= $('#vcTotalCredit');
-        if (parseInt(objTotalVcDebit)-parseInt(objTotalVcCredit) > 0){
+        let objTotalVcDebit= $('#vcTotalDebit').val().replace(/,/gi, '') || 0;
+        let objTotalVcCredit= $('#vcTotalCredit').val().replace(/,/gi, '') || 0;
+        console.log(parseInt(objTotalVcDebit)-parseInt(objTotalVcCredit));
+        if (parseInt(objTotalVcDebit)-parseInt(objTotalVcCredit) == 0){
 
             if (!$("#frmAdd")[0].checkValidity()){
                 $("#frmAdd").submit();
@@ -280,31 +281,23 @@
                     let $this=$(this);
                     if ($this.val()){
                         let sDesc=$this.val();
-                        let sCc=objPcCg.eq(i).val();
-                        let sDebit=objPcDebit.eq(i).val().replace(/,/gi, '') || 0;
-                        let sCredit=objPcCredit.eq(i).val().replace(/,/gi, '') || 0;
+                        let sCc=objVcCc.eq(i).val();
+                        let sMemo=objVcMemo.eq(i).val();
+                        let sDebit=objVcDebit.eq(i).val().replace(/,/gi, '') || 0;
+                        let sCredit=objVcCredit.eq(i).val().replace(/,/gi, '') || 0;
                         let sAccount=objAccount.eq(i).val();
-
-                        //jquery
-                        //cek apakah article ada yang double input ato ngk
-                        let obj = $.grep(details, function(obj){
-                            return obj.description === sDesc;
-                        })[0];
                         
-                        // if(obj) {
-                        //     pesan +="Description "+sDesc+" entered more than once !! <br>"; 
-                        //     flag=1;
-                        // } else {
-                            if ((sDesc!=='') && ((sDebit + sCredit) > 0)){
-                                details.push({
-                                    "description":sDesc,
-                                    "cc":sCc,
-                                    "debit":sDebit,
-                                    "credit":sCredit,
-                                    "account":sAccount
-                                });
-                            }
-                        // }             
+                        if ((sDesc!=='') && ((sDebit + sCredit) > 0)){
+                            details.push({
+                                "account":sAccount,
+                                "debit":sDebit,
+                                "credit":sCredit,
+                                "description":sDesc,
+                                "cc":sCc,
+                                "memo":sMemo
+                            });
+                        }
+                        
                     }
                 });
 

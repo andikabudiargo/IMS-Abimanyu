@@ -49,28 +49,26 @@ class ActualLoadingController extends Controller
     {
         $kolom=
         [
-            ['data'=>'urutan','name'=>'urutan','title'=>'Urutan'],
-            ['data'=>'wo_code','name'=>'wo_code','title'=>'Wo Code'],
+            ['data'=>'prod_code','name'=>'prod_code','title'=>'Prod. Number'],
+            ['data'=>'status','name'=>'status','title'=>'Status'],
+            ['data'=>'prod_date','name'=>'prod_date','title'=>'Prod. Date'],
+            ['data'=>'wo_code','name'=>'wo_code','title'=>'WOS. Code'],
+            ['data'=>'wo_date','name'=>'wo_date','title'=>'WOS. Date'],
             ['data'=>'num_revision','name'=>'num_revision','title'=>'Revision'],
-            ['data'=>'so_code','name'=>'so_code','title'=>'So Code'],
-            ['data'=>'wo_shift','name'=>'wo_shift','title'=>'Shift'],
-            ['data'=>'wo_group','name'=>'wo_group','title'=>'Group'],
+            ['data'=>'prod_shift','name'=>'wo_shift','title'=>'Shift'],
+            ['data'=>'prod_group','name'=>'wo_group','title'=>'Group'],
             ['data'=>'start_time','name'=>'start_time','title'=>'Start Time'],
             ['data'=>'working_hour','name'=>'working_hour','title'=>'Working Hour'],
             ['data'=>'efficiency','name'=>'efficiency','title'=>'Efficiency'],
-            ['data'=>'so_qty','name'=>'so_qty','title'=>'So Qty'],
-            ['data'=>'article_fg','name'=>'article_fg','title'=>'Article FG'],
-            ['data'=>'article_fg_desc','name'=>'article_fg_desc','title'=>'Desc'],
-            ['data'=>'article_rm','name'=>'article_rm','title'=>'Article RM'],
-            ['data'=>'article_rm_desc','name'=>'article_rm_desc','title'=>'Desc'],
-            ['data'=>'plan_time_loading','name'=>'plan_time_loading','title'=>'Plan Time'],
-            ['data'=>'plan_qty_fresh','name'=>'plan_qty_fresh','title'=>'Plan Qty Frsh'],
-            ['data'=>'plan_qty_repaint','name'=>'plan_qty_repaint','title'=>'Plan Qty Rep'],
-            ['data'=>'plan_tag','name'=>'plan_tag','title'=>'Tag'],
-            ['data'=>'note_hdr','name'=>'note_hdr','title'=>'Note'],
-            ['data'=>'created_by','name'=>'created_by','title'=>'Created By'],
-            ['data'=>'created_at','name'=>'created_at','title'=>'Created At'],
+            ['data'=>'article_code_fg','name'=>'article_code_fg','title'=>'Article Code'],
+            ['data'=>'article_desc_fg','name'=>'article_desc_fg','title'=>'Article Desc'],
+            ['data'=>'article_code_rm','name'=>'article_code_rm','title'=>'Article Code RM'],
+            ['data'=>'article_desc_rm','name'=>'article_desc_rm','title'=>'Article Desc RM'],
+            ['data'=>'plan_qty_fresh','name'=>'plan_qty_fresh','title'=>'Plan Qty Fresh'],
+            ['data'=>'act_qty_fresh','name'=>'act_qty_fresh','title'=>'Act Qty Fresh'],
+            ['data'=>'act_qty_repaint','name'=>'act_qty_repaint','title'=>'Act Qty Repaint']            
         ];
+
         return json_encode($kolom, true);
     }
 
@@ -909,17 +907,29 @@ class ActualLoadingController extends Controller
             }
         }
 
-        $data = DB::table('production_hdr')
+        $data = DB::table('production_det')
+        ->leftJoin('production_hdr','production_hdr.prod_code','production_det.prod_code')
         ->leftJoin('wo_hdr','wo_hdr.wo_code','production_hdr.wo_code')
+        ->leftJoin('article as a','a.article_code','production_det.article_code')
+        ->leftJoin('article as b','b.article_code','production_det.article_rm_code')
         ->where(function ($query) use ($searchPrd,$searchWos,$wosDate,$prdDate,$fromDate,$fromDate1,$toDate,$toDate1) {
-            $searchPrd ? $query->where('prod_code','ilike','%'.$searchPrd.'%') : '';
-            $searchWos ? $query->where('wo_code','ilike','%'.$searchWos.'%') : '';
-            $wosDate ? $query->whereBetween(DB::raw("wo_date"), [$fromDate, $toDate]) : '';
-            $prdDate ? $query->whereBetween(DB::raw("prod_date"), [$fromDate1, $toDate1]) : '';
+            $searchPrd ? $query->where('production_det.prod_code','ilike','%'.$searchPrd.'%') : '';
+            $searchWos ? $query->where('production_hdr.wo_code','ilike','%'.$searchWos.'%') : '';
+            $wosDate ? $query->whereBetween(DB::raw("wo_hdr.wo_date"), [$fromDate, $toDate]) : '';
+            $prdDate ? $query->whereBetween(DB::raw("production_hdr.prod_date"), [$fromDate1, $toDate1]) : '';
         })
         ->where('production_hdr.status','<>', '7')
-        ->select('production_hdr.*','wo_hdr.wo_date')
-        ->orderBy('prod_code')
+        ->where('production_det.so_code','<>', 'other')
+        ->select('production_det.*'
+        ,'production_hdr.*'
+        ,'wo_hdr.wo_date'
+        ,'a.article_alternative_code as article_code_fg'
+        ,'a.article_desc as article_desc_fg'
+        ,'b.article_alternative_code as article_code_rm'
+        ,'b.article_desc as article_desc_rm'
+        )
+        ->orderBy('production_det.prod_code')
+        ->orderBy('urutan')
         ->get(); 
                         
         return Datatables::of($data)

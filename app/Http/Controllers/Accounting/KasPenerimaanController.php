@@ -121,15 +121,16 @@ class KasPenerimaanController extends Controller
     {
         $username =  Auth::user()->username;
         $details = json_decode($request->details);
-        // $pcNumber = $request->pcNumber;
-        $voucherNumber = $request->voucherNumber;
         $vcDate = $request->pcDate;
         $period = $request->period;
         $currency = $request->currency;
         $kurs = $request->kurs;
         $note = $request->note;
+        $totalAmount= $request->totalAmount;
         $status = '1';
-        $pcLeadCode ='PC';
+        $leadCode =$this->moduleCode;
+
+        dd($details);
         
         $messages = [
             'required' => 'The field is required.',
@@ -156,17 +157,16 @@ class KasPenerimaanController extends Controller
             foreach ($validation->messages()->getMessages() as $field_name => $messages){
                 $error_array[] = $messages;
             }
-
-            $title="Save Petty Cash";
+            $title="Save $this->title";
             $alert ="error";
             return response()->json(array('status' => 0,'title' => $title, 'message' => $error_array,'alert' =>$alert));
         }else{
-            $hasilUpdate = AppHelpers::resetCode($pcLeadCode);
-            $pcNumber = $this->getLastCode($pcLeadCode);
+            $hasilUpdate = AppHelpers::resetCode($leadCode);
+            $vcNumber = $this->getLastCode($leadCode);
             DB::beginTransaction();
             try {
-                    DB::table('bankPenerimaan_hdr')->insert([
-                        'pc_number' => $pcNumber,
+                    DB::table('vouchers')->insert([
+                        'pc_number' => $vcNumber,
                         'voucher_number' => $voucherNumber,
                         'pc_date' => $vcDate,
                         'period' => $period,
@@ -184,7 +184,7 @@ class KasPenerimaanController extends Controller
                     $dataSet = [];
                     foreach ($details as $val) {
                         $dataSet[] = [
-                            'pc_number' => $pcNumber,
+                            'pc_number' => $vcNumber,
                             'description' => $val->description,
                             'cg' => $val->cg ,
                             'cash_in' => $val->cash_in,
@@ -197,21 +197,21 @@ class KasPenerimaanController extends Controller
                         ];
                     }
 
-                    DB::table('bankPenerimaan_det')->insert($dataSet);
+                    DB::table('voucher_details')->insert($dataSet);
 
                     DB::commit();
-                    $title ='Save Petty Cash';
+                    $title ='Save $this->title';
                     $alert  ="success";
-                    $message  = "$title $pcNumber is successfully saved";
+                    $message  = "$title $vcNumber is successfully saved";
                     \LogActivity::addToLog($title,"username: $username Status $message");
-                    return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'pcNumber'=>$pcNumber));
+                    return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'pcNumber'=>$vcNumber));
             } catch (Exception $e) {
                 DB::rollBack();
-                $title ='Save Petty Cash';
+                $title ='Save $this->title';
                 $alert  ="warning";
-                $message  = "PC $pcNumber is failed to save";
+                $message  = "PC $vcNumber is failed to save";
                 \LogActivity::addToLog($title,"username: $username Status $message");
-                return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'pcNumber'=>$pcNumber));
+                return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'pcNumber'=>$vcNumber));
             }
         }
     }
@@ -299,10 +299,10 @@ class KasPenerimaanController extends Controller
         ->where('id',$id)
         ->get()->first();
 
-        $pcNumber = $data['header']->pc_number;
+        $vcNumber = $data['header']->pc_number;
         
         $data['detail'] = DB::table('bankPenerimaan_det')
-        ->where('pc_number',$pcNumber)
+        ->where('pc_number',$vcNumber)
         ->orderBy('id')
         ->get();       
                 

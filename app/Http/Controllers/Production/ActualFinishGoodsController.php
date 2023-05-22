@@ -30,7 +30,7 @@ class ActualFinishGoodsController extends Controller
         $kolom=
         [
             ['data'=>'action','name'=>'action','title'=>'action','orderable'=> false,'searchable'=>false],
-            ['data'=>'prod_code','name'=>'prod_code','title'=>'Prod. Code'],
+            ['data'=>'prod_code','name'=>'prod_code','title'=>'Prod. Number'],
             ['data'=>'status','name'=>'status','title'=>'Status'],
             ['data'=>'prod_date','name'=>'prod_date','title'=>'Prod. Date'],
             ['data'=>'wo_code','name'=>'wo_code','title'=>'WOS. Code'],
@@ -40,7 +40,8 @@ class ActualFinishGoodsController extends Controller
             ['data'=>'prod_group','name'=>'wo_group','title'=>'Group'],
             ['data'=>'start_time','name'=>'start_time','title'=>'Start Time'],
             ['data'=>'working_hour','name'=>'working_hour','title'=>'Working Hour'],
-            ['data'=>'efficiency','name'=>'efficiency','title'=>'Efficiency']
+            ['data'=>'efficiency','name'=>'efficiency','title'=>'Efficiency'],
+
         ];
         return json_encode($kolom, true);
     }
@@ -49,28 +50,26 @@ class ActualFinishGoodsController extends Controller
     {
         $kolom=
         [
-            ['data'=>'urutan','name'=>'urutan','title'=>'Urutan'],
-            ['data'=>'wo_code','name'=>'wo_code','title'=>'Wo Code'],
+            ['data'=>'prod_code','name'=>'prod_code','title'=>'Prod. Number'],
+            ['data'=>'status','name'=>'status','title'=>'Status'],
+            ['data'=>'prod_date','name'=>'prod_date','title'=>'Prod. Date'],
+            ['data'=>'wo_code','name'=>'wo_code','title'=>'WOS. Code'],
+            ['data'=>'wo_date','name'=>'wo_date','title'=>'WOS. Date'],
             ['data'=>'num_revision','name'=>'num_revision','title'=>'Revision'],
-            ['data'=>'so_code','name'=>'so_code','title'=>'So Code'],
-            ['data'=>'wo_shift','name'=>'wo_shift','title'=>'Shift'],
-            ['data'=>'wo_group','name'=>'wo_group','title'=>'Group'],
+            ['data'=>'prod_shift','name'=>'wo_shift','title'=>'Shift'],
+            ['data'=>'prod_group','name'=>'wo_group','title'=>'Group'],
             ['data'=>'start_time','name'=>'start_time','title'=>'Start Time'],
             ['data'=>'working_hour','name'=>'working_hour','title'=>'Working Hour'],
             ['data'=>'efficiency','name'=>'efficiency','title'=>'Efficiency'],
-            ['data'=>'so_qty','name'=>'so_qty','title'=>'So Qty'],
-            ['data'=>'article_fg','name'=>'article_fg','title'=>'Article FG'],
-            ['data'=>'article_fg_desc','name'=>'article_fg_desc','title'=>'Desc'],
-            ['data'=>'article_rm','name'=>'article_rm','title'=>'Article RM'],
-            ['data'=>'article_rm_desc','name'=>'article_rm_desc','title'=>'Desc'],
-            ['data'=>'plan_time_loading','name'=>'plan_time_loading','title'=>'Plan Time'],
-            ['data'=>'plan_qty_fresh','name'=>'plan_qty_fresh','title'=>'Plan Qty Frsh'],
-            ['data'=>'plan_qty_repaint','name'=>'plan_qty_repaint','title'=>'Plan Qty Rep'],
-            ['data'=>'plan_tag','name'=>'plan_tag','title'=>'Tag'],
-            ['data'=>'note_hdr','name'=>'note_hdr','title'=>'Note'],
-            ['data'=>'created_by','name'=>'created_by','title'=>'Created By'],
-            ['data'=>'created_at','name'=>'created_at','title'=>'Created At'],
+            ['data'=>'article_code_fg','name'=>'article_code_fg','title'=>'Article Code'],
+            ['data'=>'article_desc_fg','name'=>'article_desc_fg','title'=>'Article Desc'],
+            ['data'=>'article_code_rm','name'=>'article_code_rm','title'=>'Article Code RM'],
+            ['data'=>'article_desc_rm','name'=>'article_desc_rm','title'=>'Article Desc RM'],
+            ['data'=>'plan_qty_fresh','name'=>'plan_qty_fresh','title'=>'Plan Qty Fresh'],
+            ['data'=>'act_qty_fresh','name'=>'act_qty_fresh','title'=>'Act Qty Fresh'],
+            ['data'=>'act_finish_goods','name'=>'act_finish_goods','title'=>'Act Finish goods']
         ];
+
         return json_encode($kolom, true);
     }
 
@@ -621,80 +620,65 @@ class ActualFinishGoodsController extends Controller
 
     public function listDetail(Request $request)
     {
-        $articles = json_decode($request -> articles);
+       
+        $searchPrd = strtolower($request->searchPrd);
+        $searchWos = strtolower($request->searchWos);
+        $prdDate = $request->prdDate;
+        $wosDate = $request->wosDate;
+        $searchStatus = $request->searchStatus;
 
-        DB::table('production_detail_temp')
-        ->delete();
+        $fromDate ="";
+        $toDate = "";
 
-        $dataSet = [];
-        $randomCode = rand();
-        foreach ($articles as $val) {
-            $dataSet[] = [
-                'code' => $randomCode,
-                'article_code' => $val->article_code,
-                'qty' => $val->qty,
-            ];
+        $fromDate1 ="";
+        $toDate1 = "";
+
+        if ($wosDate){
+            $date = explode("to",$wosDate);
+            if(count($date)>1){
+                $fromDate = implode("-", array_reverse(explode("-", trim($date[0]))));
+                $toDate = implode("-", array_reverse(explode("-", trim($date[1]))));
+            }else{
+                $fromDate = implode("-", array_reverse(explode("-", trim($date[0]))));
+                $toDate = $fromDate; 
+            }
         }
 
-        DB::table('production_detail_temp')->insert($dataSet);
+        if ($prdDate){
+            $date1 = explode("to",$prdDate);
+            if(count($date1)>1){
+                $fromDate1 = implode("-", array_reverse(explode("-", trim($date1[0]))));
+                $toDate1 = implode("-", array_reverse(explode("-", trim($date1[1]))));
+            }else{
+                $fromDate1 = implode("-", array_reverse(explode("-", trim($date1[0]))));
+                $toDate1 = $fromDate1; 
+            }
+        }
 
-        $data=DB::select("SELECT so.article_code 
-                                ,article_alternative_code
-                                ,article_desc
-                                ,article.uom
-                                ,qty
-                                ,qty_proses
-                                ,qty_total 
-                                ,article.article_type
-                                ,(select name from article_types where code = article.article_type) as kelompok
-         FROM (SELECT 
-            article_code_det as article_code
-            ,sum(qty_bom) as qty
-            ,sum(qty_order) as qty_proses
-            ,sum(qty_order * qty_bom) as qty_total
-            ,uom_bom as uom 
-            from(
-            select 
-            bom_det.article_code as article_code_det
-            ,production_detail_temp.qty as qty_order
-            ,production_detail_temp.uom as uom_order
-            ,bom_det.qty * coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = production_detail_temp.uom),1) as qty_bom
-            ,bom_det.uom as uom_bom
-            ,bom_hdr.article_code 
-            ,coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = production_detail_temp.uom),1) as factor_qty
-            ,(select min_package from article where article_code = bom_det.article_code) as min_package 
-            from production_detail_temp
-            left join bom_hdr on bom_hdr.article_code=production_detail_temp.article_code
-            join bom_det on  bom_det.bom_code = bom_hdr.bom_code
-            where production_detail_temp.code ='$randomCode'
-            and bom_hdr.status = '3'
-            ) a
-            group by article_code_det,uom_bom
-            order by article_code_det) AS so
-            left join article on article.article_code = so.article_code"
-        );
-
-        // $data=DB::select("SELECT article_alternative_code,article_desc,article.uom,qty,qty_proses,qty_total ,article.article_type,(select name from article_types where code = article.article_type) as kelompok from (
-        //     select article_code,sum(oki.qty) as qty,sum(mari.qty) as qty_proses,sum(oki.qty*mari.qty) as qty_total 
-        //     from (
-        //         select * from bom_det where bom_code in (
-        //             select bom_code from bom_hdr 
-        //             left join production_detail_temp on bom_hdr.article_code = production_detail_temp.article_code
-        //             where bom_hdr.article_code in (select article_code from production_detail_temp)
-        //         )) oki
-        //             left join(
-        //                 select bom_code,qty 
-        //                 from bom_hdr 
-        //                 left join production_detail_temp on bom_hdr.article_code = production_detail_temp.article_code
-        //                 where bom_hdr.article_code in (select article_code from production_detail_temp)
-        //             ) mari
-        //     on oki.bom_code= mari.bom_code
-        //     group by article_code) so
-        //     left join article on article.article_code = so.article_code");
-
-        DB::table('production_detail_temp')
-        ->where('code',$randomCode)
-        ->delete();
+        $data = DB::table('production_det')
+        ->leftJoin('production_hdr','production_hdr.prod_code','production_det.prod_code')
+        ->leftJoin('wo_hdr','wo_hdr.wo_code','production_hdr.wo_code')
+        ->leftJoin('article as a','a.article_code','production_det.article_code')
+        ->leftJoin('article as b','b.article_code','production_det.article_rm_code')
+        ->where(function ($query) use ($searchPrd,$searchWos,$wosDate,$prdDate,$fromDate,$fromDate1,$toDate,$toDate1) {
+            $searchPrd ? $query->where('production_det.prod_code','ilike','%'.$searchPrd.'%') : '';
+            $searchWos ? $query->where('production_hdr.wo_code','ilike','%'.$searchWos.'%') : '';
+            $wosDate ? $query->whereBetween(DB::raw("wo_hdr.wo_date"), [$fromDate, $toDate]) : '';
+            $prdDate ? $query->whereBetween(DB::raw("production_hdr.prod_date"), [$fromDate1, $toDate1]) : '';
+        })
+        ->where('production_hdr.status','<>', '7')
+        ->where('production_det.so_code','<>', 'other')
+        ->select('production_det.*'
+        ,'production_hdr.*'
+        ,'wo_hdr.wo_date'
+        ,'a.article_alternative_code as article_code_fg'
+        ,'a.article_desc as article_desc_fg'
+        ,'b.article_alternative_code as article_code_rm'
+        ,'b.article_desc as article_desc_rm'
+        )
+        ->orderBy('production_det.prod_code')
+        ->orderBy('urutan')
+        ->get(); 
                         
         return Datatables::of($data)
         ->make(true);

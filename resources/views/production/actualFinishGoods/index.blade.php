@@ -185,7 +185,7 @@
       tableId:"detailedTable",
       route:"{{ route('production.actualFinishGoods.list.detail') }}",
       kolom:{!! $kolomDetail !!},
-      arrColPrint:[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19],
+      arrColPrint:[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17], 
       dataSearch:  {
         searchPrd:searchPrd,
         prdDate:prddate,
@@ -197,7 +197,7 @@
         { width: '5%', targets: 0 },
       ],
       orderColumn:[[ 1, 'desc' ],[ 0, 'asc' ]],
-      excelFileName:'wos_data'
+      excelFileName:'actual_finish_goods'
     });
   }
         
