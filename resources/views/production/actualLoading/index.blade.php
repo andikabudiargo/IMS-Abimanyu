@@ -158,7 +158,7 @@
       tableId:"detailedTable",
       route:"{{ route('production.actualLoading.list') }}",
       kolom:{!! $kolom !!},
-      arrColPrint:[1,2,3,4,5,6,7,8,9,10,13],
+      arrColPrint:[1,2,3,4,5,6,7,8,9,10,11],
       columnDefs :[
         { width: '5%', targets: 0 },
       ],
@@ -170,7 +170,7 @@
         searchStatus:searchStatus
       },
       orderColumn:[[ 1, 'asc' ]],
-      excelFileName:'actualLoading_data'
+      excelFileName:'actual_loading_data'
     });
   }
 
@@ -197,7 +197,7 @@
         { width: '5%', targets: 0 },
       ],
       orderColumn:[[ 1, 'desc' ],[ 0, 'asc' ]],
-      excelFileName:'actual_loading'
+      excelFileName:'actual_loading_data'
     });
   }
         

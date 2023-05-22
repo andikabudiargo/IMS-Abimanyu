@@ -158,7 +158,7 @@
       tableId:"detailedTable",
       route:"{{ route('production.actualFinishGoods.list') }}",
       kolom:{!! $kolom !!},
-      arrColPrint:[1,2,3,4,5,6,7,8,9,10,13],
+      arrColPrint:[1,2,3,4,5,6,7,8,9,10,11],
       columnDefs :[
         { width: '5%', targets: 0 },
       ],
@@ -170,7 +170,7 @@
         searchStatus:searchStatus
       },
       orderColumn:[[ 1, 'asc' ]],
-      excelFileName:'actualFinishGoods_data'
+      excelFileName:'actual_finish_goods_data'
     });
   }
 
@@ -197,7 +197,7 @@
         { width: '5%', targets: 0 },
       ],
       orderColumn:[[ 1, 'desc' ],[ 0, 'asc' ]],
-      excelFileName:'actual_finish_goods'
+      excelFileName:'actual_finish_goods_data'
     });
   }
         

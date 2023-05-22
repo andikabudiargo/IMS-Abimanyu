@@ -77,7 +77,7 @@ class PurchaseRequestController extends Controller
         $data['title'] = "$this->title";
         $data['kolom'] = $this->getTableColoumn();
         $data['kolomDetail'] = $this->getTableColoumnDetail();
-        $data['status'] = ['1'=>'NEW','2'=>'VALIDATED','3'=>'APPROVED','4'=>'RECEIVED','5'=>'CANCELED','6'=>"CLOSE",'7'=>'PO'];
+        $data['status'] = ['1'=>'NEW','2'=>'VALIDATED','3'=>'APPROVED','7'=>'PO'];
             
         return view("purchaseRequest.index",$data);
     }
@@ -695,7 +695,7 @@ class PurchaseRequestController extends Controller
             return $buttons;
         })
         ->addColumn('status_pr', function ($data) {
-            $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary'];
+            $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-secondary'];
             $statusPr = ['NEW','VALIDATED','APPROVED','RECEIVED','CANCELED','CLOSED','PO','REVISED'];
             return "<div class='badge ".$badges[$data->status_pr - 1]."'>".$statusPr[$data->status_pr - 1]."</div>";
         })
@@ -776,8 +776,8 @@ class PurchaseRequestController extends Controller
              
         return Datatables::of($data)
         ->addColumn('status', function ($data) {
-            $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary'];
-            $statusPo = ['NEW','VALIDATED','APPROVED','RECEIVED','CANCELED','CLOSED','PO','PO'];
+            $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-secondary'];
+            $statusPo = ['NEW','VALIDATED','APPROVED','RECEIVED','CANCELED','CLOSED','PO','REVISED'];
 
             if($data->statusku == 0){
                 return "<div class='badge ".$badges[0]."'>".$statusPo[0]."</div>";
