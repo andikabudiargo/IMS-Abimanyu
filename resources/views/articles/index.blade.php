@@ -190,7 +190,7 @@
       arrColPrint:[0,1,2,3,4,5,6,7],
       columnDefs :[
         { width: '5%', targets: 0 },
-        { className: 'text-right','targets': [4,5,6]},
+        { className: 'text-right','targets': [4,5,6,7]},
       ],
       dataSearch:  {
         articleCode:artCode

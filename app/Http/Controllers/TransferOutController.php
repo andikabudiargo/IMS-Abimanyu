@@ -273,7 +273,8 @@ class TransferOutController extends Controller
                 ->where('transfer_hdr.status','4')
                 ->where('qty', '<>', 0)
                 ->select(
-                    DB::RAW("now()::timestamp::date as movement_date" )
+                    // DB::RAW("now()::timestamp::date as movement_date" )
+                    'tr_date as movement_date'
                     ,'transfer_det.article_code'
                     ,'article.article_desc'
                     ,DB::raw("0 as movement_plus")
@@ -405,7 +406,8 @@ class TransferOutController extends Controller
             ->where('transfer_hdr.status','5')
             ->where('qty', '<>', 0)
             ->select(
-                DB::RAW("now()::timestamp::date as movement_date" )
+                // DB::RAW("now()::timestamp::date as movement_date" )
+                'tr_date as movement_date'
                 ,'transfer_det.article_code'
                 ,'article.article_desc'
                 ,DB::raw("0 as movement_min")

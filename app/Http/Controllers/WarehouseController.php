@@ -93,6 +93,7 @@ class WarehouseController extends Controller
             // ['data'=>'movement_plus','name'=>'movement_plus','title'=>'QTY Plus'],
             ['data'=>'qty','name'=>'qty','title'=>'QTY'],
             ['data'=>'balanceqty','name'=>'balanceqty','title'=>'QTY Total'],
+            ['data'=>'last_qty','name'=>'last_qty','title'=>'Last QTY'],
             ['data'=>'movement_desc','name'=> 'movement_desc','title'=>'Description']
         ];
         return json_encode($kolom, true);

@@ -55,6 +55,7 @@ class ArticleController extends Controller
             // ['data'=>'movement_plus','name'=>'movement_plus','title'=>'QTY Plus'],
             ['data'=>'qty','name'=>'qty','title'=>'QTY'],
             ['data'=>'balanceqty','name'=>'balanceqty','title'=>'QTY Total'],
+            ['data'=>'last_qty','name'=>'last_qty','title'=>'Last QTY'],
             ['data'=>'movement_desc','name'=> 'movement_desc','title'=>'Description']
         ];
         return json_encode($kolom, true);
@@ -738,6 +739,7 @@ class ArticleController extends Controller
                     ,movement_desc
                     ,site_code
                     ,location_number
+                    ,last_qty
                 from (
                 select movement_code
                 ,artikel_code
@@ -754,6 +756,7 @@ class ArticleController extends Controller
                 ,row_Number() over (order by movement_code) as rn
                 ,site_code
                 ,location_number
+                ,last_qty
                 from movement
                 where artikel_code='$articleCode'
                 and site_code = '$siteCode'
