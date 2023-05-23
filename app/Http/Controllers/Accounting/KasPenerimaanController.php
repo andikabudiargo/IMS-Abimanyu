@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Crypt;
 use Response;
 use App\Permission;
 use DataTables;
@@ -29,14 +30,13 @@ class KasPenerimaanController extends Controller
         [
             ['data'=>'action','name'=>'action','title'=>'action','orderable'=> false,'searchable'=>false],
             ['data'=>'voucher_number','name'=>'voucher_number','title'=>'Voucher Number'],
-            ['data'=>'account_number','name'=>'account_number','title'=>'Account Number'],
-            ['data'=>'amount','name'=>'amount','title'=>'Amount'],
             ['data'=>'voucher_date','name'=>'voucher_date','title'=>'Date'],
-            ['data'=>'currency','name'=>'currency','title'=>'Currency'],
-            ['data'=>'kurs','name'=>'kurs','title'=>'Kurs'],
+            ['data'=>'receive_name','name'=>'receive_name','title'=>'Receive From'],
+            ['data'=>'amount','name'=>'amount','title'=>'Amount'],
+            ['data'=>'period','name'=>'period','title'=>'Period'],
             ['data'=>'note','name'=>'note','title'=>'Note'],
-            ['data'=>'auth_by','name'=>'auth_by','title'=>'Auth By'],
-            ['data'=>'prep_by','name'=>'prep_by','title'=>'Prep By']
+            ['data'=>'created_by','name'=>'created_by','title'=>'Created By'],
+            ['data'=>'created_at','name'=>'created_at','title'=>'Created At']
         ];
         return json_encode($kolom, true);
     }
@@ -121,16 +121,15 @@ class KasPenerimaanController extends Controller
     {
         $username =  Auth::user()->username;
         $details = json_decode($request->details);
-        $vcDate = $request->pcDate;
+        $vcDate = $request->vcDate;
         $period = $request->period;
-        $currency = $request->currency;
-        $kurs = $request->kurs;
         $note = $request->note;
         $totalAmount= $request->totalAmount;
+        $recFrom = $request->recFrom;
         $status = '1';
         $leadCode =$this->moduleCode;
 
-        dd($details);
+        // dd($details);
         
         $messages = [
             'required' => 'The field is required.',
@@ -165,16 +164,17 @@ class KasPenerimaanController extends Controller
             $vcNumber = $this->getLastCode($leadCode);
             DB::beginTransaction();
             try {
-                    DB::table('vouchers')->insert([
-                        'pc_number' => $vcNumber,
-                        'voucher_number' => $voucherNumber,
-                        'pc_date' => $vcDate,
-                        'period' => $period,
-                        'year' => date('Y'),
-                        'currency' => $currency,
-                        'kurs' => $kurs,
-                        // 'department' =>,
+                    DB::table('kas_hdr')->insert([
+                        'voucher_number' =>$vcNumber,
+                        'voucher_type' =>$leadCode,
+                        'voucher_date' =>$vcDate,
+                        'receive_from' =>$recFrom,
+                        // 'paid_to' =>,
+                        'amount' =>$totalAmount,
+                        'period' =>$period,
+                        'year' =>date('Y'),                        
                         'note' => $note,
+                        'status' => $status,
                         'created_by' => Auth::user()->username,
                         'updated_by' => Auth::user()->username,
                         'created_at' => date('Y-m-d H:i:s'),
@@ -184,12 +184,13 @@ class KasPenerimaanController extends Controller
                     $dataSet = [];
                     foreach ($details as $val) {
                         $dataSet[] = [
-                            'pc_number' => $vcNumber,
-                            'description' => $val->description,
-                            'cg' => $val->cg ,
-                            'cash_in' => $val->cash_in,
-                            'cash_out' => $val->cash_out,
+                            'voucher_number' => $vcNumber,
                             'account' => $val->account,
+                            'description' => $val->description,
+                            'cost_center' => $val->cc,
+                            'debit' => $val->debit,
+                            'credit' => $val->credit,
+                            // 'reference' => ,
                             'created_by' => Auth::user()->username,
                             'updated_by' => Auth::user()->username,
                             'created_at' => date('Y-m-d H:i:s'),
@@ -197,17 +198,17 @@ class KasPenerimaanController extends Controller
                         ];
                     }
 
-                    DB::table('voucher_details')->insert($dataSet);
+                    DB::table('kas_det')->insert($dataSet);
 
                     DB::commit();
-                    $title ='Save $this->title';
+                    $title ="Save $this->title";
                     $alert  ="success";
                     $message  = "$title $vcNumber is successfully saved";
                     \LogActivity::addToLog($title,"username: $username Status $message");
-                    return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'pcNumber'=>$vcNumber));
+                    return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'vcNumber'=>$vcNumber));
             } catch (Exception $e) {
                 DB::rollBack();
-                $title ='Save $this->title';
+                $title ="Save $this->title";
                 $alert  ="warning";
                 $message  = "PC $vcNumber is failed to save";
                 \LogActivity::addToLog($title,"username: $username Status $message");
@@ -218,75 +219,33 @@ class KasPenerimaanController extends Controller
 
     public function show(Request $request)
     {
-        $id=$request->id;
-        $data['title'] = "Detail Petty Cash";
-        $data['subtitle'] = "Detail Petty Cash";
+        $id=Crypt::decryptString($request->id);
+        $username =  Auth::user()->username;
+        $data['title'] = "Detail $this->title";
+        $data['subtitle'] = "Detail $this->title";
 
-        $data['header'] = DB::table('purchase_order_hdr')
-        // ->leftJoin('purchase_request_det','purchase_order_hdr.po_number','purchase_request_det.po_number')
-        ->where('purchase_order_hdr.id',$id)
+        $data['header'] = DB::table('kas_hdr')
+        ->leftJoin('accounts','accounts.account','kas_hdr.receive_from')
+        ->select('kas_hdr.*',db::raw("concat(accounts.account,'-',description) as receive_name"))
+        ->where('kas_hdr.id',$id)
         ->get()->first();
 
-        // $poNumber = explode("-",$data['header']->origin_po_number);
-        // $poNumber = $poNumber[0].'-'.$poNumber[1];
-
-        $poNumber = $data['header']->po_number;
-        
-        $data['prHeader'] = DB::table('purchase_request_det') 
-        // ->where('supp_code',$data['header']->supplier_id)
-        ->where('po_number','=',$poNumber)
-        ->orderBy('pr_number')
-        ->distinct('pr_number')
-        ->get();
-
-        $data['articles'] = DB::table('purchase_request_det')
-            ->leftJoin('article','article.article_code','=','purchase_request_det'.'.article_code')
-            ->leftJoin('article_stock','article_stock.article_code','=','purchase_request_det'.'.article_code')
-            ->leftJoin('group_materials','group_materials.code','=','article.group_of_material')
-            // ->where('supp_code',$data['header']->supplier_id)
-            ->where('po_number','=',$poNumber)
-            // ->where('pr_number','=',$data['header']->pr_number)
-            ->orderBy('article.article_desc')
-            ->distinct('article.article_desc')
-            ->select('purchase_request_det'.'.*','article.article_alternative_code','article.article_code as artikel_code','article.article_desc','article.costprice','article_stock.article_qty as qty_stock','purchase_request_det.uom as uom1','group_materials.name as group')
-            ->get();
-
-        $data['detail'] = DB::table('purchase_order_det')
-        ->leftJoin('article','article.article_code','=','purchase_order_det.article_code')
-        ->leftJoin('article_stock','article_stock.article_code','=','purchase_order_det.article_code')
-        ->leftJoin('purchase_request_det', function($join) {
-            $join->on('purchase_request_det.po_number','purchase_order_det.po_number')
-            ->on('purchase_request_det.article_code','purchase_order_det.article_code');
-        })
-        ->where('purchase_order_det.po_number',$poNumber)
-        ->select('purchase_order_det'.'.*','purchase_request_det.pr_number','article_stock.article_qty as qty_stock', DB::raw('(SELECT name from group_materials where code = group_of_material) as group'))
+        $voucher_number = $data['header']->voucher_number;
+            
+        $data['details'] = DB::table('kas_det')
+        ->leftJoin('accounts','accounts.account','kas_det.account')
+        ->leftJoin('depts','depts.code','kas_det.cost_center')
+        ->select('kas_det'.'.*'
+            ,db::raw("concat(accounts.account,'-',accounts.description) as account_name")
+            ,'depts.name as cost_center_name'
+        )
         ->orderBy('id')
-        ->get();       
-
-        $data['supps'] = DB::table('third_party')
-        ->where ('third_party_type','=','supp')
-        ->orderBy('nama')
         ->get();
 
-        $data['currency'] = ['IDR','USD'];
+        $status = ['NEW','AUTHORIEED','DELETED'];
+        $data['status'] = $status[$data['header']->status-1];
 
-        $data['uoms'] = DB::table('uom')
-        ->orderBy('name')
-        ->get();
-
-        // status:
-        // 1 = New
-        // 2 = Validated
-        // 3 = Authorized
-        // 4 = Received
-        // 5 = Canceled
-        // 6 = closed
-        // 7 = Revised
-
-        $statusPo = ['New','Validated','Authorized','Received','Canceled','Closed','Revised'];
-        $data['statusPo'] = $statusPo[$data['header']->status-1];
-
-        return view("bankPenerimaan.show",$data);
+        return view("accounting.kas.show",$data);
         
     }
 
@@ -780,7 +739,6 @@ class KasPenerimaanController extends Controller
 
     public function list(Request $request)
     {
-    
         $seachVc = strtolower($request->seachVc);
         $vcDate = $request->vcDate;
         $vcType = $this->moduleCode;
@@ -791,6 +749,7 @@ class KasPenerimaanController extends Controller
             $date = explode("to",$vcDate);
             $fromDate = trim($date[0]);
             $toDate = trim($date[1]);
+
             // if(count($date)>1){
             //     $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
             //     $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
@@ -800,12 +759,14 @@ class KasPenerimaanController extends Controller
             // }
         }
 
-        $data = DB::table('vouchers')
+        $data = DB::table('kas_hdr')
+        ->leftJoin('accounts','accounts.account','kas_hdr.receive_from')
         ->where(function ($query) use ($seachVc,$vcDate,$fromDate,$toDate) {
-            $seachVc ? $query->where('tr_number','ilike','%'.$seachVc.'%') : '';
+            $seachVc ? $query->where('voucher_number','ilike','%'.$seachVc.'%') : '';
             $vcDate ? $query->whereBetween('voucher_date', [$fromDate, $toDate]) : '';
         })
         ->where('voucher_type',$vcType)
+        ->select('kas_hdr.*',db::raw("concat(accounts.account,'-',description) as receive_name"))
         ->orderBy('id')
         ->get(); 
        
@@ -818,33 +779,33 @@ class KasPenerimaanController extends Controller
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
             
             // if (Auth::user()->can('bankPenerimaan-edit')) {
-                $buttons .=     '<a href="'. route('bankPenerimaan.edit', ['id'=>$data->id]) .'" class="dropdown-item">
-                                    <i data-feather="file-text"></i>
-                                    Edit
-                                </a>';
+                // $buttons .=     '<a href="'. route('kasPenerimaan.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+                //                     <i data-feather="file-text"></i>
+                //                     Edit
+                //                 </a>';
             // }
                         
-            $buttons .=         '<a href="'. route('bankPenerimaan.print', ['id'=>$data->id]) .'" target="_blank" class="dropdown-item">
-                                    <i data-feather="printer"></i>
-                                    Print
-                                </a>';
+            // $buttons .=         '<a href="'. route('kasPenerimaan.print', ['id'=>Crypt::encryptString($data->id)]) .'" target="_blank" class="dropdown-item">
+            //                         <i data-feather="printer"></i>
+            //                         Print
+            //                     </a>';
             
-            $buttons .=         '<a href="'. route('bankPenerimaan.show', ['id'=>$data->id]) .'" class="dropdown-item">
+            $buttons .=         '<a href="'. route('kasPenerimaan.show', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                     <i data-feather="list"></i>
                                     Detail
                                 </a>';
             
-            if (Auth::user()->can('bankPenerimaan-delete')) {
-                $buttons .=         "<a href='javascript:;'
-                                    id='deleteButton'
-                                    class='dropdown-item'
-                                    data-toggle='modal'
-                                    data-target='#smallModal'
-                                    data-href='". route("bankPenerimaan.destroy", ["id"=>$data->id]) ."'>
-                                    <i data-feather='trash-2'></i>
-                                    Delete
-                                </a>";
-            }
+            // if (Auth::user()->can('kasPenerimaan-delete')) {
+            //     $buttons .=         "<a href='javascript:;'
+            //                         id='deleteButton'
+            //                         class='dropdown-item'
+            //                         data-toggle='modal'
+            //                         data-target='#smallModal'
+            //                         data-href='". route("kasPenerimaan.destroy", ['id'=>Crypt::encryptString($data->id)]) ."'>
+            //                         <i data-feather='trash-2'></i>
+            //                         Delete
+            //                     </a>";
+            // }
 
             $buttons .=     '</div>
                         </div>';

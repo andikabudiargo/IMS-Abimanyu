@@ -21,25 +21,14 @@
                             <input type="text" id="article" name="article" hidden>
                             <div class="form-row">
                                 <div class="form-group col-md-4">
-                                    <label for="accountNumber">Account*</label>
-                                    <select class="select2 form-control" id="accountNumber" name="accountNumber" required>
-                                        <option value=""></option>
-                                        @foreach ($accounts as $val)
-                                            <option value="{{ $val->account }}">{{ $val->account }}|{{ $val->description }}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                                <div class="form-group col-md-3">
                                     <label for="voucherNumber">Voucher Number</label>
                                     <input type="text" id="voucherNumber" name="voucherNumber" class="form-control" disabled/>
                                 </div>
-                                <div class="form-group col-md-2">
+                                <div class="form-group col-md-3">
                                     <label for="vcDate">Date*</label>
                                     <input type="text" id="vcDate" name="vcDate" class="form-control" placeholder="DD-MM-YYYY" required />
                                 </div>
-                            </div>
-                            <div class="form-row">
-                                <div class="form-group col-md-2">
+                                <div class="form-group col-md-3">
                                     <label class="form-label" for="period">Period*</label>
                                     <select class="select2 form-control" id="period" name="period" required>
                                         <option value=""></option>
@@ -48,29 +37,26 @@
                                         @endfor
                                     </select>
                                 </div>
-                                <div class="form-group col-md-2">
-                                    <label for="currency">Currency*</label>
-                                    <select class="select2 form-control" id="currency" name="currency" required>
-                                        @foreach($currency as $val)
-                                        <option value="{{$val}}">{{$val}}</option>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group col-md-4">
+                                    <label for="recFrom">Received From*</label>
+                                    <select class="select2 form-control" id="recFrom" name="recFrom" required>
+                                        <option value=""></option>
+                                        @foreach ($accounts as $val)
+                                            <option value="{{ $val->account }}">{{ $val->account }}|{{ $val->description }}</option>
                                         @endforeach
                                     </select>
                                 </div>
-                                <div class="form-group col-md-2 d-none">
-                                    <div class="form-group">
-                                        <label for="kurs">Kurs</label>
-                                        <input type="text" id="kurs" name="kurs" value="1" class="form-control angka" maxlength="6"  />
-                                    </div>
-                                </div>
                                 <div class="form-group col-md-3">
                                     <div class="form-group">
-                                        <label for="totalAmount">Amount</label>
-                                        <input type="text" id="totalAmount" name="totalAmount" class="form-control text-right" maxlength="6" disabled />
+                                        <label for="totalAmount">Amount*</label>
+                                        <input type="text" id="totalAmount" name="totalAmount" class="form-control text-right numeral-mask" maxlength="12" required/>
                                     </div>
                                 </div>
                             </div>
                             <div class="form-row">
-                                <div class="form-group col-md-9">
+                                <div class="form-group col-md-10">
                                     <label class="form-label" for="note">Notes</label>
                                     <textarea type="text" id="note" name="note" class="form-control" rows="1" ></textarea>
                                 </div>
@@ -100,20 +86,17 @@
                                     <td class="isian" style="width: 30%">
                                         <label>Account</label>
                                     </td>
-                                    <td class="isian" style="width: 10%">
-                                        <label>Debit</label>
-                                    </td>
-                                    <td class="isian" style="width: 10%">
-                                        <label>Credit</label>
-                                    </td>
                                     <td class="isian" style="">
                                         <label>Description</label>
                                     </td>
                                     <td class="isian" style="">
                                         <label>CC</label>
                                     </td>
-                                    <td class="isian" style="">
-                                        <label>Memo</label>
+                                    <td class="isian" style="width: 10%">
+                                        <label>Debit</label>
+                                    </td>
+                                    <td class="isian" style="width: 10%">
+                                        <label>Credit</label>
                                     </td>
                                     <td class="isian" style="width: 5%">
                                         <label>-</label>
@@ -131,17 +114,15 @@
                                 <td class="isian" style="width: 30%">
                                     <label>Total</label>
                                 </td>
+                                <td class="isian" style="">
+                                </td>
+                                <td class="isian" style="">
+                                </td>
                                 <td class="isian" style="width: 10%">
                                     <input type="text" class="form-control-plaintext numeral-mask text-right" id="vcTotalDebit" disabled />
                                 </td>
                                 <td class="isian" style="width: 10%">
                                     <input type="text" class="form-control-plaintext numeral-mask text-right" id= "vcTotalCredit" disabled />
-                                </td>
-                                <td class="isian" style="">
-                                </td>
-                                <td class="isian" style="width: 5%">
-                                </td>
-                                <td class="isian" style="">
                                 </td>
                                 <td class="isian text-center" style="width: 5%">
                                 </td>
@@ -229,13 +210,14 @@
     // availableTags=availableTags.replace(/&quot;/g,'').split(",");
         
     $(document).ready(function(){           
-        validateForm('frmAdd');
+        validateFormToast('frmAdd');
         $('#orderDate').val(currentDate);
         add_new_row();
         add_new_row();
         add_new_row();
         add_new_row();
         add_new_row();
+        vcDate.val(currentDate);
     });
     
     vcDate = $('#vcDate');
@@ -260,44 +242,45 @@
     $("#cmdSave").click(function(){  
         let objTotalVcDebit= $('#vcTotalDebit').val().replace(/,/gi, '') || 0;
         let objTotalVcCredit= $('#vcTotalCredit').val().replace(/,/gi, '') || 0;
-        console.log(parseInt(objTotalVcDebit)-parseInt(objTotalVcCredit));
-        if (parseInt(objTotalVcDebit)-parseInt(objTotalVcCredit) == 0){
-
+        let vcDate = $('#vcDate').val();
+        let period = $('#period').val();
+        let totalAmount = $('#totalAmount').val().replace(/,/gi, '') || 0;
+        let note = $('#note').val();
+        let recFrom = $('#recFrom').val();
+    
+        if (((parseInt(objTotalVcDebit)-parseInt(objTotalVcCredit)) == 0) && (parseInt(objTotalVcCredit)==parseInt(totalAmount))){
             if (!$("#frmAdd")[0].checkValidity()){
                 $("#frmAdd").submit();
             }else{   
                 $('.disabled-el').removeAttr('disabled');
                 // ambil semua data article
-                let objPcDesc= $('#item_row input[name="pcDesc[]"]');
-                let objPcCg= $('#item_row input[name="pcCg[]"]');
-                let objPcDebit= $('#item_row input[name="pcDebit[]"]');
-                let objPcCredit= $('#item_row input[name="pcCredit[]"]');
+                let objvcDesc= $('#item_row input[name="vcDesc[]"]');
+                let objVcCc= $('#item_row select[name="vcCc[]"]');
+                let objVcDebit= $('#item_row input[name="vcDebit[]"]');
+                let objVcCredit= $('#item_row input[name="vcCredit[]"]');
                 let objAccount= $('#item_row select[name="account[]"]');
                 let details = []; 
                 let flag=0; 
                 let pesan="";
 
-                objPcDesc.map(function(i) {  
+                objvcDesc.map(function(i) {  
                     let $this=$(this);
                     if ($this.val()){
                         let sDesc=$this.val();
+                        let sAccount=objAccount.eq(i).val();
                         let sCc=objVcCc.eq(i).val();
-                        let sMemo=objVcMemo.eq(i).val();
                         let sDebit=objVcDebit.eq(i).val().replace(/,/gi, '') || 0;
                         let sCredit=objVcCredit.eq(i).val().replace(/,/gi, '') || 0;
-                        let sAccount=objAccount.eq(i).val();
-                        
-                        if ((sDesc!=='') && ((sDebit + sCredit) > 0)){
+
+                        if ((sDesc!=='') && ((sDebit + sCredit) > 0) && (sAccount!=='') && (sCc!=='')){
                             details.push({
                                 "account":sAccount,
-                                "debit":sDebit,
-                                "credit":sCredit,
                                 "description":sDesc,
                                 "cc":sCc,
-                                "memo":sMemo
+                                "debit":sDebit,
+                                "credit":sCredit,
                             });
                         }
-                        
                     }
                 });
 
@@ -307,13 +290,7 @@
                 }
 
                 if (flag == 0){
-
-                    let vcDate = $('#vcDate').val();
-                    let period = $('#period').val();
-                    let currency = $('#currency').val();
-                    let totalAmount = $('#totalAmount').val();
-                    let kurs = $('#kurs').val() || 1;
-                    let note = $('#note').val();
+                    console.log(details);
 
                     $.ajax({
                         type: "post",
@@ -322,10 +299,9 @@
                             details:JSON.stringify(details),
                             vcDate:vcDate,
                             period:period,
-                            currency:currency,
-                            kurs:kurs,
                             note:note,
-                            totalAmount:totalAmount
+                            totalAmount:totalAmount,
+                            recFrom:recFrom
                         },
                         dataType: "json",
                         success: function(data) {
@@ -337,7 +313,7 @@
                                 $('#voucherNumber').attr('disabled','disabled');
                             }else{
                                 show_msg(data.title, data.message, data.alert);
-                                $('#voucherNumber').val(data.voucherNumber);
+                                $('#voucherNumber').val(data.vcNumber);
                                 $('#voucherNumber').attr('disabled','disabled');
                                 $('#cmdSave').attr('disabled','disabled');
                                 $('#addNewRow').attr('disabled','disabled');
@@ -352,7 +328,6 @@
                     Swal.fire('Warning..',pesan,'warning');
                 }
             }
-
         }else{
             Swal.fire('Warning..',"Data belum balance",'warning');
         }
@@ -363,20 +338,24 @@
         $("#item_row").append($("#new_row").clone().html());
         cloneCount++;
         $("#item_row").find('#baru').attr('id', 'new_row'+ cloneCount);
-        $("#new_row"+ cloneCount).find('#pcDesc').attr('id', 'pcDesc'+ cloneCount);
+        $("#new_row"+ cloneCount).find('#vcDesc').attr('id', 'vcDesc'+ cloneCount);
         $("#new_row"+ cloneCount).find('#account').attr('id', 'account'+ cloneCount);
+        $("#new_row"+ cloneCount).find('#vcCc').attr('id', 'vcCc'+ cloneCount);
         accList('account','account'+ cloneCount);
+        
         $("#account"+cloneCount).select2();
+        $("#vcCc"+cloneCount).select2();
+
         $('#remove_button').tooltip();
-        tombolPanah('pcDebit');
-        tombolPanah('pcCredit');
+        // tombolPanah('vcDebit');
+        // tombolPanah('vcCredit');
         activate_angka();
         mask_thousand();
         hitungTotal();
         hitungGrandTotal();
         $('[data-toggle="tooltip"]').tooltip();
-
-        // $("#pcDesc"+ cloneCount).autocomplete({
+        
+        // $("#vcDesc"+ cloneCount).autocomplete({
         //     source: availableTags
         // });
 

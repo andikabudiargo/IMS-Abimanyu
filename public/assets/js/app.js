@@ -402,7 +402,7 @@
                         : 'You missed ' + errors + ' fields. They have been highlighted';
                     show_msg('Validate Form', message, 'warning');
                 } 
-                }
+            }
         }).settings.ignore = "";
     }
 
@@ -508,7 +508,7 @@
         let jumObj =  obj.length -1;
         let tekanAdd = obj.data("click-add");
         tekanAdd = typeof(tekanAdd) === 'undefined' ? 'true' : tekanAdd;
-        console.log(tekanAdd);
+        // console.log(tekanAdd);
         indexnya=parseInt(indexnya);
         if (e.keyCode == 37) {
             //panah kiri

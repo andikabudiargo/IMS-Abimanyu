@@ -37,16 +37,32 @@
             <tbody>
                 <tr>
                     <td class="isian" style="width: 30%">
-                        <select class="dynamicSelect form-control sku-select-system" id="account" name="account[]">
+                        <select class="dynamicSelect form-control" id="account" name="account[]">
+                        </select>
+                    </td>
+                    <td class="isian" style="">
+                        <input type="text" class="form-control-plaintext tombol-panah" 
+                        data-type-el-kiri="select" 
+                        data-nama-el-kiri='account'
+                        data-type-el-kanan='select'
+                        data-nama-el-kanan='vcCc'
+                        id="vcDesc" name="vcDesc[]"  maxlength="100" />
+                    </td>
+                    <td class="isian" style="">
+                        <select class="form-control tombol-panah" id="vcCc" name="vcCc[]" required>
+                            <option value="">Choose Cost Center</option>
+                            @foreach($depts as $val)
+                            <option value="{{ $val->code }}">{{ $val->name }}</option>
+                            @endforeach
                         </select>
                     </td>
                     <td class="isian" style="width: 10%">
                         <input type="text" class="form-control-plaintext numeral-mask text-right tombol-panah" 
                         data-type-el-kiri="select" 
-                        data-nama-el-kiri='account'
+                        data-nama-el-kiri='vcCc'
                         data-type-el-kanan='input'
                         data-nama-el-kanan='vcCredit'
-                        id = "vcDebit" name="vcDebit[]" maxlength="9" />
+                        id = "vcDebit" name="vcDebit[]" maxlength="12" />
                     </td>
                     <td class="isian" style="width: 10%">
                         <input type="text" class="form-control-plaintext numeral-mask text-right tombol-panah" 
@@ -54,31 +70,7 @@
                         data-nama-el-kiri='vcDebit'
                         data-type-el-kanan='input'
                         data-nama-el-kanan='vcDesc'
-                        id = "vcCredit" name="vcCredit[]" maxlength="9" />
-                    </td>
-                    <td class="isian" style="">
-                        <input type="text" class="form-control-plaintext tombol-panah" 
-                        data-type-el-kiri="input" 
-                        data-nama-el-kiri='vcCredit'
-                        data-type-el-kanan='input'
-                        data-nama-el-kanan='vcMemo'
-                        id="vcDesc" name="vcDesc[]"  maxlength="100" />
-                    </td>
-                    <td class="isian" style="">
-                        <select class="dynamicSelect form-control sku-select-system" id="vcCc" name="vcCc[]" required>
-                            <option value="">Choose Cost Center</option>
-                            @foreach($depts as $val)
-                            <option value="{{ $val->code }}">{{ $val->name }}</option>
-                            @endforeach
-                        </select>
-                    </td>
-                    <td class="isian" style="">
-                        <input type="text" class="form-control-plaintext tombol-panah" 
-                        data-type-el-kiri="input" 
-                        data-nama-el-kiri='vcDesc'
-                        data-type-el-kanan='select'
-                        data-nama-el-kanan='account'
-                        id="vcMemo" name="vcMemo[]"  maxlength="100" />
+                        id = "vcCredit" name="vcCredit[]" maxlength="12" />
                     </td>
                     <td class="isian text-center" style="width: 5%">
                         <a onmouseover="this.style.cursor='pointer'" onclick="$(this).parents('.tanda-baris').remove();hitungGrandTotal()" data-toggle="tooltip" data-placement="left" title="Delete row">
@@ -119,7 +111,7 @@
         let objTotalVcDebit= $('#vcTotalDebit');
         let objVcCredit= $('#item_row input[name="vcCredit[]"]');
         let objTotalVcCredit= $('#vcTotalCredit');
-        let objTotalAmount= $('#totalAmount');
+        // let objTotalAmount= $('#totalAmount');
         let TotalDebit=0;
         let TotalCredit=0;
 
@@ -136,10 +128,10 @@
         objTotalVcDebit.val(humanizeNumber(TotalDebit));
         objTotalVcCredit.val(humanizeNumber(TotalCredit));
 
-        if (type =='penerimaan'){
-            objTotalAmount.val(humanizeNumber(TotalCredit));
-        }else{
-            objTotalAmount.val(TotalDebit);
-        }
+        // if (type =='penerimaan'){
+        //     objTotalAmount.val(humanizeNumber(TotalCredit));
+        // }else{
+        //     objTotalAmount.val(TotalDebit);
+        // }
     }
 </script>

@@ -469,7 +469,7 @@
             <li><a class="d-flex align-items-center" href="#"><i data-feather="circle"></i><span class="menu-item text-truncate" data-i18n="Account Setting">Kas</span></a>
               <ul class="menu-content">
                 {{-- @can('ap-index') --}}
-                  <li class="{{ \Request::is(['kasPenerimaan'])  ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('kasPenerimaan.index') }}"><span class="menu-item text-truncate" data-i18n="Invoice supplier">Penerimaan</span></a>
+                  <li class="{{ \Request::is(['kasPenerimaan','kasPenerimaan/create','kasPenerimaan/show'])  ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('kasPenerimaan.index') }}"><span class="menu-item text-truncate" data-i18n="Invoice supplier">Penerimaan</span></a>
                   </li>
                 {{-- @endcan --}}
                   {{-- <li class="{{ \Request::is(['account/setting/barang']) ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('accountSetting.barang') }}"><span class="menu-item text-truncate" data-i18n="Invoice customer">Penerimaan</span></a>
