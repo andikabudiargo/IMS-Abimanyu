@@ -83,7 +83,6 @@
     $(document).on('click', '#deleteButton', function(event) {
         event.preventDefault();
         href = $(this).data('href');
-        console.log(href);
         $('#modalConfirmation').attr("action", href);
     });
   });
@@ -91,7 +90,7 @@
   let showAlert = "{{ Session::get('alert') }}";
 
   if ( showAlert ){
-    showList();
+    // showList();
     $("#alert-message-alert").fadeTo(5000, 500).slideUp(500, function(){
       $("#alert-message-alert").slideUp(500);
     });

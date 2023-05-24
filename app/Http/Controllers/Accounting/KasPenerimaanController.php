@@ -111,8 +111,6 @@ class KasPenerimaanController extends Controller
         ->orderBy('name')
         ->get();
 
-        $data['currency'] = ['IDR','USD'];
-
         return view("accounting.kas.create",$data);
 
     }
@@ -134,7 +132,7 @@ class KasPenerimaanController extends Controller
         $messages = [
             'required' => 'The field is required.',
             'unique' => 'The code has already been taken', 
-            // 'iunique' => "PO Number has already been taken",
+            // 'iunique' => "KM Number has already been taken",
         ];
         
         Validator::extend('iunique', function ($attribute, $value, $parameters, $validator) {
@@ -210,7 +208,7 @@ class KasPenerimaanController extends Controller
                 DB::rollBack();
                 $title ="Save $this->title";
                 $alert  ="warning";
-                $message  = "PC $vcNumber is failed to save";
+                $message  = "$vcNumber is failed to save";
                 \LogActivity::addToLog($title,"username: $username Status $message");
                 return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'pcNumber'=>$vcNumber));
             }
@@ -230,6 +228,45 @@ class KasPenerimaanController extends Controller
         ->where('kas_hdr.id',$id)
         ->get()->first();
 
+        $vcNumber = $data['header']->voucher_number;
+            
+        $data['details'] = DB::table('kas_det')
+        ->leftJoin('accounts','accounts.account','kas_det.account')
+        ->leftJoin('depts','depts.code','kas_det.cost_center')
+        ->select('kas_det'.'.*'
+            ,db::raw("concat(accounts.account,'-',accounts.description) as account_name")
+            ,'depts.name as cost_center_name'
+        )
+        ->where('voucher_number',$vcNumber)
+        ->orderBy('id')
+        ->get();
+
+        $data['total']=DB::table('kas_det')
+        ->select(DB::raw("sum(credit) as total_credit"),DB::raw("sum(debit) as total_debit"))
+        ->where('voucher_number',$vcNumber)
+        ->first();
+
+        $status = ['NEW','AUTHORIEED','DELETED','CLOSED'];
+        $data['status'] = $status[$data['header']->status-1];
+
+        return view("accounting.kas.show",$data);
+        
+    }
+
+    public function edit(Request $request)
+    {
+        $id=Crypt::decryptString($request->id);
+        $username =  Auth::user()->username;
+        $data['title'] = "Detail $this->title";
+        $data['subtitle'] = "Detail $this->title";
+        $data['type'] = 'penerimaan';
+
+        $data['header'] = DB::table('kas_hdr')
+        ->leftJoin('accounts','accounts.account','kas_hdr.receive_from')
+        ->select('kas_hdr.*',db::raw("concat(accounts.account,'-',description) as receive_name"))
+        ->where('kas_hdr.id',$id)
+        ->get()->first();
+
         $voucher_number = $data['header']->voucher_number;
             
         $data['details'] = DB::table('kas_det')
@@ -242,215 +279,38 @@ class KasPenerimaanController extends Controller
         ->orderBy('id')
         ->get();
 
-        $status = ['NEW','AUTHORIEED','DELETED'];
+        $data['accounts'] = DB::table('accounts')
+        ->orderBy('account')
+        ->get();
+
+        $data['depts'] = DB::table('depts')
+        ->orderBy('name')
+        ->get();
+
+        $status = ['NEW','AUTHORIEED','DELETED','CLOSED'];
         $data['status'] = $status[$data['header']->status-1];
 
-        return view("accounting.kas.show",$data);
-        
-    }
-
-    public function showEdit($key){
-        $id=$key;
-        $data['title'] = "Edit Petty Cash";
-        $data['subtitle'] = "Edit Petty Cash";
-
-        $data['header'] = DB::table('bankPenerimaan_hdr')
-        ->where('id',$id)
-        ->get()->first();
-
-        $vcNumber = $data['header']->pc_number;
-        
-        $data['detail'] = DB::table('bankPenerimaan_det')
-        ->where('pc_number',$vcNumber)
-        ->orderBy('id')
-        ->get();       
-                
-        return view("bankPenerimaan.edit",$data);
-    }
-
-    public function edit(Request $request)
-    {
-        $id=$request->id;
-        return $this->showEdit($id);
-    }
-
-    public function revision(Request $request){
-        $username =  Auth::user()->username;
-        $id=$request->id;
-        $poOrigin = $request->poNumber;
-        $numRevision = $request->numRevision ? $request->numRevision +1 : 1 ;
-        $poNew = $poOrigin.'-R'.$numRevision;
-        
-        $sqlHdr = "INSERT into purchase_order_hdr 
-        (
-            po_number,
-            origin_po_number,
-            supplier_id,
-            po_date,
-            delivery_date,
-            currency,
-            authorized_by,
-            authorized_at,
-            validate_by,
-            discount,
-            kurs,
-            pkp,
-            ppn,
-            pph22,
-            termin,
-            order_type,
-            status,
-            num_revision,
-            revised_by,
-            revised_at,
-            note,
-            created_by,
-            updated_by,
-            created_at,
-            updated_at
-        )
-        select 
-            '$poNew',
-            '$poOrigin',
-            supplier_id,
-            po_date,
-            delivery_date,
-            currency,
-            authorized_by,
-            authorized_at,
-            validate_by,
-            discount,
-            kurs,
-            pkp,
-            ppn,
-            pph22,
-            termin,
-            order_type,
-            '7',
-            $numRevision,
-            '$username',
-            '".date('Y-m-d H:i:s')."',
-            note,
-            '$username',
-            '$username',
-            '".date('Y-m-d H:i:s')."',
-            '".date('Y-m-d H:i:s')."'
-        from purchase_order_hdr where po_number = '$poOrigin'";
-
-        $sqlDet="INSERT into purchase_order_det
-        (
-            po_number,
-            pr_number,
-            article_code,
-            qty,
-            uom,
-            old_price,
-            price,
-            ppn,
-            pph22,
-            created_by,
-            updated_by,
-            created_at,
-            updated_at
-        )
-        select '$poNew',
-            pr_number,
-            article_code,
-            qty,
-            uom,
-            old_price,
-            price,
-            ppn,
-            pph22,
-            '$username',
-            '$username',
-            '".date('Y-m-d H:i:s')."',
-            '".date('Y-m-d H:i:s')."' 
-        from purchase_order_det where po_number = '$poOrigin'";
-
-        $rowAffected =  DB::select($sqlHdr);
-        if ($rowAffected){
-            DB::select($sqlDet);
-
-            // status:
-            // 1 = New
-            // 2 = Validated
-            // 3 = Authorized
-            // 4 = Received
-            // 5 = Canceled
-            // 6 = closed
-            // 7 = Revised
-
-            DB::table('purchase_order_hdr')
-            ->where('po_number',$poOrigin)
-            ->update(
-                [
-                    'num_revision' => $numRevision,
-                    'revised_by'=>Auth::user()->username,
-                    'revised_at'=> date('Y-m-d H:i:s'),
-                    'updated_by' => Auth::user()->username,
-                    'updated_at' => date('Y-m-d H:i:s')
-                ]
-            );
-
-            // DB::table('purchase_request_det')
-            // ->where('po_number',$poOrigin)
-            // ->update(
-            //     [
-            //         'po_number' => $poNew,
-            //         'updated_by' => Auth::user()->username,
-            //         'updated_at' => date('Y-m-d H:i:s')
-            //     ]
-            // );
-
-            // $idBaru = DB::table('purchase_order_hdr')->where('po_number',$poNew)->value('id');
-            $alert  ="alert-success";
-            $message  = "Revision PO: $poOrigin to $poNew is successfully saved";
-            \LogActivity::addToLog('SO save ',"username: $username Status $message");
-            return $this->showEdit($id);
-        }else{
-            $alert  ="alert-warning";
-            $message  = "Revision PO: $poOrigin to $poNew is successfully failed";
-            \LogActivity::addToLog('PO delete ',"username: $username Status $message");
-            return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);
-        }
+        return view("accounting.kas.edit",$data);
         
     }
 
     public function update(Request $request)
     {
         $username =  Auth::user()->username;
-        $poNumber = $request -> poNumber;
-        $poType = $request -> poType;
-        $articles = json_decode($request -> articles);
-        $orderDate = $request->orderDate;
-        $deliveryDate = $request->deliveryDate;
-        $currency = $request->currency;
-        $supplier = $request->supplier;
-        $tax = $request->tax;
-        $ppn = $request->ppn;
-        $termin = $request -> term;
-        $pph = 0;
-        $kurs = $request -> kurs;
-        $totalPpn = $request->totalPpn;
-        $totalPph = $request->totalPph;
-        $discount = $request->discount;
+        $details = json_decode($request->details);
+        $vcNumber = $request->vcNumber;
+        $vcDate = $request->vcDate;
+        $period = $request->period;
         $note = $request->note;
+        $totalAmount= $request->totalAmount;
+        $recFrom = $request->recFrom;
         $status = '1';
-
-        // status:
-        // 1 = New
-        // 2 = Validated
-        // 3 = Authorized
-        // 4 = Received
-        // 5 = Canceled
-        // 6 = closed
-        // 7 = Revised
+        $leadCode =$this->moduleCode;
         
         $messages = [
             'required' => 'The field is required.',
             'unique' => 'The code has already been taken', 
-            // 'iunique' => "PO Number has already been taken",
+            // 'iunique' => "KM Number has already been taken",
         ];
         
         Validator::extend('iunique', function ($attribute, $value, $parameters, $validator) {
@@ -461,10 +321,8 @@ class KasPenerimaanController extends Controller
 
         $validation = Validator::make($request->all(),$messages = [
             // 'poNumber'=>'required|unique:purchase_order_hdr,po_number',
-            // 'orderNumber' => 'required',
-            'orderDate'  => 'required',
-            'currency'  => 'required',
-            'supplier'  => 'required',
+            // 'pcNumber'  => 'required',
+            'period'  => 'required'
         ]);
         
         $error_array = array();
@@ -474,122 +332,65 @@ class KasPenerimaanController extends Controller
             foreach ($validation->messages()->getMessages() as $field_name => $messages){
                 $error_array[] = $messages;
             }
-            $alert ="alert-danger";
-            return response()->json(array('status' => 0, 'message' => $error_array,'alert' =>$alert));
+            $title="Save $this->title";
+            $alert ="error";
+            return response()->json(array('status' => 0,'title' => $title, 'message' => $error_array,'alert' =>$alert));
         }else{
+                        
             DB::beginTransaction();
             try {
-                    $row_affected=DB::table('purchase_order_hdr')
-                    ->where('po_number',$poNumber)
+
+                    $row_affected=DB::table('kas_hdr')
+                    ->where('voucher_number',$vcNumber)
                     ->update(
                         [
-                            'po_number' => $poNumber,
-                            'supplier_id' => $supplier,
-                            'po_date' => $orderDate,
-                            'delivery_date' =>$deliveryDate,
-                            'currency' => $currency,
-                            'kurs' => $kurs,
-                            'ppn' => $ppn,
-                            'pph22' => $pph,
-                            'status' => $status,
-                            'note' =>  $note,
-                            'authorized_by' => '',
-                            'validate_by' =>  '',
-                            'discount' => $discount,
-                            'pkp' => $tax,
-                            'termin' =>$termin,
-                            'order_type' => $poType,
+                            'voucher_date' =>$vcDate,
+                            'receive_from' =>$recFrom,
+                            // 'paid_to' =>,
+                            'amount' =>$totalAmount,
+                            'period' =>$period,
+                            'note' => $note,
                             'updated_by' => Auth::user()->username,
                             'updated_at' => date('Y-m-d H:i:s')
                         ]
                     );
 
-                    $dataset=[];
-                    foreach ($articles as $val) {
-                        $dataSet[] = [
-                            $poNumber.$val->article_code
-                        ];
-                        
-                    }
-
-                    //Delete kalo article tidak ada di po $poNumber dan article nya $val->article_code
-                    //berdasarkan 2 kondisi
-                    DB::table('purchase_order_det')
-                        ->whereNotIn(DB::raw("CONCAT(po_number,article_code)"),$dataSet)
-                        ->where('po_number',$poNumber)
+                    DB::table('kas_det')
+                        ->where('voucher_number',$vcNumber)
                         ->delete();
 
-                                  
-                    foreach ($articles as $val) {
-                        DB::table('purchase_order_det')
-                        ->updateOrInsert(
-                            ['po_number' => $poNumber,'article_code' => $val->article_code],
-                            [
-                            'po_number' => $poNumber,
-                            'pr_number' => $val->pRequest,
-                            'article_code' => $val->article_code,
-                            'qty' => $val->qty,
-                            'uom' => $val->uom,
-                            'old_price' => $val->price,
-                            'price' => $val->newPrice,
-                            'ppn' => $totalPpn,
-                            'pph22' => $totalPph,
+                    $dataSet = [];
+                    foreach ($details as $val) {
+                        $dataSet[] = [
+                            'voucher_number' => $vcNumber,
+                            'account' => $val->account,
+                            'description' => $val->description,
+                            'cost_center' => $val->cc,
+                            'debit' => $val->debit,
+                            'credit' => $val->credit,
+                            // 'reference' => ,
+                            'created_by' => Auth::user()->username,
                             'updated_by' => Auth::user()->username,
+                            'created_at' => date('Y-m-d H:i:s'),
                             'updated_at' => date('Y-m-d H:i:s')
-                            ]
-                        );
-                        
-                        DB::table('purchase_request_det')
-                        ->where('pr_number',$val->pRequest)
-                        ->where('article_code',$val->article_code)
-                        ->where('supp_code',$supplier)
-                        ->update(
-                            [
-                            'po_number' => $poNumber,
-                            'updated_by' => Auth::user()->username,
-                            'updated_at' => date('Y-m-d H:i:s')
-                            ]
-                        );
-
-                        DB::table('purchase_request_hdr')
-                        ->where('pr_number',$val->pRequest)
-                        ->update(
-                            [
-                            'status' => 7,
-                            'updated_by' => Auth::user()->username,
-                            'updated_at' => date('Y-m-d H:i:s')
-                            ]
-                        );
+                        ];
                     }
-                   
-                    //update purchase_request_det kalo ada article yang di hapus di PO, jadi kolom po_number di null kan
-                    DB::table('purchase_request_det')
-                    ->whereNotIn(DB::raw("CONCAT(pr_number,po_number,article_code)"), function($query) use ($poNumber) {
-                        $query->select(DB::raw("CONCAT(pr_number,po_number,article_code)"))
-                        ->from('purchase_order_det') 
-                        ->where('po_number',$poNumber);
-                    })
-                    ->where('po_number',$poNumber)
-                    ->update(
-                        [
-                            'po_number' => null,
-                            'updated_by' => Auth::user()->username,
-                            'updated_at' => date('Y-m-d H:i:s')
-                        ]
-                    );
-                                            
-                    DB::commit();
-                    $alert  ="alert-success";
-                    $message  = "PO $poNumber is successfully updated";
-                    \LogActivity::addToLog('PO update ',"username: $username Status $message");
-                    return response()->json(array('status' => 1, 'message' => $message,'alert'=>$alert,'poNumber'=>$poNumber));
 
+                    DB::table('kas_det')->insert($dataSet);
+
+                    DB::commit();
+                    $title ="Update $this->title";
+                    $alert  ="success";
+                    $message  = "$title $vcNumber is successfully updated";
+                    \LogActivity::addToLog($title,"username: $username Status $message");
+                    return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'vcNumber'=>$vcNumber));
             } catch (Exception $e) {
                 DB::rollBack();
-                $alert  ="alert-warning";
-                $message  = "PO $poNumber is failed to updated";
-                \LogActivity::addToLog('PO update ',"username: $username Status $message");
-                return response()->json(array('status' => 1, 'message' => $message,'alert'=>$alert,'poNumber'=>$poNumber));
+                $title ="Update $this->title";
+                $alert  ="warning";
+                $message  = "$vcNumber is failed update";
+                \LogActivity::addToLog($title,"username: $username Status $message");
+                return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'pcNumber'=>$vcNumber));
             }
         }
 
@@ -608,7 +409,7 @@ class KasPenerimaanController extends Controller
 
         $username =  Auth::user()->username;
         $poNumber = $request -> poNumber;
-        $statusPo = 'Authorized';
+        $statusKM = 'Authorized';
         $status = '3';
 
         DB::beginTransaction();
@@ -625,116 +426,60 @@ class KasPenerimaanController extends Controller
 
                 DB::commit();
                 $alert  ="alert-success";
-                $message  = "PO $poNumber is successfully Authorized";
-                \LogActivity::addToLog('PO update ',"username: $username Status $message");
+                $message  = "KM $poNumber is successfully Authorized";
+                \LogActivity::addToLog('KM update ',"username: $username Status $message");
                 return response()->json(array('statusPo' => $statusPo,'status' => 1, 'message' => $message,'alert'=>$alert,'poNumber'=>$poNumber));
 
         } catch (Exception $e) {
             DB::rollBack();
             $alert  ="alert-warning";
-            $message  = "PO $poNumber is failed to Authorize";
-            \LogActivity::addToLog('PO update ',"username: $username Status $message");
-            return response()->json(array('statusPo' => $statusPo,'status' => 1, 'message' => $message,'alert'=>$alert,'poNumber'=>$poNumber));
-        }
-    }
-
-    public function validasi(Request $request)
-    {
-        // status:
-        // 1 = New
-        // 2 = Validated
-        // 3 = Authorized
-        // 4 = Received
-        // 5 = Canceled
-        // 6 = closed
-        // 7 = Revised
-
-        $username =  Auth::user()->username;
-        $poNumber = $request -> poNumber;
-        $statusPo = 'Validated';
-        $status = '2';
-
-        DB::beginTransaction();
-        try {
-                $row_affected=DB::table('purchase_order_hdr')
-                ->where('po_number',$poNumber)
-                ->update(
-                    [
-                        'status' => $status,
-                        'validate_by' => Auth::user()->username,
-                        'updated_by' => Auth::user()->username,
-                        'updated_at' => date('Y-m-d H:i:s')
-                    ]
-                );
-                
-                                        
-                DB::commit();
-                $alert  ="alert-success";
-                $message  = "PO $poNumber is successfully Validated";
-                \LogActivity::addToLog('PO update ',"username: $username Status $message");
-                return response()->json(array('statusPo' => $statusPo,'status' => 1, 'message' => $message,'alert'=>$alert,'poNumber'=>$poNumber));
-
-        } catch (Exception $e) {
-            DB::rollBack();
-            $alert  ="alert-warning";
-            $message  = "PO $poNumber is failed to Validate";
-            \LogActivity::addToLog('PO update ',"username: $username Status $message");
+            $message  = "KM $poNumber is failed to Authorize";
+            \LogActivity::addToLog('KM update ',"username: $username Status $message");
             return response()->json(array('statusPo' => $statusPo,'status' => 1, 'message' => $message,'alert'=>$alert,'poNumber'=>$poNumber));
         }
     }
 
     public function destroy(Request $request)
     {
-        $username =  Auth::user()->username;       
-        $id = $request->id;
-        $po_number = DB::table('purchase_order_hdr')->where('id',$id)->where('status','1')->value('po_number');
-        $rowAffected = DB::table('purchase_order_hdr')->where('id',$id)->delete();
+        $username =  Auth::user()->username;    
+        $id=Crypt::decryptString($request->id);   
+        $status = '3'; //DELETED
+        
+        /*
+            status nya bukan 4 bisa di delete
+            status 4 = closed
+        */
+
+        $vcNumber = DB::table('kas_hdr')->where('id',$id)->where('status','<>','4')->value('voucher_number');
+
+        $rowAffected=DB::table('kas_hdr')
+        ->where('voucher_number',$vcNumber)
+        ->update(
+            [
+                'status' =>$status,
+                'updated_by' => Auth::user()->username,
+                'updated_at' => date('Y-m-d H:i:s')
+            ]
+        );
+        
+        // $rowAffected = DB::table('kas_hdr')->where('id',$id)->delete();
+
         if($rowAffected>0){
-            DB::table('purchase_order_det')->where('po_number',$po_number)->delete();
-            $alert  ="alert-success";
-            $message  = "PO $po_number Successfully Deleted";
-            \LogActivity::addToLog('PO delete ',"username: $username Status $message");
-            return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);  
+            // DB::table('kas_det')->where('voucher_number',$vcNumber)->delete();
+            $title ="Delete $this->title";
+            $alert  ="success";
+            $message  = "$vcNumber Successfully Deleted";
+            \LogActivity::addToLog('KM delete ',"username: $username Status $message");
+            // return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);  
+            return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);
         }else{
-            $alert  ="alert-warning";
-            $message  = "PO $po_number Failed to Delete";
-            \LogActivity::addToLog('PO delete ',"username: $username Status $message");
-            return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);
+            $title ="Delete $this->title";
+            $alert  ="warning";
+            $message  = "$vcNumber Failed to Delete";
+            \LogActivity::addToLog('KM delete ',"username: $username Status $message");
+            // return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);
+            return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);
         }
-
-    }
-
-    public function clear(Request $request)
-    {
-        //memutihkan PO supaya tidak bisa di pakai lagi
-        //status PO jadi closed
-        DB::beginTransaction();
-        try {
-                $row_affected=DB::table('purchase_order_hdr')
-                ->where('po_number',$poNumber)
-                ->update(
-                    [
-                        'status' => $status,
-                        'validate_by' => Auth::user()->username,
-                        'updated_by' => Auth::user()->username,
-                        'updated_at' => date('Y-m-d H:i:s')
-                    ]
-                );
-                
-                DB::commit();
-                $alert  ="alert-success";
-                $message  = "PO $poNumber is successfully Cleared";
-                \LogActivity::addToLog('PO update ',"username: $username Status $message");
-                return response()->json(array('statusPo' => $statusPo,'status' => 1, 'message' => $message,'alert'=>$alert,'poNumber'=>$poNumber));
-
-        } catch (Exception $e) {
-            DB::rollBack();
-            $alert  ="alert-warning";
-            $message  = "PO $poNumber is failed to Clear";
-            \LogActivity::addToLog('PO update ',"username: $username Status $message");
-            return response()->json(array('statusPo' => $statusPo,'status' => 1, 'message' => $message,'alert'=>$alert,'poNumber'=>$poNumber));
-        }
-
     }
 
     public function list(Request $request)
@@ -766,7 +511,11 @@ class KasPenerimaanController extends Controller
             $vcDate ? $query->whereBetween('voucher_date', [$fromDate, $toDate]) : '';
         })
         ->where('voucher_type',$vcType)
-        ->select('kas_hdr.*',db::raw("concat(accounts.account,'-',description) as receive_name"))
+        ->where('kas_hdr.status','<>','3')
+        ->select(
+            'kas_hdr.*'
+            ,'kas_hdr.status as statusku'
+            ,db::raw("concat(accounts.account,'-',description) as receive_name"))
         ->orderBy('id')
         ->get(); 
        
@@ -779,10 +528,10 @@ class KasPenerimaanController extends Controller
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
             
             // if (Auth::user()->can('bankPenerimaan-edit')) {
-                // $buttons .=     '<a href="'. route('kasPenerimaan.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
-                //                     <i data-feather="file-text"></i>
-                //                     Edit
-                //                 </a>';
+                $buttons .=     '<a href="'. route('kasPenerimaan.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+                                    <i data-feather="file-text"></i>
+                                    Edit
+                                </a>';
             // }
 
             $buttons .=         '<a href="'. route('kasPenerimaan.show', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
@@ -797,16 +546,17 @@ class KasPenerimaanController extends Controller
             
             
             // if (Auth::user()->can('kasPenerimaan-delete')) {
-            //     $buttons .=         "<a href='javascript:;'
-            //                         id='deleteButton'
-            //                         class='dropdown-item'
-            //                         data-toggle='modal'
-            //                         data-target='#smallModal'
-            //                         data-href='". route("kasPenerimaan.destroy", ['id'=>Crypt::encryptString($data->id)]) ."'>
-            //                         <i data-feather='trash-2'></i>
-            //                         Delete
-            //                     </a>";
-            // }
+            if ($data->statusku != '4') {
+                $buttons .=         "<a href='javascript:;'
+                                    id='deleteButton'
+                                    class='dropdown-item'
+                                    data-toggle='modal'
+                                    data-target='#smallModal'
+                                    data-href='". route("kasPenerimaan.destroy", ['id'=>Crypt::encryptString($data->id)]) ."'>
+                                    <i data-feather='trash-2'></i>
+                                    Delete
+                                </a>";
+            }
 
             $buttons .=     '</div>
                         </div>';

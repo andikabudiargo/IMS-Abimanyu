@@ -18,12 +18,12 @@ const buttonExportGlob = (arrColPrint) => {
         className: 'btn btn-outline-secondary dropdown-toggle mt-07',
         text: feather.icons['share'].toSvg({ class: 'font-small-4 mr-50' }) + 'Export',
         buttons: [
-          {
-            extend: 'print',
-            text: feather.icons['printer'].toSvg({ class: 'font-small-4 mr-50' }) + 'Print',
-            className: 'dropdown-item',
-            exportOptions: { columns: arrColPrint }
-          },
+          // {
+          //   extend: 'print',
+          //   text: feather.icons['printer'].toSvg({ class: 'font-small-4 mr-50' }) + 'Print',
+          //   className: 'dropdown-item',
+          //   exportOptions: { columns: arrColPrint }
+          // },
           {
             extend: 'csv',
             text: feather.icons['file-text'].toSvg({ class: 'font-small-4 mr-50' }) + 'Csv',
@@ -36,18 +36,18 @@ const buttonExportGlob = (arrColPrint) => {
             className: 'dropdown-item',
             exportOptions: { columns: arrColPrint }
           },
-          {
-            extend: 'pdf',
-            text: feather.icons['clipboard'].toSvg({ class: 'font-small-4 mr-50' }) + 'Pdf',
-            className: 'dropdown-item',
-            exportOptions: { columns: arrColPrint }
-          },
-          {
-            extend: 'copy',
-            text: feather.icons['copy'].toSvg({ class: 'font-small-4 mr-50' }) + 'Copy',
-            className: 'dropdown-item',
-            exportOptions: { columns: arrColPrint }
-          }
+          // {
+          //   extend: 'pdf',
+          //   text: feather.icons['clipboard'].toSvg({ class: 'font-small-4 mr-50' }) + 'Pdf',
+          //   className: 'dropdown-item',
+          //   exportOptions: { columns: arrColPrint }
+          // },
+          // {
+          //   extend: 'copy',
+          //   text: feather.icons['copy'].toSvg({ class: 'font-small-4 mr-50' }) + 'Copy',
+          //   className: 'dropdown-item',
+          //   exportOptions: { columns: arrColPrint }
+          // }
         ],
         init: function (api, node, config) {
           $(node).removeClass('btn-secondary');
@@ -106,12 +106,12 @@ let showDataTables = (opt) => {
               className: 'btn btn-outline-secondary dropdown-toggle mt-07',
               text: feather.icons['share'].toSvg({ class: 'font-small-4 mr-50' }) + 'Export',
               buttons: [
-                {
-                  extend: 'print',
-                  text: feather.icons['printer'].toSvg({ class: 'font-small-4 mr-50' }) + 'Print',
-                  className: 'dropdown-item',
-                  exportOptions: { columns: opt.arrColPrint }
-                },
+                // {
+                //   extend: 'print',
+                //   text: feather.icons['printer'].toSvg({ class: 'font-small-4 mr-50' }) + 'Print',
+                //   className: 'dropdown-item',
+                //   exportOptions: { columns: opt.arrColPrint }
+                // },
                 {
                   extend: 'csv',
                   text: feather.icons['file-text'].toSvg({ class: 'font-small-4 mr-50' }) + 'Csv',
@@ -127,18 +127,18 @@ let showDataTables = (opt) => {
                   title:null,
                   filename:opt.excelFileName
                 },
-                {
-                  extend: 'pdf',
-                  text: feather.icons['clipboard'].toSvg({ class: 'font-small-4 mr-50' }) + 'Pdf',
-                  className: 'dropdown-item',
-                  exportOptions: { columns: opt.arrColPrint }
-                },
-                {
-                  extend: 'copy',
-                  text: feather.icons['copy'].toSvg({ class: 'font-small-4 mr-50' }) + 'Copy',
-                  className: 'dropdown-item',
-                  exportOptions: { columns: opt.arrColPrint }
-                }
+                // {
+                //   extend: 'pdf',
+                //   text: feather.icons['clipboard'].toSvg({ class: 'font-small-4 mr-50' }) + 'Pdf',
+                //   className: 'dropdown-item',
+                //   exportOptions: { columns: opt.arrColPrint }
+                // },
+                // {
+                //   extend: 'copy',
+                //   text: feather.icons['copy'].toSvg({ class: 'font-small-4 mr-50' }) + 'Copy',
+                //   className: 'dropdown-item',
+                //   exportOptions: { columns: opt.arrColPrint }
+                // }
               ],
               init: function (api, node, config) {
                 $(node).removeClass('btn-secondary');

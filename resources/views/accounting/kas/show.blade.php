@@ -87,31 +87,43 @@
                         </table>
                     </div>
                     <div class="" id="article_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px">
-                        @foreach ($details as $key =>$item)
-                            <div id="new_row{{ $key }}" class="tanda-baris" >
-                                <table class="table-bordered" style="width: 98%;table-layout: fixed;">
-                                    <tbody>
-                                        <tr>
-                                            <td class="isian" style="width: 30%">
-                                                {{ $item->account_name }}             
-                                            </td>
-                                            <td class="isian" style="">
-                                                {{ $item->description }}
-                                            </td>
-                                            <td class="isian" style="">
-                                                {{ $item->cost_center_name }}
-                                            </td>
-                                            <td class="isian text-right" style="width: 10%">
-                                                {{ number_format($item->debit) }}
-                                            </td>
-                                            <td class="isian text-right" style="width: 10%">
-                                                {{ number_format($item->credit) }}
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        @endforeach
+                        <div id="new_row" class="tanda-baris" >
+                            <table class="table-bordered" style="width: 98%;table-layout: fixed;">
+                                <tbody>
+                                    @foreach ($details as $key =>$item)
+                                    <tr>
+                                        <td class="isian" style="width: 30%">
+                                            {{ $item->account_name }}             
+                                        </td>
+                                        <td class="isian" style="">
+                                            {{ $item->description }}
+                                        </td>
+                                        <td class="isian" style="">
+                                            {{ $item->cost_center_name }}
+                                        </td>
+                                        <td class="isian text-right" style="width: 10%">
+                                            {{ number_format($item->debit) }}
+                                        </td>
+                                        <td class="isian text-right" style="width: 10%">
+                                            {{ number_format($item->credit) }}
+                                        </td>
+                                    </tr>
+                                    @endforeach
+                                    <tr>
+                                        <td class="isian" colspan="3" style="width: 30%">
+                                            <label>Total</label>
+                                        </td>
+                                        
+                                        <td class="isian text-right" style="width: 10%">
+                                            {{ number_format($total->total_debit) }}
+                                        </td>
+                                        <td class="isian text-right" style="width: 10%">
+                                            {{ number_format($total->total_credit) }}
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>

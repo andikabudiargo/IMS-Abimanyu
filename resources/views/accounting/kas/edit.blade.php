@@ -2,13 +2,12 @@
 @section('title', $title)
 @section('content')
 @include('layouts.breadcrumb')
-@include('partials.alert')
 <section id="add-index">
     <div class="form-row">
         <div class="col-md-12">
             <div class="card">
                 <div class="card-header">
-                    <h4 class="card-title">Status: New</h4>
+                    <h4 class="card-title">Status: {{ $status }}</h4>
                     <div class="heading-elements">
                         <ul class="list-inline mb-0">
                             <li><a data-action="collapse"><i data-feather="chevron-down"></i></a></li>
@@ -21,55 +20,45 @@
                             @csrf
                             <input type="text" id="article" name="article" hidden>
                             <div class="form-row">
-                                <div class="form-group col-md-3">
-                                    <label for="pcNumber">Petty Cash Code</label> <small class="text-muted"> automatic</small>
-                                    <input type="text" id="pcNumber" name="pcNumber" class="form-control disabled-el"  disabled />
+                                <div class="form-group col-md-4">
+                                    <label for="voucherNumber">Voucher Number</label>
+                                    <input type="text" id="voucherNumber" name="voucherNumber" value="{{ $header->voucher_number }}" class="form-control" disabled/>
                                 </div>
                                 <div class="form-group col-md-3">
-                                    <label for="voucherNumber">Voucher Number*</label>
-                                    <input type="text" id="voucherNumber" name="voucherNumber" class="form-control" required/>
+                                    <label for="vcDate">Date*</label>
+                                    <input type="text" id="vcDate" name="vcDate" value="{{ $header->voucher_date }}" class="form-control" placeholder="DD-MM-YYYY" required />
                                 </div>
-                                <div class="form-group col-md-2">
-                                    <label for="pcDate">Date*</label>
-                                    <input type="text" id="pcDate" name="pcDate" class="form-control" placeholder="DD-MM-YYYY" required />
-                                </div>
-                                <div class="form-group col-md-2">
+                                <div class="form-group col-md-3">
                                     <label class="form-label" for="period">Period*</label>
                                     <select class="select2 form-control" id="period" name="period" required>
                                         <option value=""></option>
                                         @for ($i = 1; $i <= 12; $i++)
-                                            <option value="{{ $i }}">{{ $i }}</option>
+                                            <option value="{{ $i }}" {{$i == $header->period ? "selected" : ""}}>{{ $i }}</option>
                                         @endfor
                                     </select>
                                 </div>
                             </div>
                             <div class="form-row">
-                                <div class="form-group col-md-2">
-                                    <label for="currency">Currency*</label>
-                                    <select class="select2 form-control" id="currency" name="currency" required>
-                                        @foreach($currency as $val)
-                                        <option value="{{$val}}">{{$val}}</option>
+                                <div class="form-group col-md-4">
+                                    <label for="recFrom">Received From*</label>
+                                    <select class="select2 form-control" id="recFrom" name="recFrom" required>
+                                        <option value=""></option>
+                                        @foreach ($accounts as $val)
+                                            <option value="{{ $val->account }}" {{$val->account == $header->receive_from ? "selected" : ""}} >{{ $val->account }}|{{ $val->description }}</option>
                                         @endforeach
                                     </select>
                                 </div>
-                                <div class="form-group col-md-2">
+                                <div class="form-group col-md-3">
                                     <div class="form-group">
-                                        <label for="kurs">Kurs</label>
-                                        <input type="text" id="kurs" name="kurs" class="form-control angka" maxlength="6"  />
+                                        <label for="totalAmount">Amount*</label>
+                                        <input type="text" id="totalAmount" name="totalAmount" value="{{ $header->amount }}" class="form-control text-right numeral-mask" maxlength="12" required/>
                                     </div>
                                 </div>
                             </div>
                             <div class="form-row">
-                                <div class="form-group col-md-11">
+                                <div class="form-group col-md-10">
                                     <label class="form-label" for="note">Notes</label>
-                                    <textarea type="text" id="note" name="note" class="form-control" rows="1" ></textarea>
-                                </div>
-                            </div>
-                            <div class="form-row">
-                                <div class="col-12">
-                                    <a href="{{ route('pettyCashs.index') }}" class="btn btn-warning">Back</a>
-                                    <button class="btn btn-success" type="reset" id="cmdNew" name="cmdCancel">New</button>
-                                    <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Save</button>
+                                    <textarea type="text" id="note" name="note" class="form-control" rows="1" >{{ $header->note }}</textarea>
                                 </div>
                             </div>
                         </form>
@@ -87,20 +76,20 @@
                         <table class="" style="width:98%;table-layout: fixed;">
                             <tbody>
                                 <tr>
+                                    <td class="isian" style="width: 30%">
+                                        <label>Account</label>
+                                    </td>
                                     <td class="isian" style="">
                                         <label>Description</label>
                                     </td>
-                                    <td class="isian" style="width: 5%">
-                                        <label>CG</label>
+                                    <td class="isian" style="">
+                                        <label>CC</label>
                                     </td>
                                     <td class="isian" style="width: 10%">
                                         <label>Debit</label>
                                     </td>
                                     <td class="isian" style="width: 10%">
                                         <label>Credit</label>
-                                    </td>
-                                    <td class="isian" style="">
-                                        <label>Account</label>
                                     </td>
                                     <td class="isian" style="width: 5%">
                                         <label>-</label>
@@ -115,19 +104,18 @@
                     <table class="" style="width: 98%;table-layout: fixed;">
                         <tbody>
                             <tr>
-                                <td class="isian" style="">
+                                <td class="isian" style="width: 30%">
                                     <label>Total</label>
                                 </td>
-                                <td class="isian" style="width: 5%">
-                                    
-                                </td>
-                                <td class="isian" style="width: 10%">
-                                    <input type="text" class="form-control-plaintext numeral-mask text-right" id="pcTotalCashIn" disabled />
-                                </td>
-                                <td class="isian" style="width: 10%">
-                                    <input type="text" class="form-control-plaintext numeral-mask text-right" id= "pcTotalCashOut" disabled />
+                                <td class="isian" style="">
                                 </td>
                                 <td class="isian" style="">
+                                </td>
+                                <td class="isian" style="width: 10%">
+                                    <input type="text" class="form-control-plaintext numeral-mask text-right" id="vcTotalDebit" disabled />
+                                </td>
+                                <td class="isian" style="width: 10%">
+                                    <input type="text" class="form-control-plaintext numeral-mask text-right" id= "vcTotalCredit" disabled />
                                 </td>
                                 <td class="isian text-center" style="width: 5%">
                                 </td>
@@ -137,17 +125,24 @@
                     <div class="d-flex justify-content-between align-items-end mt-75 ml-75">
                         <button class="btn btn-primary btn-prev" type="button" id="addNewRow" onclick="add_new_row();">
                             <i data-feather="plus" class="align-middle mr-sm-25 mr-0"></i>
-                            <span class="align-middle d-sm-inline-block d-none">Add</span>
+                            <span class="align-middle d-sm-inline-block d-none">Add row</span>
                         </button>
+                    </div>
+                    <hr>
+                    <div class="col-12">
+                        <a href="{{ route('kasPenerimaan.index') }}" class="btn btn-success">Back</a>
+                        <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Update</button>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 </section>
-@include('pettyCash.addArticle')
+
+@include('accounting.kas.addArticle')
 @endsection
 @section('styles')
+<link rel="stylesheet" type="text/css" href="{{ asset('assets/css/jquery-ui.css') }}">
 <style>
 
     textarea {
@@ -163,6 +158,7 @@
         position : absolute;
         right : 1px;
     }
+
     td.isian{
         padding-right:10px;
         padding-left:10px;
@@ -193,28 +189,32 @@
         white-space: nowrap;
     }
 
+
 </style>
 @endsection
 @section('scripts')
+<script src="{{ asset('assets/js/ui.1.13.0.jquery-ui.js') }}"></script>
 <script type="text/javascript">
-    let currentDate = todayDate('dd-mm-yyyy');     
-    var availableTags ="{{ $pettyCash }}";
-    availableTags=availableTags.replace(/[[\]]/g,'');
-    availableTags=availableTags.replace(/&quot;/g,'').split(",");
-        
+    let currentDate = todayDate('dd-mm-yyyy');   
+    let type = "{{ $type }}";
+    
     $(document).ready(function(){           
-        validateForm('frmAdd');
-        $('#orderDate').val(currentDate);
-        add_new_row();
-        add_new_row();
-        add_new_row();
-        add_new_row();
-        add_new_row();
+        validateFormToast('frmAdd');
+
+        let detail = {!!  $details !!};
+        for(let i=0;i<detail.length;i++){
+            vcAccount = detail[i].account;
+            vcDesc = detail[i].description;
+            vcCc = detail[i].cost_center;
+            vcDebit = detail[i].debit;
+            vcCredit = detail[i].credit;
+            add_new_row(vcAccount,vcDesc,vcCc,vcDebit,vcCredit);
+        }
     });
     
-    pcDate = $('#pcDate');
-    if (pcDate.length) {
-        pcDate.flatpickr({
+    vcDate = $('#vcDate');
+    if (vcDate.length) {
+        vcDate.flatpickr({
             dateFormat: "d-m-Y",
         });
     }
@@ -232,133 +232,132 @@
     });
 
     $("#cmdSave").click(function(){  
-        if (!$("#frmAdd")[0].checkValidity()){
-            $("#frmAdd").submit();
-        }else{   
-            $('.disabled-el').removeAttr('disabled');
-            // ambil semua data article
-            let objPcDesc= $('#item_row input[name="pcDesc[]"]');
-            let objPcCg= $('#item_row input[name="pcCg[]"]');
-            let objPcCashIn= $('#item_row input[name="pcCashIn[]"]');
-            let objPcCashOut= $('#item_row input[name="pcCashOut[]"]');
-            let objAccount= $('#item_row select[name="account[]"]');
-            let details = []; 
-            let flag=0; 
-            let pesan="";
+        let objTotalVcDebit= $('#vcTotalDebit').val().replace(/,/gi, '') || 0;
+        let objTotalVcCredit= $('#vcTotalCredit').val().replace(/,/gi, '') || 0;
+        let vcDate = $('#vcDate').val();
+        let period = $('#period').val();
+        let totalAmount = $('#totalAmount').val().replace(/,/gi, '') || 0;
+        let note = $('#note').val();
+        let recFrom = $('#recFrom').val();
+        let vcNumber = $('#voucherNumber').val();
+    
+        if (((parseInt(objTotalVcDebit)-parseInt(objTotalVcCredit)) == 0) && (parseInt(objTotalVcCredit)==parseInt(totalAmount))){
+            if (!$("#frmAdd")[0].checkValidity()){
+                $("#frmAdd").submit();
+            }else{   
+                $('.disabled-el').removeAttr('disabled');
+                // ambil semua data article
+                let objvcDesc= $('#item_row input[name="vcDesc[]"]');
+                let objVcCc= $('#item_row select[name="vcCc[]"]');
+                let objVcDebit= $('#item_row input[name="vcDebit[]"]');
+                let objVcCredit= $('#item_row input[name="vcCredit[]"]');
+                let objAccount= $('#item_row select[name="account[]"]');
+                let details = []; 
+                let flag=0; 
+                let pesan="";
 
-            objPcDesc.map(function(i) {  
-                let $this=$(this);
-                if ($this.val()){
-                    let sDesc=$this.val();
-                    let sCg=objPcCg.eq(i).val();
-                    let sCashIn=objPcCashIn.eq(i).val().replace(/,/gi, '') || 0;
-                    let sCashOut=objPcCashOut.eq(i).val().replace(/,/gi, '') || 0;
-                    let sAccount=objAccount.eq(i).val();
+                objvcDesc.map(function(i) {  
+                    let $this=$(this);
+                    if ($this.val()){
+                        let sDesc=$this.val();
+                        let sAccount=objAccount.eq(i).val();
+                        let sCc=objVcCc.eq(i).val();
+                        let sDebit=objVcDebit.eq(i).val().replace(/,/gi, '') || 0;
+                        let sCredit=objVcCredit.eq(i).val().replace(/,/gi, '') || 0;
 
-                    //jquery
-                    //cek apakah article ada yang double input ato ngk
-                    let obj = $.grep(details, function(obj){
-                        return obj.description === sDesc;
-                    })[0];
-                    
-                    // if(obj) {
-                    //     pesan +="Description "+sDesc+" entered more than once !! <br>"; 
-                    //     flag=1;
-                    // } else {
-                        if ((sDesc!=='') && ((sCashIn + sCashOut) > 0)){
+                        if ((sDesc!=='') && ((sDebit + sCredit) > 0) && (sAccount!=='') && (sCc!=='')){
                             details.push({
+                                "account":sAccount,
                                 "description":sDesc,
-                                "cg":sCg,
-                                "cash_in":sCashIn,
-                                "cash_out":sCashOut,
-                                "account":sAccount
+                                "cc":sCc,
+                                "debit":sDebit,
+                                "credit":sCredit,
                             });
                         }
-                    // }             
-                }
-            });
-
-            if (details.length == 0){
-                pesan +="Detail must be filled Out completely <br>"; 
-                flag=1;
-            }
-
-            if (flag == 0){
-
-                // let pcNumber = $('#pcNumber').val();
-                let voucherNumber = $('#voucherNumber').val();
-                let pcDate = $('#pcDate').val();
-                let period = $('#period').val();
-                let currency = $('#currency').val();
-                let kurs = $('#kurs').val() || 1;
-                let note = $('#note').val();
-
-                $.ajax({
-                    type: "post",
-                    url: "{{ route('pettyCash.store') }}",
-                    data: {
-                        details:JSON.stringify(details),
-                        // pcNumber:pcNumber,
-                        voucherNumber:voucherNumber,
-                        pcDate:pcDate,
-                        period:period,
-                        currency:currency,
-                        kurs:kurs,
-                        note:note
-                    },
-                    dataType: "json",
-                    success: function(data) {
-                        if (data.status == 0 ){
-                            let message="";
-                            for(let i = 0; i < data.message.length; i++) {
-                                show_msg(data.title, data.message[i], data.alert);
-                            }                        
-                            $('#pcNumber').attr('disabled','disabled');
-                        }else{
-                            show_msg(data.title, data.message, data.alert);
-                            $('#pcNumber').val(data.pcNumber);
-                            $('#pcNumber').attr('disabled','disabled');
-                            $('#cmdSave').attr('disabled','disabled');
-                            $('#addNewRow').attr('disabled','disabled');
-                        }
-                    },
-                    error: function(error) {
-                        console.log(error);
                     }
                 });
 
-            }else{
-                Swal.fire('Warning..',pesan,'warning');
+                if (details.length == 0){
+                    pesan +="Detail must be filled Out completely <br>"; 
+                    flag=1;
+                }
+
+                if (flag == 0){
+                    console.log(details);
+
+                    $.ajax({
+                        type: "post",
+                        url: "{{ route('kasPenerimaan.update') }}",
+                        data: {
+                            details:JSON.stringify(details),
+                            vcDate:vcDate,
+                            period:period,
+                            note:note,
+                            totalAmount:totalAmount,
+                            recFrom:recFrom,
+                            vcNumber:vcNumber,
+                        },
+                        dataType: "json",
+                        success: function(data) {
+                            if (data.status == 0 ){
+                                let message="";
+                                for(let i = 0; i < data.message.length; i++) {
+                                    show_msg(data.title, data.message[i], data.alert);
+                                }                        
+                                $('#voucherNumber').attr('disabled','disabled');
+                            }else{
+                                show_msg(data.title, data.message, data.alert);
+                                $('#voucherNumber').val(data.vcNumber);
+                                $('#voucherNumber').attr('disabled','disabled');
+                                // $('#cmdSave').attr('disabled','disabled');
+                                // $('#addNewRow').attr('disabled','disabled');
+                            }
+                        },
+                        error: function(error) {
+                            console.log(error);
+                        }
+                    });
+
+                }else{
+                    Swal.fire('Warning..',pesan,'warning');
+                }
             }
+        }else{
+            Swal.fire('Warning..',"Data belum balance",'warning');
         }
-    
     });
 
     let cloneCount=1;
-    function add_new_row() {
+    function add_new_row(account,desc,cc,debit,credit) {
         $("#item_row").append($("#new_row").clone().html());
         cloneCount++;
         $("#item_row").find('#baru').attr('id', 'new_row'+ cloneCount);
-        $("#new_row"+ cloneCount).find('#pcDesc').attr('id', 'pcDesc'+ cloneCount);
+        $("#new_row"+ cloneCount).find('#vcDesc').attr('id', 'vcDesc'+ cloneCount);
         $("#new_row"+ cloneCount).find('#account').attr('id', 'account'+ cloneCount);
-        accList('account','account'+ cloneCount);
+        $("#new_row"+ cloneCount).find('#vcCc').attr('id', 'vcCc'+ cloneCount);
+        $("#new_row"+ cloneCount).find('#vcDebit').attr('id', 'vcDebit'+ cloneCount);
+        $("#new_row"+ cloneCount).find('#vcCredit').attr('id', 'vcCredit'+ cloneCount);
+
+        accList('account','account'+ cloneCount,account);
+        
         $("#account"+cloneCount).select2();
+        $("#vcCc"+cloneCount).select2();
+
+        // $("#account"+cloneCount).val(account).trigger('change');;
+        $("#vcCc"+cloneCount).val(cc).trigger('change');;
+        $("#vcDesc"+cloneCount).val(desc);
+        $("#vcDebit"+cloneCount).val(debit);
+        $("#vcCredit"+cloneCount).val(credit);
+
         $('#remove_button').tooltip();
-        tombolPanah('pcCashIn');
-        tombolPanah('pcCashOut');
         activate_angka();
         mask_thousand();
         hitungTotal();
         hitungGrandTotal();
         $('[data-toggle="tooltip"]').tooltip();
-
-        $("#pcDesc"+ cloneCount).autocomplete({
-            source: availableTags
-        });
-
     };
 
-    function accList(dependent,obj) {
+    function accList(dependent,obj,account) {
       $.ajax({
         url:"{{route('dynamic.dependent')}}",
         method:"POST",
@@ -367,13 +366,11 @@
         },
         success:function(result){
             $('#'+obj).html(result);
-            $('#'+obj).val('').trigger('change');
+            $('#'+obj).val(account).trigger('change');
         }
       })
     }
 
-    
-   
     $.ajaxSetup({
         headers: {
             'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')

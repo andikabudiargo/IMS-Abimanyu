@@ -61,13 +61,6 @@
                                     <textarea type="text" id="note" name="note" class="form-control" rows="1" ></textarea>
                                 </div>
                             </div>
-                            {{-- <div class="form-row">
-                                <div class="col-12">
-                                    <a href="{{ route('kasPenerimaan.index') }}" class="btn btn-warning">Back</a>
-                                    <button class="btn btn-success" type="reset" id="cmdNew" name="cmdCancel">New</button>
-                                    <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Save</button>
-                                </div>
-                            </div> --}}
                         </form>
                     </div>
                 </div>
@@ -211,13 +204,14 @@
         
     $(document).ready(function(){           
         validateFormToast('frmAdd');
-        $('#orderDate').val(currentDate);
-        add_new_row();
-        add_new_row();
-        add_new_row();
-        add_new_row();
-        add_new_row();
         vcDate.val(currentDate);
+        
+        add_new_row();
+        add_new_row();
+        add_new_row();
+        add_new_row();
+        add_new_row();
+        
     });
     
     vcDate = $('#vcDate');
