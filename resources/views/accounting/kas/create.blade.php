@@ -205,7 +205,7 @@
     $(document).ready(function(){           
         validateFormToast('frmAdd');
         vcDate.val(currentDate);
-        
+
         add_new_row();
         add_new_row();
         add_new_row();
@@ -284,7 +284,7 @@
                 }
 
                 if (flag == 0){
-                    console.log(details);
+                    // console.log(details);
 
                     $.ajax({
                         type: "post",

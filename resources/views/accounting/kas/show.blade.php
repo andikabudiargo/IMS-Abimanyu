@@ -130,7 +130,6 @@
         </div>
     </div>
 </section>
-@include('salesOrder.addArticle')
 @endsection
 @section('styles')
 <style>

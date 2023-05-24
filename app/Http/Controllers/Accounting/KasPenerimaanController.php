@@ -267,7 +267,7 @@ class KasPenerimaanController extends Controller
         ->where('kas_hdr.id',$id)
         ->get()->first();
 
-        $voucher_number = $data['header']->voucher_number;
+        $vcNumber = $data['header']->voucher_number;
             
         $data['details'] = DB::table('kas_det')
         ->leftJoin('accounts','accounts.account','kas_det.account')
@@ -276,6 +276,7 @@ class KasPenerimaanController extends Controller
             ,db::raw("concat(accounts.account,'-',accounts.description) as account_name")
             ,'depts.name as cost_center_name'
         )
+        ->where('voucher_number',$vcNumber)
         ->orderBy('id')
         ->get();
 
