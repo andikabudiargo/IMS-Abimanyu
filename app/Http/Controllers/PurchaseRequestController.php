@@ -210,14 +210,17 @@ class PurchaseRequestController extends Controller
                     $dataSet[] = [
                         'pr_number' => $prNumber,
                         'article_code' => $val->article_code,
-                        'qty' => preg_replace('/[^0-9]/', '', $val->qty),
+                        // 'qty' => preg_replace('/[^0-9]/', '', $val->qty),
+                        'qty' => $val->qty,
                         'uom' => $val->uom,
                         'supp_code' => $val->supp,
                         'note' => $val->note,
                         'created_by' => Auth::user()->username,
                         'created_at' => date('Y-m-d H:i:s'),
-                        'qty_hitung' => preg_replace('/[^0-9]/', '', $val->qty_hitung),
-                        'qty_stock' => preg_replace('/[^0-9]/', '', $val->qty_stock) ,
+                        // 'qty_hitung' => preg_replace('/[^0-9]/', '', $val->qty_hitung),
+                        // 'qty_stock' => preg_replace('/[^0-9]/', '', $val->qty_stock) ,
+                        'qty_hitung' =>$val->qty_hitung,
+                        'qty_stock' => $val->qty_stock,
                     ];
                 }
 

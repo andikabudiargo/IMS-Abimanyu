@@ -201,10 +201,12 @@
                                         <tr class="tanpa-padding">
                                             <td class="tanpa-padding font-14" width="10%">Tanggal</td>
                                             <td class="tanpa-padding font-14">: {{ $header->voucher_date }}</td>
+                                            <td>Cost Center:</td>
                                         </tr>
                                         <tr class="tanpa-padding">
                                             <td class="tanpa-padding font-14">Dari</td>
-                                            <td class="tanpa-padding font-14">: {{ $header->receive_from }}</td>
+                                            <td class="tanpa-padding font-14">: {{ $header->receive_name }}</td>
+                                            <td>{{ $costCenter }}</td>
                                         </tr>
                                     </table>
                                 </td>
@@ -222,6 +224,7 @@
                             <thead>
                                 <tr>
                                     <th width="10%">No Account</th>
+                                    <th width="40%">Account Name</th>
                                     <th width="40%">Keterangan</th>
                                     <th width="10%">Debet</th>
                                     <th width="10%">Kredit</th>
@@ -231,6 +234,7 @@
                                 @foreach ($details as $val )
                                     <tr >
                                         <td align="left">{{ $val->account }}</td>
+                                        <td align="left">{{ $val->account_name }}</td>
                                         <td align="left">{{ $val->description }}</td>
                                         <td align="right">{{ number_format($val->debit) }}</td>
                                         <td align="right">{{ number_format($val->credit) }}</td>
@@ -251,11 +255,18 @@
                                         <td align="right"></td>
                                     </tr>
                                 @endfor
-                                <tr class="border-atas">
-                                    <td  align="left" class="border-atas" colspan="2">Total</td>
+                                <tr>
+                                    <td  align="left" class="border-atas" ></td>
+                                    <td  align="left" class="border-atas" ></td>
+                                    <td  align="left" class="border-atas" >Total</td>
                                     <td  align="right" class="border-atas" >{{ number_format($total->total_debit) }}</td>
                                     <td  align="right" class="border-atas" >{{ number_format($total->total_credit)}}</td>
                                 </tr>
+                                <tr class="border-atas">
+                                    <td  align="left" class="border-atas" colspan="5">Note: {{ $header->note }}</td>
+                                </tr>
+
+                                
                             </tbody>
                         </table>
                         <table width="100%">
@@ -263,17 +274,14 @@
                             <tr>
                                 <td align="center">Dibuat oleh</td>
                                 <td align="center">Mengetahui</td>
-                                <td align="center">Direksi</td>
-                                <td align="center">Accounting</td>
+                                <td align="center">Menyetujui</td>
                             </tr>
                             <tr>
                                 <td align="center" height="25"></td>
                                 <td align="center"></td>
                                 <td align="center"></td>
-                                <td align="center"></td>
                             </tr>
                             <tr>
-                                <td align="center">  _____________  </td>
                                 <td align="center">  _____________  </td>
                                 <td align="center">  _____________  </td>
                                 <td align="center">  _____________  </td>

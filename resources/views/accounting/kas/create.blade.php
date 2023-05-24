@@ -246,6 +246,7 @@
             if (!$("#frmAdd")[0].checkValidity()){
                 $("#frmAdd").submit();
             }else{   
+                $('#cmdSave').attr('disabled','disabled');
                 $('.disabled-el').removeAttr('disabled');
                 // ambil semua data article
                 let objvcDesc= $('#item_row input[name="vcDesc[]"]');

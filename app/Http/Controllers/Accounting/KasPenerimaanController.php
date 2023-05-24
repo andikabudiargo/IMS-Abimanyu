@@ -575,12 +575,16 @@ class KasPenerimaanController extends Controller
         $data['title'] ='Kas Masuk';
         
         $data['header']=DB::table('kas_hdr')
-        ->where('id',$id)
+        ->leftJoin('accounts','accounts.account','kas_hdr.receive_from')
+        ->select('kas_hdr.*','accounts.description as receive_name')
+        ->where('kas_hdr.id',$id)
         ->first();
 
         $vcNumber=$data['header']->voucher_number;
        
         $data['details']=DB::table('kas_det')
+        ->leftJoin('accounts','accounts.account','kas_det.account')
+        ->select('kas_det.*','accounts.description as account_name')
         ->where('voucher_number',$vcNumber)
         ->get();
 
@@ -588,6 +592,12 @@ class KasPenerimaanController extends Controller
         ->select(DB::raw("sum(credit) as total_credit"),DB::raw("sum(debit) as total_debit"))
         ->where('voucher_number',$vcNumber)
         ->first();
+
+        $data['costCenter']=DB::table('kas_det')
+        ->leftJoin('depts','depts.code','kas_det.cost_center')
+        ->where('voucher_number',$vcNumber)
+        ->distinct('depts.name')
+        ->pluck('depts.name')->implode(',');
 
         return view('accounting.kas.print',$data);
 
