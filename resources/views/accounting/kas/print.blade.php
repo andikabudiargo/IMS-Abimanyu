@@ -201,7 +201,7 @@
                                         <tr class="tanpa-padding">
                                             <td class="tanpa-padding font-14" width="10%">Tanggal</td>
                                             <td class="tanpa-padding font-14">: {{ $header->voucher_date }}</td>
-                                            <td>Cost Center:</td>
+                                            <td>Departemen:</td>
                                         </tr>
                                         <tr class="tanpa-padding">
                                             <td class="tanpa-padding font-14">Dari</td>
@@ -269,6 +269,7 @@
                                 
                             </tbody>
                         </table>
+                        <br><br>
                         <table width="100%">
                             <tr><td colspan="5" height="3"></td></tr>
                             <tr>
