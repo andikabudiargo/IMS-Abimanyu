@@ -130,6 +130,11 @@
       arrColPrint:[1,2,3,4,5],
       columnDefs :[
         { width: '5%', targets: 0 },
+        {
+          targets: [ 4 ],
+          render: $.fn.dataTable.render.number(',', '.', 0, ''),
+          className: "text-right"
+        },
       ],
       dataSearch:  {
         seachVc:seachVc,
