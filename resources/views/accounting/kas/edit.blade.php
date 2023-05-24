@@ -346,8 +346,8 @@
         // $("#account"+cloneCount).val(account).trigger('change');;
         $("#vcCc"+cloneCount).val(cc).trigger('change');;
         $("#vcDesc"+cloneCount).val(desc);
-        $("#vcDebit"+cloneCount).val(debit);
-        $("#vcCredit"+cloneCount).val(credit);
+        $("#vcDebit"+cloneCount).val(debit != 0 ? debit : '');
+        $("#vcCredit"+cloneCount).val(credit != 0 ? credit : '');
 
         $('#remove_button').tooltip();
         activate_angka();
