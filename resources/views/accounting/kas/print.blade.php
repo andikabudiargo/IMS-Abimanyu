@@ -118,29 +118,29 @@
         }
 
         #tblContent{
-            border: solid var(--line-color);
+            border: thin solid var(--line-color);
             border-collapse: collapse;
         }
 
         #tblContent  th {
-            border: solid var(--line-color);
+            border: thin solid var(--line-color);
         }
 
         #tblContent  td {
             padding : 3px 10px 3px 10px;
             border-bottom: none;
-            border-left: solid var(--line-color);
-            border-right: solid var(--line-color);
+            border-left: thin solid var(--line-color);
+            border-right: thin solid var(--line-color);
         }
 
         #tblContent tr:last-child{
-            border-bottom: solid var(--line-color);
-            border-left: solid var(--line-color);
-            border-right: solid var(--line-color);
+            border-bottom: thin solid var(--line-color);
+            border-left: thin solid var(--line-color);
+            border-right: thin solid var(--line-color);
         }
 
         .border-atas{
-            border: solid var(--line-color);
+            border: thin solid var(--line-color);
             border-collapse: collapse;
         }
 
@@ -294,17 +294,17 @@
     </table>
 </div>
 <script>
-    // window.onload= function () {
-    //     window.print();
-    //     window.onafterprint = function () {
-    //         window.close();
-    //     }
-    //     window.onfocus = function () { 
-    //         setTimeout(function () { 
-    //             window.close(); 
-    //         }, 200); 
-    //     }
-    // }
+    window.onload= function () {
+        window.print();
+        window.onafterprint = function () {
+            window.close();
+        }
+        window.onfocus = function () { 
+            setTimeout(function () { 
+                window.close(); 
+            }, 200); 
+        }
+    }
 </script>
 </body>
 </html>

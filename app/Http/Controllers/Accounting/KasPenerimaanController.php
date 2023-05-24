@@ -838,10 +838,12 @@ class KasPenerimaanController extends Controller
         ->where('voucher_number',$vcNumber)
         ->first();
 
-        view()->share($data);
+        return view('accounting.kas.print',$data);
 
-        $pdf = PDF::loadView('accounting.kas.print');
-        return $pdf->stream("$vcNumber.pdf");
+        // view()->share($data);
+
+        // $pdf = PDF::loadView('accounting.kas.print');
+        // return $pdf->stream("$vcNumber.pdf");
 
     }
 
