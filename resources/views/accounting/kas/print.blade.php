@@ -1,185 +1,310 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>PO</title>
-<style type="text/css">
-    * {
-        font-family: Verdana, Arial, sans-serif;
-    }
-    table{
-        font-size: x-small;
-    }
-    
-    tfoot tr td{
-        /*font-weight: bold;*/
-        font-size: medium;
-    }
-    .gray {
-        background-color: lightgray;
-        font-weight: bold;
-    }
+    <meta charset="UTF-8">
+    <title>{{ $title }}</title>
+    <style type="text/css">
+        @page { margin: 10 }
+        body { margin: 0 }
+            .sheet {
+            margin: 0;
+            overflow: hidden;
+            position: relative;
+            /* box-sizing: border-box; */
+            page-break-after: always;
+        }
 
-    table {
-    width: 100%;
-    }
+        /** Paper sizes **/
+        body.A3           .sheet { width: 297mm; height: 419mm }
+        body.A3.landscape .sheet { width: 420mm; height: 296mm }
+        body.A4           .sheet { width: 210mm; height: 296mm }
+        body.A4A5           .sheet { width: 210mm; height: 148mm }
+        body.A4.landscape .sheet { width: 297mm; height: 209mm }
+        body.A5           .sheet { width: 148mm; height: 209mm }
+        body.A5.landscape .sheet { width: 210mm; height: 147mm }
 
-    th {
-        height: 30px;
-    }
-    td {
-        height: 20px;
-    }
-    th, td {
-        padding-left: 15px;
-        padding-right: 15px;
-        /*border-bottom: 1px solid #ddd;*/
-    }
+        /** Padding area **/
+        .sheet.padding-10mm { padding: 10mm }
+        .sheet.padding-5mm { padding: 5mm }
+        .sheet.padding-15mm { padding: 15mm }
+        .sheet.padding-20mm { padding: 20mm }
+        .sheet.padding-25mm { padding: 25mm }
 
-    #watermark {
-        background: url('{{asset('assets/img/lunas-stamp.png')}}') center;
-        background-size: 10px 10px;
-        background-repeat: no-repeat;
-        opacity: 0.1;
-      }
-</style>
+        /** For screen preview **/
+        @media screen {
+            /* body { background: #e0e0e0 } */
+            .sheet {
+                background: white;
+                box-shadow: 0 .5mm 2mm rgba(0,0,0,.3);
+                margin: 5mm;
+            }
+        }
 
+        /** Fix for Chrome issue #273306 **/
+        @media print {
+            body.A3.landscape { width: 420mm }
+            body.A3, body.A4.landscape { width: 297mm }
+            body.A4, body.A5.landscape { width: 210mm }
+            body.A5                    { width: 148mm }
+
+           
+        }
+
+        .putih{
+            color:white;
+        }
+
+        .header, .header-space{
+                height: 140px;
+        }
+
+        .footer, .footer-space {
+                height: 170px;
+        }
+        
+        .header {
+            position: fixed;
+            top: 0;
+        }
+        
+        .footer {
+            position: fixed;
+            bottom: 0;
+        }
+
+        :root {
+            /*half black*/
+            --line-color: rgba(0, 0, 0, 0.8);
+        }
+
+        @media print {
+            header, footer {
+                position: fixed;
+                top: 0;
+            }
+            
+            footer {
+                position: fixed;
+                bottom: 0;
+            }
+
+            @page :footer {
+                display: none
+            }
+            @page :header {
+                display: none
+            }
+
+            .tanpa-padding{
+                padding:0px;
+            }
+
+            .putih{
+                color:white;
+            }
+
+        }
+        
+        * {
+            font-family: Calibri,Arial, Helvetica, sans-serif;
+        }
+
+        table{
+            font-family: Calibri,Arial, Helvetica, sans-serif;
+        }
+        
+        table {
+            width: 100%;
+        }
+
+        #tblContent{
+            border: thin solid var(--line-color);
+            border-collapse: collapse;
+        }
+
+        #tblContent  th {
+            border: thin solid var(--line-color);
+        }
+
+        #tblContent  td {
+            padding : 3px 10px 3px 10px;
+            border-bottom: none;
+            border-left: thin solid var(--line-color);
+            border-right: thin solid var(--line-color);
+        }
+
+        #tblContent tr:last-child{
+            border-bottom: thin solid var(--line-color);
+            border-left: thin solid var(--line-color);
+            border-right: thin solid var(--line-color);
+        }
+
+        .border-atas{
+            border: thin solid var(--line-color);
+            border-collapse: collapse;
+        }
+
+        .tableHeader td{
+            padding-bottom: 0px;
+            padding-top: 0px;
+        }
+
+        .font-12{
+            /* font-size:12pt; */
+            font-size: medium;
+        }
+
+        .font-14{
+            /* font-size:14pt; */
+            font-size: medium;
+        }
+
+        .font-13{
+            font-size:11pt;
+            /* font-size: medium; */
+        }
+
+        .font-16{
+            font-size:16pt;
+            /* font-size: medium; */
+        }
+
+        .font-small{
+            font-size: small;
+        }
+
+        .tanpa-padding{
+            padding:0px;
+        }
+
+        .huruf-tebal{
+            font-weight: bold;
+        }
+
+    </style>
 </head>
-<body>
-{{-- @if($status == "B")
-    <div id ="watermark">
-@endif --}}
-
-    <table width="100%" border="0">
-        <tr>
-            <td valign="top" colspan="4"><h2>PURCHASE ORDER</h2></td>
-        </tr>
-        <tr>
-            <td width="20%">PO Number</td>
-            <td width="25%">: {{ $poNumber }}</td>
-            <td width="10%"></td>
-            <td width="45%" rowspan="4" style="text-align:center;">
-                <img src="{{ public_path('app-assets/images/logo/logo_po.png') }}" alt="logo" style="width: 60%;"> 
-            </td>
-        </tr>
-        <tr>
-            <td width="10%">PO Date</td><td>: {{ $poDate }}</td><td width="10%"></td>
-        </tr>
-        <tr>
-            <td width="10%">Term</td><td>: {{ $poTerm }} Days</td><td width="10%"></td>
-        </tr>
-        <tr>
-            <td width="10%">Delivery Date</td><td>: {{ $poDelDate }}</td><td width="10%"></td>
-        </tr>
-        
-    </table>
+<body class="{{ (count($details)) < 7 ? "A4A5" : "A4" }}">
+<div>
     <table>
-        <tr>
-            <td width="45%" valign="top" style="border: 1px solid #0c0c0c;padding-left:10px">
-                <strong> VENDOR </strong><br>
-                @foreach ($suppliers as $val )
-                    {{ $val->nama }} <br>
-                    Fax:{{ $val->fax }}<br>
-                    Phone:{{ $val->telepon }}<br>
-                    Contact:{{ $val->nama_kontak }}<br>
-                @endforeach
-            </td>
-            <td width="10%"></td>
-            <td width="45%" style="border: 1px solid #0c0c0c;padding-left:10px">
-                <strong>SHIP TO </strong><br>
-                @foreach ($companies as $val)
-                {{ $val }} <br>
-                @endforeach
-            </td>
-        </tr>
-    </table>
-    <table width="100%">
-    <thead style="background-color: lightgray;">
-      <tr>
-        <th width="5%">No</th>
-        <th width="10%">Code</th>
-        <th width="40%">Description</th>
-        <th width="5%">Qty</th>
-        <th>Price</th>
-        <th>PPN</th>
-        <th>Total</th>
-      </tr>
-    </thead>
-    <tbody>
-        @foreach ($details as $val )
-            <tr style="border-bottom: 1px solid #ddd;">
-                <td scope="row" style="border-bottom: 1px solid #ddd;">{{ ++$no }}</td>
-                <td style="border-bottom: 1px solid #ddd;" align="left">{{ $val->article_alternative_code }}</td>
-                <td style="border-bottom: 1px solid #ddd;" align="left">{{ $val->article_desc }}</td>
-                <td style="border-bottom: 1px solid #ddd;" align="right">{{ number_format($val->qty) }}</td>
-                <td style="border-bottom: 1px solid #ddd;" align="right">{{ number_format($val->price) }}</td>
-                <td style="border-bottom: 1px solid #ddd;" align="right">{{ number_format($val->ppn) }}</td>
-                <td style="border-bottom: 1px solid #ddd;" align="right">{{ number_format(($val->qty*$val->price)+$val->ppn) }}</td>
+        <thead>
+            <tr>
+                <td>
+                    <div class="header-space">
+                        <br>
+                        <table width="100%">
+                            <tr>
+                                <td style="vertical-align: bottom;">
+                                    <div class="huruf-tebal font-16" style="text-align:center">BUKTI KAS MASUK</div>
+                                    <div class="huruf-tebal font-14" style="text-align:center">{{ $header->voucher_number }}</div>
+                                    <br>
+                                    <table width="100%">
+                                        <tr class="tanpa-padding">
+                                            <td class="tanpa-padding font-14" width="10%">Tanggal</td>
+                                            <td class="tanpa-padding font-14">: {{ $header->voucher_date }}</td>
+                                        </tr>
+                                        <tr class="tanpa-padding">
+                                            <td class="tanpa-padding font-14">Dari</td>
+                                            <td class="tanpa-padding font-14">: {{ $header->receive_from }}</td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                </td>
             </tr>
-        @endforeach
-    </tbody>
+        </thead>
+        <tbody>
+            <tr>
+                <td>
+                    <div class="content">
+                        <table id="tblContent" class="font-14">
+                            <thead>
+                                <tr>
+                                    <th width="10%">No Account</th>
+                                    <th width="40%">Keterangan</th>
+                                    <th width="10%">Debet</th>
+                                    <th width="10%">Kredit</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach ($details as $val )
+                                    <tr >
+                                        <td align="left">{{ $val->account }}</td>
+                                        <td align="left">{{ $val->description }}</td>
+                                        <td align="right">{{ number_format($val->debit) }}</td>
+                                        <td align="right">{{ number_format($val->credit) }}</td>
+                                    </tr>
+                                @endforeach      
+                                                    
+                                @if(count($details)>7)
+                                    <?php $totalBaris = 16 ?>
+                                @else
+                                    <?php $totalBaris = 7 ?>
+                                @endif
 
-    <tfoot>
-        @foreach ($totals as $val )
-            <tr style="border-bottom: 1px solid #ddd;">
-                <td style="border-bottom: 1px solid #ddd;" align="left" colspan="3">Total</td>
-                <td style="border-bottom: 1px solid #ddd;" align="right" >{{ number_format($val->qty) }}</td>
-                <td style="border-bottom: 1px solid #ddd;" align="right" ></td>
-                <td style="border-bottom: 1px solid #ddd;" align="right" >{{ number_format($val->ppn)}}</td>
-                <td style="border-bottom: 1px solid #ddd;" align="right" class="gray">{{ number_format($val->netto)}}</td>
+                                @for ($i=1;$i< $totalBaris-(count($details));$i++)
+                                    <tr >
+                                        <td align="right" class="putih" height="16"></td>
+                                        <td align="left"></td>
+                                        <td align="right"></td>
+                                        <td align="right"></td>
+                                    </tr>
+                                @endfor
+                                <tr class="border-atas">
+                                    <td  align="left" class="border-atas" colspan="2">Total</td>
+                                    <td  align="right" class="border-atas" >{{ number_format($total->total_debit) }}</td>
+                                    <td  align="right" class="border-atas" >{{ number_format($total->total_credit)}}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <table width="100%">
+                            <tr><td colspan="5" height="3"></td></tr>
+                            <tr>
+                                <td align="center">Dibuat oleh</td>
+                                <td align="center">Mengetahui</td>
+                                <td align="center">Direksi</td>
+                                <td align="center">Accounting</td>
+                            </tr>
+                            <tr>
+                                <td align="center" height="25"></td>
+                                <td align="center"></td>
+                                <td align="center"></td>
+                                <td align="center"></td>
+                            </tr>
+                            <tr>
+                                <td align="center">  _____________  </td>
+                                <td align="center">  _____________  </td>
+                                <td align="center">  _____________  </td>
+                                <td align="center">  _____________  </td>
+                            </tr>
+                        </table>
+                    </div>
+                </td>
             </tr>
-        @endforeach
-        
-        {{-- @foreach ($totalsls as $totalsl )
-        <tr>
-            <td colspan="3"></td>
-            <td align="right">QTY</td>
-            <td align="right" colspan="2">{{number_format($totalsl->qty)}}</td>
-        </tr>
-        <tr>
-            <td colspan="3"></td>
-            <td align="right">Subtotal</td>
-            <td align="right" colspan="2">{{number_format($totalsl->subtotal)}}</td>
-        </tr>
-        <tr>
-            <td colspan="3"></td>
-            <td align="right">Disc</td>
-            <td align="right" colspan="2">-{{number_format($totalsl->disc)}}</td>
-        </tr>
-        <tr>
-            <td colspan="3"></td>
-            <td align="right">Total</td>
-            <td align="right" class="gray" colspan="2">{{number_format($totalsl->total)}}</td>
-        </tr>
-        @endforeach --}}
-
-    </tfoot>
-        <tr>
-            <td colspan="7">Keterangan:<br> {{ $keterangan }}</td>
-        </tr>
+        </tbody>
+        <tfoot>
+            <tr>
+            <td>
+            <div class="footer-space">
+            </div>
+            </td>
+            </tr>
+        </tfoot>
     </table>
-    {{-- <table width="100%" border="0">
-        <tr><td colspan="2" height="100"></td></tr>
-        <tr><td colspan="2" height="100"></td></tr>
-        <tr>
-            <td align="center">Pengirim</td>
-            <td align="center">Penerima</td>
-        </tr>
-        <tr>
-            <td align="center"></td>
-            <td align="center"></td>
-        </tr>
-        <tr>
-            <td align="center"></td>
-            <td align="center"></td>
-        </tr>
-        <tr>
-            <td align="center">( _____________ )</td>
-            <td align="center">( _____________  )</td>
-        </tr>
-    </table> --}}
-{{-- @if($poNumber == "oki")
 </div>
-@endif --}}
+<script>
+    // window.onload= function () {
+    //     window.print();
+    //     window.onafterprint = function () {
+    //         window.close();
+    //     }
+    //     window.onfocus = function () { 
+    //         setTimeout(function () { 
+    //             window.close(); 
+    //         }, 200); 
+    //     }
+    // }
+</script>
 </body>
 </html>

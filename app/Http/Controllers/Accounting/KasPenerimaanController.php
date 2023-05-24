@@ -784,16 +784,17 @@ class KasPenerimaanController extends Controller
                 //                     Edit
                 //                 </a>';
             // }
-                        
-            // $buttons .=         '<a href="'. route('kasPenerimaan.print', ['id'=>Crypt::encryptString($data->id)]) .'" target="_blank" class="dropdown-item">
-            //                         <i data-feather="printer"></i>
-            //                         Print
-            //                     </a>';
-            
+
             $buttons .=         '<a href="'. route('kasPenerimaan.show', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                     <i data-feather="list"></i>
                                     Detail
                                 </a>';
+                        
+            $buttons .=         '<a href="'. route('kasPenerimaan.print', ['id'=>Crypt::encryptString($data->id)]) .'" target="_blank" class="dropdown-item">
+                                    <i data-feather="printer"></i>
+                                    Print
+                                </a>';
+            
             
             // if (Auth::user()->can('kasPenerimaan-delete')) {
             //     $buttons .=         "<a href='javascript:;'
@@ -818,58 +819,29 @@ class KasPenerimaanController extends Controller
 
     public function print(Request $request)
     {
-        $id = $request -> id;
+        $id=Crypt::decryptString($request->id);
 
-        $data['companies']= array(
-            "nama"=> "PT ABIMANYU SEKAR NUSANTARA",
-            "alamat"=> "KP. KARANG MULYA RT 014 RW 005 DESA CIKOPO",
-            "kota" => "KEC. BUNGURSARI KAB. PURWAKARTA JAWA BARAT",
-            "tlp" =>  ""
-        );
+        $data['title'] ='Kas Masuk';
         
-        $data['suppliers']=array(
-            'nama'=>'PT ABIMANYU SEKAR NUSANTARA',
-            'alamat'=>'KP. KARANG MULYA RT 014 RW 005 DESA CIKOPO',
-            'kota' =>'KEC. BUNGURSARI KAB. PURWAKARTA JAWA BARAT',
-            'tlp' => ''
-        );
-        
-        $poHdr=DB::table('purchase_order_hdr')
+        $data['header']=DB::table('kas_hdr')
         ->where('id',$id)
         ->first();
 
-        $poNumber=$poHdr -> po_number;
+        $vcNumber=$data['header']->voucher_number;
        
-
-        $data['details']=DB::table('purchase_order_det')
-        ->leftJoin('article','article.article_code','purchase_order_det.article_code')
-        ->where('po_number',$poNumber)
+        $data['details']=DB::table('kas_det')
+        ->where('voucher_number',$vcNumber)
         ->get();
 
-        $data['totals']=DB::select("SELECT *,(gross-discount)+ppn as netto from (
-            select a.po_number,authorized_by,validate_by,sum(qty) as qty,sum(qty*price) as gross,sum(discount) as discount,sum(a.ppn) as ppn from purchase_order_det a
-            left join purchase_order_hdr b
-            on a.po_number = b.po_number 
-            where a.po_number = '$poNumber'
-            group by a.po_number,authorized_by,validate_by) as oki");
-
-        $data['suppliers']=DB::table('third_party')
-        ->where('kode',$poHdr -> supplier_id)
-        ->get();
-
-        $data['keterangan']=$poHdr -> note;
-        $data['poNumber'] =$poNumber;
-        $data['poDate'] =$poHdr -> po_date;
-        $data['poTerm'] =$poHdr -> termin;
-        $data['poDelDate'] =$poHdr -> delivery_date;
-        
-        $data['status'] ='1';
-        $data['no'] =1;
+        $data['total']=DB::table('kas_det')
+        ->select(DB::raw("sum(credit) as total_credit"),DB::raw("sum(debit) as total_debit"))
+        ->where('voucher_number',$vcNumber)
+        ->first();
 
         view()->share($data);
 
-        $pdf = PDF::loadView('bankPenerimaan.print');
-        return $pdf->stream("PO_$poNumber.pdf");
+        $pdf = PDF::loadView('accounting.kas.print');
+        return $pdf->stream("$vcNumber.pdf");
 
     }
 
