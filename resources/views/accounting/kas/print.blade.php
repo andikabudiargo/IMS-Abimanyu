@@ -4,9 +4,10 @@
     <meta charset="UTF-8">
     <title>{{ $title }}</title>
     <style type="text/css">
-        @page { margin: 10 }
+        @page { margin: 0 }
         body { margin: 0 }
-            .sheet {
+        
+        .sheet {
             margin: 0;
             overflow: hidden;
             position: relative;
@@ -184,7 +185,7 @@
     </style>
 </head>
 <body class="{{ (count($details)) < 7 ? "A4A5" : "A4" }}">
-<div>
+<div class="sheet padding-5mm">
     <table>
         <thead>
             <tr>
@@ -220,7 +221,7 @@
             <tr>
                 <td>
                     <div class="content">
-                        <table id="tblContent" class="font-14">
+                        <table id="tblContent" class="font-small">
                             <thead>
                                 <tr>
                                     <th width="10%">No Account</th>
