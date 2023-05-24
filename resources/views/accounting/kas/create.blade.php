@@ -320,6 +320,7 @@
                     });
 
                 }else{
+                    $('#cmdSave').removeAttribute('disabled');
                     Swal.fire('Warning..',pesan,'warning');
                 }
             }
