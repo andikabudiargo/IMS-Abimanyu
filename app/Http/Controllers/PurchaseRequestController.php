@@ -78,6 +78,10 @@ class PurchaseRequestController extends Controller
         $data['kolom'] = $this->getTableColoumn();
         $data['kolomDetail'] = $this->getTableColoumnDetail();
         $data['status'] = ['1'=>'NEW','2'=>'VALIDATED','3'=>'APPROVED','7'=>'PO'];
+
+        $data['depts'] = DB::table('depts')
+        ->orderBy('name')
+        ->get();
             
         return view("purchaseRequest.index",$data);
     }
@@ -585,6 +589,7 @@ class PurchaseRequestController extends Controller
         $orderType = strtolower($request->orderType);
         $searchStatus = $request->searchStatus;
         $requestDate = $request->requestDate;
+        $dept = $request->dept;
         $fromDate ="";
         $toDate = "";
  
@@ -603,8 +608,9 @@ class PurchaseRequestController extends Controller
 
         $data = DB::table('purchase_request_hdr')
         ->leftJoin('target_order_hdr','target_order_hdr.tso_code','purchase_request_hdr.tso_code')
-        ->where(function ($query) use ($orderType,$searchPr,$searchStatus,$requestDate,$fromDate,$toDate) {
+        ->where(function ($query) use ($orderType,$searchPr,$searchStatus,$requestDate,$fromDate,$toDate,$dept) {
             $orderType ? $query->where('order_type',$orderType) : '';
+            $dept ? $query->where('purchase_request_hdr.dept',$dept) : '';
             $searchPr ? $query->where('purchase_request_hdr.pr_number','ilike','%'.$searchPr.'%') : '';
             $searchStatus ? $query->where('purchase_request_hdr.status',$searchStatus) : '';
             $requestDate ? $query->whereBetween(DB::raw("to_date(date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
@@ -739,6 +745,7 @@ class PurchaseRequestController extends Controller
         $orderType = strtolower($request->orderType);
         $searchStatus = $request->searchStatus;
         $requestDate = $request->requestDate;
+        $dept = $request->dept;
         $fromDate ="";
         $toDate = "";
 
@@ -753,8 +760,9 @@ class PurchaseRequestController extends Controller
         ->leftJoin('article','article.article_code','purchase_request_det.article_code')
         ->leftJoin('third_party','third_party.kode','purchase_request_det.supp_code')
         ->leftJoin('uom','uom.code','purchase_request_det.uom')
-        ->where(function ($query) use ($orderType,$seachPr,$searchStatus,$requestDate,$fromDate,$toDate) {
+        ->where(function ($query) use ($orderType,$seachPr,$searchStatus,$requestDate,$fromDate,$toDate,$dept) {
             $orderType ? $query->where('order_type',$orderType) : '';
+            $dept ? $query->where('purchase_request_hdr.dept',$dept) : '';
             $seachPr ? $query->where('purchase_request_det.pr_number','ilike','%'.$seachPr.'%') : '';
             $searchStatus ? $query->where('purchase_request_hdr.status',$searchStatus) : '';
             $requestDate ? $query->whereBetween(DB::raw("to_date(purchase_request_hdr.date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';

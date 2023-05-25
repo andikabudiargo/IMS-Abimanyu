@@ -31,10 +31,10 @@ class KasPenerimaanController extends Controller
             ['data'=>'action','name'=>'action','title'=>'action','orderable'=> false,'searchable'=>false],
             ['data'=>'voucher_number','name'=>'voucher_number','title'=>'Voucher Number'],
             ['data'=>'voucher_date','name'=>'voucher_date','title'=>'Date'],
-            ['data'=>'receive_name','name'=>'receive_name','title'=>'Receive From'],
+            ['data'=>'note','name'=>'note','title'=>'Note'],
+            // ['data'=>'receive_name','name'=>'receive_name','title'=>'Receive From'],
             ['data'=>'amount','name'=>'amount','title'=>'Amount'],
             ['data'=>'period','name'=>'period','title'=>'Period'],
-            ['data'=>'note','name'=>'note','title'=>'Note'],
             ['data'=>'created_by','name'=>'created_by','title'=>'Created By'],
             ['data'=>'created_at','name'=>'created_at','title'=>'Created At']
         ];

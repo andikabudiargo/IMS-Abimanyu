@@ -43,6 +43,15 @@
                     @endforeach
                 </select>
               </div>
+              <div class="form-group col-md-2"> 
+                <label class="form-label" for="dept">Departemen</label>
+                <select class="select2 form-control" id="dept" name="dept">
+                    <option value="">All</option>
+                    @foreach($depts as $val)
+                        <option value="{{ $val->code }}">{{ $val->name }}</option>
+                    @endforeach
+                </select>
+              </div>
             </div>
             <div class="form-row">
                 <div class="col-12"> 
@@ -99,6 +108,7 @@
   let searchPr = document.querySelector("#searchPr");
   let orderType = document.querySelector("#orderType"); 
   let searchStatus = document.querySelector("#searchStatus");
+  let dept = document.querySelector("#dept");
   let requestDate = document.querySelector("#requestDate");
   let search = document.querySelector('#btnSearch');
   let refresh = document.querySelector('a[data-action="reload"]');
@@ -122,28 +132,28 @@
   refresh.addEventListener("click",function(){
     btnDetail.style.display = "block";
     btnSummary.style.display = "none";
-    showList(searchPr.value,orderType.value,searchStatus.value,requestDate.value);
+    showList(searchPr.value,orderType.value,searchStatus.value,requestDate.value,dept.value);
   })
 
   search.addEventListener("click", function(){
     btnDetail.style.display = "block";
     btnSummary.style.display = "none";
-    showList(searchPr.value,orderType.value,searchStatus.value,requestDate.value);
+    showList(searchPr.value,orderType.value,searchStatus.value,requestDate.value,dept.value);
   });
 
   btnSummary.addEventListener("click", function(){
     btnSummary.style.display = "none";
     btnDetail.style.display = "block";
-    showList(searchPr.value,orderType.value,searchStatus.value,requestDate.value);;
+    showList(searchPr.value,orderType.value,searchStatus.value,requestDate.value,dept.value);
   });
   
   btnDetail.addEventListener("click", function(){
     btnSummary.style.display = "block";
     btnDetail.style.display = "none";
-    showListDetail(searchPr.value,orderType.value,searchStatus.value,requestDate.value);
+    showList(searchPr.value,orderType.value,searchStatus.value,requestDate.value,dept.value);
   });
 
-  const showList = (searchPr,orderType,searchStatus,requestDate) => {
+  const showList = (searchPr,orderType,searchStatus,requestDate,dept) => {
     if ($('#detailedTable tr').length >0){
         let table= $('#detailedTable').DataTable();
         table.destroy();
@@ -162,7 +172,8 @@
         searchPr:searchPr,
         orderType:orderType,
         searchStatus:searchStatus,
-        requestDate:requestDate
+        requestDate:requestDate,
+        dept:dept
       },
       orderColumn:[[ 1, 'desc' ]],
       excelFileName:'purchase_request'
