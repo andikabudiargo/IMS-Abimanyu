@@ -34,7 +34,7 @@ class PurchaseRequestController extends Controller
             ['data'=>'pr_number','name'=>'pr_number','title'=>'PR Number'],
             ['data'=>'num_revision','name'=>'num_revision','title'=>'Revision'],
             ['data'=>'order_type','name'=>'order_type','title'=>'Order Type'],
-            ['data'=>'dept','name'=>'dept','title'=>'Department'],
+            ['data'=>'dept_name','name'=>'dept_name','title'=>'Department'],
             ['data'=>'date','name'=>'date','title'=>'PR Date'],
             ['data'=>'status_pr','name'=>'status_pr','title'=>'Status'],
             ['data'=>'note','name'=>'note','title'=>'Note'],
@@ -59,7 +59,7 @@ class PurchaseRequestController extends Controller
             ['data'=>'supp_code','name'=>'supp_code','title'=>'Supplier'],
             ['data'=>'supp_name','name'=>'supp_name','title'=>'Supplier Name'],
             ['data'=>'order_type','name'=>'order_type','title'=>'Order Type'],
-            ['data'=>'dept_name','name'=>'dept_name','title'=>'Department'],
+            ['data'=>'dept_name','name'=>'nama_name','title'=>'Department'],
             ['data'=>'date','name'=>'date','title'=>'PR Date'],
             ['data'=>'status','name'=>'status','title'=>'Status'],
             ['data'=>'noteku','name'=>'noteku','title'=>'Main Note'],
@@ -608,6 +608,7 @@ class PurchaseRequestController extends Controller
 
         $data = DB::table('purchase_request_hdr')
         ->leftJoin('target_order_hdr','target_order_hdr.tso_code','purchase_request_hdr.tso_code')
+        ->leftJoin('depts','purchase_request_hdr.dept','depts.code')
         ->where(function ($query) use ($orderType,$searchPr,$searchStatus,$requestDate,$fromDate,$toDate,$dept) {
             $orderType ? $query->where('order_type',$orderType) : '';
             $dept ? $query->where('purchase_request_hdr.dept',$dept) : '';
@@ -618,8 +619,9 @@ class PurchaseRequestController extends Controller
         ->where('purchase_request_hdr.status','!=','8')
         ->select('purchase_request_hdr.*'
         ,'purchase_request_hdr.status as status_pr'
-        ,DB::raw("(select concat(code,'-',name) from depts where code = purchase_request_hdr.dept limit 1) as dept_name")
+        // ,DB::raw("(select concat(code,'-',name) from depts where code = purchase_request_hdr.dept limit 1) as dept_name")
         ,'target_order_hdr.status as status_tso'
+        ,'depts.name as dept_name'
         )
         ->orderBy('id')
         ->get(); 
@@ -760,6 +762,7 @@ class PurchaseRequestController extends Controller
         ->leftJoin('article','article.article_code','purchase_request_det.article_code')
         ->leftJoin('third_party','third_party.kode','purchase_request_det.supp_code')
         ->leftJoin('uom','uom.code','purchase_request_det.uom')
+        ->leftJoin('depts','purchase_request_hdr.dept','depts.code')
         ->where(function ($query) use ($orderType,$seachPr,$searchStatus,$requestDate,$fromDate,$toDate,$dept) {
             $orderType ? $query->where('order_type',$orderType) : '';
             $dept ? $query->where('purchase_request_hdr.dept',$dept) : '';
@@ -768,7 +771,7 @@ class PurchaseRequestController extends Controller
             $requestDate ? $query->whereBetween(DB::raw("to_date(purchase_request_hdr.date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
         })
         ->select('purchase_request_det.*'
-        ,DB::raw("(select concat(code,'-',name) from depts where code = purchase_request_hdr.dept limit 1) as dept_name")
+        // ,DB::raw("(select concat(code,'-',name) from depts where code = purchase_request_hdr.dept limit 1) as dept_name")
         ,'article_alternative_code'
         ,'article.article_desc'
         ,'purchase_request_hdr.status as statusku'
@@ -778,8 +781,10 @@ class PurchaseRequestController extends Controller
         ,'third_party.nama as supp_name'
         ,'uom_group'
         ,DB::raw("case when uom_group = 'PIECE' then TO_CHAR(qty,'999,999,999') when uom_group <> 'PIECE' then TO_CHAR(qty,'999,999,999.999') end as qtyku")
-        ,DB::raw("(select concat(code,'-',name) from depts where code = purchase_request_hdr.dept limit 1) as dept_name")
-        ,DB::raw("(select case when uom_group = 'PIECE' then TO_CHAR(qty,'999,999,999') when uom_group <> 'PIECE' then TO_CHAR(qty,'999,999,999.999') end from purchase_order_det where po_number = purchase_request_det.po_number and pr_number=purchase_request_det.pr_number and article_code=purchase_request_det.article_code) as qty_po")
+        // ,DB::raw("(select concat(code,'-',name) from depts where code = purchase_request_hdr.dept limit 1) as dept_name")
+        ,DB::raw("(select case when uom_group = 'PIECE' then TO_CHAR(qty,'999,999,999') when uom_group <> 'PIECE' then TO_CHAR(qty,'999,999,999.999') end from purchase_order_det where po_number = purchase_request_det.po_number and pr_number=purchase_request_det.pr_number and article_code=purchase_request_det.article_code) as qty_po"
+        ,'depts.name as dept_name'
+        )
         )
         ->orderBy('id')
         ->orderBy('pr_number')
