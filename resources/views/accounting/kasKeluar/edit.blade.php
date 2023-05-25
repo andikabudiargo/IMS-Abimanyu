@@ -349,7 +349,7 @@
         $("#new_row"+ cloneCount).find('#vcCredit').attr('id', 'vcCredit'+ cloneCount);
 
         accList('account','account'+ cloneCount,account);
-        if(account=='1100.40'){
+        if(account=='2000.11'){
             accList('reference','vcRef'+ cloneCount,ref);
         }
         
