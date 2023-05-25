@@ -23,7 +23,7 @@
                 <input type="text" class="form-control text-uppercase" id="seachVc" name="seachVc" placeholder=""  />
               </div>
               <div class="col-md-3 form-group">
-                <label for="vcDate">Date</label>
+                <label class="form-label" for="vcDate">Date</label>
                 <input type="text" id="vcDate" name="vcDate" class="form-control flatpickr-range" placeholder="YYYY-MM-DD to YYYY-MM-DD" />
               </div>
               <div class="form-group col-md-3">
@@ -49,7 +49,7 @@
                 <div class="col-12"> 
                     <button type="button" class="btn btn-primary" id ="btnSearch" name="btnSearch">Search</button>
                     {{-- @can('pettyCash-create') --}}
-                    <a href="{{ route('kasPenerimaan.create') }}" class="btn btn-info"><i class="fa fa-plus"></i> Create</a>
+                    <a href="{{ route('kasKeluar.create') }}" class="btn btn-info"><i class="fa fa-plus"></i> Create</a>
                     {{-- @endcan --}}
                 </div>
             </div>
@@ -145,7 +145,7 @@
     }
     showDataTables({
       tableId:"detailedTable",
-      route:"{{ route('kasPenerimaan.list') }}",
+      route:"{{ route('kasKeluar.list') }}",
       kolom:{!! $kolom !!},
       arrColPrint:[1,2,3,4,5],
       columnDefs :[

@@ -14,14 +14,14 @@ use DB;
 use PDF;
 use AppHelpers;
 
-class KasPenerimaanController extends Controller
+class KasKeluarController extends Controller
 {
     private $title;
     private $moduleCode;
     public function __construct()
     {
-        $this->title = "Kas Penerimaan";
-        $this->moduleCode = "KM";
+        $this->title = "Kas Pembayaran";
+        $this->moduleCode = "KK";
     }
 
     public function getTableColoumn()
@@ -31,7 +31,7 @@ class KasPenerimaanController extends Controller
             ['data'=>'action','name'=>'action','title'=>'action','orderable'=> false,'searchable'=>false],
             ['data'=>'voucher_number','name'=>'voucher_number','title'=>'Voucher Number'],
             ['data'=>'voucher_date','name'=>'voucher_date','title'=>'Date'],
-            ['data'=>'receive_name','name'=>'receive_name','title'=>'Receive From'],
+            ['data'=>'supplier_name','name'=>'supplier_name','title'=>'Paid To'],
             ['data'=>'amount','name'=>'amount','title'=>'Amount'],
             ['data'=>'period','name'=>'period','title'=>'Period'],
             ['data'=>'note','name'=>'note','title'=>'Note'],
@@ -48,7 +48,8 @@ class KasPenerimaanController extends Controller
             ['data'=>'action','name'=>'action','title'=>'action','orderable'=> false,'searchable'=>false],
             ['data'=>'voucher_number','name'=>'voucher_number','title'=>'Voucher Number'],
             ['data'=>'account_number','name'=>'account_number','title'=>'Account Number'],
-            ['data'=>'amount','name'=>'amount','title'=>'Amount'],
+            ['data'=>'reference','name'=>'reference','title'=>'Reference'],
+            ['data'=>'amount','name'=>'amount','title'=>'Amount'],           
             ['data'=>'voucher_date','name'=>'voucher_date','title'=>'Date'],
             ['data'=>'currency','name'=>'currency','title'=>'Currency'],
             ['data'=>'kurs','name'=>'kurs','title'=>'Kurs'],
@@ -89,29 +90,30 @@ class KasPenerimaanController extends Controller
     public function index(Request $request)
     {
         $data['title'] = $this->title;
-        $data['type'] = 'penerimaan';
+        $data['type'] = 'pembayaran';
 
         $data['kolom'] = $this->getTableColoumn();
         $data['kolomDetail'] = $this->getTableColoumnDetail();
 
-        return view("accounting.kas.index",$data);
+        return view("accounting.kasKeluar.index",$data);
     }
 
     public function create(Request $request)
     {
         $data['title'] = "Create $this->title";
         $data['subtitle'] = "Create $this->title";
-        $data['type'] = 'penerimaan';
+        $data['type'] = 'pembayaran';
         
-        $data['accounts'] = DB::table('accounts')
-        ->orderBy('account')
+        $data['suppliers'] = DB::table('third_party')
+        ->where('third_party_type','supp')
+        ->orderBy('nama')
         ->get();
 
         $data['depts'] = DB::table('depts')
         ->orderBy('name')
         ->get();
 
-        return view("accounting.kas.create",$data);
+        return view("accounting.kasKeluar.create",$data);
 
     }
 
@@ -123,7 +125,7 @@ class KasPenerimaanController extends Controller
         $period = $request->period;
         $note = $request->note;
         $totalAmount= $request->totalAmount;
-        $recFrom = $request->recFrom;
+        $paidTo = $request->paidTo;
         $status = '1';
         $leadCode =$this->moduleCode;
 
@@ -166,8 +168,8 @@ class KasPenerimaanController extends Controller
                         'voucher_number' =>$vcNumber,
                         'voucher_type' =>$leadCode,
                         'voucher_date' =>$vcDate,
-                        'receive_from' =>$recFrom,
-                        // 'paid_to' =>,
+                        // 'receive_from' =>$recFrom,
+                        'paid_to' =>$paidTo,
                         'amount' =>$totalAmount,
                         'period' =>$period,
                         'year' =>date('Y'),                        
@@ -188,7 +190,7 @@ class KasPenerimaanController extends Controller
                             'cost_center' => $val->cc,
                             'debit' => $val->debit,
                             'credit' => $val->credit,
-                            // 'reference' => ,
+                            'reference' => $val->reference,
                             'created_by' => Auth::user()->username,
                             'updated_by' => Auth::user()->username,
                             'created_at' => date('Y-m-d H:i:s'),
@@ -223,8 +225,8 @@ class KasPenerimaanController extends Controller
         $data['subtitle'] = "Detail $this->title";
 
         $data['header'] = DB::table('kas_hdr')
-        ->leftJoin('accounts','accounts.account','kas_hdr.receive_from')
-        ->select('kas_hdr.*',db::raw("concat(accounts.account,'-',description) as receive_name"))
+        ->leftJoin('third_party','third_party.kode','kas_hdr.paid_to')
+        ->select('kas_hdr.*',db::raw("concat(third_party.kode,'-',third_party.nama) as supplier_name"))
         ->where('kas_hdr.id',$id)
         ->get()->first();
 
@@ -249,7 +251,7 @@ class KasPenerimaanController extends Controller
         $status = ['NEW','AUTHORIEED','DELETED','CLOSED'];
         $data['status'] = $status[$data['header']->status-1];
 
-        return view("accounting.kas.show",$data);
+        return view("accounting.kasKeluar.show",$data);
         
     }
 
@@ -259,11 +261,11 @@ class KasPenerimaanController extends Controller
         $username =  Auth::user()->username;
         $data['title'] = "Detail $this->title";
         $data['subtitle'] = "Detail $this->title";
-        $data['type'] = 'penerimaan';
+        $data['type'] = 'pembayaran';
 
         $data['header'] = DB::table('kas_hdr')
-        ->leftJoin('accounts','accounts.account','kas_hdr.receive_from')
-        ->select('kas_hdr.*',db::raw("concat(accounts.account,'-',description) as receive_name"))
+        // ->leftJoin('third_party','third_party.kode','kas_hdr.paid_to')
+        // ->select('kas_hdr.*',db::raw("concat(third_party.kode,'-',third_party.nama) as supplier_name"))
         ->where('kas_hdr.id',$id)
         ->get()->first();
 
@@ -280,8 +282,9 @@ class KasPenerimaanController extends Controller
         ->orderBy('id')
         ->get();
 
-        $data['accounts'] = DB::table('accounts')
-        ->orderBy('account')
+        $data['suppliers'] = DB::table('third_party')
+        ->where('third_party_type','supp')
+        ->orderBy('nama')
         ->get();
 
         $data['depts'] = DB::table('depts')
@@ -291,7 +294,7 @@ class KasPenerimaanController extends Controller
         $status = ['NEW','AUTHORIEED','DELETED','CLOSED'];
         $data['status'] = $status[$data['header']->status-1];
 
-        return view("accounting.kas.edit",$data);
+        return view("accounting.kasKeluar.edit",$data);
         
     }
 
@@ -304,7 +307,7 @@ class KasPenerimaanController extends Controller
         $period = $request->period;
         $note = $request->note;
         $totalAmount= $request->totalAmount;
-        $recFrom = $request->recFrom;
+        $paidTo = $request->paidTo;
         $status = '1';
         $leadCode =$this->moduleCode;
         
@@ -346,8 +349,8 @@ class KasPenerimaanController extends Controller
                     ->update(
                         [
                             'voucher_date' =>$vcDate,
-                            'receive_from' =>$recFrom,
-                            // 'paid_to' =>,
+                            // 'receive_from' =>$recFrom,
+                            'paid_to' =>$paidTo,
                             'amount' =>$totalAmount,
                             'period' =>$period,
                             'note' => $note,
@@ -369,7 +372,7 @@ class KasPenerimaanController extends Controller
                             'cost_center' => $val->cc,
                             'debit' => $val->debit,
                             'credit' => $val->credit,
-                            // 'reference' => ,
+                            'reference' => $val->reference,
                             'created_by' => Auth::user()->username,
                             'updated_by' => Auth::user()->username,
                             'created_at' => date('Y-m-d H:i:s'),
@@ -487,9 +490,9 @@ class KasPenerimaanController extends Controller
     {
         $seachVc = strtolower($request->seachVc);
         $vcDate = $request->vcDate;
-        $vcType = $this->moduleCode;
         $period = $request->period;
         $year = $request->year;
+        $vcType = $this->moduleCode;
         $fromDate = "";
         $toDate = "";
 
@@ -508,7 +511,7 @@ class KasPenerimaanController extends Controller
         }
 
         $data = DB::table('kas_hdr')
-        ->leftJoin('accounts','accounts.account','kas_hdr.receive_from')
+        ->leftJoin('third_party','third_party.kode','kas_hdr.paid_to')
         ->where(function ($query) use ($seachVc,$vcDate,$fromDate,$toDate,$period,$year) {
             $seachVc ? $query->where('voucher_number','ilike','%'.$seachVc.'%') : '';
             $vcDate ? $query->whereBetween('voucher_date', [$fromDate, $toDate]) : '';
@@ -520,7 +523,8 @@ class KasPenerimaanController extends Controller
         ->select(
             'kas_hdr.*'
             ,'kas_hdr.status as statusku'
-            ,db::raw("concat(accounts.account,'-',description) as receive_name"))
+            ,db::raw("concat(third_party.kode,'-',third_party.nama) as supplier_name")
+        )
         ->orderBy('id')
         ->get(); 
        
@@ -533,31 +537,31 @@ class KasPenerimaanController extends Controller
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
             
             // if (Auth::user()->can('bankPenerimaan-edit')) {
-                $buttons .=     '<a href="'. route('kasPenerimaan.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+                $buttons .=     '<a href="'. route('kasKeluar.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                     <i data-feather="file-text"></i>
                                     Edit
                                 </a>';
             // }
 
-            $buttons .=         '<a href="'. route('kasPenerimaan.show', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+            $buttons .=         '<a href="'. route('kasKeluar.show', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                     <i data-feather="list"></i>
                                     Detail
                                 </a>';
                         
-            $buttons .=         '<a href="'. route('kasPenerimaan.print', ['id'=>Crypt::encryptString($data->id)]) .'" target="_blank" class="dropdown-item">
+            $buttons .=         '<a href="'. route('kasKeluar.print', ['id'=>Crypt::encryptString($data->id)]) .'" target="_blank" class="dropdown-item">
                                     <i data-feather="printer"></i>
                                     Print
                                 </a>';
             
             
-            // if (Auth::user()->can('kasPenerimaan-delete')) {
+            // if (Auth::user()->can('kasKeluar-delete')) {
             if ($data->statusku != '4') {
                 $buttons .=         "<a href='javascript:;'
                                     id='deleteButton'
                                     class='dropdown-item'
                                     data-toggle='modal'
                                     data-target='#smallModal'
-                                    data-href='". route("kasPenerimaan.destroy", ['id'=>Crypt::encryptString($data->id)]) ."'>
+                                    data-href='". route("kasKeluar.destroy", ['id'=>Crypt::encryptString($data->id)]) ."'>
                                     <i data-feather='trash-2'></i>
                                     Delete
                                 </a>";
@@ -603,11 +607,11 @@ class KasPenerimaanController extends Controller
         ->distinct('depts.name')
         ->pluck('depts.name')->implode(',');
 
-        return view('accounting.kas.print',$data);
+        return view('accounting.kasKeluar.print',$data);
 
         // view()->share($data);
 
-        // $pdf = PDF::loadView('accounting.kas.print');
+        // $pdf = PDF::loadView('accounting.kasKeluar.print');
         // return $pdf->stream("$vcNumber.pdf");
 
     }

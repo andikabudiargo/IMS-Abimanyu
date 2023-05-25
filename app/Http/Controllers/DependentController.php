@@ -250,6 +250,15 @@ class DependentController extends Controller
                 $default='';
                 $defaulttxt='Choose Wos';
                 break;
+            case 'reference': 
+                $table='ap_invoice';
+                $field ='supplier_id';
+                $order ='ap_number';
+                $value = $code;
+                $name  ='ap_number';
+                $default='';
+                $defaulttxt='Choose invoice';
+                break;
             break;
                 default:
                     $table='';
@@ -469,6 +478,12 @@ class DependentController extends Controller
             //untuk wos minimal sudah di approved sekali statusnya udah validated
             $data= DB::table($table)
             ->where('status','=','2')
+            ->orderBy($order)
+            ->get();
+        }elseif($dependent =='reference'){
+            $data= DB::table($table)
+            ->where($field,$code)
+            // ->where('status','=','2')
             ->orderBy($order)
             ->get();
         }else{
