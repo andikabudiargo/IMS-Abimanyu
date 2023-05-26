@@ -303,6 +303,7 @@
                                 $('#voucherNumber').attr('disabled','disabled');
                                 $('#cmdSave').attr('disabled','disabled');
                                 $('#addNewRow').attr('disabled','disabled');
+                                window.location.href = "{{ route('kasPenerimaan.create') }}";
                             }
                         },
                         error: function(error) {
