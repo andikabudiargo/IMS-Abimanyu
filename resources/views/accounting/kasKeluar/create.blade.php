@@ -20,7 +20,7 @@
                             @csrf
                             <input type="text" id="article" name="article" hidden>
                             <div class="form-row">
-                                <div class="form-group col-md-4">
+                                <div class="form-group col-md-3">
                                     <label for="voucherNumber">Voucher Number</label>
                                     <input type="text" id="voucherNumber" name="voucherNumber" class="form-control" disabled/>
                                 </div>
@@ -39,7 +39,7 @@
                                 </div>
                             </div>
                             <div class="form-row">
-                                <div class="form-group col-md-4">
+                                <div class="form-group col-md-6">
                                     <label for="paidTo">Bayar Ke*</label>
                                     <select class="select2 form-control" id="paidTo" name="paidTo" required>
                                         <option value=""></option>
@@ -56,7 +56,7 @@
                                 </div>
                             </div>
                             <div class="form-row">
-                                <div class="form-group col-md-10">
+                                <div class="form-group col-md-9">
                                     <label class="form-label" for="note">Notes</label>
                                     <textarea type="text" id="note" name="note" class="form-control" rows="1" ></textarea>
                                 </div>
@@ -343,6 +343,23 @@
         $('[data-toggle="tooltip"]').tooltip();
     };
 
+    $('#paidTo').change(function(e){
+        let objAccount = $('#item_row select[name="account[]"]');
+        let objVcRef= $('#item_row select[name="vcRef[]"]');
+        let paidTo = $('#paidTo').val();
+        if (paidTo){
+            objAccount.map(function(i){
+                let $this=$(this);
+                let objSupp = "vcRef"+(i+1);
+                if ($this.val()){
+                    if ($this.val() =='2000.11'){
+                        invList('reference',objSupp,paidTo);
+                    }
+                }
+            });
+        }
+    });
+
     function findInvoice(){
         let objAccount = $('#item_row select[name="account[]"]');
         objAccount.change(function(e){        
@@ -358,7 +375,6 @@
                     Swal.fire('Warning..','Kolom bayar ke /supplier code masih kosong','warning');
                 }
             }
-            
 		});
     }   
     
