@@ -92,6 +92,10 @@
 @endsection
 @section('styles')
 <style>
+
+td.wrapok {
+    white-space:normal
+}
 </style>
 @endsection
 @section('scripts')
@@ -155,6 +159,7 @@
           render: $.fn.dataTable.render.number(',', '.', 0, ''),
           className: "text-right"
         },
+        {targets:[3], class:"wrapok"}
       ],
       dataSearch:  {
         seachVc:seachVc,

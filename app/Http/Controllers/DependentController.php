@@ -538,6 +538,8 @@ class DependentController extends Controller
                 if(($row->qty-$row->qty_po) > 0){
                     $output .="<option value='$row->pr_number'>$row->pr_number</option>";
                 }
+            }elseif($dependent =='reference'){
+                $output .="<option value='$row->ap_number'>$row->ap_number</option>";
             }else{
                 $output .='<option value="'.$row->$value.'">'.$row->$name.'</option>';
             }

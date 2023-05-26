@@ -350,8 +350,6 @@
             let accountNumber = objAccount.eq(objIndex).val();
             let paidTo = $('#paidTo').val();
             let objSupp = "vcRef"+(objIndex+1);
-            console.log(objSupp);
-            console.log(accountNumber);
             if (accountNumber =='2000.11'){
                 if(paidTo){
                     invList('reference',objSupp,paidTo);
