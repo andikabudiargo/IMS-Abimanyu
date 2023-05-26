@@ -676,10 +676,10 @@ class ArticleController extends Controller
             return $buttons;
         })
 
-        ->addColumn('article_alternative_code', function ($data) {
-            $badges=['badge-light-danger','badge-light-primary'];
-            return '<span style="display: none;">'.$data->article_alternative_code.'</span><a class="badge d-block '.$badges[$data->status].'" href="'. route('article.show', ['id'=>Crypt::encryptString($data->id)]) .'" ><span>'.$data->article_alternative_code.'</span></a>';
-        })
+        // ->addColumn('article_alternative_code', function ($data) {
+        //     $badges=['badge-light-danger','badge-light-primary'];
+        //     return '<span style="display: none;">'.$data->article_alternative_code.'</span><a class="badge d-block '.$badges[$data->status].'" href="'. route('article.show', ['id'=>Crypt::encryptString($data->id)]) .'" ><span>'.$data->article_alternative_code.'</span></a>';
+        // })
         
         ->addColumn('article_qty', function ($data) {
             // $artilceQty = $data->uom_group =='PIECE' ? number_format($data->article_qty) : number_format($data->article_qty,4);
