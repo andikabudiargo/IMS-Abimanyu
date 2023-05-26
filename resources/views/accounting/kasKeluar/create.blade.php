@@ -136,6 +136,7 @@
                     <hr>
                     <div class="col-12">
                         <a href="{{ route('kasKeluar.index') }}" class="btn btn-success">Back</a>
+                        <button class="btn btn-info" type="button" id="cmdNew" name="cmdNew">New</button>
                         <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Save</button>
                     </div>
                 </div>
@@ -221,18 +222,6 @@
         });
     }
     
-    function reloadPage(){
-        window.location.reload();
-    }
-
-    $("#cmdCancel").click(function(){
-        reloadPage();
-    });
-
-    $("#cmdNew").click(function(){
-        reloadPage();
-    });
-
     $("#cmdSave").click(function(){  
         let objTotalVcDebit= $('#vcTotalDebit').val().replace(/,/gi, '') || 0;
         let objTotalVcCredit= $('#vcTotalCredit').val().replace(/,/gi, '') || 0;
@@ -241,11 +230,10 @@
         let totalAmount = $('#totalAmount').val().replace(/,/gi, '') || 0;
         let note = $('#note').val();
         let paidTo = $('#paidTo').val();
-    
-        if (((parseInt(objTotalVcDebit)-parseInt(objTotalVcCredit)) == 0) && (parseInt(objTotalVcCredit)==parseInt(totalAmount))){
-            if (!$("#frmAdd")[0].checkValidity()){
-                $("#frmAdd").submit();
-            }else{   
+        if (!$("#frmAdd")[0].checkValidity()){
+            $("#frmAdd").submit();
+        }else{   
+            if (((parseInt(objTotalVcDebit)-parseInt(objTotalVcCredit)) == 0) && (parseInt(objTotalVcCredit)==parseInt(totalAmount))){
                 $('#cmdSave').attr('disabled','disabled');
                 $('.disabled-el').removeAttr('disabled');
                 // ambil semua data article
@@ -326,9 +314,9 @@
                     $('#cmdSave').removeAttribute('disabled');
                     Swal.fire('Warning..',pesan,'warning');
                 }
+            }else{
+                Swal.fire('Warning..',"Data belum balance",'warning');
             }
-        }else{
-            Swal.fire('Warning..',"Data belum balance",'warning');
         }
     });
 
@@ -403,6 +391,45 @@
         }
       })
     }
+
+    $("#cmdNew").click(function(){ 
+        let objAccount= $('#item_row select[name="account[]"]');
+        let details = [];
+        objAccount.map(function(i) {  
+            let $this=$(this);
+            if ($this.val()){
+                let sAccount=$this.val();
+                if (sAccount!==''){
+                    details.push({
+                        "account":sAccount
+                    });
+                }
+            }
+        });
+
+        console.log(objAccount);
+
+        if (details.length > 0){
+            Swal.fire({
+                title: 'Akan input data baru?',
+                text: "Apakah data sebelumnya akan di simpan!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Ya',
+                cancelButtonText: 'Tidak'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $("#cmdSave").click();
+                }else{
+                    window.location.href = "{{ route('kasKeluar.create') }}";
+                }
+            })
+        }else{
+            window.location.href = "{{ route('kasKeluar.create') }}";
+        }
+    });
 
     $.ajaxSetup({
         headers: {
