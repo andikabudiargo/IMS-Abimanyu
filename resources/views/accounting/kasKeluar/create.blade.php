@@ -246,12 +246,13 @@
                 let details = []; 
                 let flag=0; 
                 let pesan="";
+                let cekIsi=0;
 
-                objvcDesc.map(function(i) {  
+                objAccount.map(function(i) {  
                     let $this=$(this);
                     if ($this.val()){
-                        let sDesc=$this.val();
-                        let sAccount=objAccount.eq(i).val();
+                        let sAccount=$this.val();
+                        let sDesc=objvcDesc.eq(i).val();
                         let sRef=objVcRef.eq(i).val();
                         let sCc=objVcCc.eq(i).val();
                         let sDebit=objVcDebit.eq(i).val().replace(/,/gi, '') || 0;
@@ -267,17 +268,19 @@
                                 "credit":sCredit,
                             });
                         }
+
+                        if ((sDesc =='') || (sCc =='') || ((sDebit + sCredit) == 0)){
+                            cekIsi++;
+                        }
                     }
                 });
 
-                if (details.length == 0){
+                if ((details.length == 0) || (cekIsi >0)){
                     pesan +="Detail must be filled Out completely <br>"; 
                     flag=1;
                 }
 
                 if (flag == 0){
-                    // console.log(details);
-
                     $.ajax({
                         type: "post",
                         url: "{{ route('kasKeluar.store') }}",
@@ -303,16 +306,15 @@
                                 $('#voucherNumber').attr('disabled','disabled');
                                 $('#cmdSave').attr('disabled','disabled');
                                 $('#addNewRow').attr('disabled','disabled');
-                                window.location.href = "{{ route('kasPenerimaan.create') }}";
+                                window.location.href = "{{ route('kasKeluar.create') }}";
                             }
                         },
                         error: function(error) {
                             console.log(error);
                         }
                     });
-
                 }else{
-                    $('#cmdSave').removeAttribute('disabled');
+                    $('#cmdSave').removeAttr('disabled');
                     Swal.fire('Warning..',pesan,'warning');
                 }
             }else{
@@ -340,6 +342,7 @@
         hitungTotal();
         hitungGrandTotal();
         findInvoice();
+        getAmount();
         $('[data-toggle="tooltip"]').tooltip();
     };
 
@@ -362,21 +365,23 @@
 
     function findInvoice(){
         let objAccount = $('#item_row select[name="account[]"]');
-        objAccount.change(function(e){        
-            let objIndex = objAccount.index(this);
-            let accountNumber = objAccount.eq(objIndex).val();
-            let paidTo = $('#paidTo').val();
-            let objSupp = "vcRef"+(objIndex+1);
-            if (accountNumber =='2000.11'){
-                if(paidTo){
-                    invList('reference',objSupp,paidTo);
-                }else{
-                    objAccount.eq(objIndex).val('').trigger('change');
-                    Swal.fire('Warning..','Kolom bayar ke /supplier code masih kosong','warning');
+        if(objAccount){
+            objAccount.change(function(e){        
+                let objIndex = objAccount.index(this);
+                let accountNumber = objAccount.eq(objIndex).val();
+                let paidTo = $('#paidTo').val();
+                let objSupp = "vcRef"+(objIndex+1);
+                if (accountNumber =='2000.11'){
+                    if(paidTo){
+                        invList('reference',objSupp,paidTo);
+                    }else{
+                        objAccount.eq(objIndex).val('').trigger('change');
+                        Swal.fire('Warning..','Kolom bayar ke /supplier code masih kosong','warning');
+                    }
                 }
-            }
-		});
-    }   
+            });
+        }
+    }
     
     function accList(dependent,obj) {
       $.ajax({
@@ -407,6 +412,43 @@
       })
     }
 
+    function getAmount(){
+        let objRef = $('#item_row select[name="vcRef[]"]');
+        if(objRef){
+            objRef.change(function(e){ 
+                let objIndex = objRef.index(this);
+                let vRef = objRef.eq(objIndex).val();
+                getAmountValue(vRef,objIndex);
+            });
+        }
+    }   
+
+    function getAmountValue(vRef,objIndex) {
+        let objVcDebit= $('#item_row input[name="vcDebit[]"]');
+        let objVcCredit= $('#item_row input[name="vcCredit[]"]');
+        $.ajax({
+            type: "get",
+            url: "{{ route('kasKeluar.get.invoice.amount') }}",
+            data: {
+                vRef:vRef
+            },
+            dataType: "json",
+            success: function(data) {
+                objVcCredit.eq(objIndex).val('');
+                objVcDebit.eq(objIndex).val('');
+
+                if(data.amount){
+                    objVcDebit.eq(objIndex).val(humanizeNumber(data.amount));
+                    objVcCredit.eq(objIndex).val('');
+                }
+            },
+            error: function(error) {
+                console.log(error);
+            }
+        });
+    }
+
+
     $("#cmdNew").click(function(){ 
         let objAccount= $('#item_row select[name="account[]"]');
         let details = [];
@@ -421,8 +463,6 @@
                 }
             }
         });
-
-        console.log(objAccount);
 
         if (details.length > 0){
             Swal.fire({

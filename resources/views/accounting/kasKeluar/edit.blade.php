@@ -41,10 +41,10 @@
                             <div class="form-row">
                                 <div class="form-group col-md-6">
                                     <label for="paidTo">Bayar Ke*</label>
-                                    <select class="select2 form-control" id="paidTo" name="paidTo" required>
+                                    <select class="select2 form-control" id="paidTo" name="paidTo" required disabled>
                                         <option value=""></option>
                                         @foreach ($suppliers as $val)
-                                            <option value="{{ $val->kode }}" {{$val->kode == $header->paid_to ? "selected" : ""}} disabled>{{ $val->kode }} | {{ $val->nama }}</option>
+                                            <option value="{{ $val->kode }}" {{$val->kode == $header->paid_to ? "selected" : ""}}>{{ $val->kode }} | {{ $val->nama }}</option>
                                         @endforeach
                                     </select>
                                 </div>
@@ -262,12 +262,13 @@
                 let details = []; 
                 let flag=0; 
                 let pesan="";
+                let cekIsi=0;
 
-                objvcDesc.map(function(i) {  
+                objAccount.map(function(i) {  
                     let $this=$(this);
                     if ($this.val()){
-                        let sDesc=$this.val();
-                        let sAccount=objAccount.eq(i).val();
+                        let sAccount=$this.val();
+                        let sDesc=objvcDesc.eq(i).val();
                         let sRef=objvcRef.eq(i).val();
                         let sCc=objVcCc.eq(i).val();
                         let sDebit=objVcDebit.eq(i).val().replace(/,/gi, '') || 0;
@@ -283,17 +284,19 @@
                                 "credit":sCredit,
                             });
                         }
+
+                        if ((sDesc =='') || (sCc =='') || ((sDebit + sCredit) == 0)){
+                            cekIsi++;
+                        }
                     }
                 });
 
-                if (details.length == 0){
+                if ((details.length == 0) || (cekIsi >0)){
                     pesan +="Detail must be filled Out completely <br>"; 
                     flag=1;
                 }
 
                 if (flag == 0){
-                    console.log(details);
-
                     $.ajax({
                         type: "post",
                         url: "{{ route('kasKeluar.update') }}",
@@ -336,7 +339,7 @@
         }
     });
 
-    let cloneCount=1;
+    let cloneCount=0;
     function add_new_row(account,desc,ref,cc,debit,credit) {
         $("#item_row").append($("#new_row").clone().html());
         cloneCount++;
@@ -349,8 +352,10 @@
         $("#new_row"+ cloneCount).find('#vcCredit').attr('id', 'vcCredit'+ cloneCount);
 
         accList('account','account'+ cloneCount,account);
+
         if(account=='2000.11'){
-            accList('reference','vcRef'+ cloneCount,ref);
+            let paidTo = $('#paidTo').val();
+            invList('reference','vcRef'+ cloneCount,paidTo,ref);
         }
         
         $("#account"+cloneCount).select2();
@@ -368,8 +373,35 @@
         mask_thousand();
         hitungTotal();
         hitungGrandTotal();
+        
+        if(!account){
+            console.log("oki");
+            getAmount();
+            findInvoice();
+        }
+
         $('[data-toggle="tooltip"]').tooltip();
     };
+
+    function findInvoice(ref){
+        let objAccount = $('#item_row select[name="account[]"]');
+        if(objAccount){
+            objAccount.change(function(e){        
+                let objIndex = objAccount.index(this);
+                let accountNumber = objAccount.eq(objIndex).val();
+                let paidTo = $('#paidTo').val();
+                let objSupp = "vcRef"+(objIndex+1);
+                if (accountNumber =='2000.11'){
+                    if(paidTo){
+                        invList('reference',objSupp,paidTo,ref);
+                    }else{
+                        objAccount.eq(objIndex).val('').trigger('change');
+                        Swal.fire('Warning..','Kolom bayar ke /supplier code masih kosong','warning');
+                    }
+                }
+            });
+        }
+    }
 
     function accList(dependent,obj,account) {
       $.ajax({
@@ -383,6 +415,57 @@
             $('#'+obj).val(account).trigger('change');
         }
       })
+    }
+
+    function invList(dependent,obj,value,ref) {
+      $.ajax({
+        url:"{{route('dynamic.dependent')}}",
+        method:"POST",
+        data:{
+            dependent:dependent,
+            value:value
+        },
+        success:function(result){
+            $('#'+obj).html(result);
+            $('#'+obj).val(ref).trigger('change');
+        }
+      })
+    }
+
+    function getAmount(){
+        let objRef = $('#item_row select[name="vcRef[]"]');
+        if(objRef){
+            objRef.change(function(e){ 
+                let objIndex = objRef.index(this);
+                let vRef = objRef.eq(objIndex).val();
+                getAmountValue(vRef,objIndex);
+            });
+        }
+    }   
+
+    function getAmountValue(vRef,objIndex) {
+        let objVcDebit= $('#item_row input[name="vcDebit[]"]');
+        let objVcCredit= $('#item_row input[name="vcCredit[]"]');
+        $.ajax({
+            type: "get",
+            url: "{{ route('kasKeluar.get.invoice.amount') }}",
+            data: {
+                vRef:vRef
+            },
+            dataType: "json",
+            success: function(data) {
+                objVcCredit.eq(objIndex).val('');
+                objVcDebit.eq(objIndex).val('');
+
+                if(data.amount){
+                    objVcDebit.eq(objIndex).val(humanizeNumber(data.amount));
+                    objVcCredit.eq(objIndex).val('');
+                }
+            },
+            error: function(error) {
+                console.log(error);
+            }
+        });
     }
 
     $.ajaxSetup({

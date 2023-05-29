@@ -616,4 +616,15 @@ class KasKeluarController extends Controller
 
     }
 
+    public function getInvoiceAmount(Request $request)
+    {
+        $refNumber = $request->vRef;
+        $amount = db::table('ap_invoice')
+        ->where('ap_number',$refNumber)
+        ->select(db::raw("basis_amount+vat as amount"))
+        ->value('amount');
+
+        return response()->json(array('amount' => $amount));
+    }
+
 }

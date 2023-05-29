@@ -671,6 +671,7 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('kasKeluar/delete',['as'=>'kasKeluar.destroy','uses'=>'Accounting\KasKeluarController@destroy']);
 	Route::get('kasKeluar/print',['as'=>'kasKeluar.print','uses'=>'Accounting\KasKeluarController@print']);
 	Route::get('kasKeluar/authorize',['as'=>'kasKeluar.authorize','uses'=>'Accounting\KasKeluarController@otorisasi']);
+	Route::get('kasKeluar/get/invoice/ammount',['as'=>'kasKeluar.get.invoice.amount','uses'=>'Accounting\KasKeluarController@getInvoiceAmount']);
 
 	Route::get('stockTake',['as'=>'stockTake.index','uses'=>'StockTake\StockTakeController@index']);
 	Route::post('stockTake/import',['as'=>'stockTake.import','uses'=>'StockTake\StockTakeController@import']);

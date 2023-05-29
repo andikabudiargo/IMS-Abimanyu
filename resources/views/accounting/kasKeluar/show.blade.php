@@ -59,83 +59,72 @@
         </div>
         <div class="col-12">
             <div class="card">
-                {{-- <div class="card-header">
-                    <h4 class="card-title">Article</h4>
-                </div> --}}
                 <div class="card-body">
-                    <div>
-                        <table class="" style="width:98%;table-layout: fixed;">
-                            <tbody>
-                                <tr>
-                                    <td class="isian" style="width: 30%">
-                                        <label>Account</label>
-                                    </td>
-                                    <td class="isian" style="">
-                                        <label>Description</label>
-                                    </td>
-                                    <td class="isian" style="">
-                                        <label>Referensi</label>
-                                    </td>
-                                    <td class="isian" style="">
-                                        <label>CC</label>
-                                    </td>
-                                    <td class="isian" style="width: 10%">
-                                        <label>Debit</label>
-                                    </td>
-                                    <td class="isian" style="width: 10%">
-                                        <label>Credit</label>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <div class="" id="article_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px">
-                        <div id="new_row" class="tanda-baris" >
-                            <table class="table-bordered" style="width: 98%;table-layout: fixed;">
-                                <tbody>
-                                    @foreach ($details as $key =>$item)
-                                    <tr>
-                                        <td class="isian" style="width: 30%">
-                                            {{ $item->account_name }}             
-                                        </td>
-                                        <td class="isian" style="">
-                                            {{ $item->description }}
-                                        </td>
-                                        <td class="isian" style="">
-                                            {{ $item->reference }}
-                                        </td>
-                                        <td class="isian" style="">
-                                            {{ $item->cost_center_name }}
-                                        </td>
-                                        <td class="isian text-right" style="width: 10%">
-                                            {{ number_format($item->debit) }}
-                                        </td>
-                                        <td class="isian text-right" style="width: 10%">
-                                            {{ number_format($item->credit) }}
-                                        </td>
-                                    </tr>
-                                    @endforeach
-                                    <tr>
-                                        <td class="isian" style="width: 30%">
-                                        </td>
-                                        <td class="isian">
-                                        </td>
-                                        <td class="isian">
-                                        </td>
-                                        <td class="isian">
-                                            TOTAL
-                                        </td>
-                                        <td class="isian text-right" style="width: 10%">
-                                            {{ number_format($total->total_debit) }}
-                                        </td>
-                                        <td class="isian text-right" style="width: 10%">
-                                            {{ number_format($total->total_credit) }}
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
+                    <table class="table-bordered">
+                        <thead>
+                            <tr>
+                                <th class="isian" style="width: 30%">
+                                    <label>Account</label>
+                                </th>
+                                <th class="isian" style="">
+                                    <label>Description</label>
+                                </th>
+                                <th class="isian" style="">
+                                    <label>Referensi</label>
+                                </th>
+                                <th class="isian" style="">
+                                    <label>CC</label>
+                                </th>
+                                <th class="isian" style="width: 10%">
+                                    <label>Debit</label>
+                                </th>
+                                <th class="isian" style="width: 10%">
+                                    <label>Credit</label>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach ($details as $key =>$item)
+                            <tr>
+                                <td class="isian" style="width: 30%">
+                                    {{ $item->account_name }}             
+                                </td>
+                                <td class="isian" style="">
+                                    {{ $item->description }}
+                                </td>
+                                <td class="isian" style="">
+                                    {{ $item->reference }}
+                                </td>
+                                <td class="isian" style="">
+                                    {{ $item->cost_center_name }}
+                                </td>
+                                <td class="isian text-right" style="width: 10%">
+                                    {{ number_format($item->debit) }}
+                                </td>
+                                <td class="isian text-right" style="width: 10%">
+                                    {{ number_format($item->credit) }}
+                                </td>
+                            </tr>
+                            @endforeach
+                            <tr>
+                                <td class="isian" style="width: 30%">
+                                </td>
+                                <td class="isian">
+                                </td>
+                                <td class="isian">
+                                </td>
+                                <td class="isian">
+                                    TOTAL
+                                </td>
+                                <td class="isian text-right" style="width: 10%">
+                                    {{ number_format($total->total_debit) }}
+                                </td>
+                                <td class="isian text-right" style="width: 10%">
+                                    {{ number_format($total->total_credit) }}
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
@@ -164,6 +153,11 @@
         padding-left:10px;
     }
 
+    th.isian{
+        padding-right:10px;
+        padding-left:10px;
+    }
+
     td.isian-satu{
         padding-right:5px;
         padding-left:15px;
@@ -177,10 +171,10 @@
         color:black;
     }
 
-    label.tanpa-padding{
+    /* label.tanpa-padding{
         padding-top: 5px;
         padding-bottom: 0px;
-    }
+    } */
 
     .totalLine{
         display: block;

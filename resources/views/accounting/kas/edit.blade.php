@@ -255,12 +255,13 @@
                 let details = []; 
                 let flag=0; 
                 let pesan="";
+                let cekIsi=0;
 
-                objvcDesc.map(function(i) {  
+                objAccount.map(function(i) {  
                     let $this=$(this);
                     if ($this.val()){
-                        let sDesc=$this.val();
-                        let sAccount=objAccount.eq(i).val();
+                        let sAccount=$this.val();
+                        let sDesc=objvcDesc.eq(i).val();
                         let sCc=objVcCc.eq(i).val();
                         let sDebit=objVcDebit.eq(i).val().replace(/,/gi, '') || 0;
                         let sCredit=objVcCredit.eq(i).val().replace(/,/gi, '') || 0;
@@ -274,17 +275,19 @@
                                 "credit":sCredit,
                             });
                         }
+
+                        if ((sDesc =='') || (sCc =='') || ((sDebit + sCredit) == 0)){
+                            cekIsi++;
+                        }
                     }
                 });
 
-                if (details.length == 0){
+                if ((details.length == 0) || (cekIsi >0)){
                     pesan +="Detail must be filled Out completely <br>"; 
                     flag=1;
                 }
 
                 if (flag == 0){
-                    console.log(details);
-
                     $.ajax({
                         type: "post",
                         url: "{{ route('kasPenerimaan.update') }}",
