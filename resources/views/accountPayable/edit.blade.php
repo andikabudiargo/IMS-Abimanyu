@@ -207,7 +207,7 @@
                                             <br>
                                             <div class="form-row">
                                                 <div class="col-md-12">
-                                                    <a href="{{ route('aps.index') }}" class="btn btn-success">Back</a>
+                                                    <a href="{{ route('aps.index') }}" class="btn btn-light">Back</a>
                                                     @if($details->status == '1' || $details->status =='2' )
                                                         <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Update</button>
                                                     @endif

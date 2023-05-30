@@ -201,7 +201,7 @@
                         @endforeach
                         <div class="form-row">
                             <div class="col-md-12">
-                                <a href="{{ route('aps.index') }}" class="btn btn-success">Back</a>
+                                <a href="{{ route('aps.index') }}" class="btn btn-light">Back</a>
                             </div>
                         </div>
                     </div>

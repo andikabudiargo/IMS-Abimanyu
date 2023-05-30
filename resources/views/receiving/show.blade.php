@@ -117,7 +117,7 @@
                         <div class="col-12">
                             <div class="form-row">
                                 <div class="col-12">
-                                    <a href="{{ route('receivings.index') }}" class="btn btn-warning">Back</a>
+                                    <a href="{{ route('receivings.index') }}" class="btn btn-light">Back</a>
                                     {{-- <a href="{{ route('receiving.create') }}" class="btn btn-success">New</a> --}}
                                 </div>
                             </div>

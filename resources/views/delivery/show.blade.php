@@ -154,7 +154,7 @@
                                     </div>
                                     <hr>
                                     <div class="mt-75">
-                                        <a href="{{ route('delivery.index') }}" class="btn btn-warning">Back</a>
+                                        <a href="{{ route('delivery.index') }}" class="btn btn-light">Back</a>
                                         <a href="{{ route('delivery.print',['id'=>Crypt::encryptString($header2->id)]) }}" target="_blank" class="btn btn-success">Print</a>
                                     </div>
                                 </div>

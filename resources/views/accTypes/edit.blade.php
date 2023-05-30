@@ -38,7 +38,7 @@
                         </div>
                         <div class="row">
                             <div class="col-12">
-                                <a href="{{ route('accTypes.index') }}" class="btn btn-success">Back</a>
+                                <a href="{{ route('accTypes.index') }}" class="btn btn-light">Back</a>
                                 <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Save</button>
                             </div>
                         </div>

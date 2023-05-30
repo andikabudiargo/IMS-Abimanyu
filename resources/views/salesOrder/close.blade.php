@@ -235,7 +235,7 @@
                     <br/>
                     <div class="form-row">
                         <div class="col-md-12">
-                            <a href="{{ route('salesOrders.index') }}" class="btn btn-success">Back</a>
+                            <a href="{{ route('salesOrders.index') }}" class="btn btn-light">Back</a>
                             <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Update</button>
                         </div>
                     </div>

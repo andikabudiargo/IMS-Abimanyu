@@ -66,7 +66,7 @@
                             </div>
                             <div class="form-row">
                                 <div class="col-12">
-                                    <a href="{{ route('pettyCashs.index') }}" class="btn btn-warning">Back</a>
+                                    <a href="{{ route('pettyCashs.index') }}" class="btn btn-light">Back</a>
                                     <button class="btn btn-success" type="reset" id="cmdNew" name="cmdCancel">New</button>
                                     <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Save</button>
                                 </div>

@@ -157,7 +157,7 @@
                         <div class="col-md-12">
                             <div class="form-row">
                                 <div class="col-md-12">
-                                    <a href="{{ route('invoice.index') }}" class="btn btn-warning">Back</a>
+                                    <a href="{{ route('invoice.index') }}" class="btn btn-light">Back</a>
                                 </div>
                             </div>
                         </div>

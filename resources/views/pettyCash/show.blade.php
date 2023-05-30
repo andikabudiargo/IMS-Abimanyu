@@ -99,7 +99,7 @@
                                 <div class="col-12">
                                     <div class="form-row">
                                         <div class="col-12">
-                                            <a href="{{ route('purchaseOrders.index') }}" class="btn btn-warning">Back</a>
+                                            <a href="{{ route('purchaseOrders.index') }}" class="btn btn-light">Back</a>
                                             @if( $header->status == '1')
                                                 @can('purchaseOrder-validate')
                                                     <button class="btn btn-primary" type="button" id="cmdValidate" name="cmdValidate">Validate</button>

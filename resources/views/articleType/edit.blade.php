@@ -32,7 +32,7 @@
                         </div>
                         <div class="form-row">
                             <div class="col-md-12">
-                                <a href="{{ route('articleTypes.index') }}" class="btn btn-success">Back</a>
+                                <a href="{{ route('articleTypes.index') }}" class="btn btn-light">Back</a>
                                 <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Save</button>
                             </div>
                         </div>

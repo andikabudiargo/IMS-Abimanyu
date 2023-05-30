@@ -63,7 +63,7 @@
                                 <div class="col-12">
                                     <div class="row">
                                         <div class="col-12">
-                                            <a href="{{ route('receivings.index') }}" class="btn btn-success">Back</a>
+                                            <a href="{{ route('receivings.index') }}" class="btn btn-light">Back</a>
                                             <a href="{{ route('receiving.create') }}" class="btn btn-success">New</a>
                                             @if( $header->status != '3' && $header->status != '4')
                                                 @can('receiving-delete')

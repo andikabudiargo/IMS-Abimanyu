@@ -110,7 +110,7 @@
                     <hr>
                     <div class="form-row mt-75">
                         <div class="col-md-12">
-                            <a href="{{ route('targetSo.index') }}" class="btn btn-warning">Back</a>
+                            <a href="{{ route('targetSo.index') }}" class="btn btn-light">Back</a>
                             <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Save</button>
                         </div>
                     </div>

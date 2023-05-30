@@ -107,7 +107,7 @@
                                         </div>
                                     </div>
                                     <br>
-                                    <a href="{{ route('targetSo.index') }}" class="btn btn-success">Back</a>
+                                    <a href="{{ route('targetSo.index') }}" class="btn btn-light">Back</a>
                                 </div>
                             @endforeach
                         </div>

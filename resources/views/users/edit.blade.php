@@ -58,7 +58,7 @@
                             </div>
                         </div>
                     </div>
-                    <a href="{{ URL::previous() }}" class="btn btn-success">Back</a>
+                    <a href="{{ URL::previous() }}" class="btn btn-light">Back</a>
                     <button type="button" id="cmdSave" class="btn btn-primary">Save</button>
                     {!! Form::close() !!}
                 </div>

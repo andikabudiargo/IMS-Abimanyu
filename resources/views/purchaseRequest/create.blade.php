@@ -92,7 +92,7 @@
                     </div>
                     <hr>
                     <div class="mt-75">
-                        <a href="{{ route('purchaseRequests.index') }}" class="btn btn-warning">Back</a>
+                        <a href="{{ route('purchaseRequests.index') }}" class="btn btn-light">Back</a>
                         <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Save</button>
                     </div>
                 </div>

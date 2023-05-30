@@ -59,7 +59,7 @@
                                 <div class="col-12">
                                     <div class="row">
                                         <div class="col-12">
-                                            <a href="{{ route('receivingsRm.index') }}" class="btn btn-warning">Back</a>
+                                            <a href="{{ route('receivingsRm.index') }}" class="btn btn-light">Back</a>
                                             <a href="{{ route('receivingRm.create') }}" class="btn btn-success">New</a>
                                         </div>
                                     </div>

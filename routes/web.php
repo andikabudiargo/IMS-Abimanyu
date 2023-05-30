@@ -627,23 +627,6 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('deliveryInstruction/article/list',['as'=>'deliveryInstruction.article.list','uses'=>'DeliveryInstructionController@articleList']);
 	Route::get('deliveryInstruction/qty/po',['as'=>'deliveryInstruction.qty.po','uses'=>'DeliveryInstructionController@qtyPo']);
 
-	// Route::get('bankPenerimaan',['as'=>'bankPenerimaan.index','uses'=>'Accounting\BankPenerimaanController@index','middleware' => ['permission:pettyCash-index']]);
-	// // Route::get('bankPenerimaan/create',['as'=>'bankPenerimaan.create','uses'=>'Accounting\BankPenerimaanController@create','middleware' => ['permission:bankPenerimaan-create']]);
-	// Route::get('bankPenerimaan/create',['as'=>'bankPenerimaan.create','uses'=>'Accounting\BankPenerimaanController@create']);
-	// Route::post('bankPenerimaan/store',['as'=>'bankPenerimaan.store','uses'=>'Accounting\BankPenerimaanController@store']);
-	// Route::get('bankPenerimaan/list',['as'=>'bankPenerimaan.list','uses'=>'Accounting\BankPenerimaanController@list']);
-	// Route::get('bankPenerimaan/show',['as'=>'bankPenerimaan.show','uses'=>'Accounting\BankPenerimaanController@show']);
-	// Route::get('bankPenerimaan/edit',['as'=>'bankPenerimaan.edit','uses'=>'Accounting\BankPenerimaanController@edit','middleware' => ['permission:bankPenerimaan-edit']]);
-	// Route::post('bankPenerimaan/update',['as'=>'bankPenerimaan.update','uses'=>'Accounting\BankPenerimaanController@update']);
-	// Route::post('bankPenerimaan/delete',['as'=>'bankPenerimaan.destroy','uses'=>'Accounting\BankPenerimaanController@destroy']);
-	// Route::post('bankPenerimaan/clear',['as'=>'bankPenerimaan.clear','uses'=>'Accounting\BankPenerimaanController@clear']);
-	// Route::get('bankPenerimaan/code/create',['as'=>'bankPenerimaan.code.create','uses'=>'Accounting\BankPenerimaanController@articleCodeCreate']);
-	// Route::get('bankPenerimaan/print',['as'=>'bankPenerimaan.print','uses'=>'Accounting\BankPenerimaanController@print']);
-	// Route::get('bankPenerimaan/revision',['as'=>'bankPenerimaan.revision','uses'=>'Accounting\BankPenerimaanController@revision','middleware' => ['permission:bankPenerimaan-revision']]);
-	// Route::get('bankPenerimaan/validate',['as'=>'bankPenerimaan.validate','uses'=>'Accounting\BankPenerimaanController@validasi']);
-	// Route::get('bankPenerimaan/authorize',['as'=>'bankPenerimaan.authorize','uses'=>'Accounting\BankPenerimaanController@otorisasi']);
-
-
 	Route::get('kasPenerimaan',['as'=>'kasPenerimaan.index','uses'=>'Accounting\KasPenerimaanController@index','middleware' => ['permission:pettyCash-index']]);
 	// Route::get('kasPenerimaan/create',['as'=>'kasPenerimaan.create','uses'=>'Accounting\KasPenerimaanController@create','middleware' => ['permission:kasPenerimaan-create']]);
 	Route::get('kasPenerimaan/create',['as'=>'kasPenerimaan.create','uses'=>'Accounting\KasPenerimaanController@create']);
@@ -659,7 +642,7 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('kasPenerimaan/print',['as'=>'kasPenerimaan.print','uses'=>'Accounting\KasPenerimaanController@print']);
 	// Route::get('kasPenerimaan/revision',['as'=>'kasPenerimaan.revision','uses'=>'Accounting\KasPenerimaanController@revision','middleware' => ['permission:kasPenerimaan-revision']]);
 	// Route::get('kasPenerimaan/validate',['as'=>'kasPenerimaan.validate','uses'=>'Accounting\KasPenerimaanController@validasi']);
-	Route::get('kasPenerimaan/authorize',['as'=>'kasPenerimaan.authorize','uses'=>'Accounting\KasPenerimaanController@otorisasi']);
+	Route::get('kasPenerimaan/approve',['as'=>'kasPenerimaan.approve','uses'=>'Accounting\KasPenerimaanController@approve']);
 
 	Route::get('kasKeluar',['as'=>'kasKeluar.index','uses'=>'Accounting\KasKeluarController@index','middleware' => ['permission:pettyCash-index']]);
 	Route::get('kasKeluar/create',['as'=>'kasKeluar.create','uses'=>'Accounting\KasKeluarController@create']);
@@ -670,7 +653,7 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('kasKeluar/update',['as'=>'kasKeluar.update','uses'=>'Accounting\KasKeluarController@update']);
 	Route::post('kasKeluar/delete',['as'=>'kasKeluar.destroy','uses'=>'Accounting\KasKeluarController@destroy']);
 	Route::get('kasKeluar/print',['as'=>'kasKeluar.print','uses'=>'Accounting\KasKeluarController@print']);
-	Route::get('kasKeluar/authorize',['as'=>'kasKeluar.authorize','uses'=>'Accounting\KasKeluarController@otorisasi']);
+	Route::get('kasKeluar/approve',['as'=>'kasKeluar.approve','uses'=>'Accounting\KasKeluarController@approve']);
 	Route::get('kasKeluar/get/invoice/ammount',['as'=>'kasKeluar.get.invoice.amount','uses'=>'Accounting\KasKeluarController@getInvoiceAmount']);
 
 	Route::get('stockTake',['as'=>'stockTake.index','uses'=>'StockTake\StockTakeController@index']);

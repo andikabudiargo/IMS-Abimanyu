@@ -13,6 +13,7 @@ use DataTables;
 use DB;
 use PDF;
 use AppHelpers;
+use Approval;
 
 class KasPenerimaanController extends Controller
 {
@@ -35,6 +36,7 @@ class KasPenerimaanController extends Controller
             // ['data'=>'receive_name','name'=>'receive_name','title'=>'Receive From'],
             ['data'=>'amount','name'=>'amount','title'=>'Amount'],
             ['data'=>'period','name'=>'period','title'=>'Period'],
+            ['data'=>'statusku','name'=>'statusku','title'=>'Status'],
             ['data'=>'created_by','name'=>'created_by','title'=>'Created By'],
             ['data'=>'created_at','name'=>'created_at','title'=>'Created At']
         ];
@@ -246,7 +248,11 @@ class KasPenerimaanController extends Controller
         ->where('voucher_number',$vcNumber)
         ->first();
 
-        $status = ['NEW','AUTHORIEED','DELETED','CLOSED'];
+        $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode,$vcNumber,$username);
+        $data['approveValidate'] = Approval::approveValidate($this->moduleCode,$vcNumber,$username);
+
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATED','3'=>'APPROVED','4'=>'','5'=>'DELETED','6'=>'CLOSED'];
+        $status = ['NEW','VALIDATED','APPROVED','','DELETED','CLOSED'];
         $data['status'] = $status[$data['header']->status-1];
 
         return view("accounting.kas.show",$data);
@@ -288,7 +294,11 @@ class KasPenerimaanController extends Controller
         ->orderBy('name')
         ->get();
 
-        $status = ['NEW','AUTHORIEED','DELETED','CLOSED'];
+        $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode,$vcNumber,$username);
+        $data['approveValidate'] = Approval::approveValidate($this->moduleCode,$vcNumber,$username);
+
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATED','3'=>'APPROVED','4'=>'','5'=>'DELETED','6'=>'CLOSED'];
+        $status = ['NEW','VALIDATED','APPROVED','','DELETED','CLOSED'];
         $data['status'] = $status[$data['header']->status-1];
 
         return view("accounting.kas.edit",$data);
@@ -397,46 +407,57 @@ class KasPenerimaanController extends Controller
 
     }
 
-    public function otorisasi(Request $request)
+    public function approve(Request $request)
     {
-        // status:
-        // 1 = New
-        // 2 = Validated
-        // 3 = Authorized
-        // 4 = Received
-        // 5 = Canceled
-        // 6 = closed
-        // 7 = Revised
-
         $username =  Auth::user()->username;
-        $poNumber = $request -> poNumber;
-        $statusKM = 'Authorized';
-        $status = '3';
+        $vcNumber = $request->vcNumber;
+        $statusLevelApproval = Approval::approvalLevelPosition($this->moduleCode,$vcNumber,$username);        
+        $nextLevel = $statusLevelApproval[0]->next_level;
+        $status = $statusLevelApproval[0]->next_level == $statusLevelApproval[0]->max_level ? '3' :'2';
 
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATED','3'=>'APPROVED','4'=>'','5'=>'DELETED','6'=>"CLOSED"];
+                
         DB::beginTransaction();
         try {
-                $row_affected=DB::table('purchase_order_hdr')
-                ->where('po_number',$poNumber)
+                $row_affected=DB::table('kas_hdr')
+                ->where('voucher_number',$vcNumber)
                 ->update(
                     [
                         'status' => $status,
-                        'authorized_by' => Auth::user()->username,
-                        'authorized_at' => date('Y-m-d H:i:s')
+                        'updated_by' => Auth::user()->username,
+                        'updated_at' => date('Y-m-d H:i:s')
                     ]
                 );
 
+                if ($row_affected){
+                    DB::table('approval_history')->insert([
+                        'module_code' => $this->moduleCode,
+                        'module_number' => $vcNumber,
+                        'username' => Auth::user()->username,
+                        'approval_order' => $nextLevel,
+                        'approval_date' => date('Y-m-d'),
+                        'status' => 1,
+                        'created_by' => Auth::user()->username,
+                        'updated_by' => Auth::user()->username,
+                        'created_at' => date('Y-m-d H:i:s'),
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]);
+                }
+                
                 DB::commit();
-                $alert  ="alert-success";
-                $message  = "KM $poNumber is successfully Authorized";
-                \LogActivity::addToLog('KM update ',"username: $username Status $message");
-                return response()->json(array('statusPo' => $statusPo,'status' => 1, 'message' => $message,'alert'=>$alert,'poNumber'=>$poNumber));
+                $title ="Approve $this->title";
+                $alert  ="success";
+                $message  = "$title $vcNumber is successfully Approve-".$nextLevel;
+                \LogActivity::addToLog($title,"username: $username Status $message");
+                return response()->json(array('status' => $status,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'$vcNumber'=>$vcNumber));
 
         } catch (Exception $e) {
             DB::rollBack();
-            $alert  ="alert-warning";
-            $message  = "KM $poNumber is failed to Authorize";
-            \LogActivity::addToLog('KM update ',"username: $username Status $message");
-            return response()->json(array('statusPo' => $statusPo,'status' => 1, 'message' => $message,'alert'=>$alert,'poNumber'=>$poNumber));
+            $title ="Approve $this->title";
+            $alert  ="warning";
+            $message  = "$title $vcNumber is failed to Approve-".$nextLevel;
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return response()->json(array('status' => $status,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'$vcNumber'=>$vcNumber));
         }
     }
 
@@ -444,14 +465,14 @@ class KasPenerimaanController extends Controller
     {
         $username =  Auth::user()->username;    
         $id=Crypt::decryptString($request->id);   
-        $status = '3'; //DELETED
+        $status = '5'; //DELETED
         
         /*
-            status nya bukan 4 bisa di delete
-            status 4 = closed
+            status nya bukan 6 bisa di delete
+            status 6 = closed
         */
 
-        $vcNumber = DB::table('kas_hdr')->where('id',$id)->where('status','<>','4')->value('voucher_number');
+        $vcNumber = DB::table('kas_hdr')->where('id',$id)->where('status','<>','6')->value('voucher_number');
 
         $rowAffected=DB::table('kas_hdr')
         ->where('voucher_number',$vcNumber)
@@ -516,7 +537,7 @@ class KasPenerimaanController extends Controller
             $year ? $query->where('year', $year) : '';
         })
         ->where('voucher_type',$vcType)
-        ->where('kas_hdr.status','<>','3')
+        ->where('kas_hdr.status','<>','5')
         ->select(
             'kas_hdr.*'
             ,'kas_hdr.status as statusku'
@@ -531,12 +552,23 @@ class KasPenerimaanController extends Controller
                                 <i data-feather="menu"></i>
                             </a>';
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
+
+            if ( $data->statusku == '2' or $data->statusku == '1') {
+                // if (Auth::user()->can('kasPenerimaan-approve')) {
+                $buttons .=     '<a href="'. route('kasPenerimaan.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+                                    <i data-feather="check"></i>
+                                    <span>'. __("Approve") .'</span>
+                                </a>';
+                // }
+            }
             
-            // if (Auth::user()->can('bankPenerimaan-edit')) {
+            // if (Auth::user()->can('kasPenerimaan-edit')) {
+                if ( $data->statusku == '2' or $data->statusku == '1') {
                 $buttons .=     '<a href="'. route('kasPenerimaan.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                     <i data-feather="file-text"></i>
                                     Edit
                                 </a>';
+                }
             // }
 
             $buttons .=         '<a href="'. route('kasPenerimaan.show', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
@@ -551,7 +583,7 @@ class KasPenerimaanController extends Controller
             
             
             // if (Auth::user()->can('kasPenerimaan-delete')) {
-            if ($data->statusku != '4') {
+            if ($data->statusku != '5') {
                 $buttons .=         "<a href='javascript:;'
                                     id='deleteButton'
                                     class='dropdown-item'
@@ -568,7 +600,12 @@ class KasPenerimaanController extends Controller
 
             return $buttons;
         })
-        ->rawColumns(['action'])
+        ->addColumn('statusku', function ($data) {
+            $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-secondary'];
+            $status = ['NEW','VALIDATED','APPROVED','','DELETED','CLOSED'];
+            return "<div class='badge ".$badges[$data->status - 1]."'>".$status[$data->status - 1]."</div>";
+        })
+        ->rawColumns(['action','statusku'])
         ->make(true);
     }
 

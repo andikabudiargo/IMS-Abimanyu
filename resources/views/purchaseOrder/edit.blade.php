@@ -253,7 +253,7 @@
                         <div class="col-md-12">
                             <div class="form-row">
                                 <div class="col-md-12">
-                                    <a href="{{ route('purchaseOrders.index') }}" class="btn btn-warning">Back</a>
+                                    <a href="{{ route('purchaseOrders.index') }}" class="btn btn-light">Back</a>
                                     @if( $approveValidate ? $approveValidate[0]->validate : '')
                                         <input type="text" id ="approveLevel" name ="approveLevel" class="d-none" value="{{ $approveValidate[0]->next_level }}">
                                         <input type="text" id ="maxLevel" name ="maxLevel" class="d-none" value="{{ $approveValidate[0]->max_level }}">

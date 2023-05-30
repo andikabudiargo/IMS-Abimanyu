@@ -243,7 +243,7 @@
                     <br/>
                     <div class="form-row">
                         <div class="col-md-12">
-                            <a href="{{ route('salesOrders.index') }}" class="btn btn-warning">Back</a>
+                            <a href="{{ route('salesOrders.index') }}" class="btn btn-light">Back</a>
                             <a href="{{ route('salesOrder.print', ['id'=>Crypt::encryptString($header->id)]) }}" target="_blank" type="button" class="btn btn-primary">
                                 <i data-feather="printer"></i>
                                 <span>{{ __("Print") }}</span>

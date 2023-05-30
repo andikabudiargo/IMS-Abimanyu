@@ -134,9 +134,60 @@
                         </button>
                     </div>
                     <hr>
-                    <div class="col-12">
-                        <a href="{{ route('kasKeluar.index') }}" class="btn btn-success">Back</a>
-                        <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Update</button>
+                    <div class="form-row">
+                        <div class="col-md-12">
+                            <a href="{{ route('kasKeluar.index') }}" class="btn btn-light">Back</a>
+                            @if( $approveValidate ? $approveValidate[0]->validate : '')
+                                <input type="text" id ="approveLevel" name ="approveLevel" class="d-none" value="{{ $approveValidate[0]->next_level }}">
+                                <input type="text" id ="maxLevel" name ="maxLevel" class="d-none" value="{{ $approveValidate[0]->max_level }}">
+                                <button class="btn btn-success" type="button" id="cmdApprove" name="cmdApprove">Approve</button>
+                            @if( $status =='NEW')
+                                <button class="btn btn-primary" type="button" id="cmdUpdate" name="cmdUpdate" >Update</button>
+                            @endif
+                            @else
+                                @if( !$approveValidate && $status =='NEW')
+                                    <button class="btn btn-primary" type="button" id="cmdUpdate" name="cmdUpdate" >Update</button>
+                                @endif
+                            @endif
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="form-row card-statistics">
+                        @foreach($approvalHistory as $val)
+                            @if($val->status == true)
+                                <div class="statistics-body">
+                                    <div class="col-xl-3 col-sm-6 col-12 mb-2 mb-xl-0">
+                                        <div class="media">
+                                            <div class="avatar bg-light-success mr-2">
+                                                <div class="avatar-content">
+                                                    <i data-feather="check" class="avatar-icon"></i>
+                                                </div>
+                                            </div>
+                                            <div class="media-body my-auto">
+                                                <h4 class="font-weight-bolder mb-0">Approve-{{ $val->approval_order }}</h4>
+                                                <p class="card-text mb-0">{{ $val->name }}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            @else
+                                <div class="statistics-body">
+                                    <div class="col-xl-3 col-sm-6 col-12 mb-2 mb-xl-0">
+                                        <div class="media">
+                                            <div class="avatar bg-light-danger mr-2">
+                                                <div class="avatar-content">
+                                                    <i data-feather="x" class="avatar-icon"></i>
+                                                </div>
+                                            </div>
+                                            <div class="media-body my-auto">
+                                                <h4 class="font-weight-bolder mb-0">Approve-{{ $val->approval_order }}</h4>
+                                                <p class="card-text mb-0">{{ $val->petugas }}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endif
+                        @endforeach
                     </div>
                 </div>
             </div>
@@ -237,7 +288,7 @@
         reloadPage();
     });
 
-    $("#cmdSave").click(function(){  
+    $("#cmdUpdate").click(function(){  
         let objTotalVcDebit= $('#vcTotalDebit').val().replace(/,/gi, '') || 0;
         let objTotalVcCredit= $('#vcTotalCredit').val().replace(/,/gi, '') || 0;
         let vcDate = $('#vcDate').val();
@@ -467,6 +518,38 @@
             }
         });
     }
+
+    $("#cmdApprove").click(function(){    
+        let vcNumber = $('#voucherNumber').val();
+        $.ajax({
+            type: "get",
+            url: "{{ route('kasKeluar.approve') }}",
+            data: {
+                vcNumber:vcNumber
+            },
+            dataType: "json",
+            success: function(data) {
+                if (data.status == 0 ){
+                    let message="";
+                    for(let i = 0; i < data.message.length; i++) {
+                        show_msg(data.title, data.message[i], data.alert);
+                    }
+                    $('#voucherNumber').attr('disabled','disabled');
+
+                }else{
+                    show_msg(data.title, data.message, data.alert);
+                    $('#voucherNumber').attr('disabled','disabled');
+                    $('#cmdApprove').attr('disabled','disabled');
+                    $('#addNewRow').attr('disabled','disabled');  
+                    $('#cmdUpdate').attr('disabled','disabled');
+                    location.reload();       
+                }
+            },
+            error: function(error) {
+                console.log(error);
+            }
+        });
+    });
 
     $.ajaxSetup({
         headers: {
