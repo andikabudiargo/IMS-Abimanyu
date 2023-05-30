@@ -130,7 +130,7 @@
                     </div>
                     <hr>
                     <div class="col-12">
-                        <a href="{{ route('kasPenerimaan.index') }}" class="btn btn-success">Back</a>
+                        <a href="{{ route('kasPenerimaan.index') }}" class="btn btn-light">Back</a>
                         <button class="btn btn-info" type="button" id="cmdNew" name="cmdNew">New</button>
                         <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Save</button>
                     </div>

@@ -59,7 +59,7 @@ class PurchaseRequestController extends Controller
             ['data'=>'supp_code','name'=>'supp_code','title'=>'Supplier'],
             ['data'=>'supp_name','name'=>'supp_name','title'=>'Supplier Name'],
             ['data'=>'order_type','name'=>'order_type','title'=>'Order Type'],
-            ['data'=>'dept_name','name'=>'nama_name','title'=>'Department'],
+            ['data'=>'dept_name','name'=>'dept_name','title'=>'Department'],
             ['data'=>'date','name'=>'date','title'=>'PR Date'],
             ['data'=>'status','name'=>'status','title'=>'Status'],
             ['data'=>'noteku','name'=>'noteku','title'=>'Main Note'],
@@ -780,10 +780,11 @@ class PurchaseRequestController extends Controller
         ,'purchase_request_hdr.note as noteku'
         ,'third_party.nama as supp_name'
         ,'uom_group'
+        ,'depts.name as dept_name'
         ,DB::raw("case when uom_group = 'PIECE' then TO_CHAR(qty,'999,999,999') when uom_group <> 'PIECE' then TO_CHAR(qty,'999,999,999.999') end as qtyku")
         // ,DB::raw("(select concat(code,'-',name) from depts where code = purchase_request_hdr.dept limit 1) as dept_name")
         ,DB::raw("(select case when uom_group = 'PIECE' then TO_CHAR(qty,'999,999,999') when uom_group <> 'PIECE' then TO_CHAR(qty,'999,999,999.999') end from purchase_order_det where po_number = purchase_request_det.po_number and pr_number=purchase_request_det.pr_number and article_code=purchase_request_det.article_code) as qty_po"
-        ,'depts.name as dept_name'
+        
         )
         )
         ->orderBy('id')
@@ -830,7 +831,8 @@ class PurchaseRequestController extends Controller
         ,'article_desc'
         ,'qty'
         ,'purchase_request_det.uom'
-        ,DB::raw("(select STRING_AGG( (qty::real)::text,' -> ' ORDER BY pr_number) AS main from (select * from purchase_request_det p where article_code = purchase_request_det.article_code and pr_number like '$prNumber%' limit 2) sub) as notes")
+        ,'purchase_request_det.note as notes'
+        // ,DB::raw("(select STRING_AGG( (qty::real)::text,' -> ' ORDER BY pr_number) AS main from (select * from purchase_request_det p where article_code = purchase_request_det.article_code and pr_number like '$prNumber%' limit 2) sub) as notes")
         )
         ->where('pr_number',$prNumber)
         ->orderBy('purchase_request_det.id')

@@ -150,7 +150,7 @@
   btnDetail.addEventListener("click", function(){
     btnSummary.style.display = "block";
     btnDetail.style.display = "none";
-    showList(searchPr.value,orderType.value,searchStatus.value,requestDate.value,dept.value);
+    showListDetail(searchPr.value,orderType.value,searchStatus.value,requestDate.value,dept.value);
   });
 
   const showList = (searchPr,orderType,searchStatus,requestDate,dept) => {
