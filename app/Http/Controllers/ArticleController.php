@@ -173,7 +173,7 @@ class ArticleController extends Controller
             if (!$lastCode){
                 $newCode = '0000001';
             }else{
-                $newCode = str_pad(substr($lastCode->article_alternative_code,7)+1, 7, "0", STR_PAD_LEFT);
+                $newCode = str_pad(substr($lastCode->article_alternative_code,-7)+1, 7, "0", STR_PAD_LEFT);
             }
 
             $articleCode = $leadingCode.$newCode."~".$leadingCode;

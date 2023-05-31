@@ -227,7 +227,7 @@
         orderDate:orderDate
       },
       orderColumn:[[ 1, 'desc' ]],
-      excelFileName:'target_sales_order'
+      excelFileName:'sales_order'
     });
   }
 
@@ -261,7 +261,7 @@
         orderDate:orderDate
       },
       orderColumn:[[ 2, 'asc' ]],
-      excelFileName:'target_sales_order'
+      excelFileName:'sales_order'
     });
   }
 
