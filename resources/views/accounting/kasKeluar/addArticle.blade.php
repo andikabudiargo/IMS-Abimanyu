@@ -37,7 +37,7 @@
             <tbody>
                 <tr>
                     <td class="isian" style="width: 30%">
-                        <select class="dynamicSelect form-control" id="account" name="account[]">
+                        <select class="dynamicSelect form-control cekoki" id="account" name="account[]">
                         </select>
                     </td>
                     <td class="isian" style="">
@@ -132,10 +132,6 @@
         objTotalVcDebit.val(humanizeNumber(TotalDebit));
         objTotalVcCredit.val(humanizeNumber(TotalCredit));
 
-        // if (type =='penerimaan'){
-        //     objTotalAmount.val(humanizeNumber(TotalCredit));
-        // }else{
-        //     objTotalAmount.val(TotalDebit);
-        // }
     }
+
 </script>

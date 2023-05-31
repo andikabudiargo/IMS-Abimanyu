@@ -204,7 +204,7 @@
     let currentDate = todayDate('dd-mm-yyyy');   
     let type = "{{ $type }}";
         
-    $(document).ready(function(){           
+    $(document).ready(function(){
         validateFormToast('frmAdd');
         vcDate.val(currentDate);
         add_new_row();
@@ -349,6 +349,9 @@
     $('#paidTo').change(function(e){
         let objAccount = $('#item_row select[name="account[]"]');
         let objVcRef= $('#item_row select[name="vcRef[]"]');
+        let objVcDebit= $('#item_row input[name="vcDebit[]"]');
+        let objVcCredit= $('#item_row input[name="vcCredit[]"]');
+
         let paidTo = $('#paidTo').val();
         if (paidTo){
             objAccount.map(function(i){
@@ -357,7 +360,12 @@
                 if ($this.val()){
                     if ($this.val() =='2000.11'){
                         invList('reference',objSupp,paidTo);
+                        objVcDebit.eq(i).val("");
+                        objVcCredit.eq(i).val("");
+                        objVcRef.empty().trigger('change');
+                        hitungGrandTotal();
                     }
+                    
                 }
             });
         }
@@ -365,23 +373,32 @@
 
     function findInvoice(){
         let objAccount = $('#item_row select[name="account[]"]');
-        if(objAccount){
-            objAccount.change(function(e){        
-                let objIndex = objAccount.index(this);
-                let accountNumber = objAccount.eq(objIndex).val();
-                let paidTo = $('#paidTo').val();
-                let objSupp = "vcRef"+(objIndex+1);
+        let objVcRef= $('#item_row select[name="vcRef[]"]');
+        let objVcDebit= $('#item_row input[name="vcDebit[]"]');
+        let objVcCredit= $('#item_row input[name="vcCredit[]"]');
+        
+        objAccount.change(function(e){        
+            let objIndex = objAccount.index(this);
+            let accountNumber = objAccount.eq(objIndex).val();
+            let paidTo = $('#paidTo').val();
+            let objSupp = "vcRef"+(objIndex+1);
+            if(accountNumber){
                 if (accountNumber =='2000.11'){
                     if(paidTo){
                         invList('reference',objSupp,paidTo);
                     }else{
-                        objAccount.eq(objIndex).val('').trigger('change');
                         Swal.fire('Warning..','Kolom bayar ke /supplier code masih kosong','warning');
                     }
+                }else{
+                    objVcDebit.eq(objIndex).val("");
+                    objVcCredit.eq(objIndex).val("");
+                    objVcRef.eq(objIndex).empty().trigger('change');
+                    hitungGrandTotal();
                 }
-            });
-        }
+            }
+        });
     }
+    
     
     function accList(dependent,obj) {
       $.ajax({
@@ -407,20 +424,20 @@
         },
         success:function(result){
             $('#'+obj).html(result);
-            $('#'+obj).val('').trigger('change');
+            $('#'+obj).val("").trigger('change');
         }
       })
     }
 
     function getAmount(){
         let objRef = $('#item_row select[name="vcRef[]"]');
-        if(objRef){
-            objRef.change(function(e){ 
-                let objIndex = objRef.index(this);
-                let vRef = objRef.eq(objIndex).val();
+        objRef.change(function(e){ 
+            let objIndex = objRef.index(this);
+            let vRef = objRef.eq(objIndex).val();
+            if(vRef){
                 getAmountValue(vRef,objIndex);
-            });
-        }
+            }
+        });
     }   
 
     function getAmountValue(vRef,objIndex) {
@@ -440,6 +457,7 @@
                 if(data.amount){
                     objVcDebit.eq(objIndex).val(humanizeNumber(data.amount));
                     objVcCredit.eq(objIndex).val('');
+                    hitungGrandTotal();
                 }
             },
             error: function(error) {
