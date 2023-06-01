@@ -239,8 +239,8 @@
                 let uom=objUom.eq(i).text();
                 let qty=objQty.eq(i).val().replace(/,/gi, '') || 0;
                 let note=objNote.eq(i).val();
-                let qtyHitung=objHitung.eq(i).val().eq(i).val().replace(/,/gi, '') || 0;
-                let qtyStock=objStock.eq(i).val().eq(i).val().replace(/,/gi, '') || 0;
+                let qtyHitung=objHitung.eq(i).val().replace(/,/gi, '') || 0;
+                let qtyStock=objStock.eq(i).val().replace(/,/gi, '') || 0;
 
                 let obj = $.grep(articles, function(obj){
                     return obj.article_code === plu;

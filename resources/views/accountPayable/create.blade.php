@@ -127,14 +127,36 @@
                                     </select>
                                 </div>
                             </div>
-                            <div class="form-row">
+                            {{-- <div class="form-row">
                                 <div class="form-group col-md-2">
                                     <label for="vat">VAT</label>
                                     <input type="text" id="vat" name="vat" class="form-control numeral-mask text-right" value="{{ old('vat',Session::get('details') ? Session::get('details')->vat : '') }}" />
                                 </div>
+                            </div> --}}
+                            <div class="form-row">
+                                <div class="form-group col-md-2">
+                                    <div class="custom-control custom-checkbox">
+                                        <input type="checkbox" class="custom-control-input" id="vatCheck" name="vatCheck" {{ old('vatCheck',Session::get('details') ? Session::get('details')->pph23 : '') ? 'checked' : '' }} />
+                                        <label class="custom-control-label" for="vatCheck">VAT</label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="{{ Session::get('details') ? Session::get('details')->vat ? '' : 'd-none' :'d-none' }} " id="tipeVat">
+                                <div class="form-row d-flex align-items-end">
+                                    <div class="form-group col-md-2">
+                                        <label for="vat">VAT</label>
+                                        <input type="text" id="vat" name="vat" class="form-control numeral-mask text-right" value="{{ old('vat',Session::get('details') ? Session::get('details')->vat : '') }}" />
+                                    </div>
+                                    <div class="form-group col-md-4">
+                                        <label class="form-label" for="accounVat">COA*</label>
+                                        <select class="select2 form-control w-100" id="accounVat" name="accounVat" required disabled>
+                                            <option value="1100.73">1100.73 - PPN MASUKAN (SUPPLIER)</option>
+                                        </select>
+                                    </div>
+                                </div>
                             </div>
                             <div class="form-row">
-                                <div class="form-group col-md-3">
+                                <div class="form-group col-md-2">
                                     <div class="custom-control custom-checkbox">
                                         <input type="checkbox" class="custom-control-input" id="pph23Check" name="pph23Check" {{ old('pph23',Session::get('details') ? Session::get('details')->pph23 : '') ? 'checked' : '' }} />
                                         <label class="custom-control-label" for="pph23Check">PPH23</label>
@@ -143,7 +165,7 @@
                             </div>
                             <div class="{{ Session::get('details') ? Session::get('details')->pph23 ? '' : 'd-none' :'d-none' }} " id="tipePPH23">
                                 <div class="form-row d-flex align-items-end">
-                                    <div class="form-group col-md-3">
+                                    <div class="form-group col-md-2">
                                         <label for="pph23">PPH 23</label>
                                         <input type="text" id="pph23" name="pph23" class="form-control numeral-mask text-right" value="{{ old('pph23',Session::get('details') ? Session::get('details')->pph23 : '') }}" />
                                     </div>
@@ -174,16 +196,13 @@
                                 </div>
                                 <div class="form-group col-md-4">
                                     <label class="form-label" for="account">COA*</label>
-                                    <select class="select2 form-control w-100" id="account" name="account" required>
-                                        <option value="">Choose option</option>
-                                        @foreach($accounts as $val)
-                                            <option value="{{ $val->account }}" {{ old('account',Session::get('details') ? Session::get('details')->account : '') == $val->account ? 'selected' : '' }}>{{ $val->account}} - {{ $val->description }}</option>
-                                        @endforeach
+                                    <select class="select2 form-control w-100" id="account" name="account" required disabled>
+                                        <option value="2000.11">2000.11 - HUTANG USAHA (SUPPLIER)</option>
                                     </select>
                                 </div>
                             </div>
                             <div class="form-row">
-                                <div class="form-group col-md-5">
+                                <div class="form-group col-md-6">
                                     <label class="form-label" for="note">Notes</label>
                                     <textarea type="text" id="note" name="note" class="form-control" rows="1" >{{ old('note',Session::get('details') ? Session::get('details')->note : '') }}</textarea>
                                 </div>
@@ -274,8 +293,8 @@
         });
 
         let supplierAda = "{{ Session::get('details') ? Session::get('details')->supplier_id :"" }}";
-        poAda = "{{ Session::get('details') ? Session::get('details')->po_number :"" }}";
-        recAda = "{{ Session::get('details') ? Session::get('details')->rec_number :"" }}";
+        let poAda = "{{ Session::get('details') ? Session::get('details')->po_number :"" }}";
+        let recAda = "{{ Session::get('details') ? Session::get('details')->rec_number :"" }}";
 
         if(supplierAda){
             $('#supplier').val(supplierAda).trigger('change');

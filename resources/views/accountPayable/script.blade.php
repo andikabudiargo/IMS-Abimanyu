@@ -3,7 +3,7 @@
     let poAda;
     let recAda
     let status ="{{ Session::get('status') ? Session::get('status'): '' }}";
-
+    
     $("#pph23Check").change(function() {
         if(this.checked) {
             let basisAmount = parseInt($('#basisAmount').val().replace(/,/gi, '')) || 0;
@@ -15,6 +15,20 @@
             $("#pph23").val(0);
             $("#sewa").prop("checked", true);
             $("#tipePPH23").toggleClass("d-none");
+            hitungTotal();  
+        }
+    });
+
+    $("#vatCheck").change(function() {
+        if(this.checked) {
+            let basisAmount = parseInt($('#basisAmount').val().replace(/,/gi, '')) || 0;
+            $("#vat").val(basisAmount * 0.11);
+            mask_thousand();
+            $("#tipeVat").removeClass("d-none");
+            hitungTotal();
+        }else{
+            $("#vat").val(0);
+            $("#tipeVat").toggleClass("d-none");
             hitungTotal();  
         }
     });
@@ -106,7 +120,6 @@
                     poNumber:poNumber,
                 },
                 success:function(result){
-
                     // let {po_number,nama,pro_inv_num,total_po,basis_amount,due_date,rec_date,po_balance,currency,kurs} = result;
                     $('#poNumberDet').val(result[0].po_number);
                     $('#suppCode').val(result[0].nama);
@@ -157,7 +170,7 @@
         $('#invoiceDate').val(currentDate);
         $('#taxInvoiceNumber').val("");
         $('#accountBa').val("").trigger("change");
-        $('#account').val("").trigger("change");
+        // $('#account').val("").trigger("change");
         $('#otherDeduct').val("");
         $('#pph23Check').prop('checked', false);
         $("#pph23").val(0);
