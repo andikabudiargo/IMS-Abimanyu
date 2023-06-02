@@ -222,7 +222,7 @@
         },
         columnDefs: [
           { width: '10%', targets: 0 },
-          { className: 'text-right','targets': [ 10,11,12,13,14 ] },
+          { className: 'text-right','targets': [ 13,14,15,16,17 ] },
         ],
         drawCallback: function( settings ) {
           feather.replace({
@@ -236,6 +236,7 @@
         columns: [
             { data: 'action', name: 'action',title:'action', orderable: false, searchable: false },
             { data: 'ap_number', name: 'ap_number',title:'AP Number' },
+            { data: 'status', name: 'status',title:'Status' },
             { data: 'num_revision', name: 'num_revision',title:'Rev.' },
             { data: 'inv_number', name: 'inv_number',title:'Invoice Number' },
             { data: 'proforma_inv_number', name: 'proforma_inv_number',title:'Proforma' },
@@ -253,7 +254,7 @@
             { data: 'total', name: 'total',title:'Total',render: $.fn.dataTable.render.number(',','.') },
             { data: 'prepared_by', name: 'prepared_by',title:'Prepared By' },
             { data: 'authorized_by', name: 'authorized_by',title:'Authorized By' },
-            { data: 'status', name: 'status',title:'Status' },
+            
         ],
       });
     });

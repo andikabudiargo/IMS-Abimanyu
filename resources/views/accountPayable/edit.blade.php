@@ -143,12 +143,36 @@
                                                     </select>
                                                 </div>
                                             </div>
-                                            <div class="form-row">
+                                            {{-- <div class="form-row">
                                                 <div class="form-group col-md-2">
                                                     <label for="vat">VAT</label>
                                                     <input type="text" id="vat" name="vat" class="form-control numeral-mask text-right" value="{{ old('vat',$details ? $details->vat : "") }}" />
                                                 </div>
+                                            </div> --}}
+
+                                            <div class="form-row">
+                                                <div class="form-group col-md-2">
+                                                    <div class="custom-control custom-checkbox">
+                                                        <input type="checkbox" class="custom-control-input" id="vatCheck" name="vatCheck" {{ $details->vat ? 'checked' : '' }} />
+                                                        <label class="custom-control-label" for="vatCheck">VAT</label>
+                                                    </div>
+                                                </div>
                                             </div>
+                                            <div class="{{ $details->vat ? '' : 'd-none'  }}" id="tipeVat">
+                                                <div class="form-row d-flex align-items-end">
+                                                    <div class="form-group col-md-2">
+                                                        <label for="vat">VAT</label>
+                                                        <input type="text" id="vat" name="vat" class="form-control numeral-mask text-right" value="{{ old('vat',$details ? $details->vat : "") }}" />
+                                                    </div>
+                                                    <div class="form-group col-md-4">
+                                                        <label class="form-label" for="accounVat">COA*</label>
+                                                        <select class="select2 form-control w-100" id="accounVat" name="accounVat" required disabled>
+                                                            <option value="1100.73">1100.73 - PPN MASUKAN (SUPPLIER)</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            </div>
+
                                             <div class="form-row">
                                                 <div class="form-group col-md-3">
                                                     <div class="custom-control custom-checkbox">

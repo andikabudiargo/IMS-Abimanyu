@@ -483,7 +483,13 @@ class DependentController extends Controller
         }elseif($dependent =='reference'){
             $data= DB::table($table)
             ->where($field,$code)
-            // ->where('status','=','2')
+            ->where('status','=','3') //POSTED
+            ->whereNotIn(DB::raw("ap_number"), function($query) {
+                $query->select(DB::raw("reference"))
+                ->from('kas_det')
+                ->leftJoin('kas_hdr','kas_hdr.voucher_number','kas_det.voucher_number')
+                ->where('kas_hdr.status','<>','5');
+            })
             ->orderBy($order)
             ->get();
         }else{

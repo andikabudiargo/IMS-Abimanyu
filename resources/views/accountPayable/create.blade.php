@@ -136,7 +136,7 @@
                             <div class="form-row">
                                 <div class="form-group col-md-2">
                                     <div class="custom-control custom-checkbox">
-                                        <input type="checkbox" class="custom-control-input" id="vatCheck" name="vatCheck" {{ old('vatCheck',Session::get('details') ? Session::get('details')->pph23 : '') ? 'checked' : '' }} />
+                                        <input type="checkbox" class="custom-control-input" id="vatCheck" name="vatCheck" {{ old('vatCheck',Session::get('details') ? Session::get('details')->vat : '') ? 'checked' : '' }} />
                                         <label class="custom-control-label" for="vatCheck">VAT</label>
                                     </div>
                                 </div>
@@ -202,7 +202,7 @@
                                 </div>
                             </div>
                             <div class="form-row">
-                                <div class="form-group col-md-6">
+                                <div class="form-group col-md-6  ">
                                     <label class="form-label" for="note">Notes</label>
                                     <textarea type="text" id="note" name="note" class="form-control" rows="1" >{{ old('note',Session::get('details') ? Session::get('details')->note : '') }}</textarea>
                                 </div>

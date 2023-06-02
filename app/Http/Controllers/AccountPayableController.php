@@ -228,6 +228,7 @@ class AccountPayableController extends Controller
         $pph23 = $request->input('pph23Check') == 'on'? is_null($request->input('pph23')) ? 0 : preg_replace('/[^0-9.]+/', '', $request->input('pph23')) : 0;
         $pph23Type= $request->input('pph23Check') == 'on'? is_null($request->input('pph23'))? "":$request->input('pph23Type') : '';
         $note=$request->input('note');
+        $accountVat = $request->input('accountVat');
         
         $status = '1';
         $authorizedBy = "";
@@ -293,7 +294,8 @@ class AccountPayableController extends Controller
                     'created_by' => Auth::user()->username,
                     'updated_by' => Auth::user()->username,
                     'created_at' => date('Y-m-d H:i:s'),
-                    'updated_at' => date('Y-m-d H:i:s')
+                    'updated_at' => date('Y-m-d H:i:s'),
+                    'account_vat' => $accountVat
                 ]);
 
                 DB::commit();
@@ -438,6 +440,7 @@ class AccountPayableController extends Controller
         $note=$request->input('note');
         $status = '2';
         $authorizedBy = "";
+        $accountVat = $request->input('accountVat');
         
         // status
         // 1. Draft
@@ -486,7 +489,8 @@ class AccountPayableController extends Controller
                         'status' => $status,
                         'note' => $note,
                         'updated_by' => Auth::user()->username,
-                        'updated_at' => date('Y-m-d H:i:s')
+                        'updated_at' => date('Y-m-d H:i:s'),
+                        // 'account_vat' => $accountVat
                     ]
                 );
                                                                             
@@ -802,11 +806,30 @@ class AccountPayableController extends Controller
                                 <i data-feather="menu"></i>
                             </a>';
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
+
             if (($data->status != '3') && ($data->status != '4') && ($data->status != '5')){
                 if (Auth::user()->can('ap-edit')) {
                 $buttons .=         '<a href="'. route('ap.edit',['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                         <i data-feather="file-text"></i>
                                         Edit
+                                    </a>';
+                }
+            }
+
+            if (($data->status != '2') && ($data->status != '3') && ($data->status != '4') && ($data->status != '5')){
+                if (Auth::user()->can('ap-edit')) {
+                $buttons .=         '<a href="'. route('ap.edit',['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+                                        <i data-feather="check"></i>
+                                        Update
+                                    </a>';
+                }
+            }
+
+            if (($data->status == '2')){
+                if (Auth::user()->can('ap-edit')) {
+                $buttons .=         '<a href="'. route('ap.edit',['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+                                        <i data-feather="check"></i>
+                                        Posting
                                     </a>';
                 }
             }
@@ -855,7 +878,7 @@ class AccountPayableController extends Controller
         })
         ->addColumn('status', function ($data) {
             $badges=['badge-light-primary','badge-light-info','badge-light-success','badge-light-warning','badge-light-danger','badge-light-dark','badge-light-secondary','badge-light-danger'];
-            $statusCode = ['Draft','Updated','Posted','Canceled','Paid','Revised'];
+            $statusCode = ['DRAFT','UPDATED','POSTED','CANCELED','PAID','REVISED'];
             return "<div class='badge badge-pill ".$badges[$data->status - 1]."'>".$statusCode[$data->status - 1]."</div>";
         })
         ->rawColumns(['action','status','ap_number'])
