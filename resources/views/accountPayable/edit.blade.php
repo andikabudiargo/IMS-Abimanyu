@@ -133,7 +133,7 @@
                                                     <label for="basisAmount">Basis Amount</label>
                                                     <input type="text" id="basisAmount" name="basisAmount" class="form-control numeral-mask text-right" value="{{ old('basisAmount',$details ? $details->basis_amount : "") }}" required/>
                                                 </div>
-                                                <div class="form-group col-md-3">
+                                                <div class="form-group col-md-4">
                                                     <label class="form-label" for="accountBasisA">COA</label>
                                                     <select class="select2 form-control w-100" id="accountBasisA" name="accountBasisA">
                                                         <option value="">Choose option</option>
@@ -212,13 +212,10 @@
                                                     <label for="grandTotal">Total</label>
                                                     <input type="text" id="grandTotal" name="grandTotal" class="form-control numeral-mask text-right" value="{{ old('grandTotal', ($details->basis_amount+$details->vat)-($details->pph23 + $details->other_deduction )) }}" />
                                                 </div>
-                                                <div class="form-group col-md-3">
-                                                    <label class="form-label" for="account">COA</label>
-                                                    <select class="select2 w-100" id="account" name="account">
-                                                        <option value="">Choose option</option>
-                                                        @foreach($accounts as $val)
-                                                            <option value="{{ $val->account }}" {{ old('account',$details ? $details->account : "") == $val->account ? 'selected' : '' }}>{{ $val->account}} - {{ $val->description }}</option>
-                                                        @endforeach
+                                                <div class="form-group col-md-4">
+                                                    <label class="form-label" for="account">COA*</label>
+                                                    <select class="select2 form-control w-100" id="account" name="account" required disabled>
+                                                        <option value="2000.11">2000.11 - HUTANG USAHA (SUPPLIER)</option>
                                                     </select>
                                                 </div>
                                             </div>
@@ -394,13 +391,10 @@
                                                         <label>Total</label>
                                                         <input type="text" class="form-control numeral-mask text-right text-hitam" value="{{ ($sub_detail->basis_amount+$sub_detail->vat+$sub_detail->pph23) - $sub_detail->other_deduction }}" disabled/>
                                                     </div>
-                                                    <div class="form-group col-md-3">
-                                                        <label class="form-label" for="account">COA</label>
-                                                        <select class="select2 w-100" disabled>
-                                                            <option value="">Choose option</option>
-                                                            @foreach($accounts as $val)
-                                                                <option value="{{ $val->account }}" {{ $sub_detail->account == $val->account ? 'selected' : '' }}>{{ $val->account}} - {{ $val->description }}</option>
-                                                            @endforeach
+                                                    <div class="form-group col-md-4">
+                                                        <label class="form-label" for="account">COA*</label>
+                                                        <select class="select2 form-control w-100" id="account" name="account" required disabled>
+                                                            <option value="2000.11">2000.11 - HUTANG USAHA (SUPPLIER)</option>
                                                         </select>
                                                     </div>
                                                 </div>
