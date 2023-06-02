@@ -347,9 +347,17 @@
                                                         <label>Basis Amount</label>
                                                         <input type="text" class="form-control numeral-mask text-right text-hitam" value="{{ $sub_detail->basis_amount }}" disabled/>
                                                     </div>
-                                                    <div class="form-group col-md-3">
+                                                </div>
+                                                <div class="form-row">
+                                                    <div class="form-group col-md-2">
                                                         <label>VAT</label>
                                                         <input type="text" class="form-control numeral-mask text-right text-hitam" value="{{ $sub_detail->vat }}" disabled />
+                                                    </div>
+                                                    <div class="form-group col-md-4">
+                                                        <label class="form-label" for="accounVat">COA*</label>
+                                                        <select class="select2 form-control w-100" id="accounVat" name="accounVat" required disabled>
+                                                            <option value="1100.73">1100.73 - PPN MASUKAN (SUPPLIER)</option>
+                                                        </select>
                                                     </div>
                                                 </div>
                                                 <div class="form-row">
