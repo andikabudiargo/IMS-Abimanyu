@@ -38,7 +38,14 @@
         let vat = parseInt($('#vat').val().replace(/,/gi, '')) || 0;
         let pph23 = parseInt($('#pph23').val().replace(/,/gi, '')) || 0;
         let od = parseInt($('#otherDeduct').val().replace(/,/gi, '')) || 0;
-        let total = ba? (ba+vat)-(pph23+od) : '';
+        let total;
+        
+        if(vat){
+            total = ba? (ba+vat)-(pph23+od) : '';
+        }else{
+            total = ba? (ba)-(pph23+od) : '';
+        }
+
         $('#grandTotal').val(total);
         mask_thousand();
     }
@@ -126,7 +133,7 @@
                     $('#profInvoice').val(result[0].pro_inv_num);
                     $('#totalPO').val(result[0].total_po);
                     $('#basisAmount').val(result[0].basis_amount);
-                    $('#vat').val(result[0].basis_amount*(result[0].vat/100));
+                    // $('#vat').val(result[0].basis_amount*(result[0].vat/100));
                     $('#dueDate').val(result[0].due_date);
                     $('#recDate').val(result[0].rec_date);
                     $('#balance').val(result[0].po_balance);
