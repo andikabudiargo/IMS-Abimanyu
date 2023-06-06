@@ -550,10 +550,10 @@ class ActualFinishGoodsController extends Controller
                 }
             }
 
-            $buttons .=         '<a href="'. route('production.actualFinishGoods.print', ['id'=>Crypt::encryptString($data->id)]) .'" target="_blank" class="dropdown-item">
-                                    <i data-feather="printer"></i>
-                                    Print
-                                </a>';
+            // $buttons .=         '<a href="'. route('production.actualFinishGoods.print', ['id'=>Crypt::encryptString($data->id)]) .'" target="_blank" class="dropdown-item">
+            //                         <i data-feather="printer"></i>
+            //                         Print
+            //                     </a>';
 
             if (Auth::user()->can('actualFinishGoods-posting')) {
                 if($data->status == '8'){

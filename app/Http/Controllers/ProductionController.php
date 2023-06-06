@@ -348,6 +348,7 @@ class ProductionController extends Controller
             )
             ->get();
 
+            //uppdate stock untuk qty FG yang sudah di produksi
             foreach($data as $val){
                 //insert article code kalo belum ada di tabel item_stock
                 DB::table('article_stock')

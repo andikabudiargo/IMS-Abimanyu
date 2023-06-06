@@ -477,7 +477,13 @@ class DependentController extends Controller
         }elseif($dependent =='wos_list'){
             //untuk wos minimal sudah di approved sekali statusnya udah validated
             $data= DB::table($table)
-            ->where('status','=','2')
+            ->where('status','=','3')
+            ->orderBy($order)
+            ->get();
+        }elseif($dependent =='wos_list_mix'){
+            //untuk wos minimal sudah di approved sekali statusnya udah validated
+            $data= DB::table($table)
+            ->where('status','=','3')
             ->orderBy($order)
             ->get();
         }elseif($dependent =='reference'){

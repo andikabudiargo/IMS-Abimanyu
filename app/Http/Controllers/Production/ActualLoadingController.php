@@ -554,7 +554,8 @@ class ActualLoadingController extends Controller
         $data['oEdit']=true;
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','6'=>'CLOSED','7'=>'REVISED','8'=>'INPUT FG'];
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','6'=>'CLOSED'];
-        $statusPrd = ['NEW','VALIDATED','APPROVED','POSTED','','CANCELED'];
+        // $statusPrd = ['NEW','VALIDATED','APPROVED','POSTED','','CANCELED'];
+        $statusPrd = ['NEW','VALIDATED','APPROVED','POSTED','CANCELED','CLOSED','REVISED','INPUT FG','POSTED FG'];
         $data['statusPrd'] = $statusPrd[$data['headers'][0]->status-1];
 
         return view("production.actualLoading.show",$data);

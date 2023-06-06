@@ -394,15 +394,16 @@
         <li class=" navigation-header"><span data-i18n="Production">Production</span><i data-feather="more-horizontal"></i>
         </li>
 
-        <li class=" {{ in_array(\Request::segment(1), ['production/actualLoading','production/actualFinishGoods']) ? 'active' : '' }} nav-item">
+        <li class=" {{ in_array(\Request::segment(1), ['actualLoading','actualFinishGoods']) ? 'active' : '' }} nav-item">
           <a class="d-flex align-items-center" href="javascript:void(0);">
             <i data-feather='repeat'></i>
             <span class="menu-title text-truncate" data-i18n="Production">Production
             </span>
           </a>
           <ul class="menu-content">
+
             @can('actualLoading-index')
-            <li class="{{ \Request::is(['production/actualLoading','production/actualLoading/create']) ? 'active' : '' }}" >
+            <li class="{{ \Request::is(['actualLoading','actualLoading/create','actualLoading/edit','actualLoading/show']) ? 'active' : '' }}" >
               <a class="d-flex align-items-center" href="{{ route('production.actualLoading.index') }}">
                 <i data-feather="circle"></i>
                 <span class="menu-item text-truncate" data-i18n="Actual Loading">Actual Loading</span>
@@ -411,7 +412,7 @@
             @endcan
 
             @can('actualLoading-index')
-            <li class="{{ \Request::is(['production/actualFinishGoods','production/actualFinishGoods/edit']) ? 'active' : '' }}" >
+            <li class="{{ \Request::is(['actualFinishGoods','actualFinishGoods/edit','actualFinishGoods/show']) ? 'active' : '' }}" >
               <a class="d-flex align-items-center" href="{{ route('production.actualFinishGoods.index') }}">
                 <i data-feather="circle"></i>
                 <span class="menu-item text-truncate" data-i18n="Actual Loading">Actual Finish Goods</span>

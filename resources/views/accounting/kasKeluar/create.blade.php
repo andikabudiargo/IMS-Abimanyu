@@ -42,11 +42,17 @@
                                 <div class="form-group col-md-6">
                                     <label for="paidTo">Bayar Ke*</label>
                                     <select class="select2 form-control" id="paidTo" name="paidTo" required>
-                                        <option value=""></option>
+                                        <option value="Others">Other</option>
                                         @foreach ($suppliers as $val)
                                             <option value="{{ $val->kode }}">{{ $val->kode }} | {{ $val->nama }}</option>
                                         @endforeach
                                     </select>
+                                </div>
+                                <div class="form-group col-md-3">
+                                    <div class="form-group">
+                                        <label for="totalAmount">Other</label>
+                                        <input type="text" id="totalAmount" name="totalAmount" class="form-control text-right numeral-mask" maxlength="12" required/>
+                                    </div>
                                 </div>
                                 <div class="form-group col-md-3">
                                     <div class="form-group">

@@ -32,8 +32,8 @@
                             </div>
                             <div class="form-row">
                                 <div class="form-group col-md-2">
-                                    <label class="form-label" for="toType">TO Type</label>
-                                    <select class="select2 form-control" id="toType" name="toType" required>
+                                    <label class="form-label" for="toType">Transfer Type</label>
+                                    <select class="select2 form-control" id="toType" name="toType" required disabled>
                                         <option value="std">Standard</option>
                                         <option value="prd">Production</option>
                                     </select>
