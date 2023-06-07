@@ -206,7 +206,7 @@
                                         </tr>
                                         <tr class="tanpa-padding">
                                             <td class="tanpa-padding font-14">Dari</td>
-                                            <td class="tanpa-padding font-14">: {{ $header->receive_name }}</td>
+                                            <td class="tanpa-padding font-14">: {{ $header->supplier_name }}</td>
                                             <td>{{ $costCenter }}</td>
                                         </tr>
                                     </table>

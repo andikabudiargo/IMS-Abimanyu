@@ -46,7 +46,14 @@
                                         @foreach ($accounts as $val)
                                             <option value="{{ $val->account }}">{{ $val->account }}|{{ $val->description }}</option>
                                         @endforeach
+                                        <option value="other">Other</option>
                                     </select>
+                                </div>
+                                <div class="form-group col-md-3 d-none other-desc">
+                                    <div class="form-group">
+                                        <label for="recFromDesc">Other Received From Desc*</label>
+                                        <input type="text" id="recFromDesc" name="recFromDesc" class="form-control" required/>
+                                    </div>
                                 </div>
                                 <div class="form-group col-md-3">
                                     <div class="form-group">
@@ -229,6 +236,7 @@
         let totalAmount = $('#totalAmount').val().replace(/,/gi, '') || 0;
         let note = $('#note').val();
         let recFrom = $('#recFrom').val();
+        let recFromDesc = $('#recFromDesc').val();
             
         if (!$("#frmAdd")[0].checkValidity()){
             $("#frmAdd").submit();
@@ -288,7 +296,8 @@
                             period:period,
                             note:note,
                             totalAmount:totalAmount,
-                            recFrom:recFrom
+                            recFrom:recFrom,
+                            recFromDesc:recFromDesc
                         },
                         dataType: "json",
                         success: function(data) {
@@ -398,6 +407,20 @@
         }else{
             window.location.href = "{{ route('kasPenerimaan.create') }}";
         }
+    });
+
+    $("#recFrom").on('select2:close', function(){
+        let content = this.value;
+        let contentText = $("#recFrom").select2('data')[0].text;
+        if(content =='other'){
+            $(".other-desc").removeClass("d-none");
+            $("#recFromDesc").val("");
+            $("#recFromDesc").focus();
+        }else{
+            $(".other-desc").addClass("d-none");
+            contentText = contentText.split("|");
+            $("#recFromDesc").val(contentText[1].trim());
+        }    
     });
 
     $.ajaxSetup({

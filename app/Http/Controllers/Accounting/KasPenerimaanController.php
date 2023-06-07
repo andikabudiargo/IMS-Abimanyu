@@ -126,6 +126,7 @@ class KasPenerimaanController extends Controller
         $note = $request->note;
         $totalAmount= $request->totalAmount;
         $recFrom = $request->recFrom;
+        $recFromDesc = $request->recFromDesc;
         $status = '1';
         $leadCode =$this->moduleCode;
 
@@ -169,6 +170,7 @@ class KasPenerimaanController extends Controller
                         'voucher_type' =>$leadCode,
                         'voucher_date' =>$vcDate,
                         'receive_from' =>$recFrom,
+                        'description' =>$recFromDesc,
                         // 'paid_to' =>,
                         'amount' =>$totalAmount,
                         'period' =>$period,
@@ -225,8 +227,12 @@ class KasPenerimaanController extends Controller
         $data['subtitle'] = "Detail $this->title";
 
         $data['header'] = DB::table('kas_hdr')
-        ->leftJoin('accounts','accounts.account','kas_hdr.receive_from')
-        ->select('kas_hdr.*',db::raw("concat(accounts.account,'-',description) as receive_name"))
+        // ->leftJoin('accounts','accounts.account','kas_hdr.receive_from')
+        ->select('kas_hdr.*'
+        ,'description as receive_name'
+        // ,db::raw("concat(receive_from,'-',description) as receive_name")
+        // ,db::raw("concat(accounts.account,'-',description) as receive_name")
+        )
         ->where('kas_hdr.id',$id)
         ->get()->first();
 
@@ -268,8 +274,11 @@ class KasPenerimaanController extends Controller
         $data['type'] = 'penerimaan';
 
         $data['header'] = DB::table('kas_hdr')
-        ->leftJoin('accounts','accounts.account','kas_hdr.receive_from')
-        ->select('kas_hdr.*',db::raw("concat(accounts.account,'-',description) as receive_name"))
+        // ->leftJoin('accounts','accounts.account','kas_hdr.receive_from')
+        ->select('kas_hdr.*'
+        ,'description as receive_name'
+        // ,db::raw("concat(accounts.account,'-',description) as receive_name")
+        )
         ->where('kas_hdr.id',$id)
         ->get()->first();
 
@@ -315,6 +324,7 @@ class KasPenerimaanController extends Controller
         $note = $request->note;
         $totalAmount= $request->totalAmount;
         $recFrom = $request->recFrom;
+        $recFromDesc = $request->recFromDesc;
         $status = '1';
         $leadCode =$this->moduleCode;
         
@@ -357,6 +367,7 @@ class KasPenerimaanController extends Controller
                         [
                             'voucher_date' =>$vcDate,
                             'receive_from' =>$recFrom,
+                            'description' =>$recFromDesc,
                             // 'paid_to' =>,
                             'amount' =>$totalAmount,
                             'period' =>$period,
@@ -529,7 +540,7 @@ class KasPenerimaanController extends Controller
         }
 
         $data = DB::table('kas_hdr')
-        ->leftJoin('accounts','accounts.account','kas_hdr.receive_from')
+        // ->leftJoin('accounts','accounts.account','kas_hdr.receive_from')
         ->where(function ($query) use ($seachVc,$vcDate,$fromDate,$toDate,$period,$year) {
             $seachVc ? $query->where('voucher_number','ilike','%'.$seachVc.'%') : '';
             $vcDate ? $query->whereBetween('voucher_date', [$fromDate, $toDate]) : '';
@@ -541,7 +552,9 @@ class KasPenerimaanController extends Controller
         ->select(
             'kas_hdr.*'
             ,'kas_hdr.status as statusku'
-            ,db::raw("concat(accounts.account,'-',description) as receive_name"))
+            // ,db::raw("concat(accounts.account,'-',description) as receive_name")
+            ,'description as receive_name'
+        )
         ->orderBy('id')
         ->get(); 
        
@@ -616,8 +629,11 @@ class KasPenerimaanController extends Controller
         $data['title'] ='Kas Masuk';
         
         $data['header']=DB::table('kas_hdr')
-        ->leftJoin('accounts','accounts.account','kas_hdr.receive_from')
-        ->select('kas_hdr.*','accounts.description as receive_name')
+        // ->leftJoin('accounts','accounts.account','kas_hdr.receive_from')
+        ->select('kas_hdr.*'
+        ,'description as receive_name'
+        // ,'accounts.description as receive_name'
+        )
         ->where('kas_hdr.id',$id)
         ->first();
 

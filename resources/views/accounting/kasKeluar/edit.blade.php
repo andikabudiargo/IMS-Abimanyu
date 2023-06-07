@@ -46,7 +46,14 @@
                                         @foreach ($suppliers as $val)
                                             <option value="{{ $val->kode }}" {{$val->kode == $header->paid_to ? "selected" : ""}}>{{ $val->kode }} | {{ $val->nama }}</option>
                                         @endforeach
+                                        <option value="other" {{ $header->paid_to == 'other' ? "selected" : ""}} >Other</option>
                                     </select>
+                                </div>
+                                <div class="form-group col-md-3 {{ $header->paid_to =='other' ? '' : 'd-none' }} other-desc">
+                                    <div class="form-group">
+                                        <label for="paidToDesc">Other Bayar Ke Desc*</label>
+                                        <input type="text" id="paidToDesc" name="paidToDesc" value="{{ $header->description }}" class="form-control" required/>
+                                    </div>
                                 </div>
                                 <div class="form-group col-md-3">
                                     <div class="form-group">
@@ -550,6 +557,20 @@
             }
         });
     });
+
+    $("#paidTo").on('select2:close', function(){
+        let content = this.value;
+        let contentText = $("#paidTo").select2('data')[0].text;
+        if(content =='other'){
+            $(".other-desc").removeClass("d-none");
+            $("#paidToDesc").val("");
+            $("#paidToDesc").focus();
+        }else{
+            $(".other-desc").addClass("d-none");
+            contentText = contentText.split("|");
+            $("#paidToDesc").val(contentText[1].trim());
+        }    
+    }); 
 
     $.ajaxSetup({
         headers: {

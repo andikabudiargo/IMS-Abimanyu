@@ -42,16 +42,17 @@
                                 <div class="form-group col-md-6">
                                     <label for="paidTo">Bayar Ke*</label>
                                     <select class="select2 form-control" id="paidTo" name="paidTo" required>
-                                        <option value="Others">Other</option>
+                                        <option value=""></option>
                                         @foreach ($suppliers as $val)
                                             <option value="{{ $val->kode }}">{{ $val->kode }} | {{ $val->nama }}</option>
                                         @endforeach
+                                        <option value="other">Other</option>
                                     </select>
                                 </div>
-                                <div class="form-group col-md-3">
+                                <div class="form-group col-md-3 d-none other-desc">
                                     <div class="form-group">
-                                        <label for="totalAmount">Other</label>
-                                        <input type="text" id="totalAmount" name="totalAmount" class="form-control text-right numeral-mask" maxlength="12" required/>
+                                        <label for="paidToDesc">Other Bayar Ke Desc*</label>
+                                        <input type="text" id="paidToDesc" name="paidToDesc" class="form-control" required/>
                                     </div>
                                 </div>
                                 <div class="form-group col-md-3">
@@ -150,7 +151,6 @@
         </div>
     </div>
 </section>
-
 @include('accounting.kasKeluar.addArticle')
 @endsection
 @section('styles')
@@ -236,6 +236,7 @@
         let totalAmount = $('#totalAmount').val().replace(/,/gi, '') || 0;
         let note = $('#note').val();
         let paidTo = $('#paidTo').val();
+        let paidToDesc = $('#paidToDesc').val();
         if (!$("#frmAdd")[0].checkValidity()){
             $("#frmAdd").submit();
         }else{   
@@ -296,7 +297,8 @@
                             period:period,
                             note:note,
                             totalAmount:totalAmount,
-                            paidTo:paidTo
+                            paidTo:paidTo,
+                            paidToDesc:paidToDesc
                         },
                         dataType: "json",
                         success: function(data) {
@@ -508,6 +510,20 @@
         }else{
             window.location.href = "{{ route('kasKeluar.create') }}";
         }
+    });
+
+    $("#paidTo").on('select2:close', function(){
+        let content = this.value;
+        let contentText = $("#paidTo").select2('data')[0].text;
+        if(content =='other'){
+            $(".other-desc").removeClass("d-none");
+            $("#paidToDesc").val("");
+            $("#paidToDesc").focus();
+        }else{
+            $(".other-desc").addClass("d-none");
+            contentText = contentText.split("|");
+            $("#paidToDesc").val(contentText[1].trim());
+        }    
     });
 
     $.ajaxSetup({

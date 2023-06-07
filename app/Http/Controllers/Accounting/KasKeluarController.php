@@ -32,7 +32,8 @@ class KasKeluarController extends Controller
             ['data'=>'action','name'=>'action','title'=>'action','orderable'=> false,'searchable'=>false],
             ['data'=>'voucher_number','name'=>'voucher_number','title'=>'Voucher Number'],
             ['data'=>'voucher_date','name'=>'voucher_date','title'=>'Date'],
-            ['data'=>'supplier_name','name'=>'supplier_name','title'=>'Paid To'],
+            // ['data'=>'supplier_name','name'=>'supplier_name','title'=>'Paid To'],
+            ['data'=>'description','name'=>'description','title'=>'Paid To'],
             ['data'=>'amount','name'=>'amount','title'=>'Amount'],
             ['data'=>'period','name'=>'period','title'=>'Period'],
             ['data'=>'note','name'=>'note','title'=>'Note'],
@@ -130,6 +131,7 @@ class KasKeluarController extends Controller
         $paidTo = $request->paidTo;
         $status = '1';
         $leadCode =$this->moduleCode;
+        $paidToDesc = $request->paidToDesc;
 
         // dd($details);
         
@@ -171,7 +173,8 @@ class KasKeluarController extends Controller
                         'voucher_type' =>$leadCode,
                         'voucher_date' =>$vcDate,
                         // 'receive_from' =>$recFrom,
-                        'paid_to' =>$paidTo,
+                        'paid_to' => $paidTo,
+                        'description' => $paidToDesc,
                         'amount' =>$totalAmount,
                         'period' =>$period,
                         'year' =>date('Y'),                        
@@ -227,8 +230,11 @@ class KasKeluarController extends Controller
         $data['subtitle'] = "Detail $this->title";
 
         $data['header'] = DB::table('kas_hdr')
-        ->leftJoin('third_party','third_party.kode','kas_hdr.paid_to')
-        ->select('kas_hdr.*',db::raw("concat(third_party.kode,'-',third_party.nama) as supplier_name"))
+        // ->leftJoin('third_party','third_party.kode','kas_hdr.paid_to')
+        ->select('kas_hdr.*'
+        ,'description as supplier_name'
+        // ,db::raw("concat(third_party.kode,'-',third_party.nama) as supplier_name")
+        )
         ->where('kas_hdr.id',$id)
         ->get()->first();
 
@@ -320,6 +326,7 @@ class KasKeluarController extends Controller
         $paidTo = $request->paidTo;
         $status = '1';
         $leadCode =$this->moduleCode;
+        $paidToDesc = $request->paidToDesc;
         
         $messages = [
             'required' => 'The field is required.',
@@ -361,6 +368,7 @@ class KasKeluarController extends Controller
                             'voucher_date' =>$vcDate,
                             // 'receive_from' =>$recFrom,
                             'paid_to' =>$paidTo,
+                            'description' =>$paidToDesc,
                             'amount' =>$totalAmount,
                             'period' =>$period,
                             'note' => $note,
@@ -617,13 +625,17 @@ class KasKeluarController extends Controller
     {
         $id=Crypt::decryptString($request->id);
 
-        $data['title'] ='Kas Masuk';
+        $data['title'] ='Kas Keluar';
         
-        $data['header']=DB::table('kas_hdr')
-        ->leftJoin('accounts','accounts.account','kas_hdr.receive_from')
-        ->select('kas_hdr.*','accounts.description as receive_name')
+        $data['header'] = DB::table('kas_hdr')
+        // ->leftJoin('third_party','third_party.kode','kas_hdr.paid_to')
+        ->select('kas_hdr.*'
+        ,'description as supplier_name'
+        // ,db::raw("concat(third_party.kode,'-',third_party.nama) as supplier_name")
+        )
         ->where('kas_hdr.id',$id)
-        ->first();
+        ->get()->first();
+
 
         $vcNumber=$data['header']->voucher_number;
        
