@@ -79,8 +79,8 @@
     </div>
     <div class="card-content collapse show">
       <div class="card-body">
-        <button type="button" class="btn btn-primary" id ="btnDetail" name="btnDetail">Detail</button>
-        <button type="button" class="btn btn-primary" id ="btnSummary" name="btnSummary">Summary</button>
+        <button type="button" class="btn btn-primary" id ="btnDetail" name="btnDetail" data-toggle="tooltip" data-placement="right" title="Tekan tombol untuk melihat data detail">Detail</button>
+        <button type="button" class="btn btn-primary" id ="btnSummary" name="btnSummary" data-toggle="tooltip" data-placement="right" title="Tekan tombol untuk melihat data summary">Summary</button>
         <div class="row">
             <div class="col-sm-12">
               <div class="card-datatable table-responsive pt-0">

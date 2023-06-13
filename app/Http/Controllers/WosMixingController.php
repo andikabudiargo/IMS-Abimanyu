@@ -1064,5 +1064,6 @@ class WosMixingController extends Controller
         
         return response()->json($data);                        
     }
+    
 }
 
