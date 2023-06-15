@@ -223,7 +223,8 @@ class ArticleController extends Controller
         $price = $price ? str_replace(",","",$price) : $price;
         $sapetiStok = $request->safetyStock;
         $safetyStock = $sapetiStok ? str_replace(",","",$sapetiStok) : $sapetiStok;
-        $minimumPackage = $request->minimumPackage;
+        // $minimumPackage = $request->minimumPackage;
+        $minimumPackage = $request->minimumPackage ? str_replace(",","",$request->minimumPackage) : $request->minimumPackage;
         $note = $request->note;
         $files = $request->files;
         $status = '1';
@@ -431,7 +432,7 @@ class ArticleController extends Controller
         $price = $price ? str_replace(",","",$price) : $price;
         $sapetiStok = $request->safetyStock;
         $safetyStock = $sapetiStok ? str_replace(",","",$sapetiStok) : $sapetiStok;
-        $minimumPackage = $request->minimumPackage;
+        $minimumPackage = $request->minimumPackage ? str_replace(",","",$request->minimumPackage) : $request->minimumPackage;
         $note = $request->note;
         $files = $request->files;
         $fileDihapus = $request->fileDihapus;

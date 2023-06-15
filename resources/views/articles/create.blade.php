@@ -101,7 +101,7 @@
                             <div class="col-6">
                                 <div class="form-group">
                                     <label for="minimumPackage">Minimum package*</label>
-                                    <input type="text" id="minimumPackage" name="minimumPackage" class="form-control numeral-mask" value="{{ old('minimumPackage',1) }}" maxlength="10" required/>
+                                    <input type="text" id="minimumPackage" name="minimumPackage" class="form-control numeral-mask-digit" value="{{ old('minimumPackage',1) }}" maxlength="10" required/>
                                 </div>
                             </div>
                         </div>
