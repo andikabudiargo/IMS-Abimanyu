@@ -276,21 +276,33 @@
                         </table>
                         <br><br>
                         <table width="100%">
-                            <tr><td colspan="5" height="3"></td></tr>
-                            <tr>
-                                <td align="center">Dibuat oleh</td>
-                                <td align="center">Mengetahui</td>
-                                <td align="center">Menyetujui</td>
+                            {{-- <tr><td colspan="5" height="3"></td></tr> --}}
+                            <tr> 
+                                <td align="center" width="10%"></td>
+                                <td align="center" width="20%">Dibuat oleh</td>
+                                <td align="center" width="10%"></td>
+                                <td align="center" width="20%">Mengetahui</td>
+                                <td align="center" width="10%"></td>
+                                <td align="center" width="20%">Menyetujui</td>
+                                <td align="center" width="10%"></td>
                             </tr>
                             <tr>
-                                <td align="center" height="25"></td>
                                 <td align="center"></td>
+                                <td align="center" height="25">{{ $approval1 ? 'Approval 1':'' }}</td>
+                                <td align="center"></td>
+                                <td align="center">{{ $approval1 ? 'Approval 2':'' }}</td>
+                                <td align="center"></td>
+                                <td align="center">{{ $approval1 ? 'Approval 3':'' }}</td>
                                 <td align="center"></td>
                             </tr>
                             <tr>
-                                <td align="center">  _____________  </td>
-                                <td align="center">  _____________  </td>
-                                <td align="center">  _____________  </td>
+                                <td align="center"></td>
+                                <td align="center"  style="border-bottom: 1px solid black;">{{ $approval1 ? $approval1->name:'' }}</td>
+                                <td align="center"></td>
+                                <td align="center" >  {{ $approval2 ? $approval2->name:'' }}  </td>
+                                <td align="center"></td>
+                                <td align="center" >  {{ $approval3 ? $approval3->name:'' }}  </td>
+                                <td align="center"></td>
                             </tr>
                         </table>
                     </div>

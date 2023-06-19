@@ -41,15 +41,24 @@
             
                             </div>
                             <div class="form-row">
-                                <div class="form-group col-md-3">
+                                <div class="form-group col-md-6">
                                     <label class="form-label" for="poNumber">PO Number*</label>
                                     <select class="select2 form-control" id="poNumber" name="poNumber" required>
                                     </select>
                                 </div>
-                                <div class="form-group col-md-3">
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group col-md-6">
                                     <label class="form-label" for="recNumber">Rec.Number/LPB*</label>
-                                    <select class="select2 form-control" id="recNumber" name="recNumber" required>
+                                    <select class="form-control" id="recNumber" name="recNumber" multiple="multiple">
                                     </select>
+                                    {{-- <select class="select2 form-control" id="recNumber" name="recNumber" required>
+                                    </select> --}}
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="col-md-12">
+                                    <button class="btn btn-primary" type="button" id="cmdSubmit" name="cmdSubmit">Submit</button>
                                 </div>
                             </div>
                             <hr>

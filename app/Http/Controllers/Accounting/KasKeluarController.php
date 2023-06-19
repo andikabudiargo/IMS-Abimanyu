@@ -656,6 +656,27 @@ class KasKeluarController extends Controller
         ->distinct('depts.name')
         ->pluck('depts.name')->implode(',');
 
+        $data['approval1']=DB::table('approval_history')
+        ->leftJoin('users','users.username','approval_history.username')
+        ->where('module_code',$this->moduleCode)
+        ->where('module_number',$vcNumber)
+        ->where('approval_order',1)
+        ->first();
+
+        $data['approval2']=DB::table('approval_history')
+        ->leftJoin('users','users.username','approval_history.username')
+        ->where('module_code',$this->moduleCode)
+        ->where('module_number',$vcNumber)
+        ->where('approval_order',2)
+        ->first();
+
+        $data['approval3']=DB::table('approval_history')
+        ->leftJoin('users','users.username','approval_history.username')
+        ->where('module_code',$this->moduleCode)
+        ->where('module_number',$vcNumber)
+        ->where('approval_order',3)
+        ->first();
+
         return view('accounting.kasKeluar.print',$data);
 
         // view()->share($data);
