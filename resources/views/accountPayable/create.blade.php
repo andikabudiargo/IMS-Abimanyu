@@ -61,7 +61,7 @@
                             </div>
                             <div class="form-row">
                                 <div class="form-group col-md-6">
-                                    <label class="form-label" for="accountBasisA">COA*</label>
+                                    <label class="form-label" for="accountBasisA">COA Basis Amount</label>
                                     <select class="select2 form-control w-100" id="accountBasisA" name="accountBasisA" required>
                                         <option value="">Choose option</option>
                                         @foreach($accountBa as $val)
