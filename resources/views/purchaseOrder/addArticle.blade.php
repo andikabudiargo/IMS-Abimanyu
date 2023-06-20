@@ -183,7 +183,7 @@
     if (deliveryDate.length) {
         deliveryDate.flatpickr({
             dateFormat: "d-m-Y",
-            minDate: currentDate
+            // minDate: currentDate
         });
     }
 
