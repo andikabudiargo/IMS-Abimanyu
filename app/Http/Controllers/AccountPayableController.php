@@ -101,12 +101,16 @@ class AccountPayableController extends Controller
         })
         ->where("status","3")
         ->orderBy("po_number")
-        ->select("po_number","po_date")
+        ->select("po_number","po_date","currency","kurs")
         ->get();          
 
         $output .='<option value=""></option>';            
         foreach ($data as $row){
-            $output .='<option data-po-date="'.$row->po_date.'" value="'.$row->po_number.'">'.$row->po_number.'</option>';            
+            $output .='<option 
+                            data-po-date="'.$row->po_date.'" 
+                            data-po-currency="'.$row->currency.'" 
+                            data-po-kurs="'.$row->kurs.'" 
+                            value="'.$row->po_number.'">'.$row->po_number.'</option>';            
         }        
         
         return $output;
@@ -126,36 +130,112 @@ class AccountPayableController extends Controller
         //     ->where('po_number',$poNumber);
         // })
         ->orderBy("rec_number")
-        ->select("rec_number","do_date")
+        ->select("rec_number","do_date","do_number")
         ->get();          
 
-        $output .='<option value=""></option>';            
-        foreach ($data as $row){
-            $output .='<option data-do-date="'.$row->do_date.'" value="'.$row->rec_number.'">'.$row->rec_number.'</option>';            
-        }        
+        $output="";
+
+        foreach ($data as $key=>$row){
+
+            $output .="<tr>
+                        <td>
+                            <div class='custom-control custom-checkbox'>
+                                <input type='checkbox' class='custom-control-input' id='customCheck$key' name='customCheck'
+                                data-do-date='$row->do_date' 
+                                data-rec-number = '$row->rec_number'>
+                                <label class='custom-control-label' for='customCheck$key'></label>
+                            </div>
+                        </td>
+                        <td>$row->rec_number</td>
+                        <td>$row->do_date</td>
+                        <td>$row->do_number</td>
+                    </tr>";
+        }
+
+
+        // $output .='<option value=""></option>';            
+        // foreach ($data as $row){
+        //     $output .='<option data-do-date="'.$row->do_date.'" value="'.$row->rec_number.'">'.$row->rec_number.'</option>';            
+        // }        
         
         return $output;
     }
 
     public function detailRec(Request $request){
         $poNumber = $request->poNumber;
-        $data = DB::select("SELECT 
-                            a.*
-                            ,b.nama
-                            ,(select round(sum(qty*price)) as total_po from purchase_order_det where po_number= a.po_number) as total_po 
-                            ,round((select sum(qty*price) from receiving_det where rec_number = a.rec_number)) as basis_amount
-                            ,c.ppn as vat
-                            ,c.pkp as pkp
-                            ,c.currency as currency
-                            ,c.kurs  as kurs
-                            ,to_char(to_date(rec_date,'dd-mm-yyyy')+c.termin,'dd-mm-yyyy') as due_date
-                            ,(select sum(qty*price) from purchase_order_det where po_number = a.po_number)-(select sum(basis_amount) from ap_invoice where po_number = a.po_number) as po_balance
-                            ,(select pi_number from ap_pro_invoice where po_number = a.po_number and status = '5' limit 1) as pro_inv_num
-                            from receiving_hdr a
-                            left join third_party b on b.kode = a.supplier_id
-                            left join purchase_order_hdr c on c.po_number = a.po_number
-                            where a.po_number = '$poNumber'");
-         return response()->json($data);
+        $recNumber = $request->recNumber;
+        $arrayRecNumber = explode(",",$recNumber);
+
+        $result = "'" . implode ( "', '", $arrayRecNumber ) . "'";
+
+        $detailRec = DB::table('receiving_det')
+        ->leftJoin('receiving_hdr','receiving_hdr.rec_number','receiving_det.rec_number')
+        ->leftJoin('article','article.article_code','receiving_det.article_code')
+        ->leftJoin(DB::RAW("(select * from purchase_order_det where po_number = '$poNumber') AS po"),function($join){
+            $join->on('po.po_number','=','receiving_hdr.po_number')
+                ->on('po.article_code','=','receiving_det.article_code');
+        })
+
+        // ->leftJoin(DB::RAW("(select * from purchase_order_det where po_number = '$poNumber') AS po"),'po.po_number','receiving_hdr.po_number')
+        ->whereIn('receiving_det.rec_number',$arrayRecNumber)
+        ->where('receiving_det.qty','>',0)
+        ->select('article.article_alternative_code as article'
+        ,'article.article_desc as desc'
+        ,'receiving_det.uom_rec as uom'
+        ,db::raw("sum(receiving_det.qty) as qty")
+        ,'po.price'
+        ,db::raw("round(sum(receiving_det.qty*po.price)) as total"))
+        ->groupBy('article.article_alternative_code')
+        ->groupBy('article.article_desc')
+        ->groupBy('receiving_det.uom_rec')
+        ->groupBy('po.price')
+        ->get();
+
+        // $summaryRec = DB::select("SELECT 
+        //                     a.*
+        //                     ,b.nama
+        //                     ,(select round(sum(qty*price)) as total_po from purchase_order_det where po_number= a.po_number) as total_po 
+        //                     ,round((select sum(qty*price) from receiving_det where rec_number = a.rec_number)) as basis_amount
+        //                     ,c.ppn as vat
+        //                     ,c.pkp as pkp
+        //                     ,c.currency as currency
+        //                     ,c.kurs  as kurs
+        //                     ,to_char(to_date(rec_date,'dd-mm-yyyy')+c.termin,'dd-mm-yyyy') as due_date
+        //                     ,(select sum(qty*price) from purchase_order_det where po_number = a.po_number)-(select sum(basis_amount) from ap_invoice where po_number = a.po_number) as po_balance
+        //                     ,(select pi_number from ap_pro_invoice where po_number = a.po_number and status = '5' limit 1) as pro_inv_num
+        //                     from receiving_hdr a
+        //                     left join third_party b on b.kode = a.supplier_id
+        //                     left join purchase_order_hdr c on c.po_number = a.po_number
+        //                     where rec_number in ($arrayRecNumber)");
+                            // -- where a.po_number = '$poNumber'");
+
+        $summaryRec =  DB::select("SELECT z.*
+                            ,ppn as vat
+                            ,round(((basis_amount-discount)*ppn/100)) as nilai_pajak
+                            ,pkp as pkp
+                            ,pph22 as pph22
+                            ,discount
+                            ,(select sum(qty) as qty  from purchase_order_det where po_number = z.po_number) as total_qty_po
+                            ,round((select sum(qty*price) as qty  from purchase_order_det where po_number = z.po_number)) as total_amount_po
+                            ,round((select sum(qty*price) as qty  from purchase_order_det where po_number = z.po_number) -(select sum(basis_amount) from ap_invoice where po_number = z.po_number)) as po_balance
+                            ,round((basis_amount-discount)+(basis_amount*ppn/100)+pph22) as total_netto
+                            from 
+                            (select b.po_number
+                            ,sum(a.qty) as total_qty_rec
+                            ,round(sum(a.qty*c.price)) as basis_amount
+                            from receiving_det a
+                            left join receiving_hdr b on a.rec_number = b.rec_number 
+                            left join purchase_order_det c on c.po_number = b.po_number and c.article_code = a.article_code 
+                            -- where a.rec_number in ('REC-ASN/2022/XI/4','REC-ASN/2023/I/1')
+                            where a.rec_number in ($result)
+                            --and a.qty > 0
+                            group by b.po_number) z
+                            left join purchase_order_hdr y on y.po_number = z.po_number");
+
+                            // dd($summaryRec);
+                            
+         
+         return response()->json(array('detailRec'=>$detailRec,'summaryRec'=>$summaryRec));    
     }
 
     public function poDetail(Request $request)
@@ -209,31 +289,40 @@ class AccountPayableController extends Controller
     public function store(Request $request)
     {
         $username =  Auth::user()->username;
-        $suppCode = $request->input('supplier');
-        $poNumber = $request->input('poNumberDet');
-        $profInvoice = $request->input('profInvoice');
-        $recNumber = $request->input('recNumber');
-        $recDate = $request->input('recDate');
-        $dueDate = $request->input('dueDate');
-        $currency = $request->input('currency');
-        $rate = is_null($request->input('rate')) ? 0 : preg_replace('/[^0-9.]+/', '', $request->input('rate'));
-        $invoiceNumber= $request->input('invoiceNumber');
-        $invoiceDate= $request->input('invoiceDate');
-        $taxInvoiceNumber = $request->input('taxInvoiceNumber');
-        $basisAmount = is_null($request->input('basisAmount')) ? 0 : preg_replace('/[^0-9.]+/', '', $request->input('basisAmount'));
-        $accountBasisA = $request->input('accountBasisA');
-        $vat = is_null($request->input('vat')) ? 0 : preg_replace('/[^0-9.]+/', '', $request->input('vat'));
-        $otherDeduct = is_null($request->input('otherDeduct')) ? 0 : preg_replace('/[^0-9.]+/', '', $request->input('otherDeduct'));
-        $account= $request->input('account');
-        $pph23 = $request->input('pph23Check') == 'on'? is_null($request->input('pph23')) ? 0 : preg_replace('/[^0-9.]+/', '', $request->input('pph23')) : 0;
-        $pph23Type= $request->input('pph23Check') == 'on'? is_null($request->input('pph23'))? "":$request->input('pph23Type') : '';
-        $note=$request->input('note');
-        $accountVat = $request->input('accountVat');
-        
+        $suppCode = $request->supplier;
+        $poNumber = $request->poNumber;
+        $profInvoice = $request->profInvoice;
+        $recNumber = $request->recNumber;
+        $recDate = $request->recDate;
+        $dueDate = $request->dueDate;
+        $currency = $request->currency;
+        $rate = is_null($request->rate) ? 0 : preg_replace('/[^0-9.]+/', '', $request->rate);
+        $invoiceNumber= $request->invoiceNumber;
+        $invoiceDate= $request->invoiceDate;
+        $taxInvoiceNumber = $request->taxInvoiceNumber;
+        $basisAmount = is_null($request->basisAmount) ? 0 : preg_replace('/[^0-9.]+/', '', $request->basisAmount);
+        $accountBasisA = $request->accountBasisA;
+        // $vat = is_null($request->vat) ? 0 : preg_replace('/[^0-9.]+/', '', $request->vat);
+        // $otherDeduct = is_null($request->otherDeduct) ? 0 : preg_replace('/[^0-9.]+/', '', $request->otherDeduct);
+        $otherDeduct = 0;
+        $account= $request->account;
+        // $pph23 = $request->pph23Check == 'on'? is_null($request->pph23) ? 0 : preg_replace('/[^0-9.]+/', '', $request->pph23) : 0;
+        // $pph23Type= $request->pph23Check == 'on'? is_null($request->pph23)? "":$request->pph23Type : '';
+        $note=$request->note;
+        // $accountVat = $request->accountVat;
+
+        $recNumberSave = explode(",",$request->recNumberSave);
+        $vat=is_null($request->totalPPN) ? 0 : preg_replace('/[^0-9.]+/', '', $request->totalPPN);
+        $pph23 = is_null($request->totalPPH) ? 0 : preg_replace('/[^0-9.]+/', '', $request->totalPPH);
+        $totalDiscount = is_null($request->totalDiscount) ? 0 : preg_replace('/[^0-9.]+/', '', $request->totalDiscount);
+        // $totalNetto = preg_replace('/[^0-9.]+/', '', $request->totalNetto);
+        $grandTotal = is_null($request->grandTotal) ? 0 :  preg_replace('/[^0-9.]+/', '', $request->grandTotal);
+        $accountVat ='1100.73';
+        $acountTotal = '2000.11';
+                
         $status = '1';
         $authorizedBy = "";
         
-
         // status
         // 1. Draft
         // 2. Update
@@ -256,38 +345,40 @@ class AccountPayableController extends Controller
         });
 
         $rule = [
-            'poNumberDet'  => 'required',
-            'invoiceNumber'=>'required|iunique:ap_invoice,inv_number,po_number',
+            // 'poNumberDet'  => 'required',
+            // 'invoiceNumber'=>'required|iunique:ap_invoice,inv_number,po_number',
             // 'doDate'  => 'required',
         ];
 
         $this->validate($request,$rule,$messages);
 
-        $hasilUpdate = AppHelpers::resetCode('AP');
-        $apNumber = $this->getLastCode('AP');
+        $hasilUpdate = AppHelpers::resetCode($this->moduleCode);
+        $apNumber = $this->getLastCode($this->moduleCode);
         DB::beginTransaction();
         try {
-                DB::table('ap_invoice')->insert([
+                $rowAffected = DB::table('ap_invoice')->insert([
                     'ap_number' => $apNumber,
-                    'inv_number' => $invoiceNumber,
-                    'tax_inv_number' => $taxInvoiceNumber,
-                    'proforma_inv_number' => $profInvoice,
+                    // 'inv_number' => $invoiceNumber,
+                    // 'tax_inv_number' => $taxInvoiceNumber,
+                    // 'proforma_inv_number' => $profInvoice,
                     'old_ap_number' => $apNumber,
-                    'inv_date' => $invoiceDate,
-                    'rec_number' => $recNumber,
+                    // 'inv_date' => $invoiceDate,
+                    // 'rec_number' => $recNumber,
                     'po_number' => $poNumber,
                     'supplier_id' => $suppCode,
-                    'rec_date' => $recDate,
-                    'due_date' => $dueDate,
+                    // 'rec_date' => $recDate,
+                    // 'due_date' => $dueDate,
                     'currency' => $currency,
                     'kurs' => $rate,
                     'basis_amount' => $basisAmount,
-                    'account_ba'=> $accountBasisA,
+                    'total_discount' => $totalDiscount,
                     'vat' => $vat,
-                    'pph23' => $pph23,
-                    'pph23_type' => $pph23Type,
                     'other_deduction' => $otherDeduct,
-                    'account' => $account,
+                    'pph23' => $pph23,
+                    'grand_total' => $grandTotal,
+                    'account_ba'=> $accountBasisA,
+                    'account_total' => $acountTotal,
+                    'account_vat' => $accountVat,
                     'prepared_by' => Auth::user()->username,
                     'status' => $status,
                     'note' => $note,
@@ -295,8 +386,22 @@ class AccountPayableController extends Controller
                     'updated_by' => Auth::user()->username,
                     'created_at' => date('Y-m-d H:i:s'),
                     'updated_at' => date('Y-m-d H:i:s'),
-                    'account_vat' => $accountVat
+                    
                 ]);
+
+                if($rowAffected){
+                    $dataReceiving = [];
+                    foreach ($recNumberSave as $val) {
+                        $dataReceiving[] = [
+                            'ap_number' => $apNumber,
+                            'rec_number' => $val,
+                            'created_by' => Auth::user()->username,
+                            'created_at' => date('Y-m-d H:i:s'),
+                        ];
+                    }
+                }
+
+                DB::table('ap_invoice_detail')->insert($dataReceiving);
 
                 DB::commit();
 
@@ -807,60 +912,60 @@ class AccountPayableController extends Controller
                             </a>';
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
 
-            if (($data->status != '3') && ($data->status != '4') && ($data->status != '5')){
-                if (Auth::user()->can('ap-edit')) {
-                $buttons .=         '<a href="'. route('ap.edit',['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
-                                        <i data-feather="file-text"></i>
-                                        Edit
-                                    </a>';
-                }
-            }
+            // if (($data->status != '3') && ($data->status != '4') && ($data->status != '5')){
+            //     if (Auth::user()->can('ap-edit')) {
+            //     $buttons .=         '<a href="'. route('ap.edit',['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+            //                             <i data-feather="file-text"></i>
+            //                             Edit
+            //                         </a>';
+            //     }
+            // }
 
-            if (($data->status != '2') && ($data->status != '3') && ($data->status != '4') && ($data->status != '5')){
-                if (Auth::user()->can('ap-edit')) {
-                $buttons .=         '<a href="'. route('ap.edit',['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
-                                        <i data-feather="check"></i>
-                                        Update
-                                    </a>';
-                }
-            }
+            // if (($data->status != '2') && ($data->status != '3') && ($data->status != '4') && ($data->status != '5')){
+            //     if (Auth::user()->can('ap-edit')) {
+            //     $buttons .=         '<a href="'. route('ap.edit',['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+            //                             <i data-feather="check"></i>
+            //                             Update
+            //                         </a>';
+            //     }
+            // }
 
-            if (($data->status == '2')){
-                if (Auth::user()->can('ap-edit')) {
-                $buttons .=         '<a href="'. route('ap.edit',['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
-                                        <i data-feather="check"></i>
-                                        Posting
-                                    </a>';
-                }
-            }
+            // if (($data->status == '2')){
+            //     if (Auth::user()->can('ap-edit')) {
+            //     $buttons .=         '<a href="'. route('ap.edit',['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+            //                             <i data-feather="check"></i>
+            //                             Posting
+            //                         </a>';
+            //     }
+            // }
 
-            $buttons .=         '<a href="'. route('ap.show', ['apNumber'=>Crypt::encryptString($data->ap_number)]) .'" class="dropdown-item">
-                                    <i data-feather="list"></i>
-                                    Detail
-                                </a>';
+            // $buttons .=         '<a href="'. route('ap.show', ['apNumber'=>Crypt::encryptString($data->ap_number)]) .'" class="dropdown-item">
+            //                         <i data-feather="list"></i>
+            //                         Detail
+            //                     </a>';
                                 
-            if ( $data->status == '3' ){
-                if (Auth::user()->can('ap-revision')) {
-                    $buttons .= '<a href="'. route('ap.revision', ['id'=>$data->id,'apNumber'=>$data->ap_number,'numRevision'=>$data->num_revision,'statusRevision'=>'revision']) .'" class="dropdown-item">
-                                    <i data-feather="copy"></i>
-                                       Revision
-                                </a>';
-                }
-            }
+            // if ( $data->status == '3' ){
+            //     if (Auth::user()->can('ap-revision')) {
+            //         $buttons .= '<a href="'. route('ap.revision', ['id'=>$data->id,'apNumber'=>$data->ap_number,'numRevision'=>$data->num_revision,'statusRevision'=>'revision']) .'" class="dropdown-item">
+            //                         <i data-feather="copy"></i>
+            //                            Revision
+            //                     </a>';
+            //     }
+            // }
                 
-            if (($data->status != '5' && $data->status != '4' )){
-                if (Auth::user()->can('receiving-delete')) {
-                $buttons .=         "<a href='javascript:;'
-                                        id='deleteButton'
-                                        class='dropdown-item'
-                                        data-toggle='modal'
-                                        data-target='#smallModalCancel'
-                                        data-href='". route("ap.destroy", ["id"=>Crypt::encryptString($data->id)]) ."'>
-                                        <i data-feather='trash-2'></i>
-                                        Cancel
-                                    </a>";
-                }
-            }
+            // if (($data->status != '5' && $data->status != '4' )){
+            //     if (Auth::user()->can('receiving-delete')) {
+            //     $buttons .=         "<a href='javascript:;'
+            //                             id='deleteButton'
+            //                             class='dropdown-item'
+            //                             data-toggle='modal'
+            //                             data-target='#smallModalCancel'
+            //                             data-href='". route("ap.destroy", ["id"=>Crypt::encryptString($data->id)]) ."'>
+            //                             <i data-feather='trash-2'></i>
+            //                             Cancel
+            //                         </a>";
+            //     }
+            // }
             $buttons .=     '</div>
                         </div>';
 
