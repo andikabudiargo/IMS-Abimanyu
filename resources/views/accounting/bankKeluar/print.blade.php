@@ -195,7 +195,7 @@
                         <table width="100%">
                             <tr>
                                 <td style="vertical-align: bottom;">
-                                    <div class="huruf-tebal font-16" style="text-align:center">BUKTI KAS MASUK</div>
+                                    <div class="huruf-tebal font-16" style="text-align:center">BUKTI KAS KELUAR</div>
                                     <div class="huruf-tebal font-14" style="text-align:center">{{ $header->voucher_number }}</div>
                                     <br>
                                     <table width="100%">
@@ -206,7 +206,7 @@
                                         </tr>
                                         <tr class="tanpa-padding">
                                             <td class="tanpa-padding font-14">Dari</td>
-                                            <td class="tanpa-padding font-14">: {{ $header->receive_name }}</td>
+                                            <td class="tanpa-padding font-14">: {{ $header->supplier_name }}</td>
                                             <td>{{ $costCenter }}</td>
                                         </tr>
                                     </table>
@@ -225,7 +225,8 @@
                             <thead>
                                 <tr>
                                     <th width="10%">No Account</th>
-                                    <th width="40%">Account Name</th>
+                                    <th width="20%">Account Name</th>
+                                    <th width="20%">Referensi</th>
                                     <th width="40%">Keterangan</th>
                                     <th width="10%">Debet</th>
                                     <th width="10%">Kredit</th>
@@ -236,6 +237,7 @@
                                     <tr >
                                         <td align="left">{{ $val->account }}</td>
                                         <td align="left">{{ $val->account_name }}</td>
+                                        <td align="left">{{ $val->reference }}</td>
                                         <td align="left">{{ $val->description }}</td>
                                         <td align="right">{{ number_format($val->debit) }}</td>
                                         <td align="right">{{ number_format($val->credit) }}</td>
@@ -252,11 +254,13 @@
                                     <tr >
                                         <td align="right" class="putih" height="16"></td>
                                         <td align="left"></td>
+                                        <td align="left"></td>
                                         <td align="right"></td>
                                         <td align="right"></td>
                                     </tr>
                                 @endfor
                                 <tr>
+                                    <td  align="left" class="border-atas" ></td>
                                     <td  align="left" class="border-atas" ></td>
                                     <td  align="left" class="border-atas" ></td>
                                     <td  align="left" class="border-atas" >Total</td>
@@ -266,6 +270,8 @@
                                 <tr class="border-atas">
                                     <td  align="left" class="border-atas" colspan="5">Note: {{ $header->note }}</td>
                                 </tr>
+
+                                
                             </tbody>
                         </table>
                         <br><br>

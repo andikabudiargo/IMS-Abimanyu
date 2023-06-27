@@ -7,7 +7,7 @@
         <div class="col-md-12">
             <div class="card">
                 <div class="card-header">
-                    <h4 class="card-title">Status: {{ $status }}</h4>
+                    <h4 class="card-title">Status: New</h4>
                     <div class="heading-elements">
                         <ul class="list-inline mb-0">
                             <li><a data-action="collapse"><i data-feather="chevron-down"></i></a></li>
@@ -20,52 +20,52 @@
                             @csrf
                             <input type="text" id="article" name="article" hidden>
                             <div class="form-row">
-                                <div class="form-group col-md-4">
+                                <div class="form-group col-md-3">
                                     <label for="voucherNumber">Voucher Number</label>
-                                    <input type="text" id="voucherNumber" name="voucherNumber" value="{{ $header->voucher_number }}" class="form-control" disabled/>
+                                    <input type="text" id="voucherNumber" name="voucherNumber" class="form-control" disabled/>
                                 </div>
                                 <div class="form-group col-md-3">
                                     <label for="vcDate">Date*</label>
-                                    <input type="text" id="vcDate" name="vcDate" value="{{ $header->voucher_date }}" class="form-control" placeholder="DD-MM-YYYY" required />
+                                    <input type="text" id="vcDate" name="vcDate" class="form-control" placeholder="DD-MM-YYYY" required />
                                 </div>
                                 <div class="form-group col-md-3">
                                     <label class="form-label" for="period">Period*</label>
                                     <select class="select2 form-control" id="period" name="period" required>
                                         <option value=""></option>
                                         @for ($i = 1; $i <= 12; $i++)
-                                            <option value="{{ $i }}" {{$i == $header->period ? "selected" : ""}}>{{ $i }}</option>
+                                            <option value="{{ $i }}">{{ $i }}</option>
                                         @endfor
                                     </select>
                                 </div>
                             </div>
                             <div class="form-row">
-                                <div class="form-group col-md-4">
-                                    <label for="recFrom">Received From*</label>
-                                    <select class="select2 form-control" id="recFrom" name="recFrom" required>
+                                <div class="form-group col-md-6">
+                                    <label for="paidTo">Bayar Ke*</label>
+                                    <select class="select2 form-control" id="paidTo" name="paidTo" required>
                                         <option value=""></option>
-                                        @foreach ($accounts as $val)
-                                            <option value="{{ $val->account }}" {{$val->account == $header->receive_from ? "selected" : ""}} >{{ $val->account }}|{{ $val->description }}</option>
+                                        @foreach ($suppliers as $val)
+                                            <option value="{{ $val->kode }}">{{ $val->kode }} | {{ $val->nama }}</option>
                                         @endforeach
-                                        <option value="other" {{ $header->receive_from == 'other' ? "selected" : ""}} >Other</option>
+                                        <option value="other">Other</option>
                                     </select>
                                 </div>
-                                <div class="form-group col-md-3 {{ $header->receive_from =='other' ? '' : 'd-none' }} other-desc">
+                                <div class="form-group col-md-3 d-none other-desc">
                                     <div class="form-group">
-                                        <label for="recFromDesc">Other Received From Desc*</label>
-                                        <input type="text" id="recFromDesc" name="recFromDesc" value="{{ $header->description }}" class="form-control" required/>
+                                        <label for="paidToDesc">Other Bayar Ke Desc*</label>
+                                        <input type="text" id="paidToDesc" name="paidToDesc" class="form-control" required/>
                                     </div>
                                 </div>
                                 <div class="form-group col-md-3">
                                     <div class="form-group">
                                         <label for="totalAmount">Amount*</label>
-                                        <input type="text" id="totalAmount" name="totalAmount" value="{{ $header->amount }}" class="form-control text-right numeral-mask" maxlength="12" required/>
+                                        <input type="text" id="totalAmount" name="totalAmount" class="form-control text-right numeral-mask" maxlength="12" required/>
                                     </div>
                                 </div>
                             </div>
                             <div class="form-row">
-                                <div class="form-group col-md-10">
+                                <div class="form-group col-md-9">
                                     <label class="form-label" for="note">Notes</label>
-                                    <textarea type="text" id="note" name="note" class="form-control" rows="1" >{{ $header->note }}</textarea>
+                                    <textarea type="text" id="note" name="note" class="form-control" rows="1" ></textarea>
                                 </div>
                             </div>
                         </form>
@@ -88,6 +88,9 @@
                                     </td>
                                     <td class="isian" style="">
                                         <label>Description</label>
+                                    </td>
+                                    <td class="isian" style="">
+                                        <label>Referensi</label>
                                     </td>
                                     <td class="isian" style="">
                                         <label>CC</label>
@@ -118,6 +121,8 @@
                                 </td>
                                 <td class="isian" style="">
                                 </td>
+                                <td class="isian" style="">
+                                </td>
                                 <td class="isian" style="width: 10%">
                                     <input type="text" class="form-control-plaintext numeral-mask text-right" id="vcTotalDebit" disabled />
                                 </td>
@@ -136,68 +141,17 @@
                         </button>
                     </div>
                     <hr>
-                    <div class="form-row">
-                        <div class="col-md-12">
-                            <a href="{{ route('bankPenerimaan.index') }}" class="btn btn-light">Back</a>
-                            @if( $approveValidate ? $approveValidate[0]->validate : '')
-                                <input type="text" id ="approveLevel" name ="approveLevel" class="d-none" value="{{ $approveValidate[0]->next_level }}">
-                                <input type="text" id ="maxLevel" name ="maxLevel" class="d-none" value="{{ $approveValidate[0]->max_level }}">
-                                <button class="btn btn-success" type="button" id="cmdApprove" name="cmdApprove">Approve</button>
-                            @if( $status =='NEW')
-                                <button class="btn btn-primary" type="button" id="cmdUpdate" name="cmdUpdate" >Update</button>
-                            @endif
-                            @else
-                                @if( !$approveValidate && $status =='NEW')
-                                    <button class="btn btn-primary" type="button" id="cmdUpdate" name="cmdUpdate" >Update</button>
-                                @endif
-                            @endif
-                        </div>
-                    </div>
-                    <hr>
-                    <div class="form-row card-statistics">
-                        @foreach($approvalHistory as $val)
-                            @if($val->status == true)
-                                <div class="statistics-body">
-                                    <div class="col-xl-3 col-sm-6 col-12 mb-2 mb-xl-0">
-                                        <div class="media">
-                                            <div class="avatar bg-light-success mr-2">
-                                                <div class="avatar-content">
-                                                    <i data-feather="check" class="avatar-icon"></i>
-                                                </div>
-                                            </div>
-                                            <div class="media-body my-auto">
-                                                <h4 class="font-weight-bolder mb-0">Approve-{{ $val->approval_order }}</h4>
-                                                <p class="card-text mb-0">{{ $val->name }}</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            @else
-                                <div class="statistics-body">
-                                    <div class="col-xl-3 col-sm-6 col-12 mb-2 mb-xl-0">
-                                        <div class="media">
-                                            <div class="avatar bg-light-danger mr-2">
-                                                <div class="avatar-content">
-                                                    <i data-feather="x" class="avatar-icon"></i>
-                                                </div>
-                                            </div>
-                                            <div class="media-body my-auto">
-                                                <h4 class="font-weight-bolder mb-0">Approve-{{ $val->approval_order }}</h4>
-                                                <p class="card-text mb-0">{{ $val->petugas }}</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            @endif
-                        @endforeach
+                    <div class="col-12">
+                        <a href="{{ route('bankKeluar.index') }}" class="btn btn-light">Back</a>
+                        <button class="btn btn-info" type="button" id="cmdNew" name="cmdNew">New</button>
+                        <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Save</button>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 </section>
-
-@include('accounting.kas.addArticle')
+@include('accounting.bankKeluar.addArticle')
 @endsection
 @section('styles')
 <link rel="stylesheet" type="text/css" href="{{ asset('assets/css/jquery-ui.css') }}">
@@ -255,19 +209,16 @@
 <script type="text/javascript">
     let currentDate = todayDate('dd-mm-yyyy');   
     let type = "{{ $type }}";
-    
-    $(document).ready(function(){           
+        
+    $(document).ready(function(){
         validateFormToast('frmAdd');
-
-        let detail = {!!  $details !!};
-        for(let i=0;i<detail.length;i++){
-            vcAccount = detail[i].account;
-            vcDesc = detail[i].description;
-            vcCc = detail[i].cost_center;
-            vcDebit = detail[i].debit;
-            vcCredit = detail[i].credit;
-            add_new_row(vcAccount,vcDesc,vcCc,vcDebit,vcCredit);
-        }
+        vcDate.val(currentDate);
+        add_new_row();
+        add_new_row();
+        add_new_row();
+        add_new_row();
+        add_new_row();
+        
     });
     
     vcDate = $('#vcDate');
@@ -277,36 +228,24 @@
         });
     }
     
-    function reloadPage(){
-        window.location.reload();
-    }
-
-    $("#cmdCancel").click(function(){
-        reloadPage();
-    });
-
-    $("#cmdNew").click(function(){
-        reloadPage();
-    });
-
-    $("#cmdUpdate").click(function(){  
+    $("#cmdSave").click(function(){  
         let objTotalVcDebit= $('#vcTotalDebit').val().replace(/,/gi, '') || 0;
         let objTotalVcCredit= $('#vcTotalCredit').val().replace(/,/gi, '') || 0;
         let vcDate = $('#vcDate').val();
         let period = $('#period').val();
         let totalAmount = $('#totalAmount').val().replace(/,/gi, '') || 0;
         let note = $('#note').val();
-        let recFrom = $('#recFrom').val();
-        let vcNumber = $('#voucherNumber').val();
-        let recFromDesc = $('#recFromDesc').val();
-    
-        if (((parseInt(objTotalVcDebit)-parseInt(objTotalVcCredit)) == 0) && (parseInt(objTotalVcCredit)==parseInt(totalAmount))){
-            if (!$("#frmAdd")[0].checkValidity()){
-                $("#frmAdd").submit();
-            }else{   
+        let paidTo = $('#paidTo').val();
+        let paidToDesc = $('#paidToDesc').val();
+        if (!$("#frmAdd")[0].checkValidity()){
+            $("#frmAdd").submit();
+        }else{   
+            if (((parseInt(objTotalVcDebit)-parseInt(objTotalVcCredit)) == 0) && (parseInt(objTotalVcCredit)==parseInt(totalAmount))){
+                $('#cmdSave').attr('disabled','disabled');
                 $('.disabled-el').removeAttr('disabled');
                 // ambil semua data article
                 let objvcDesc= $('#item_row input[name="vcDesc[]"]');
+                let objVcRef= $('#item_row select[name="vcRef[]"]');
                 let objVcCc= $('#item_row select[name="vcCc[]"]');
                 let objVcDebit= $('#item_row input[name="vcDebit[]"]');
                 let objVcCredit= $('#item_row input[name="vcCredit[]"]');
@@ -321,6 +260,7 @@
                     if ($this.val()){
                         let sAccount=$this.val();
                         let sDesc=objvcDesc.eq(i).val();
+                        let sRef=objVcRef.eq(i).val();
                         let sCc=objVcCc.eq(i).val();
                         let sDebit=objVcDebit.eq(i).val().replace(/,/gi, '') || 0;
                         let sCredit=objVcCredit.eq(i).val().replace(/,/gi, '') || 0;
@@ -329,6 +269,7 @@
                             details.push({
                                 "account":sAccount,
                                 "description":sDesc,
+                                "reference":sRef,
                                 "cc":sCc,
                                 "debit":sDebit,
                                 "credit":sCredit,
@@ -349,16 +290,15 @@
                 if (flag == 0){
                     $.ajax({
                         type: "post",
-                        url: "{{ route('bankPenerimaan.update') }}",
+                        url: "{{ route('bankKeluar.store') }}",
                         data: {
                             details:JSON.stringify(details),
                             vcDate:vcDate,
                             period:period,
                             note:note,
                             totalAmount:totalAmount,
-                            recFrom:recFrom,
-                            vcNumber:vcNumber,
-                            recFromDesc:recFromDesc
+                            paidTo:paidTo,
+                            paidToDesc:paidToDesc
                         },
                         dataType: "json",
                         success: function(data) {
@@ -372,55 +312,103 @@
                                 show_msg(data.title, data.message, data.alert);
                                 $('#voucherNumber').val(data.vcNumber);
                                 $('#voucherNumber').attr('disabled','disabled');
-                                // $('#cmdUpdate').attr('disabled','disabled');
-                                // $('#addNewRow').attr('disabled','disabled');
+                                $('#cmdSave').attr('disabled','disabled');
+                                $('#addNewRow').attr('disabled','disabled');
+                                window.location.href = "{{ route('bankKeluar.create') }}";
                             }
                         },
                         error: function(error) {
                             console.log(error);
                         }
                     });
-
                 }else{
+                    $('#cmdSave').removeAttr('disabled');
                     Swal.fire('Warning..',pesan,'warning');
                 }
+            }else{
+                Swal.fire('Warning..',"Data belum balance",'warning');
             }
-        }else{
-            Swal.fire('Warning..',"Data belum balance",'warning');
         }
     });
 
-    let cloneCount=1;
-    function add_new_row(account,desc,cc,debit,credit) {
+    let cloneCount=0;
+    function add_new_row() {
         $("#item_row").append($("#new_row").clone().html());
         cloneCount++;
         $("#item_row").find('#baru').attr('id', 'new_row'+ cloneCount);
         $("#new_row"+ cloneCount).find('#vcDesc').attr('id', 'vcDesc'+ cloneCount);
+        $("#new_row"+ cloneCount).find('#vcRef').attr('id', 'vcRef'+ cloneCount);
         $("#new_row"+ cloneCount).find('#account').attr('id', 'account'+ cloneCount);
         $("#new_row"+ cloneCount).find('#vcCc').attr('id', 'vcCc'+ cloneCount);
-        $("#new_row"+ cloneCount).find('#vcDebit').attr('id', 'vcDebit'+ cloneCount);
-        $("#new_row"+ cloneCount).find('#vcCredit').attr('id', 'vcCredit'+ cloneCount);
-
-        accList('account','account'+ cloneCount,account);
-        
+        accList('account','account'+ cloneCount);
         $("#account"+cloneCount).select2();
         $("#vcCc"+cloneCount).select2();
-
-        // $("#account"+cloneCount).val(account).trigger('change');;
-        $("#vcCc"+cloneCount).val(cc).trigger('change');;
-        $("#vcDesc"+cloneCount).val(desc);
-        $("#vcDebit"+cloneCount).val(debit != 0 ? debit : '');
-        $("#vcCredit"+cloneCount).val(credit != 0 ? credit : '');
-
+        $("#vcRef"+cloneCount).select2();
         $('#remove_button').tooltip();
         activate_angka();
         mask_thousand();
         hitungTotal();
         hitungGrandTotal();
+        findInvoice();
+        getAmount();
         $('[data-toggle="tooltip"]').tooltip();
     };
 
-    function accList(dependent,obj,account) {
+    $('#paidTo').change(function(e){
+        let objAccount = $('#item_row select[name="account[]"]');
+        let objVcRef= $('#item_row select[name="vcRef[]"]');
+        let objVcDebit= $('#item_row input[name="vcDebit[]"]');
+        let objVcCredit= $('#item_row input[name="vcCredit[]"]');
+
+        let paidTo = $('#paidTo').val();
+        if (paidTo){
+            objAccount.map(function(i){
+                let $this=$(this);
+                let objSupp = "vcRef"+(i+1);
+                if ($this.val()){
+                    if ($this.val() =='2000.11'){
+                        invList('reference',objSupp,paidTo);
+                        objVcDebit.eq(i).val("");
+                        objVcCredit.eq(i).val("");
+                        objVcRef.empty().trigger('change');
+                        hitungGrandTotal();
+                    }
+                    
+                }
+            });
+        }
+    });
+
+    function findInvoice(){
+        let objAccount = $('#item_row select[name="account[]"]');
+        let objVcRef= $('#item_row select[name="vcRef[]"]');
+        let objVcDebit= $('#item_row input[name="vcDebit[]"]');
+        let objVcCredit= $('#item_row input[name="vcCredit[]"]');
+        
+        objAccount.change(function(e){        
+            let objIndex = objAccount.index(this);
+            let accountNumber = objAccount.eq(objIndex).val();
+            let paidTo = $('#paidTo').val();
+            let objSupp = "vcRef"+(objIndex+1);
+            if(accountNumber){
+                if (accountNumber =='2000.11'){
+                    if(paidTo){
+                        invList('reference',objSupp,paidTo);
+                    }else{
+                        Swal.fire('Warning..','Kolom bayar ke /supplier code masih kosong','warning');
+                    }
+                }else{
+                    objVcDebit.eq(objIndex).val("");
+                    objVcCredit.eq(objIndex).val("");
+                    objVcRef.eq(objIndex).empty().trigger('change');
+                    hitungGrandTotal();
+                }
+            }
+        });
+    }
+    
+    
+    function accList(dependent,obj) {
       $.ajax({
         url:"{{route('dynamic.dependent')}}",
         method:"POST",
@@ -429,54 +417,112 @@
         },
         success:function(result){
             $('#'+obj).html(result);
-            $('#'+obj).val(account).trigger('change');
+            $('#'+obj).val('').trigger('change');
         }
       })
     }
 
-    $("#cmdApprove").click(function(){    
-        let vcNumber = $('#voucherNumber').val();
+    function invList(dependent,obj,value) {
+      $.ajax({
+        url:"{{route('dynamic.dependent')}}",
+        method:"POST",
+        data:{
+            dependent:dependent,
+            value:value
+        },
+        success:function(result){
+            $('#'+obj).html(result);
+            $('#'+obj).val("").trigger('change');
+        }
+      })
+    }
+
+    function getAmount(){
+        let objRef = $('#item_row select[name="vcRef[]"]');
+        objRef.change(function(e){ 
+            let objIndex = objRef.index(this);
+            let vRef = objRef.eq(objIndex).val();
+            if(vRef){
+                getAmountValue(vRef,objIndex);
+            }
+        });
+    }   
+
+    function getAmountValue(vRef,objIndex) {
+        let objVcDebit= $('#item_row input[name="vcDebit[]"]');
+        let objVcCredit= $('#item_row input[name="vcCredit[]"]');
         $.ajax({
             type: "get",
-            url: "{{ route('bankPenerimaan.approve') }}",
+            url: "{{ route('bankKeluar.get.invoice.amount') }}",
             data: {
-                vcNumber:vcNumber
+                vRef:vRef
             },
             dataType: "json",
             success: function(data) {
-                if (data.status == 0 ){
-                    let message="";
-                    for(let i = 0; i < data.message.length; i++) {
-                        show_msg(data.title, data.message[i], data.alert);
-                    }
-                    $('#voucherNumber').attr('disabled','disabled');
+                objVcCredit.eq(objIndex).val('');
+                objVcDebit.eq(objIndex).val('');
 
-                }else{
-                    show_msg(data.title, data.message, data.alert);
-                    $('#voucherNumber').attr('disabled','disabled');
-                    $('#cmdApprove').attr('disabled','disabled');
-                    $('#addNewRow').attr('disabled','disabled');  
-                    $('#cmdUpdate').attr('disabled','disabled');
-                    location.reload();       
+                if(data.amount){
+                    objVcDebit.eq(objIndex).val(humanizeNumber(data.amount));
+                    objVcCredit.eq(objIndex).val('');
+                    hitungGrandTotal();
                 }
             },
             error: function(error) {
                 console.log(error);
             }
         });
+    }
+
+
+    $("#cmdNew").click(function(){ 
+        let objAccount= $('#item_row select[name="account[]"]');
+        let details = [];
+        objAccount.map(function(i) {  
+            let $this=$(this);
+            if ($this.val()){
+                let sAccount=$this.val();
+                if (sAccount!==''){
+                    details.push({
+                        "account":sAccount
+                    });
+                }
+            }
+        });
+
+        if (details.length > 0){
+            Swal.fire({
+                title: 'Akan input data baru?',
+                text: "Apakah data sebelumnya akan di simpan!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Ya',
+                cancelButtonText: 'Tidak'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $("#cmdSave").click();
+                }else{
+                    window.location.href = "{{ route('bankKeluar.create') }}";
+                }
+            })
+        }else{
+            window.location.href = "{{ route('bankKeluar.create') }}";
+        }
     });
 
-    $("#recFrom").on('select2:close', function(){
+    $("#paidTo").on('select2:close', function(){
         let content = this.value;
-        let contentText = $("#recFrom").select2('data')[0].text;
+        let contentText = $("#paidTo").select2('data')[0].text;
         if(content =='other'){
             $(".other-desc").removeClass("d-none");
-            $("#recFromDesc").val("");
-            $("#recFromDesc").focus();
+            $("#paidToDesc").val("");
+            $("#paidToDesc").focus();
         }else{
             $(".other-desc").addClass("d-none");
             contentText = contentText.split("|");
-            $("#recFromDesc").val(contentText[1].trim());
+            $("#paidToDesc").val(contentText[1].trim());
         }    
     });
 

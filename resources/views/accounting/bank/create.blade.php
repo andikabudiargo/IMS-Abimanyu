@@ -20,26 +20,15 @@
                             @csrf
                             <input type="text" id="article" name="article" hidden>
                             <div class="form-row">
-                                <div class="form-group col-md-3">
-                                    <label for="accountNumber">Account*</label>
-                                    <select class="select2 form-control" id="accountNumber" name="accountNumber" required>
-                                        <option value=""></option>
-                                        @foreach ($accounts as $val)
-                                            <option value="{{ $val->account }}">{{ $val->account }}|{{ $val->description }}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                                <div class="form-group col-md-3">
+                                <div class="form-group col-md-4">
                                     <label for="voucherNumber">Voucher Number</label>
                                     <input type="text" id="voucherNumber" name="voucherNumber" class="form-control" disabled/>
                                 </div>
-                                <div class="form-group col-md-2">
+                                <div class="form-group col-md-3">
                                     <label for="vcDate">Date*</label>
                                     <input type="text" id="vcDate" name="vcDate" class="form-control" placeholder="DD-MM-YYYY" required />
                                 </div>
-                            </div>
-                            <div class="form-row">
-                                <div class="form-group col-md-2">
+                                <div class="form-group col-md-3">
                                     <label class="form-label" for="period">Period*</label>
                                     <select class="select2 form-control" id="period" name="period" required>
                                         <option value=""></option>
@@ -48,38 +37,35 @@
                                         @endfor
                                     </select>
                                 </div>
-                                <div class="form-group col-md-2">
-                                    <label for="currency">Currency*</label>
-                                    <select class="select2 form-control" id="currency" name="currency" required>
-                                        @foreach($currency as $val)
-                                        <option value="{{$val}}">{{$val}}</option>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group col-md-4">
+                                    <label for="recFrom">Received From*</label>
+                                    <select class="select2 form-control" id="recFrom" name="recFrom" required>
+                                        <option value=""></option>
+                                        @foreach ($accounts as $val)
+                                            <option value="{{ $val->account }}">{{ $val->account }}|{{ $val->description }}</option>
                                         @endforeach
+                                        <option value="other">Other</option>
                                     </select>
                                 </div>
-                                <div class="form-group col-md-2 d-none">
+                                <div class="form-group col-md-3 d-none other-desc">
                                     <div class="form-group">
-                                        <label for="kurs">Kurs</label>
-                                        <input type="text" id="kurs" name="kurs" value="1" class="form-control angka" maxlength="6"  />
+                                        <label for="recFromDesc">Other Received From Desc*</label>
+                                        <input type="text" id="recFromDesc" name="recFromDesc" class="form-control" required/>
                                     </div>
                                 </div>
-                                <div class="form-group col-md-2">
+                                <div class="form-group col-md-3">
                                     <div class="form-group">
-                                        <label for="totalAmount">Amount</label>
-                                        <input type="text" id="totalAmount" name="totalAmount" class="form-control angka" maxlength="6" disabled />
+                                        <label for="totalAmount">Amount*</label>
+                                        <input type="text" id="totalAmount" name="totalAmount" class="form-control text-right numeral-mask" maxlength="12" required/>
                                     </div>
                                 </div>
                             </div>
                             <div class="form-row">
-                                <div class="form-group col-md-11">
+                                <div class="form-group col-md-10">
                                     <label class="form-label" for="note">Notes</label>
                                     <textarea type="text" id="note" name="note" class="form-control" rows="1" ></textarea>
-                                </div>
-                            </div>
-                            <div class="form-row">
-                                <div class="col-12">
-                                    <a href="{{ route('bankPenerimaan.index') }}" class="btn btn-light">Back</a>
-                                    <button class="btn btn-success" type="reset" id="cmdNew" name="cmdCancel">New</button>
-                                    <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Save</button>
                                 </div>
                             </div>
                         </form>
@@ -97,14 +83,8 @@
                         <table class="" style="width:98%;table-layout: fixed;">
                             <tbody>
                                 <tr>
-                                    <td class="isian" style="width: 20%">
+                                    <td class="isian" style="width: 30%">
                                         <label>Account</label>
-                                    </td>
-                                    <td class="isian" style="width: 10%">
-                                        <label>Debit</label>
-                                    </td>
-                                    <td class="isian" style="width: 10%">
-                                        <label>Credit</label>
                                     </td>
                                     <td class="isian" style="">
                                         <label>Description</label>
@@ -112,8 +92,11 @@
                                     <td class="isian" style="">
                                         <label>CC</label>
                                     </td>
-                                    <td class="isian" style="">
-                                        <label>Memo</label>
+                                    <td class="isian" style="width: 10%">
+                                        <label>Debit</label>
+                                    </td>
+                                    <td class="isian" style="width: 10%">
+                                        <label>Credit</label>
                                     </td>
                                     <td class="isian" style="width: 5%">
                                         <label>-</label>
@@ -128,20 +111,18 @@
                     <table class="" style="width: 98%;table-layout: fixed;">
                         <tbody>
                             <tr>
-                                <td class="isian" style="width: 20%">
+                                <td class="isian" style="width: 30%">
                                     <label>Total</label>
+                                </td>
+                                <td class="isian" style="">
+                                </td>
+                                <td class="isian" style="">
                                 </td>
                                 <td class="isian" style="width: 10%">
                                     <input type="text" class="form-control-plaintext numeral-mask text-right" id="vcTotalDebit" disabled />
                                 </td>
                                 <td class="isian" style="width: 10%">
                                     <input type="text" class="form-control-plaintext numeral-mask text-right" id= "vcTotalCredit" disabled />
-                                </td>
-                                <td class="isian" style="">
-                                </td>
-                                <td class="isian" style="width: 5%">
-                                </td>
-                                <td class="isian" style="">
                                 </td>
                                 <td class="isian text-center" style="width: 5%">
                                 </td>
@@ -151,8 +132,14 @@
                     <div class="d-flex justify-content-between align-items-end mt-75 ml-75">
                         <button class="btn btn-primary btn-prev" type="button" id="addNewRow" onclick="add_new_row();">
                             <i data-feather="plus" class="align-middle mr-sm-25 mr-0"></i>
-                            <span class="align-middle d-sm-inline-block d-none">Add</span>
+                            <span class="align-middle d-sm-inline-block d-none">Add row</span>
                         </button>
+                    </div>
+                    <hr>
+                    <div class="col-12">
+                        <a href="{{ route('bankPenerimaan.index') }}" class="btn btn-light">Back</a>
+                        <button class="btn btn-info" type="button" id="cmdNew" name="cmdNew">New</button>
+                        <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Save</button>
                     </div>
                 </div>
             </div>
@@ -160,7 +147,7 @@
     </div>
 </section>
 
-@include('accounting.bank.addArticle')
+@include('accounting.kas.addArticle')
 @endsection
 @section('styles')
 <link rel="stylesheet" type="text/css" href="{{ asset('assets/css/jquery-ui.css') }}">
@@ -216,19 +203,22 @@
 @section('scripts')
 <script src="{{ asset('assets/js/ui.1.13.0.jquery-ui.js') }}"></script>
 <script type="text/javascript">
-    let currentDate = todayDate('dd-mm-yyyy');     
+    let currentDate = todayDate('dd-mm-yyyy');   
+    let type = "{{ $type }}";
     // var availableTags =;
     // availableTags=availableTags.replace(/[[\]]/g,'');
     // availableTags=availableTags.replace(/&quot;/g,'').split(",");
         
     $(document).ready(function(){           
-        validateForm('frmAdd');
-        $('#orderDate').val(currentDate);
+        validateFormToast('frmAdd');
+        vcDate.val(currentDate);
+
         add_new_row();
         add_new_row();
         add_new_row();
         add_new_row();
         add_new_row();
+        
     });
     
     vcDate = $('#vcDate');
@@ -238,117 +228,106 @@
         });
     }
     
-    function reloadPage(){
-        window.location.reload();
-    }
-
-    $("#cmdCancel").click(function(){
-        reloadPage();
-    });
-
-    $("#cmdNew").click(function(){
-        reloadPage();
-    });
-
     $("#cmdSave").click(function(){  
+        let objTotalVcDebit= $('#vcTotalDebit').val().replace(/,/gi, '') || 0;
+        let objTotalVcCredit= $('#vcTotalCredit').val().replace(/,/gi, '') || 0;
+        let vcDate = $('#vcDate').val();
+        let period = $('#period').val();
+        let totalAmount = $('#totalAmount').val().replace(/,/gi, '') || 0;
+        let note = $('#note').val();
+        let recFrom = $('#recFrom').val();
+        let recFromDesc = $('#recFromDesc').val();
+            
         if (!$("#frmAdd")[0].checkValidity()){
             $("#frmAdd").submit();
-        }else{   
-            $('.disabled-el').removeAttr('disabled');
-            // ambil semua data article
-            let objPcDesc= $('#item_row input[name="pcDesc[]"]');
-            let objPcCg= $('#item_row input[name="pcCg[]"]');
-            let objPcDebit= $('#item_row input[name="pcDebit[]"]');
-            let objPcCredit= $('#item_row input[name="pcCredit[]"]');
-            let objAccount= $('#item_row select[name="account[]"]');
-            let details = []; 
-            let flag=0; 
-            let pesan="";
+        }else{  
+            if (((parseInt(objTotalVcDebit)-parseInt(objTotalVcCredit)) == 0) && (parseInt(objTotalVcCredit)==parseInt(totalAmount))){ 
+                $('#cmdSave').attr('disabled','disabled');
+                $('.disabled-el').removeAttr('disabled');
+                // ambil semua data article
+                let objvcDesc= $('#item_row input[name="vcDesc[]"]');
+                let objVcCc= $('#item_row select[name="vcCc[]"]');
+                let objVcDebit= $('#item_row input[name="vcDebit[]"]');
+                let objVcCredit= $('#item_row input[name="vcCredit[]"]');
+                let objAccount= $('#item_row select[name="account[]"]');
+                let details = []; 
+                let flag=0; 
+                let pesan="";
+                let cekIsi=0;
 
-            objPcDesc.map(function(i) {  
-                let $this=$(this);
-                if ($this.val()){
-                    let sDesc=$this.val();
-                    let sCc=objPcCg.eq(i).val();
-                    let sDebit=objPcDebit.eq(i).val().replace(/,/gi, '') || 0;
-                    let sCredit=objPcCredit.eq(i).val().replace(/,/gi, '') || 0;
-                    let sAccount=objAccount.eq(i).val();
+                objAccount.map(function(i) {  
+                    let $this=$(this);
+                    if ($this.val()){
+                        let sAccount=$this.val();
+                        let sDesc=objvcDesc.eq(i).val();
+                        let sCc=objVcCc.eq(i).val();
+                        let sDebit=objVcDebit.eq(i).val().replace(/,/gi, '') || 0;
+                        let sCredit=objVcCredit.eq(i).val().replace(/,/gi, '') || 0;
 
-                    //jquery
-                    //cek apakah article ada yang double input ato ngk
-                    let obj = $.grep(details, function(obj){
-                        return obj.description === sDesc;
-                    })[0];
-                    
-                    // if(obj) {
-                    //     pesan +="Description "+sDesc+" entered more than once !! <br>"; 
-                    //     flag=1;
-                    // } else {
-                        if ((sDesc!=='') && ((sDebit + sCredit) > 0)){
+                        if ((sDesc!=='') && ((sDebit + sCredit) > 0) && (sAccount!=='') && (sCc!=='')){
                             details.push({
+                                "account":sAccount,
                                 "description":sDesc,
                                 "cc":sCc,
                                 "debit":sDebit,
                                 "credit":sCredit,
-                                "account":sAccount
                             });
                         }
-                    // }             
-                }
-            });
 
-            if (details.length == 0){
-                pesan +="Detail must be filled Out completely <br>"; 
-                flag=1;
-            }
-
-            if (flag == 0){
-
-                let vcDate = $('#vcDate').val();
-                let period = $('#period').val();
-                let currency = $('#currency').val();
-                let totalAmount = $('#totalAmount').val();
-                let kurs = $('#kurs').val() || 1;
-                let note = $('#note').val();
-
-                $.ajax({
-                    type: "post",
-                    url: "{{ route('bankPenerimaan.store') }}",
-                    data: {
-                        details:JSON.stringify(details),
-                        vcDate:vcDate,
-                        period:period,
-                        currency:currency,
-                        kurs:kurs,
-                        note:note,
-                        totalAmount:totalAmount
-                    },
-                    dataType: "json",
-                    success: function(data) {
-                        if (data.status == 0 ){
-                            let message="";
-                            for(let i = 0; i < data.message.length; i++) {
-                                show_msg(data.title, data.message[i], data.alert);
-                            }                        
-                            $('#voucherNumber').attr('disabled','disabled');
-                        }else{
-                            show_msg(data.title, data.message, data.alert);
-                            $('#voucherNumber').val(data.voucherNumber);
-                            $('#voucherNumber').attr('disabled','disabled');
-                            $('#cmdSave').attr('disabled','disabled');
-                            $('#addNewRow').attr('disabled','disabled');
+                        if ((sDesc =='') || (sCc =='') || ((sDebit + sCredit) == 0)){
+                            cekIsi++;
                         }
-                    },
-                    error: function(error) {
-                        console.log(error);
+
                     }
                 });
 
+                if ((details.length == 0) || (cekIsi >0)){
+                    pesan +="Detail must be filled Out completely <br>"; 
+                    flag=1;
+                }
+
+                if (flag == 0){
+                    $.ajax({
+                        type: "post",
+                        url: "{{ route('bankPenerimaan.store') }}",
+                        data: {
+                            details:JSON.stringify(details),
+                            vcDate:vcDate,
+                            period:period,
+                            note:note,
+                            totalAmount:totalAmount,
+                            recFrom:recFrom,
+                            recFromDesc:recFromDesc
+                        },
+                        dataType: "json",
+                        success: function(data) {
+                            if (data.status == 0 ){
+                                let message="";
+                                for(let i = 0; i < data.message.length; i++) {
+                                    show_msg(data.title, data.message[i], data.alert);
+                                }                        
+                                $('#voucherNumber').attr('disabled','disabled');
+                            }else{
+                                show_msg(data.title, data.message, data.alert);
+                                $('#voucherNumber').val(data.vcNumber);
+                                $('#voucherNumber').attr('disabled','disabled');
+                                $('#cmdSave').attr('disabled','disabled');
+                                $('#addNewRow').attr('disabled','disabled');
+                                window.location.href = "{{ route('bankPenerimaan.create') }}";
+                            }
+                        },
+                        error: function(error) {
+                            console.log(error);
+                        }
+                    });
+                }else{
+                    $('#cmdSave').removeAttr('disabled');
+                    Swal.fire('Warning..',pesan,'warning');
+                }
             }else{
-                Swal.fire('Warning..',pesan,'warning');
+                Swal.fire('Warning..',"Data belum balance",'warning');
             }
         }
-    
     });
 
     let cloneCount=1;
@@ -356,20 +335,24 @@
         $("#item_row").append($("#new_row").clone().html());
         cloneCount++;
         $("#item_row").find('#baru').attr('id', 'new_row'+ cloneCount);
-        $("#new_row"+ cloneCount).find('#pcDesc').attr('id', 'pcDesc'+ cloneCount);
+        $("#new_row"+ cloneCount).find('#vcDesc').attr('id', 'vcDesc'+ cloneCount);
         $("#new_row"+ cloneCount).find('#account').attr('id', 'account'+ cloneCount);
+        $("#new_row"+ cloneCount).find('#vcCc').attr('id', 'vcCc'+ cloneCount);
         accList('account','account'+ cloneCount);
+        
         $("#account"+cloneCount).select2();
+        $("#vcCc"+cloneCount).select2();
+
         $('#remove_button').tooltip();
-        tombolPanah('pcDebit');
-        tombolPanah('pcCredit');
+        // tombolPanah('vcDebit');
+        // tombolPanah('vcCredit');
         activate_angka();
         mask_thousand();
         hitungTotal();
         hitungGrandTotal();
         $('[data-toggle="tooltip"]').tooltip();
-
-        // $("#pcDesc"+ cloneCount).autocomplete({
+        
+        // $("#vcDesc"+ cloneCount).autocomplete({
         //     source: availableTags
         // });
 
@@ -388,6 +371,57 @@
         }
       })
     }
+
+    $("#cmdNew").click(function(){ 
+        let objAccount= $('#item_row select[name="account[]"]');
+        let details = [];
+        objAccount.map(function(i) {  
+            let $this=$(this);
+            if ($this.val()){
+                let sAccount=$this.val();
+                if (sAccount!==''){
+                    details.push({
+                        "account":sAccount
+                    });
+                }
+            }
+        });
+
+        if (details.length > 0){
+            Swal.fire({
+                title: 'Akan input data baru?',
+                text: "Apakah data sebelumnya akan di simpan!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Ya',
+                cancelButtonText: 'Tidak'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $("#cmdSave").click();
+                }else{
+                    window.location.href = "{{ route('bankPenerimaan.create') }}";
+                }
+            })
+        }else{
+            window.location.href = "{{ route('bankPenerimaan.create') }}";
+        }
+    });
+
+    $("#recFrom").on('select2:close', function(){
+        let content = this.value;
+        let contentText = $("#recFrom").select2('data')[0].text;
+        if(content =='other'){
+            $(".other-desc").removeClass("d-none");
+            $("#recFromDesc").val("");
+            $("#recFromDesc").focus();
+        }else{
+            $(".other-desc").addClass("d-none");
+            contentText = contentText.split("|");
+            $("#recFromDesc").val(contentText[1].trim());
+        }    
+    });
 
     $.ajaxSetup({
         headers: {

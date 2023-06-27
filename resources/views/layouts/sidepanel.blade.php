@@ -425,7 +425,7 @@
        
         <li class=" navigation-header"><span data-i18n="Finance Accounting">Finance Accounting</span><i data-feather="more-horizontal"></i>
         </li>
-        <li class=" {{ in_array(\Request::segment(1), ['aps','banks','pettyCash','proforma','bankReceipt','invoice','dnReceipt','kasPenerimaan','kasKeluar']) ? 'active' : '' }} nav-item">
+        <li class=" {{ in_array(\Request::segment(1), ['aps','banks','pettyCash','proforma','bankReceipt','invoice','dnReceipt','kasPenerimaan','kasKeluar','bankPenerimaan','bankKeluar']) ? 'active' : '' }} nav-item">
           <a class="d-flex align-items-center" href="javascript:void(0);">
             <i data-feather="dollar-sign"></i>
             <span class="menu-title text-truncate" data-i18n="Form Elements">Finance & acc
@@ -449,10 +449,10 @@
                 @endcan
                   <li class="{{ \Request::segment(1) == 'invoice' ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('invoice.index') }}"><span class="menu-item text-truncate" data-i18n="Invoice customer">Invoice Customer</span></a>
                   </li>
-                @can('ap-proforma-index')
+                {{-- @can('ap-proforma-index')
                   <li class="{{ \Request::segment(1) == 'proforma'  ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('apProforma.index') }}"><span class="menu-item text-truncate" data-i18n="Proforma Invoice">Proforma Invoice</span></a>
                   </li>
-                @endcan
+                @endcan --}}
               </ul>
             </li>
 
@@ -475,6 +475,19 @@
                 {{-- @endcan --}}
                 {{-- @can('ap-index') --}}
                   <li class="{{ \Request::is(['kasKeluar','kasKeluar/create','kasKeluar/show','kasKeluar/edit'])  ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('kasKeluar.index') }}"><span class="menu-item text-truncate" data-i18n="Pembayaran">Pembayaran</span></a>
+                  </li>
+                {{-- @endcan --}}
+              </ul>
+            </li>
+
+            <li><a class="d-flex align-items-center" href="#"><i data-feather="circle"></i><span class="menu-item text-truncate" data-i18n="Account Setting">Bank</span></a>
+              <ul class="menu-content">
+                {{-- @can('ap-index') --}}
+                  <li class="{{ \Request::is(['bankPenerimaan','bankPenerimaan/create','bankPenerimaan/show','bankPenerimaan/edit'])  ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('bankPenerimaan.index') }}"><span class="menu-item text-truncate" data-i18n="Penerimaan">Penerimaan</span></a>
+                  </li>
+                {{-- @endcan --}}
+                {{-- @can('ap-index') --}}
+                  <li class="{{ \Request::is(['bankKeluar','bankKeluar/create','bankKeluar/show','bankKeluar/edit'])  ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('bankKeluar.index') }}"><span class="menu-item text-truncate" data-i18n="Pembayaran">Pembayaran</span></a>
                   </li>
                 {{-- @endcan --}}
               </ul>

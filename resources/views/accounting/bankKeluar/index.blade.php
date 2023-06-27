@@ -23,7 +23,7 @@
                 <input type="text" class="form-control text-uppercase" id="seachVc" name="seachVc" placeholder=""  />
               </div>
               <div class="col-md-3 form-group">
-                <label for="vcDate">Date</label>
+                <label class="form-label" for="vcDate">Date</label>
                 <input type="text" id="vcDate" name="vcDate" class="form-control flatpickr-range" placeholder="YYYY-MM-DD to YYYY-MM-DD" />
               </div>
               <div class="form-group col-md-3">
@@ -49,7 +49,7 @@
                 <div class="col-12"> 
                     <button type="button" class="btn btn-primary" id ="btnSearch" name="btnSearch">Search</button>
                     {{-- @can('pettyCash-create') --}}
-                    <a href="{{ route('bankPenerimaan.create') }}" class="btn btn-info"><i class="fa fa-plus"></i> Create</a>
+                    <a href="{{ route('bankKeluar.create') }}" class="btn btn-info"><i class="fa fa-plus"></i> Create</a>
                     {{-- @endcan --}}
                 </div>
             </div>
@@ -92,10 +92,6 @@
 @endsection
 @section('styles')
 <style>
-
-td.wrapok {
-    white-space:normal
-}
 </style>
 @endsection
 @section('scripts')
@@ -149,9 +145,9 @@ td.wrapok {
     }
     showDataTables({
       tableId:"detailedTable",
-      route:"{{ route('bankPenerimaan.list') }}",
+      route:"{{ route('bankKeluar.list') }}",
       kolom:{!! $kolom !!},
-      arrColPrint:[1,2,3,4,5,6,7],
+      arrColPrint:[1,2,3,4,5,6,7,8],
       columnDefs :[
         { width: '5%', targets: 0 },
         {
@@ -159,7 +155,6 @@ td.wrapok {
           render: $.fn.dataTable.render.number(',', '.', 0, ''),
           className: "text-right"
         },
-        {targets:[3], class:"wrapok"}
       ],
       dataSearch:  {
         seachVc:seachVc,

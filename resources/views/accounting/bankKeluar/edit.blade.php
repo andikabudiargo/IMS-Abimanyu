@@ -20,7 +20,7 @@
                             @csrf
                             <input type="text" id="article" name="article" hidden>
                             <div class="form-row">
-                                <div class="form-group col-md-4">
+                                <div class="form-group col-md-3">
                                     <label for="voucherNumber">Voucher Number</label>
                                     <input type="text" id="voucherNumber" name="voucherNumber" value="{{ $header->voucher_number }}" class="form-control" disabled/>
                                 </div>
@@ -39,20 +39,20 @@
                                 </div>
                             </div>
                             <div class="form-row">
-                                <div class="form-group col-md-4">
-                                    <label for="recFrom">Received From*</label>
-                                    <select class="select2 form-control" id="recFrom" name="recFrom" required>
+                                <div class="form-group col-md-6">
+                                    <label for="paidTo">Bayar Ke*</label>
+                                    <select class="select2 form-control" id="paidTo" name="paidTo" required disabled>
                                         <option value=""></option>
-                                        @foreach ($accounts as $val)
-                                            <option value="{{ $val->account }}" {{$val->account == $header->receive_from ? "selected" : ""}} >{{ $val->account }}|{{ $val->description }}</option>
+                                        @foreach ($suppliers as $val)
+                                            <option value="{{ $val->kode }}" {{$val->kode == $header->paid_to ? "selected" : ""}}>{{ $val->kode }} | {{ $val->nama }}</option>
                                         @endforeach
-                                        <option value="other" {{ $header->receive_from == 'other' ? "selected" : ""}} >Other</option>
+                                        <option value="other" {{ $header->paid_to == 'other' ? "selected" : ""}} >Other</option>
                                     </select>
                                 </div>
-                                <div class="form-group col-md-3 {{ $header->receive_from =='other' ? '' : 'd-none' }} other-desc">
+                                <div class="form-group col-md-3 {{ $header->paid_to =='other' ? '' : 'd-none' }} other-desc">
                                     <div class="form-group">
-                                        <label for="recFromDesc">Other Received From Desc*</label>
-                                        <input type="text" id="recFromDesc" name="recFromDesc" value="{{ $header->description }}" class="form-control" required/>
+                                        <label for="paidToDesc">Other Bayar Ke Desc*</label>
+                                        <input type="text" id="paidToDesc" name="paidToDesc" value="{{ $header->description }}" class="form-control" required/>
                                     </div>
                                 </div>
                                 <div class="form-group col-md-3">
@@ -63,7 +63,7 @@
                                 </div>
                             </div>
                             <div class="form-row">
-                                <div class="form-group col-md-10">
+                                <div class="form-group col-md-9">
                                     <label class="form-label" for="note">Notes</label>
                                     <textarea type="text" id="note" name="note" class="form-control" rows="1" >{{ $header->note }}</textarea>
                                 </div>
@@ -88,6 +88,9 @@
                                     </td>
                                     <td class="isian" style="">
                                         <label>Description</label>
+                                    </td>
+                                    <td class="isian" style="">
+                                        <label>Referensi</label>
                                     </td>
                                     <td class="isian" style="">
                                         <label>CC</label>
@@ -118,6 +121,8 @@
                                 </td>
                                 <td class="isian" style="">
                                 </td>
+                                <td class="isian" style="">
+                                </td>
                                 <td class="isian" style="width: 10%">
                                     <input type="text" class="form-control-plaintext numeral-mask text-right" id="vcTotalDebit" disabled />
                                 </td>
@@ -138,7 +143,7 @@
                     <hr>
                     <div class="form-row">
                         <div class="col-md-12">
-                            <a href="{{ route('bankPenerimaan.index') }}" class="btn btn-light">Back</a>
+                            <a href="{{ route('bankKeluar.index') }}" class="btn btn-light">Back</a>
                             @if( $approveValidate ? $approveValidate[0]->validate : '')
                                 <input type="text" id ="approveLevel" name ="approveLevel" class="d-none" value="{{ $approveValidate[0]->next_level }}">
                                 <input type="text" id ="maxLevel" name ="maxLevel" class="d-none" value="{{ $approveValidate[0]->max_level }}">
@@ -197,7 +202,7 @@
     </div>
 </section>
 
-@include('accounting.kas.addArticle')
+@include('accounting.bankKeluar.addArticle')
 @endsection
 @section('styles')
 <link rel="stylesheet" type="text/css" href="{{ asset('assets/css/jquery-ui.css') }}">
@@ -263,10 +268,11 @@
         for(let i=0;i<detail.length;i++){
             vcAccount = detail[i].account;
             vcDesc = detail[i].description;
+            vcRef = detail[i].reference;
             vcCc = detail[i].cost_center;
             vcDebit = detail[i].debit;
             vcCredit = detail[i].credit;
-            add_new_row(vcAccount,vcDesc,vcCc,vcDebit,vcCredit);
+            add_new_row(vcAccount,vcDesc,vcRef,vcCc,vcDebit,vcCredit);
         }
     });
     
@@ -296,9 +302,8 @@
         let period = $('#period').val();
         let totalAmount = $('#totalAmount').val().replace(/,/gi, '') || 0;
         let note = $('#note').val();
-        let recFrom = $('#recFrom').val();
+        let paidTo = $('#paidTo').val();
         let vcNumber = $('#voucherNumber').val();
-        let recFromDesc = $('#recFromDesc').val();
     
         if (((parseInt(objTotalVcDebit)-parseInt(objTotalVcCredit)) == 0) && (parseInt(objTotalVcCredit)==parseInt(totalAmount))){
             if (!$("#frmAdd")[0].checkValidity()){
@@ -307,6 +312,7 @@
                 $('.disabled-el').removeAttr('disabled');
                 // ambil semua data article
                 let objvcDesc= $('#item_row input[name="vcDesc[]"]');
+                let objvcRef= $('#item_row select[name="vcRef[]"]');
                 let objVcCc= $('#item_row select[name="vcCc[]"]');
                 let objVcDebit= $('#item_row input[name="vcDebit[]"]');
                 let objVcCredit= $('#item_row input[name="vcCredit[]"]');
@@ -321,6 +327,7 @@
                     if ($this.val()){
                         let sAccount=$this.val();
                         let sDesc=objvcDesc.eq(i).val();
+                        let sRef=objvcRef.eq(i).val();
                         let sCc=objVcCc.eq(i).val();
                         let sDebit=objVcDebit.eq(i).val().replace(/,/gi, '') || 0;
                         let sCredit=objVcCredit.eq(i).val().replace(/,/gi, '') || 0;
@@ -329,6 +336,7 @@
                             details.push({
                                 "account":sAccount,
                                 "description":sDesc,
+                                "reference":sRef,
                                 "cc":sCc,
                                 "debit":sDebit,
                                 "credit":sCredit,
@@ -349,16 +357,15 @@
                 if (flag == 0){
                     $.ajax({
                         type: "post",
-                        url: "{{ route('bankPenerimaan.update') }}",
+                        url: "{{ route('bankKeluar.update') }}",
                         data: {
                             details:JSON.stringify(details),
                             vcDate:vcDate,
                             period:period,
                             note:note,
                             totalAmount:totalAmount,
-                            recFrom:recFrom,
+                            paidTo:paidTo,
                             vcNumber:vcNumber,
-                            recFromDesc:recFromDesc
                         },
                         dataType: "json",
                         success: function(data) {
@@ -372,7 +379,7 @@
                                 show_msg(data.title, data.message, data.alert);
                                 $('#voucherNumber').val(data.vcNumber);
                                 $('#voucherNumber').attr('disabled','disabled');
-                                // $('#cmdUpdate').attr('disabled','disabled');
+                                // $('#cmdSave').attr('disabled','disabled');
                                 // $('#addNewRow').attr('disabled','disabled');
                             }
                         },
@@ -390,24 +397,31 @@
         }
     });
 
-    let cloneCount=1;
-    function add_new_row(account,desc,cc,debit,credit) {
+    let cloneCount=0;
+    function add_new_row(account,desc,ref,cc,debit,credit) {
         $("#item_row").append($("#new_row").clone().html());
         cloneCount++;
         $("#item_row").find('#baru').attr('id', 'new_row'+ cloneCount);
         $("#new_row"+ cloneCount).find('#vcDesc').attr('id', 'vcDesc'+ cloneCount);
+        $("#new_row"+ cloneCount).find('#vcRef').attr('id', 'vcRef'+ cloneCount);
         $("#new_row"+ cloneCount).find('#account').attr('id', 'account'+ cloneCount);
         $("#new_row"+ cloneCount).find('#vcCc').attr('id', 'vcCc'+ cloneCount);
         $("#new_row"+ cloneCount).find('#vcDebit').attr('id', 'vcDebit'+ cloneCount);
         $("#new_row"+ cloneCount).find('#vcCredit').attr('id', 'vcCredit'+ cloneCount);
 
         accList('account','account'+ cloneCount,account);
+
+        if(account=='2000.11'){
+            let paidTo = $('#paidTo').val();
+            invList('reference','vcRef'+ cloneCount,paidTo,ref);
+        }
         
         $("#account"+cloneCount).select2();
         $("#vcCc"+cloneCount).select2();
+        $("#vcRef"+cloneCount).select2();
 
         // $("#account"+cloneCount).val(account).trigger('change');;
-        $("#vcCc"+cloneCount).val(cc).trigger('change');;
+        $("#vcCc"+cloneCount).val(cc).trigger('change');
         $("#vcDesc"+cloneCount).val(desc);
         $("#vcDebit"+cloneCount).val(debit != 0 ? debit : '');
         $("#vcCredit"+cloneCount).val(credit != 0 ? credit : '');
@@ -417,8 +431,35 @@
         mask_thousand();
         hitungTotal();
         hitungGrandTotal();
+        
+        if(!account){
+            console.log("oki");
+            getAmount();
+            findInvoice();
+        }
+
         $('[data-toggle="tooltip"]').tooltip();
     };
+
+    function findInvoice(ref){
+        let objAccount = $('#item_row select[name="account[]"]');
+        if(objAccount){
+            objAccount.change(function(e){        
+                let objIndex = objAccount.index(this);
+                let accountNumber = objAccount.eq(objIndex).val();
+                let paidTo = $('#paidTo').val();
+                let objSupp = "vcRef"+(objIndex+1);
+                if (accountNumber =='2000.11'){
+                    if(paidTo){
+                        invList('reference',objSupp,paidTo,ref);
+                    }else{
+                        objAccount.eq(objIndex).val('').trigger('change');
+                        Swal.fire('Warning..','Kolom bayar ke /supplier code masih kosong','warning');
+                    }
+                }
+            });
+        }
+    }
 
     function accList(dependent,obj,account) {
       $.ajax({
@@ -434,11 +475,62 @@
       })
     }
 
+    function invList(dependent,obj,value,ref) {
+      $.ajax({
+        url:"{{route('dynamic.dependent')}}",
+        method:"POST",
+        data:{
+            dependent:dependent,
+            value:value
+        },
+        success:function(result){
+            $('#'+obj).html(result);
+            $('#'+obj).val(ref).trigger('change');
+        }
+      })
+    }
+
+    function getAmount(){
+        let objRef = $('#item_row select[name="vcRef[]"]');
+        if(objRef){
+            objRef.change(function(e){ 
+                let objIndex = objRef.index(this);
+                let vRef = objRef.eq(objIndex).val();
+                getAmountValue(vRef,objIndex);
+            });
+        }
+    }   
+
+    function getAmountValue(vRef,objIndex) {
+        let objVcDebit= $('#item_row input[name="vcDebit[]"]');
+        let objVcCredit= $('#item_row input[name="vcCredit[]"]');
+        $.ajax({
+            type: "get",
+            url: "{{ route('bankKeluar.get.invoice.amount') }}",
+            data: {
+                vRef:vRef
+            },
+            dataType: "json",
+            success: function(data) {
+                objVcCredit.eq(objIndex).val('');
+                objVcDebit.eq(objIndex).val('');
+
+                if(data.amount){
+                    objVcDebit.eq(objIndex).val(humanizeNumber(data.amount));
+                    objVcCredit.eq(objIndex).val('');
+                }
+            },
+            error: function(error) {
+                console.log(error);
+            }
+        });
+    }
+
     $("#cmdApprove").click(function(){    
         let vcNumber = $('#voucherNumber').val();
         $.ajax({
             type: "get",
-            url: "{{ route('bankPenerimaan.approve') }}",
+            url: "{{ route('bankKeluar.approve') }}",
             data: {
                 vcNumber:vcNumber
             },
@@ -466,19 +558,19 @@
         });
     });
 
-    $("#recFrom").on('select2:close', function(){
+    $("#paidTo").on('select2:close', function(){
         let content = this.value;
-        let contentText = $("#recFrom").select2('data')[0].text;
+        let contentText = $("#paidTo").select2('data')[0].text;
         if(content =='other'){
             $(".other-desc").removeClass("d-none");
-            $("#recFromDesc").val("");
-            $("#recFromDesc").focus();
+            $("#paidToDesc").val("");
+            $("#paidToDesc").focus();
         }else{
             $(".other-desc").addClass("d-none");
             contentText = contentText.split("|");
-            $("#recFromDesc").val(contentText[1].trim());
+            $("#paidToDesc").val(contentText[1].trim());
         }    
-    });
+    }); 
 
     $.ajaxSetup({
         headers: {

@@ -37,7 +37,7 @@
             <tbody>
                 <tr>
                     <td class="isian" style="width: 30%">
-                        <select class="dynamicSelect form-control" id="account" name="account[]">
+                        <select class="dynamicSelect form-control cekoki" id="account" name="account[]">
                         </select>
                     </td>
                     <td class="isian" style="">
@@ -45,8 +45,12 @@
                         data-type-el-kiri="select" 
                         data-nama-el-kiri='account'
                         data-type-el-kanan='select'
-                        data-nama-el-kanan='vcCc'
+                        data-nama-el-kanan='vcRef'
                         id="vcDesc" name="vcDesc[]"  maxlength="100" />
+                    </td>
+                    <td class="isian" style="">
+                        <select class="form-control tombol-panah" id="vcRef" name="vcRef[]">                            
+                        </select>
                     </td>
                     <td class="isian" style="">
                         <select class="form-control tombol-panah" id="vcCc" name="vcCc[]" required>
@@ -128,10 +132,6 @@
         objTotalVcDebit.val(humanizeNumber(TotalDebit));
         objTotalVcCredit.val(humanizeNumber(TotalCredit));
 
-        // if (type =='penerimaan'){
-        //     objTotalAmount.val(humanizeNumber(TotalCredit));
-        // }else{
-        //     objTotalAmount.val(TotalDebit);
-        // }
     }
+
 </script>

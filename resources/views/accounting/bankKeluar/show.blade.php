@@ -36,8 +36,8 @@
                             </div>
                             <div class="form-row">
                                 <div class="form-group col-md-4">
-                                    <label for="recFrom">Receive From</label>
-                                    <input type="text" id="recFrom" name="recFrom" value="{{ $header->receive_name }}" class="form-control" disabled />
+                                    <label for="paidTo">Bayar Ke</label>
+                                    <input type="text" id="paidTo" name="paidTo" value="{{ $header->supplier_name }}" class="form-control" disabled />
                                 </div>
                                 <div class="form-group col-md-3">
                                     <div class="form-group">
@@ -59,9 +59,6 @@
         </div>
         <div class="col-md-12">
             <div class="card">
-                {{-- <div class="card-header">
-                    <h4 class="card-title">Article</h4>
-                </div> --}}
                 <div class="card-body">
                     <table class="table-bordered" width="100%">
                         <thead>
@@ -71,6 +68,9 @@
                                 </th>
                                 <th class="isian" style="">
                                     <label>Description</label>
+                                </th>
+                                <th class="isian" style="">
+                                    <label>Referensi</label>
                                 </th>
                                 <th class="isian" style="">
                                     <label>CC</label>
@@ -93,6 +93,9 @@
                                     {{ $item->description }}
                                 </td>
                                 <td class="isian" style="">
+                                    {{ $item->reference }}
+                                </td>
+                                <td class="isian" style="">
                                     {{ $item->cost_center_name }}
                                 </td>
                                 <td class="isian text-right" style="width: 10%">
@@ -105,6 +108,8 @@
                             @endforeach
                             <tr>
                                 <td class="isian" style="width: 30%">
+                                </td>
+                                <td class="isian">
                                 </td>
                                 <td class="isian">
                                 </td>
@@ -161,6 +166,7 @@
                 </div>
             </div>
         </div>
+        
     </div>
 </section>
 @endsection
