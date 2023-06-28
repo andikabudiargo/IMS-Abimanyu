@@ -195,17 +195,20 @@
                         <table width="100%">
                             <tr>
                                 <td style="vertical-align: bottom;">
-                                    <div class="huruf-tebal font-16" style="text-align:center">JURNAL VOUCHER</div>
+                                    {{-- <div class="huruf-tebal font-16" style="text-align:center">BUKTI KAS KELUAR</div> --}}
+                                    <div class="huruf-tebal font-16" style="text-align:center">INVOICE SUPPLIER</div>
                                     <div class="huruf-tebal font-14" style="text-align:center">{{ $header->voucher_number }}</div>
                                     <br>
                                     <table width="100%">
                                         <tr class="tanpa-padding">
-                                            <td class="tanpa-padding font-14">No. Voucher</td>
-                                            <td class="tanpa-padding font-14">: {{ $header->voucher_number }}</td>
-                                        </tr>
-                                        <tr class="tanpa-padding">
                                             <td class="tanpa-padding font-14" width="10%">Tanggal</td>
                                             <td class="tanpa-padding font-14">: {{ $header->voucher_date }}</td>
+                                            {{-- <td>Departemen:</td> --}}
+                                        </tr>
+                                        <tr class="tanpa-padding">
+                                            <td class="tanpa-padding font-14">AP Number</td>
+                                            <td class="tanpa-padding font-14">: {{ $apNumber }}</td>
+                                            <td>{{ $costCenter }}</td>
                                         </tr>
                                     </table>
                                 </td>
@@ -223,7 +226,8 @@
                             <thead>
                                 <tr>
                                     <th width="10%">No Account</th>
-                                    <th width="40%">Nama Account</th>
+                                    <th width="20%">Account Name</th>
+                                    <th width="20%">Referensi</th>
                                     <th width="40%">Keterangan</th>
                                     <th width="10%">Debet</th>
                                     <th width="10%">Kredit</th>
@@ -234,6 +238,7 @@
                                     <tr >
                                         <td align="left">{{ $val->account }}</td>
                                         <td align="left">{{ $val->account_name }}</td>
+                                        <td align="left">{{ $val->reference }}</td>
                                         <td align="left">{{ $val->description }}</td>
                                         <td align="right">{{ number_format($val->debit) }}</td>
                                         <td align="right">{{ number_format($val->credit) }}</td>
@@ -250,11 +255,13 @@
                                     <tr >
                                         <td align="right" class="putih" height="16"></td>
                                         <td align="left"></td>
+                                        <td align="left"></td>
                                         <td align="right"></td>
                                         <td align="right"></td>
                                     </tr>
                                 @endfor
                                 <tr>
+                                    <td  align="left" class="border-atas" ></td>
                                     <td  align="left" class="border-atas" ></td>
                                     <td  align="left" class="border-atas" ></td>
                                     <td  align="left" class="border-atas" >Total</td>
@@ -264,6 +271,8 @@
                                 <tr class="border-atas">
                                     <td  align="left" class="border-atas" colspan="5">Note: {{ $header->note }}</td>
                                 </tr>
+
+                                
                             </tbody>
                         </table>
                         <br><br>
@@ -271,29 +280,29 @@
                             {{-- <tr><td colspan="5" height="3"></td></tr> --}}
                             <tr> 
                                 <td align="center" width="10%"></td>
-                                <td align="center" width="20%">Disetujui</td>
+                                <td align="center" width="20%">Dibuat oleh</td>
                                 <td align="center" width="10%"></td>
-                                <td align="center" width="20%">Diperiksa</td>
+                                <td align="center" width="20%">Mengetahui</td>
                                 <td align="center" width="10%"></td>
-                                <td align="center" width="20%">Dibuat</td>
+                                <td align="center" width="20%">Menyetujui</td>
                                 <td align="center" width="10%"></td>
                             </tr>
                             <tr>
                                 <td align="center"></td>
-                                <td align="center" height="25"></td>
+                                <td align="center" height="25">{{ $approval1 ? 'Approval 1':'' }}</td>
                                 <td align="center"></td>
+                                <td align="center">{{ $approval1 ? 'Approval 2':'' }}</td>
                                 <td align="center"></td>
-                                <td align="center"></td>
-                                <td align="center"></td>
+                                <td align="center">{{ $approval1 ? 'Approval 3':'' }}</td>
                                 <td align="center"></td>
                             </tr>
                             <tr>
                                 <td align="center"></td>
-                                <td align="center"  style="border-bottom: 1px solid black;"></td>
+                                <td align="center"  style="border-bottom: 1px solid black;">{{ $approval1 ? $approval1->name:'' }}</td>
                                 <td align="center"></td>
-                                <td align="center" ></td>
+                                <td align="center" >  {{ $approval2 ? $approval2->name:'' }}  </td>
                                 <td align="center"></td>
-                                <td align="center" >  {{ $header->created_by }}  </td>
+                                <td align="center" >  {{ $approval3 ? $approval3->name:'' }}  </td>
                                 <td align="center"></td>
                             </tr>
                         </table>

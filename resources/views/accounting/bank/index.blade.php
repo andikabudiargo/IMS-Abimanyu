@@ -168,7 +168,7 @@ td.wrapok {
         year:year
       },
       orderColumn:[[ 1, 'desc' ]],
-      excelFileName:'vouchers'
+      excelFileName:'bank_penerimaan'
     });
   }
 

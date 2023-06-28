@@ -179,6 +179,44 @@
                             </div>
                         </form>
                     </div>
+                    <hr>
+                    <div class="form-row card-statistics">
+                        @foreach($approvalHistory as $val)
+                            @if($val->status == true)
+                                <div class="statistics-body">
+                                    <div class="col-xl-3 col-sm-6 col-12 mb-2 mb-xl-0">
+                                        <div class="media">
+                                            <div class="avatar bg-light-success mr-2">
+                                                <div class="avatar-content">
+                                                    <i data-feather="check" class="avatar-icon"></i>
+                                                </div>
+                                            </div>
+                                            <div class="media-body my-auto">
+                                                <h4 class="font-weight-bolder mb-0">Approve-{{ $val->approval_order }}</h4>
+                                                <p class="card-text mb-0">{{ $val->name }}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            @else
+                                <div class="statistics-body">
+                                    <div class="col-xl-3 col-sm-6 col-12 mb-2 mb-xl-0">
+                                        <div class="media">
+                                            <div class="avatar bg-light-danger mr-2">
+                                                <div class="avatar-content">
+                                                    <i data-feather="x" class="avatar-icon"></i>
+                                                </div>
+                                            </div>
+                                            <div class="media-body my-auto">
+                                                <h4 class="font-weight-bolder mb-0">Approve-{{ $val->approval_order }}</h4>
+                                                <p class="card-text mb-0">{{ $val->petugas }}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endif
+                        @endforeach
+                    </div>
                 </div>
             </div>
         </div>

@@ -14,6 +14,7 @@ use DataTables;
 use DB;
 use PDF;
 use AppHelpers;
+use Approval;
 
 class AccountPayableController extends Controller
 {
@@ -28,6 +29,34 @@ class AccountPayableController extends Controller
         $this->voucherCode = "APV";
     }
 
+    public function getTableColoumn()
+    {
+        $kolom=
+        [
+            ['data'=> 'action', 'name'=> 'action','title'=>'action', 'orderable'=> false, 'searchable'=> false],
+            ['data'=> 'ap_number', 'name'=> 'ap_number','title'=>'AP Number'],
+            ['data'=> 'status', 'name'=> 'status','title'=>'Status'],
+            ['data'=> 'num_revision', 'name'=> 'num_revision','title'=>'Rev.','visible'=>false],
+            ['data'=> 'inv_number', 'name'=> 'inv_number','title'=>'Invoice Number','visible'=>false],
+            ['data'=> 'proforma_inv_number', 'name'=> 'proforma_inv_number','title'=>'Proforma','visible'=>false],
+            ['data'=> 'tax_inv_number', 'name'=> 'tax_inv_number','title'=>'Tax Number','visible'=>false],
+            ['data'=> 'inv_date', 'name'=> 'inv_date','title'=>'Inv Date'],
+            ['data'=> 'supplier_name', 'name'=> 'supplier_name','title'=>'Supplier'],
+            ['data'=> 'po_number', 'name'=> 'po_number','title'=>'PO Number'],
+            ['data'=> 'list_rec', 'name'=> 'list_rec','title'=>'Rec Number'],
+            ['data'=> 'rec_date', 'name'=> 'rec_date','title'=>'Rec Date','visible'=>false],
+            ['data'=> 'basis_amount', 'name'=> 'basis_amount','title'=>'DPP'],
+            ['data'=> 'vat', 'name'=> 'vat','title'=>'VAT'],
+            ['data'=> 'pph23', 'name'=> 'pph23','title'=>'PPH23'],
+            ['data'=> 'total_discount', 'name'=> 'total_discount','title'=>'Discount'],
+            ['data'=> 'grand_total', 'name'=> 'grand_total','title'=>'Grand Total'],
+            ['data'=> 'note', 'name'=> 'note','title'=>'Note'],
+            ['data'=> 'created_by', 'name'=> 'created_by','title'=>'Created By'],
+            ['data'=> 'created_at', 'name'=> 'created_at','title'=>'Created At']
+        ];
+        return json_encode($kolom, true);
+    }
+
     public function index(Request $request)
     {
         $data['title'] = "List $this->title";
@@ -37,14 +66,15 @@ class AccountPayableController extends Controller
         ->orderBy('nama')
         ->get();
 
-        $data['nilaiPPN'] = DB::table('attributes')
-        ->where('attr_id','mainppn')
-        ->value('attr_value');
+        // $data['nilaiPPN'] = DB::table('attributes')
+        // ->where('attr_id','mainppn')
+        // ->value('attr_value');
 
-        $data['nilaiPPH'] = DB::table('attributes')
-        ->where('attr_id','mainpph23')
-        ->value('attr_value');
+        // $data['nilaiPPH'] = DB::table('attributes')
+        // ->where('attr_id','mainpph23')
+        // ->value('attr_value');
 
+        $data['kolom'] = $this->getTableColoumn();
 
         // status
         // 1. Draft
@@ -53,7 +83,7 @@ class AccountPayableController extends Controller
         // 4. Canceled
         // 5. Paid
 
-        $data['status'] = ['1'=>'Draft','2'=>'Updated','3'=>'Submitted','4'=>'Canceled','5'=>'Paid'];
+        $data['status'] = ['1'=>'DRAFT','2'=>'UPDATED','3'=>'POSTED','4'=>'CANCELED','5'=>'PAID'];
             
         return view("accountPayable.index",$data);
     }
@@ -356,7 +386,7 @@ class AccountPayableController extends Controller
         $poNumber = $request->poNumber;
         $profInvoice = $request->profInvoice;
         $recNumber = $request->recNumber;
-        $recDate = $request->recDate;
+        $apDate = $request->apDate;
         $dueDate = $request->dueDate;
         $currency = $request->currency;
         $rate = is_null($request->rate) ? 0 : preg_replace('/[^0-9.]+/', '', $request->rate);
@@ -467,27 +497,30 @@ class AccountPayableController extends Controller
                 $alert  ="success";
                 $message  = "$title $apNumber is successfully saved";
 
-                $data['details'] = DB::table('ap_invoice')
-                ->where('ap_number',$apNumber)
-                ->get()->first();
+                // $data['details'] = DB::table('ap_invoice')
+                // ->where('ap_number',$apNumber)
+                // ->get()->first();
                 
-                $data['supps'] = DB::table('third_party')
-                ->where ('third_party_type','=','supp')
-                ->orderBy('nama')
-                ->get();
+                // $data['supps'] = DB::table('third_party')
+                // ->where ('third_party_type','=','supp')
+                // ->orderBy('nama')
+                // ->get();
 
-                $data['currency'] = ['IDR','USD'];
+                // $data['currency'] = ['IDR','USD'];
 
-                $data['accounts'] = DB::table('accounts')
-                ->get();
+                // $data['accounts'] = DB::table('accounts')
+                // ->get();
 
-                $data['status'] = 'Saved';
-                $data['title'] = $title;
-                $data['message'] = $message;
-                $data['alert'] = $alert;
+                // $data['status'] = 'Saved';
+                // $data['title'] = $title;
+                // $data['message'] = $message;
+                // $data['alert'] = $alert;
 
                 \LogActivity::addToLog($title,"username: $username Status $message");
-                return redirect()->back()->with($data);
+
+                return redirect()->route('ap.create')->with(array('title' => $title, 'message' => $message,'alert'=>$alert));
+
+                // return redirect()->back()->with($data);
 
         } catch (Exception $e) {
             DB::rollBack();
@@ -503,6 +536,7 @@ class AccountPayableController extends Controller
     public function show(Request $request)
     {
         $id=Crypt::decryptString($request->id);
+        $username =  Auth::user()->username;
 
         $data['title'] = "Detail $this->title";
         $data['subtitle'] = "Detail $this->title";
@@ -559,8 +593,14 @@ class AccountPayableController extends Controller
         ->where('attr_id','mainpph23')
         ->value('attr_value');
 
-
         $data['statusRevision'] = '';
+
+        $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode,$apNumber,$username);
+        $data['approveValidate'] = Approval::approveValidate($this->moduleCode,$apNumber,$username);
+
+        // $data['status'] = ['1'=>'DRAFT','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','6'=>'CLOSED','6'=>'PAID'];
+        $status = ['DRAFT','VALIDATED','APPROVED','POSTED','CANCELED','CLOSED','PAID'];
+        $data['status'] = $status[$data['header']->status-1];
 
         return view("accountPayable.show",$data);
         
@@ -569,6 +609,7 @@ class AccountPayableController extends Controller
     public function edit(Request $request)
     {
         $id=Crypt::decryptString($request->id);
+        $username =  Auth::user()->username;
 
         $data['title'] = "Edit $this->title";
         $data['subtitle'] = "Edit $this->title";
@@ -603,12 +644,15 @@ class AccountPayableController extends Controller
         ->orderBy('nama')
         ->get();
 
-        $status = ['DRAFT','UPDATED','POSTED','CANCEL','PAID'];
-                
-        $data['status'] = $status[$data['header']->status -1];
+        $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode,$apNumber,$username);
+        $data['approveValidate'] = Approval::approveValidate($this->moduleCode,$apNumber,$username);
+
+        // $data['status'] = ['1'=>'DRAFT','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','6'=>'CLOSED','6'=>'PAID'];
+        $status = ['DRAFT','VALIDATED','APPROVED','POSTED','CANCELED','CLOSED','PAID'];
+        $data['status'] = $status[$data['header']->status-1];
 
         $data['currency'] = ['IDR','USD'];
-        
+
         $data['accountBa'] = DB::table('accounts')
         // ->whereIn('type_code',['11','12','14','15','42','44','46','48'])
         ->get();
@@ -625,7 +669,6 @@ class AccountPayableController extends Controller
         ->where('attr_id','mainpph23')
         ->value('attr_value');
 
-
         $data['statusRevision'] = '';
         
         return view("accountPayable.edit",$data);
@@ -641,7 +684,7 @@ class AccountPayableController extends Controller
         $poNumber = $request->poNumber;
         $profInvoice = $request->profInvoice;
         $recNumber = $request->recNumber;
-        $recDate = $request->recDate;
+        $apDate = $request->recDate;
         $dueDate = $request->dueDate;
         $currency = $request->currency;
         $rate = is_null($request->rate) ? 0 : preg_replace('/[^0-9.]+/', '', $request->rate);
@@ -660,15 +703,10 @@ class AccountPayableController extends Controller
         $totalDiscount = is_null($request->totalDiscount) ? 0 : preg_replace('/[^0-9.]+/', '', $request->totalDiscount);
         $grandTotal = is_null($request->grandTotal) ? 0 :  preg_replace('/[^0-9.]+/', '', $request->grandTotal);
                 
-        $status = '2';
+        $status = '1';
         $authorizedBy = "";
         
-        // status
-        // 1. Draft
-        // 2. Update
-        // 3. Posting
-        // 4. Cancel
-        // 5. Paid
+        // $data['status'] = ['1'=>'DRAFT','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','6'=>'CLOSED','6'=>'PAID'];
         
         $messages = [
             'required' => 'The field is required.',
@@ -758,21 +796,69 @@ class AccountPayableController extends Controller
         
     }
 
+    public function approve(Request $request)
+    {
+        $username =  Auth::user()->username;
+        $apNumber = $request->apNumber;
+        $statusLevelApproval = Approval::approvalLevelPosition($this->moduleCode,$apNumber,$username);        
+        $nextLevel = $statusLevelApproval[0]->next_level;
+        $status = $statusLevelApproval[0]->next_level == $statusLevelApproval[0]->max_level ? '3' :'2';
+
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATED','3'=>'APPROVED','4'=>'','5'=>'DELETED','6'=>"CLOSED"];
+                
+        DB::beginTransaction();
+        try {
+                $row_affected=DB::table('ap_invoice')
+                ->where('ap_number',$apNumber)
+                ->update(
+                    [
+                        'status' => $status,
+                        'updated_by' => Auth::user()->username,
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]
+                );
+
+                if ($row_affected){
+                    DB::table('approval_history')->insert([
+                        'module_code' => $this->moduleCode,
+                        'module_number' => $apNumber,
+                        'username' => Auth::user()->username,
+                        'approval_order' => $nextLevel,
+                        'approval_date' => date('Y-m-d'),
+                        'status' => 1,
+                        'created_by' => Auth::user()->username,
+                        'updated_by' => Auth::user()->username,
+                        'created_at' => date('Y-m-d H:i:s'),
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]);
+                }
+                
+                DB::commit();
+                $title ="Approve $this->title";
+                $alert  ="success";
+                $message  = "$title $apNumber is successfully Approve-".$nextLevel;
+                \LogActivity::addToLog($title,"username: $username Status $message");
+                return response()->json(array('status' => $status,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'$apNumber'=>$apNumber));
+
+        } catch (Exception $e) {
+            DB::rollBack();
+            $title ="Approve $this->title";
+            $alert  ="warning";
+            $message  = "$title $apNumber is failed to Approve-".$nextLevel;
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return response()->json(array('status' => $status,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'$apNumber'=>$apNumber));
+        }
+    }
+
     public function posting(Request $request)
     {
-        // status
-        // 1. Draft
-        // 2. Updated
-        // 3. Posted
-        // 4. Canceled
-        // 5. Paid
-        // 6. Revised
+      
+        // $data['status'] = ['1'=>'DRAFT','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','6'=>'CLOSED','6'=>'PAID'];
 
         $username =  Auth::user()->username;
         $apNumber = $request->apNumber;
-        $recType = "NORMAL";
         $statusAp ="Posted";
-        $status = '3';
+        $status = '4';
         $authorizedBy = Auth::user()->username;
         
         
@@ -801,7 +887,7 @@ class AccountPayableController extends Controller
             DB::table('kas_hdr')->insert([
                 'voucher_number' =>$vcNumber,
                 'voucher_type' =>$this->moduleCode,
-                'voucher_date' =>date('Y-m-d H:i:s'), //tanggal posting
+                'voucher_date' =>date('Y-m-d'), //tanggal posting
                 'paid_to' => $apData->supplier_id,
                 'description' => $apNumber,
                 'amount' => $apData->grand_total,
@@ -856,7 +942,7 @@ class AccountPayableController extends Controller
                 ];
 
                 //belum ada no account nya
-                if($apData->total_dicount > 0){
+                if($apData->total_discount > 0){
                     $dataSet[] = [
                         'voucher_number' => $vcNumber,
                         'account' =>$apData->account_total,
@@ -875,7 +961,7 @@ class AccountPayableController extends Controller
                 if($apData->pph23 > 0){
                     $dataSet[] = [
                         'voucher_number' => $vcNumber,
-                        'account' =>$apData->account_total,
+                        'account' =>'2000.14.3',
                         'description' => $vcNumber.' '.$apData->supplier_name,
                         'debit' => 0,
                         'credit' => $apData->pph23,
@@ -890,19 +976,18 @@ class AccountPayableController extends Controller
             DB::table('kas_det')->insert($dataSet);
         }
 
-
         if ($rowAffected){
             DB::commit();
             $title ='Posting input invoice';
             $alert  ="success";
-            $message  = "Posting $apNumber is successfully updated";
+            $message  = "Posting $apNumber is successfully posted";
             \LogActivity::addToLog('AP Invoice update ',"username: $username Status $message");
             return response()->json(array('status' => 1, 'message' => $message,'alert'=>$alert,'apNumber'=>$apNumber,'statusAp'=>$statusAp));
         }else{
             DB::rollBack();
             $title ='Posting input invoice';
             $alert  ="warning";
-            $message  = "Posting $apNumber is failed to updated";
+            $message  = "Posting $apNumber is failed to posted";
             \LogActivity::addToLog('Posting AP ',"username: $username Status $message");
             return response()->json(array('status' => 0, 'message' => $message,'alert'=>$alert,'apNumber'=>$apNumber));            
         }
@@ -1068,61 +1153,47 @@ class AccountPayableController extends Controller
     public function list(Request $request)
     {
      
-        // status
-        // 1. Draft
-        // 2. Updated
-        // 3. Posted
-        // 4. Canceled
-        // 5. Paid
-        // 6. Revised
+        // $data['status'] = ['1'=>'DRAFT','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','6'=>'CLOSED','6'=>'PAID'];
 
-        $searchRec = strtolower($request->searchRec);
-        $searchPo = strtolower($request->searchPo);
-        $searchInv = strtolower($request->searchInv);
+        $searchPo = $request->searchPo;
+        $searchAp = $request->searchAp;
         $searchSupplier = $request->searchSupplier;
         $searchStatus = $request->searchStatus;
-        $recDate = $request->recDate;
+        $apDate = $request->apDate;
+        $fromDate = "";
+        $toDate = "";
        
+        if ($apDate){
+            $date = explode("to",$apDate);
+            $fromDate = trim($date[0]);
+            $toDate = trim($date[1]);
 
-        $filter='';
-        
-        // $filter.="status <> 6 ";
-        
-        if ($searchRec !='' ){
-            $filter.="lower(a.rec_number) like '%$searchRec%' and ";
+            // if(count($date)>1){
+            //     $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+            //     $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
+            // }else{
+            //     $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+            //     $toDate = $fromDate; 
+            // }
         }
 
-        if ($searchPo !='' ){
-            $filter.="lower(a.po_number) like '%$searchPo%' and ";
-        }
-
-        if ($searchInv !='' ){
-            $filter.="lower(a.inv_number) like '%$searchInv%' and ";
-        }
-
-        if ($searchSupplier  != '' ){
-            $filter.="supplier_id = '$searchSupplier' and ";            
-        }
-
-        if ($searchStatus  != '' ){
-            $filter.="status = '$searchStatus' and ";            
-        }
-
-        if ($recDate  != '' ){
-            $date = explode("to",$recDate);
-            $date1=trim($date[0]);
-            $date2=trim($date[1]);
-            $filter.= "to_date(inv_date, 'DD/MM/YYYY')  BETWEEN to_date('$date1', 'DD/MM/YYYY') and to_date('$date2', 'DD/MM/YYYY') and ";
-        }
-        
-        // if ($filter !=''){
-        //     $filter=" where ".substr($filter,0,-4);
-        // }
-
-        $data = DB::select("SELECT *,
-        (select concat(kode,'-',nama) from third_party where kode = supplier_id limit 1) as supp_name,
-        (basis_amount+vat)-(pph23+other_deduction) as total
-        from ap_invoice a where $filter status != '6' ");
+        $data = DB::table('ap_invoice')
+        ->leftJoin('third_party','third_party.kode','ap_invoice.supplier_id')
+        ->where(function ($query) use ($searchAp,$searchPo,$searchSupplier,$searchStatus,$apDate,$fromDate,$toDate) {
+            $searchPo ? $query->where('po_number','ilike','%'.$searchPo.'%') : '';
+            $searchAp ? $query->where('ap_number','ilike','%'.$searchAp.'%') : '';
+            $searchSupplier ? $query->where('supplier_id','ilike','%'.$searchSupplier.'%') : '';
+            $searchStatus ? $query->where('status','=','.$searchStatus.') : '';
+            $apDate ? $query->whereBetween('inv_date', [$fromDate, $toDate]) : '';
+        })
+        ->where('ap_invoice.status','<>','6')
+        ->select(
+            'ap_invoice.*'
+            ,DB::raw("(select STRING_AGG ( a.rec_number,',' ORDER BY a.id) as list_rec from ap_invoice_detail a where ap_number = ap_invoice.ap_number) as list_rec")
+            ,db::raw("concat(third_party.kode,'-',third_party.nama) as supplier_name")
+        )
+        ->orderBy('id')
+        ->get(); 
 
         return Datatables::of($data)
         ->addColumn('action', function ($data) {
@@ -1132,14 +1203,28 @@ class AccountPayableController extends Controller
                             </a>';
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
 
+            if ( $data->status == '2' or $data->status == '1') {
+                // if (Auth::user()->can('kasPenerimaan-approve')) {
+                $buttons .=     '<a href="'. route('ap.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+                                    <i data-feather="check"></i>
+                                    <span>'. __("Approve") .'</span>
+                                </a>';
+                // }
+            }
+
             if (($data->status != '3') && ($data->status != '4') && ($data->status != '5')){
                 if (Auth::user()->can('ap-edit')) {
                 $buttons .=         '<a href="'. route('ap.edit',['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                         <i data-feather="file-text"></i>
-                                        Edit
+                                        <span>'. __("Edit") .'</span>
                                     </a>';
                 }
             }
+
+            $buttons .=         '<a href="'. route('ap.show', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+                            <i data-feather="list"></i>
+                            <span>'. __("Detail") .'</span>
+                        </a>';
 
             // if (($data->status != '2') && ($data->status != '3') && ($data->status != '4') && ($data->status != '5')){
             //     if (Auth::user()->can('ap-edit')) {
@@ -1150,19 +1235,14 @@ class AccountPayableController extends Controller
             //     }
             // }
 
-            // if (($data->status == '2')){
-            //     if (Auth::user()->can('ap-edit')) {
-            //     $buttons .=         '<a href="'. route('ap.edit',['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
-            //                             <i data-feather="check"></i>
-            //                             Posting
-            //                         </a>';
-            //     }
-            // }
-
-            $buttons .=         '<a href="'. route('ap.show', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
-                                    <i data-feather="list"></i>
-                                    Detail
-                                </a>';
+            if (($data->status == '3')){
+                // if (Auth::user()->can('ap-edit')) {
+                $buttons .=         '<a href="'. route('ap.edit',['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+                                        <i data-feather="check"></i>
+                                        <span>'. __("Posting") .'</span>
+                                    </a>';
+                // }
+            }
                                 
             // if ( $data->status == '3' ){
             //     if (Auth::user()->can('ap-revision')) {
@@ -1186,13 +1266,12 @@ class AccountPayableController extends Controller
             //                         </a>";
             //     }
             // }
-
-            // $buttons .=         '<a href="'. route('ap.print', ['id'=>Crypt::encryptString($data->id)]) .'" target="_blank" class="dropdown-item">
-            //                         <i data-feather="printer"></i>
-            //                         Print
-            //                     </a>';
-
-
+            if (($data->status == '4')){
+                $buttons .=         '<a href="'. route('ap.print', ['id'=>Crypt::encryptString($data->id)]) .'" target="_blank" class="dropdown-item">
+                                    <i data-feather="printer"></i>
+                                    <span>'. __("Print") .'</span>
+                                </a>';
+            }
 
             $buttons .=     '</div>
                         </div>';
@@ -1200,18 +1279,17 @@ class AccountPayableController extends Controller
             return $buttons;
             })
         
-        ->addColumn('ap_number', function ($data) {
-            return '<a href="'. route('ap.show',['apNumber'=>Crypt::encryptString($data->ap_number)]) .'" 
-                        type="button" 
-                        style="text-align: left;">
-                        <span>'.$data->ap_number.'</span>
-                    </a>';
-
-            
-        })
+        // ->addColumn('ap_number', function ($data) {
+        //     return '<a href="'. route('ap.show',['apNumber'=>Crypt::encryptString($data->id)]) .'" 
+        //                 type="button" 
+        //                 style="text-align: left;">
+        //                 <span>'.$data->ap_number.'</span>
+        //             </a>';            
+        // })
+        
         ->addColumn('status', function ($data) {
             $badges=['badge-light-primary','badge-light-info','badge-light-success','badge-light-warning','badge-light-danger','badge-light-dark','badge-light-secondary','badge-light-danger'];
-            $statusCode = ['DRAFT','UPDATED','POSTED','CANCELED','PAID','REVISED'];
+            $statusCode = ['DRAFT','VALIDATED','APPROVED','POSTED','CANCELED','CLOSED','PAID'];
             return "<div class='badge badge-pill ".$badges[$data->status - 1]."'>".$statusCode[$data->status - 1]."</div>";
         })
         ->rawColumns(['action','status','ap_number'])
@@ -1223,8 +1301,6 @@ class AccountPayableController extends Controller
         $id=Crypt::decryptString($request->id);
 
         $apNumber = DB::table('ap_invoice')->where('id',$id)->value('ap_number');
-
-        $apNumber = 'Oki Hartanto';
 
         $data['title'] ='Invoice Supplier';
 
@@ -1257,23 +1333,25 @@ class AccountPayableController extends Controller
         $data['approval1']=DB::table('approval_history')
         ->leftJoin('users','users.username','approval_history.username')
         ->where('module_code',$this->moduleCode)
-        ->where('module_number',$vcNumber)
+        ->where('module_number',$apNumber)
         ->where('approval_order',1)
         ->first();
 
         $data['approval2']=DB::table('approval_history')
         ->leftJoin('users','users.username','approval_history.username')
         ->where('module_code',$this->moduleCode)
-        ->where('module_number',$vcNumber)
+        ->where('module_number',$apNumber)
         ->where('approval_order',2)
         ->first();
 
         $data['approval3']=DB::table('approval_history')
         ->leftJoin('users','users.username','approval_history.username')
         ->where('module_code',$this->moduleCode)
-        ->where('module_number',$vcNumber)
+        ->where('module_number',$apNumber)
         ->where('approval_order',3)
         ->first();
+
+        $data['apNumber']=$apNumber;
 
         return view('accountPayable.print',$data);
 

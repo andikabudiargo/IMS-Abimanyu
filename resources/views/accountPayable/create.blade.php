@@ -185,13 +185,13 @@
                                     <button class="btn btn-info" type="reset" id="cmdNew" name="cmdCancel">New</button>
                                     @if( Session::get('status') != 'Saved' )
                                         <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Save</button>
-                                        <button class="btn btn-dark" type="button" id="cmdSavePrint" name="cmdSavePrint">Save&Print</button>
+                                        {{-- <button class="btn btn-dark" type="button" id="cmdSavePrint" name="cmdSavePrint">Save&Print</button> --}}
                                     @endif
-                                    @can('ap-posting')
+                                    {{-- @can('ap-posting')
                                         @if( Session::get('status') == 'Saved' )
                                             <button class="btn btn-primary" type="button" id="cmdPosting" name="cmdPosting">Posting</button>
                                         @endif
-                                    @endcan
+                                    @endcan --}}
                                 </div>
                             </div>
                         </form>

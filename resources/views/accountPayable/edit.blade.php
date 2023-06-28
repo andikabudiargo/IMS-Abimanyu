@@ -178,20 +178,65 @@
                                 </div>
                             </div>                           
                             <br>
+
                             <div class="form-row">
                                 <div class="col-md-12">
                                     <a href="{{ route('aps.index') }}" class="btn btn-light">Back</a>
-                                    <button class="btn btn-info" type="reset" id="cmdNew" name="cmdCancel">New</button>
-                                    @if( Session::get('status') != 'Saved' )
-                                        <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Update</button>
-                                        {{-- <button class="btn btn-dark" type="button" id="cmdSavePrint" name="cmdSavePrint">Save&Print</button> --}}
+                                    @if( $approveValidate ? $approveValidate[0]->validate : '')
+                                        <input type="text" id ="approveLevel" name ="approveLevel" class="d-none" value="{{ $approveValidate[0]->next_level }}">
+                                        <input type="text" id ="maxLevel" name ="maxLevel" class="d-none" value="{{ $approveValidate[0]->max_level }}">
+                                        <button class="btn btn-success" type="button" id="cmdApprove" name="cmdApprove">Approve</button>
+                                    @if( $status =='DRAFT')
+                                        <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave" >Update</button>
                                     @endif
-                                    @can('ap-posting')
-                                        @if( Session::get('status') == 'Saved' )
-                                            <button class="btn btn-primary" type="button" id="cmdPosting" name="cmdPosting">Posting</button>
+                                    @else
+                                        @if( !$approveValidate && $status =='DRAFT')
+                                            <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave" >Update</button>
                                         @endif
-                                    @endcan
+                                    @endif
+
+                                    @if( $status =='APPROVED')
+                                        <button class="btn btn-primary" type="button" id="cmdPosting" name="cmdPosting" >Posting</button>
+                                    @endif
                                 </div>
+                            </div>
+                            <hr>
+                            <div class="form-row card-statistics">
+                                @foreach($approvalHistory as $val)
+                                    @if($val->status == true)
+                                        <div class="statistics-body">
+                                            <div class="col-xl-3 col-sm-6 col-12 mb-2 mb-xl-0">
+                                                <div class="media">
+                                                    <div class="avatar bg-light-success mr-2">
+                                                        <div class="avatar-content">
+                                                            <i data-feather="check" class="avatar-icon"></i>
+                                                        </div>
+                                                    </div>
+                                                    <div class="media-body my-auto">
+                                                        <h4 class="font-weight-bolder mb-0">Approve-{{ $val->approval_order }}</h4>
+                                                        <p class="card-text mb-0">{{ $val->name }}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @else
+                                        <div class="statistics-body">
+                                            <div class="col-xl-3 col-sm-6 col-12 mb-2 mb-xl-0">
+                                                <div class="media">
+                                                    <div class="avatar bg-light-danger mr-2">
+                                                        <div class="avatar-content">
+                                                            <i data-feather="x" class="avatar-icon"></i>
+                                                        </div>
+                                                    </div>
+                                                    <div class="media-body my-auto">
+                                                        <h4 class="font-weight-bolder mb-0">Approve-{{ $val->approval_order }}</h4>
+                                                        <p class="card-text mb-0">{{ $val->petugas }}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @endif
+                                @endforeach
                             </div>
                         </form>
                     </div>
@@ -236,6 +281,38 @@
                     $('#apNumber').attr('disabled','disabled');
                     $('#cmdPosting').hide();
                     $('#cmdSave').hide();
+                }
+            },
+            error: function(error) {
+                console.log(error);
+            }
+        });
+    });
+
+    $("#cmdApprove").click(function(){    
+        let apNumber = $('#apNumber').val();
+        $.ajax({
+            type: "post",
+            url: "{{ route('aps.approve') }}",
+            data: {
+                apNumber:apNumber
+            },
+            dataType: "json",
+            success: function(data) {
+                if (data.status == 0 ){
+                    let message="";
+                    for(let i = 0; i < data.message.length; i++) {
+                        show_msg(data.title, data.message[i], data.alert);
+                    }
+                    $('#apNumber').attr('disabled','disabled');
+
+                }else{
+                    show_msg(data.title, data.message, data.alert);
+                    $('#apNumber').attr('disabled','disabled');
+                    $('#cmdApprove').attr('disabled','disabled');
+                    $('#addNewRow').attr('disabled','disabled');  
+                    $('#cmdUpdate').attr('disabled','disabled');
+                    location.reload();       
                 }
             },
             error: function(error) {

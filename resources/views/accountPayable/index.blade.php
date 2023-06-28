@@ -17,17 +17,17 @@
       <div class="card-body">
         <form class="needs-validation" novalidate>
             <div class="form-row">
-              <div class="form-group col-md-3 d-none"> 
+              {{-- <div class="form-group col-md-3 d-none"> 
                 <label for="searchRec">Rec Number</label>
                 <input type="text" class="form-control text-uppercase" id="searchRec" name="searchRec" placeholder=""  />
-              </div>
+              </div> --}}
               <div class="form-group col-md-3"> 
                 <label for="searchPo">PO Number</label>
                 <input type="text" class="form-control text-uppercase" id="searchPo" name="searchPo" placeholder=""  />
               </div>
               <div class="form-group col-md-3"> 
-                <label for="searchInv">Invoice Number</label>
-                <input type="text" class="form-control text-uppercase" id="searchInv" name="searchInv" placeholder=""  />
+                <label for="searchAp">Ap Number</label>
+                <input type="text" class="form-control text-uppercase" id="searchAp" name="searchAp" placeholder=""  />
               </div>
               <div class="form-group col-md-3"> 
                 <label class="form-label" for="searchSupplier">Supplier</label>
@@ -39,8 +39,8 @@
                 </select>
               </div>
               <div class="col-md-3 form-group">
-                <label for="recDate">Date</label>
-                <input type="text" id="recDate" name="recDate" class="form-control flatpickr-range" placeholder="YYYY-MM-DD to YYYY-MM-DD" />
+                <label for="apDate">Date</label>
+                <input type="text" id="apDate" name="apDate" class="form-control flatpickr-range" placeholder="YYYY-MM-DD to YYYY-MM-DD" />
               </div>
               <div class="form-group col-md-2"> 
                 <label class="form-label" for="searchStatus">Invoice Status</label>
@@ -132,133 +132,45 @@
   }
 
   $("#btnSearch").click(function(e){
-    let searchRec = $("#searchRec").val();
     let searchPo = $("#searchPo").val();
-    let searchInv = $("#searchInv").val();
+    let searchAp = $("#searchAp").val();
     let searchSupplier = $("#searchSupplier").val(); 
     let searchStatus = $("#searchStatus").val();
-    let recDate = $("#recDate").val();
-    showList(searchRec,searchPo,searchInv,searchSupplier,searchStatus,recDate);
+    let apDate = $("#apDate").val();
+    showList(searchPo,searchAp,searchSupplier,searchStatus,apDate);
 
   });
 
-  function showList(searchRec,searchPo,searchInv,searchSupplier,searchStatus,recDate){
-    let dtdom ='<"d-flex justify-content-between align-items-center header-actions mx-1 row mt-75"<"col-lg-12 col-xl-6" l><"col-lg-12 col-xl-6 pl-xl-75 pl-0"<"dt-action-buttons text-xl-right text-lg-left text-md-right text-left d-flex align-items-center justify-content-lg-end align-items-center flex-sm-nowrap flex-wrap mr-1"<"mr-1"f>B>>>t<"d-flex justify-content-between mx-2 row mb-1"<"col-sm-12 col-md-6"i><"col-sm-12 col-md-6"p>>';
-    let arr_col_print =[2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18]; 
-    $(function(){
-      let oTable =$("#detailedTable").DataTable({
-        ajax:
+  const showList = (searchPo,searchAp,searchSupplier,searchStatus,apDate) => {
+    if ($('#detailedTable tr').length >0){
+        let table= $('#detailedTable').DataTable();
+        table.destroy();
+        $('#detailedTable tbody > tr').remove();
+        $("#detailedTable thead > tr").remove();
+    }
+    showDataTables({
+      tableId:"detailedTable",
+      route:"{{ route('ap.list') }}",
+      kolom:{!! $kolom !!},
+      arrColPrint:[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19],
+      columnDefs :[
+        { width: '5%', targets: 0 },
         {
-          url:'{{ route("ap.list")}}',
-          data:{
-              searchRec:searchRec,
-              searchPo:searchPo,
-              searchInv:searchInv,
-              searchSupplier:searchSupplier,
-              searchStatus:searchStatus,
-              recDate:recDate
-          }
+          targets: [ 12,13,14,15,16 ],
+          render: $.fn.dataTable.render.number(',', '.', 0, ''),
+          className: "text-right"
         },
-        processing: true,
-        serverSide: true,
-        buttons: true,
-        dom:dtdom,
-        lengthMenu: [
-          [ 10, 25, 50, -1 ],
-          [ '10', '25', '50', 'all' ]
-        ],
-        buttons: [
-          {
-            extend: 'collection',
-            className: 'btn btn-outline-secondary dropdown-toggle mr-2 mt-07',
-            text: feather.icons['share'].toSvg({ class: 'font-small-4 mr-50' }) + 'Export',
-            buttons: [
-              {
-                extend: 'print',
-                text: feather.icons['printer'].toSvg({ class: 'font-small-4 mr-50' }) + 'Print',
-                className: 'dropdown-item',
-                exportOptions: { columns: arr_col_print }
-              },
-              {
-                extend: 'csv',
-                text: feather.icons['file-text'].toSvg({ class: 'font-small-4 mr-50' }) + 'Csv',
-                className: 'dropdown-item',
-                exportOptions: { columns: arr_col_print }
-              },
-              {
-                extend: 'excel',
-                text: feather.icons['file'].toSvg({ class: 'font-small-4 mr-50' }) + 'Excel',
-                className: 'dropdown-item',
-                exportOptions: { columns: arr_col_print }
-              },
-              {
-                extend: 'pdf',
-                text: feather.icons['clipboard'].toSvg({ class: 'font-small-4 mr-50' }) + 'Pdf',
-                className: 'dropdown-item',
-                exportOptions: { columns: arr_col_print }
-              },
-              {
-                extend: 'copy',
-                text: feather.icons['copy'].toSvg({ class: 'font-small-4 mr-50' }) + 'Copy',
-                className: 'dropdown-item',
-                exportOptions: { columns: arr_col_print }
-              }
-            ],
-            init: function (api, node, config) {
-              $(node).removeClass('btn-secondary');
-              $(node).parent().removeClass('btn-group');
-              setTimeout(function () {
-                $(node).closest('.dt-buttons').removeClass('btn-group').addClass('d-inline-flex');
-              }, 50);
-            }
-          },
-        ],
-        language: {
-          paginate: {
-            // remove previous & next text from pagination
-            previous: '&nbsp;',
-            next: '&nbsp;'
-          }
-        },
-        columnDefs: [
-          { width: '10%', targets: 0 },
-          { className: 'text-right','targets': [ 13,14,15,16,17 ] },
-        ],
-        drawCallback: function( settings ) {
-          feather.replace({
-                width: 14,
-                height: 14
-          });
-        },
-        order: [[ 1, 'asc' ]],
-        bDestroy: true, //pakai ini supaya bisa di load berulang2
-        // scrollX: true, //pakai ini supaya waktu responsive  bisa di scroll horizontal
-        columns: [
-            { data: 'action', name: 'action',title:'action', orderable: false, searchable: false },
-            { data: 'ap_number', name: 'ap_number',title:'AP Number' },
-            { data: 'status', name: 'status',title:'Status' },
-            { data: 'num_revision', name: 'num_revision',title:'Rev.' },
-            { data: 'inv_number', name: 'inv_number',title:'Invoice Number' },
-            { data: 'proforma_inv_number', name: 'proforma_inv_number',title:'Proforma' },
-            { data: 'tax_inv_number', name: 'tax_inv_number',title:'Tax Number' },
-            { data: 'inv_date', name: 'inv_date',title:'Inv Date' },
-            { data: 'supplier_id', name: 'supplier_id',title:'Supplier' },
-            // { data: 'supp_name', name: 'supp_name',title:'Supplier' },
-            { data: 'po_number', name: 'po_number',title:'PO Number' },
-            { data: 'rec_number', name: 'rec_number',title:'Rec Number' },
-            { data: 'rec_date', name: 'rec_date',title:'Rec Date' },
-            { data: 'basis_amount', name: 'basis_amount',title:'Basis Amount',render: $.fn.dataTable.render.number(',','.') },
-            { data: 'vat', name: 'vat',title:'VAT',render: $.fn.dataTable.render.number(',','.') },
-            { data: 'pph23', name: 'pph23',title:'PPH23',render: $.fn.dataTable.render.number(',','.') },
-            { data: 'other_deduction', name: 'other_deduction',title:'Other Deduction',render: $.fn.dataTable.render.number(',','.') },
-            { data: 'total', name: 'total',title:'Total',render: $.fn.dataTable.render.number(',','.') },
-            { data: 'prepared_by', name: 'prepared_by',title:'Prepared By' },
-            { data: 'authorized_by', name: 'authorized_by',title:'Authorized By' },
-            
-        ],
-      });
+      ],
+      dataSearch:  {
+        searchPo:searchPo,
+        searchAp:searchAp,
+        searchSupplier:searchSupplier,
+        searchStatus:searchStatus,
+        apDate:apDate
+      },
+      orderColumn:[[ 1, 'desc' ]],
+      excelFileName:'ap'
     });
-    //$('div.head-label').html('<h6 class="mb-0">Data Users</h6>');    
   }
 
   $.ajaxSetup({
