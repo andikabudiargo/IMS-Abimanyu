@@ -1187,10 +1187,10 @@ class AccountPayableController extends Controller
             //     }
             // }
 
-            $buttons .=         '<a href="'. route('ap.print', ['id'=>Crypt::encryptString($data->id)]) .'" target="_blank" class="dropdown-item">
-                                    <i data-feather="printer"></i>
-                                    Print
-                                </a>';
+            // $buttons .=         '<a href="'. route('ap.print', ['id'=>Crypt::encryptString($data->id)]) .'" target="_blank" class="dropdown-item">
+            //                         <i data-feather="printer"></i>
+            //                         Print
+            //                     </a>';
 
 
 
