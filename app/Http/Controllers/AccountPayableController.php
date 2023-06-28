@@ -160,7 +160,12 @@ class AccountPayableController extends Controller
         ->whereIn('po_number', function($query) use ($supp) {
             $query->select('po_number')
             ->from('receiving_hdr') 
-            ->where('supplier_id',$supp);
+            ->where('supplier_id',$supp)
+            // ->whereNotIn('rec_number',DB::table('ap_invoice_detail')->pluck('rec_number')->toArray());
+            ->whereNotIn('rec_number',
+            DB::table('ap_invoice_detail')
+            // ->whereIn('ap_number',DB::table('ap_invoice')->where('po_number','purchase_order_hdr.po_number')->pluck('ap_number')->toArray())
+            ->pluck('rec_number')->toArray());
         })
         ->where("status","3")
         ->orderBy("po_number")
@@ -189,11 +194,11 @@ class AccountPayableController extends Controller
         $data= DB::table("receiving_hdr") 
         ->where("po_number",$poNumber)
         ->where("status","4")
-        // ->whereNotIn(DB::raw("rec_number"), function($query) use ($poNumber) {
-        //     $query->select(DB::raw("rec_number"))
-        //     ->from('ap_invoice') 
-        //     ->where('po_number',$poNumber);
-        // })
+        ->whereNotIn(DB::raw("rec_number"), function($query) use ($poNumber) {
+            $query->select(DB::raw("rec_number"))
+            ->from('ap_invoice_detail');
+            // ->where('po_number',$poNumber);
+        })
         ->orderBy("rec_number")
         ->select("rec_number","do_date","do_number"
         ,db::raw("(select sum(qty) as sum_qty from receiving_det where rec_number=receiving_hdr.rec_number) as sum_qty"))
