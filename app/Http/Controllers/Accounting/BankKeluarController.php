@@ -566,8 +566,8 @@ class BankKeluarController extends Controller
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
 
             if ( $data->statusku == '2' or $data->statusku == '1') {
-                // if (Auth::user()->can('kasKeluar-approve')) {
-                $buttons .=     '<a href="'. route('kasKeluar.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+                // if (Auth::user()->can('bankKeluar-approve')) {
+                $buttons .=     '<a href="'. route('bankKeluar.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                     <i data-feather="check"></i>
                                     <span>'. __("Approve") .'</span>
                                 </a>';
@@ -576,32 +576,32 @@ class BankKeluarController extends Controller
             
             // if (Auth::user()->can('bankKeluar-edit')) {
                 if ( $data->statusku == '2' or $data->statusku == '1') {
-                $buttons .=     '<a href="'. route('kasKeluar.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+                $buttons .=     '<a href="'. route('bankKeluar.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                     <i data-feather="file-text"></i>
                                     Edit
                                 </a>';
                 }
             // }
 
-            $buttons .=         '<a href="'. route('kasKeluar.show', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+            $buttons .=         '<a href="'. route('bankKeluar.show', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                     <i data-feather="list"></i>
                                     Detail
                                 </a>';
                         
-            $buttons .=         '<a href="'. route('kasKeluar.print', ['id'=>Crypt::encryptString($data->id)]) .'" target="_blank" class="dropdown-item">
+            $buttons .=         '<a href="'. route('bankKeluar.print', ['id'=>Crypt::encryptString($data->id)]) .'" target="_blank" class="dropdown-item">
                                     <i data-feather="printer"></i>
                                     Print
                                 </a>';
             
             
-            // if (Auth::user()->can('kasKeluar-delete')) {
+            // if (Auth::user()->can('bankKeluar-delete')) {
             if ($data->statusku != '5') {
                 $buttons .=         "<a href='javascript:;'
                                     id='deleteButton'
                                     class='dropdown-item'
                                     data-toggle='modal'
                                     data-target='#smallModal'
-                                    data-href='". route("kasKeluar.destroy", ['id'=>Crypt::encryptString($data->id)]) ."'>
+                                    data-href='". route("bankKeluar.destroy", ['id'=>Crypt::encryptString($data->id)]) ."'>
                                     <i data-feather='trash-2'></i>
                                     Delete
                                 </a>";

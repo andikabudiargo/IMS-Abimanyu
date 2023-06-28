@@ -568,7 +568,7 @@ class BankPenerimaanController extends Controller
 
             if ( $data->statusku == '2' or $data->statusku == '1') {
                 // if (Auth::user()->can('kasPenerimaan-approve')) {
-                $buttons .=     '<a href="'. route('kasPenerimaan.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+                $buttons .=     '<a href="'. route('bankPenerimaan.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                     <i data-feather="check"></i>
                                     <span>'. __("Approve") .'</span>
                                 </a>';
@@ -577,19 +577,19 @@ class BankPenerimaanController extends Controller
             
             // if (Auth::user()->can('kasPenerimaan-edit')) {
                 if ( $data->statusku == '2' or $data->statusku == '1') {
-                $buttons .=     '<a href="'. route('kasPenerimaan.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+                $buttons .=     '<a href="'. route('bankPenerimaan.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                     <i data-feather="file-text"></i>
                                     Edit
                                 </a>';
                 }
             // }
 
-            $buttons .=         '<a href="'. route('kasPenerimaan.show', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+            $buttons .=         '<a href="'. route('bankPenerimaan.show', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                     <i data-feather="list"></i>
                                     Detail
                                 </a>';
                         
-            $buttons .=         '<a href="'. route('kasPenerimaan.print', ['id'=>Crypt::encryptString($data->id)]) .'" target="_blank" class="dropdown-item">
+            $buttons .=         '<a href="'. route('bankPenerimaan.print', ['id'=>Crypt::encryptString($data->id)]) .'" target="_blank" class="dropdown-item">
                                     <i data-feather="printer"></i>
                                     Print
                                 </a>';
@@ -602,7 +602,7 @@ class BankPenerimaanController extends Controller
                                     class='dropdown-item'
                                     data-toggle='modal'
                                     data-target='#smallModal'
-                                    data-href='". route("kasPenerimaan.destroy", ['id'=>Crypt::encryptString($data->id)]) ."'>
+                                    data-href='". route("bankPenerimaan.destroy", ['id'=>Crypt::encryptString($data->id)]) ."'>
                                     <i data-feather='trash-2'></i>
                                     Delete
                                 </a>";
