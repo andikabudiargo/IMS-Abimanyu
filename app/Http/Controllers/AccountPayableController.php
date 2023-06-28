@@ -417,7 +417,7 @@ class AccountPayableController extends Controller
         $this->validate($request,$rule,$messages);
 
         $hasilUpdate = AppHelpers::resetCode($this->moduleCode);
-        $apNumber = $this->getLastCodeVoucher($this->moduleCode);
+        $apNumber = $this->getLastCode($this->moduleCode);
         DB::beginTransaction();
         try {
                 $rowAffected = DB::table('ap_invoice')->insert([
@@ -791,7 +791,7 @@ class AccountPayableController extends Controller
         if($rowAffected){
 
             $hasilUpdate = AppHelpers::resetCode($this->voucherCode);
-            $vcNumber = $this->getLastCode($this->voucherCode);
+            $vcNumber = $this->getLastCodeVoucher($this->voucherCode);
 
             $apData = db::table('ap_invoice')
             ->leftJoin('third_party', 'third_party.kode', '=', 'ap_invoice.supplier_id')
