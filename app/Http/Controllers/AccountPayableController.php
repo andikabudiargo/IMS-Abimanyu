@@ -162,7 +162,7 @@ class AccountPayableController extends Controller
             $query->select('po_number')
             ->from('receiving_hdr') 
             ->where('supplier_id',$supp)
-            ->whereNotIn('rec_number',DB::table('ap_invoice_detail')->pluck('rec_number')->toArray());
+            // ->whereNotIn('rec_number',DB::table('ap_invoice_detail')->pluck('rec_number')->toArray());
             // ->whereNotIn('rec_number',
             // DB::table('ap_invoice_detail')
             // ->whereIn('ap_number',DB::table('ap_invoice')->where('po_number','purchase_order_hdr.po_number')->pluck('ap_number')->toArray())
