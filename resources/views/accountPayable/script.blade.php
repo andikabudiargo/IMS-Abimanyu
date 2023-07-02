@@ -1,11 +1,12 @@
 <script type="text/javascript">
     let currentDate = todayDate('dd-mm-yyyy');
     let poAda;
-    let recAda
+    // let recAda;
     // let status ="{{ Session::get('status') ? Session::get('status'): '' }}";
     let sNilaiPPN= "{{ $nilaiPPN }}";
     let sNilaiPPH= "{{ $nilaiPPH }}";
     let showDetail="";
+    let edit="";
     
     $("#pph23Check").change(function() {
         if(this.checked) {
@@ -55,10 +56,17 @@
     $("#basisAmount,#totalPPN,#totalPPH,#totalDiscount").keyup(function(){
         hitungTotal();
     })
-    
+   
     invoiceDate = $('#invoiceDate');
     if (invoiceDate.length) {
         invoiceDate.flatpickr({
+            dateFormat: "d-m-Y"
+        });
+    }
+
+    apDate = $('#apDate');
+    if (apDate.length) {
+        apDate.flatpickr({
             dateFormat: "d-m-Y"
         });
     }
@@ -84,6 +92,7 @@
             method:"GET",
             data:{
                 value:value,
+                edit:edit
             },
             success:function(result){
                     $('#'+obj).html(result);
@@ -115,7 +124,8 @@
                 data:{
                     value:value,
                     apNumber:apNumber,
-                    showDetail:showDetail
+                    showDetail:showDetail,
+                    edit:edit
                 },
                 success:function(result){
                     if(result){
@@ -172,7 +182,7 @@
         $('#currency').val("IDR").trigger("change");
         $('#rate').val("");
         
-        $('#invoiceDate').val(currentDate);
+        // $('#apDate').val(currentDate);
 
         $('#accountBa').val("").trigger("change");
 
@@ -258,6 +268,8 @@
                     Swal.fire("Warning","Get list data failed","warning");
                 }
             })
+        }else{
+            Swal.fire("Warning","Po atau No Receiving belum dipilih","warning");
         }
     }
 

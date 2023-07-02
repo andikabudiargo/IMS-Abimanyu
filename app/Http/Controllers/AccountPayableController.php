@@ -35,11 +35,12 @@ class AccountPayableController extends Controller
         [
             ['data'=> 'action', 'name'=> 'action','title'=>'action', 'orderable'=> false, 'searchable'=> false],
             ['data'=> 'ap_number', 'name'=> 'ap_number','title'=>'AP Number'],
+            ['data'=> 'ap_date', 'name'=> 'ap_date','title'=>'AP Date'],
             ['data'=> 'status', 'name'=> 'status','title'=>'Status'],
             ['data'=> 'num_revision', 'name'=> 'num_revision','title'=>'Rev.','visible'=>false],
-            ['data'=> 'inv_number', 'name'=> 'inv_number','title'=>'Invoice Number','visible'=>false],
+            ['data'=> 'inv_number', 'name'=> 'inv_number','title'=>'Invoice Number'],
             ['data'=> 'proforma_inv_number', 'name'=> 'proforma_inv_number','title'=>'Proforma','visible'=>false],
-            ['data'=> 'tax_inv_number', 'name'=> 'tax_inv_number','title'=>'Tax Number','visible'=>false],
+            ['data'=> 'tax_inv_number', 'name'=> 'tax_inv_number','title'=>'Tax Inv Number'],
             ['data'=> 'inv_date', 'name'=> 'inv_date','title'=>'Inv Date'],
             ['data'=> 'supplier_name', 'name'=> 'supplier_name','title'=>'Supplier'],
             ['data'=> 'po_number', 'name'=> 'po_number','title'=>'PO Number'],
@@ -154,25 +155,52 @@ class AccountPayableController extends Controller
     {
         $supp= $request->value;      
         $output="";
-        $edit='true';
+        $edit = $request->edit;        
 
-        $data= DB::table("purchase_order_hdr") 
-        ->where("supplier_id",$supp)
-        ->whereIn('po_number', function($query) use ($supp) {
-            $query->select('po_number')
-            ->from('receiving_hdr') 
-            ->where('supplier_id',$supp);
-            // ->whereNotIn('rec_number',DB::table('ap_invoice_detail')->pluck('rec_number')->toArray());
-            // ->whereNotIn('rec_number',
-            // DB::table('ap_invoice_detail')
-            // ->whereIn('ap_number',DB::table('ap_invoice')->where('po_number','purchase_order_hdr.po_number')->pluck('ap_number')->toArray())
-            // ->pluck('rec_number')->toArray());
-        })
-        ->where("status","3")
-        ->orderBy("po_number")
-        ->select("po_number","po_date","currency","kurs")
-        ->get();          
+        if($edit == 'true'){
+            $data= DB::table("purchase_order_hdr") 
+            ->where("supplier_id",$supp)
+            ->whereIn('po_number', function($query) use ($supp) {
 
+                $listRec = DB::table('ap_invoice_detail')
+                ->whereIn('ap_number',DB::table('ap_invoice')
+                // ->where('ap_invoice.po_number','purchase_order_hdr.po_number')
+                ->where('status','4')
+                ->pluck('ap_number')->toArray())
+                ->pluck('rec_number')->toArray();
+
+                $query->select('po_number')
+                ->from('receiving_hdr') 
+                ->whereNotIn('rec_number',$listRec);
+
+            })
+            ->where("status","3")
+            ->orderBy("po_number")
+            ->select("po_number","po_date","currency","kurs")
+            ->get();
+
+        }else{
+            $data= DB::table("purchase_order_hdr") 
+            ->where("supplier_id",$supp)
+            ->whereIn('po_number', function($query) use ($supp) {
+                $listRec = DB::table('ap_invoice_detail')
+                ->whereIn('ap_number',DB::table('ap_invoice')
+                // ->where('ap_invoice.po_number','purchase_order_hdr.po_number')
+                ->pluck('ap_number')->toArray())
+                ->pluck('rec_number')->toArray();
+
+                $query->select('po_number')
+                ->from('receiving_hdr') 
+                ->where('supplier_id',$supp)
+                ->whereNotIn('rec_number',$listRec);
+            })
+            ->where("status","3")
+            ->orderBy("po_number")
+            ->select("po_number","po_date","currency","kurs")
+            ->get();
+
+        }
+        
         $output .='<option value=""></option>';            
         foreach ($data as $row){
             $output .='<option 
@@ -192,18 +220,43 @@ class AccountPayableController extends Controller
         $showDetail= $request->showDetail;
         $output="";
 
-        $data= DB::table("receiving_hdr") 
-        ->where("po_number",$poNumber)
-        ->where("status","4")
-        // ->whereNotIn(DB::raw("rec_number"), function($query) use ($poNumber) {
-        //     $query->select(DB::raw("rec_number"))
-        //     ->from('ap_invoice_detail');
-        //     // ->where('po_number',$poNumber);
-        // })
-        ->orderBy("rec_number")
-        ->select("rec_number","do_date","do_number"
-        ,db::raw("(select sum(qty) as sum_qty from receiving_det where rec_number=receiving_hdr.rec_number) as sum_qty"))
-        ->get(); 
+        $edit = $request->edit;        
+
+        if($edit == 'true'){
+
+            $data= DB::table("receiving_hdr") 
+            ->where("po_number",$poNumber)
+            ->where("status","4")
+            ->whereNotIn(DB::raw("rec_number"), function($query) use ($poNumber,$apNumber) {
+                $query->select("rec_number")
+                ->from('ap_invoice_detail')
+                ->whereIn('ap_number',DB::table('ap_invoice')
+                                        ->whereIn('status',['4'])
+                                        ->pluck('ap_number')->toArray())
+                ->orWhere('ap_number','<>',$apNumber);
+            })
+            ->orderBy("rec_number")
+            ->select("rec_number","do_date","do_number"
+            ,db::raw("(select sum(qty) as sum_qty from receiving_det where rec_number=receiving_hdr.rec_number) as sum_qty"))
+            ->get(); 
+
+            // dd($data);
+
+        }else{
+
+            $data= DB::table("receiving_hdr") 
+            ->where("po_number",$poNumber)
+            ->where("status","4")
+            ->whereNotIn(DB::raw("rec_number"), function($query) use ($poNumber) {
+                $query->select(DB::raw("rec_number"))
+                ->from('ap_invoice_detail');
+                // ->where('po_number',$poNumber);
+            })
+            ->orderBy("rec_number")
+            ->select("rec_number","do_date","do_number"
+            ,db::raw("(select sum(qty) as sum_qty from receiving_det where rec_number=receiving_hdr.rec_number) as sum_qty"))
+            ->get(); 
+        }
         
         if ($apNumber){
             $details = DB::table('ap_invoice_detail')->where('ap_number',$apNumber)->pluck('rec_number');
@@ -323,10 +376,8 @@ class AccountPayableController extends Controller
         group by b.po_number) z
         left join purchase_order_hdr y on y.po_number = z.po_number");
 
-                            // dd($summaryRec);
-                            
-         
-         return response()->json(array('detailRec'=>$detailRec,'summaryRec'=>$summaryRec));    
+        // dd($summaryRec);
+        return response()->json(array('detailRec'=>$detailRec,'summaryRec'=>$summaryRec));    
     }
 
     public function poDetail(Request $request)
@@ -390,35 +441,30 @@ class AccountPayableController extends Controller
         $username =  Auth::user()->username;
         $suppCode = $request->supplier;
         $poNumber = $request->poNumber;
-        $profInvoice = $request->profInvoice;
-        $recNumber = $request->recNumber;
-        $apDate = $request->apDate;
-        $dueDate = $request->dueDate;
+        // $profInvoice = $request->profInvoice;
+        // $recNumber = $request->recNumber;
+        // $dueDate = $request->dueDate;
         $currency = $request->currency;
         $rate = is_null($request->rate) ? 0 : preg_replace('/[^0-9.]+/', '', $request->rate);
-        $invoiceNumber= $request->invoiceNumber;
         $invoiceDate= $request->invoiceDate;
-        $taxInvoiceNumber = $request->taxInvoiceNumber;
         $basisAmount = is_null($request->basisAmount) ? 0 : preg_replace('/[^0-9.]+/', '', $request->basisAmount);
         $accountBasisA = $request->accountBasisA;
-        // $vat = is_null($request->vat) ? 0 : preg_replace('/[^0-9.]+/', '', $request->vat);
-        // $otherDeduct = is_null($request->otherDeduct) ? 0 : preg_replace('/[^0-9.]+/', '', $request->otherDeduct);
         $otherDeduct = 0;
         $account= $request->account;
-        // $pph23 = $request->pph23Check == 'on'? is_null($request->pph23) ? 0 : preg_replace('/[^0-9.]+/', '', $request->pph23) : 0;
-        // $pph23Type= $request->pph23Check == 'on'? is_null($request->pph23)? "":$request->pph23Type : '';
         $note=$request->note;
-        // $accountVat = $request->accountVat;
+        $apDate= $request->apDate;
+        $invoiceNumber=$request->invoiceNumber;
+        $taxInvoiceNumber=$request->taxInvoiceNumber;
 
         $recNumberSave = explode(",",$request->recNumberSave);
         $vat=is_null($request->totalPPN) ? 0 : preg_replace('/[^0-9.]+/', '', $request->totalPPN);
         $pph23 = is_null($request->totalPPH) ? 0 : preg_replace('/[^0-9.]+/', '', $request->totalPPH);
         $totalDiscount = is_null($request->totalDiscount) ? 0 : preg_replace('/[^0-9.]+/', '', $request->totalDiscount);
-        // $totalNetto = preg_replace('/[^0-9.]+/', '', $request->totalNetto);
         $grandTotal = is_null($request->grandTotal) ? 0 :  preg_replace('/[^0-9.]+/', '', $request->grandTotal);
 
         $accountVat ='1100.73';
         $acountTotal = '2000.11';
+        $accountPph23 ='2000.14.3';
                 
         $status = '1';
         $authorizedBy = "";
@@ -480,7 +526,10 @@ class AccountPayableController extends Controller
                     'updated_by' => Auth::user()->username,
                     'created_at' => date('Y-m-d H:i:s'),
                     'updated_at' => date('Y-m-d H:i:s'),
-                    
+                    'account_pph' => $accountPph23,
+                    'inv_number' => $invoiceNumber,
+                    'tax_inv_number' =>$taxInvoiceNumber,
+                    'ap_date' =>$apDate
                 ]);
 
                 if($rowAffected){
@@ -502,25 +551,6 @@ class AccountPayableController extends Controller
                 $title ='Save Invoice';
                 $alert  ="success";
                 $message  = "$title $apNumber is successfully saved";
-
-                // $data['details'] = DB::table('ap_invoice')
-                // ->where('ap_number',$apNumber)
-                // ->get()->first();
-                
-                // $data['supps'] = DB::table('third_party')
-                // ->where ('third_party_type','=','supp')
-                // ->orderBy('nama')
-                // ->get();
-
-                // $data['currency'] = ['IDR','USD'];
-
-                // $data['accounts'] = DB::table('accounts')
-                // ->get();
-
-                // $data['status'] = 'Saved';
-                // $data['title'] = $title;
-                // $data['message'] = $message;
-                // $data['alert'] = $alert;
 
                 \LogActivity::addToLog($title,"username: $username Status $message");
 
@@ -554,6 +584,7 @@ class AccountPayableController extends Controller
         ->get()->first();
 
         $apNumber = $data['header']->ap_number;
+        $poNumber = $data['header']->po_number;
 
         $details = DB::table('ap_invoice_detail')->where('ap_number',$apNumber)->pluck('rec_number');
 
@@ -566,10 +597,50 @@ class AccountPayableController extends Controller
 
         $data['sub_details'] = DB::table('ap_invoice')
         ->leftJoin('third_party', 'third_party.kode', '=', 'ap_invoice.supplier_id')
-        ->where('old_ap_number',$data['header']->ap_number)
+        ->where('old_ap_number',$apNumber)
         ->where('status','6')
         ->select('ap_invoice.*','nama')
         ->orderBy('id')
+        ->get();
+
+        $data['listRec']= DB::table("receiving_hdr") 
+        ->whereNotIn(DB::raw("rec_number"), function($query) use ($apNumber) {
+            $query->select("rec_number")
+            ->from('ap_invoice_detail')
+            ->where('ap_number','<>',$apNumber);
+        })
+        ->orderBy("id")
+        ->select("rec_number","do_date","do_number")
+        ->get();
+
+        $listRec= DB::table("receiving_hdr") 
+        ->whereNotIn(DB::raw("rec_number"), function($query) use ($apNumber) {
+            $query->select("rec_number")
+            ->from('ap_invoice_detail')
+            ->where('ap_number','<>',$apNumber);
+        })
+        ->pluck('rec_number')->toArray();
+        
+        
+        $data['detailRec'] = DB::table('receiving_det')
+        ->leftJoin('receiving_hdr','receiving_hdr.rec_number','receiving_det.rec_number')
+        ->leftJoin('article','article.article_code','receiving_det.article_code')
+        ->leftJoin(DB::RAW("(select * from purchase_order_det where po_number = '$poNumber') AS po"),function($join){
+            $join->on('po.po_number','=','receiving_hdr.po_number')
+                ->on('po.article_code','=','receiving_det.article_code');
+        })
+        ->whereIn('receiving_det.rec_number',$listRec)
+        ->where('receiving_det.qty','>',0)
+        ->select('article.article_alternative_code as article'
+        ,'article.article_desc as desc'
+        ,'receiving_det.uom_rec as uom'
+        ,db::raw("sum(receiving_det.qty) as qty")
+        ,'po.price'
+        ,db::raw("round(sum(receiving_det.qty*po.price)) as total"))
+        ->groupBy('article.article_alternative_code')
+        ->groupBy('article.article_desc')
+        ->groupBy('receiving_det.uom_rec')
+        ->groupBy('po.price')
         ->get();
 
         $data['supps'] = DB::table('third_party')
@@ -688,10 +759,9 @@ class AccountPayableController extends Controller
         $apNumber=$request->apNumber;
         $suppCode = $request->supplier;
         $poNumber = $request->poNumber;
-        $profInvoice = $request->profInvoice;
-        $recNumber = $request->recNumber;
-        $apDate = $request->recDate;
-        $dueDate = $request->dueDate;
+        // $profInvoice = $request->profInvoice;
+        // $recNumber = $request->recNumber;
+        // $dueDate = $request->dueDate;
         $currency = $request->currency;
         $rate = is_null($request->rate) ? 0 : preg_replace('/[^0-9.]+/', '', $request->rate);
         $invoiceNumber= $request->invoiceNumber;
@@ -703,11 +773,19 @@ class AccountPayableController extends Controller
         $account= $request->account;
         $note=$request->note;
 
+        $apDate= $request->apDate;
+        $invoiceNumber=$request->invoiceNumber;
+        $taxInvoiceNumber=$request->taxInvoiceNumber;
+
         $recNumberSave = explode(",",$request->recNumberSave);
         $vat=is_null($request->totalPPN) ? 0 : preg_replace('/[^0-9.]+/', '', $request->totalPPN);
         $pph23 = is_null($request->totalPPH) ? 0 : preg_replace('/[^0-9.]+/', '', $request->totalPPH);
         $totalDiscount = is_null($request->totalDiscount) ? 0 : preg_replace('/[^0-9.]+/', '', $request->totalDiscount);
         $grandTotal = is_null($request->grandTotal) ? 0 :  preg_replace('/[^0-9.]+/', '', $request->grandTotal);
+
+        $accountVat ='1100.73';
+        $acountTotal = '2000.11';
+        $accountPph23 ='2000.14.3';
                 
         $status = '1';
         $authorizedBy = "";
@@ -757,7 +835,12 @@ class AccountPayableController extends Controller
                         'note' => $note,
                         'updated_by' => Auth::user()->username,
                         'updated_at' => date('Y-m-d H:i:s'),
-                        
+                        'inv_number' => $invoiceNumber,
+                        'tax_inv_number' =>$taxInvoiceNumber,
+                        'ap_date' =>$apDate,
+                        'account_total' => $acountTotal,
+                        'account_vat' => $accountVat,
+                        'account_pph' => $accountPph23,
                     ]
                 );
 
@@ -907,77 +990,76 @@ class AccountPayableController extends Controller
                 'updated_at' => date('Y-m-d H:i:s')
             ]);
     
-                $dataSet = [];
-                $dataSet[] = [
-                    'voucher_number' => $vcNumber,
-                    'account' =>$apData->account_ba,
-                    'description' => $vcNumber.' '.$apData->supplier_name,
-                    'debit' => $apData->basis_amount,
-                    'credit' => 0,
-                    'reference' => $apNumber,
-                    'created_by' => Auth::user()->username,
-                    'updated_by' => Auth::user()->username,
-                    'created_at' => date('Y-m-d H:i:s'),
-                    'updated_at' => date('Y-m-d H:i:s')
-                ];
+            $dataSet = [];
+            $dataSet[] = [
+                'voucher_number' => $vcNumber,
+                'account' =>$apData->account_ba,
+                'description' => $vcNumber.' '.$apData->supplier_name,
+                'debit' => $apData->basis_amount,
+                'credit' => 0,
+                'reference' => $apNumber,
+                'created_by' => Auth::user()->username,
+                'updated_by' => Auth::user()->username,
+                'created_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s')
+            ];
 
-                $dataSet[] = [
-                    'voucher_number' => $vcNumber,
-                    'account' =>$apData->account_vat,
-                    'description' => $vcNumber.' '.$apData->supplier_name,
-                    'debit' => $apData->vat,
-                    'credit' => 0,
-                    'reference' => $apNumber,
-                    'created_by' => Auth::user()->username,
-                    'updated_by' => Auth::user()->username,
-                    'created_at' => date('Y-m-d H:i:s'),
-                    'updated_at' => date('Y-m-d H:i:s')
-                ];
+            $dataSet[] = [
+                'voucher_number' => $vcNumber,
+                'account' =>$apData->account_vat,
+                'description' => $vcNumber.' '.$apData->supplier_name,
+                'debit' => $apData->vat,
+                'credit' => 0,
+                'reference' => $apNumber,
+                'created_by' => Auth::user()->username,
+                'updated_by' => Auth::user()->username,
+                'created_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s')
+            ];
 
+            //belum ada no account nya
+            // if($apData->total_discount > 0){
+            //     $dataSet[] = [
+            //         'voucher_number' => $vcNumber,
+            //         'account' =>$apData->account_total,
+            //         'description' => $vcNumber.' '.$apData->supplier_name,
+            //         'debit' => 0,
+            //         'credit' => $apData->total_discount,
+            //         'reference' => $apNumber,
+            //         'created_by' => Auth::user()->username,
+            //         'updated_by' => Auth::user()->username,
+            //         'created_at' => date('Y-m-d H:i:s'),
+            //         'updated_at' => date('Y-m-d H:i:s')
+            //     ];  
+            // }
+
+            if($apData->pph23 > 0){
                 $dataSet[] = [
                     'voucher_number' => $vcNumber,
-                    'account' =>$apData->account_total,
+                    'account' =>$apData->account_pph,
                     'description' => $vcNumber.' '.$apData->supplier_name,
                     'debit' => 0,
-                    'credit' => $apData->grand_total,
+                    'credit' => $apData->pph23,
                     'reference' => $apNumber,
                     'created_by' => Auth::user()->username,
                     'updated_by' => Auth::user()->username,
                     'created_at' => date('Y-m-d H:i:s'),
                     'updated_at' => date('Y-m-d H:i:s')
-                ];
+                ];  
+            }
 
-                //belum ada no account nya
-                if($apData->total_discount > 0){
-                    $dataSet[] = [
-                        'voucher_number' => $vcNumber,
-                        'account' =>$apData->account_total,
-                        'description' => $vcNumber.' '.$apData->supplier_name,
-                        'debit' => 0,
-                        'credit' => $apData->total_discount,
-                        'reference' => $apNumber,
-                        'created_by' => Auth::user()->username,
-                        'updated_by' => Auth::user()->username,
-                        'created_at' => date('Y-m-d H:i:s'),
-                        'updated_at' => date('Y-m-d H:i:s')
-                    ];  
-                }
-
-                //belum ada no account nya
-                if($apData->pph23 > 0){
-                    $dataSet[] = [
-                        'voucher_number' => $vcNumber,
-                        'account' =>'2000.14.3',
-                        'description' => $vcNumber.' '.$apData->supplier_name,
-                        'debit' => 0,
-                        'credit' => $apData->pph23,
-                        'reference' => $apNumber,
-                        'created_by' => Auth::user()->username,
-                        'updated_by' => Auth::user()->username,
-                        'created_at' => date('Y-m-d H:i:s'),
-                        'updated_at' => date('Y-m-d H:i:s')
-                    ];  
-                }
+            $dataSet[] = [
+                'voucher_number' => $vcNumber,
+                'account' =>$apData->account_total,
+                'description' => $vcNumber.' '.$apData->supplier_name,
+                'debit' => 0,
+                'credit' => $apData->grand_total,
+                'reference' => $apNumber,
+                'created_by' => Auth::user()->username,
+                'updated_by' => Auth::user()->username,
+                'created_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s')
+            ];  
     
             DB::table('kas_det')->insert($dataSet);
         }
@@ -1323,6 +1405,7 @@ class AccountPayableController extends Controller
         ->leftJoin('accounts','accounts.account','kas_det.account')
         ->select('kas_det.*','accounts.description as account_name')
         ->where('voucher_number',$vcNumber)
+        ->orderBy('id')
         ->get();
 
         $data['total']=DB::table('kas_det')

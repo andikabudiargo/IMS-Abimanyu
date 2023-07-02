@@ -27,8 +27,8 @@
                                             <input type="hidden" id="recNumberSave" name="recNumberSave" class="form-control text-hitam disabled-el" value="{{ $recNumbers }}" />
                                         </div>
                                         <div class="form-group col-md-3">
-                                            <label for="invoiceDate">Invoice Date*</label>
-                                            <input type="text" id="invoiceDate" name="invoiceDate" class="form-control" value="{{ old('invoiceDate',$header->inv_date)  }}" placeholder="DD-MM-YYYY" />
+                                            <label for="apDate">Invoice Date*</label>
+                                            <input type="text" id="apDate" name="apDate" class="form-control" value="{{ old('apDate',$header->ap_date)  }}" placeholder="DD-MM-YYYY" />
                                         </div> 
                                     </div>
                                     <div class="form-row">
@@ -70,6 +70,20 @@
                                                     <option value="{{ $val->account }}" {{ old('account',$header->account_ba) == $val->account ? 'selected' : '' }}>{{ $val->account}} - {{ $val->description }}</option>
                                                 @endforeach
                                             </select>
+                                        </div>
+                                    </div>
+                                    <div class="form-row">
+                                        <div class="form-group col-md-4">
+                                            <label for="invoiceNumber">Invoice Number*</label>
+                                            <input type="text" id="invoiceNumber" name="invoiceNumber" class="form-control" value="{{ old('invoiceNumber',$header->inv_number) }}" required/>
+                                        </div>
+                                        <div class="form-group col-md-3">
+                                            <label for="invoiceDate">Invoice Date</label>
+                                            <input type="text" id="invoiceDate" name="invoiceDate" class="form-control" placeholder="DD-MM-YYYY" value="{{ old('invoiceDate',$header->inv_date) }}" />
+                                        </div> 
+                                        <div class="form-group col-md-5">
+                                            <label for="taxInvoiceNumber">Tax Invoice Number</label>
+                                            <input type="text" id="taxInvoiceNumber" name="taxInvoiceNumber" class="form-control" value="{{ old('taxInvoiceNumber',$header->tax_inv_number) }}" />
                                         </div>
                                     </div>
                                     <div class="form-row">
@@ -133,19 +147,19 @@
                                 <div class="col-md-8"></div>
                                 <div class="col-md-4">
                                     <div class="form-group row mb-03">
-                                        <label for="basisAmount" class="col-sm-3 col-form-label titik-dua">DPP</label>
+                                        <label for="basisAmount" class="col-sm-4 col-form-label titik-dua">DPP</label>
                                         <div class="col-sm-6">
                                             <input type="text" class="form-control text-right font-weight-bold disabled-el" id="basisAmount" name="basisAmount" disabled />
                                         </div>
                                     </div>
-                                    <div class="form-group row mb-03">
-                                        <label for="totalPPN" class="col-sm-3 col-form-label titik-dua">Discount </label>
+                                    <div class="form-group row mb-03 d-none">
+                                        <label for="totalPPN" class="col-sm-4 col-form-label titik-dua">Discount </label>
                                         <div class="col-sm-6">
                                             <input type="text" class="form-control text-right font-weight-bold numeral-mask disabled-el" id="totalDiscount" name="totalDiscount" />
                                         </div>
                                     </div>
                                     <div class="form-group row mb-03">
-                                        <label for="totalPPN" class="col-sm-3 col-form-label titik-dua">PPN <span id="nilaiPPN"></span> </label>
+                                        <label for="totalPPN" class="col-sm-4 col-form-label titik-dua">PPN <span id="nilaiPPN"></span> </label>
                                         <div class="col-sm-1" style="padding-right: 0rem;display: flex;align-items: center;">
                                             <div class="custom-control custom-checkbox">
                                                 <input type="checkbox" class="custom-control-input" id="vatCheck" name="vatCheck" />
@@ -157,7 +171,7 @@
                                         </div>
                                     </div>
                                     <div class="form-group row mb-03">
-                                        <label for="totalPPH" class="col-sm-3 col-form-label titik-dua">PPH23 <span id="nilaiPPH"></span> </label>
+                                        <label for="totalPPH" class="col-sm-4 col-form-label titik-dua">PPH23 <span id="nilaiPPH"></span> </label>
                                         <div class="col-sm-1" style="padding-right: 0rem;display: flex;align-items: center;">
                                             <div class="custom-control custom-checkbox">
                                                 <input type="checkbox" class="custom-control-input" id="pph23Check" name="pph23Check" />
@@ -169,7 +183,7 @@
                                         </div>
                                     </div>
                                     <div class="form-group row mb-03">
-                                        <label for="grandTotal" class="col-sm-3 col-form-label titik-dua">Total</label>
+                                        <label for="grandTotal" class="col-sm-4 col-form-label titik-dua">Total</label>
                                         <div class="col-sm-6">
                                             <input type="text" class="form-control text-right font-weight-bold numeral-mask disabled-el" id="grandTotal" name="grandTotal" disabled/>
                                             <input type="hidden" class="form-control text-right font-weight-bold" id="grandTotalQty" name="grandTotalQty" disabled/>
@@ -181,7 +195,7 @@
 
                             <div class="form-row">
                                 <div class="col-md-12">
-                                    <a href="{{ route('aps.index') }}" class="btn btn-light">Back</a>
+                                    <a href="{{ route('aps.index') }}" class="btn btn-light">< Back</a>
                                     @if( $approveValidate ? $approveValidate[0]->validate : '')
                                         <input type="text" id ="approveLevel" name ="approveLevel" class="d-none" value="{{ $approveValidate[0]->next_level }}">
                                         <input type="text" id ="maxLevel" name ="maxLevel" class="d-none" value="{{ $approveValidate[0]->max_level }}">
@@ -256,9 +270,11 @@
     $(document).ready(function(){
         validateFormToast("frmAdd");
         mask_thousand();
+        edit='true';
         poAda ="{{ $header->po_number }}";
         $('#supplier').val("{{ $header->supplier_id }}").trigger('change');
         showDetail='false';
+        
     });
 
     $("#cmdPosting").click(function(){        

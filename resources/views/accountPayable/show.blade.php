@@ -27,8 +27,8 @@
                                             <input type="hidden" id="recNumberSave" name="recNumberSave" class="form-control text-hitam disabled-el" value="{{ $recNumbers }}" />
                                         </div>
                                         <div class="form-group col-md-3">
-                                            <label for="invoiceDate">Invoice Date*</label>
-                                            <input type="text" id="invoiceDate" name="invoiceDate" class="form-control" value="{{ old('invoiceDate',$header->inv_date)  }}" placeholder="DD-MM-YYYY" disabled>
+                                            <label for="apDate">Invoice Date*</label>
+                                            <input type="text" id="apDate" name="apDate" class="form-control" value="{{ $header->ap_date  }}" placeholder="DD-MM-YYYY" disabled>
                                         </div> 
                                     </div>
                                     <div class="form-row">
@@ -37,7 +37,7 @@
                                             <select class="select2 form-control" id="supplier" name="supplier" disabled>
                                                 <option value="">All</option>
                                                 @foreach($supps as $val)
-                                                    <option value="{{ $val->kode }}" {{ old('supplier',$header->supplier_id) == $val->kode ? 'selected' : '' }} >{{$val->kode}} - {{$val->nama}}</option>
+                                                    <option value="{{ $val->kode }}" {{ $header->supplier_id == $val->kode ? 'selected' : '' }} >{{$val->kode}} - {{$val->nama}}</option>
                                                 @endforeach
                                             </select>
                                         </div>
@@ -45,20 +45,19 @@
                                     <div class="form-row">
                                         <div class="form-group col-md-8">
                                             <label class="form-label" for="poNumber">PO Number*</label>
-                                            <select class="select2 form-control" id="poNumber" name="poNumber" disabled>
-                                            </select>
+                                            <input type="text" class="form-control font-weight-bold disabled-el" id="poNumber" name="poNumber" value="{{ $header->po_number  }}" disabled />
                                         </div>
                                         <div class="form-group col-md-2">
                                             <label for="currency">Currency*</label>
                                             <select class="select2 form-control" id="currency" name="currency" disabled>
                                                 @foreach($currency as $val)
-                                                <option value="{{$val}}" {{ old('currency',$header->currency) == $val ? 'selected' : '' }} >{{$val}}</option>
+                                                <option value="{{$val}}" {{ $header->currency == $val ? 'selected' : '' }} >{{$val}}</option>
                                                 @endforeach
                                             </select>
                                         </div>
                                         <div class="form-group col-md-2">
                                             <label for="rate">Rate*</label>
-                                            <input type="text" id="rate" name="rate" value="{{ old('rate',$header->kurs) }}" class="form-control numeral-mask text-right" disabled/>
+                                            <input type="text" id="rate" name="rate" value="{{ $header->kurs }}" class="form-control numeral-mask text-right" disabled/>
                                         </div>
                                     </div>
                                     <div class="form-row">
@@ -67,15 +66,29 @@
                                             <select class="select2 form-control w-100" id="accountBasisA" name="accountBasisA" disabled>
                                                 <option value="">Choose option</option>
                                                 @foreach($accountBa as $val)
-                                                    <option value="{{ $val->account }}" {{ old('account',$header->account_ba) == $val->account ? 'selected' : '' }}>{{ $val->account}} - {{ $val->description }}</option>
+                                                    <option value="{{ $val->account }}" {{ $header->account_ba == $val->account ? 'selected' : '' }}>{{ $val->account}} - {{ $val->description }}</option>
                                                 @endforeach
                                             </select>
                                         </div>
                                     </div>
                                     <div class="form-row">
+                                        <div class="form-group col-md-4">
+                                            <label for="invoiceNumber">Invoice Number*</label>
+                                            <input type="text" id="invoiceNumber" name="invoiceNumber" class="form-control" value="{{ $header->inv_number }}" disabled/>
+                                        </div>
+                                        <div class="form-group col-md-3">
+                                            <label for="invoiceDate">Invoice Date</label>
+                                            <input type="text" id="invoiceDate" name="invoiceDate" class="form-control" placeholder="DD-MM-YYYY" value="{{ $header->inv_date }}"  disabled/>
+                                        </div> 
+                                        <div class="form-group col-md-5">
+                                            <label for="taxInvoiceNumber">Tax Invoice Number</label>
+                                            <input type="text" id="taxInvoiceNumber" name="taxInvoiceNumber" class="form-control" value="{{ $header->tax_inv_number }}"  disabled/>
+                                        </div>
+                                    </div>
+                                    <div class="form-row">
                                         <div class="form-group col-md-12">
                                             <label class="form-label" for="note">Notes</label>
-                                            <textarea type="text" id="note" name="note" class="form-control" rows="1" disabled>{{ old('note',$header->note) }}</textarea>
+                                            <textarea type="text" id="note" name="note" class="form-control" rows="1" disabled>{{ $header->note }}</textarea>
                                         </div>
                                     </div>
                                 </div>
@@ -87,13 +100,19 @@
                                                 <table class="table table-bordered" id="listOfLpb">
                                                     <thead>
                                                         <tr>
-                                                            <th scope="col" width="10%">Check</th>
                                                             <th scope="col" width="30%">LPB Number</th>
                                                             <th scope="col" width="30%">Date</th>
                                                             <th scope="col" width="30%">DO Number</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody>
+                                                        @foreach($listRec as $val)
+                                                            <tr>
+                                                                <td>{{ $val->rec_number }}</td>
+                                                                <td>{{ $val->do_date }}</td>
+                                                                <td>{{ $val->do_number }}</td>
+                                                            </tr>
+                                                        @endforeach
                                                     </tbody>
                                                 </table>
                                             </div>
@@ -105,19 +124,29 @@
                                 <div class="col-sm-12">
                                     <p class="mb-0">Detail receiving</p>
                                     <div class="card-datatable table-responsive pt-0">
-                                    <table class="table table-bordered" id="listOfRec">
-                                        <thead>
-                                            <tr>
-                                                <th scope="col" width="20%">Article Code</th>
-                                                <th scope="col" width="40%">Description</th>
-                                                <th scope="col" width="10%">UOM</th>
-                                                <th scope="col" width="10%">Qty</th>
-                                                <th scope="col" width="10%">Price</th>
-                                                <th scope="col" width="10%">Total</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                        </tbody>
+                                        <table class="table table-bordered" id="listOfRec">
+                                            <thead>
+                                                <tr>
+                                                    <th scope="col" width="20%">Article Code</th>
+                                                    <th scope="col" width="40%">Description</th>
+                                                    <th scope="col" width="10%">UOM</th>
+                                                    <th scope="col" width="10%">Qty</th>
+                                                    <th scope="col" width="10%">Price</th>
+                                                    <th scope="col" width="10%">Total</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach($detailRec as $item)
+                                                <tr>
+                                                    <td>{{ $item->article }}</td>
+                                                    <td>{{ $item->desc }}</td>
+                                                    <td>{{ $item->uom }}</td>
+                                                    <td class="text-right">{{ number_format($item->qty) }}</td>
+                                                    <td class="text-right">{{ number_format($item->price) }}</td>
+                                                    <td class="text-right">{{ number_format($item->total) }}</td>
+                                                </tr>
+                                                @endforeach
+                                            </tbody>
                                         </table>
                                     </div>
                                 </div>
@@ -127,46 +156,45 @@
                                 <div class="col-md-8"></div>
                                 <div class="col-md-4">
                                     <div class="form-group row mb-03">
-                                        <label for="basisAmount" class="col-sm-3 col-form-label titik-dua">DPP</label>
+                                        <label for="basisAmount" class="col-sm-4 col-form-label titik-dua">DPP</label>
                                         <div class="col-sm-6">
-                                            <input type="text" class="form-control text-right font-weight-bold disabled-el" id="basisAmount" name="basisAmount" disabled />
+                                            <input type="text" class="form-control text-right font-weight-bold disabled-el" id="basisAmount" name="basisAmount" value="{{ $header->basis_amount }}" disabled />
+                                        </div>
+                                    </div>
+                                    <div class="form-group row mb-03 d-none">
+                                        <label for="totalPPN" class="col-sm-4 col-form-label titik-dua">Discount </label>
+                                        <div class="col-sm-6">
+                                            <input type="text" class="form-control text-right font-weight-bold numeral-mask disabled-el" id="totalDiscount" name="totalDiscount" value="{{ $header->total_discount }}" disabled/>
                                         </div>
                                     </div>
                                     <div class="form-group row mb-03">
-                                        <label for="totalPPN" class="col-sm-3 col-form-label titik-dua">Discount </label>
-                                        <div class="col-sm-6">
-                                            <input type="text" class="form-control text-right font-weight-bold numeral-mask disabled-el" id="totalDiscount" name="totalDiscount" disabled/>
-                                        </div>
-                                    </div>
-                                    <div class="form-group row mb-03">
-                                        <label for="totalPPN" class="col-sm-3 col-form-label titik-dua">PPN <span id="nilaiPPN"></span> </label>
+                                        <label for="totalPPN" class="col-sm-4 col-form-label titik-dua">PPN <span id="nilaiPPN"></span> </label>
                                         <div class="col-sm-1" style="padding-right: 0rem;display: flex;align-items: center;">
                                             <div class="custom-control custom-checkbox">
-                                                <input type="checkbox" class="custom-control-input" id="vatCheck" name="vatCheck" disabled/>
+                                                <input type="checkbox" class="custom-control-input" id="vatCheck" name="vatCheck" {{ $header->vat ? 'checked':'' }} disabled/>
                                                 <label class="custom-control-label" for="vatCheck"></label>
                                             </div>
                                         </div>    
                                         <div class="col-sm-5">
-                                            <input type="text" class="form-control text-right font-weight-bold numeral-mask disabled-el" id="totalPPN"  name="totalPPN" disabled/>
+                                            <input type="text" class="form-control text-right font-weight-bold numeral-mask disabled-el" id="totalPPN"  name="totalPPN" value="{{ $header->vat }}" disabled/>
                                         </div>
                                     </div>
                                     <div class="form-group row mb-03">
-                                        <label for="totalPPH" class="col-sm-3 col-form-label titik-dua">PPH23 <span id="nilaiPPH"></span> </label>
+                                        <label for="totalPPH" class="col-sm-4 col-form-label titik-dua">PPH23 <span id="nilaiPPH"></span> </label>
                                         <div class="col-sm-1" style="padding-right: 0rem;display: flex;align-items: center;">
                                             <div class="custom-control custom-checkbox">
-                                                <input type="checkbox" class="custom-control-input" id="pph23Check" name="pph23Check" disabled />
+                                                <input type="checkbox" class="custom-control-input" id="pph23Check" name="pph23Check" {{ $header->pph23 ? 'checked':'' }} disabled />
                                                 <label class="custom-control-label" for="pph23Check"></label>
                                             </div>
                                         </div> 
                                         <div class="col-sm-5">
-                                            <input type="text" class="form-control text-right font-weight-bold numeral-mask disabled-el" id="totalPPH" name="totalPPH" disabled/>
+                                            <input type="text" class="form-control text-right font-weight-bold numeral-mask disabled-el" id="totalPPH" name="totalPPH" value="{{ $header->pph23 }}" disabled/>
                                         </div>
                                     </div>
                                     <div class="form-group row mb-03">
-                                        <label for="grandTotal" class="col-sm-3 col-form-label titik-dua">Total</label>
+                                        <label for="grandTotal" class="col-sm-4 col-form-label titik-dua">Total</label>
                                         <div class="col-sm-6">
-                                            <input type="text" class="form-control text-right font-weight-bold numeral-mask disabled-el" id="grandTotal" name="grandTotal" disabled/>
-                                            <input type="hidden" class="form-control text-right font-weight-bold" id="grandTotalQty" name="grandTotalQty" disabled/>
+                                            <input type="text" class="form-control text-right font-weight-bold numeral-mask disabled-el" id="grandTotal" name="grandTotal" value="{{ $header->grand_total }}" disabled/>
                                         </div>
                                     </div>
                                 </div>
@@ -228,14 +256,10 @@
 </style>
 @endsection
 @section('scripts')
-@include('accountPayable.script')
+{{-- @include('accountPayable.script') --}}
 <script type="text/javascript">
     $(document).ready(function(){
-        validateFormToast("frmAdd");
         mask_thousand();
-        poAda ="{{ $header->po_number }}";
-        $('#supplier').val("{{ $header->supplier_id }}").trigger('change');
-        showDetail='true';
     });
 
     $.ajaxSetup({
