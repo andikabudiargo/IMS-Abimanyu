@@ -949,8 +949,7 @@ class AccountPayableController extends Controller
         $statusAp ="Posted";
         $status = '4';
         $authorizedBy = Auth::user()->username;
-        
-        
+                
         $rowAffected = DB::table('ap_invoice')
             ->where('ap_number',$apNumber)
             ->update(
@@ -965,8 +964,8 @@ class AccountPayableController extends Controller
 
         if($rowAffected){
 
-            $hasilUpdate = AppHelpers::resetCode($this->voucherCode);
-            $vcNumber = $this->getLastCodeVoucher($this->voucherCode);
+            // $hasilUpdate = AppHelpers::resetCode($this->voucherCode);
+            // $apNumber = $this->getLastCodeVoucher($this->voucherCode);
 
             $apData = db::table('ap_invoice')
             ->leftJoin('third_party', 'third_party.kode', '=', 'ap_invoice.supplier_id')
@@ -974,7 +973,7 @@ class AccountPayableController extends Controller
             ->where('ap_number',$apNumber)->first();
 
             DB::table('kas_hdr')->insert([
-                'voucher_number' =>$vcNumber,
+                'voucher_number' =>$apNumber,
                 'voucher_type' =>$this->moduleCode,
                 'voucher_date' =>date('Y-m-d'), //tanggal posting
                 'paid_to' => $apData->supplier_id,
@@ -992,9 +991,9 @@ class AccountPayableController extends Controller
     
             $dataSet = [];
             $dataSet[] = [
-                'voucher_number' => $vcNumber,
+                'voucher_number' => $apNumber,
                 'account' =>$apData->account_ba,
-                'description' => $vcNumber.' '.$apData->supplier_name,
+                'description' => $apNumber.' '.$apData->supplier_name,
                 'debit' => $apData->basis_amount,
                 'credit' => 0,
                 'reference' => $apNumber,
@@ -1005,9 +1004,9 @@ class AccountPayableController extends Controller
             ];
 
             $dataSet[] = [
-                'voucher_number' => $vcNumber,
+                'voucher_number' => $apNumber,
                 'account' =>$apData->account_vat,
-                'description' => $vcNumber.' '.$apData->supplier_name,
+                'description' => $apNumber.' '.$apData->supplier_name,
                 'debit' => $apData->vat,
                 'credit' => 0,
                 'reference' => $apNumber,
@@ -1020,9 +1019,9 @@ class AccountPayableController extends Controller
             //belum ada no account nya
             // if($apData->total_discount > 0){
             //     $dataSet[] = [
-            //         'voucher_number' => $vcNumber,
+            //         'voucher_number' => $apNumber,
             //         'account' =>$apData->account_total,
-            //         'description' => $vcNumber.' '.$apData->supplier_name,
+            //         'description' => $apNumber.' '.$apData->supplier_name,
             //         'debit' => 0,
             //         'credit' => $apData->total_discount,
             //         'reference' => $apNumber,
@@ -1035,9 +1034,9 @@ class AccountPayableController extends Controller
 
             if($apData->pph23 > 0){
                 $dataSet[] = [
-                    'voucher_number' => $vcNumber,
+                    'voucher_number' => $apNumber,
                     'account' =>$apData->account_pph,
-                    'description' => $vcNumber.' '.$apData->supplier_name,
+                    'description' => $apNumber.' '.$apData->supplier_name,
                     'debit' => 0,
                     'credit' => $apData->pph23,
                     'reference' => $apNumber,
@@ -1049,9 +1048,9 @@ class AccountPayableController extends Controller
             }
 
             $dataSet[] = [
-                'voucher_number' => $vcNumber,
+                'voucher_number' => $apNumber,
                 'account' =>$apData->account_total,
-                'description' => $vcNumber.' '.$apData->supplier_name,
+                'description' => $apNumber.' '.$apData->supplier_name,
                 'debit' => 0,
                 'credit' => $apData->grand_total,
                 'reference' => $apNumber,
@@ -1390,6 +1389,15 @@ class AccountPayableController extends Controller
 
         $apNumber = DB::table('ap_invoice')->where('id',$id)->value('ap_number');
 
+        $apInvoice = DB::table('ap_invoice')
+        ->leftJoin('third_party','third_party.kode','ap_invoice.supplier_id')
+        ->select(
+            'ap_invoice.*'
+            ,DB::raw("(select STRING_AGG ( a.rec_number,',' ORDER BY a.id) as list_rec from ap_invoice_detail a where ap_number = ap_invoice.ap_number) as list_rec")
+            ,'third_party.nama as supplier_name'
+        )
+        ->where('ap_invoice.id',$id)->first();
+
         $data['title'] ='Invoice Supplier';
 
         $data['header']=DB::table('kas_hdr')
@@ -1399,23 +1407,23 @@ class AccountPayableController extends Controller
         ->where('kas_hdr.description',$apNumber)
         ->first();
 
-        $vcNumber=$data['header']->voucher_number;
+        $voucherNumber=$data['header']->voucher_number;
        
         $data['details']=DB::table('kas_det')
         ->leftJoin('accounts','accounts.account','kas_det.account')
         ->select('kas_det.*','accounts.description as account_name')
-        ->where('voucher_number',$vcNumber)
+        ->where('voucher_number',$voucherNumber)
         ->orderBy('id')
         ->get();
 
         $data['total']=DB::table('kas_det')
         ->select(DB::raw("sum(credit) as total_credit"),DB::raw("sum(debit) as total_debit"))
-        ->where('voucher_number',$vcNumber)
+        ->where('voucher_number',$voucherNumber)
         ->first();
 
         $data['costCenter']=DB::table('kas_det')
         ->leftJoin('depts','depts.code','kas_det.cost_center')
-        ->where('voucher_number',$vcNumber)
+        ->where('voucher_number',$voucherNumber)
         ->distinct('depts.name')
         ->pluck('depts.name')->implode(',');
 
@@ -1440,7 +1448,12 @@ class AccountPayableController extends Controller
         ->where('approval_order',3)
         ->first();
 
-        $data['apNumber']=$apNumber;
+        $data['apNumber'] =  $apInvoice->ap_number;
+        $data['invoiceNumber'] = $apInvoice->inv_number;
+        $data['supplierName'] = $apInvoice->supplier_name;
+        $data['nomorLpb'] = $apInvoice->list_rec;
+        $data['apDate'] = $apInvoice->ap_date;
+        $data['noPo'] = $apInvoice->po_number;
 
         return view('accountPayable.print',$data);
 

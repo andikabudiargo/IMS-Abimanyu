@@ -195,20 +195,21 @@
                         <table width="100%">
                             <tr>
                                 <td style="vertical-align: bottom;">
-                                    {{-- <div class="huruf-tebal font-16" style="text-align:center">BUKTI KAS KELUAR</div> --}}
                                     <div class="huruf-tebal font-16" style="text-align:center">INVOICE SUPPLIER</div>
-                                    <div class="huruf-tebal font-14" style="text-align:center">{{ $header->voucher_number }}</div>
+                                    <div class="huruf-tebal font-14" style="text-align:center">{{ $apNumber }}</div>
                                     <br>
                                     <table width="100%">
                                         <tr class="tanpa-padding">
-                                            <td class="tanpa-padding font-14" width="10%">Tanggal</td>
-                                            <td class="tanpa-padding font-14">: {{ $header->voucher_date }}</td>
-                                            {{-- <td>Departemen:</td> --}}
+                                            <td class="tanpa-padding font-14" width="15%">Tanggal</td>
+                                            <td class="tanpa-padding font-14" width="50%">: {{ $apDate }}</td>
+                                            <td class="tanpa-padding font-14" >Supplier</td>
+                                            <td class="tanpa-padding font-14">: {{ $supplierName }}</td>
                                         </tr>
                                         <tr class="tanpa-padding">
-                                            <td class="tanpa-padding font-14">AP Number</td>
-                                            <td class="tanpa-padding font-14">: {{ $apNumber }}</td>
-                                            <td>{{ $costCenter }}</td>
+                                            <td class="tanpa-padding font-14">Invoice Number</td>
+                                            <td class="tanpa-padding font-14">: {{ $invoiceNumber }}</td>
+                                            <td class="tanpa-padding font-14" >NO. PO</td>
+                                            <td class="tanpa-padding font-14">: {{ $noPo }}</td>
                                         </tr>
                                     </table>
                                 </td>
@@ -300,9 +301,9 @@
                                 <td align="center"></td>
                                 <td align="center"  style="border-bottom: 1px solid black;">{{ $approval1 ? $approval1->name:'' }}</td>
                                 <td align="center"></td>
-                                <td align="center" >  {{ $approval2 ? $approval2->name:'' }}  </td>
+                                <td align="center" style="border-bottom: 1px solid black;">  {{ $approval2 ? $approval2->name:'' }}  </td>
                                 <td align="center"></td>
-                                <td align="center" >  {{ $approval3 ? $approval3->name:'' }}  </td>
+                                <td align="center" style="border-bottom: 1px solid black;">  {{ $approval3 ? $approval3->name:'' }}  </td>
                                 <td align="center"></td>
                             </tr>
                         </table>

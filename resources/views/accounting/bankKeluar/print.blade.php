@@ -299,9 +299,9 @@
                                 <td align="center"></td>
                                 <td align="center"  style="border-bottom: 1px solid black;">{{ $approval1 ? $approval1->name:'' }}</td>
                                 <td align="center"></td>
-                                <td align="center" >  {{ $approval2 ? $approval2->name:'' }}  </td>
+                                <td align="center" style="border-bottom: 1px solid black;">  {{ $approval2 ? $approval2->name:'' }}  </td>
                                 <td align="center"></td>
-                                <td align="center" >  {{ $approval3 ? $approval3->name:'' }}  </td>
+                                <td align="center" style="border-bottom: 1px solid black;">  {{ $approval3 ? $approval3->name:'' }}  </td>
                                 <td align="center"></td>
                             </tr>
                         </table>
