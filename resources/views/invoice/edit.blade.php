@@ -8,7 +8,7 @@
         <div class="col-md-12">
             <div class="card">
                 <div class="card-header">
-                    <h4 class="card-title">Status: <span id="statusText">{{ $statusInv }}</span></h4>
+                    <h4 class="card-title">Status: <span id="statusText">{{ $status }}</span></h4>
                     <div class="heading-elements">
                         <ul class="list-inline mb-0">
                             <li><a data-action="collapse"><i data-feather="chevron-down"></i></a></li>
@@ -19,7 +19,6 @@
                     <div class="card-body">
                         <form id="frmAdd" name="frmAdd" autocomplete="off">
                             @csrf
-                            {{-- <input type="text" id="article" name="article" hidden> --}}
                             <input type="text" id="ppn" name="ppn"  values="10" hidden>
                             <input type="text" id="pph23" name="ppn23" values="2" hidden>
                             <div class="form-row">
@@ -33,7 +32,7 @@
                                 </div>                               
                             </div>
                             <div class="form-row">
-                                <div class="form-group col-md-4">
+                                <div class="form-group col-md-5">
                                     <label class="form-label" for="customer">Customer*</label>
                                     <select class="select2 form-control" id="customer" name="customer" required disabled>
                                         <option value="">All</option>
@@ -42,15 +41,19 @@
                                         @endforeach
                                     </select>
                                 </div>
-                                <div class="form-group col-md-3">
+                                <div class="form-group col-md-6">
                                     <label class="form-label" for="soNumber">SO Number*</label>
-                                    <select class="select2 form-control" id="soNumber" name="soNumber">
-                                    </select>
+                                    <input type="text" id="soNumber" name="soNumber" value="{{ $header->so_number }}" class="form-control" disabled />
+                                    {{-- <select class="select2 form-control" id="soNumber" name="soNumber">
+                                    </select> --}}
                                 </div>
-                                <div class="form-group col-md-3">
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group col-md-5">
                                     <label class="form-label" for="dnNumber">DN Number*</label>
-                                    <select class="select2 form-control" id="dnNumber" name="dnNumber" >
-                                    </select>
+                                    <input type="text" id="dnNumber" name="dnNumber" value="{{ $header->dn_number }}" class="form-control" disabled />
+                                    {{-- <select class="select2 form-control" id="dnNumber" name="dnNumber" >
+                                    </select> --}}
                                 </div>
                             </div>
                             <div class="form-row">
@@ -127,21 +130,34 @@
                         </div>
                         <div class="col-md-4">
                             <div class="form-group row mb-03">
-                                <label for="totalAmount" class="col-sm-4 col-form-label titik-dua tanpa-padding">Bruto</label>
+                                <label for="totalAmount" class="col-sm-4 col-form-label titik-dua tanpa-padding">DPP</label>
                                 <div class="col-sm-6">
                                     <input type="text" class="form-control text-right font-weight-bold" id="totalAmount" disabled />
+                                    <input type="hidden" class="form-control text-right font-weight-bold" id="totalAmountJasa" disabled />
                                 </div>
                             </div>
                             <div class="form-group row mb-03">
-                                <label for="totalPPN" class="col-sm-4 col-form-label titik-dua tanpa-padding">PPN <span id="nilaiPPN"></span> </label>
-                                <div class="col-sm-6">
-                                    <input type="text" class="form-control text-right font-weight-bold" id="totalPPN" disabled/>
+                                <label for="totalPPN" class="col-sm-4 col-form-label titik-dua">PPN <span id="nilaiPPN"></span> </label>
+                                <div class="col-sm-1" style="padding-right: 0rem;display: flex;align-items: center;">
+                                    <div class="custom-control custom-checkbox">
+                                        <input type="checkbox" class="custom-control-input" id="vatCheck" name="vatCheck" />
+                                        <label class="custom-control-label" for="vatCheck"></label>
+                                    </div>
+                                </div>    
+                                <div class="col-sm-5">
+                                    <input type="text" class="form-control text-right font-weight-bold numeral-mask disabled-el" id="totalPPN"  name="totalPPN" disabled/>
                                 </div>
                             </div>
                             <div class="form-group row mb-03">
-                                <label for="totalPPH" class="col-sm-4 col-form-label titik-dua tanpa-padding">PPH23 <span id="nilaiPPH23"></span> </label>
-                                <div class="col-sm-6">
-                                    <input type="text" class="form-control text-right font-weight-bold" id="totalPPH" disabled/>
+                                <label for="totalPPH" class="col-sm-4 col-form-label titik-dua">PPH23 <span id="nilaiPPH"></span> </label>
+                                <div class="col-sm-1" style="padding-right: 0rem;display: flex;align-items: center;">
+                                    <div class="custom-control custom-checkbox">
+                                        <input type="checkbox" class="custom-control-input" id="pph23Check" name="pph23Check" />
+                                        <label class="custom-control-label" for="pph23Check"></label>
+                                    </div>
+                                </div> 
+                                <div class="col-sm-5">
+                                    <input type="text" class="form-control text-right font-weight-bold numeral-mask disabled-el" id="totalPPH" name="totalPPH" disabled/>
                                 </div>
                             </div>
                             <div class="form-group row mb-03">
@@ -152,7 +168,67 @@
                             </div>
                         </div>
                     </div>
+                    <br>
+                    <div class="form-row">
+                        <div class="col-md-12">
+                            <a href="{{ route('invoice.index') }}" class="btn btn-light">Back</a>
+                            @if( $approveValidate ? $approveValidate[0]->validate : '')
+                                <input type="text" id ="approveLevel" name ="approveLevel" class="d-none" value="{{ $approveValidate[0]->next_level }}">
+                                <input type="text" id ="maxLevel" name ="maxLevel" class="d-none" value="{{ $approveValidate[0]->max_level }}">
+                                <button class="btn btn-success" type="button" id="cmdApprove" name="cmdApprove">Approve</button>
+                            @if( $status =='DRAFT')
+                                <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave" >Update</button>
+                            @endif
+                            @else
+                                @if( !$approveValidate && $status =='DRAFT')
+                                    <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave" >Update</button>
+                                @endif
+                            @endif
+
+                            @if( $status =='APPROVED')
+                                <button class="btn btn-primary" type="button" id="cmdPosting" name="cmdPosting" >Posting</button>
+                            @endif
+                        </div>
+                    </div>
                     <hr>
+                    <div class="form-row card-statistics">
+                        @foreach($approvalHistory as $val)
+                            @if($val->status == true)
+                                <div class="statistics-body">
+                                    <div class="col-xl-3 col-sm-6 col-12 mb-2 mb-xl-0">
+                                        <div class="media">
+                                            <div class="avatar bg-light-success mr-2">
+                                                <div class="avatar-content">
+                                                    <i data-feather="check" class="avatar-icon"></i>
+                                                </div>
+                                            </div>
+                                            <div class="media-body my-auto">
+                                                <h4 class="font-weight-bolder mb-0">Approve-{{ $val->approval_order }}</h4>
+                                                <p class="card-text mb-0">{{ $val->name }}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            @else
+                                <div class="statistics-body">
+                                    <div class="col-xl-3 col-sm-6 col-12 mb-2 mb-xl-0">
+                                        <div class="media">
+                                            <div class="avatar bg-light-danger mr-2">
+                                                <div class="avatar-content">
+                                                    <i data-feather="x" class="avatar-icon"></i>
+                                                </div>
+                                            </div>
+                                            <div class="media-body my-auto">
+                                                <h4 class="font-weight-bolder mb-0">Approve-{{ $val->approval_order }}</h4>
+                                                <p class="card-text mb-0">{{ $val->petugas }}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endif
+                        @endforeach
+                    </div>
+                    {{-- <hr>
                     <div class="form-row">
                         <div class="col-md-12">
                             <div class="form-row">
@@ -211,7 +287,7 @@
                                 </div>
                             @endif
                         @endforeach
-                    </div>
+                    </div> --}}
                 </div>
             </div>
         </div>
@@ -235,6 +311,7 @@
         position : absolute;
         right : 1px;
     }
+    
     td.isian{
         padding-right:10px;
         padding-left:10px;
@@ -273,8 +350,6 @@
     let currentDate = todayDate('dd-mm-yyyy');
     
     $(document).ready(function(){
-        
-        searchSo('soNumber',customer.val());
         let detail = {!!  $detail !!};
         for (let i = 0; i < detail.length; i++) {
             article=detail[i].article_code;
@@ -416,6 +491,8 @@
 
                 let invDate = $('#invDate').val();
                 let customer = $('#customer').val()
+                let soNumber = $('#soNumber').val()
+                let dnNumber = $('#dnNumber').val()
                 let ppn = $('#ppn').val().replace(/,/gi, '') || 10;
                 let pph23 = $('#pph23').val().replace(/,/gi, '') || 2;
                 let totalPpn = $('#totalPPN').val().replace(/,/gi, '') || 0;
@@ -435,7 +512,9 @@
                         pph23:pph23,
                         totalPpn:totalPpn,
                         totalPph:totalPph,
-                        note:note
+                        note:note,
+                        soNumber:soNumber,
+                        dnNumber:dnNumber
                     },
                     dataType: "json",
                     success: function(data) {
@@ -542,9 +621,9 @@
         $('#priceJasa'+ cloneCount).val(priceJasa);
         $('#qtyInv'+ cloneCount).val(qty);
         $('#uom'+ cloneCount).val(uom);
-        $('#totalLine'+ cloneCount).text(humanizeNumber(qty*price));
-        $('#totalJasa'+ cloneCount).text(humanizeNumber(qty*priceJasa));
-        $('#subTotal'+ cloneCount).text(humanizeNumber((qty*price)+(qty*priceJasa)));
+        $('#totalLine'+ cloneCount).val(qty*price).trigger('change');
+        $('#totalJasa'+ cloneCount).val(qty*priceJasa).trigger('change');
+        $('#subTotal'+ cloneCount).val((qty*price)+(qty*priceJasa)).trigger('change');
         tombolPanah('qtyInv');
         mask_thousand();
         hitungTotal();
@@ -568,98 +647,7 @@
         }
       })
     }
-
-    // function hitungTotal(){
-    //     let objQtyRec= $('#article_row input[name="qty_rec[]"]');
-    //     let objQtyFree= $('#article_row input[name="qty_free[]"]');
-    //     let objTotalQty= $('#article_row span[name="totalQty[]"]');
-        
-    //     objQtyRec.keyup(function() {
-    //         let indexnya= objQtyRec.index(this);
-    //         let qtyRec = parseInt(objQtyRec.eq(indexnya).val().replace(/,/gi, '') || 0); 
-    //         let qtyFree = parseInt(objQtyFree.eq(indexnya).val().replace(/,/gi, '') || 0); 
-    //         let totalQty = qtyRec+qtyFree;
-    //         objTotalQty.eq(indexnya).text(humanizeNumber(totalQty));
-    //         hitungGrandTotal();
-    //     });    
-
-    //     objQtyFree.keyup(function() {
-    //         let indexnya= objQtyRec.index(this);
-    //         let qtyRec = parseInt(objQtyRec.eq(indexnya).val().replace(/,/gi, '') || 0); 
-    //         let qtyFree = parseInt(objQtyFree.eq(indexnya).val().replace(/,/gi, '') || 0); 
-    //         let totalQty = qtyRec+qtyFree;
-    //         objTotalQty.eq(indexnya).text(humanizeNumber(totalQty));
-    //         hitungGrandTotal();
-    //     });
-            
-    // }
-
-    // function hitungGrandTotal(){
-    //     let objArticle = $('#article_row input[name="article_id[]"]');
-    //     let objQtyRec= $('#article_row input[name="qty_rec[]"]');
-    //     let objQtyFree= $('#article_row input[name="qty_free[]"]');
-    //     let totalQty= 0;
-    //     let totalQtyFree= 0;
-
-    //     var arr = objQtyRec.map(function (i) {
-    //         let qty = parseInt(objQtyRec.eq(i).val().replace(/,/gi, '')) || 0;
-    //         let qtyFree = parseInt(objQtyFree.eq(i).val().replace(/,/gi, '')) || 0;
-    //         totalQty+= qty;
-    //         totalQtyFree+= qtyFree;
-    //     }).get();
-    //     grandTotalQty=totalQty+totalQtyFree;
-        
-    //     $("#totalRow").val(objArticle.length);
-    //     $("#totalQTY").val(humanizeNumber(totalQty));
-    //     $("#totalQtyFree").val(humanizeNumber(totalQtyFree));
-    //     $("#grandTotalQty").val(humanizeNumber(grandTotalQty));
-    // }
-
-    // function hitungGrandTotalLoad(){
-    //     let objArticle = $('#article_row input[name="article_id[]"]');
-    //     let objQtyRec= $('#article_row input[name="qty_rec[]"]');
-    //     let objQtyFree= $('#article_row input[name="qty_free[]"]');
-    //     let objTotalQty= $('#article_row span[name="totalQty[]"]');
-        
-    //     let totalQty= 0;
-    //     let totalQtyFree= 0;
-
-    //     var arr = objQtyRec.map(function (i) {
-    //         let qty = parseInt(objQtyRec.eq(i).val().replace(/,/gi, '')) || 0;
-    //         let qtyFree = parseInt(objQtyFree.eq(i).val().replace(/,/gi, '')) || 0;
-    //         totalQty+= qty;
-    //         totalQtyFree+= qtyFree;
-    //         objTotalQty.eq(i).text(humanizeNumber(qty+qtyFree));
-    //     }).get();
-    //     grandTotalQty=totalQty+totalQtyFree;
-        
-    //     $("#totalRow").val(objArticle.length);
-    //     $("#totalQTY").val(humanizeNumber(totalQty));
-    //     $("#totalQtyFree").val(humanizeNumber(totalQtyFree));
-    //     $("#grandTotalQty").val(humanizeNumber(grandTotalQty));
-    // }
-
-    // function tombolPanah(objname){
-    //     // function kalo mau pindah filed dari atas ke bawah atau sebaliknya
-    //     let obj = $('input[name="'+objname+'[]"]');
-    //     obj.keyup(function(e) {
-    //         indexnya= obj.index(this);
-    //         indexnya=parseInt(indexnya);
-    //         if (e.keyCode == 38) {
-    //             //panah atas
-    //             indexTarget = indexnya-1;
-    //             obj.eq(indexTarget).focus().select();
-    //             return false;
-    //         }
-    //         if (e.keyCode == 40) {
-    //             //panah bawah
-    //             indexTarget = indexnya+1;
-    //             obj.eq(indexTarget).focus().select();
-    //             return false;
-    //         }
-    //     });
-    // }
-    
+   
     $.ajaxSetup({
         headers: {
             'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')

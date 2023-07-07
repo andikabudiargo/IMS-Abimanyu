@@ -20,10 +20,21 @@ class InvoiceController extends Controller
 
     private $title;
     private $moduleCode;
+    private $nilaiPpn;
+    private $nilaiPph23;
+
     public function __construct()
     {
         $this->title = "Invoice";
         $this->moduleCode = "INV";
+
+        $this->nilaiPpn = DB::table('attributes')
+        ->where('attr_id','mainppn')
+        ->value('attr_value');
+
+        $this->nilaiPph23 = DB::table('attributes')
+        ->where('attr_id','mainpph23')
+        ->value('attr_value');
     }
 
     public function index(Request $request)
@@ -73,6 +84,9 @@ class InvoiceController extends Controller
         ->orderBy('nama')
         ->get();
 
+        $data['nilaiPPN'] = $this->nilaiPpn;
+        $data['nilaiPPH'] = $this->nilaiPph23;
+
         $data['status']='NEW';
 
         return view("invoice.create",$data);
@@ -90,6 +104,7 @@ class InvoiceController extends Controller
         $totalPph = $request->totalPph;
         $soNumber = $request->soNumber;
         $dnNumber  = $request->dnNumber;
+        $poNumber  = $request->poNumber;
         $note = $request->note;
         $status = '1';
         $gudang = 'false';
@@ -145,7 +160,7 @@ class InvoiceController extends Controller
                     'invoice_date' => $invDate,
                     'customer_id' => $customer,
                     'so_number' => $soNumber,
-                    'po_number' => '',
+                    'po_number' => $poNumber,
                     'dn_number' => $dnNumber,
                     'dpp' => 0,
                     'other_admin' => 0 ,
@@ -232,8 +247,11 @@ class InvoiceController extends Controller
         $data['approveValidate'] = Approval::approveValidate($this->moduleCode,$invoiceNumber,$username);
 
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','6'=>'PAID','7'=>'REVISED'];
-        $statusInv = ['NEW','VALIDATE','APPROVED','','','PAID','REVISED'];
+        $statusInv = ['DRAFT','VALIDATE','APPROVED','','','PAID','REVISED'];
         $data['statusInv'] = $statusInv[$data['header']->status-1];
+
+        $data['nilaiPPN'] = $this->nilaiPpn;
+        $data['nilaiPPH'] = $this->nilaiPph23;
 
         return view("invoice.show",$data);
         
@@ -270,8 +288,11 @@ class InvoiceController extends Controller
         $data['approveValidate'] = Approval::approveValidate($this->moduleCode,$invoiceNumber,$username);
 
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','6'=>'PAID','7'=>'REVISED'];
-        $statusInv = ['NEW','VALIDATE','APPROVED','','','PAID','REVISED'];
-        $data['statusInv'] = $statusInv[$data['header']->status-1];
+        $status = ['DRAFT','VALIDATE','APPROVED','','','PAID','REVISED'];
+        $data['status'] = $status[$data['header']->status-1];
+
+        $data['nilaiPPN'] = $this->nilaiPpn;
+        $data['nilaiPPH'] = $this->nilaiPph23;
 
         return view("invoice.edit",$data);
     }
@@ -772,12 +793,17 @@ class InvoiceController extends Controller
             where a.invoice_number = '$invNumber'
             group by a.invoice_number) as oki");
 
+        $data['terbilang'] =  $this->terbilang($data['totals'][0]->grand_total);
+
         $data['customers']=DB::table('third_party')
         ->where('kode',$invHdr -> customer_id)
         ->first();
         
         $data['status'] ='1';
         $data['no'] = 0 ;
+
+        $data['nilaiPPN'] = $this->nilaiPpn;
+        $data['nilaiPPH'] = $this->nilaiPph23;
 
         view()->share($data);
 
@@ -814,6 +840,12 @@ class InvoiceController extends Controller
         $data= DB::table("sales_order_hdr") 
         ->where("customer_id",$cust)
         ->where("status","3")
+        ->whereIn('so_code', function($query) use ($cust) {
+            $query->select('so_number')
+            ->from('delivery_hdr') 
+            ->where('customer_id',$cust)
+            ->where('status','4');
+        })
         ->orderBy("so_code")
         ->select("so_code","po_number")
         ->get();          
@@ -896,4 +928,43 @@ class InvoiceController extends Controller
             return response()->json(array('statusPo' => $statusInv,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'invNumber'=>$invNumber));
         }
     }
+
+    public function penyebut($nilai) 
+    {
+		$nilai = abs($nilai);
+		$huruf = array("", "satu", "dua", "tiga", "empat", "lima", "enam", "tujuh", "delapan", "sembilan", "sepuluh", "sebelas");
+		$temp = "";
+		if ($nilai < 12) {
+			$temp = " ". $huruf[$nilai];
+		} else if ($nilai <20) {
+			$temp = $this->penyebut($nilai - 10). " belas";
+		} else if ($nilai < 100) {
+			$temp = $this->penyebut($nilai/10)." puluh". $this->penyebut($nilai % 10);
+		} else if ($nilai < 200) {
+			$temp = " seratus" . $this->penyebut($nilai - 100);
+		} else if ($nilai < 1000) {
+			$temp = $this->penyebut($nilai/100) . " ratus" . $this->penyebut($nilai % 100);
+		} else if ($nilai < 2000) {
+			$temp = " seribu" . $this->penyebut($nilai - 1000);
+		} else if ($nilai < 1000000) {
+			$temp = $this->penyebut($nilai/1000) . " ribu" . $this->penyebut($nilai % 1000);
+		} else if ($nilai < 1000000000) {
+			$temp = $this->penyebut($nilai/1000000) . " juta" . $this->penyebut($nilai % 1000000);
+		} else if ($nilai < 1000000000000) {
+			$temp = $this->penyebut($nilai/1000000000) . " milyar" . $this->penyebut(fmod($nilai,1000000000));
+		} else if ($nilai < 1000000000000000) {
+			$temp = $this->penyebut($nilai/1000000000000) . " trilyun" . $this->penyebut(fmod($nilai,1000000000000));
+		}     
+		return $temp;
+	}
+ 
+	public function terbilang($nilai) 
+    {
+		if($nilai<0) {
+			$hasil = "minus ". trim($this->penyebut($nilai)).' rupiah';
+		} else {
+			$hasil = trim($this->penyebut($nilai)).' rupiah';
+		}     		
+		return ucfirst($hasil);
+	}
 }

@@ -182,9 +182,20 @@
             font-weight: bold;
         }
 
+        @media print {
+            .hide-print {
+                display: none;
+            }
+        }
+
     </style>
 </head>
 <body class="{{ (count($details)) < 7 ? "A4A5" : "A4" }}">
+<div class="row hide-print" style="margin-left:20px;margin-top:20px">
+    <div class="col-md-12">
+        <button class="btn btn-primary" type="button" id="cmdPrint" name="cmdPrint">Print</button>
+    </div>
+</div>
 <div class="sheet padding-5mm">
     <table>
         <thead>
@@ -321,18 +332,31 @@
         </tfoot>
     </table>
 </div>
+<script src="{{ asset('app-assets/vendors/js/vendors.min.js') }}"></script>
 <script>
-    window.onload= function () {
-        window.print();
-        window.onafterprint = function () {
-            window.close();
-        }
-        window.onfocus = function () { 
-            setTimeout(function () { 
-                window.close(); 
-            }, 200); 
-        }
+
+$("#cmdPrint").click(function(){ 
+    window.print();
+    window.onafterprint = function () {
+        window.close();
     }
+    window.onfocus = function () { 
+        setTimeout(function () { 
+            window.close(); 
+        }, 200); 
+    }
+});
+// window.onload= function () {
+//     window.print();
+//     window.onafterprint = function () {
+//         window.close();
+//     }
+//     window.onfocus = function () { 
+//         setTimeout(function () { 
+//             window.close(); 
+//         }, 200); 
+//     }
+// }
 </script>
 </body>
 </html>

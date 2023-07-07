@@ -21,12 +21,24 @@ class AccountPayableController extends Controller
     private $title;
     private $moduleCode;
     private $voucherCode;
+    private $nilaiPpn;
+    private $nilaiPph23;
 
     public function __construct()
     {
         $this->title = "Invoice Supplier";
         $this->moduleCode = "AP";
         $this->voucherCode = "APV";
+
+        $this->nilaiPpn = DB::table('attributes')
+        ->where('attr_id','mainppn')
+        ->value('attr_value');
+
+        $this->nilaiPph23 = DB::table('attributes')
+        ->where('attr_id','mainpph23')
+        ->value('attr_value');
+
+
     }
 
     public function getTableColoumn()

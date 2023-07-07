@@ -57,15 +57,18 @@
                     <td class="isian disabled text-right" style="width: 10%">
                         {{-- <input type="text" class="form-control-plaintext numeral-mask text-right" id="totalLine" name="totalLine[]" > --}}
                         {{-- <span id="totalLine" name="totalLine[]"></span> --}}
-                        <span class="text-hitam text-hitam" id="totalLine" name="totalLine[]"></span>
+                        <input type="text" class="form-control-plaintext numeral-mask text-right" id = "totalLine" name="totalLine[]" disabled>
+                        {{-- <span class="text-hitam text-hitam" id="totalLine" name="totalLine[]"></span> --}}
                     </td>
                     <td class="isian disabled text-right" style="width: 10%">
                         {{-- <input type="text" class="form-control-plaintext numeral-mask text-right" id="totalJasa" name="totalJasa[]" > --}}
                         {{-- <span id="totalJasa" name="totalJasa[]"></span> --}}
-                        <span class="text-hitam text-hitam" id="totalJasa" name="totalJasa[]""></span>
+                        <input type="text" class="form-control-plaintext numeral-mask text-right" id = "totalJasa" name="totalJasa[]" disabled>
+                        {{-- <span class="text-hitam text-hitam" id="totalJasa" name="totalJasa[]""></span> --}}
                     </td>
                     <td class="isian disabled text-right" style="width: 10%">
-                        <span class="text-hitam text-hitam" id="subTotal" name="subTotal[]"></span>
+                        <input type="text" class="form-control-plaintext numeral-mask text-right" id = "subTotal" name="subTotal[]" disabled>
+                        {{-- <span class="text-hitam text-hitam" id="subTotal" name="subTotal[]"></span> --}}
                     </td>
                     <td class="isian text-center" style="width: 5%">
                         <a onmouseover="this.style.cursor='pointer'" onclick="$(this).parents('.tanda-baris').remove();hitungGrandTotal()">
@@ -84,6 +87,9 @@
     const customer = $('#customer');
     const soNumber = $('#soNumber');
     const dnNumber = $('#dnNumber');
+
+    let sNilaiPPN= "{{ $nilaiPPN }}";
+    let sNilaiPPH= "{{ $nilaiPPH }}";
 
     customer.change(function(){
         searchSo('soNumber',$(this).val());
@@ -174,10 +180,13 @@
     function hitungTotal(){
         let objQtyInv= $('#article_row input[name="qtyInv[]"]');
         let objPrice= $('#article_row input[name="price[]"]');
-        let objTotal= $('#article_row span[name="totalLine[]"]');
+        // let objTotal= $('#article_row span[name="totalLine[]"]');
+        let objTotal= $('#article_row input[name="totalLine[]"]');
         let objPriceJasa= $('#article_row input[name="priceJasa[]"]');
-        let objTotalJasa= $('#article_row span[name="totalJasa[]"]');
-        let objSubTotal= $('#article_row span[name="subTotal[]"]');
+        // let objTotalJasa= $('#article_row span[name="totalJasa[]"]');
+        // let objSubTotal= $('#article_row span[name="subTotal[]"]');
+        let objTotalJasa= $('#article_row input[name="totalJasa[]"]');
+        let objSubTotal= $('#article_row input[name="subTotal[]"]');
                 
         objQtyInv.keyup(function() {
 
@@ -187,9 +196,9 @@
             let priceJasa = objPriceJasa.eq(indexnya).val().replace(/,/gi, '') ||0;
             let total = qty*price;
             let totalJasa = qty*priceJasa;
-            objTotal.eq(indexnya).text(humanizeNumber(total));
-            objTotalJasa.eq(indexnya).text(humanizeNumber(totalJasa));
-            objSubTotal.eq(indexnya).text(humanizeNumber(total+totalJasa));
+            objTotal.eq(indexnya).val(total).trigger('input');
+            objTotalJasa.eq(indexnya).val(totalJasa).trigger('input');
+            objSubTotal.eq(indexnya).val(total+totalJasa).trigger('input');
             hitungGrandTotal();
 
         });
@@ -201,9 +210,9 @@
             let total = qty*price;
             let priceJasa = objPriceJasa.eq(indexnya).val().replace(/,/gi, '')||0;
             let totalJasa = qty*priceJasa;
-            objTotal.eq(indexnya).text(humanizeNumber(total));
-            objTotalJasa.eq(indexnya).text(humanizeNumber(totalJasa));
-            objSubTotal.eq(indexnya).text(humanizeNumber(total+totalJasa));
+            objTotal.eq(indexnya).val(total).trigger('input');
+            objTotalJasa.eq(indexnya).val(totalJasa).trigger('input');
+            objSubTotal.eq(indexnya).val(total+totalJasa).trigger('input');
             hitungGrandTotal();
         });    
 
@@ -214,9 +223,9 @@
             let total = qty*price;
             let priceJasa = objPriceJasa.eq(indexnya).val().replace(/,/gi, '')||0;
             let totalJasa = qty*priceJasa;
-            objTotal.eq(indexnya).text(humanizeNumber(total));
-            objTotalJasa.eq(indexnya).text(humanizeNumber(totalJasa));
-            objSubTotal.eq(indexnya).text(humanizeNumber(total+totalJasa));
+            objTotal.eq(indexnya).val(total).trigger('input');
+            objTotalJasa.eq(indexnya).val(totalJasa).trigger('input');
+            objSubTotal.eq(indexnya).val(total+totalJasa).trigger('input');
             hitungGrandTotal();
         });
 
@@ -228,8 +237,8 @@
         let objQTY= $('#article_row input[name="qtyInv[]"]');
         let objPrice= $('#article_row input[name="price[]"]');
         let objPriceJasa= $('#article_row input[name="priceJasa[]"]');
-        let ppn= $('#ppn').val() || 10;
-        let pph23= $('#pph23').val() || 2;
+        let ppn= $('#ppn').val() || sNilaiPPN;
+        let pph23= $('#pph23').val() || sNilaiPPN;
         let totalQty= 0;
         let totalAmount=0
         let totalAmountJasa=0
@@ -244,16 +253,54 @@
             totalAmountMaterial+= (qty*price)+(qty*priceJasa);
             totalAmountJasa+= (qty*priceJasa);
         }).get();
+
+        $("#vatCheck").prop("checked",true);
+        if(totalAmountJasa){
+            $("#pph23Check").prop("checked",true);
+        }else{
+            $("#pph23Check").prop("checked",false);
+        }
         
         $("#totalRow").val(objArticle.length);
         $("#nilaiPPN").text(ppn+"%");
         $("#nilaiPPH23").text(pph23+"%");
         $("#totalQTY").val(humanizeNumber(totalQty));
         $("#totalAmount").val(humanizeNumber(totalAmount));
+        $("#totalAmountJasa").val(humanizeNumber(totalAmountJasa));
         $("#totalPPN").val(humanizeNumber((parseInt(ppn)*totalAmountMaterial)/100));
-        $("#totalPPH").val("-"+humanizeNumber((pph23*totalAmountJasa)/100));
+        if(totalAmountJasa){
+            $("#totalPPH").val("-"+humanizeNumber((pph23*totalAmountJasa)/100));
+        }
         $("#totalNetto").val(humanizeNumber(totalAmount+((parseInt(ppn)*totalAmount)/100)-((pph23*totalAmountJasa)/100)));
     
     }
+
+    $("#pph23Check").change(function() {
+        if(this.checked) {
+            let totalAmountJasa = parseInt($('#totalAmountJasa').val().replace(/,/gi, '')) || 0;
+            $("#totalPPH").val(totalAmountJasa * (sNilaiPPH/100));
+            $("#nilaiPPH").text(sNilaiPPH+'%');
+            mask_thousand();
+            hitungTotal();
+        }else{
+            $("#totalPPH").val(0);
+            $("#nilaiPPH").text('');
+            hitungTotal();  
+        }
+    });
+
+    $("#vatCheck").change(function() {
+        if(this.checked) {
+            let totalAmount = parseInt($('#totalAmount').val().replace(/,/gi, '')) || 0;
+            $("#totalPPN").val(totalAmount * (sNilaiPPN/100));
+            $("#nilaiPPN").text(sNilaiPPN+'%');
+            mask_thousand();
+            hitungTotal();
+        }else{
+            $("#totalPPN").val(0);
+            $("#nilaiPPN").text('');
+            hitungTotal();
+        }
+    });
 
 </script>

@@ -19,7 +19,7 @@
                     <div class="card-body">
                         <form id="frmAdd" name="frmAdd" autocomplete="off">
                             @csrf
-                            {{-- <input type="text" id="article" name="article" hidden> --}}
+                            <input type="text" id="poNumberi" name="poNumberi" hidden>
                             <input type="text" id="ppn" name="ppn"  values="10" hidden>
                             <input type="text" id="pph23" name="ppn23" values="2" hidden>
                             <div class="form-row">
@@ -33,7 +33,7 @@
                                 </div>                               
                             </div>
                             <div class="form-row">
-                                <div class="form-group col-md-4">
+                                <div class="form-group col-md-5">
                                     <label class="form-label" for="customer">Customer*</label>
                                     <select class="select2 form-control" id="customer" name="customer" required>
                                         <option value="">All</option>
@@ -42,12 +42,14 @@
                                         @endforeach
                                     </select>
                                 </div>
-                                <div class="form-group col-md-3">
+                                <div class="form-group col-md-6">
                                     <label class="form-label" for="soNumber">SO Number*</label>
                                     <select class="select2 form-control" id="soNumber" name="soNumber">
                                     </select>
                                 </div>
-                                <div class="form-group col-md-3">
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group col-md-5">
                                     <label class="form-label" for="dnNumber">DN Number*</label>
                                     <select class="select2 form-control" id="dnNumber" name="dnNumber">
                                     </select>
@@ -125,23 +127,51 @@
                         </div>
                         <div class="col-md-4">
                             <div class="form-group row mb-03">
-                                <label for="totalAmount" class="col-sm-4 col-form-label titik-dua tanpa-padding">Bruto</label>
+                                <label for="totalAmount" class="col-sm-4 col-form-label titik-dua tanpa-padding">DPP</label>
                                 <div class="col-sm-6">
                                     <input type="text" class="form-control text-right font-weight-bold" id="totalAmount" disabled />
+                                    <input type="hidden" class="form-control text-right font-weight-bold" id="totalAmountJasa" disabled />
                                 </div>
                             </div>
                             <div class="form-group row mb-03">
+                                <label for="totalPPN" class="col-sm-4 col-form-label titik-dua">PPN <span id="nilaiPPN"></span> </label>
+                                <div class="col-sm-1" style="padding-right: 0rem;display: flex;align-items: center;">
+                                    <div class="custom-control custom-checkbox">
+                                        <input type="checkbox" class="custom-control-input" id="vatCheck" name="vatCheck" />
+                                        <label class="custom-control-label" for="vatCheck"></label>
+                                    </div>
+                                </div>    
+                                <div class="col-sm-5">
+                                    <input type="text" class="form-control text-right font-weight-bold numeral-mask disabled-el" id="totalPPN"  name="totalPPN" disabled/>
+                                </div>
+                            </div>
+
+                            {{-- <div class="form-group row mb-03">
                                 <label for="totalPPN" class="col-sm-4 col-form-label titik-dua tanpa-padding">PPN <span id="nilaiPPN"></span> </label>
                                 <div class="col-sm-6">
                                     <input type="text" class="form-control text-right font-weight-bold" id="totalPPN" disabled/>
                                 </div>
-                            </div>
+                            </div> --}}
+
                             <div class="form-group row mb-03">
+                                <label for="totalPPH" class="col-sm-4 col-form-label titik-dua">PPH23 <span id="nilaiPPH"></span> </label>
+                                <div class="col-sm-1" style="padding-right: 0rem;display: flex;align-items: center;">
+                                    <div class="custom-control custom-checkbox">
+                                        <input type="checkbox" class="custom-control-input" id="pph23Check" name="pph23Check" />
+                                        <label class="custom-control-label" for="pph23Check"></label>
+                                    </div>
+                                </div> 
+                                <div class="col-sm-5">
+                                    <input type="text" class="form-control text-right font-weight-bold numeral-mask disabled-el" id="totalPPH" name="totalPPH" disabled/>
+                                </div>
+                            </div>
+
+                            {{-- <div class="form-group row mb-03">
                                 <label for="totalPPH" class="col-sm-4 col-form-label titik-dua tanpa-padding">PPH23 <span id="nilaiPPH23"></span> </label>
                                 <div class="col-sm-6">
                                     <input type="text" class="form-control text-right font-weight-bold" id="totalPPH" disabled/>
                                 </div>
-                            </div>
+                            </div> --}}
                             <div class="form-group row mb-03">
                                 <label for="totalNetto" class="col-sm-4 col-form-label titik-dua tanpa-padding">Netto</label>
                                 <div class="col-sm-6">
@@ -154,7 +184,8 @@
                     <div class="form-row">
                         <div class="col-12">
                             {{-- <button class="btn btn-warning" type="reset" id="cmdCancel" name="cmdCancel">Cancel</button> --}}
-                            <button class="btn btn-success" type="reset" id="cmdNew" name="cmdCancel">New</button>
+                            <a href="{{ route('invoice.index') }}" class="btn btn-light">Back</a>
+                            <button class="btn btn-info" type="reset" id="cmdNew" name="cmdCancel">New</button>
                             <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Save</button>
                             {{-- @can('receiving-posting') --}}
                                 <button class="btn btn-primary" type="button" id="cmdPosting" name="cmdPosting">Posting</button>
@@ -167,7 +198,6 @@
         </div>
     </div>
 </section>
-
 @endsection
 @section('styles')
 <style>
@@ -234,6 +264,7 @@
         $('#invDate').val(currentDate);
         $('#cmdSave').show();
         $('#cmdPosting').hide();
+        $("#vatCheck").prop("checked",false);
     });
 
     invDate = $('#invDate');
@@ -313,7 +344,10 @@
             if (flag==0){
 
                 let invDate = $('#invDate').val();
-                let customer = $('#customer').val()
+                let customer = $('#customer').val();
+                let soNumber = $('#soNumber').val();
+                let dnNumber = $('#dnNumber').val();
+                let poNumber = $('#poNumber').val();
                 let ppn = $('#ppn').val().replace(/,/gi, '') || 10;
                 let pph23 = $('#pph23').val().replace(/,/gi, '') || 2;
                 let totalPpn = $('#totalPPN').val().replace(/,/gi, '') || 0;
@@ -331,26 +365,24 @@
                         pph23:pph23,
                         totalPpn:totalPpn,
                         totalPph:totalPph,
-                        note:note
+                        note:note,
+                        soNumber:soNumber,
+                        dnNumber:dnNumber,
+                        poNumber:poNumber
                     },
                     dataType: "json",
                     success: function(data) {
                         if (data.status == 0 ){
-                            
                             for(let i = 0; i < data.message.length; i++) {
                                 show_msg(data.title, data.message[i], data.alert);
                             }
-
                             $('#invNumber').attr('disabled','disabled');
-
                         }else{
                             show_msg(data.title, data.message, data.alert);
-
                             $('#invNumber').val(data.invNumber);
                             $('#invNumber').attr('disabled','disabled');
                             $('#cmdSave').attr('disabled','disabled');
-                        }
-                        
+                        }                        
                     },
                     error: function(error) {
                         console.log(error);
@@ -365,7 +397,7 @@
 
     let cloneCount=0;
     function add_new_row(article,articleCode,articleDesc,qty,uomGroup,uom,price,priceJasa,soCode,dnNumber,poNumber) {
-        console.log(poNumber);
+        $('#poNumberi').val(poNumber);
         $("#article_row").append($("#new_row").clone().html());
         cloneCount++;
         $("#article_row").find('#baru').attr('id', 'new_row'+ cloneCount);
@@ -391,9 +423,10 @@
         $('#priceJasa'+ cloneCount).val(priceJasa);
         $('#qtyInv'+ cloneCount).val(qty);
         $('#uom'+ cloneCount).val(uom);
-        $('#totalLine'+ cloneCount).text(humanizeNumber(qty*price));
-        $('#totalJasa'+ cloneCount).text(humanizeNumber(qty*priceJasa));
-        $('#subTotal'+ cloneCount).text(humanizeNumber((qty*price)+(qty*priceJasa)));
+        $('#totalLine'+ cloneCount).val(qty*price).trigger('input');
+        $('#totalJasa'+ cloneCount).val(qty*priceJasa).trigger('input');
+        $('#subTotal'+ cloneCount).val((qty*price)+(qty*priceJasa)).trigger('input');
+
         tombolPanah('qtyInv');
         mask_thousand();
         hitungTotal();
@@ -417,6 +450,8 @@
         }
       })
     }
+
+    
 
     $.ajaxSetup({
         headers: {

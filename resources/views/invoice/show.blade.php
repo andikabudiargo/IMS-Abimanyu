@@ -33,7 +33,7 @@
                                 </div>                               
                             </div>
                             <div class="form-row">
-                                <div class="form-group col-md-4">
+                                <div class="form-group col-md-5">
                                     <label class="form-label" for="customer">Customer*</label>
                                     <select class="select2 form-control" id="customer" name="customer" required disabled>
                                         <option value="">All</option>
@@ -42,15 +42,15 @@
                                         @endforeach
                                     </select>
                                 </div>
-                                <div class="form-group col-md-3">
-                                    <label class="form-label" for="soNumber"  disabled>SO Number*</label>
-                                    <select class="select2 form-control" id="soNumber" name="soNumber">
-                                    </select>
+                                <div class="form-group col-md-6">
+                                    <label class="form-label" for="soNumber" disabled>SO Number*</label>
+                                    <input type="text" id="soNumber" name="soNumber" value="{{ $header->so_number }}" class="form-control" disabled />
                                 </div>
+                            </div>
+                            <div class="form-row">
                                 <div class="form-group col-md-3">
                                     <label class="form-label" for="dnNumber"  disabled>DN Number*</label>
-                                    <select class="select2 form-control" id="dnNumber" name="dnNumber" >
-                                    </select>
+                                    <input type="text" id="dnNumber" name="dnNumber" value="{{ $header->dn_number }}" class="form-control" disabled />
                                 </div>
                             </div>
                             <div class="form-row">
@@ -260,7 +260,6 @@
 <script type="text/javascript">
     let currentDate = todayDate('dd-mm-yyyy');
     $(document).ready(function(){
-        searchSo('soNumber',customer.val());
         let detail = {!!  $detail !!};
         for (let i = 0; i < detail.length; i++) {
             article=detail[i].article_code;
@@ -306,9 +305,9 @@
         $('#priceJasa'+ cloneCount).val(priceJasa);
         $('#qtyInv'+ cloneCount).val(qty);
         $('#uom'+ cloneCount).val(uom);
-        $('#totalLine'+ cloneCount).text(humanizeNumber(qty*price));
-        $('#totalJasa'+ cloneCount).text(humanizeNumber(qty*priceJasa));
-        $('#subTotal'+ cloneCount).text(humanizeNumber((qty*price)+(qty*priceJasa)));
+        $('#totalLine'+ cloneCount).val(qty*price).trigger('change');
+        $('#totalJasa'+ cloneCount).val(qty*priceJasa).trigger('change');
+        $('#subTotal'+ cloneCount).val((qty*price)+(qty*priceJasa)).trigger('change');
         tombolPanah('qtyInv');
         mask_thousand();
         hitungTotal();

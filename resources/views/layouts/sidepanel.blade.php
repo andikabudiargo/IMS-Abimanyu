@@ -524,14 +524,14 @@
             </li>
             @endcan --}}
 
-            @can('finance-index')
+            {{-- @can('finance-index')
             <li class="{{ \Request::segment(1) == 'accountPayable'  ? 'active' : '' }} disabled">
               <a class="d-flex align-items-center" href="{{ route('accTypes.index') }}">
                 <i data-feather="circle"></i>
                 <span class="menu-item text-truncate" data-i18n="Input">Tax</span>
               </a>
             </li>
-            @endcan
+            @endcan --}}
             @can('finance-index')
             <li class="{{ \Request::segment(1) == 'disbursement'  ? 'active' : '' }}">
               <a class="d-flex align-items-center" href="{{ route('disbursement.index') }}">
