@@ -59,11 +59,11 @@
             border-spacing: -1px;
         }
 
-        table.utama, table.utama td {
+        /* table.utama, table.utama td {
             border-collapse: collapse;
             border-right: 1px solid black;
             border-left: 1px solid black;
-        }
+        } */
 
     </style>
     </head>
@@ -92,7 +92,7 @@
                 <h2>INVOICE</h2>
             </td>
             <td style="border: 1px solid #0c0c0c;padding-left:10px">
-                <b>{{ $recHdr->invoice_number }}</b>
+                <b style="font-size:17px">{{ $recHdr->invoice_number }}</b>
                 <br>
                 No FP:{{ $recHdr->invoice_number }}
             </td>
@@ -130,14 +130,14 @@
         <tbody>
             @foreach ($details as $val )
                 <tr >
-                    <td align="center" scope="row" style="border-bottom: none;">{{ ++$no }}</td>
+                    <td style="border-right: 1px solid black;" align="center" scope="row" style="border-bottom: none;">{{ ++$no }}</td>
                     {{-- <td  align="left">{{ $val->article_alternative_code }}</td> --}}
-                    <td  align="left">{{ $val->article_desc }}</td>
-                    <td  align="right">{{ number_format($val->qty) }}</td>
-                    <td  align="right">{{ number_format($val->price) }}</td>
-                    <td  align="right">{{ number_format($val->price_service) }}</td>
-                    <td  align="right">{{ number_format(($val->qty*$val->price)) }}</td>
-                    <td  align="right">{{ number_format(($val->qty*$val->price_service)) }}</td>
+                    <td  style="border-right: 1px solid black;" align="left">{{ $val->article_desc }}</td>
+                    <td  style="border-right: 1px solid black;" align="right">{{ number_format($val->qty) }}</td>
+                    <td  style="border-right: 1px solid black;" align="right">{{ number_format($val->price) }}</td>
+                    <td  style="border-right: 1px solid black;" align="right">{{ number_format($val->price_service) }}</td>
+                    <td  style="border-right: 1px solid black;" align="right">{{ number_format(($val->qty*$val->price)) }}</td>
+                    <td  style="border-right: 1px solid black;" align="right">{{ number_format(($val->qty*$val->price_service)) }}</td>
                 </tr>
             @endforeach
             
@@ -145,51 +145,65 @@
 
             @for ($i=1;$i< $totalBaris-(count($details));$i++)
                 <tr >
-                    <td class="putih" height="16"></td>
-                    <td ></td>
-                    <td ></td>
-                    <td ></td>
-                    <td ></td>
-                    <td ></td>
-                    <td ></td>
+                    <td style="border-right: 1px solid black;" class="putih" height="16"></td>
+                    <td style="border-right: 1px solid black;" ></td>
+                    <td style="border-right: 1px solid black;" ></td>
+                    <td style="border-right: 1px solid black;" ></td>
+                    <td style="border-right: 1px solid black;" ></td>
+                    <td style="border-right: 1px solid black;" ></td>
+                    <td style="border-right: 1px solid black;" ></td>
                 </tr>
             @endfor
+            <tr>
+                <td  align="left"  style="border-bottom: 1px solid black;border-right: 1px solid black;"></td>
+                <td  align="left"  style="border-bottom: 1px solid black;border-right: 1px solid black;"></td>
+                <td  align="right" style="border-bottom: 1px solid black;border-right: 1px solid black;"></td>
+                <td  align="right" style="border-bottom: 1px solid black;border-right: 1px solid black;"></td>
+                <td  align="right" style="border-bottom: 1px solid black;border-right: 1px solid black;"></td>
+                <td  align="right" style="border-bottom: 1px solid black;border-right: 1px solid black;"></td>
+                <td  align="right" style="border-bottom: 1px solid black;border-right: 1px solid black;"></td>
+            </tr>
         </tbody>
         <tfoot>
             @foreach ($totals as $val )
-                <tr >
+                {{-- <tr >
                     <td  align="left" colspan="2" style="border-top: 1px solid black;border-bottom: 1px solid black;">Total</td>
                     <td  align="right" style="border-top: 1px solid black;border-bottom: 1px solid black;">{{ number_format($val->qty) }}</td>
                     <td  align="right" style="border-top: 1px solid black;border-bottom: 1px solid black;"></td>
                     <td  align="right" style="border-top: 1px solid black;border-bottom: 1px solid black;"></td>
                     <td  align="right" style="border-top: 1px solid black;border-bottom: 1px solid black;">{{ number_format($val->total_material)}}</td>
                     <td  align="right" style="border-top: 1px solid black;border-bottom: 1px solid black;">{{ number_format($val->total_service)}}</td>
-                </tr>
+                </tr> --}}
             @endforeach
+            <tr>
+                <td colspan="7" style="border-right: 1px solid white;border-left: 1px solid white;"> </td>
+            </tr>
+            
+            <tr>
+                <td colspan="3" style="border-left: 1px solid white;"></td>
+                <td ></td>
+                <td colspan="" style="border: 1px solid #0c0c0c;padding-left:10px">DPP</td>
+                <td colspan="2" align="right" style="border: 1px solid #0c0c0c;padding-left:10px">{{ number_format($val->sub_total) }}</td>
+            </tr>
+            <tr>
+                <td colspan="3" rowspan="2" style="border: 1px solid #0c0c0c;padding-left:10px;"><b>Terbilang:</b><i>{{ ucwords(strtolower($terbilang)) }}</i> </td>
+                <td ></td>
+                <td colspan="" style="border: 1px solid #0c0c0c;padding-left:10px">PPN {{ $nilaiPPN }}% </td>
+                <td colspan="2" align="right" style="border: 1px solid #0c0c0c;padding-left:10px">{{ number_format($val->ppn) }}</td>
+            </tr>
+            <tr>
+                <td ></td>
+                <td colspan="" style="border: 1px solid #0c0c0c;padding-left:10px">PPH 23</td>
+                <td colspan="2" align="right" style="border: 1px solid #0c0c0c;padding-left:10px">{{ $val->pph23 ? '-'.number_format($val->pph23):'' }}</td>
+            </tr>
+            <tr>
+                <td colspan="3" style="border-bottom: 1px solid white;border-left: 1px solid white;"></td>
+                <td style="border-bottom: 1px solid white;border-left: 1px solid white;"></td>
+                <td colspan="" style="border: 1px solid #0c0c0c;padding-left:10px">Total</td>
+                <td colspan="2" align="right" style="border: 1px solid #0c0c0c;padding-left:10px">{{ number_format($val->grand_total) }}</td>
+            </tr>
+
         </tfoot>
-        <tr>
-            <td colspan="7" style="border-left:1px solid rgb(247, 243, 243);border-right:1px solid rgb(247, 243, 243)"> </td>
-        </tr>
-        <tr>
-            <td colspan="5" style="border: 1px solid #0c0c0c;padding-left:10px">Jumlah harga jual/ Dasar Pengenaan Pajak</td>
-            <td colspan="2" align="right" style="border: 1px solid #0c0c0c;padding-left:10px">{{ number_format($val->sub_total) }}</td>
-        </tr>
-        <tr>
-            <td colspan="5" style="border: 1px solid #0c0c0c;padding-left:10px">{{ $nilaiPPN }}% Pajak Pertambahan Nilai ( PPN )</td>
-            <td colspan="2" align="right" style="border: 1px solid #0c0c0c;padding-left:10px">{{ number_format($val->ppn) }}</td>
-        </tr>
-        <tr>
-            <td colspan="5" style="border: 1px solid #0c0c0c;padding-left:10px">Potongan Pajak PPH 23</td>
-            <td colspan="2" align="right" style="border: 1px solid #0c0c0c;padding-left:10px">{{ $val->pph23 ? '-'.number_format($val->pph23):'' }}</td>
-        </tr>
-        <tr>
-            <td colspan="5" style="border: 1px solid #0c0c0c;padding-left:10px">Grand total</td>
-            <td colspan="2" align="right" style="border: 1px solid #0c0c0c;padding-left:10px">{{ number_format($val->grand_total) }}</td>
-        </tr>
-        <tr>
-            <td colspan="2" style="border: 1px solid #0c0c0c;padding-left:10px;border-right: 1px solid white;">Terbilang</td>
-            <td colspan="5" align="right" colspan="7" style="border-top: 1px solid black;border-bottom: 1px solid black;">{{ $terbilang }} </td>
-        </tr>
         
     </table>
     <table>
@@ -208,7 +222,7 @@
             <td valign="top" width="10%"></td>
             <td valign="top" width="30%">
                 Purwakarta, {{ $tanggalHariIni }} <br>
-                <br><br><br>
+                <br><br><br><br><br>
                 Budi Mulyadi<br> 
                 ( Direktur )
             </td>
