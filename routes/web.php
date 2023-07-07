@@ -338,6 +338,7 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('aps/show',['as'=>'ap.show','uses'=>'AccountPayableController@show']);
 	Route::get('aps/print',['as'=>'ap.print','uses'=>'AccountPayableController@print']);
 	Route::post('aps/approve',['as'=>'aps.approve','uses'=>'AccountPayableController@approve']);
+	Route::get('aps/print/slip/pembayaran',['as'=>'ap.print.slip.pembayaran','uses'=>'AccountPayableController@printSlipPembayaran']);
 
 	// Route::get('receivings/search',['as'=>'ap.search','uses'=>'ReceivingController@search']);
 	// Route::get('receivings/list/po',['as'=>'ap.list.po','uses'=>'ReceivingController@listPo']);

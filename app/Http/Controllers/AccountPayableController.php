@@ -1372,6 +1372,13 @@ class AccountPayableController extends Controller
                                 </a>';
             }
 
+            if (($data->status == '4')){
+                $buttons .=         '<a href="'. route('ap.print.slip.pembayaran', ['id'=>Crypt::encryptString($data->id)]) .'" target="_blank" class="dropdown-item">
+                                    <i data-feather="printer"></i>
+                                    <span>'. __("Print Slip") .'</span>
+                                </a>';
+            }
+
             $buttons .=     '</div>
                         </div>';
 
@@ -1468,6 +1475,89 @@ class AccountPayableController extends Controller
         $data['noPo'] = $apInvoice->po_number;
 
         return view('accountPayable.print',$data);
+
+    }
+
+    public function printSlipPembayaran(Request $request)
+    {
+        $id=Crypt::decryptString($request->id);
+
+        $apNumber = DB::table('ap_invoice')->where('id',$id)->value('ap_number');
+
+        $apInvoice = DB::table('ap_invoice')
+        ->leftJoin('third_party','third_party.kode','ap_invoice.supplier_id')
+        ->leftJoin('accounts','accounts.account','ap_invoice.account_ba')
+        ->select(
+            'ap_invoice.*'
+            ,DB::raw("(select STRING_AGG ( a.rec_number,',' ORDER BY a.id) as list_rec from ap_invoice_detail a where ap_number = ap_invoice.ap_number) as list_rec")
+            ,'third_party.nama as supplier_name',
+            'accounts.description as account_name'
+        )
+        ->where('ap_invoice.id',$id)->first();
+
+        $data['title'] ='Invoice Supplier';
+
+        $data['header']=DB::table('kas_hdr')
+        ->select('kas_hdr.*'
+        ,'description as receive_name'
+        )
+        ->where('kas_hdr.description',$apNumber)
+        ->first();
+
+        $voucherNumber=$data['header']->voucher_number;
+       
+        $data['details']=DB::table('kas_det')
+        ->leftJoin('accounts','accounts.account','kas_det.account')
+        ->select('kas_det.*','accounts.description as account_name')
+        ->where('voucher_number',$voucherNumber)
+        ->orderBy('id')
+        ->get();
+
+        $data['total']=DB::table('kas_det')
+        ->select(DB::raw("sum(credit) as total_credit"),DB::raw("sum(debit) as total_debit"))
+        ->where('voucher_number',$voucherNumber)
+        ->first();
+
+        $data['costCenter']=DB::table('kas_det')
+        ->leftJoin('depts','depts.code','kas_det.cost_center')
+        ->where('voucher_number',$voucherNumber)
+        ->distinct('depts.name')
+        ->pluck('depts.name')->implode(',');
+
+        $data['approval1']=DB::table('approval_history')
+        ->leftJoin('users','users.username','approval_history.username')
+        ->where('module_code',$this->moduleCode)
+        ->where('module_number',$apNumber)
+        ->where('approval_order',1)
+        ->first();
+
+        $data['approval2']=DB::table('approval_history')
+        ->leftJoin('users','users.username','approval_history.username')
+        ->where('module_code',$this->moduleCode)
+        ->where('module_number',$apNumber)
+        ->where('approval_order',2)
+        ->first();
+
+        $data['approval3']=DB::table('approval_history')
+        ->leftJoin('users','users.username','approval_history.username')
+        ->where('module_code',$this->moduleCode)
+        ->where('module_number',$apNumber)
+        ->where('approval_order',3)
+        ->first();
+
+        $data['top']=DB::table('third_party')->where('kode',$apInvoice->supplier_id)->value('top_batas_1');
+
+        $data['apNumber'] =  $apInvoice->ap_number;
+        $data['invoiceNumber'] = $apInvoice->inv_number;
+        $data['supplierName'] = $apInvoice->supplier_name;
+        $data['nomorLpb'] = $apInvoice->list_rec;
+        $data['apDate'] = $apInvoice->ap_date ? $apInvoice->inv_date : '';
+        $data['noPo'] = $apInvoice->po_number;
+        $data['grandTotal'] = $apInvoice->grand_total;
+        $data['accountName'] = $apInvoice->account_name;
+        $data['accountBa'] = $apInvoice->account_ba;
+
+        return view('accountPayable.printSlipPembayaran',$data);
 
     }
 
