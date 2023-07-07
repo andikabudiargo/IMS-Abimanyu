@@ -273,7 +273,7 @@
                                         <td align="left">{{ $apNumber }}</td>
                                         <td align="left">{{ $accountName }}</td>
                                         <td align="left">{{ $accountBa }}</td>
-                                        <td align="right">{{ number_format($grandTotal) }}</td>
+                                        <td align="right">{{ number_format($basisAmount) }}</td>
                                     </tr>
                                 {{-- @endforeach       --}}
                                                     
@@ -296,8 +296,15 @@
                                     <td  align="left" class="border-atas" style="border-right: 1px solid white;border-left: 1px solid white;border-bottom: 1px solid white" ></td>
                                     <td  align="left" class="border-atas" style="border-right: 1px solid white;border-left: 1px solid white;border-bottom: 1px solid white"></td>
                                     <td  align="left" class="border-atas" style="border-right: 1px solid white;border-left: 1px solid white;border-bottom: 1px solid white"></td>
+                                    <td  align="left" class="border-atas" style="border-left: 1px solid white;border-bottom: 1px solid white">PPN</td>
+                                    <td  align="right" class="border-atas" >{{ number_format($vat) }}</td>
+                                </tr>
+                                <tr>
+                                    <td  align="left" class="border-atas" style="border-right: 1px solid white;border-left: 1px solid white;border-bottom: 1px solid white" ></td>
+                                    <td  align="left" class="border-atas" style="border-right: 1px solid white;border-left: 1px solid white;border-bottom: 1px solid white"></td>
+                                    <td  align="left" class="border-atas" style="border-right: 1px solid white;border-left: 1px solid white;border-bottom: 1px solid white"></td>
                                     <td  align="left" class="border-atas" style="border-left: 1px solid white;border-bottom: 1px solid white">Total</td>
-                                    <td  align="right" class="border-atas" >{{ number_format($total->total_debit) }}</td>
+                                    <td  align="right" class="border-atas" >{{ number_format($grandTotal) }}</td>
                                     
                                 </tr>
                                 {{-- <tr class="border-atas">
