@@ -160,7 +160,7 @@
                             <div class="form-group row mb-03">
                                 <label for="totalNetto" class="col-sm-4 col-form-label titik-dua tanpa-padding">Netto</label>
                                 <div class="col-sm-6">
-                                    <input type="text" class="form-control text-right font-weight-bold" id="totalNetto" disabled/>
+                                    <input type="text" class="form-control text-right font-weight-bold numeral-mask disabled-el" id="totalNetto" disabled/>
                                 </div>
                             </div>
                         </div>
@@ -250,6 +250,8 @@
         $('#cmdSave').show();
         $('#cmdPosting').hide();
         $("#vatCheck").prop("checked",false);
+        $('#totalPPH').attr('disabled','disabled');
+        
     });
 
     invDate = $('#invDate');

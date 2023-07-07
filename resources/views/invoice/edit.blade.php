@@ -365,6 +365,7 @@
             poNumber=detail[i].po_number;
             add_new_row(article,articleCode,articleDesc,qtySo,uomGroup,uom,price,priceService,soCode,dnNumberData,poNumber);
         }
+        $('#totalPPH').attr('disabled','disabled');
         hitungTotal();
     });
 

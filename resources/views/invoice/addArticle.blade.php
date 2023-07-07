@@ -180,11 +180,8 @@
     function hitungTotal(){
         let objQtyInv= $('#article_row input[name="qtyInv[]"]');
         let objPrice= $('#article_row input[name="price[]"]');
-        // let objTotal= $('#article_row span[name="totalLine[]"]');
         let objTotal= $('#article_row input[name="totalLine[]"]');
         let objPriceJasa= $('#article_row input[name="priceJasa[]"]');
-        // let objTotalJasa= $('#article_row span[name="totalJasa[]"]');
-        // let objSubTotal= $('#article_row span[name="subTotal[]"]');
         let objTotalJasa= $('#article_row input[name="totalJasa[]"]');
         let objSubTotal= $('#article_row input[name="subTotal[]"]');
                 
@@ -228,7 +225,7 @@
             objSubTotal.eq(indexnya).val(total+totalJasa).trigger('input');
             hitungGrandTotal();
         });
-
+        
     }
 
     function hitungGrandTotal(){
@@ -272,35 +269,48 @@
             $("#totalPPH").val("-"+humanizeNumber((pph23*totalAmountJasa)/100));
         }
         $("#totalNetto").val(humanizeNumber(totalAmount+((parseInt(ppn)*totalAmount)/100)-((pph23*totalAmountJasa)/100)));
-    
     }
+
+    $('#totalPPH').keyup(function() {
+        totalSummary();
+    })
 
     $("#pph23Check").change(function() {
         if(this.checked) {
             let totalAmountJasa = parseInt($('#totalAmountJasa').val().replace(/,/gi, '')) || 0;
             $("#totalPPH").val(totalAmountJasa * (sNilaiPPH/100));
             $("#nilaiPPH").text(sNilaiPPH+'%');
+            $('#totalPPH').removeAttr('disabled');
+            $('#totalPPH').focus().select();
             mask_thousand();
-            hitungTotal();
+            totalSummary();
         }else{
             $("#totalPPH").val(0);
             $("#nilaiPPH").text('');
-            hitungTotal();  
+            $('#totalPPH').attr('disabled','disabled');
+            totalSummary();
         }
     });
 
     $("#vatCheck").change(function() {
         if(this.checked) {
             let totalAmount = parseInt($('#totalAmount').val().replace(/,/gi, '')) || 0;
-            $("#totalPPN").val(totalAmount * (sNilaiPPN/100));
+            $("#totalPPN").val(totalAmount * (sNilaiPPN/100)).trigger("change");
             $("#nilaiPPN").text(sNilaiPPN+'%');
             mask_thousand();
-            hitungTotal();
+            totalSummary();
         }else{
             $("#totalPPN").val(0);
             $("#nilaiPPN").text('');
-            hitungTotal();
+            totalSummary();
         }
     });
+
+    totalSummary = () =>{
+        let totalAmount1 = $("#totalAmount").val().replace(/,/gi, '') || 0;
+        let jumlahPpn = $("#totalPPN").val().replace(/,/gi, '') || 0;
+        let jumlahJasa = $('#totalPPH').val().replace(/,/gi, '') || 0;
+        $("#totalNetto").val(humanizeNumber((parseInt(totalAmount1)+parseInt(jumlahPpn))-parseInt(jumlahJasa)));
+    }
 
 </script>
