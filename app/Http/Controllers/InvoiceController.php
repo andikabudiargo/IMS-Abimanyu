@@ -521,7 +521,7 @@ class InvoiceController extends Controller
     {
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED'];
         $username =  Auth::user()->username;       
-        $id = $request->id;
+        $id=Crypt::decryptString($request->id);
         $status = "5";
 
         $invHdr= DB::table('invoice_hdr')
@@ -535,7 +535,7 @@ class InvoiceController extends Controller
         ->where('invoice_number',$invNumber)
         ->update(
             [   
-                'invocie_number' => $invNumber."(C)",
+                'invoice_number' => $invNumber."(C)",
                 'status' => $status,
                 'note' => $note." (Cancel)",
                 'updated_by' => Auth::user()->username,
@@ -548,7 +548,7 @@ class InvoiceController extends Controller
             ->where('invoice_number',$invNumber)
             ->update(
                 [   
-                    'inv_number' => $invNumber."(C)",
+                    'invoice_number' => $invNumber."(C)",
                     'updated_by' => Auth::user()->username,
                     'updated_at' => date('Y-m-d H:i:s')
                 ]
