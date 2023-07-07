@@ -317,7 +317,8 @@
                         <table width="100%" id="tblContentBawah" border="1">
                             {{-- <tr><td colspan="5" height="3"></td></tr> --}}
                             <tr> 
-                                <td align="center" width="20%">Disetujui<br>(Mng Fin-Acc)</td>
+                                <td align="center" width="20%">Disetujui<br></td>
+                                <td align="center" width="20%">Diperiksa<br>(Mng Fin-Acc)</td>
                                 <td align="center" width="20%">Diperiksa<br>(Finance Acc)</td>
                                 <td align="center" width="20%">Diperiksa<br>(Purch)</td>
                                 <td align="center" width="20%">Dibuat</td>
@@ -328,6 +329,7 @@
                                 <td align="center">{{ $approval1 ? 'Approval 3':'' }}</td>
                                 <td align="center">{{ $approval1 ? 'Approval 3':'' }}</td> --}}
                                 <td align="center" height="70"></td>
+                                <td align="center"></td>
                                 <td align="center"></td>
                                 <td align="center"></td>
                                 <td align="center"></td>
