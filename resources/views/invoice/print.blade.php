@@ -186,8 +186,9 @@
             <td colspan="5" style="border: 1px solid #0c0c0c;padding-left:10px">Grand total</td>
             <td colspan="2" align="right" style="border: 1px solid #0c0c0c;padding-left:10px">{{ number_format($val->grand_total) }}</td>
         </tr>
-        <tr >
-            <td  align="right" colspan="7" style="border-top: 1px solid black;border-bottom: 1px solid black;">{{ $terbilang }} </td>
+        <tr>
+            <td colspan="2" style="border: 1px solid #0c0c0c;padding-left:10px;border-right: 1px solid white;">Terbilang</td>
+            <td colspan="5" align="right" colspan="7" style="border-top: 1px solid black;border-bottom: 1px solid black;">{{ $terbilang }} </td>
         </tr>
         
     </table>
@@ -206,7 +207,7 @@
             </td>
             <td valign="top" width="10%"></td>
             <td valign="top" width="30%">
-                Purwakarta, {{ date("d M Y") }} <br>
+                Purwakarta, {{ $tanggalHariIni }} <br>
                 <br><br><br>
                 Budi Mulyadi<br> 
                 ( Direktur )

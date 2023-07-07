@@ -106,7 +106,7 @@ class BankDisbursementController extends Controller
             $invFromDate ? $query->whereBetween(DB::raw("to_date(inv_date,'DD-MM-YYYY')"), [$invFromDate, $invToDate]) : '';
             $dueFromDate ? $query->whereBetween(DB::raw("to_date(due_date,'DD-MM-YYYY')"), [$dueFromDate, $dueToDate]) : '';
         })
-        ->where('status','3');
+        ->where('status','4');
 
         $data2=DB::table('ap_pro_invoice')
         ->leftJoin('third_party','third_party.kode','ap_pro_invoice.supplier_id')
