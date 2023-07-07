@@ -3,7 +3,6 @@
 @section('content')
 @include('layouts.breadcrumb')
 @include('partials.alert')
-
 <section id="article-index">
   <div class="card">
     <div class="card-header">  
@@ -62,7 +61,6 @@
     </div>
   </div>
 </section>
-
 <section id="table-article">
   <div class="card">
     <div class="card-header">
@@ -90,9 +88,7 @@
     </div>
   </div>
 </section>
-
 @include('partials.delete-modal')
-
 @endsection
 @section('styles')
 <style>
@@ -142,114 +138,31 @@
 
   });
 
-  function showList(searchInv,searchSo,searchCustomer,searchStatus,recDate){
-    let dtdom ='<"d-flex justify-content-between align-items-center header-actions mx-1 row mt-75"' +
-        '<"col-lg-12 col-xl-6" l>' +
-        '<"col-lg-12 col-xl-6 pl-xl-75 pl-0"<"dt-action-buttons text-xl-right text-lg-left text-md-right text-left d-flex align-items-center justify-content-lg-end align-items-center flex-sm-nowrap flex-wrap mr-1"<"mr-1"f>B>>' +
-        '>t' +
-        '<"d-flex justify-content-between mx-2 row mb-1"' +
-        '<"col-sm-12 col-md-6"i>' +
-        '<"col-sm-12 col-md-6"p>' +
-        '>';
-    let arr_col_print =[1,2,3,4,5,6,7,8,9]; 
-    $(function(){
-      let oTable =$("#detailedTable").DataTable({
-        ajax:
-        {
-          url:'{{ route("invoice.list")}}',
-          data:{
-              searchInv:searchInv,
-              searchSo:searchSo,
-              searchCustomer:searchCustomer,
-              searchStatus:searchStatus,
-              recDate:recDate
-          }
-        },
-        processing: true,
-        serverSide: true,
-        buttons: true,
-        dom:dtdom,
-        lengthMenu: [
-          [ 10, 25, 50, -1 ],
-          [ '10', '25', '50', 'all' ]
-        ],
-        buttons: [
-          {
-            extend: 'collection',
-            className: 'btn btn-outline-secondary dropdown-toggle mr-2 mt-07',
-            text: feather.icons['share'].toSvg({ class: 'font-small-4 mr-50' }) + 'Export',
-            buttons: [
-              {
-                extend: 'print',
-                text: feather.icons['printer'].toSvg({ class: 'font-small-4 mr-50' }) + 'Print',
-                className: 'dropdown-item',
-                exportOptions: { columns: arr_col_print }
-              },
-              {
-                extend: 'csv',
-                text: feather.icons['file-text'].toSvg({ class: 'font-small-4 mr-50' }) + 'Csv',
-                className: 'dropdown-item',
-                exportOptions: { columns: arr_col_print }
-              },
-              {
-                extend: 'excel',
-                text: feather.icons['file'].toSvg({ class: 'font-small-4 mr-50' }) + 'Excel',
-                className: 'dropdown-item',
-                exportOptions: { columns: arr_col_print }
-              },
-              {
-                extend: 'pdf',
-                text: feather.icons['clipboard'].toSvg({ class: 'font-small-4 mr-50' }) + 'Pdf',
-                className: 'dropdown-item',
-                exportOptions: { columns: arr_col_print }
-              },
-              {
-                extend: 'copy',
-                text: feather.icons['copy'].toSvg({ class: 'font-small-4 mr-50' }) + 'Copy',
-                className: 'dropdown-item',
-                exportOptions: { columns: arr_col_print }
-              }
-            ],
-            init: function (api, node, config) {
-              $(node).removeClass('btn-secondary');
-              $(node).parent().removeClass('btn-group');
-              setTimeout(function () {
-                $(node).closest('.dt-buttons').removeClass('btn-group').addClass('d-inline-flex');
-              }, 50);
-            }
-          },
-        ],
-        language: {
-          paginate: {
-            // remove previous & next text from pagination
-            previous: '&nbsp;',
-            next: '&nbsp;'
-          }
-        },
-        columnDefs: [
-          { width: '10%', targets: 0 },
-        ],
-        drawCallback: function( settings ) {
-          feather.replace({
-                width: 14,
-                height: 14
-          });
-        },
-        order: [[ 1, 'asc' ]],
-        bDestroy: true, //pakai ini supaya bisa di load berulang2
-        // scrollX: true, //pakai ini supaya waktu responsive  bisa di scroll horizontal
-        columns: [
-            { data: 'action', name: 'action',title:'action', orderable: false, searchable: false },
-            { data: 'invoice_number', name: 'invoice_number',title:'Inv. Number' },
-            { data: 'invoice_date', name: 'invoice_date',title:'Date' },
-            { data: 'customer_name', name: 'customer_name',title:'Customer' },
-            { data: 'approved_by', name: 'approved_by',title:'Approved By' },
-            { data: 'created_by', name: 'created_by',title:'Preapred By' },
-            { data: 'status', name: 'status',title:'Status' },
-        ],
-      });
+  const showList = (searchInv,searchSo,searchCustomer,searchStatus,recDate) => {
+    if ($('#detailedTable tr').length >0){
+        let table= $('#detailedTable').DataTable();
+        table.destroy();
+        $('#detailedTable tbody > tr').remove();
+        $("#detailedTable thead > tr").remove();
+    }
+    showDataTables({
+      tableId:"detailedTable",
+      route:"{{ route('invoice.list') }}",
+      kolom:{!! $kolom !!},
+      arrColPrint:[1,2,3,4,5,6,7,8],
+      columnDefs :[
+        { width: '5%', targets: 0 },
+      ],
+      dataSearch:  {
+        searchInv:searchInv,
+        searchSo:searchSo,
+        searchCustomer:searchCustomer,
+        searchStatus:searchStatus,
+        recDate:recDate
+      },
+      orderColumn:[[ 1, 'desc' ]],
+      excelFileName:'invoice_customer'
     });
-    //$('div.head-label').html('<h6 class="mb-0">Data Users</h6>');    
   }
 
   $.ajaxSetup({

@@ -548,14 +548,14 @@
               </a>
             </li>
             @endcan
-            @can('pettyCash-index')
+            {{-- @can('pettyCash-index')
             <li class="{{ \Request::segment(1) == 'pettyCashs'  ? 'active' : '' }}">
               <a class="d-flex align-items-center" href="{{ route('pettyCashs.index') }}">
                 <i data-feather="circle"></i>
                 <span class="menu-item text-truncate" data-i18n="Input">Petty Cash</span>
               </a>
             </li>
-            @endcan
+            @endcan --}}
             @can('bank-index')
             <li class="{{ \Request::segment(1) == 'banks'  ? 'active' : '' }}">
               <a class="d-flex align-items-center" href="{{ route('banks.index') }}">
@@ -594,11 +594,10 @@
             <li><a class="d-flex align-items-center" href="#"><i data-feather="circle"></i><span class="menu-item text-truncate" data-i18n="Account Setting">Account default</span></a>
               <ul class="menu-content">
                 {{-- @can('ap-index') --}}
-                
-                  <li class="{{ \Request::is(['account/setting/mataUang'])  ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('accountSetting.mataUang') }}"><span class="menu-item text-truncate" data-i18n="Invoice supplier">Mata uang</span></a>
+                  <li class="{{ \Request::is(['account/setting/mataUang'])  ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('accountSetting.mataUang') }}"><span class="menu-item text-truncate" data-i18n="Mata Uang">Mata uang</span></a>
                   </li>
                 {{-- @endcan --}}
-                  <li class="{{ \Request::is(['account/setting/barang']) ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('accountSetting.barang') }}"><span class="menu-item text-truncate" data-i18n="Invoice customer">Barang</span></a>
+                  <li class="{{ \Request::is(['account/setting/barang']) ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('accountSetting.barang') }}"><span class="menu-item text-truncate" data-i18n="Barang">Barang</span></a>
                   </li>
               </ul>
             </li>

@@ -37,6 +37,23 @@ class InvoiceController extends Controller
         ->value('attr_value');
     }
 
+    public function getTableColoumn()
+    {
+        $kolom=
+        [
+            ['data'=> 'action', 'name'=> 'action','title'=>'action', 'orderable'=> false, 'searchable'=> false ],
+            ['data'=> 'invoice_number', 'name'=> 'invoice_number','title'=>'Inv. Number' ],
+            ['data'=> 'status', 'name'=> 'status','title'=>'Status' ],
+            ['data'=> 'invoice_date', 'name'=> 'invoice_date','title'=>'Date' ],
+            ['data'=> 'customer_name', 'name'=> 'customer_name','title'=>'Customer' ],
+            ['data'=> 'approved_by', 'name'=> 'approved_by','title'=>'Approved By' ],
+            ['data'=> 'created_by', 'name'=> 'created_by','title'=>'Preapred By' ],
+            ['data'=> 'created_by', 'name'=> 'created_by','title'=>'Created By'],
+            ['data'=> 'created_at', 'name'=> 'created_at','title'=>'Created At']
+        ];
+        return json_encode($kolom, true);
+    }
+
     public function index(Request $request)
     {
         $data['title'] = $this->title;
@@ -45,6 +62,8 @@ class InvoiceController extends Controller
         ->where ('third_party_type','=','cust')
         ->orderBy('nama')
         ->get();
+
+        $data['kolom'] = $this->getTableColoumn();
 
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'RECEIVED','5'=>'DELETED','6'=>'PAID','7'=>'REVISED','8'=>'DECLINE'];
         $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','6'=>'PAID','7'=>'REVISED'];
