@@ -1558,6 +1558,8 @@ class AccountPayableController extends Controller
         $data['accountBa'] = $apInvoice->account_ba;
         $data['vat'] = $apInvoice->vat;
         $data['basisAmount'] = $apInvoice->basis_amount;
+        $data['invNumber'] = $apInvoice->inv_number;
+        
 
         return view('accountPayable.printSlipPembayaran',$data);
 

@@ -270,7 +270,7 @@
                                 {{-- @foreach ($details as $key=>$val ) --}}
                                     <tr >
                                         <td align="center">1</td>
-                                        <td align="left">{{ $apNumber }}</td>
+                                        <td align="left">{{ $invNumber }}</td>
                                         <td align="left">{{ $accountName }}</td>
                                         <td align="left">{{ $accountBa }}</td>
                                         <td align="right">{{ number_format($basisAmount) }}</td>
