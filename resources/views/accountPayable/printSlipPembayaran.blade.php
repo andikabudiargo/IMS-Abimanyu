@@ -293,23 +293,18 @@
                                     </tr>
                                 @endfor
                                 <tr>
-                                    <td  align="left" class="border-atas" style="border-right: 1px solid white;border-left: 1px solid white;border-bottom: 1px solid white" ></td>
-                                    <td  align="left" class="border-atas" style="border-right: 1px solid white;border-left: 1px solid white;border-bottom: 1px solid white"></td>
-                                    <td  align="left" class="border-atas" style="border-right: 1px solid white;border-left: 1px solid white;border-bottom: 1px solid white"></td>
-                                    <td  align="left" class="border-atas" style="border-left: 1px solid white;border-bottom: 1px solid white">PPN</td>
+                                    {{-- <td  colspan="3" rowspan="3" class="border-atas" style="border-bottom: 1px solid black;"></td> --}}
+                                    <td align="left" class="border-atas" rowspan="3" colspan="3"></td>
+                                    <td  align="left" class="border-atas" >PPN</td>
                                     <td  align="right" class="border-atas" >{{ number_format($vat) }}</td>
                                 </tr>
                                 <tr>
-                                    <td  align="left" class="border-atas" style="border-right: 1px solid white;border-left: 1px solid white;border-bottom: 1px solid white" ></td>
-                                    <td  align="left" class="border-atas" style="border-right: 1px solid white;border-left: 1px solid white;border-bottom: 1px solid white"></td>
-                                    <td  align="left" class="border-atas" style="border-right: 1px solid white;border-left: 1px solid white;border-bottom: 1px solid white"></td>
-                                    <td  align="left" class="border-atas" style="border-left: 1px solid white;border-bottom: 1px solid white">Total</td>
+                                    <td  align="left" class="border-atas" >Total</td>
                                     <td  align="right" class="border-atas" >{{ number_format($grandTotal) }}</td>
+                                </tr>
+                                <tr class="border-atas">
                                     
                                 </tr>
-                                {{-- <tr class="border-atas">
-                                    <td  align="left" class="border-atas" colspan="5">Note: {{ $header->note }}</td>
-                                </tr> --}}
                             </tbody>
                         </table>
                         <br>

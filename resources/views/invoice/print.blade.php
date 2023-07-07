@@ -165,72 +165,51 @@
             </tr>
         </tbody>
         <tfoot>
-            @foreach ($totals as $val )
-                {{-- <tr >
-                    <td  align="left" colspan="2" style="border-top: 1px solid black;border-bottom: 1px solid black;">Total</td>
-                    <td  align="right" style="border-top: 1px solid black;border-bottom: 1px solid black;">{{ number_format($val->qty) }}</td>
-                    <td  align="right" style="border-top: 1px solid black;border-bottom: 1px solid black;"></td>
-                    <td  align="right" style="border-top: 1px solid black;border-bottom: 1px solid black;"></td>
-                    <td  align="right" style="border-top: 1px solid black;border-bottom: 1px solid black;">{{ number_format($val->total_material)}}</td>
-                    <td  align="right" style="border-top: 1px solid black;border-bottom: 1px solid black;">{{ number_format($val->total_service)}}</td>
-                </tr> --}}
+            @foreach ($totals as $val )            
+                <tr>
+                    <td colspan="4" rowspan="4" style="border-bottom: 1px solid black;"><b>Terbilang:</b><i>{{ ucwords(strtolower($terbilang)) }}</i> </td>
+                    <td colspan="" style="border: 1px solid #0c0c0c;padding-left:10px">DPP</td>
+                    <td colspan="2" align="right" style="border: 1px solid #0c0c0c;padding-left:10px">{{ number_format($val->sub_total) }}</td>
+                </tr>
+                <tr>
+                    <td colspan="" style="border: 1px solid #0c0c0c;padding-left:10px">PPN {{ $nilaiPPN }}% </td>
+                    <td colspan="2" align="right" style="border: 1px solid #0c0c0c;padding-left:10px">{{ number_format($val->ppn) }}</td>
+                </tr>
+                <tr>
+                    <td colspan="" style="border: 1px solid #0c0c0c;padding-left:10px">PPH 23</td>
+                    <td colspan="2" align="right" style="border: 1px solid #0c0c0c;padding-left:10px">{{ $val->pph23 ? '-'.number_format($val->pph23):'' }}</td>
+                </tr>
+                <tr>
+                    <td colspan="" style="border: 1px solid #0c0c0c;padding-left:10px">Total</td>
+                    <td colspan="2" align="right" style="border: 1px solid #0c0c0c;padding-left:10px">{{ number_format($val->grand_total) }}</td>
+                </tr>
             @endforeach
             <tr>
-                <td colspan="7" style="border-right: 1px solid white;border-left: 1px solid white;"> </td>
-            </tr>
-            
-            <tr>
-                <td colspan="3" style="border-left: 1px solid white;"></td>
-                <td ></td>
-                <td colspan="" style="border: 1px solid #0c0c0c;padding-left:10px">DPP</td>
-                <td colspan="2" align="right" style="border: 1px solid #0c0c0c;padding-left:10px">{{ number_format($val->sub_total) }}</td>
-            </tr>
-            <tr>
-                <td colspan="3" rowspan="2" style="border: 1px solid #0c0c0c;padding-left:10px;"><b>Terbilang:</b><i>{{ ucwords(strtolower($terbilang)) }}</i> </td>
-                <td ></td>
-                <td colspan="" style="border: 1px solid #0c0c0c;padding-left:10px">PPN {{ $nilaiPPN }}% </td>
-                <td colspan="2" align="right" style="border: 1px solid #0c0c0c;padding-left:10px">{{ number_format($val->ppn) }}</td>
-            </tr>
-            <tr>
-                <td ></td>
-                <td colspan="" style="border: 1px solid #0c0c0c;padding-left:10px">PPH 23</td>
-                <td colspan="2" align="right" style="border: 1px solid #0c0c0c;padding-left:10px">{{ $val->pph23 ? '-'.number_format($val->pph23):'' }}</td>
-            </tr>
-            <tr>
-                <td colspan="3" style="border-bottom: 1px solid white;border-left: 1px solid white;"></td>
-                <td style="border-bottom: 1px solid white;border-left: 1px solid white;"></td>
-                <td colspan="" style="border: 1px solid #0c0c0c;padding-left:10px">Total</td>
-                <td colspan="2" align="right" style="border: 1px solid #0c0c0c;padding-left:10px">{{ number_format($val->grand_total) }}</td>
-            </tr>
-
-        </tfoot>
-        
-    </table>
-    <table>
-        <tr>
-            <td valign="top" width="60%">
-                Please transfer to our account <br>	
-                Mohon transfer ke rekening kami	<br>
-	            Bank BCA No. Rek : <b>6785577888</b><br>
-	            Cabang KC Purwakarta<br>
-	            a.n PT. Abimanyu Sekar Nusantara<br><br>
-                Attention/ perhatian<br>
-                - Faktur ini berlaku sebagai Kwitansi.<br>
-                - Pembayaran dengan Cheque / Bilyet atau Wesel dianggap lunas setelah melalui Clearing
-
-            </td>
-            <td valign="top" width="10%"></td>
-            <td valign="top" width="30%">
-                Purwakarta, {{ $tanggalHariIni }} <br>
-                <br><br><br><br><br>
-                Budi Mulyadi<br> 
-                ( Direktur )
-            </td>
-
-        </tr>
-    </table>
+                <td valign="top" width="60%" colspan="5">
+                    <br>
+                    Note:<br>
+                    Please transfer to our account <br>	
+                    Mohon transfer ke rekening kami	<br>
+                    Bank BCA No. Rek : <b>6785577888</b><br>
+                    Cabang KC Purwakarta<br>
+                    a.n PT. Abimanyu Sekar Nusantara<br><br>
+                    Attention/ perhatian<br>
+                    - Faktur ini berlaku sebagai Kwitansi.<br>
+                    - Pembayaran dengan Cheque / Bilyet atau Wesel dianggap lunas setelah melalui Clearing
     
-{{-- @if($poNumber == "oki")
+                </td>
+                <td valign="top" colspan="2" align="center" width="30%">
+                    <br>
+                    Purwakarta, {{ $tanggalHariIni }} <br>
+                    <br><br><br><br><br>
+                    ( Budi Mulyadi )<br> 
+                </td>
+            </tr>
+        </tfoot>
+    </table>
+    <span style="font-size: x-small;"><i>Lembar Asli untuk Penagihan kepada Customer</i></span><br>
+    <span style="font-size: x-small;"><i>Lembar Copy untuk Arsip</i></span>
+    {{-- @if($poNumber == "oki")
 </div>
 @endif --}}
 </body>
