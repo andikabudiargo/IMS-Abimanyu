@@ -44,14 +44,14 @@
                                 </div>
                                 <div class="form-group col-md-6">
                                     <label class="form-label" for="soNumber">SO Number*</label>
-                                    <select class="select2 form-control" id="soNumber" name="soNumber">
+                                    <select class="select2 form-control" id="soNumber" name="soNumber" required>
                                     </select>
                                 </div>
                             </div>
                             <div class="form-row">
                                 <div class="form-group col-md-5">
                                     <label class="form-label" for="dnNumber">DN Number*</label>
-                                    <select class="select2 form-control" id="dnNumber" name="dnNumber">
+                                    <select class="select2 form-control" id="dnNumber" name="dnNumber" required>
                                     </select>
                                 </div>
                             </div>
@@ -145,14 +145,6 @@
                                     <input type="text" class="form-control text-right font-weight-bold numeral-mask disabled-el" id="totalPPN"  name="totalPPN" disabled/>
                                 </div>
                             </div>
-
-                            {{-- <div class="form-group row mb-03">
-                                <label for="totalPPN" class="col-sm-4 col-form-label titik-dua tanpa-padding">PPN <span id="nilaiPPN"></span> </label>
-                                <div class="col-sm-6">
-                                    <input type="text" class="form-control text-right font-weight-bold" id="totalPPN" disabled/>
-                                </div>
-                            </div> --}}
-
                             <div class="form-group row mb-03">
                                 <label for="totalPPH" class="col-sm-4 col-form-label titik-dua">PPH23 <span id="nilaiPPH"></span> </label>
                                 <div class="col-sm-1" style="padding-right: 0rem;display: flex;align-items: center;">
@@ -165,13 +157,6 @@
                                     <input type="text" class="form-control text-right font-weight-bold numeral-mask disabled-el" id="totalPPH" name="totalPPH" disabled/>
                                 </div>
                             </div>
-
-                            {{-- <div class="form-group row mb-03">
-                                <label for="totalPPH" class="col-sm-4 col-form-label titik-dua tanpa-padding">PPH23 <span id="nilaiPPH23"></span> </label>
-                                <div class="col-sm-6">
-                                    <input type="text" class="form-control text-right font-weight-bold" id="totalPPH" disabled/>
-                                </div>
-                            </div> --}}
                             <div class="form-group row mb-03">
                                 <label for="totalNetto" class="col-sm-4 col-form-label titik-dua tanpa-padding">Netto</label>
                                 <div class="col-sm-6">
