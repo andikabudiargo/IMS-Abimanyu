@@ -1546,7 +1546,6 @@ class AccountPayableController extends Controller
         ->first();
 
         $data['top']=DB::table('third_party')->where('kode',$apInvoice->supplier_id)->value('top_batas_1');
-
         $data['apNumber'] =  $apInvoice->ap_number;
         $data['invoiceNumber'] = $apInvoice->inv_number;
         $data['supplierName'] = $apInvoice->supplier_name;

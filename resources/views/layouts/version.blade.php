@@ -1,1 +1,1 @@
-<span class="d-sm-inline-block"> V.4.9.0.5 </span>
+<span class="d-sm-inline-block"> V.4.9.0.6 </span>

@@ -75,10 +75,7 @@
         <tr>
             <td width="30%" >
                 <img src="{{ public_path('app-assets/images/logo/logo_po.png') }}" alt="logo" style="width: 70%;"> 
-            </td>
-            <td>
-
-            </td>
+            </td></td>
         </tr>
         <tr>
             <td colspan="2">
@@ -92,7 +89,7 @@
             <td>NPWP : 31.284.174.5-416.000</td>
         </tr>
         <tr>
-            <td width="60%"style="border: 1px solid #0c0c0c;padding-left:10px;text-align: center;">
+             <td width="60%"style="border: 1px solid #0c0c0c;padding-left:10px;text-align: center;">
                 <h2>INVOICE</h2>
             </td>
             <td style="border: 1px solid #0c0c0c;padding-left:10px">

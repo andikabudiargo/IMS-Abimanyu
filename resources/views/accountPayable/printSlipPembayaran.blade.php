@@ -256,14 +256,14 @@
             <tr>
                 <td>
                     <div class="content">
-                        <table id="tblContent" class="font-small">
+                        <table id="tblContent" class="font-14">
                             <thead>
                                 <tr>
                                     <th align="center" width="5%">No</th>
                                     <th width="15%">No Invoice</th>
                                     <th width="40%">Keterangan</th>
                                     <th width="20%">No Akun</th>
-                                    <th width="10%">Jumlah</th>
+                                    <th width="20%">Jumlah</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -355,19 +355,17 @@
 </div>
 <script src="{{ asset('app-assets/vendors/js/vendors.min.js') }}"></script>
 <script>
-
-$("#cmdPrint").click(function(){ 
-    window.print();
-    window.onafterprint = function () {
-        window.close();
-    }
-    window.onfocus = function () { 
-        setTimeout(function () { 
-            window.close(); 
-        }, 200); 
-    }
-});
-
+    $("#cmdPrint").click(function(){ 
+        window.print();
+        window.onafterprint = function () {
+            window.close();
+        }
+        window.onfocus = function () { 
+            setTimeout(function () { 
+                window.close(); 
+            }, 200); 
+        }
+    });
 </script>
 </body>
 </html>

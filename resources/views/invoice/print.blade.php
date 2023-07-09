@@ -57,7 +57,7 @@
         }
 
         .header, .header-space{
-                height: 241px;
+                height: 243px;
         }
 
         .footer, .footer-space {
@@ -142,16 +142,16 @@
         }
 
         #tblContent1{
-            border: thin solid var(--line-color);
+            /* border: thin solid var(--line-color); */
             border-collapse: collapse;
         }
 
         #tblContent1  td {
-            padding : 3px 10px 3px 10px;
+            /* padding : 3px 10px 3px 10px;
             border-bottom: none;
             border-left: thin solid var(--line-color);
             border-top: thin solid var(--line-color);
-            border-right: thin solid var(--line-color);
+            border-right: thin solid var(--line-color); */
         }
 
 
@@ -224,24 +224,23 @@
                                 </td>
                             </tr>
                         </table>
-                        <p style="margin-top:0px;margin-bottom:5px">NPWP : 31.284.174.5-416.000</p>
-                        
-                        <table id="tblContent1">
+                        <p style="margin-top:0px;margin-bottom:5px;padding:0 2px 0 2px">NPWP : 31.284.174.5-416.000</p>                     
+                        <table width="100%">
                             <tr>
-                                 <td width="60%" style="text-align: center;padding-top:0px" >
+                                 <td width="60%" align="center" style="border: 1px solid #0c0c0c;padding-left:5px;padding-right:5px" >
                                     <h2 style="margin:0px">INVOICE</h2>
                                 </td>
-                                <td style="">
-                                    <b style="font-size:17px">{{ $recHdr->invoice_number }}</b>
+                                <td style="border: 1px solid #0c0c0c;padding-left:5px;padding-right:5px">
+                                    <b style="font-size:17px" >{{ $recHdr->invoice_number }}</b>
                                 </td>
                             </tr>
                             <tr>
-                                <td width="60%" valign="top" >
+                                <td width="60%" valign="top" style="border: 1px solid #0c0c0c;padding-left:5px;padding-right:5px">
                                     <strong> Customer: </strong><br>
                                     {{ $customers->nama }} <br>
                                     {{ $customers->alamat_kirim_1 }} <br>
                                 </td>
-                                <td width="40%" valign="top" style="">
+                                <td width="38%" valign="top" style="border: 1px solid #0c0c0c;padding-left:5px;padding-right:5px">
                                     <br>
                                     <strong>PO Number : </strong>{{ $listpo }}<br>
                                     <strong>No FP : </strong>{{ $recHdr->faktur_pajak }}
@@ -256,7 +255,7 @@
         <tbody>
             <tr>
                 <td>
-                    <div class="content">
+                    <div style="padding:0 2px 0 2px">
                         <table id="tblContent" class="font-14" style="table-layout:fixed;">
                             <thead>
                                 <tr>
@@ -272,7 +271,7 @@
                             <tbody>
                                 @foreach ($details as $val )
                                 <tr >
-                                    <td style="border-right: 1px solid black;" align="center" scope="row" style="border-bottom: none;">{{ ++$no }}</td>
+                                    <td style="border-right: 1px solid black;border-bottom: none;" align="center" scope="row" >{{ ++$no }}</td>
                                     {{-- <td  align="left">{{ $val->article_alternative_code }}</td> --}}
                                     <td  style="border-right: 1px solid black;" align="left">{{ $val->article_desc }}</td>
                                     <td  style="border-right: 1px solid black;" align="center">{{ number_format($val->qty) }}</td>
