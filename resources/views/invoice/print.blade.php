@@ -281,7 +281,7 @@
                                 </tr>
                             @endforeach
                             
-                            <?php $totalBaris = 10 ?>
+                            <?php $totalBaris = 11 ?>
 
                             @for ($i=1;$i< $totalBaris-(count($details));$i++)
                                 <tr >
