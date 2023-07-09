@@ -259,7 +259,7 @@
                             <thead>
                                 <tr>
                                     <th width="5%">No</th>
-                                    <th width="">Description</th>
+                                    <th width="30%">Description</th>
                                     <th width="10%" align="center">Qty</th>
                                     <th width="15%">Material Price</th>
                                     <th width="15%">Service Price</th>
