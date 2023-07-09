@@ -244,6 +244,7 @@
                                     <br>
                                     <strong>PO Number : </strong>{{ $listpo }}<br>
                                     <strong>No FP : </strong>{{ $recHdr->faktur_pajak }}
+                                    <br><p></p>
                                 </td>
                             </tr>
                         </table>
