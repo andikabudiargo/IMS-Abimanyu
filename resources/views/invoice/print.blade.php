@@ -57,7 +57,7 @@
         }
 
         .header, .header-space{
-                height: 285px;
+                height: 241px;
         }
 
         .footer, .footer-space {
@@ -224,11 +224,12 @@
                                 </td>
                             </tr>
                         </table>
-                        NPWP : 31.284.174.5-416.000
+                        <p style="margin-top:0px;margin-bottom:5px">NPWP : 31.284.174.5-416.000</p>
+                        
                         <table id="tblContent1">
                             <tr>
-                                 <td width="60%" style="text-align: center;" >
-                                    <h2>INVOICE</h2>
+                                 <td width="60%" style="text-align: center;padding-top:0px" >
+                                    <h2 style="margin:0px">INVOICE</h2>
                                 </td>
                                 <td style="">
                                     <b style="font-size:17px">{{ $recHdr->invoice_number }}</b>
@@ -282,7 +283,7 @@
                                 </tr>
                             @endforeach
                             
-                            <?php $totalBaris = 11 ?>
+                            <?php $totalBaris = 14 ?>
 
                             @for ($i=1;$i< $totalBaris-(count($details));$i++)
                                 <tr >
