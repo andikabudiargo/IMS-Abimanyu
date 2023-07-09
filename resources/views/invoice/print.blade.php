@@ -261,10 +261,10 @@
                                     <th width="5%">No</th>
                                     <th width="30%">Description</th>
                                     <th width="10%" align="center">Qty</th>
-                                    <th width="15%">Material Price</th>
-                                    <th width="15%">Service Price</th>
-                                    <th width="17%">Total Material</th>
-                                    <th width="17%">Total Service</th>
+                                    <th width="14%">Material Price</th>
+                                    <th width="14%">Service Price</th>
+                                    <th width="16%">Total Material</th>
+                                    <th width="16%">Total Service</th>
                                 </tr>
                             </thead>
                             <tbody>
