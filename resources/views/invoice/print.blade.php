@@ -311,8 +311,8 @@
                                         <td colspan="4" rowspan="4" style="border-bottom: 1px solid black;">
                                             <table>
                                                 <tr>
-                                                    <td style="border-right: none;border-left: none;padding-right:0px" width="15%" valign="top"><b>Terbilang</b></td>
-                                                    <td style="border-right: none;border-left: none;padding-left:0px"><i>: {{ ucwords(strtolower($terbilang)) }}</i></td>
+                                                    <td style="border-right: none;border-left: none;padding-right:0px" width="15%" valign="top"><b>Terbilang : </b></td>
+                                                    <td style="border-right: none;border-left: none;padding-left:0px"><i>{{ ucwords(strtolower($terbilang)) }}</i></td>
                                                 </tr>
                                             </table>
                                         </td>
