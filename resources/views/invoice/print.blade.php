@@ -201,12 +201,12 @@
     </style>
 </head>
 <body class="Letter">
-<div class="sheet padding-5mm">
     <div class="row hide-print" style="margin-left:20px;margin-top:20px">
         <div class="col-md-12">
             <button class="btn btn-primary" type="button" id="cmdPrint" name="cmdPrint">Print</button>
         </div>
     </div>
+<div class="sheet padding-5mm">
     <table>
         <thead>
             <tr>
