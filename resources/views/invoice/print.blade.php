@@ -255,16 +255,16 @@
             <tr>
                 <td>
                     <div class="content">
-                        <table id="tblContent" class="font-14">
+                        <table id="tblContent" class="font-14" style="table-layout:fixed;">
                             <thead>
                                 <tr>
                                     <th width="5%">No</th>
                                     <th width="45%">Description</th>
                                     <th width="10%" align="center">Qty</th>
-                                    <th width="10%">Material Price</th>
-                                    <th width="10%">Service Price</th>
-                                    <th width="10%">Total Material</th>
-                                    <th width="10%">Total Service</th>
+                                    <th width="15%">Material Price</th>
+                                    <th width="15%">Service Price</th>
+                                    <th width="15%">Total Material</th>
+                                    <th width="15%">Total Service</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -311,8 +311,8 @@
                                         <td colspan="4" rowspan="4" style="border-bottom: 1px solid black;">
                                             <table>
                                                 <tr>
-                                                    <td style="border-right: none;border-left: none;padding-right:0px" width="15%" valign="top"><b>Terbilang :</b></td>
-                                                    <td style="border-right: none;border-left: none;padding-left:0px"><i>{{ ucwords(strtolower($terbilang)) }}</i></td>
+                                                    <td style="border-right: none;border-left: none;padding-right:0px" width="15%" valign="top"><b>Terbilang</b></td>
+                                                    <td style="border-right: none;border-left: none;padding-left:0px"><i>: {{ ucwords(strtolower($terbilang)) }}</i></td>
                                                 </tr>
                                             </table>
                                         </td>
