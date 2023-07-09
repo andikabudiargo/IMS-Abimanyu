@@ -373,6 +373,7 @@
         </tfoot>
     </table>
 </div>
+<script src="{{ asset('app-assets/vendors/js/vendors.min.js') }}"></script>
 <script>
     $("#cmdPrint").click(function(){ 
         window.print();
