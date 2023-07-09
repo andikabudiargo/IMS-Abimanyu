@@ -22,8 +22,8 @@
         body.A4.landscape .sheet { width: 297mm; height: 209mm }
         body.A5           .sheet { width: 148mm; height: 209mm }
         body.A5.landscape .sheet { width: 210mm; height: 147mm }
-        body.Letter           .sheet { width: 215mm; height: 279mm }
-        body.Letter.landscape .sheet { width: 279%; height: 215mm }
+        body.Letter           .sheet { width: 215mm; height: 296mm }
+        body.Letter.landscape .sheet { width: 297mm; height: 215mm }
 
         /** Padding area **/
         .sheet.padding-10mm { padding: 10mm }
