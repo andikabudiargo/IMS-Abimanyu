@@ -192,10 +192,21 @@
             font-weight: bold;
         }
 
+        @media print {
+            .hide-print {
+                display: none;
+            }
+        }
+
     </style>
 </head>
 <body class="Letter">
 <div class="sheet padding-5mm">
+    <div class="row hide-print" style="margin-left:20px;margin-top:20px">
+        <div class="col-md-12">
+            <button class="btn btn-primary" type="button" id="cmdPrint" name="cmdPrint">Print</button>
+        </div>
+    </div>
     <table>
         <thead>
             <tr>
@@ -225,7 +236,6 @@
                             </tr>
                             <tr>
                                 <td width="60%" valign="top" >
-                                    <br>
                                     <strong> Customer: </strong><br>
                                     {{ $customers->nama }} <br>
                                     {{ $customers->alamat_kirim_1 }} <br>
@@ -297,7 +307,15 @@
                             <tfoot>
                                 @foreach ($totals as $val )            
                                     <tr>
-                                        <td colspan="4" rowspan="4" style="border-bottom: 1px solid black;"><b>Terbilang : </b><i>{{ ucwords(strtolower($terbilang)) }}</i> </td>
+                                        {{-- <td colspan="4" rowspan="4" style="border-bottom: 1px solid black;"><b>Terbilang : </b><i>{{ ucwords(strtolower($terbilang)) }}</i> </td> --}}
+                                        <td colspan="4" rowspan="4" style="border-bottom: 1px solid black;">
+                                            <table>
+                                                <tr>
+                                                    <td style="border-right: none;border-left: none;padding-right:0px" width="15%" valign="top"><b>Terbilang :</b></td>
+                                                    <td style="border-right: none;border-left: none;padding-left:0px"><i>{{ ucwords(strtolower($terbilang)) }}</i></td>
+                                                </tr>
+                                            </table>
+                                        </td>
                                         <td colspan="" style="border: 1px solid #0c0c0c;padding-left:10px">DPP</td>
                                         <td colspan="2" align="right" style="border: 1px solid #0c0c0c;padding-left:10px">{{ number_format($val->sub_total,2) }}</td>
                                     </tr>
@@ -307,7 +325,7 @@
                                     </tr>
                                     <tr>
                                         <td colspan="" style="border: 1px solid #0c0c0c;padding-left:10px">PPH 23</td>
-                                        <td colspan="2" align="right" style="border: 1px solid #0c0c0c;padding-left:10px">{{ $val->pph23 ? '-'.number_format($val->pph23,2):'' }}</td>
+                                        <td colspan="2" align="right" style="border: 1px solid #0c0c0c;padding-left:10px">{{ $val->pph23 ? '-'.number_format($val->pph23,2):'-' }}</td>
                                     </tr>
                                     <tr>
                                         <td colspan="" style="border: 1px solid #0c0c0c;padding-left:10px">Total</td>
@@ -355,6 +373,17 @@
     </table>
 </div>
 <script>
+    $("#cmdPrint").click(function(){ 
+        window.print();
+        window.onafterprint = function () {
+            window.close();
+        }
+        window.onfocus = function () { 
+            setTimeout(function () { 
+                window.close(); 
+            }, 200); 
+        }
+    });
     // window.onload= function () {
     //     window.print();
     //     window.onafterprint = function () {

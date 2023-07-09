@@ -794,12 +794,8 @@ class InvoiceController extends Controller
         ->where('invoice_number',$invNumber)
         ->get();
 
-        $listpo=DB::select("SELECT string_agg(po_number,',') as po_list from invoice_det where invoice_number = '$invNumber'");
+        $listpo=DB::select("SELECT string_agg(distinct po_number,',') as po_list from invoice_det where invoice_number = '$invNumber'");
         $data['listpo'] = $listpo[0]->po_list;
-
-        // $data['listpo'] = DB::table('invoice_det')
-        // ->select(db::raw("string_agg(po_number) as po_list"))
-        // ->where('invoice_number', $invNumber)->value('po_list');
 
         $data['totals']=DB::select("SELECT *,(total_material+total_service) as sub_total,((total_material+total_service+ppn)-pph23) as grand_total from (
             select 
