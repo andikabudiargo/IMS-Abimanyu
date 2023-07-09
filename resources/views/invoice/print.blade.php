@@ -201,11 +201,11 @@
     </style>
 </head>
 <body class="Letter">
-<div class="row hide-print" style="margin-left:20px;margin-top:20px">
-    <div class="col-md-12">
-        <button class="btn btn-primary" type="button" id="cmdPrint" name="cmdPrint">Print</button>
+    <div class="row hide-print" style="margin-left:20px;margin-top:20px">
+        <div class="col-md-12">
+            <button class="btn btn-primary" type="button" id="cmdPrint" name="cmdPrint">Print</button>
+        </div>
     </div>
-</div>
 <div class="sheet padding-5mm">
     <table>
         <thead>
@@ -281,7 +281,7 @@
                                 </tr>
                             @endforeach
                             
-                            <?php $totalBaris = 15 ?>
+                            <?php $totalBaris = 10 ?>
 
                             @for ($i=1;$i< $totalBaris-(count($details));$i++)
                                 <tr >
