@@ -55,6 +55,10 @@
                                     {{-- <select class="select2 form-control" id="dnNumber" name="dnNumber" >
                                     </select> --}}
                                 </div>
+                                <div class="form-group col-md-6">
+                                    <label for="fakturPajak">Faktur pajak*</label>
+                                    <input type="text" id="fakturPajak" name="fakturPajak" value="{{ $header->faktur_pajak }}" class="form-control" required />
+                                </div>
                             </div>
                             <div class="form-row">
                                 <div class="form-group col-md-12">
@@ -293,7 +297,6 @@
         </div>
     </div>
 </section>
-
 @endsection
 @section('styles')
 <style>
@@ -500,10 +503,11 @@
                 let totalPph = $('#totalPPH').val().replace(/,/gi, '') || 0;
                 let invNumber = $('#invNumber').val();
                 let note = $('#note').val();
+                let fakturPajak =$('#fakturPajak').val();
 
                 $.ajax({
                     type: "post",
-                    url: "{{ route('invoice.store') }}",
+                    url: "{{ route('invoice.update') }}",
                     data: {
                         articles:JSON.stringify(articles),
                         invNumber:invNumber,
@@ -515,7 +519,8 @@
                         totalPph:totalPph,
                         note:note,
                         soNumber:soNumber,
-                        dnNumber:dnNumber
+                        dnNumber:dnNumber,
+                        fakturPajak:fakturPajak
                     },
                     dataType: "json",
                     success: function(data) {
@@ -529,9 +534,10 @@
                             $('#invNumber').val(data.invNumber);
                             $('#invNumber').attr('disabled','disabled');
                             $('#customer').attr('disabled','disabled');
+                            $('#totalPPN').attr('disabled','disabled');
+                            $('#totalPPH').attr('disabled','disabled');
                             // $('#cmdSave').attr('disabled','disabled');
                         }
-                        
                     },
                     error: function(error) {
                         console.log(error);

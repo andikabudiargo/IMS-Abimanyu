@@ -30,7 +30,7 @@
                                 <div class="form-group col-md-2">
                                     <label for="invDate">Invoice Date*</label>
                                     <input type="text" id="invDate" name="invDate" class="form-control" placeholder="DD-MM-YYYY" required />
-                                </div>                               
+                                </div>
                             </div>
                             <div class="form-row">
                                 <div class="form-group col-md-5">
@@ -53,6 +53,10 @@
                                     <label class="form-label" for="dnNumber">DN Number*</label>
                                     <select class="select2 form-control" id="dnNumber" name="dnNumber" required>
                                     </select>
+                                </div>
+                                <div class="form-group col-md-6">
+                                    <label for="fakturPajak">Faktur pajak*</label>
+                                    <input type="text" id="fakturPajak" name="fakturPajak" class="form-control" required />
                                 </div>
                             </div>
                             <div class="form-row">
@@ -340,6 +344,7 @@
                 let totalPpn = $('#totalPPN').val().replace(/,/gi, '') || 0;
                 let totalPph = $('#totalPPH').val().replace(/,/gi, '') || 0;
                 let note = $('#note').val();
+                let fakturPajak =$('#fakturPajak').val();
 
                 $.ajax({
                     type: "post",
@@ -355,7 +360,8 @@
                         note:note,
                         soNumber:soNumber,
                         dnNumber:dnNumber,
-                        poNumber:poNumber
+                        poNumber:poNumber,
+                        fakturPajak:fakturPajak
                     },
                     dataType: "json",
                     success: function(data) {
@@ -369,6 +375,8 @@
                             $('#invNumber').val(data.invNumber);
                             $('#invNumber').attr('disabled','disabled');
                             $('#cmdSave').attr('disabled','disabled');
+                            $('#totalPPN').attr('disabled','disabled');
+                            $('#totalPPH').attr('disabled','disabled');
                         }                        
                     },
                     error: function(error) {

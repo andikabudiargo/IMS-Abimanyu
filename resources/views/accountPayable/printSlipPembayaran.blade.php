@@ -241,7 +241,7 @@
                                         <tr class="tanpa-padding">
                                             <td class="tanpa-padding font-14"></td>
                                             <td class="tanpa-padding font-14"></td>
-                                            <td class="tanpa-padding font-14" >Due Date</td>
+                                            <td class="tanpa-padding font-14" >Term</td>
                                             <td class="tanpa-padding font-14">: {{ $top }}</td>
                                         </tr>
                                     </table>

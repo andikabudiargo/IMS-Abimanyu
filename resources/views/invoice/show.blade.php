@@ -52,6 +52,10 @@
                                     <label class="form-label" for="dnNumber"  disabled>DN Number*</label>
                                     <input type="text" id="dnNumber" name="dnNumber" value="{{ $header->dn_number }}" class="form-control" disabled />
                                 </div>
+                                <div class="form-group col-md-6">
+                                    <label for="fakturPajak">Faktur pajak*</label>
+                                    <input type="text" id="fakturPajak" name="fakturPajak" value="{{ $header->faktur_pajak }}" class="form-control" disabled />
+                                </div>
                             </div>
                             <div class="form-row">
                                 <div class="form-group col-md-12">

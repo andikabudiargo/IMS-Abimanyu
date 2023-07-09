@@ -123,20 +123,14 @@ class InvoiceController extends Controller
         $totalPph = $request->totalPph;
         $soNumber = $request->soNumber;
         $dnNumber  = $request->dnNumber;
-        $poNumber  = $request->poNumber;
+        // $poNumber  = $request->poNumber;
         $note = $request->note;
         $status = '1';
         $gudang = 'false';
         $kurs = 1;
+        $fakturPajak  = $request->fakturPajak;
 
-        // status:
-        // 1 = New
-        // 2 = Validated
-        // 3 = Approved
-        // 4 = Received
-        // 5 = Canceled
-        // 6 = Closed
-        // 7 = Paid
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED','9'=>'PAID'];
 
         $messages = [
             'required' => 'The field is required.',
@@ -179,7 +173,7 @@ class InvoiceController extends Controller
                     'invoice_date' => $invDate,
                     'customer_id' => $customer,
                     'so_number' => $soNumber,
-                    'po_number' => $poNumber,
+                    // 'po_number' => $poNumber,
                     'dn_number' => $dnNumber,
                     'dpp' => 0,
                     'other_admin' => 0 ,
@@ -195,7 +189,8 @@ class InvoiceController extends Controller
                     'created_by' => Auth::user()->username,
                     'updated_by' => Auth::user()->username,
                     'created_at' => date('Y-m-d H:i:s'),
-                    'updated_at' => date('Y-m-d H:i:s')
+                    'updated_at' => date('Y-m-d H:i:s'),
+                    'faktur_pajak' =>$fakturPajak
                 ]);
 
                 $dataSet = [];
@@ -329,25 +324,27 @@ class InvoiceController extends Controller
         $totalPph = $request->totalPph;
         $soNumber = $request->soNumber;
         $dnNumber  = $request->dnNumber;
+        // $poNumber  = $request->poNumber;
         $note = $request->note;
+        $status = '1';
         $gudang = 'false';
         $kurs = 1;
-        $status = '1';
+        $fakturPajak  = $request->fakturPajak;
 
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED','9'=>'PAID'];
 
         $customMessages = [
             'required' => 'The field is required.',
             'unique' => 'The code has already been taken', 
-            'iunique' => "Invoice : $invNumber has already been taken on PO : $poNumber",
+            // 'iunique' => "Invoice : $invNumber has already been taken on PO : $poNumber",
         ];
         
-        Validator::extend('iunique', function ($attribute, $value, $parameters, $validator) use ($poNumber) {
+        Validator::extend('iunique', function ($attribute, $value, $parameters, $validator) {
             $query = DB::table($parameters[0]);
             $column = $query->getGrammar()->wrap($parameters[1]);
             $column2 = $query->getGrammar()->wrap($parameters[2]);
-            return !$query->whereRaw("lower({$column}) = lower(?)", [$value])
-                          ->whereRaw("lower({$column2}) = lower(?)", [$poNumber])->count();
+            // return !$query->whereRaw("lower({$column}) = lower(?)", [$value])
+            //               ->whereRaw("lower({$column2}) = lower(?)", [$poNumber])->count();
         });
         
         $validation = Validator::make($request->all(),$messages = [
@@ -370,25 +367,29 @@ class InvoiceController extends Controller
         }else{
             DB::beginTransaction();
             try {
-                    $row_affected=DB::table('receiving_hdr')
+                   
+                $row_affected=DB::table('invoice_hdr')
                     ->where('invoice_number',$invNumber)
                     ->update(
                         [   
                             'invoice_date' => $invDate,
                             'customer_id' => $customer,
                             'so_number' => $soNumber,
+                            // 'po_number' => $poNumber,
+                            'dn_number' => $dnNumber,
                             'dpp' => 0,
-                            'other_admin' => 0,
+                            'other_admin' => 0 ,
                             'discount' => 0,
                             'ppn' => $ppn,
                             'pph23' => $pph23,
                             'npwp' => "",
                             'payment_term' => 0 ,
                             'payment_terms' => '',
-                            'status' => $status,
+                            'account_number' => '',
                             'note' =>  $note,
                             'updated_by' => Auth::user()->username,
-                            'updated_at' => date('Y-m-d H:i:s')
+                            'updated_at' => date('Y-m-d H:i:s'),
+                            'faktur_pajak' =>$fakturPajak
                         ]
                     );
 
@@ -399,7 +400,6 @@ class InvoiceController extends Controller
                         ];
                     }
 
-                    //Delete kalo article tidak ada di po $poNumber dan article nya $val->article_code
                     //berdasarkan 3 kondisi
                     DB::table('invoice_det')
                         ->whereNotIn(DB::raw("CONCAT(invoice_number,po_number,dn_number,article_code)"),$dataSet)
@@ -794,8 +794,12 @@ class InvoiceController extends Controller
         ->where('invoice_number',$invNumber)
         ->get();
 
+        $listpo=DB::select("SELECT string_agg(po_number,',') as po_list from invoice_det where invoice_number = '$invNumber'");
+        $data['listpo'] = $listpo[0]->po_list;
 
-        $data['listpo']=DB::select("SELECT distinct po_number from invoice_det where invoice_number = '$invNumber'");
+        // $data['listpo'] = DB::table('invoice_det')
+        // ->select(db::raw("string_agg(po_number) as po_list"))
+        // ->where('invoice_number', $invNumber)->value('po_list');
 
         $data['totals']=DB::select("SELECT *,(total_material+total_service) as sub_total,((total_material+total_service+ppn)-pph23) as grand_total from (
             select 
@@ -842,10 +846,12 @@ class InvoiceController extends Controller
 
         // $data['tanggalHariIni']=date("d F Y");
 
-        view()->share($data);
+        return view('invoice.print',$data);
 
-        $pdf = PDF::loadView('invoice.print');
-        return $pdf->stream("PO_$invNumber.pdf");
+        // view()->share($data);
+
+        // $pdf = PDF::loadView('invoice.print');
+        // return $pdf->stream("PO_$invNumber.pdf");
 
     }
 
