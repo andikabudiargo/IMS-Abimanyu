@@ -1236,6 +1236,7 @@ class PurchaseOrderController extends Controller
         ,'article.article_desc'
         ,'third_party.nama as supp_name'
         ,'uom_group'
+        ,'purchase_order_hdr.status as statusku'
         ,DB::raw("case when uom_group = 'PIECE' then TO_CHAR(qty,'999,999,999') when uom_group <> 'PIECE' then TO_CHAR(qty,'999,999,999.999') end as qtyku")
         ,DB::raw("TO_CHAR(price*qty*purchase_order_hdr.ppn/100,'999,999,999') as total_ppn")
         ,DB::raw("TO_CHAR(price*qty*purchase_order_hdr.pph22/100,'999,999,999') as total_pph22")
@@ -1328,14 +1329,14 @@ class PurchaseOrderController extends Controller
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'RECEIVED','5'=>'CANCELED','6'=>'CLOSED','7'=>'REVISED','8'=>'DECLINE'];
     
         return Datatables::of($data)
-        ->addColumn('status', function ($data) {
-            if ($data->status>0){
-                $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-danger'];            
-                $statusPo = ['NEW','VALIDATED','APPROVED','RECEIVED','CANCELED','CLOSED','REVISED','DECLINE'];
-                return "<div class='badge ".$badges[$data->status - 1]."'>".$statusPo[$data->status - 1]."</div>";
-            }
-        })
-        ->rawColumns(['status'])
+        // ->addColumn('statusku', function ($data) {
+        //     if ($data->statusku>0){
+        //         $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-danger'];            
+        //         $statusPo = ['NEW','VALIDATED','APPROVED','RECEIVED','CANCELED','CLOSED','REVISED','DECLINE'];
+        //         return "<div class='badge ".$badges[$data->statusku - 1]."'>".$statusPo[$data->statusku - 1]."</div>";
+        //     }
+        // })
+        // ->rawColumns(['status'])
         ->make(true);
     }
 
