@@ -80,7 +80,7 @@
                     <div>
                         <table id="detailTable" style="width:98%;table-layout: fixed;">
                             <tbody>
-                                <tr>
+                                <tr id="judulTabel">
                                     <th class="isian" style="width: 30%">
                                         <label>Customer</label>
                                     </th>
@@ -198,21 +198,21 @@
     $(document).ready(function(){           
         validateFormToast('frmAdd');
         vcDate.val(currentDate);
+        let listJudul = add_judul(12);
+
+        $("#judulTabel").append(listJudul);
 
         add_new_row();
         add_new_row();
         add_new_row();
         add_new_row();
         add_new_row();
-
-        add_month(3);
         
     });
 
     add_month =(month)=>{
-        let list="";
+        let list  = "";
         let year='2023';
-
         for(i=0;i<month;i++){
             
             list+= `<td class="isian" style="">
@@ -221,12 +221,27 @@
                                 data-nama-el-kiri='month${i-1}'
                                 data-type-el-kanan='input'
                                 data-nama-el-kanan='month${i+1}'
-                                id="${year+i}}" name="month${i}[]"  maxlength="6" />
+                                id="${year}${i+1}" name="month${i}[]"  maxlength="6" />
                             </td>`; 
         }
 
-        console.log(list);
+        return list;
+    }
 
+    add_judul =(month)=>{
+        let judul = "";
+        let year='23';
+        let bulan=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Okt','Nov','Dec'];
+        for(i=0;i<month;i++){
+            
+            let namaBulan = bulan[i];
+            judul+=`<th class="isian" style="">
+                        <label>${namaBulan}${year}</label>
+                    </th>`;
+
+        }
+
+        return judul;
     }
     
     vcDate = $('#vcDate');
@@ -343,10 +358,16 @@
         $("#item_row").append($("#new_row").clone().html());
         cloneCount++;
         $("#item_row").find('#baru').attr('id', 'new_row'+ cloneCount);
+        $("#item_row").find('#tabelBaru').attr('id', 'new_table_row'+ cloneCount);
         $("#new_row"+ cloneCount).find('#vcDesc').attr('id', 'vcDesc'+ cloneCount);
         $("#new_row"+ cloneCount).find('#account').attr('id', 'account'+ cloneCount);
         $("#new_row"+ cloneCount).find('#vcCc').attr('id', 'vcCc'+ cloneCount);
         accList('account','account'+ cloneCount);
+
+        let IsiBulan = add_month(12);
+
+        $("#new_table_row"+ cloneCount).append(IsiBulan);
+        
         
         $("#account"+cloneCount).select2();
         $("#vcCc"+cloneCount).select2();

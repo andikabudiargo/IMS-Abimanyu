@@ -33,9 +33,9 @@
 {{-- table row untuk di clone--}}  
 <div id="new_row" name="new_row[]" class="d-none">
     <div id="baru" class="tanda-baris" >
-        <table class="table-bordered" style="width: 98%;table-layout: fixed;">
+        <table class="table-bordered"  style="width: 98%;table-layout: fixed;">
             <tbody>
-                <tr>
+                <tr id="tabelBaru">
                     <td class="isian" style="width: 30%">
                         <select class="dynamicSelect form-control" id="customerId" name="customerId[]" required>
                             <option value="">Choose Customer</option>
@@ -48,7 +48,7 @@
                         <select class="form-control tombol-panah" id="article" name="article[]" required>
                         </select>
                     </td>
-                    <td class="isian" style="">
+                    {{-- <td class="isian" style="">
                         <input type="text" class="form-control-plaintext tombol-panah" 
                         data-type-el-kiri="select" 
                         data-nama-el-kiri='account'
@@ -72,7 +72,7 @@
                         data-type-el-kanan='input'
                         data-nama-el-kanan='vcDesc'
                         id = "vcCredit" name="vcCredit[]" maxlength="12" />
-                    </td>
+                    </td> --}}
                     <td class="isian text-center" style="width: 5%">
                         <a onmouseover="this.style.cursor='pointer'" onclick="$(this).parents('.tanda-baris').remove();hitungGrandTotal()" data-toggle="tooltip" data-placement="left" title="Delete row">
                             <i data-feather="trash-2" class="remove_button feather-24">
