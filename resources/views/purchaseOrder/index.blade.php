@@ -179,11 +179,11 @@
       tableId:"detailedTable",
       route:"{{ route('purchaseOrder.list.detail') }}",
       kolom:{!! $kolomDetail !!},
-      arrColPrint:[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27],
-      columnDefs :[
-        { width: '5%', targets: 0 },
-        { className: 'text-right','targets': [ 6,8,9,10,11,12,14,15,16 ] },
-      ],
+      // arrColPrint:[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27],
+      // columnDefs :[
+      //   { width: '5%', targets: 0 },
+      //   { className: 'text-right','targets': [ 6,8,9,10,11,12,14,15,16 ] },
+      // ],
       dataSearch:  {
         searchPo:searchPo,
         searchSupplier:searchSupplier,
@@ -191,7 +191,7 @@
         orderDate:orderDate
       },
       orderColumn:[[ 2, 'asc' ]],
-      excelFileName:'purchase_order'
+      excelFileName:'purchase_order_detail'
     });
   }
 
