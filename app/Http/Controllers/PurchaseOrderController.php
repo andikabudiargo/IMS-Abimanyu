@@ -1225,202 +1225,60 @@ class PurchaseOrderController extends Controller
         $searchSupplier = $request->searchSupplier;
         $searchStatus = $request->searchStatus;
         $orderDate = $request->orderDate;
-       
-        $filter='';
+        $fromDate ="";
+        $toDate = "";
         
-        if ($searchPo !='' ){
-            $filter.="lower(a.po_number) like '%$searchPo%' and ";
-        }
-
-        if ($searchSupplier  != '' ){
-            $filter.="supplier_id = '$searchSupplier' and ";            
-        }
-
-        if ($searchStatus  != '' ){
-            $filter.="status = '$searchStatus' and ";            
-        }
-        
-        $filter.="status <> '7' and ";
-             
-        if ($orderDate  != '' ){
+        if ($orderDate){
             $date = explode("to",$orderDate);
-            $date1=trim($date[0]);
-            $date2=trim($date[1]);
-            $filter.= "to_date(po_date, 'DD/MM/YYYY')  BETWEEN to_date('$date1', 'DD/MM/YYYY') and to_date('$date2', 'DD/MM/YYYY') and ";
-        }
-        
-        if ($filter !=''){
-            $filter=" where ".substr($filter,0,-4);
+            if(count($date)>1){
+                $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+                $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
+            }else{
+                $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+                $toDate = $fromDate; 
+            }
+            // $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+            // $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
         }
 
-        $data=DB::select("SELECT *,oki.id as idku,
-        (select note from purchase_order_hdr where po_number = oki.po_number) as note,
-        -- case when uom_group = 'PIECE' then TO_CHAR(qtyku,'999,999,999') when uom_group <> 'PIECE' then TO_CHAR(qtyku,'999,999,999.999') end as qty,
-        qtyku as qty,
-        TO_CHAR(grossku,'999,999,999') as gross,
-        TO_CHAR(discountku,'999,999,999') as discount,
-        TO_CHAR(ppnku,'999,999,999') as ppn,
-        delivery_date,
-        (select concat(kode,'-',nama) from third_party where kode = supplier_id limit 1) as supp_name,
-        TO_CHAR((grossku-discountku)+ppnku,'999,999,999') as netto,
-        --query apakah user berhak untuk approve atau tidak
-        (SELECT username = '$username' as validate from (
-            select username,approval_order,
-            (select max(approval_number) from approval_master where module_code = a.module_code ) as max_level,
-            COALESCE((select max(approval_order) from approval_history
-            where module_code = a.module_code
-            and module_number = oki.po_number),'0') as current_level
-            from approval_level a 
-            where module_code = '".$this->moduleCode."' and username = '$username') b
-            where approval_order = current_level+1
-        ) as statusku
-        from (
-            select 
-                b.created_by,
-                b.created_at,
-                b.status,b.id,
-                a.po_number,
-                a.po_number as po_number_1,
-                supplier_id,
-                po_date,
-                delivery_date,
-                pkp,
-                termin,
-                authorized_by,
-                validate_by,
-                sum(qty) as qtyku,
-                sum(qty*price) as grossku,
-                sum(discount) as discountku,
-                sum(a.ppn) as ppnku,
-                b.num_revision,
-                (select STRING_AGG((select name from users where username = z.username), ' -> ' ORDER BY approval_order) AS main from approval_history z where module_number = a.po_number) as approval_by
-            from purchase_order_det a
-            left join purchase_order_hdr b
-            on a.po_number = b.po_number    
-            $filter
-            group by b.id,a.po_number,supplier_id,po_date,delivery_date,pkp,termin,authorized_by,validate_by,b.created_by,b.created_at,b.status,b.num_revision
-        ) as oki
-        order by oki.id desc");
+        $data = DB::table('purchase_order_det')
+        ->leftJoin('purchase_order_hdr','purchase_order_hdr.po_number','purchase_order_det.po_number')
+        ->leftJoin('article','article.article_code','purchase_order_det.article_code')
+        ->leftJoin('third_party','third_party.kode','purchase_order_hdr.supplier_id')
+        ->leftJoin('uom','uom.code','purchase_order_det.uom')
+        ->where(function ($query) use ($searchPo,$searchStatus,$orderDate,$fromDate,$toDate,$searchSupplier) {
+            $searchSupplier ? $query->where('purchase_order_hdr.supplier_id',$searchSupplier) : '';
+            $searchPo ? $query->where('purchase_order_det.po_number','ilike','%'.$searchPo.'%') : '';
+            $searchStatus ? $query->where('purchase_order_hdr.status',$searchStatus) : '';
+            $orderDate ? $query->whereBetween(DB::raw("to_date(purchase_order_hdr.po_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
+        })
+        ->select('purchase_order_det.*'
+        ,'purchase_order_hdr.*'
+        ,'article_alternative_code'
+        ,'article.article_desc'
+        ,'third_party.nama as supp_name'
+        ,'uom_group'
+        ,'purchase_order_hdr.status as statusku'
+        ,DB::raw("case when uom_group = 'PIECE' then TO_CHAR(qty,'999,999,999') when uom_group <> 'PIECE' then TO_CHAR(qty,'999,999,999.999') end as qtyku")
+        ,DB::raw("TO_CHAR(price*qty*purchase_order_hdr.ppn/100,'999,999,999') as total_ppn")
+        ,DB::raw("TO_CHAR(price*qty*purchase_order_hdr.pph22/100,'999,999,999') as total_pph22")
+        ,DB::raw("TO_CHAR((((price*qty)-discount)+(price*qty*purchase_order_hdr.ppn/100)-(price*qty*purchase_order_hdr.pph22)),'999,999,999') as grand_total")
+        ,DB::raw("(select STRING_AGG((select name from users where username = a.username), ' -> ' ORDER BY approval_order) AS main from approval_history a where module_number = purchase_order_det.po_number) as approval_by")
+        )
+        ->orderBy('purchase_order_det.id')
+        ->get(); 
 
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'RECEIVED','5'=>'CANCELED','6'=>'CLOSED','7'=>'REVISED','8'=>'DECLINE'];
-    
+            
         return Datatables::of($data)
-        ->addColumn('action', function ($data) {
-            $buttons = '<div class="d-inline-flex">
-                            <a class="pr-1 dropdown-toggle hide-arrow" data-toggle="dropdown">
-                                <i data-feather="menu"></i>
-                            </a>';
-            $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
-            
-            // if ( $data->statusku and ($data->status == '2' or $data->status == '1') ){
-            if ( $data->status == '2' or $data->status == '1' ){
-                if (Auth::user()->can('purchaseOrder-authorize')) {
-                $buttons .=         '<a href="'. route('purchaseOrder.edit', ['id'=>Crypt::encryptString($data->idku)]) .'" class="dropdown-item">
-                                        <i data-feather="check"></i>
-                                        <span>'. __("Approve") .'</span>
-                                    </a>';
-                }
-            }
-            if ( $data->status == '1' or $data->status == '2' ){
-                if (Auth::user()->can('purchaseOrder-edit')) {
-                $buttons .=         '<a href="'. route('purchaseOrder.edit', ['id'=>Crypt::encryptString($data->idku)]) .'" class="dropdown-item">
-                                        <i data-feather="file-text"></i>
-                                        <span>'. __("Edit") .'</span>
-                                    </a>';
-                }
-            }
-            if (($data->status == '2') || ($data->status == '3') ){
-                // if( $data->order_type == 'tso' and $data->status_tso != 3 ){
-                //     $buttons .= "<a href='javascript:void(0);'
-                //                     data-url='". route('purchaseRequest.warning',['tsoCode'=>$data->tso_code]) ."'
-                //                     data-size='sm'
-                //                     data-ajax-popup='true'
-                //                     data-title='Warning'
-                //                     class='dropdown-item'>
-                //                     <i data-feather='corner-down-left' class='feather-14-red'></i>
-                //                     <span>". __('Revision') ."</span>
-                //                 </a>";
-                // }else{
-                    $buttons .= "<a href='javascript:;'
-                                    id='revisionReasonButton'
-                                    class='dropdown-item'
-                                    data-toggle='modal'
-                                    data-target='#reasonModalRevision'
-                                    data-href='". route('purchaseOrder.revision', ['id'=>Crypt::encryptString($data->idku),'nR'=>$data->num_revision]) ."'>
-                                    <i data-feather='corner-down-left' class='feather-14-red'></i>
-                                    <span>". __('Revision') ."</span>
-                                </a>";
-                // }
-
-                // if (Auth::user()->can('purchaseOrder-revision')) {
-                //     $buttons .=         '<a href="'. route('purchaseOrder.revision', ['id'=>Crypt::encryptString($data->idku),'nR'=>$data->num_revision]) .'" class="dropdown-item">
-                //                             <i data-feather="copy"></i>
-                //                             <span>'. __("Revision") .'</span>
-                //                         </a>';
-                // }
-            }
-            
-            $buttons .=         '<a href="'. route('purchaseOrder.print', ['id'=>Crypt::encryptString($data->idku)]) .'" target="_blank" class="dropdown-item">
-                                    <i data-feather="printer"></i>
-                                    <span>'. __("Print") .'</span>
-                                </a>';
-            
-            $buttons .=         '<a href="'. route('purchaseOrder.show', ['id'=>Crypt::encryptString($data->idku)]) .'" class="dropdown-item">
-                                    <i data-feather="list"></i>
-                                    <span>'. __("Detail") .'</span>
-                                </a>';
-
-            if ( $data->status == '1' or $data->status == '2' or $data->status == '3' ){
-                if (Auth::user()->can('purchaseOrder-delete')) {
-                    $buttons .="<a href='javascript:;'
-                    class='dropdown-item' 
-                    data-size='sm'
-                    data-ajax-delete='true'
-                    data-confirm='Are You Sure want to Close?|This action can not be undone. Do you want to continue?' 
-                    data-confirm-yes='document.getElementById(\""."delete-form-".$data->idku."\").submit();'
-                    data-modal-id='".$data->idku."'
-                    id='deleteButton'
-                    data-url='". route('purchaseOrder.clear', ['id'=>Crypt::encryptString($data->idku)]) ."'>
-                    <i data-feather='x' class='feather-14-red'></i>
-                    <span>". __('Close') ."</span>
-                    </a>";
-                }
-            }
-
-            if ( $data->status == '1' ){
-                if (Auth::user()->can('purchaseOrder-delete')) {
-                    $buttons .=         "<a href='javascript:;'
-                                        class='dropdown-item' 
-                                        data-size='sm'
-                                        data-ajax-delete='true'
-                                        data-confirm='Are You Sure want to Delete?|This action can not be undone. Do you want to continue?' 
-                                        data-confirm-yes='document.getElementById(\""."delete-form-".$data->idku."\").submit();'
-                                        data-modal-id='".$data->idku."'
-                                        id='deleteButton'
-                                        data-url='". route('purchaseOrder.destroy', ['id'=>Crypt::encryptString($data->idku)]) ."'>
-                                        <i data-feather='trash-2' class='feather-14-red'></i>
-                                        <span>". __('Delete') ."</span>
-                                    </a>";
-                }
-            }
-
-            $buttons .=     '</div>
-                        </div>';
-
-            return $buttons;
-        })
-        ->addColumn('po_number', function ($data) {
-            $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-danger'];            
-            $statusPo = ['NEW','VALIDATED','APPROVED','RECEIVED','CANCELED','CLOSED','REVISED','DECLINE'];
-            // return '<div class="badge d-block '.$badges[$data->status - 1].'"><a name="'.$data->po_number.'" href="'. route('purchaseOrder.show', ['id'=>Crypt::encryptString($data->idku)]) .'" ><span>'.$data->po_number.'</span></a></div>';
-            return '<span style="display: none;">'.$data->po_number.'</span><a class="badge d-block '.$badges[$data->status - 1].'" name="'.$data->po_number.'" href="'. route('purchaseOrder.show', ['id'=>Crypt::encryptString($data->idku)]) .'" ><span>'.$data->po_number.'</span></a>';
-        })
-        ->addColumn('status', function ($data) {
-            $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-danger'];            
-            $statusPo = ['NEW','VALIDATED','APPROVED','RECEIVED','CANCELED','CLOSED','REVISED','DECLINE'];
-            return "<div class='badge ".$badges[$data->status - 1]."'>".$statusPo[$data->status - 1]."</div>";
-        })
-        ->rawColumns(['action','status','po_number'])
+        // ->addColumn('statusku', function ($data) {
+        //     if ($data->statusku>0){
+        //         $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-danger'];            
+        //         $statusPo = ['NEW','VALIDATED','APPROVED','RECEIVED','CANCELED','CLOSED','REVISED','DECLINE'];
+        //         return "<div class='badge ".$badges[$data->statusku - 1]."'>".$statusPo[$data->statusku - 1]."</div>";
+        //     }
+        // })
+        // ->rawColumns(['status'])
         ->make(true);
     }
 
