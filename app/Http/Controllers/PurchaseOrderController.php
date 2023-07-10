@@ -1225,10 +1225,10 @@ class PurchaseOrderController extends Controller
         ->leftJoin('third_party','third_party.kode','purchase_order_hdr.supplier_id')
         ->leftJoin('uom','uom.code','purchase_order_det.uom')
         ->where(function ($query) use ($searchPo,$searchStatus,$orderDate,$fromDate,$toDate,$searchSupplier) {
-            $searchSupplier ? $query->where('supplier_id',$searchSupplier) : '';
-            $searchPo ? $query->where('po_number','ilike','%'.$searchPo.'%') : '';
+            $searchSupplier ? $query->where('purchase_order_hdr.supplier_id',$searchSupplier) : '';
+            $searchPo ? $query->where('purchase_order_det.po_number','ilike','%'.$searchPo.'%') : '';
             $searchStatus ? $query->where('purchase_order_hdr.status',$searchStatus) : '';
-            $orderDate ? $query->whereBetween(DB::raw("to_date(po_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
+            $orderDate ? $query->whereBetween(DB::raw("to_date(purchase_order_hdr.po_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
         })
         ->select('purchase_order_det.*'
         ,'purchase_order_hdr.*'
