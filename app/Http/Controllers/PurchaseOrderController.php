@@ -80,10 +80,10 @@ class PurchaseOrderController extends Controller
             ['data'=>'supplier_id','name'=>'supplier_id','title'=>'Supplier code'],
             ['data'=>'supp_name','name'=>'supp_name','title'=>'Supplier'],
             // ['data'=>'approval_by','name'=>'approval_by','title'=>'Approved By'],
-            // ['data'=>'created_by','name'=>'created_by','title'=>'Created By'],
-            // ['data'=>'created_at','name'=>'created_at','title'=>'Created Date'],
-            // ['data'=>'updated_by','name'=>'updated_by','title'=>'Updated By'],
-            // ['data'=>'updated_at','name'=>'updated_at','title'=>'Updated Date'],
+            ['data'=>'created_by','name'=>'created_by','title'=>'Created By'],
+            ['data'=>'created_at','name'=>'created_at','title'=>'Created Date'],
+            ['data'=>'updated_by','name'=>'updated_by','title'=>'Updated By'],
+            ['data'=>'updated_at','name'=>'updated_at','title'=>'Updated Date'],
         ];
         return json_encode($kolom, true);
     }
