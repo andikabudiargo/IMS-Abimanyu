@@ -57,6 +57,7 @@ class PurchaseOrderController extends Controller
     public function getTableColoumnDetail(){
         $kolom=
         [
+            ['data'=>'nama_dept','name'=>'nama_dept','title'=>'Departemen'],
             ['data'=>'po_number','name'=>'po_number','title'=>'PO Number'],
             ['data'=>'pr_number','name'=>'pr_number','title'=>'PR Number'],
             ['data'=>'po_date','name'=>'po_date','title'=>'PO Date'],
@@ -66,6 +67,7 @@ class PurchaseOrderController extends Controller
             ['data'=>'qtyku','name'=>'qtyku','title'=>'Qty'],
             ['data'=>'uom','name'=>'uom','title'=>'UOM'],
             ['data'=>'price','name'=>'price','title'=>'Price'],
+            ['data'=>'total_dpp','name'=>'total_dpp','title'=>'Total Tanpa PPN'],
             ['data'=>'discount','name'=>'discount','title'=>'Discount'],
             ['data'=>'total_ppn','name'=>'total_ppn','title'=>'PPN'],
             ['data'=>'total_pph22','name'=>'total_pph22','title'=>'PPH22'],
@@ -76,9 +78,9 @@ class PurchaseOrderController extends Controller
             ['data'=>'pph22','name'=>'pph22','title'=>'PPH22'],
             ['data'=>'pkp','name'=>'pkp','title'=>'PKP'],
             ['data'=>'termin','name'=>'termin','title'=>'Termin'],
-            ['data'=>'num_revision','name'=>'num_revision','title'=>'Revision'],
             ['data'=>'supplier_id','name'=>'supplier_id','title'=>'Supplier code'],
             ['data'=>'supp_name','name'=>'supp_name','title'=>'Supplier'],
+            ['data'=>'note','name'=>'note','title'=>'Note'],
             // ['data'=>'approval_by','name'=>'approval_by','title'=>'Approved By'],
             // ['data'=>'created_by','name'=>'created_by','title'=>'Created By'],
             // ['data'=>'created_at','name'=>'created_at','title'=>'Created Date'],
@@ -1221,6 +1223,8 @@ class PurchaseOrderController extends Controller
 
         $data = DB::table('purchase_order_det')
         ->leftJoin('purchase_order_hdr','purchase_order_hdr.po_number','purchase_order_det.po_number')
+        ->leftJoin('purchase_request_hdr','purchase_request_hdr.pr_number','purchase_order_det.pr_number')
+        ->leftJoin('depts','depts.code','purchase_request_hdr.dept')
         ->leftJoin('article','article.article_code','purchase_order_det.article_code')
         ->leftJoin('third_party','third_party.kode','purchase_order_hdr.supplier_id')
         ->leftJoin('uom','uom.code','purchase_order_det.uom')
@@ -1239,9 +1243,11 @@ class PurchaseOrderController extends Controller
         ,'purchase_order_hdr.status as statusku'
         ,DB::raw("case when uom_group = 'PIECE' then TO_CHAR(qty,'999,999,999') when uom_group <> 'PIECE' then TO_CHAR(qty,'999,999,999.999') end as qtyku")
         ,DB::raw("TO_CHAR(price*qty*purchase_order_hdr.ppn/100,'999,999,999') as total_ppn")
+        ,DB::raw("TO_CHAR(price*qty,'999,999,999') as total_dpp")
         ,DB::raw("TO_CHAR(price*qty*purchase_order_hdr.pph22/100,'999,999,999') as total_pph22")
         ,DB::raw("TO_CHAR((((price*qty)-discount)+(price*qty*purchase_order_hdr.ppn/100)-(price*qty*purchase_order_hdr.pph22)),'999,999,999') as grand_total")
         ,DB::raw("(select STRING_AGG((select name from users where username = a.username), ' -> ' ORDER BY approval_order) AS main from approval_history a where module_number = purchase_order_det.po_number) as approval_by")
+        ,'depts.name as nama_dept'
         )
         ->orderBy('purchase_order_det.id')
         ->get(); 

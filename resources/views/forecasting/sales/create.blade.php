@@ -198,25 +198,22 @@
     $(document).ready(function(){           
         validateFormToast('frmAdd');
         vcDate.val(currentDate);
-        let listJudul = add_judul(12);
+        let listJudul = add_judul(6,12);
 
         $("#judulTabel").append(listJudul);
 
         add_new_row();
-        add_new_row();
-        add_new_row();
-        add_new_row();
-        add_new_row();
+
         
     });
 
-    add_month =(month)=>{
+    add_month =(startMonth,endMonth)=>{
         let list  = "";
         let year='2023';
-        for(i=0;i<month;i++){
+        for(i=startMonth;i<=endMonth;i++){
             
             list+= `<td class="isian" style="">
-                                <input type="text" class="form-control-plaintext tombol-panah numeral-mask text-right" 
+                                <input type="text" class="form-control-plaintext tombol-panah numeral-mask text-right data-bulan" 
                                 data-type-el-kiri="input" 
                                 data-nama-el-kiri='month${i-1}'
                                 data-type-el-kanan='input'
@@ -224,15 +221,22 @@
                                 id="${year}${i+1}" name="month${i}[]"  maxlength="6" />
                             </td>`; 
         }
+        list+=`<td class="isian text-center" style="width: 5%">
+                <a onmouseover="this.style.cursor='pointer'" onclick="$(this).parents('.tanda-baris').remove();hitungGrandTotal()" data-toggle="tooltip" data-placement="left" title="Delete row">
+                    <i data-feather="trash-2" class="remove_button feather-24">
+                    </i>
+                </a>
+            </td>`;
+            
 
         return list;
     }
 
-    add_judul =(month)=>{
+    add_judul =(startMonth,endMonth)=>{
         let judul = "";
         let year='23';
         let bulan=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Okt','Nov','Dec'];
-        for(i=0;i<month;i++){
+        for(i=startMonth;i<endMonth;i++){
             
             let namaBulan = bulan[i];
             judul+=`<th class="isian" style="">
@@ -240,6 +244,10 @@
                     </th>`;
 
         }
+
+        judul+=`<th class="isian" style="">
+                        <label>Action</label>
+                    </th>`;
 
         return judul;
     }
@@ -252,105 +260,135 @@
     }
     
     $("#cmdSave").click(function(){  
-        let objTotalVcDebit= $('#vcTotalDebit').val().replace(/,/gi, '') || 0;
-        let objTotalVcCredit= $('#vcTotalCredit').val().replace(/,/gi, '') || 0;
-        let vcDate = $('#vcDate').val();
-        let period = $('#period').val();
-        let totalAmount = $('#totalAmount').val().replace(/,/gi, '') || 0;
-        let note = $('#note').val();
-        let recFrom = $('#recFrom').val();
-        let recFromDesc = $('#recFromDesc').val();
-            
-        if (!$("#frmAdd")[0].checkValidity()){
-            $("#frmAdd").submit();
-        }else{  
-            if (((parseInt(objTotalVcDebit)-parseInt(objTotalVcCredit)) == 0) && (parseInt(objTotalVcCredit)==parseInt(totalAmount))){ 
-                $('#cmdSave').attr('disabled','disabled');
-                $('.disabled-el').removeAttr('disabled');
-                // ambil semua data article
-                let objvcDesc= $('#item_row input[name="vcDesc[]"]');
-                let objVcCc= $('#item_row select[name="vcCc[]"]');
-                let objVcDebit= $('#item_row input[name="vcDebit[]"]');
-                let objVcCredit= $('#item_row input[name="vcCredit[]"]');
-                let objAccount= $('#item_row select[name="account[]"]');
-                let details = []; 
-                let flag=0; 
-                let pesan="";
-                let cekIsi=0;
 
-                objAccount.map(function(i) {  
+
+        $(".data-bulan").map(function(i) {  
                     let $this=$(this);
-                    if ($this.val()){
-                        let sAccount=$this.val();
-                        let sDesc=objvcDesc.eq(i).val();
-                        let sCc=objVcCc.eq(i).val();
-                        let sDebit=objVcDebit.eq(i).val().replace(/,/gi, '') || 0;
-                        let sCredit=objVcCredit.eq(i).val().replace(/,/gi, '') || 0;
+                    console.log($this.attr('id'));
+                    // if ($this.val()){
+                    //     let sAccount=$this.val();
+                    //     let sDesc=objvcDesc.eq(i).val();
+                    //     let sCc=objVcCc.eq(i).val();
+                    //     let sDebit=objVcDebit.eq(i).val().replace(/,/gi, '') || 0;
+                    //     let sCredit=objVcCredit.eq(i).val().replace(/,/gi, '') || 0;
 
-                        if ((sDesc!=='') && ((sDebit + sCredit) > 0) && (sAccount!=='') && (sCc!=='')){
-                            details.push({
-                                "account":sAccount,
-                                "description":sDesc,
-                                "cc":sCc,
-                                "debit":sDebit,
-                                "credit":sCredit,
-                            });
-                        }
+                    //     if ((sDesc!=='') && ((sDebit + sCredit) > 0) && (sAccount!=='') && (sCc!=='')){
+                    //         details.push({
+                    //             "account":sAccount,
+                    //             "description":sDesc,
+                    //             "cc":sCc,
+                    //             "debit":sDebit,
+                    //             "credit":sCredit,
+                    //         });
+                    //     }
 
-                        if ((sDesc =='') || (sCc =='') || ((sDebit + sCredit) == 0)){
-                            cekIsi++;
-                        }
+                    //     if ((sDesc =='') || (sCc =='') || ((sDebit + sCredit) == 0)){
+                    //         cekIsi++;
+                    //     }
 
-                    }
-                });
+                    // }
+        });
 
-                if ((details.length == 0) || (cekIsi >0)){
-                    pesan +="Detail must be filled Out completely <br>"; 
-                    flag=1;
-                }
 
-                if (flag == 0){
-                    $.ajax({
-                        type: "post",
-                        url: "{{ route('bankPenerimaan.store') }}",
-                        data: {
-                            details:JSON.stringify(details),
-                            vcDate:vcDate,
-                            period:period,
-                            note:note,
-                            totalAmount:totalAmount,
-                            recFrom:recFrom,
-                            recFromDesc:recFromDesc
-                        },
-                        dataType: "json",
-                        success: function(data) {
-                            if (data.status == 0 ){
-                                let message="";
-                                for(let i = 0; i < data.message.length; i++) {
-                                    show_msg(data.title, data.message[i], data.alert);
-                                }                        
-                                $('#voucherNumber').attr('disabled','disabled');
-                            }else{
-                                show_msg(data.title, data.message, data.alert);
-                                $('#voucherNumber').val(data.vcNumber);
-                                $('#voucherNumber').attr('disabled','disabled');
-                                $('#cmdSave').attr('disabled','disabled');
-                                $('#addNewRow').attr('disabled','disabled');
-                                window.location.href = "{{ route('bankPenerimaan.create') }}";
-                            }
-                        },
-                        error: function(error) {
-                            console.log(error);
-                        }
-                    });
-                }else{
-                    $('#cmdSave').removeAttr('disabled');
-                    Swal.fire('Warning..',pesan,'warning');
-                }
-            }else{
-                Swal.fire('Warning..',"Data belum balance",'warning');
-            }
-        }
+        // let objTotalVcDebit= $('#vcTotalDebit').val().replace(/,/gi, '') || 0;
+        // let objTotalVcCredit= $('#vcTotalCredit').val().replace(/,/gi, '') || 0;
+        // let vcDate = $('#vcDate').val();
+        // let period = $('#period').val();
+        // let totalAmount = $('#totalAmount').val().replace(/,/gi, '') || 0;
+        // let note = $('#note').val();
+        // let recFrom = $('#recFrom').val();
+        // let recFromDesc = $('#recFromDesc').val();
+            
+        // if (!$("#frmAdd")[0].checkValidity()){
+        //     $("#frmAdd").submit();
+        // }else{  
+        //     if (((parseInt(objTotalVcDebit)-parseInt(objTotalVcCredit)) == 0) && (parseInt(objTotalVcCredit)==parseInt(totalAmount))){ 
+        //         $('#cmdSave').attr('disabled','disabled');
+        //         $('.disabled-el').removeAttr('disabled');
+        //         // ambil semua data article
+        //         let objvcDesc= $('#item_row input[name="vcDesc[]"]');
+        //         let objVcCc= $('#item_row select[name="vcCc[]"]');
+        //         let objVcDebit= $('#item_row input[name="vcDebit[]"]');
+        //         let objVcCredit= $('#item_row input[name="vcCredit[]"]');
+        //         let objAccount= $('#item_row select[name="account[]"]');
+        //         let details = []; 
+        //         let flag=0; 
+        //         let pesan="";
+        //         let cekIsi=0;
+
+        //         objAccount.map(function(i) {  
+        //             let $this=$(this);
+        //             if ($this.val()){
+        //                 let sAccount=$this.val();
+        //                 let sDesc=objvcDesc.eq(i).val();
+        //                 let sCc=objVcCc.eq(i).val();
+        //                 let sDebit=objVcDebit.eq(i).val().replace(/,/gi, '') || 0;
+        //                 let sCredit=objVcCredit.eq(i).val().replace(/,/gi, '') || 0;
+
+        //                 if ((sDesc!=='') && ((sDebit + sCredit) > 0) && (sAccount!=='') && (sCc!=='')){
+        //                     details.push({
+        //                         "account":sAccount,
+        //                         "description":sDesc,
+        //                         "cc":sCc,
+        //                         "debit":sDebit,
+        //                         "credit":sCredit,
+        //                     });
+        //                 }
+
+        //                 if ((sDesc =='') || (sCc =='') || ((sDebit + sCredit) == 0)){
+        //                     cekIsi++;
+        //                 }
+
+        //             }
+        //         });
+
+        //         if ((details.length == 0) || (cekIsi >0)){
+        //             pesan +="Detail must be filled Out completely <br>"; 
+        //             flag=1;
+        //         }
+
+        //         if (flag == 0){
+        //             $.ajax({
+        //                 type: "post",
+        //                 url: "{{ route('bankPenerimaan.store') }}",
+        //                 data: {
+        //                     details:JSON.stringify(details),
+        //                     vcDate:vcDate,
+        //                     period:period,
+        //                     note:note,
+        //                     totalAmount:totalAmount,
+        //                     recFrom:recFrom,
+        //                     recFromDesc:recFromDesc
+        //                 },
+        //                 dataType: "json",
+        //                 success: function(data) {
+        //                     if (data.status == 0 ){
+        //                         let message="";
+        //                         for(let i = 0; i < data.message.length; i++) {
+        //                             show_msg(data.title, data.message[i], data.alert);
+        //                         }                        
+        //                         $('#voucherNumber').attr('disabled','disabled');
+        //                     }else{
+        //                         show_msg(data.title, data.message, data.alert);
+        //                         $('#voucherNumber').val(data.vcNumber);
+        //                         $('#voucherNumber').attr('disabled','disabled');
+        //                         $('#cmdSave').attr('disabled','disabled');
+        //                         $('#addNewRow').attr('disabled','disabled');
+        //                         window.location.href = "{{ route('bankPenerimaan.create') }}";
+        //                     }
+        //                 },
+        //                 error: function(error) {
+        //                     console.log(error);
+        //                 }
+        //             });
+        //         }else{
+        //             $('#cmdSave').removeAttr('disabled');
+        //             Swal.fire('Warning..',pesan,'warning');
+        //         }
+        //     }else{
+        //         Swal.fire('Warning..',"Data belum balance",'warning');
+        //     }
+        // }
     });
 
     let cloneCount=1;
@@ -359,22 +397,19 @@
         cloneCount++;
         $("#item_row").find('#baru').attr('id', 'new_row'+ cloneCount);
         $("#item_row").find('#tabelBaru').attr('id', 'new_table_row'+ cloneCount);
-        $("#new_row"+ cloneCount).find('#vcDesc').attr('id', 'vcDesc'+ cloneCount);
-        $("#new_row"+ cloneCount).find('#account').attr('id', 'account'+ cloneCount);
-        $("#new_row"+ cloneCount).find('#vcCc').attr('id', 'vcCc'+ cloneCount);
-        accList('account','account'+ cloneCount);
-
-        let IsiBulan = add_month(12);
-
+        $("#new_row"+ cloneCount).find('#article').attr('id', 'article'+ cloneCount);
+        $("#new_row"+ cloneCount).find('#customerId').attr('id', 'customerId'+ cloneCount);
+        
+        let IsiBulan = add_month(6,12);               
         $("#new_table_row"+ cloneCount).append(IsiBulan);
-        
-        
-        $("#account"+cloneCount).select2();
-        $("#vcCc"+cloneCount).select2();
-
+        feather.replace({
+            width: 14,
+            height: 14
+        });
+               
+        $("#customerId"+cloneCount).select2();
         $('#remove_button').tooltip();
-        // tombolPanah('vcDebit');
-        // tombolPanah('vcCredit');
+        
         activate_angka();
         mask_thousand();
         hitungTotal();

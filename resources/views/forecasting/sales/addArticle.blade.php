@@ -48,37 +48,12 @@
                         <select class="form-control tombol-panah" id="article" name="article[]" required>
                         </select>
                     </td>
-                    {{-- <td class="isian" style="">
-                        <input type="text" class="form-control-plaintext tombol-panah" 
-                        data-type-el-kiri="select" 
-                        data-nama-el-kiri='account'
-                        data-type-el-kanan='select'
-                        data-nama-el-kanan='vcCc'
-                        id="vcDesc" name="vcDesc[]"  maxlength="100" />
-                    </td>
-                    
-                    <td class="isian" style="width: 10%">
-                        <input type="text" class="form-control-plaintext numeral-mask text-right tombol-panah" 
-                        data-type-el-kiri="select" 
-                        data-nama-el-kiri='vcCc'
-                        data-type-el-kanan='input'
-                        data-nama-el-kanan='vcCredit'
-                        id = "vcDebit" name="vcDebit[]" maxlength="12" />
-                    </td>
-                    <td class="isian" style="width: 10%">
-                        <input type="text" class="form-control-plaintext numeral-mask text-right tombol-panah" 
-                        data-type-el-kiri="input" 
-                        data-nama-el-kiri='vcDebit'
-                        data-type-el-kanan='input'
-                        data-nama-el-kanan='vcDesc'
-                        id = "vcCredit" name="vcCredit[]" maxlength="12" />
-                    </td> --}}
-                    <td class="isian text-center" style="width: 5%">
+                    {{-- <td class="isian text-center" style="width: 5%">
                         <a onmouseover="this.style.cursor='pointer'" onclick="$(this).parents('.tanda-baris').remove();hitungGrandTotal()" data-toggle="tooltip" data-placement="left" title="Delete row">
                             <i data-feather="trash-2" class="remove_button feather-24">
                             </i>
                         </a>
-                    </td>
+                    </td> --}}
                 </tr>
             </tbody>
         </table>
