@@ -30,7 +30,8 @@ class SupplierController extends Controller
             ['data'=>'telepon','name'=>'telepon','title'=>'Telepon'],
             ['data'=>'hp','name'=>'hp','title'=>'HP'],
             ['data'=>'fax','name'=>'fax','title'=>'Fax'],
-            ['data'=>'alamat_tagih','name'=>'alamat_tagih','title'=>'Alamat']
+            ['data'=>'alamat_tagih','name'=>'alamat_tagih','title'=>'Alamat'],
+            ['data'=>'top_batas_1','name'=>'top_batas_1','title'=>'TOP']
         ];
         return json_encode($kolom, true);
     }

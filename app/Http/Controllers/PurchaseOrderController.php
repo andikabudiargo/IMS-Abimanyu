@@ -78,9 +78,10 @@ class PurchaseOrderController extends Controller
             ['data'=>'pph22','name'=>'pph22','title'=>'PPH22'],
             ['data'=>'pkp','name'=>'pkp','title'=>'PKP'],
             ['data'=>'termin','name'=>'termin','title'=>'Termin'],
-            // ['data'=>'supplier_id','name'=>'supplier_id','title'=>'Supplier code'],
             ['data'=>'supp_name','name'=>'supp_name','title'=>'Supplier'],
+            ['data'=>'article_type_name','name'=>'article_type_name','title'=>'Keterangan'],
             ['data'=>'note','name'=>'note','title'=>'Note'],
+            // ['data'=>'supplier_id','name'=>'supplier_id','title'=>'Supplier code'],
             // ['data'=>'approval_by','name'=>'approval_by','title'=>'Approved By'],
             // ['data'=>'created_by','name'=>'created_by','title'=>'Created By'],
             // ['data'=>'created_at','name'=>'created_at','title'=>'Created Date'],
@@ -1226,6 +1227,7 @@ class PurchaseOrderController extends Controller
         ->leftJoin('purchase_request_hdr','purchase_request_hdr.pr_number','purchase_order_det.pr_number')
         ->leftJoin('depts','depts.code','purchase_request_hdr.dept')
         ->leftJoin('article','article.article_code','purchase_order_det.article_code')
+        ->leftJoin('article_types','article_types.code','article.article_type')
         ->leftJoin('third_party','third_party.kode','purchase_order_hdr.supplier_id')
         ->leftJoin('uom','uom.code','purchase_order_det.uom')
         ->where(function ($query) use ($searchPo,$searchStatus,$orderDate,$fromDate,$toDate,$searchSupplier) {
@@ -1241,6 +1243,7 @@ class PurchaseOrderController extends Controller
         ,'third_party.nama as supp_name'
         ,'uom_group'
         ,'purchase_order_hdr.status as statusku'
+        ,'article_types.name as article_type_name'
         ,DB::raw("case when uom_group = 'PIECE' then TO_CHAR(qty,'999,999,999') when uom_group <> 'PIECE' then TO_CHAR(qty,'999,999,999.99') end as qtyku")
         ,DB::raw("TO_CHAR(price*qty*purchase_order_hdr.ppn/100,'999,999,999') as total_ppn")
         ,DB::raw("TO_CHAR(price*qty,'999,999,999') as total_dpp")
