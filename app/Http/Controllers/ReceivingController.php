@@ -50,6 +50,7 @@ class ReceivingController extends Controller
     public function getTableColoumnDetail(){
         $kolom=
         [
+            ['data'=>'nama_dept','name'=>'nama_dept','title'=>'Departemen'],
             ['data'=>'rec_number','name'=>'rec_number','title'=>'Rec Number'],
             ['data'=>'article_alternative_code','name'=>'article_alternative_code','title'=>'Code'],
             ['data'=>'article_desc','name'=>'article_desc','title'=>'Desc'],
@@ -57,9 +58,10 @@ class ReceivingController extends Controller
             ['data'=>'qty_free','name'=>'qty_free','title'=>'qty Free'],
             ['data'=>'uom_rec','name'=>'uom_rec','title'=>'uom'],
             ['data'=>'price','name'=>'price','title'=>'Price'],
+            ['data'=>'total_dpp','name'=>'total_dpp','title'=>'Total Tanpa PPN'],
             ['data'=>'rec_date','name'=>'rec_date','title'=>'Rec Date'],
-            ['data'=>'inv_number','name'=>'inv_number','title'=>'Invoice Number'],
-            ['data'=>'inv_date','name'=>'inv_date','title'=>'Invoice Date'],
+            // ['data'=>'inv_number','name'=>'inv_number','title'=>'Invoice Number'],
+            // ['data'=>'inv_date','name'=>'inv_date','title'=>'Invoice Date'],
             ['data'=>'do_number','name'=>'do_number','title'=>'DO Number'],
             ['data'=>'po_number','name'=>'po_number','title'=>'PO Number'],
             ['data'=>'supp_name','name'=>'supp_name','title'=>'Supplier'],
@@ -67,7 +69,9 @@ class ReceivingController extends Controller
             // ['data'=>'authorized_by','name'=>'authorized_by','title'=>'Authorized By'],
             ['data'=>'status','name'=>'status','title'=>'Status'],
             ['data'=>'created_by','name'=>'created_by','title'=>'Created By'],
-            ['data'=>'approval_by','name'=>'approval_by','title'=>'Approved By']
+            ['data'=>'approval_by','name'=>'approval_by','title'=>'Approved By'],
+            ['data'=>'article_type_name','name'=>'article_type_name','title'=>'Keterangan'],
+            ['data'=>'note','name'=>'note','title'=>'Note'],
         ];
         return json_encode($kolom, true);
     }
@@ -927,6 +931,8 @@ class ReceivingController extends Controller
         $data = DB::table('receiving_det')
         ->leftJoin('receiving_hdr','receiving_hdr.rec_number','receiving_det.rec_number')
         ->leftJoin('article','article.article_code','receiving_det.article_code')
+        ->leftJoin('article_types','article_types.code','article.article_type')
+        ->leftJoin('uom','uom.code','receiving_det.uom_rec')
         ->where(function ($query) use ($searchRec,$searchPo,$searchInv,$searchSupplier,$searchStatus,$recDate,$fromDate,$toDate) {
             $searchPo ? $query->where('po_number','ilike','%'.$searchPo.'%') : '';
             $searchInv ? $query->where('inv_number','ilike','%'.$searchInv.'%') : '';
@@ -940,8 +946,13 @@ class ReceivingController extends Controller
         ,'receiving_hdr.*'
         ,'article_alternative_code'
         ,'article_desc'
+        ,'article_types.name as article_type_name'
+        ,DB::raw("case when uom_group = 'PIECE' then TO_CHAR(qty,'999,999,999') when uom_group <> 'PIECE' then TO_CHAR(qty,'999,999,999.99') end as qty")
+        ,DB::raw("case when uom_group = 'PIECE' then TO_CHAR(qty_free,'999,999,999') when uom_group <> 'PIECE' then TO_CHAR(qty_free,'999,999,999.99') end as qty_free")
+        ,DB::raw("TO_CHAR(price*qty,'999,999,999') as total_dpp")
         ,DB::raw("(select STRING_AGG((select name from users where username = a.username), ' -> ' ORDER BY approval_order) AS main from approval_history a where module_number = receiving_hdr.rec_number) as approval_by")
         ,DB::raw("(select concat(kode,'-',nama) from third_party where kode = receiving_hdr.supplier_id limit 1) as supp_name")
+        ,DB::raw("(select (select name from depts where code = dept) as nama_dept from purchase_request_hdr where pr_number in (select pr_number from purchase_request_det where po_number = receiving_hdr.po_number))")
         )
         ->orderBy('receiving_det.id')
         ->get(); 
