@@ -207,18 +207,22 @@
         
     });
 
-    add_month =(startMonth,endMonth)=>{
+    add_month =(startMonth,endMonth,urutan)=>{
         let list  = "";
         let year='2023';
         for(i=startMonth;i<=endMonth;i++){
             
             list+= `<td class="isian" style="">
-                                <input type="text" class="form-control-plaintext tombol-panah numeral-mask text-right data-bulan" 
+                                <input type="text" data-urutan="${urutan}" class="form-control-plaintext tombol-panah numeral-mask text-right data-bulan" 
                                 data-type-el-kiri="input" 
                                 data-nama-el-kiri='month${i-1}'
                                 data-type-el-kanan='input'
                                 data-nama-el-kanan='month${i+1}'
-                                id="${year}${i+1}" name="month${i}[]"  maxlength="6" />
+                                data-month='${i}'
+                                data-year='${year}'
+                                id="${year}${i}" name="month${i}[]"  
+                                value=${i}
+                                maxlength="6" />
                             </td>`; 
         }
         list+=`<td class="isian text-center" style="width: 5%">
@@ -236,9 +240,9 @@
         let judul = "";
         let year='23';
         let bulan=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Okt','Nov','Dec'];
-        for(i=startMonth;i<endMonth;i++){
+        for(i=startMonth;i<=endMonth;i++){
             
-            let namaBulan = bulan[i];
+            let namaBulan = bulan[i-1];
             judul+=`<th class="isian" style="">
                         <label>${namaBulan}${year}</label>
                     </th>`;
@@ -264,7 +268,16 @@
 
         $(".data-bulan").map(function(i) {  
                     let $this=$(this);
-                    console.log($this.attr('id'));
+                    
+                    let urutan= $this.data("urutan");
+                    let month= $this.data("month");
+                    let year= $this.data("year");
+                    let objCustomerId= $('#customerId'+urutan).val();
+                    // console.log($this.attr('id'));
+                    // console.log($this.val());
+                    // console.log(objCustomerId.eq(i).val());
+                    console.log(urutan+"-"+month+'-'+year+'-'+objCustomerId+"-"+$this.attr('id')+"="+$this.val());
+
                     // if ($this.val()){
                     //     let sAccount=$this.val();
                     //     let sDesc=objvcDesc.eq(i).val();
@@ -400,7 +413,7 @@
         $("#new_row"+ cloneCount).find('#article').attr('id', 'article'+ cloneCount);
         $("#new_row"+ cloneCount).find('#customerId').attr('id', 'customerId'+ cloneCount);
         
-        let IsiBulan = add_month(6,12);               
+        let IsiBulan = add_month(6,12,cloneCount);               
         $("#new_table_row"+ cloneCount).append(IsiBulan);
         feather.replace({
             width: 14,

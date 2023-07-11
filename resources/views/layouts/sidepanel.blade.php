@@ -256,7 +256,9 @@
             @endcan
           </ul>
         </li>
-        <li class=" {{ in_array(\Request::segment(1), ['subContracts']) ? 'active' : '' }} nav-item">
+        
+        {{-- tutup sementara --}}
+        {{-- <li class=" {{ in_array(\Request::segment(1), ['subContracts']) ? 'active' : '' }} nav-item">
           <a class="d-flex align-items-center" href="javascript:void(0);">
             <i data-feather='link-2'></i>
             <span class="menu-title text-truncate" data-i18n="Form Elements">Subcontracting
@@ -288,7 +290,8 @@
             </li>
             @endcan
           </ul>
-        </li>
+        </li> --}}
+
         <li class=" {{ in_array(\Request::segment(1), ['delivery']) ? 'active' : '' }} nav-item">
           <a class="d-flex align-items-center" href="javascript:void(0);">
             <i data-feather='truck'></i>
@@ -537,7 +540,9 @@
               </a>
             </li>
             @endcan --}}
-            @can('finance-index')
+
+            {{-- tutupsementara --}}
+            {{-- @can('finance-index')
             <li class="{{ \Request::segment(1) == 'disbursement'  ? 'active' : '' }}">
               <a class="d-flex align-items-center" href="{{ route('disbursement.index') }}">
                 <i data-feather="circle"></i>
@@ -552,15 +557,9 @@
                 <span class="menu-item text-truncate" data-i18n="Input">Bank Receipt</span>
               </a>
             </li>
-            @endcan
-            {{-- @can('pettyCash-index')
-            <li class="{{ \Request::segment(1) == 'pettyCashs'  ? 'active' : '' }}">
-              <a class="d-flex align-items-center" href="{{ route('pettyCashs.index') }}">
-                <i data-feather="circle"></i>
-                <span class="menu-item text-truncate" data-i18n="Input">Petty Cash</span>
-              </a>
-            </li>
             @endcan --}}
+
+
             @can('bank-index')
             <li class="{{ \Request::segment(1) == 'banks'  ? 'active' : '' }}">
               <a class="d-flex align-items-center" href="{{ route('banks.index') }}">
