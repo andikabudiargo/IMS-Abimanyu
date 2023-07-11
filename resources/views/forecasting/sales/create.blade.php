@@ -425,9 +425,9 @@
         
         activate_angka();
         mask_thousand();
-        hitungTotal();
-        hitungGrandTotal();
-        $('[data-toggle="tooltip"]').tooltip();
+        // hitungTotal();
+        // hitungGrandTotal();
+        // $('[data-toggle="tooltip"]').tooltip();
         
         // $("#vcDesc"+ cloneCount).autocomplete({
         //     source: availableTags

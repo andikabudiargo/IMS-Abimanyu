@@ -97,11 +97,11 @@
       tableId:"detailedTable",
       route:"{{ route('supplier.list') }}",
       kolom:{!! $kolom !!},
-      arrColPrint:[1,2,3,4,5,6,7],
+      arrColPrint:[1,2,3,4,5,6,7,8],
       columnDefs :[
         { width: '5%', targets: 0 },
       ],
-      dataSearch:  {
+      dataSearch:{
         name:name,
         code:code
       },

@@ -171,6 +171,18 @@
                                         </div>
                                     </div>
                                     <div class="form-group row mb-03">
+                                        <label for="totalPPH21" class="col-sm-4 col-form-label titik-dua">PPH21 <span id="nilaiPPH21"></span> </label>
+                                        <div class="col-sm-1" style="padding-right: 0rem;display: flex;align-items: center;">
+                                            <div class="custom-control custom-checkbox">
+                                                <input type="checkbox" class="custom-control-input" id="pph21Check" name="pph21Check" />
+                                                <label class="custom-control-label" for="pph21Check"></label>
+                                            </div>
+                                        </div> 
+                                        <div class="col-sm-5">
+                                            <input type="text" class="form-control text-right font-weight-bold numeral-mask disabled-el" id="totalPPH21" name="totalPPH21" disabled/>
+                                        </div>
+                                    </div>
+                                    <div class="form-group row mb-03">
                                         <label for="totalPPH" class="col-sm-4 col-form-label titik-dua">PPH23 <span id="nilaiPPH"></span> </label>
                                         <div class="col-sm-1" style="padding-right: 0rem;display: flex;align-items: center;">
                                             <div class="custom-control custom-checkbox">
