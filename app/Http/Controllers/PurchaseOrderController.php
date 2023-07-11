@@ -78,9 +78,9 @@ class PurchaseOrderController extends Controller
             ['data'=>'pph22','name'=>'pph22','title'=>'PPH22'],
             ['data'=>'pkp','name'=>'pkp','title'=>'PKP'],
             ['data'=>'termin','name'=>'termin','title'=>'Termin'],
-            ['data'=>'supplier_id','name'=>'supplier_id','title'=>'Supplier code'],
-            // ['data'=>'supp_name','name'=>'supp_name','title'=>'Supplier'],
-            // ['data'=>'note','name'=>'note','title'=>'Note'],
+            // ['data'=>'supplier_id','name'=>'supplier_id','title'=>'Supplier code'],
+            ['data'=>'supp_name','name'=>'supp_name','title'=>'Supplier'],
+            ['data'=>'note','name'=>'note','title'=>'Note'],
             
             // ['data'=>'approval_by','name'=>'approval_by','title'=>'Approved By'],
             // ['data'=>'created_by','name'=>'created_by','title'=>'Created By'],
