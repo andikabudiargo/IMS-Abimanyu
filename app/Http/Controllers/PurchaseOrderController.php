@@ -81,7 +81,6 @@ class PurchaseOrderController extends Controller
             // ['data'=>'supplier_id','name'=>'supplier_id','title'=>'Supplier code'],
             ['data'=>'supp_name','name'=>'supp_name','title'=>'Supplier'],
             ['data'=>'note','name'=>'note','title'=>'Note'],
-            
             // ['data'=>'approval_by','name'=>'approval_by','title'=>'Approved By'],
             // ['data'=>'created_by','name'=>'created_by','title'=>'Created By'],
             // ['data'=>'created_at','name'=>'created_at','title'=>'Created Date'],
@@ -1242,7 +1241,7 @@ class PurchaseOrderController extends Controller
         ,'third_party.nama as supp_name'
         ,'uom_group'
         ,'purchase_order_hdr.status as statusku'
-        ,DB::raw("case when uom_group = 'PIECE' then TO_CHAR(qty,'999,999,999') when uom_group <> 'PIECE' then TO_CHAR(qty,'999,999,999.999') end as qtyku")
+        ,DB::raw("case when uom_group = 'PIECE' then TO_CHAR(qty,'999,999,999') when uom_group <> 'PIECE' then TO_CHAR(qty,'999,999,999.99') end as qtyku")
         ,DB::raw("TO_CHAR(price*qty*purchase_order_hdr.ppn/100,'999,999,999') as total_ppn")
         ,DB::raw("TO_CHAR(price*qty,'999,999,999') as total_dpp")
         ,DB::raw("TO_CHAR(price*qty*purchase_order_hdr.pph22/100,'999,999,999') as total_pph22")
