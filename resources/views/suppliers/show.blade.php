@@ -103,7 +103,7 @@
                         </div>
                         <div class="form-row">
                             <div class="form-group col-md-4">
-                                <label class="form-label" for="topBatas2">Term</label>
+                                <label class="form-label" for="topBatas2">TOP</label>
                                 <div class="input-group input-group-merge">
                                     <input type="text" id="termin" name="termin" class="form-control angka" value="{{ old('termin',$suppliers->top_batas_1) }}" maxlength="4" disabled />
                                     <div class="input-group-append">

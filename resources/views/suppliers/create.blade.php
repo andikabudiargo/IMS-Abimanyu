@@ -104,8 +104,8 @@
                         </div>
                         <div class="form-row">
                             <div class="form-group col-md-4">
-                                <label class="form-label" for="topBatas2">Term</label>
-                                <div class="input-group input-group-merge">
+                                <label class="form-label" for="topBatas2">TOP</label>
+                                <div class="input-group input-group-merge"> 
                                     <input type="text" id="termin" name="termin" class="form-control angka" value="{{ old('termin') }}" maxlength="4"/>
                                     <div class="input-group-append">
                                         <span class="input-group-text">Days</span>
