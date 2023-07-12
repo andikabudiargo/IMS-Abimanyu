@@ -70,13 +70,16 @@ let showDataTables = (opt) => {
       buttons:true,
       columnDefs:"",
       excelFileName:"data",
+      type:'get'
     }, opt);
     let button = opt.buttons == true ? 'B' : '';
     $(function(){
       $("#"+opt.tableId).DataTable({
           ajax:{
+              type:opt.type,
               url:opt.route,
               data:opt.dataSearch
+
           },
           processing: true,
           serverSide: true,

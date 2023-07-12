@@ -231,7 +231,7 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('purchaseOrders/store',['as'=>'purchaseOrder.store','uses'=>'PurchaseOrderController@store']);
 	Route::get('purchaseOrders/list',['as'=>'purchaseOrder.list','uses'=>'PurchaseOrderController@list']);
 	Route::get('purchaseOrders/list/detail',['as'=>'purchaseOrder.list.detail','uses'=>'PurchaseOrderController@listDetail']);
-	Route::get('purchaseOrders/listDetail',['as'=>'purchaseOrder.listDetail','uses'=>'PurchaseOrderController@listDetail']);
+	Route::post('purchaseOrders/listDetail',['as'=>'purchaseOrder.listDetail','uses'=>'PurchaseOrderController@listDetail']);
 	Route::get('purchaseOrders/show',['as'=>'purchaseOrder.show','uses'=>'PurchaseOrderController@show']);
 	Route::get('purchaseOrders/edit',['as'=>'purchaseOrder.edit','uses'=>'PurchaseOrderController@edit','middleware' => ['permission:purchaseOrder-edit']]);
 	Route::post('purchaseOrders/update',['as'=>'purchaseOrder.update','uses'=>'PurchaseOrderController@update']);
