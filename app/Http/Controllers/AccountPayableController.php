@@ -660,7 +660,7 @@ class AccountPayableController extends Controller
         ->orderBy('nama')
         ->get();
 
-        $status = ['DRAFT','UPDATED','POSTED','CANCEL','PAID'];
+        $status = ['DRAFT','VALIDATED','APPROVED','POSTED','CANCELED','CLOSED','PAID'];
                 
         $data['status'] = $status[$data['header']->status -1];
 
