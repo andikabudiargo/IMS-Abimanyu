@@ -180,15 +180,39 @@
                                         </div>
                                     </div>
                                     <div class="form-group row mb-03">
-                                        <label for="totalPPH" class="col-sm-4 col-form-label titik-dua">PPH23 <span id="nilaiPPH"></span> </label>
+                                        <label for="totalPPH23" class="col-sm-4 col-form-label titik-dua">PPH23 <span id="nilaiPPH23">{{ $header->pph23_type == 'PPH23' ? $nilaiPPH23."%" : '' }}</span> </label>
                                         <div class="col-sm-1" style="padding-right: 0rem;display: flex;align-items: center;">
                                             <div class="custom-control custom-checkbox">
-                                                <input type="checkbox" class="custom-control-input" id="pph23Check" name="pph23Check" {{ $header->pph23 ? 'checked':'' }} disabled />
+                                                <input type="checkbox" class="custom-control-input" id="pph23Check" name="pph23Check" {{ $header->pph23_type == 'PPH23' ?'checked' : '' }}/>
                                                 <label class="custom-control-label" for="pph23Check"></label>
                                             </div>
                                         </div> 
                                         <div class="col-sm-5">
-                                            <input type="text" class="form-control text-right font-weight-bold numeral-mask disabled-el" id="totalPPH" name="totalPPH" value="{{ $header->pph23 }}" disabled/>
+                                            <input type="text" class="form-control text-right font-weight-bold numeral-mask disabled-el" id="totalPPH23" name="totalPPH23" value="{{ $header->pph23_type == 'PPH23' ?$header->pph23 : 0 }}/>" disabled/>
+                                        </div>
+                                    </div>
+                                    <div class="form-group row mb-03">
+                                        <label for="totalPPH21" class="col-sm-4 col-form-label titik-dua">PPH21 <span id="nilaiPPH21">{{ $header->pph23_type == 'PPH21' ? $nilaiPPH21."%" : '' }}</span> </label>
+                                        <div class="col-sm-1" style="padding-right: 0rem;display: flex;align-items: center;">
+                                            <div class="custom-control custom-checkbox">
+                                                <input type="checkbox" class="custom-control-input" id="pph21Check" name="pph21Check" {{ $header->pph23_type == 'PPH21' ?'checked' : '' }}/>
+                                                <label class="custom-control-label" for="pph21Check"></label>
+                                            </div>
+                                        </div> 
+                                        <div class="col-sm-5">
+                                            <input type="text" class="form-control text-right font-weight-bold numeral-mask disabled-el" id="totalPPH21" name="totalPPH21" value="{{ $header->pph23_type == 'PPH21' ?$header->pph23 : 0 }}/>" disabled/>
+                                        </div>
+                                    </div>
+                                    <div class="form-group row mb-03">
+                                        <label for="totalPPH24" class="col-sm-4 col-form-label titik-dua">PPH24 <span id="nilaiPPH24">{{ $header->pph23_type == 'PPH24' ? $nilaiPPH24."%" : '' }}</span> </label>
+                                        <div class="col-sm-1" style="padding-right: 0rem;display: flex;align-items: center;">
+                                            <div class="custom-control custom-checkbox">
+                                                <input type="checkbox" class="custom-control-input" id="pph24Check" name="pph24Check" {{ $header->pph23_type == 'PPH24' ?'checked' : '' }}/>
+                                                <label class="custom-control-label" for="pph24Check"></label>
+                                            </div>
+                                        </div> 
+                                        <div class="col-sm-5">
+                                            <input type="text" class="form-control text-right font-weight-bold numeral-mask disabled-el" id="totalPPH24" name="totalPPH24" value="{{ $header->pph23_type == 'PPH24' ?$header->pph23 : 0 }}/>" disabled/>
                                         </div>
                                     </div>
                                     <div class="form-group row mb-03">

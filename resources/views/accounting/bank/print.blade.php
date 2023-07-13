@@ -195,7 +195,7 @@
                         <table width="100%">
                             <tr>
                                 <td style="vertical-align: bottom;">
-                                    <div class="huruf-tebal font-16" style="text-align:center">BUKTI KAS MASUK</div>
+                                    <div class="huruf-tebal font-16" style="text-align:center">BUKTI BANK MASUK</div>
                                     <div class="huruf-tebal font-14" style="text-align:center">{{ $header->voucher_number }}</div>
                                     <br>
                                     <table width="100%">

@@ -95,7 +95,7 @@
     <table width="100%" border="0">
         <tr>
             <td width="6%" rowspan="4" class="no-wrap h-tengah">
-                <img src="{{ public_path('app-assets/images/logo/logo_po.png') }}" alt="logo" width="200%" height="200%" /> 
+                <img src="{{ public_path('app-assets/images/logo/logo_po.png') }}" alt="logo" width="180%" height="180%" /> 
             </td>
             <td valign="middle" colspan="4" rowspan="2" class="header-padding h-tengah" ><h2>BILL OF MATERIALS</h2></td>
             <td valign="" class="font-10 header-padding" >No Dokumen</td>

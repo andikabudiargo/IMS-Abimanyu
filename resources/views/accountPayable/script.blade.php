@@ -4,20 +4,68 @@
     // let recAda;
     // let status ="{{ Session::get('status') ? Session::get('status'): '' }}";
     let sNilaiPPN= "{{ $nilaiPPN }}";
-    let sNilaiPPH= "{{ $nilaiPPH }}";
+    let sNilaiPPH23= "{{ $nilaiPPH23 }}";
+    let sNilaiPPH21= "{{ $nilaiPPH21 }}";
+    let sNilaiPPH42= "{{ $nilaiPPH42 }}";
     let showDetail="";
     let edit="";
     
     $("#pph23Check").change(function() {
         if(this.checked) {
             let basisAmount = parseInt($('#basisAmount').val().replace(/,/gi, '')) || 0;
-            $("#totalPPH").val(basisAmount * (sNilaiPPH/100));
-            $("#nilaiPPH").text(sNilaiPPH+'%');
+            $("#totalPPH23").val(basisAmount * (sNilaiPPH23/100));
+            $("#nilaiPPH23").text(sNilaiPPH23+'%');
+            $('#pph21Check').prop('checked',false);
+            $('#pph42Check').prop('checked',false);
+            $("#nilaiPPH21").text('');
+            $("#nilaiPPH42").text('');
+            $("#totalPPH21").val('');
+            $("#totalPPH42").val('');
             mask_thousand();
             hitungTotal();
         }else{
-            $("#totalPPH").val(0);
-            $("#nilaiPPH").text('');
+            $("#totalPPH23").val(0);
+            $("#nilaiPPH23").text('');
+            hitungTotal();  
+        }
+    });
+
+    $("#pph21Check").change(function() {
+        if(this.checked) {
+            let basisAmount = parseInt($('#basisAmount').val().replace(/,/gi, '')) || 0;
+            $("#totalPPH21").val(basisAmount * (sNilaiPPH21/100));
+            $("#nilaiPPH21").text(sNilaiPPH21+'%');
+            $("#nilaiPPH23").text('');
+            $("#nilaiPPH42").text('');
+            $("#totalPPH23").val('');
+            $("#totalPPH42").val('');
+            $('#pph23Check').prop('checked',false);
+            $('#pph42Check').prop('checked',false);
+            mask_thousand();
+            hitungTotal();
+        }else{
+            $("#totalPPH21").val(0);
+            $("#nilaiPPH21").text('');
+            hitungTotal();  
+        }
+    });
+
+    $("#pph42Check").change(function() {
+        if(this.checked) {
+            let basisAmount = parseInt($('#basisAmount').val().replace(/,/gi, '')) || 0;
+            $("#totalPPH42").val(basisAmount * (sNilaiPPH42/100));
+            $("#nilaiPPH42").text(sNilaiPPH42+'%');
+            $('#pph23Check').prop('checked',false);
+            $('#pph21Check').prop('checked',false);
+            $("#nilaiPPH21").text('');
+            $("#nilaiPPH23").text('');
+            $("#totalPPH21").val('');
+            $("#totalPPH23").val('');
+            mask_thousand();
+            hitungTotal();
+        }else{
+            $("#totalPPH42").val(0);
+            $("#nilaiPPH42").text('');
             hitungTotal();  
         }
     });
@@ -39,21 +87,23 @@
     hitungTotal = () => {
         let ba = parseInt($('#basisAmount').val().replace(/,/gi, '')) || 0;
         let vat = parseInt($('#totalPPN').val().replace(/,/gi, '')) || 0;
-        let pph23 = parseInt($('#totalPPH').val().replace(/,/gi, '')) || 0;
+        let pph23 = parseInt($('#totalPPH23').val().replace(/,/gi, '')) || 0;
+        let pph21 = parseInt($('#totalPPH21').val().replace(/,/gi, '')) || 0;
+        let PPH42 = parseInt($('#totalPPH42').val().replace(/,/gi, '')) || 0;
         let od = parseInt($('#totalDiscount').val().replace(/,/gi, '')) || 0;
         let total;
         
         if(vat){
-            total = ba? (ba-od)+vat-pph23 : '';
+            total = ba? (ba-od)+vat-(pph23+pph21+PPH42) : '';
         }else{
-            total = ba? (ba-od)-(pph23) : '';
+            total = ba? (ba-od)-(pph23+pph21+PPH42) : '';
         }
 
         $('#grandTotal').val(total);
         mask_thousand();
     }
 
-    $("#basisAmount,#totalPPN,#totalPPH,#totalDiscount").keyup(function(){
+    $("#basisAmount,#totalPPN,#totalPPH23,#totalPPH21,#totalPPH42,#totalDiscount").keyup(function(){
         hitungTotal();
     })
    
@@ -86,6 +136,8 @@
     $('#supplier').change(function(){
         let value= $(this).val();
         let obj = 'poNumber';
+        let term = $(this).find(":selected").data("term");
+        $('#term').val();
         kosongkanData();
         $.ajax({
             url:"{{ route('ap.list.po') }}",
@@ -187,8 +239,14 @@
         $('#accountBa').val("").trigger("change");
 
         $('#pph23Check').prop('checked',false);
-        $("#totalPPH").val(0);
-        $("#nilaiPPH").text('');
+        $('#pph21Check').prop('checked',false);
+        $('#pph42Check').prop('checked',false);
+        $("#totalPPH23").val(0);
+        $("#totalPPH21").val(0);
+        $("#totalPPH42").val(0);
+        $("#nilaiPPH23").text('');
+        $("#nilaiPPH21").text('');
+        $("#nilaiPPH42").text('');
 
         $("#vatCheck").prop("checked",false);
         $("#nilaiPPN").text('');
@@ -201,7 +259,9 @@
         $('#cmdSubmit').attr('disabled','disabled');
         $('#basisAmount').val(0);
         $('#totalPPN').val(0);
-        $('#totalPPH').val(0);
+        $('#totalPPH23').val(0);
+        $('#totalPPH21').val(0);
+        $('#totalPPH42').val(0);
         $('#totalDiscount').val(0);
         hitungTotal();
     }
@@ -252,13 +312,13 @@
                         $('#nilaiPPN').text(sNilaiPPN+"%");
                     }
 
-                    if (result.summaryRec[0].pph22>0){
-                        $('#pph23Check').prop('checked',true);
-                        $('#nilaiPPH').text(sNilaiPPH+"%");
-                    }
+                    // if (result.summaryRec[0].pph22>0){
+                    //     $('#pph23Check').prop('checked',true);
+                    //     $('#nilaiPPH23').text(sNilaiPPH+"%");
+                    // }
                     
                     $('#nilaiPPN').val(humanizeNumber(result.summaryRec[0].vat));
-                    $('#totalPPH').val(humanizeNumber(result.summaryRec[0].pph22));
+                    // $('#totalPPH23').val(humanizeNumber(result.summaryRec[0].pph22));
 
                     hitungTotal();
 

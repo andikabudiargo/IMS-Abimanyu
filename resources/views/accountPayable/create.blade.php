@@ -27,20 +27,24 @@
                                             <input type="hidden" id="recNumberSave" name="recNumberSave" class="form-control text-hitam disabled-el" value="" />
                                         </div>
                                         <div class="form-group col-md-3">
-                                            <label for="apDate">AP Date*</label>
-                                            <input type="text" id="apDate" name="apDate" class="form-control" value="{{ old('invoiceDate') }}" placeholder="DD-MM-YYYY" />
+                                            <label for="apDate">Receive AP*</label>
+                                            <input type="text" id="apDate" name="apDate" class="form-control" value="{{ old('apDate') }}" placeholder="DD-MM-YYYY" />
                                         </div> 
                                     </div>
                                     <div class="form-row">
-                                        <div class="form-group col-md-12">
+                                        <div class="form-group col-md-10">
                                             <label class="form-label" for="supplier">Supplier*</label>
                                             <select class="select2 form-control" id="supplier" name="supplier" required>
                                                 <option value="">All</option>
                                                 @foreach($supps as $val)
-                                                    <option value="{{ $val->kode }}" {{ old('supplier') == $val->kode ? 'selected' : '' }} >{{$val->kode}} - {{$val->nama}}</option>
+                                                    <option value="{{ $val->kode }}" data-term = "{{ $val->top_batas_1 }}" {{ old('supplier') == $val->kode ? 'selected' : '' }} >{{$val->kode}} - {{$val->nama}}</option>
                                                 @endforeach
                                             </select>
                                         </div>
+                                        <div class="form-group col-md-2">
+                                            <label for="term">Term*</label>
+                                            <input type="text" id="term" name="term" class="form-control" value="{{ old('term') }}" disabled />
+                                        </div> 
                                     </div>
                                     <div class="form-row">
                                         <div class="form-group col-md-8">
@@ -170,6 +174,19 @@
                                             <input type="text" class="form-control text-right font-weight-bold numeral-mask disabled-el" id="totalPPN"  name="totalPPN" disabled/>
                                         </div>
                                     </div>
+                                    
+                                    <div class="form-group row mb-03">
+                                        <label for="totalPPH23" class="col-sm-4 col-form-label titik-dua">PPH23 <span id="nilaiPPH"></span> </label>
+                                        <div class="col-sm-1" style="padding-right: 0rem;display: flex;align-items: center;">
+                                            <div class="custom-control custom-checkbox">
+                                                <input type="checkbox" class="custom-control-input" id="pph23Check" name="pph23Check" />
+                                                <label class="custom-control-label" for="pph23Check"></label>
+                                            </div>
+                                        </div> 
+                                        <div class="col-sm-5">
+                                            <input type="text" class="form-control text-right font-weight-bold numeral-mask disabled-el" id="totalPPH23" name="totalPPH23" disabled/>
+                                        </div>
+                                    </div>
                                     <div class="form-group row mb-03">
                                         <label for="totalPPH21" class="col-sm-4 col-form-label titik-dua">PPH21 <span id="nilaiPPH21"></span> </label>
                                         <div class="col-sm-1" style="padding-right: 0rem;display: flex;align-items: center;">
@@ -183,15 +200,15 @@
                                         </div>
                                     </div>
                                     <div class="form-group row mb-03">
-                                        <label for="totalPPH" class="col-sm-4 col-form-label titik-dua">PPH23 <span id="nilaiPPH"></span> </label>
+                                        <label for="totalPPH42" class="col-sm-4 col-form-label titik-dua">PPH4(2) <span id="nilaiPPH42"></span> </label>
                                         <div class="col-sm-1" style="padding-right: 0rem;display: flex;align-items: center;">
                                             <div class="custom-control custom-checkbox">
-                                                <input type="checkbox" class="custom-control-input" id="pph23Check" name="pph23Check" />
-                                                <label class="custom-control-label" for="pph23Check"></label>
+                                                <input type="checkbox" class="custom-control-input" id="pph42Check" name="pph42Check" />
+                                                <label class="custom-control-label" for="pph42Check"></label>
                                             </div>
                                         </div> 
                                         <div class="col-sm-5">
-                                            <input type="text" class="form-control text-right font-weight-bold numeral-mask disabled-el" id="totalPPH" name="totalPPH" disabled/>
+                                            <input type="text" class="form-control text-right font-weight-bold numeral-mask disabled-el" id="totalPPH42" name="totalPPH42" disabled/>
                                         </div>
                                     </div>
                                     <div class="form-group row mb-03">
