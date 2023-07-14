@@ -159,7 +159,7 @@
                                     <div class="form-group row mb-03 d-none">
                                         <label for="totalPPN" class="col-sm-4 col-form-label titik-dua">Discount </label>
                                         <div class="col-sm-6">
-                                            <input type="text" class="form-control text-right font-weight-bold numeral-mask disabled-el" id="totalDiscount" name="totalDiscount" />
+                                            <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el" id="totalDiscount" name="totalDiscount" />
                                         </div>
                                     </div>
                                     <div class="form-group row mb-03">
@@ -171,12 +171,12 @@
                                             </div>
                                         </div>    
                                         <div class="col-sm-5">
-                                            <input type="text" class="form-control text-right font-weight-bold numeral-mask disabled-el" id="totalPPN"  name="totalPPN" disabled/>
+                                            <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el" id="totalPPN"  name="totalPPN" disabled/>
                                         </div>
                                     </div>
                                     
                                     <div class="form-group row mb-03">
-                                        <label for="totalPPH23" class="col-sm-4 col-form-label titik-dua">PPH23 <span id="nilaiPPH"></span> </label>
+                                        <label for="totalPPH23" class="col-sm-4 col-form-label titik-dua">PPH23 <span id="nilaiPPH23"></span> </label>
                                         <div class="col-sm-1" style="padding-right: 0rem;display: flex;align-items: center;">
                                             <div class="custom-control custom-checkbox">
                                                 <input type="checkbox" class="custom-control-input" id="pph23Check" name="pph23Check" />
@@ -184,7 +184,7 @@
                                             </div>
                                         </div> 
                                         <div class="col-sm-5">
-                                            <input type="text" class="form-control text-right font-weight-bold numeral-mask disabled-el" id="totalPPH23" name="totalPPH23" disabled/>
+                                            <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el" id="totalPPH23" name="totalPPH23" disabled/>
                                         </div>
                                     </div>
                                     <div class="form-group row mb-03">
@@ -196,7 +196,7 @@
                                             </div>
                                         </div> 
                                         <div class="col-sm-5">
-                                            <input type="text" class="form-control text-right font-weight-bold numeral-mask disabled-el" id="totalPPH21" name="totalPPH21" disabled/>
+                                            <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el" id="totalPPH21" name="totalPPH21" disabled/>
                                         </div>
                                     </div>
                                     <div class="form-group row mb-03">
@@ -208,13 +208,13 @@
                                             </div>
                                         </div> 
                                         <div class="col-sm-5">
-                                            <input type="text" class="form-control text-right font-weight-bold numeral-mask disabled-el" id="totalPPH42" name="totalPPH42" disabled/>
+                                            <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el" id="totalPPH42" name="totalPPH42" disabled/>
                                         </div>
                                     </div>
                                     <div class="form-group row mb-03">
                                         <label for="grandTotal" class="col-sm-4 col-form-label titik-dua">Total</label>
                                         <div class="col-sm-6">
-                                            <input type="text" class="form-control text-right font-weight-bold numeral-mask disabled-el" id="grandTotal" name="grandTotal" disabled/>
+                                            <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el" id="grandTotal" name="grandTotal" disabled/>
                                             <input type="hidden" class="form-control text-right font-weight-bold" id="grandTotalQty" name="grandTotalQty" disabled/>
                                         </div>
                                     </div>

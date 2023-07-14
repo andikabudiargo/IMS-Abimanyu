@@ -171,7 +171,7 @@
                                             </div>
                                         </div>    
                                         <div class="col-sm-5">
-                                            <input type="text" class="form-control text-right font-weight-bold numeral-mask disabled-el" id="totalPPN"  name="totalPPN" disabled/>
+                                            <input type="text" class="form-control text-right font-weight-bold   disabled-el numeral-mask-digit" id="totalPPN" name="totalPPN" disabled/>
                                         </div>
                                     </div>
                                     <div class="form-group row mb-03">
@@ -183,7 +183,7 @@
                                             </div>
                                         </div> 
                                         <div class="col-sm-5">
-                                            <input type="text" class="form-control text-right font-weight-bold numeral-mask disabled-el" id="totalPPH23" name="totalPPH23" value="{{ $header->pph23_type == 'PPH23' ?$header->pph23 : 0 }}/>" disabled/>
+                                            <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el" id="totalPPH23" name="totalPPH23" value="{{ $header->pph23_type == 'PPH23' ? $header->pph23 : 0 }}" {{ $header->pph23_type == 'PPH23' ? '' : 'disabled' }} />
                                         </div>
                                     </div>
                                     <div class="form-group row mb-03">
@@ -195,25 +195,25 @@
                                             </div>
                                         </div> 
                                         <div class="col-sm-5">
-                                            <input type="text" class="form-control text-right font-weight-bold numeral-mask disabled-el" id="totalPPH21" name="totalPPH21" value="{{ $header->pph23_type == 'PPH21' ?$header->pph23 : 0 }}/>" disabled/>
+                                            <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el" id="totalPPH21" name="totalPPH21" value="{{ $header->pph23_type == 'PPH21' ? $header->pph23 : 0 }}" {{ $header->pph23_type == 'PPH21' ? '' : 'disabled' }}/>
                                         </div>
                                     </div>
                                     <div class="form-group row mb-03">
                                         <label for="totalPPH42" class="col-sm-4 col-form-label titik-dua">PPH4(2) <span id="nilaiPPH42">{{ $header->pph23_type == 'PPH42' ? $nilaiPPH42."%" : '' }}</span> </label>
                                         <div class="col-sm-1" style="padding-right: 0rem;display: flex;align-items: center;">
                                             <div class="custom-control custom-checkbox">
-                                                <input type="checkbox" class="custom-control-input" id="PPH42Check" name="PPH42Check" {{ $header->pph23_type == 'PPH42' ?'checked' : '' }}/>
-                                                <label class="custom-control-label" for="PPH42Check"></label>
+                                                <input type="checkbox" class="custom-control-input" id="pph42Check" name="pph42Check" {{ $header->pph23_type == 'PPH42' ?'checked' : '' }}/>
+                                                <label class="custom-control-label" for="pph42Check"></label>
                                             </div>
                                         </div> 
                                         <div class="col-sm-5">
-                                            <input type="text" class="form-control text-right font-weight-bold numeral-mask disabled-el" id="totalPPH42" name="totalPPH42" value="{{ $header->pph23_type == 'PPH42' ?$header->pph23 : 0 }}/>" disabled/>
+                                            <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el" id="totalPPH42" name="totalPPH42" value="{{ $header->pph23_type == 'PPH42' ? $header->pph23 : 0 }}" {{ $header->pph23_type == 'PPH42' ? '' : 'disabled' }}/>
                                         </div>
                                     </div>
                                     <div class="form-group row mb-03">
                                         <label for="grandTotal" class="col-sm-4 col-form-label titik-dua">Total</label>
                                         <div class="col-sm-6">
-                                            <input type="text" class="form-control text-right font-weight-bold numeral-mask disabled-el" id="grandTotal" name="grandTotal" disabled/>
+                                            <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el" id="grandTotal" name="grandTotal" disabled/>
                                             <input type="hidden" class="form-control text-right font-weight-bold" id="grandTotalQty" name="grandTotalQty" disabled/>
                                         </div>
                                     </div>
@@ -297,11 +297,11 @@
     $(document).ready(function(){
         validateFormToast("frmAdd");
         mask_thousand();
+        mask_thousand_digit(2);
         edit='true';
         poAda ="{{ $header->po_number }}";
         $('#supplier').val("{{ $header->supplier_id }}").trigger('change');
         showDetail='false';
-        
     });
 
     $("#cmdPosting").click(function(){        

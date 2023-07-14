@@ -162,31 +162,38 @@
         }else{
             let tsoCode = $(this).val();
             let dStockDate = stockDate.val();
+            
             if (tsoCode){        
-                $(".loading-spinner-container").addClass("-show");
-                $.ajax({
-                    type: "GET",
-                    url: "{{ route('purchaseRequest.article.tso') }}",
-                    data: {
-                        tsoCode:tsoCode,
-                        stockDate:dStockDate
-                    },
-                    dataType: "json",
-                    success: function(data) {
-                        if (data){
-                            for(let i=0;i<data.length;i++){
-                                add_new_row_sto(data[i].article_code,data[i].grand_total,data[i].uom,'',data[i].qty_stock,data[i].alternative,data[i].article_desc,data[i].uom_group,data[i].supp);
-                                if (i==(data.length-1)){
-                                    $(".loading-spinner-container").removeClass("-show");
-                                    isiUom();
+                if (dStockDate){
+                    $(".loading-spinner-container").addClass("-show");
+                    $.ajax({
+                        type: "GET",
+                        url: "{{ route('purchaseRequest.article.tso') }}",
+                        data: {
+                            tsoCode:tsoCode,
+                            stockDate:dStockDate
+                        },
+                        dataType: "json",
+                        success: function(data) {
+                            if (data){
+                                for(let i=0;i<data.length;i++){
+                                    add_new_row_sto(data[i].article_code,data[i].grand_total,data[i].uom,'',data[i].qty_stock,data[i].alternative,data[i].article_desc,data[i].uom_group,data[i].supp);
+                                    if (i==(data.length-1)){
+                                        $(".loading-spinner-container").removeClass("-show");
+                                        isiUom();
+                                    }
                                 }
                             }
+                        },
+                        error: function(error) {
+                            Swal.fire('Error..',error,'error');
                         }
-                    },
-                    error: function(error) {
-                        Swal.fire('Error..',error,'error');
-                    }
-                });
+                    });
+                }else{
+                    objTsoCode.val("");
+                    stockDate.focus();
+                    Swal.fire('Warning !!','Tanggal stock belum diisi','warning');
+                }
             }else{
                 $('#article_row').empty();
                 cloneCount=0;

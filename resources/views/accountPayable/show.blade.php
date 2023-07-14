@@ -188,7 +188,7 @@
                                             </div>
                                         </div> 
                                         <div class="col-sm-5">
-                                            <input type="text" class="form-control text-right font-weight-bold numeral-mask disabled-el" id="totalPPH23" name="totalPPH23" value="{{ $header->pph23_type == 'PPH23' ?$header->pph23 : 0 }}/>" disabled/>
+                                            <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el" id="totalPPH23" name="totalPPH23" value="{{ $header->pph23_type == 'PPH23' ? $header->pph23 : 0 }}" disabled />
                                         </div>
                                     </div>
                                     <div class="form-group row mb-03">
@@ -200,19 +200,19 @@
                                             </div>
                                         </div> 
                                         <div class="col-sm-5">
-                                            <input type="text" class="form-control text-right font-weight-bold numeral-mask disabled-el" id="totalPPH21" name="totalPPH21" value="{{ $header->pph23_type == 'PPH21' ?$header->pph23 : 0 }}/>" disabled/>
+                                            <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el" id="totalPPH21" name="totalPPH21" value="{{ $header->pph23_type == 'PPH21' ? $header->pph23 : 0 }}" disabled/>
                                         </div>
                                     </div>
                                     <div class="form-group row mb-03">
-                                        <label for="totalPPH24" class="col-sm-4 col-form-label titik-dua">PPH24 <span id="nilaiPPH24">{{ $header->pph23_type == 'PPH24' ? $nilaiPPH24."%" : '' }}</span> </label>
+                                        <label for="totalPPH42" class="col-sm-4 col-form-label titik-dua">PPH4(2) <span id="nilaiPPH42">{{ $header->pph23_type == 'PPH42' ? $nilaiPPH42."%" : '' }}</span> </label>
                                         <div class="col-sm-1" style="padding-right: 0rem;display: flex;align-items: center;">
                                             <div class="custom-control custom-checkbox">
-                                                <input type="checkbox" class="custom-control-input" id="pph24Check" name="pph24Check" {{ $header->pph23_type == 'PPH24' ?'checked' : '' }}/>
-                                                <label class="custom-control-label" for="pph24Check"></label>
+                                                <input type="checkbox" class="custom-control-input" id="pph42Check" name="pph42Check" {{ $header->pph23_type == 'PPH42' ?'checked' : '' }}/>
+                                                <label class="custom-control-label" for="pph42Check"></label>
                                             </div>
                                         </div> 
                                         <div class="col-sm-5">
-                                            <input type="text" class="form-control text-right font-weight-bold numeral-mask disabled-el" id="totalPPH24" name="totalPPH24" value="{{ $header->pph23_type == 'PPH24' ?$header->pph23 : 0 }}/>" disabled/>
+                                            <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el" id="totalPPH42" name="totalPPH42" value="{{ $header->pph23_type == 'PPH42' ? $header->pph23 : 0 }}" disabled/>
                                         </div>
                                     </div>
                                     <div class="form-group row mb-03">
@@ -280,10 +280,11 @@
 </style>
 @endsection
 @section('scripts')
-{{-- @include('accountPayable.script') --}}
 <script type="text/javascript">
     $(document).ready(function(){
         mask_thousand();
+        mask_thousand_digit(2);
+        edit='true';
     });
 
     $.ajaxSetup({

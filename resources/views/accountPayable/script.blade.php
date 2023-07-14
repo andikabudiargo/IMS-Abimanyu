@@ -7,6 +7,7 @@
     let sNilaiPPH23= "{{ $nilaiPPH23 }}";
     let sNilaiPPH21= "{{ $nilaiPPH21 }}";
     let sNilaiPPH42= "{{ $nilaiPPH42 }}";
+    
     let showDetail="";
     let edit="";
     
@@ -21,6 +22,11 @@
             $("#nilaiPPH42").text('');
             $("#totalPPH21").val('');
             $("#totalPPH42").val('');
+            $('#totalPPH23').removeAttr('disabled');
+            $('#totalPPH21').attr('disabled','disabled');
+            $('#totalPPH42').attr('disabled','disabled');
+            $('#totalPPH23').focus().select();
+            mask_thousand_digit(2);
             mask_thousand();
             hitungTotal();
         }else{
@@ -41,6 +47,11 @@
             $("#totalPPH42").val('');
             $('#pph23Check').prop('checked',false);
             $('#pph42Check').prop('checked',false);
+            $('#totalPPH21').removeAttr('disabled');
+            $('#totalPPH23').attr('disabled','disabled');
+            $('#totalPPH42').attr('disabled','disabled');
+            $('#totalPPH21').focus().select();
+            mask_thousand_digit(2);
             mask_thousand();
             hitungTotal();
         }else{
@@ -61,6 +72,11 @@
             $("#nilaiPPH23").text('');
             $("#totalPPH21").val('');
             $("#totalPPH23").val('');
+            $('#totalPPH42').removeAttr('disabled');
+            $('#totalPPH21').attr('disabled','disabled');
+            $('#totalPPH23').attr('disabled','disabled');
+            $('#totalPPH42').focus().select();
+            mask_thousand_digit(2);
             mask_thousand();
             hitungTotal();
         }else{
@@ -75,6 +91,7 @@
             let basisAmount = parseInt($('#basisAmount').val().replace(/,/gi, '')) || 0;
             $("#totalPPN").val(basisAmount * (sNilaiPPN/100));
             $("#nilaiPPN").text(sNilaiPPN+'%');
+            mask_thousand_digit(2);
             mask_thousand();
             hitungTotal();
         }else{
@@ -87,19 +104,20 @@
     hitungTotal = () => {
         let ba = parseInt($('#basisAmount').val().replace(/,/gi, '')) || 0;
         let vat = parseInt($('#totalPPN').val().replace(/,/gi, '')) || 0;
-        let pph23 = parseInt($('#totalPPH23').val().replace(/,/gi, '')) || 0;
-        let pph21 = parseInt($('#totalPPH21').val().replace(/,/gi, '')) || 0;
-        let PPH42 = parseInt($('#totalPPH42').val().replace(/,/gi, '')) || 0;
+        let pph23 = parseFloat($('#totalPPH23').val().replace(/,/gi, '')) || 0;
+        let pph21 = parseFloat($('#totalPPH21').val().replace(/,/gi, '')) || 0;
+        let pph42 = parseFloat($('#totalPPH42').val().replace(/,/gi, '')) || 0;
         let od = parseInt($('#totalDiscount').val().replace(/,/gi, '')) || 0;
         let total;
         
         if(vat){
-            total = ba? (ba-od)+vat-(pph23+pph21+PPH42) : '';
+            total = ba? (ba-od)+vat-(pph23+pph21+pph42) : '';
         }else{
-            total = ba? (ba-od)-(pph23+pph21+PPH42) : '';
+            total = ba? (ba-od)-(pph23+pph21+pph42) : '';
         }
 
         $('#grandTotal').val(total);
+        mask_thousand_digit(2);
         mask_thousand();
     }
 
@@ -137,7 +155,7 @@
         let value= $(this).val();
         let obj = 'poNumber';
         let term = $(this).find(":selected").data("term");
-        $('#term').val();
+        $('#term').val(term);
         kosongkanData();
         $.ajax({
             url:"{{ route('ap.list.po') }}",
@@ -168,7 +186,6 @@
         let obj = 'recNumber';
         $('#poDate').val(poDate);
         apNumber = $('#apNumber').val();
-
         if(value){
             $.ajax({
                 url:"{{ route('ap.list.rec') }}",
@@ -184,14 +201,14 @@
                         $('#cmdSubmit').removeAttr('disabled');
                         $("#listOfLpb tbody").append(result);
                         if(apNumber){
-                            cmdSubmit();
+                            if (edit == 'true'){
+                                cmdSubmit();
+                                edit='false';
+                            }
                         }
                     }else{
                         $('#cmdSubmit').attr('disabled','disabled');
                     }
-    
-                    // $('#'+obj).html(result);
-                    // recAda ? $('#'+obj).val(recAda).trigger('change'):$('#'+obj).val('').trigger('change');
                 },
                 error: function (response) {
                     //Error here
@@ -208,7 +225,6 @@
             recNumber += $(this).data('rec-number')+",";
             sumQty += parseInt($(this).data('sum-qty'));
         });
-
         recNumber=recNumber.slice(0,-1);
         let tableIsi = $('#listOfRec > tbody  tr').length;
         if(parseInt($("#grandTotalQty").val())!=sumQty){
@@ -233,36 +249,28 @@
         $('#basisAmount').val("");
         $('#currency').val("IDR").trigger("change");
         $('#rate').val("");
-        
-        // $('#apDate').val(currentDate);
-
         $('#accountBa').val("").trigger("change");
-
-        $('#pph23Check').prop('checked',false);
-        $('#pph21Check').prop('checked',false);
-        $('#pph42Check').prop('checked',false);
-        $("#totalPPH23").val(0);
-        $("#totalPPH21").val(0);
-        $("#totalPPH42").val(0);
-        $("#nilaiPPH23").text('');
-        $("#nilaiPPH21").text('');
-        $("#nilaiPPH42").text('');
-
         $("#vatCheck").prop("checked",false);
-        $("#nilaiPPN").text('');
-        
-        // $("#sewa").prop("checked", true);
-        // $("#tipePPH23").toggleClass("d-none");
-
         $("#listOfLpb > tbody").empty();
         $("#listOfRec > tbody").empty();
         $('#cmdSubmit').attr('disabled','disabled');
         $('#basisAmount').val(0);
+        
+        $("#nilaiPPN").text('');
         $('#totalPPN').val(0);
-        $('#totalPPH23').val(0);
-        $('#totalPPH21').val(0);
-        $('#totalPPH42').val(0);
-        $('#totalDiscount').val(0);
+
+        if (edit == 'false'){
+            $('#pph23Check').prop('checked',false);
+            $('#pph21Check').prop('checked',false);
+            $('#pph42Check').prop('checked',false);
+            $("#nilaiPPH23").text('');
+            $("#nilaiPPH21").text('');
+            $("#nilaiPPH42").text('');
+            $('#totalPPH23').val(0);
+            $('#totalPPH21').val(0);
+            $('#totalPPH42').val(0);
+            $('#totalDiscount').val(0);
+        }
         hitungTotal();
     }
 
@@ -296,7 +304,6 @@
                                     <td class="text-right">${humanizeNumber(result.detailRec[i].total)}</td>
                                 </tr>`;
                             grandTotalQty+=parseInt(result.detailRec[i].qty);
-
                         }
 
                         $("#listOfRec tbody").append(isiTabel);

@@ -24,7 +24,7 @@ class AccountPayableController extends Controller
     private $nilaiPpn;
     private $nilaiPph23;
     private $nilaiPph21;
-    private $nilaiPPH42;
+    private $nilaiPph42;
 
     public function __construct()
     {
@@ -44,7 +44,7 @@ class AccountPayableController extends Controller
         ->where('attr_id','mainpph21')
         ->value('attr_value');
 
-        $this->nilaiPPH42 = DB::table('attributes')
+        $this->nilaiPph42 = DB::table('attributes')
         ->where('attr_id','mainpph42')
         ->value('attr_value');
 
@@ -340,9 +340,7 @@ class AccountPayableController extends Controller
 
         $result = "'" . implode ( "', '", $arrayRecNumber ) . "'";
 
-        $nilaiPPN = DB::table('attributes')
-        ->where('attr_id','mainppn')
-        ->value('attr_value');
+        $nilaiPPN = $this->nilaiPpn;
 
         $detailRec = DB::table('receiving_det')
         ->leftJoin('receiving_hdr','receiving_hdr.rec_number','receiving_det.rec_number')
@@ -351,7 +349,6 @@ class AccountPayableController extends Controller
             $join->on('po.po_number','=','receiving_hdr.po_number')
                 ->on('po.article_code','=','receiving_det.article_code');
         })
-
         // ->leftJoin(DB::RAW("(select * from purchase_order_det where po_number = '$poNumber') AS po"),'po.po_number','receiving_hdr.po_number')
         ->whereIn('receiving_det.rec_number',$arrayRecNumber)
         ->where('receiving_det.qty','>',0)
@@ -391,7 +388,7 @@ class AccountPayableController extends Controller
         left join purchase_order_hdr y on y.po_number = z.po_number");
 
         // dd($summaryRec);
-        return response()->json(array('detailRec'=>$detailRec,'summaryRec'=>$summaryRec));    
+        return response()->json(array('detailRec'=>$detailRec,'summaryRec'=>$summaryRec));
     }
 
     public function poDetail(Request $request)
@@ -442,7 +439,7 @@ class AccountPayableController extends Controller
         $data['nilaiPPN'] = $this->nilaiPpn;
         $data['nilaiPPH23'] = $this->nilaiPph23;
         $data['nilaiPPH21'] = $this->nilaiPph21;
-        $data['nilaiPPH42'] = $this->nilaiPPH42;
+        $data['nilaiPPH42'] = $this->nilaiPph42;
         
         return view("accountPayable.create",$data);
     }
@@ -466,36 +463,62 @@ class AccountPayableController extends Controller
         $apDate= $request->apDate;
         $invoiceNumber=$request->invoiceNumber;
         $taxInvoiceNumber=$request->taxInvoiceNumber;
-
         $recNumberSave = explode(",",$request->recNumberSave);
-        $vat=is_null($request->totalPPN) ? 0 : preg_replace('/[^0-9.]+/', '', $request->totalPPN);
-
-        $pph23 = is_null($request->totalPPH23) ? 0 : preg_replace('/[^0-9.]+/', '', $request->totalPPH23);
-        $pph21 = is_null($request->totalPPH21) ? 0 : preg_replace('/[^0-9.]+/', '', $request->totalPPH21);
-        $PPH42 = is_null($request->totalPPH42) ? 0 : preg_replace('/[^0-9.]+/', '', $request->totalPPH42);
 
         $totalDiscount = is_null($request->totalDiscount) ? 0 : preg_replace('/[^0-9.]+/', '', $request->totalDiscount);
         $grandTotal = is_null($request->grandTotal) ? 0 :  preg_replace('/[^0-9.]+/', '', $request->grandTotal);
-        $typePph ='';
-        $typePph=$pph23 > 0 && $typePph=='' ? 'PPH23' :'';
-        $typePph=$pph21 > 0 && $typePph=='' ? 'PPH21' :'';
-        $typePph=$pph21 > 0 && $typePph=='' ? 'PPH23' :'';
+
+        $vat=is_null($request->totalPPN) ? 0 : preg_replace('/[^0-9.]+/', '', $request->totalPPN);
+        $pph23 = is_null($request->totalPPH23) ? 0 : preg_replace('/[^0-9.]+/', '', $request->totalPPH23);
+        $pph21 = is_null($request->totalPPH21) ? 0 : preg_replace('/[^0-9.]+/', '', $request->totalPPH21);
+        $pph42 = is_null($request->totalPPH42) ? 0 : preg_replace('/[^0-9.]+/', '', $request->totalPPH42);
+
+        $typePph ='';        
+        if($pph23 > 0 && $typePph==''){
+            $typePph='PPH23';
+        }
+
+        if($pph21 > 0 && $typePph==''){
+            $typePph='PPH21';
+        }
+
+        if($pph42 > 0 && $typePph==''){
+            $typePph='PPH42';
+        }
 
         $nilaiPph=0;
-        $nilaiPph=$pph23 > 0 && $nilaiPph >0 ? $pph23 : 0 ;
-        $nilaiPph=$pph21 > 0 && $nilaiPph >0 ? $pph21 : 0 ;
-        $nilaiPph=$PPH42 > 0 && $nilaiPph >0 ? $PPH42 : 0 ;
+        if($pph23 > 0 && $nilaiPph ==0){
+            $nilaiPph=$pph23;
+        }
+
+        if($pph21 > 0 && $nilaiPph ==0){
+            $nilaiPph=$pph21;
+        }
+
+        if($pph42 > 0 && $nilaiPph ==0){
+            $nilaiPph=$pph42;
+        }
+
         
+                
         $accountVat   ='1100.73';
         $acountTotal  ='2000.11';
         $accountPph23 ='2000.14.3';
         $accountPph21 ='2000.14.2';
-        $accountPPH42 ='2000.14.6';
+        $accountPph42 ='2000.14.6';
 
         $accountPph = '';
-        $accountPph=$pph23 > 0 && $accountPph >0 ? $accountPph23 : '' ;
-        $accountPph=$pph21 > 0 && $accountPph >0 ? $accountPph21 : '' ;
-        $accountPph=$PPH42 > 0 && $accountPph >0 ? $accountPPH42 : '' ;
+        if($pph23 > 0 && $accountPph ==''){
+            $accountPph=$accountPph23;
+        }
+
+        if($pph21 > 0 && $accountPph ==''){
+            $accountPph=$accountPph21;
+        }
+
+        if($pph42 > 0 && $accountPph ==''){
+            $accountPph=$accountPph42;
+        }
                 
         $status = '1';
         $authorizedBy = "";
@@ -610,11 +633,13 @@ class AccountPayableController extends Controller
         $data['subtitle'] = "Detail $this->title";
 
         $data['id']=$id;
-        
-        $data['header'] = DB::table('ap_invoice')
-        ->where('id',$id)
-        ->get()->first();
 
+        $data['header'] = DB::table('ap_invoice')
+        ->leftJoin('third_party', 'third_party.kode', '=', 'ap_invoice.supplier_id')
+        ->select('ap_invoice.*','third_party.top_batas_1')
+        ->where('ap_invoice.id',$id)
+        ->get()->first();
+        
         $apNumber = $data['header']->ap_number;
         $poNumber = $data['header']->po_number;
 
@@ -636,20 +661,20 @@ class AccountPayableController extends Controller
         ->get();
 
         $data['listRec']= DB::table("receiving_hdr") 
-        ->whereNotIn(DB::raw("rec_number"), function($query) use ($apNumber) {
+        ->whereIn(DB::raw("rec_number"), function($query) use ($apNumber) {
             $query->select("rec_number")
             ->from('ap_invoice_detail')
-            ->where('ap_number','<>',$apNumber);
+            ->where('ap_number',$apNumber);
         })
         ->orderBy("id")
         ->select("rec_number","do_date","do_number")
         ->get();
 
         $listRec= DB::table("receiving_hdr") 
-        ->whereNotIn(DB::raw("rec_number"), function($query) use ($apNumber) {
+        ->whereIn(DB::raw("rec_number"), function($query) use ($apNumber) {
             $query->select("rec_number")
             ->from('ap_invoice_detail')
-            ->where('ap_number','<>',$apNumber);
+            ->where('ap_number',$apNumber);
         })
         ->pluck('rec_number')->toArray();
         
@@ -695,7 +720,7 @@ class AccountPayableController extends Controller
         $data['nilaiPPN'] = $this->nilaiPpn;
         $data['nilaiPPH23'] = $this->nilaiPph23;
         $data['nilaiPPH21'] = $this->nilaiPph21;
-        $data['nilaiPPH42'] = $this->nilaiPPH42;
+        $data['nilaiPPH42'] = $this->nilaiPph42;
 
         $data['statusRevision'] = '';
         $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode,$apNumber,$username);
@@ -722,7 +747,7 @@ class AccountPayableController extends Controller
         $data['header'] = DB::table('ap_invoice')
         ->leftJoin('third_party', 'third_party.kode', '=', 'ap_invoice.supplier_id')
         ->select('ap_invoice.*','third_party.top_batas_1')
-        ->where('id',$id)
+        ->where('ap_invoice.id',$id)
         ->get()->first();
 
         $apNumber = $data['header']->ap_number;
@@ -741,7 +766,7 @@ class AccountPayableController extends Controller
         ->where('old_ap_number',$data['header']->ap_number)
         ->where('status','6')
         ->select('ap_invoice.*','nama')
-        ->orderBy('id')
+        ->orderBy('ap_invoice.id')
         ->get();
 
         $data['supps'] = DB::table('third_party')
@@ -769,7 +794,7 @@ class AccountPayableController extends Controller
         $data['nilaiPPN'] = $this->nilaiPpn;
         $data['nilaiPPH23'] = $this->nilaiPph23;
         $data['nilaiPPH21'] = $this->nilaiPph21;
-        $data['nilaiPPH42'] = $this->nilaiPPH42;
+        $data['nilaiPPH42'] = $this->nilaiPph42;
 
         $data['statusRevision'] = '';
         
@@ -784,9 +809,6 @@ class AccountPayableController extends Controller
         $apNumber=$request->apNumber;
         $suppCode = $request->supplier;
         $poNumber = $request->poNumber;
-        // $profInvoice = $request->profInvoice;
-        // $recNumber = $request->recNumber;
-        // $dueDate = $request->dueDate;
         $currency = $request->currency;
         $rate = is_null($request->rate) ? 0 : preg_replace('/[^0-9.]+/', '', $request->rate);
         $invoiceNumber= $request->invoiceNumber;
@@ -801,17 +823,62 @@ class AccountPayableController extends Controller
         $apDate= $request->apDate;
         $invoiceNumber=$request->invoiceNumber;
         $taxInvoiceNumber=$request->taxInvoiceNumber;
-
         $recNumberSave = explode(",",$request->recNumberSave);
-        $vat=is_null($request->totalPPN) ? 0 : preg_replace('/[^0-9.]+/', '', $request->totalPPN);
-        $pph23 = is_null($request->totalPPH) ? 0 : preg_replace('/[^0-9.]+/', '', $request->totalPPH);
         $totalDiscount = is_null($request->totalDiscount) ? 0 : preg_replace('/[^0-9.]+/', '', $request->totalDiscount);
         $grandTotal = is_null($request->grandTotal) ? 0 :  preg_replace('/[^0-9.]+/', '', $request->grandTotal);
 
-        $accountVat ='1100.73';
-        $acountTotal = '2000.11';
-        $accountPph23 ='2000.14.3';
+        $vat=is_null($request->totalPPN) ? 0 : preg_replace('/[^0-9.]+/', '', $request->totalPPN);
+        $pph23 = is_null($request->totalPPH23) ? 0 : preg_replace('/[^0-9.]+/', '', $request->totalPPH23);
+        $pph21 = is_null($request->totalPPH21) ? 0 : preg_replace('/[^0-9.]+/', '', $request->totalPPH21);
+        $pph42 = is_null($request->totalPPH42) ? 0 : preg_replace('/[^0-9.]+/', '', $request->totalPPH42);
+
+        $typePph ='';        
+        if($pph23 > 0 && $typePph==''){
+            $typePph='PPH23';
+        }
+
+        if($pph21 > 0 && $typePph==''){
+            $typePph='PPH21';
+        }
+
+        if($pph42 > 0 && $typePph==''){
+            $typePph='PPH42';
+        }
+
+        $nilaiPph=0;
+        if($pph23 > 0 && $nilaiPph ==0){
+            $nilaiPph=$pph23;
+        }
+
+        if($pph21 > 0 && $nilaiPph ==0){
+            $nilaiPph=$pph21;
+        }
+
+        if($pph42 > 0 && $nilaiPph ==0){
+            $nilaiPph=$pph42;
+        }
+
+        
                 
+        $accountVat   ='1100.73';
+        $acountTotal  ='2000.11';
+        $accountPph23 ='2000.14.3';
+        $accountPph21 ='2000.14.2';
+        $accountPph42 ='2000.14.6';
+
+        $accountPph = '';
+        if($pph23 > 0 && $accountPph ==''){
+            $accountPph=$accountPph23;
+        }
+
+        if($pph21 > 0 && $accountPph ==''){
+            $accountPph=$accountPph21;
+        }
+
+        if($pph42 > 0 && $accountPph ==''){
+            $accountPph=$accountPph42;
+        }
+
         $status = '1';
         $authorizedBy = "";
         
@@ -853,7 +920,8 @@ class AccountPayableController extends Controller
                         'total_discount' => $totalDiscount,
                         'vat' => $vat,
                         'other_deduction' => $otherDeduct,
-                        'pph23' => $pph23,
+                        'pph23' => $nilaiPph,
+                        'pph23_type' => $typePph,
                         'grand_total' => $grandTotal,
                         'account_ba'=> $accountBasisA,
                         'status' => $status,
@@ -865,7 +933,7 @@ class AccountPayableController extends Controller
                         'ap_date' =>$apDate,
                         'account_total' => $acountTotal,
                         'account_vat' => $accountVat,
-                        'account_pph' => $accountPph23,
+                        'account_pph' => $accountPph,
                     ]
                 );
 
@@ -1072,35 +1140,35 @@ class AccountPayableController extends Controller
                 ];  
             }
 
-            if($apData->pph21 > 0){
-                $dataSet[] = [
-                    'voucher_number' => $apNumber,
-                    'account' =>$apData->account_pph,
-                    'description' => $apNumber.' '.$apData->supplier_name,
-                    'debit' => 0,
-                    'credit' => $apData->pph21,
-                    'reference' => $apNumber,
-                    'created_by' => Auth::user()->username,
-                    'updated_by' => Auth::user()->username,
-                    'created_at' => date('Y-m-d H:i:s'),
-                    'updated_at' => date('Y-m-d H:i:s')
-                ];  
-            }
+            // if($apData->pph21 > 0){
+            //     $dataSet[] = [
+            //         'voucher_number' => $apNumber,
+            //         'account' =>$apData->account_pph,
+            //         'description' => $apNumber.' '.$apData->supplier_name,
+            //         'debit' => 0,
+            //         'credit' => $apData->pph21,
+            //         'reference' => $apNumber,
+            //         'created_by' => Auth::user()->username,
+            //         'updated_by' => Auth::user()->username,
+            //         'created_at' => date('Y-m-d H:i:s'),
+            //         'updated_at' => date('Y-m-d H:i:s')
+            //     ];  
+            // }
 
-            if($apData->PPH42 > 0){
-                $dataSet[] = [
-                    'voucher_number' => $apNumber,
-                    'account' =>$apData->account_pph,
-                    'description' => $apNumber.' '.$apData->supplier_name,
-                    'debit' => 0,
-                    'credit' => $apData->PPH42,
-                    'reference' => $apNumber,
-                    'created_by' => Auth::user()->username,
-                    'updated_by' => Auth::user()->username,
-                    'created_at' => date('Y-m-d H:i:s'),
-                    'updated_at' => date('Y-m-d H:i:s')
-                ];  
-            }
+            // if($apData->PPH42 > 0){
+            //     $dataSet[] = [
+            //         'voucher_number' => $apNumber,
+            //         'account' =>$apData->account_pph,
+            //         'description' => $apNumber.' '.$apData->supplier_name,
+            //         'debit' => 0,
+            //         'credit' => $apData->PPH42,
+            //         'reference' => $apNumber,
+            //         'created_by' => Auth::user()->username,
+            //         'updated_by' => Auth::user()->username,
+            //         'created_at' => date('Y-m-d H:i:s'),
+            //         'updated_at' => date('Y-m-d H:i:s')
+            //     ];  
+            // }
 
             $dataSet[] = [
                 'voucher_number' => $apNumber,

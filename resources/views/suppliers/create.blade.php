@@ -106,7 +106,7 @@
                             <div class="form-group col-md-4">
                                 <label class="form-label" for="topBatas2">TOP</label>
                                 <div class="input-group input-group-merge"> 
-                                    <input type="text" id="termin" name="termin" class="form-control angka" value="{{ old('termin') }}" maxlength="4"/>
+                                    <input type="text" id="termin" name="termin" class="form-control angka" value="{{ old('termin') }}" maxlength="4" required/>
                                     <div class="input-group-append">
                                         <span class="input-group-text">Days</span>
                                     </div>
@@ -160,7 +160,7 @@
                         <div class="row">
                             <div class="form-group col-md-6">
                                 <select class="select2 form-control" id="bankName" name="bankName">
-                                    <label for="bankName">Bank name*</label>
+                                    <label for="bankName">Bank name</label>
                                     <option value="">Choose bank</option>
                                     @foreach($banks as $val)
                                         <option value="{{ $val->bank_name }}" {{ $val->bank_name == old("bankName") ? "selected" : ""}} required >{{ $val->bank_name }} </option>
@@ -170,14 +170,14 @@
                         </div>
                         <div class="row">
                             <div class="form-group col-md-6">
-                                <label for="accNumber">Acount Number*</label>
-                                <input type="text" id="accNumber" name="accNumber" class="form-control text-uppercase" value="{{ old('accNumber') }}" maxlength="100" required/>
+                                <label for="accNumber">Acount Number</label>
+                                <input type="text" id="accNumber" name="accNumber" class="form-control text-uppercase" value="{{ old('accNumber') }}" maxlength="100"/>
                             </div>
                         </div>
                         <div class="row">
                             <div class="form-group col-md-6">
-                                <label for="branch">Branch*</label>
-                                <input type="text" id="branch" name="branch" class="form-control" value="{{ old('branch') }}"  maxlength="100" required/>
+                                <label for="branch">Branch</label>
+                                <input type="text" id="branch" name="branch" class="form-control" value="{{ old('branch') }}"  maxlength="100"/>
                             </div>
                         </div>
                         {{-- <div class="form-row">
