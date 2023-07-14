@@ -57,7 +57,7 @@
         }
 
         .header, .header-space{
-                height: 243px;
+                height: 265px;
         }
 
         .footer, .footer-space {
@@ -239,6 +239,7 @@
                                     <strong> Customer: </strong><br>
                                     {{ $customers->nama }} <br>
                                     {{ $customers->alamat_kirim_1 }} <br>
+                                    <strong>No. NPWP Customer : </strong> {{ $customers->npwp }}
                                 </td>
                                 <td width="38%" valign="top" style="border: 1px solid #0c0c0c;padding-left:5px;padding-right:5px">
                                     <br>
@@ -260,12 +261,12 @@
                             <thead>
                                 <tr>
                                     <th width="5%">No</th>
-                                    <th width="40%">Description</th>
+                                    <th width="50%" >Description</th>
                                     <th width="10%" align="center">Qty</th>
-                                    <th width="13%">Material Price</th>
-                                    <th width="13%">Service Price</th>
-                                    <th width="15%">Total Material</th>
-                                    <th width="15%">Total Service</th>
+                                    <th width="12%">Material Price</th>
+                                    <th width="12%">Service Price</th>
+                                    <th width="14%">Total Material</th>
+                                    <th width="14%">Total Service</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -273,12 +274,12 @@
                                 <tr >
                                     <td style="border-right: 1px solid black;border-bottom: none;" align="center" scope="row" >{{ ++$no }}</td>
                                     {{-- <td  align="left">{{ $val->article_alternative_code }}</td> --}}
-                                    <td  style="border-right: 1px solid black;" align="left">{{ $val->article_desc }}</td>
+                                    <td  style="border-right: 1px solid black;font-size: 11pt;" align="left">{{ $val->article_desc }}</td>
                                     <td  style="border-right: 1px solid black;" align="center">{{ number_format($val->qty) }}</td>
-                                    <td  style="border-right: 1px solid black;" align="right">{{ number_format($val->price,2) }}</td>
-                                    <td  style="border-right: 1px solid black;" align="right">{{ number_format($val->price_service,2) }}</td>
-                                    <td  style="border-right: 1px solid black;" align="right">{{ number_format(($val->qty*$val->price),2) }}</td>
-                                    <td  style="border-right: 1px solid black;" align="right">{{ number_format(($val->qty*$val->price_service),2) }}</td>
+                                    <td  style="border-right: 1px solid black;padding:0 3px 0 3px" align="right">{{ number_format($val->price,2) }}</td>
+                                    <td  style="border-right: 1px solid black;padding:0 3px 0 3px" align="right">{{ number_format($val->price_service,2) }}</td>
+                                    <td  style="border-right: 1px solid black;padding:0 3px 0 3px" align="right">{{ number_format(($val->qty*$val->price),2) }}</td>
+                                    <td  style="border-right: 1px solid black;padding:0 3px 0 3px" align="right">{{ number_format(($val->qty*$val->price_service),2) }}</td>
                                 </tr>
                             @endforeach
                             
@@ -334,7 +335,7 @@
                                     </tr>
                                 @endforeach
                                 <tr>
-                                    <td valign="top" width="60%" colspan="4" style="border-right: 1px solid white;">
+                                    <td valign="top" width="60%" colspan="5" style="border-right: 1px solid white;font-size: 11pt;">
                                         <br>
                                         Note:<br>
                                         Please transfer to our account <br>	
@@ -345,12 +346,11 @@
                                         Attention/ perhatian<br>
                                         - Faktur ini berlaku sebagai Kwitansi.<br>
                                         - Pembayaran dengan Cheque / Bilyet atau Wesel dianggap lunas setelah melalui Clearing
-                        
                                     </td>
-                                    <td valign="top" colspan="3" align="center" width="30%" >
+                                    <td valign="top" colspan="2" align="center" >
                                         <br>
                                         Purwakarta, {{ $tanggalHariIni }} <br>
-                                        <br><br><br><br><br>
+                                        <br><br><br><br><br><br><br>
                                         ( Budi Mulyadi )<br> 
                                     </td>
                                 </tr>

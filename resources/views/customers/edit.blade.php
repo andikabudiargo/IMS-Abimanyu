@@ -56,7 +56,7 @@
                     <div class="form-row">
                         <div class="form-group col-md-6">
                             <label class="form-label" for="nama">Nama</label>
-                            <input type="text" id="nama" name="nama" value="{{ old('nama',$customers->nama) }}" class="form-control" required maxlength="30" autofocus/>
+                            <input type="text" id="nama" name="nama" value="{{ old('nama',$customers->nama) }}" class="form-control" required maxlength="100" autofocus/>
                         </div>
                         <div class="form-group col-md-6">
                             <label class="form-label" for="inisial">Inisial</label>

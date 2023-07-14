@@ -327,7 +327,7 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('aps/list/sj',['as'=>'ap.list.sj','uses'=>'AccountPayableController@listSj']);
 	Route::get('aps/list/po',['as'=>'ap.list.po','uses'=>'AccountPayableController@listPo']);
 	Route::get('aps/list/rec',['as'=>'ap.list.rec','uses'=>'AccountPayableController@listRec']);
-	Route::get('aps/detail/rec',['as'=>'ap.detail.rec','uses'=>'AccountPayableController@detailRec']);
+	Route::get('aps/detail/rec',['as'=>'ap.detail.rec','uses'=>'AccountPayableController@	']);
 	Route::post('aps/store',['as'=>'ap.store','uses'=>'AccountPayableController@store']);
 	Route::get('aps/show',['as'=>'ap.show','uses'=>'AccountPayableController@show']);
 	Route::get('aps/edit',['as'=>'ap.edit','uses'=>'AccountPayableController@edit','middleware' => ['permission:ap-edit']]);
