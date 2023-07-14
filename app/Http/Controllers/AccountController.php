@@ -69,7 +69,7 @@ class AccountController extends Controller
         $username =  Auth::user()->username;
         $account = strtoupper($request->input('account'));
         $desc = $request->input('desc');
-        $openingBalance = is_null($request->input('openingBalance')) ? 0 : preg_replace('/[^0-9.]+/', '', $request->input('openingBalance'));
+        $openingBalance = is_null($request->openingBalance) ? 0 : preg_replace('/[^0-9.]+/', '', $request->input('openingBalance'));
         $group = $request->input('group');
         $type = $request->input('type');
         $dept = $request->input('dept');
@@ -163,7 +163,8 @@ class AccountController extends Controller
         $id = $request->id;
         $account = strtoupper($request->input('account'));
         $desc = $request->input('desc');
-        $openingBalance = preg_replace('/[^0-9.]+/', '', $request->input('openingBalance'));
+        // $openingBalance = $request->openingBalance ? preg_replace('/[^0-9.]+/', '', $request->openingBalance):0;
+        $openingBalance = is_null($request->openingBalance) ? 0 : preg_replace('/[^0-9.]+/', '', $request->input('openingBalance'));
         $group = $request->input('group');
         $type = $request->input('type');
         $dept = $request->input('dept');
