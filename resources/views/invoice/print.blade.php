@@ -233,133 +233,133 @@
         <tbody>
             <tr>
                 <td>
-                    <div>
-                        <table width="100%">
-                            <tr >
-                                 <td width="60%" align="center" style="border: 1px solid #0c0c0c;padding-left:5px;padding-right:5px" >
-                                    <h2 style="margin:0px">INVOICE</h2>
-                                </td>
-                                <td style="border: 1px solid #0c0c0c;padding-left:5px;padding-right:5px">
-                                    <b style="font-size:17px" >{{ $recHdr->invoice_number }}</b>
-                                </td>
-                            </tr>
+                    <table width="100%">
+                        <tr >
+                                <td width="60%" align="center" style="border: 1px solid #0c0c0c;padding-left:5px;padding-right:5px" >
+                                <h2 style="margin:0px">INVOICE</h2>
+                            </td>
+                            <td style="border: 1px solid #0c0c0c;padding-left:5px;padding-right:5px">
+                                <b style="font-size:17px" >{{ $recHdr->invoice_number }}</b>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td width="60%" valign="top" style="border: 1px solid #0c0c0c;padding-left:5px;padding-right:5px">
+                                <strong> Customer: </strong><br>
+                                {{ $customers->nama }} <br>
+                                {{ $customers->alamat_kirim_1 }} <br>
+                                <strong>No. NPWP Customer : </strong> {{ $customers->npwp }}
+                            </td>
+                            <td width="38%" valign="top" style="border: 1px solid #0c0c0c;padding-left:5px;padding-right:5px">
+                                <br>
+                                <strong>PO Number : </strong>{{ $listpo }}<br>
+                                <strong>No FP : </strong>{{ $recHdr->faktur_pajak }}
+                                <br><p></p>
+                            </td>
+                        </tr>
+                    </table>
+                    <div style="padding: 0 2px 0 2px">
+                    <table id="tblContent" class="font-14" style="table-layout:fixed;">
+                        <thead>
                             <tr>
-                                <td width="60%" valign="top" style="border: 1px solid #0c0c0c;padding-left:5px;padding-right:5px">
-                                    <strong> Customer: </strong><br>
-                                    {{ $customers->nama }} <br>
-                                    {{ $customers->alamat_kirim_1 }} <br>
-                                    <strong>No. NPWP Customer : </strong> {{ $customers->npwp }}
-                                </td>
-                                <td width="38%" valign="top" style="border: 1px solid #0c0c0c;padding-left:5px;padding-right:5px">
-                                    <br>
-                                    <strong>PO Number : </strong>{{ $listpo }}<br>
-                                    <strong>No FP : </strong>{{ $recHdr->faktur_pajak }}
-                                    <br><p></p>
-                                </td>
+                                <th width="5%">No</th>
+                                <th width="50%" >Description</th>
+                                <th width="10%" align="center">Qty</th>
+                                <th width="12%">Material Price</th>
+                                <th width="12%">Service Price</th>
+                                <th width="14%">Total Material</th>
+                                <th width="14%">Total Service</th>
                             </tr>
-                        </table>
-                        <table id="tblContent" class="font-14" style="table-layout:fixed;">
-                            <thead>
+                        </thead>
+                        <tbody>
+                            @foreach ($details as $val )
+                            <tr >
+                                <td style="border-right: 1px solid black;border-bottom: none;" align="center" scope="row" >{{ ++$no }}</td>
+                                {{-- <td  align="left">{{ $val->article_alternative_code }}</td> --}}
+                                <td  style="border-right: 1px solid black;font-size: 11pt;" align="left">{{ $val->article_desc }}</td>
+                                <td  style="border-right: 1px solid black;" align="center">{{ number_format($val->qty) }}</td>
+                                <td  style="border-right: 1px solid black;padding:0 3px 0 3px" align="right">{{ number_format($val->price,2) }}</td>
+                                <td  style="border-right: 1px solid black;padding:0 3px 0 3px" align="right">{{ number_format($val->price_service,2) }}</td>
+                                <td  style="border-right: 1px solid black;padding:0 3px 0 3px" align="right">{{ number_format(($val->qty*$val->price),2) }}</td>
+                                <td  style="border-right: 1px solid black;padding:0 3px 0 3px" align="right">{{ number_format(($val->qty*$val->price_service),2) }}</td>
+                            </tr>
+                        @endforeach
+                        
+                        <?php $totalBaris = 14 ?>
+
+                        @for ($i=1;$i< $totalBaris-(count($details));$i++)
+                            <tr >
+                                <td style="border-right: 1px solid black;" class="putih" height="16"></td>
+                                <td style="border-right: 1px solid black;" ></td>
+                                <td style="border-right: 1px solid black;" ></td>
+                                <td style="border-right: 1px solid black;" ></td>
+                                <td style="border-right: 1px solid black;" ></td>
+                                <td style="border-right: 1px solid black;" ></td>
+                                <td style="border-right: 1px solid black;" ></td>
+                            </tr>
+                        @endfor
+                        <tr>
+                            <td  align="left"  style="border-bottom: 1px solid black;border-right: 1px solid black;"></td>
+                            <td  align="left"  style="border-bottom: 1px solid black;border-right: 1px solid black;"></td>
+                            <td  align="right" style="border-bottom: 1px solid black;border-right: 1px solid black;"></td>
+                            <td  align="right" style="border-bottom: 1px solid black;border-right: 1px solid black;"></td>
+                            <td  align="right" style="border-bottom: 1px solid black;border-right: 1px solid black;"></td>
+                            <td  align="right" style="border-bottom: 1px solid black;border-right: 1px solid black;"></td>
+                            <td  align="right" style="border-bottom: 1px solid black;border-right: 1px solid black;"></td>
+                        </tr>
+                        </tbody>
+                        <tfoot>
+                            @foreach ($totals as $val )            
                                 <tr>
-                                    <th width="5%">No</th>
-                                    <th width="50%" >Description</th>
-                                    <th width="10%" align="center">Qty</th>
-                                    <th width="12%">Material Price</th>
-                                    <th width="12%">Service Price</th>
-                                    <th width="14%">Total Material</th>
-                                    <th width="14%">Total Service</th>
+                                    {{-- <td colspan="4" rowspan="4" style="border-bottom: 1px solid black;"><b>Terbilang : </b><i>{{ ucwords(strtolower($terbilang)) }}</i> </td> --}}
+                                    <td colspan="4" rowspan="4" style="border-bottom: 1px solid black;">
+                                        <table style="table-layout:fixed;">
+                                            <tr>
+                                                <td style="border-right: none;border-left: none;padding-right:0px" width="15%" valign="top"><b>Terbilang : </b></td>
+                                                <td style="border-right: none;border-left: none;padding-left:0px"><i>{{ ucwords(strtolower($terbilang)) }}</i></td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                    <td colspan="" style="border: 1px solid #0c0c0c;padding-left:10px">DPP</td>
+                                    <td colspan="2" align="right" style="border: 1px solid #0c0c0c;padding-left:10px">{{ number_format($val->sub_total,2) }}</td>
                                 </tr>
-                            </thead>
-                            <tbody>
-                                @foreach ($details as $val )
-                                <tr >
-                                    <td style="border-right: 1px solid black;border-bottom: none;" align="center" scope="row" >{{ ++$no }}</td>
-                                    {{-- <td  align="left">{{ $val->article_alternative_code }}</td> --}}
-                                    <td  style="border-right: 1px solid black;font-size: 11pt;" align="left">{{ $val->article_desc }}</td>
-                                    <td  style="border-right: 1px solid black;" align="center">{{ number_format($val->qty) }}</td>
-                                    <td  style="border-right: 1px solid black;padding:0 3px 0 3px" align="right">{{ number_format($val->price,2) }}</td>
-                                    <td  style="border-right: 1px solid black;padding:0 3px 0 3px" align="right">{{ number_format($val->price_service,2) }}</td>
-                                    <td  style="border-right: 1px solid black;padding:0 3px 0 3px" align="right">{{ number_format(($val->qty*$val->price),2) }}</td>
-                                    <td  style="border-right: 1px solid black;padding:0 3px 0 3px" align="right">{{ number_format(($val->qty*$val->price_service),2) }}</td>
+                                <tr>
+                                    <td colspan="" style="border: 1px solid #0c0c0c;padding-left:10px">PPN {{ $nilaiPPN }}% </td>
+                                    <td colspan="2" align="right" style="border: 1px solid #0c0c0c;padding-left:10px">{{ number_format($val->ppn,2) }}</td>
+                                </tr>
+                                <tr>
+                                    <td colspan="" style="border: 1px solid #0c0c0c;padding-left:10px">PPH 23</td>
+                                    <td colspan="2" align="right" style="border: 1px solid #0c0c0c;padding-left:10px">{{ $val->pph23 ? '-'.number_format($val->pph23,2):'-' }}</td>
+                                </tr>
+                                <tr>
+                                    <td colspan="" style="border: 1px solid #0c0c0c;padding-left:10px">Total</td>
+                                    <td colspan="2" align="right" style="border: 1px solid #0c0c0c;padding-left:10px">{{ number_format($val->grand_total,2) }}</td>
                                 </tr>
                             @endforeach
-                            
-                            <?php $totalBaris = 14 ?>
-
-                            @for ($i=1;$i< $totalBaris-(count($details));$i++)
-                                <tr >
-                                    <td style="border-right: 1px solid black;" class="putih" height="16"></td>
-                                    <td style="border-right: 1px solid black;" ></td>
-                                    <td style="border-right: 1px solid black;" ></td>
-                                    <td style="border-right: 1px solid black;" ></td>
-                                    <td style="border-right: 1px solid black;" ></td>
-                                    <td style="border-right: 1px solid black;" ></td>
-                                    <td style="border-right: 1px solid black;" ></td>
-                                </tr>
-                            @endfor
                             <tr>
-                                <td  align="left"  style="border-bottom: 1px solid black;border-right: 1px solid black;"></td>
-                                <td  align="left"  style="border-bottom: 1px solid black;border-right: 1px solid black;"></td>
-                                <td  align="right" style="border-bottom: 1px solid black;border-right: 1px solid black;"></td>
-                                <td  align="right" style="border-bottom: 1px solid black;border-right: 1px solid black;"></td>
-                                <td  align="right" style="border-bottom: 1px solid black;border-right: 1px solid black;"></td>
-                                <td  align="right" style="border-bottom: 1px solid black;border-right: 1px solid black;"></td>
-                                <td  align="right" style="border-bottom: 1px solid black;border-right: 1px solid black;"></td>
+                                <td valign="top" width="60%" colspan="5" style="border-right: 1px solid white;font-size: 11pt;">
+                                    <br>
+                                    Note:<br>
+                                    Please transfer to our account <br>	
+                                    Mohon transfer ke rekening kami	<br>
+                                    Bank BCA No. Rek : <b>6785577888</b><br>
+                                    Cabang KC Purwakarta<br>
+                                    a.n PT. Abimanyu Sekar Nusantara<br><br>
+                                    Attention/ perhatian<br>
+                                    - Faktur ini berlaku sebagai Kwitansi.<br>
+                                    - Pembayaran dengan Cheque / Bilyet atau Wesel dianggap lunas setelah melalui Clearing
+                                </td>
+                                <td valign="top" colspan="2" align="center" >
+                                    <br>
+                                    Purwakarta, {{ $tanggalHariIni }} <br>
+                                    <br><br><br><br><br><br><br>
+                                    ( Budi Mulyadi )<br> 
+                                </td>
                             </tr>
-                            </tbody>
-                            <tfoot>
-                                @foreach ($totals as $val )            
-                                    <tr>
-                                        {{-- <td colspan="4" rowspan="4" style="border-bottom: 1px solid black;"><b>Terbilang : </b><i>{{ ucwords(strtolower($terbilang)) }}</i> </td> --}}
-                                        <td colspan="4" rowspan="4" style="border-bottom: 1px solid black;">
-                                            <table style="table-layout:fixed;">
-                                                <tr>
-                                                    <td style="border-right: none;border-left: none;padding-right:0px" width="15%" valign="top"><b>Terbilang : </b></td>
-                                                    <td style="border-right: none;border-left: none;padding-left:0px"><i>{{ ucwords(strtolower($terbilang)) }}</i></td>
-                                                </tr>
-                                            </table>
-                                        </td>
-                                        <td colspan="" style="border: 1px solid #0c0c0c;padding-left:10px">DPP</td>
-                                        <td colspan="2" align="right" style="border: 1px solid #0c0c0c;padding-left:10px">{{ number_format($val->sub_total,2) }}</td>
-                                    </tr>
-                                    <tr>
-                                        <td colspan="" style="border: 1px solid #0c0c0c;padding-left:10px">PPN {{ $nilaiPPN }}% </td>
-                                        <td colspan="2" align="right" style="border: 1px solid #0c0c0c;padding-left:10px">{{ number_format($val->ppn,2) }}</td>
-                                    </tr>
-                                    <tr>
-                                        <td colspan="" style="border: 1px solid #0c0c0c;padding-left:10px">PPH 23</td>
-                                        <td colspan="2" align="right" style="border: 1px solid #0c0c0c;padding-left:10px">{{ $val->pph23 ? '-'.number_format($val->pph23,2):'-' }}</td>
-                                    </tr>
-                                    <tr>
-                                        <td colspan="" style="border: 1px solid #0c0c0c;padding-left:10px">Total</td>
-                                        <td colspan="2" align="right" style="border: 1px solid #0c0c0c;padding-left:10px">{{ number_format($val->grand_total,2) }}</td>
-                                    </tr>
-                                @endforeach
-                                <tr>
-                                    <td valign="top" width="60%" colspan="5" style="border-right: 1px solid white;font-size: 11pt;">
-                                        <br>
-                                        Note:<br>
-                                        Please transfer to our account <br>	
-                                        Mohon transfer ke rekening kami	<br>
-                                        Bank BCA No. Rek : <b>6785577888</b><br>
-                                        Cabang KC Purwakarta<br>
-                                        a.n PT. Abimanyu Sekar Nusantara<br><br>
-                                        Attention/ perhatian<br>
-                                        - Faktur ini berlaku sebagai Kwitansi.<br>
-                                        - Pembayaran dengan Cheque / Bilyet atau Wesel dianggap lunas setelah melalui Clearing
-                                    </td>
-                                    <td valign="top" colspan="2" align="center" >
-                                        <br>
-                                        Purwakarta, {{ $tanggalHariIni }} <br>
-                                        <br><br><br><br><br><br><br>
-                                        ( Budi Mulyadi )<br> 
-                                    </td>
-                                </tr>
-                            </tfoot>
-                        </table>
-                        <span style="font-size: 11pt;"><i>Lembar Asli untuk Penagihan kepada Customer</i></span><br>
-                        <span style="font-size: 11pt;;"><i>Lembar Copy untuk Arsip</i></span>
+                        </tfoot>
+                    </table>
                     </div>
+                    <span style="font-size: 11pt;"><i>Lembar Asli untuk Penagihan kepada Customer</i></span><br>
+                    <span style="font-size: 11pt;;"><i>Lembar Copy untuk Arsip</i></span>
                 </td>
             </tr>
         </tbody>
