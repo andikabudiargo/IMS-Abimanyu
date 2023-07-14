@@ -189,10 +189,10 @@ class DeptController extends Controller
         $code = strtolower($request->code);
         $name = strtolower($request->name);
 
-        $data=DB::table('depts')
-        // ->where('code','ilike','%'.$code.'%')
-        // ->where('description','ilike','%'.$name.'%')  // string to lower
-        ->orderBy('name')->get();
+        $data=DB::table('depts');
+        $code ? $data->where('code','ilike','%'.$code.'%') : '';
+        $name ? $data->where('description','ilike','%'.$name.'%') : '';  // string to lower
+        $data->orderBy('name')->get();
 
         return Datatables::of($data)
         ->addColumn('action', function ($data) {
