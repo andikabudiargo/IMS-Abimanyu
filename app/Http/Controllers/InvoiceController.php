@@ -65,10 +65,9 @@ class InvoiceController extends Controller
 
         $data['kolom'] = $this->getTableColoumn();
 
-        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'RECEIVED','5'=>'DELETED','6'=>'PAID','7'=>'REVISED','8'=>'DECLINE'];
-        $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','6'=>'PAID','7'=>'REVISED'];
-        // $data['status'] = ['1'=>'Draft','2'=>'Update','3'=>'Posting','4'=>'Cancel'];
-            
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','6'=>'PAID','7'=>'REVISED'];
+        $data['status'] = ['1'=>'DRAFT','2'=>'VALIDATE','3'=>'APPROVED','6'=>'PAID'];
+                    
         return view("invoice.index",$data);
     }
 
@@ -88,7 +87,7 @@ class InvoiceController extends Controller
         $months = ['I', 'II', 'III','IV','V', 'VI', 'VII', 'VIII','IX','X','XI','XII'];
         $month = $months[date('n')-1];
         $year = date('y');
-        $invNumber="$key/ASN$year/$month/$newCode";
+        $invNumber="$key/ASN/$year/$month/$newCode";
         
         return $invNumber;
     }
@@ -132,7 +131,7 @@ class InvoiceController extends Controller
         $dpp = $request->totalAmount;
         $grandTotal = $request->totalNetto;
 
-        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED','9'=>'PAID'];
+       // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','6'=>'PAID','7'=>'REVISED'];
 
         $messages = [
             'required' => 'The field is required.',
@@ -177,7 +176,7 @@ class InvoiceController extends Controller
                     'so_number' => $soNumber,
                     // 'po_number' => $poNumber,
                     'dn_number' => $dnNumber,
-                    'dpp' => 0,
+                    'dpp' => $dpp,
                     'other_admin' => 0 ,
                     'discount' => 0,
                     'ppn' => $ppn,
@@ -192,7 +191,8 @@ class InvoiceController extends Controller
                     'updated_by' => Auth::user()->username,
                     'created_at' => date('Y-m-d H:i:s'),
                     'updated_at' => date('Y-m-d H:i:s'),
-                    'faktur_pajak' =>$fakturPajak
+                    'faktur_pajak' =>$fakturPajak,
+                    'grand_total' =>$grandTotal
                 ]);
 
                 $dataSet = [];
@@ -262,7 +262,7 @@ class InvoiceController extends Controller
         $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode,$invoiceNumber,$username);
         $data['approveValidate'] = Approval::approveValidate($this->moduleCode,$invoiceNumber,$username);
 
-        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','6'=>'PAID','7'=>'REVISED'];
+        // $data['status'] = ['1'=>'DRAFT','2'=>'VALIDATE','3'=>'APPROVED','6'=>'PAID','7'=>'REVISED'];
         $statusInv = ['DRAFT','VALIDATE','APPROVED','','','PAID','REVISED'];
         $data['statusInv'] = $statusInv[$data['header']->status-1];
 
@@ -279,6 +279,8 @@ class InvoiceController extends Controller
         $id=Crypt::decryptString($request->id);
         $data['title'] = "Edit $this->title";
         $data['subtitle'] = "Edit $this->title";
+
+        $data['id']=$id;
 
         $data['header'] = DB::table('invoice_hdr')
         ->where('id',$id)
@@ -332,6 +334,8 @@ class InvoiceController extends Controller
         $gudang = 'false';
         $kurs = 1;
         $fakturPajak  = $request->fakturPajak;
+        $dpp = $request->totalAmount;
+        $grandTotal = $request->totalNetto;
 
         // $data['status'] = ['1'=>'DRAFT','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','6'=>'CLOSED','6'=>'PAID'];
 
@@ -379,7 +383,7 @@ class InvoiceController extends Controller
                             'so_number' => $soNumber,
                             // 'po_number' => $poNumber,
                             'dn_number' => $dnNumber,
-                            'dpp' => 0,
+                            'dpp' => $dpp,
                             'other_admin' => 0 ,
                             'discount' => 0,
                             'ppn' => $ppn,
@@ -391,7 +395,8 @@ class InvoiceController extends Controller
                             'note' =>  $note,
                             'updated_by' => Auth::user()->username,
                             'updated_at' => date('Y-m-d H:i:s'),
-                            'faktur_pajak' =>$fakturPajak
+                            'faktur_pajak' =>$fakturPajak,
+                            'grand_total' =>$grandTotal
                         ]
                     );
 
@@ -540,50 +545,87 @@ class InvoiceController extends Controller
 
     public function destroy(Request $request)
     {
-        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED'];
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','6'=>'PAID','7'=>'REVISED'];
         $username =  Auth::user()->username;       
         $id=Crypt::decryptString($request->id);
-        $status = "5";
-
-        $invHdr= DB::table('invoice_hdr')
+        
+        $data= DB::table('invoice_hdr')
         ->where('id',$id)
         ->get()->first();
 
-        $invNumber = $invHdr->invoice_number;
-        $note = $invHdr->note;
-
-        $rowAffected=DB::table('invoice_hdr')
+        $invNumber = $data->invoice_number;
+        
+        $rowAffected = DB::table('invoice_hdr')
         ->where('invoice_number',$invNumber)
-        ->update(
-            [   
-                'invoice_number' => $invNumber."(C)",
-                'status' => $status,
-                'note' => $note." (Cancel)",
-                'updated_by' => Auth::user()->username,
-                'updated_at' => date('Y-m-d H:i:s')
-            ]
-        );
+        ->delete();
+                     
+        // $status = "5";
 
-        if($rowAffected>0){
+        // $invHdr= DB::table('invoice_hdr')
+        // ->where('id',$id)
+        // ->get()->first();
+
+        // $invNumber = $invHdr->invoice_number;
+        // $note = $invHdr->note;
+
+        // $rowAffected=DB::table('invoice_hdr')
+        // ->where('invoice_number',$invNumber)
+        // ->update(
+        //     [   
+        //         'invoice_number' => $invNumber."(C)",
+        //         'status' => $status,
+        //         'note' => $note." (Cancel)",
+        //         'updated_by' => Auth::user()->username,
+        //         'updated_at' => date('Y-m-d H:i:s')
+        //     ]
+        // );
+
+        if($rowAffected){
+
             DB::table('invoice_det')
             ->where('invoice_number',$invNumber)
-            ->update(
-                [   
-                    'invoice_number' => $invNumber."(C)",
-                    'updated_by' => Auth::user()->username,
-                    'updated_at' => date('Y-m-d H:i:s')
-                ]
-            );
+            ->delete();
 
-            $title ="Cancel $this->title";
+            $kasDet = DB::table('kas_det')
+            ->where('reference',$invNumber)
+            // ->whereIn('voucher_type',['KM','BM'])
+            ->first();
+
+            $voucherNumber=$kasDet->voucher_number;
+
+            DB::table('kas_hdr')
+            ->where('voucher_number',$voucherNumber)
+            ->delete();
+
+            DB::table('kas_det')
+            ->where('voucher_number',$voucherNumber)
+            ->delete();
+
+            DB::table('approval_history')
+            ->where('module_number',$invNumber)
+            ->where('module_code',$this->moduleCode)
+            ->delete();
+
+
+            // DB::table('invoice_det')
+            // ->where('invoice_number',$invNumber)
+            // ->update(
+            //     [   
+            //         'invoice_number' => $invNumber."(C)",
+            //         'updated_by' => Auth::user()->username,
+            //         'updated_at' => date('Y-m-d H:i:s')
+            //     ]
+            // );
+
+            $title ="Delete $this->title";
             $alert  ="success";
-            $message  = "$title $invNumber Successfully Cancel";
+            $message  = "$title $invNumber Successfully Deleted";
             \LogActivity::addToLog($title,"username: $username Status $message");
             return redirect()->back()->with(['alert'=>$alert,'title' => $title,'message'=> $message]);   
         }else{
             $title ="Cancel $this->title";
             $alert  ="warning";
-            $message  = "$title $invNumber Failed to Cancel";
+            $message  = "$title $invNumber Failed to Delete";
             \LogActivity::addToLog($title,"username: $username Status $message");
             return redirect()->back()->with(['alert'=>$alert,'title' => $title,'message'=> $message]);
         }
@@ -635,61 +677,39 @@ class InvoiceController extends Controller
         $searchSo = strtolower($request->searchSo);
         $searchCustomer = $request->searchCustomer; 
         $searchStatus = $request->searchStatus;
-        $recDate = $request->recDate;       
+        $invDate = $request->recDate;
+        $fromDate = "";
+        $toDate = "";
 
-        $filter='';
-        
-        // $filter.="lower(a.rec_type) = 'normal' and ";
+        if ($invDate){
+            $date = explode("to",$invDate);
+            if(count($date)>1){
+                $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+                $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
+            }else{
+                $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+                $toDate = $fromDate; 
+            }
+        }
 
-        // if ($searchRec !='' ){
-        //     $filter.="lower(a.rec_number) like '%$searchRec%' and ";
-        // }
-
-        // if ($searchPo !='' ){
-        //     $filter.="lower(a.po_number) like '%$searchPo%' and ";
-        // }
-
-        // if ($searchInv !='' ){
-        //     $filter.="lower(a.inv_number) like '%$searchInv%' and ";
-        // }
-
-        // if ($searchSupplier  != '' ){
-        //     $filter.="supplier_id = '$searchSupplier' and ";            
-        // }
-
-        // if ($searchStatus  != '' ){
-        //     $filter.="status = '$searchStatus' and ";            
-        // }
-
-        // if ($recDate  != '' ){
-        //     $date = explode("to",$recDate);
-        //     $date1=trim($date[0]);
-        //     $date2=trim($date[1]);
-        //     $filter.= "to_date(rec_date, 'DD/MM/YYYY')  BETWEEN to_date('$date1', 'DD/MM/YYYY') and to_date('$date2', 'DD/MM/YYYY') and ";
-        // }
-
-        
-        // if ($filter !=''){
-        //     $filter=" where ".substr($filter,0,-4);
-        // }
-
-        // $data = DB::select("SELECT id,inv_number,rec_number,rec_date,po_number,inv_date,
-        // (select concat(kode,'-',nama) from third_party where kode = supplier_id limit 1) as supp_name ,prepared_by,authorized_by,status
-        // from receiving_hdr a $filter");
-
-        // $data=DB::select("SELECT *,delivery_date,(select concat(kode,'-',nama) from third_party where kode = supplier_id limit 1) as supp_name,(gross-discount)+ppn as netto from (
-        //     select b.status,b.id,a.po_number,supplier_id,po_date,delivery_date,pkp,termin,authorized_by,prepared_by,uom,sum(qty) as qty,sum(qty*price) as gross,sum(discount) as discount,sum(a.ppn) as ppn from purchase_order_det a
-        //     left join receiving_hdr b
-        //     on a.po_number = b.po_number 
-        //     $filter
-        //     group by b.id,a.po_number,supplier_id,po_date,delivery_date,pkp,termin,authorized_by,prepared_by,uom,b.status) as oki");
-        
-        // $data=DB::table('receiving_hdr')->get();
-
-        $data = DB::select("SELECT *,
-        (select concat(kode,'-',nama) from third_party where kode = customer_id limit 1) as customer_name 
-        from invoice_hdr a $filter");
-
+        $data = DB::table('invoice_hdr')
+        ->leftJoin('third_party','third_party.kode','invoice_hdr.customer_id')
+        ->where(function ($query) use ($searchInv,$searchSo,$searchCustomer,$searchStatus,$invDate,$fromDate,$toDate) {
+            $searchInv ? $query->where('invoice_number','ilike','%'.$searchInv.'%') : '';
+            $searchSo ? $query->where('so_number','ilike','%'.$searchSo.'%') : '';
+            $searchCustomer ? $query->where('customer_id','ilike','%'.$searchCustomer.'%') : '';
+            $searchStatus ? $query->where('invoice_hdr.status','=',$searchStatus) : '';
+            $invDate ? $query->whereBetween(DB::raw("to_date(invoice_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
+        })
+        // ->where('invoice_hdr.status','<>','6')
+        ->select(
+            'invoice_hdr.*'
+            // ,DB::raw("(select STRING_AGG ( a.rec_number,',' ORDER BY a.id) as list_rec from invoice_hdr_detail a where ap_number = invoice_hdr.ap_number) as list_rec")
+            ,db::raw("concat(third_party.kode,'-',third_party.nama) as customer_name")
+        )
+        ->orderBy('invoice_hdr.id')
+        ->get(); 
+                
         return Datatables::of($data)
         ->addColumn('action', function ($data) {
             $buttons = '<div class="d-inline-flex">
@@ -733,7 +753,7 @@ class InvoiceController extends Controller
                                         id='deleteButton'
                                         class='dropdown-item'
                                         data-toggle='modal'
-                                        data-target='#smallModalCancel'
+                                        data-target='#smallModal'
                                         data-href='". route("invoice.destroy", ['id'=>Crypt::encryptString($data->id)]) ."'>
                                         <i data-feather='trash-2' class='feather-14-red'></i>
                                         Delete
@@ -748,12 +768,13 @@ class InvoiceController extends Controller
 
         ->addColumn('invoice_number', function ($data) {
             $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-danger'];            
-            // $data['status'] = ['1'=>'DRAFT','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','6'=>'CLOSED','6'=>'PAID'];
+            
             return '<span style="display: none;">'.$data->invoice_number.'</span><a class="text-left badge d-block '.$badges[$data->status - 1].'" name="'.$data->invoice_number.'" href="'. route('invoice.show', ['id'=>Crypt::encryptString($data->id)]) .'" ><span>'.$data->invoice_number.'</span></a>';
         })
         ->addColumn('status', function ($data) {
             $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-danger'];            
-            $statusInv = ['NEW','VALIDATE','APPROVED','POSTED','DELETED','PAID'];
+            // $data['status'] = ['1'=>'DRAFT','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','6'=>'PAID'];
+            $statusInv = ['DRAFT','VALIDATE','APPROVED','POSTED','DELETED','PAID'];
             return "<div class='badge ".$badges[$data->status - 1]."'>".$statusInv[$data->status - 1]."</div>";
         })
         ->rawColumns(['action','status','invoice_number'])

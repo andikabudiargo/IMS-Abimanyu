@@ -720,7 +720,7 @@ class AccountPayableController extends Controller
         $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode,$apNumber,$username);
         $data['approveValidate'] = Approval::approveValidate($this->moduleCode,$apNumber,$username);
 
-        // $data['status'] = ['1'=>'DRAFT','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','6'=>'CLOSED','6'=>'PAID'];
+        // $data['status'] = ['1'=>'DRAFT','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','6'=>'PAID'];
         $status = ['DRAFT','VALIDATED','APPROVED','POSTED','CANCELED','CLOSED','PAID'];
         $data['status'] = $status[$data['header']->status-1];
 
@@ -771,8 +771,8 @@ class AccountPayableController extends Controller
         $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode,$apNumber,$username);
         $data['approveValidate'] = Approval::approveValidate($this->moduleCode,$apNumber,$username);
 
-        // $data['status'] = ['1'=>'DRAFT','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','6'=>'CLOSED','6'=>'PAID'];
-        $status = ['DRAFT','VALIDATED','APPROVED','POSTED','CANCELED','CLOSED','PAID'];
+        // $data['status'] = ['1'=>'DRAFT','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','6'=>'PAID'];
+        $status = ['DRAFT','VALIDATED','APPROVED','POSTED','CANCELED','PAID'];
         $data['status'] = $status[$data['header']->status-1];
 
         $data['currency'] = ['IDR','USD'];
@@ -1390,7 +1390,7 @@ class AccountPayableController extends Controller
 
     public function destroy(Request $request)
     {
-        $statusCode = ['DRAFT','VALIDATED','APPROVED','POSTED','CANCELED','CLOSED','PAID'];
+        $statusCode = ['DRAFT','VALIDATED','APPROVED','POSTED','CANCELED','PAID'];
 
         $username =  Auth::user()->username;       
         $id=Crypt::decryptString($request->id);
@@ -1409,6 +1409,13 @@ class AccountPayableController extends Controller
             DB::table('ap_invoice_detail')
             ->where('ap_number',$apNumber)
             ->delete();
+
+            $kasDet = DB::table('kas_det')
+            ->where('reference',$apNumber)
+            // ->whereIn('voucher_type',['KK','BK'])
+            ->first();
+            
+            $voucherNumber=$kasDet->voucher_number;
 
             DB::table('kas_hdr')
             ->where('voucher_number',$apNumber)
@@ -1444,9 +1451,8 @@ class AccountPayableController extends Controller
 
     public function list(Request $request)
     {
-     
-        // $data['status'] = ['1'=>'DRAFT','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','6'=>'CLOSED','6'=>'PAID'];
 
+        // $data['status'] = ['1'=>'DRAFT','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','6'=>'PAID'];
         $searchPo = $request->searchPo;
         $searchAp = $request->searchAp;
         $searchSupplier = $request->searchSupplier;
@@ -1459,16 +1465,13 @@ class AccountPayableController extends Controller
        
         if ($apDate){
             $date = explode("to",$apDate);
-            $fromDate = trim($date[0]);
-            $toDate = trim($date[1]);
-
-            // if(count($date)>1){
-            //     $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
-            //     $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
-            // }else{
-            //     $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
-            //     $toDate = $fromDate; 
-            // }
+            if(count($date)>1){
+                $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+                $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
+            }else{
+                $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+                $toDate = $fromDate; 
+            }
         }
 
         $data = DB::table('ap_invoice')
@@ -1478,7 +1481,7 @@ class AccountPayableController extends Controller
             $searchAp ? $query->where('ap_number','ilike','%'.$searchAp.'%') : '';
             $searchSupplier ? $query->where('supplier_id','ilike','%'.$searchSupplier.'%') : '';
             $searchStatus ? $query->where('ap_invoice.status','=',$searchStatus) : '';
-            $apDate ? $query->whereBetween('inv_date', [$fromDate, $toDate]) : '';
+            $apDate ? $query->whereBetween(DB::raw("to_date(inv_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
         })
         ->where('ap_invoice.status','<>','6')
         ->select(
@@ -1592,7 +1595,7 @@ class AccountPayableController extends Controller
         
         ->addColumn('status', function ($data) {
             $badges=['badge-light-primary','badge-light-info','badge-light-success','badge-light-warning','badge-light-danger','badge-light-dark','badge-light-secondary','badge-light-danger'];
-            $statusCode = ['DRAFT','VALIDATED','APPROVED','POSTED','CANCELED','CLOSED','PAID'];
+            $statusCode = ['DRAFT','VALIDATED','APPROVED','POSTED','CANCELED','PAID'];
             return "<div class='badge badge-pill ".$badges[$data->status - 1]."'>".$statusCode[$data->status - 1]."</div>";
         })
         ->rawColumns(['action','status','ap_number'])

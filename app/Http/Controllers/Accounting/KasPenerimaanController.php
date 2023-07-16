@@ -710,7 +710,7 @@ class KasPenerimaanController extends Controller
         $amount = db::table('invoice_hdr')
         ->where('invoice_number',$refNumber)
         // ->select(db::raw("dpp+vat as amount"))
-        ->select(db::raw("dpp as amount"))
+        ->select(db::raw("grand_total as amount"))
         ->value('amount');
 
         return response()->json(array('amount' => $amount));

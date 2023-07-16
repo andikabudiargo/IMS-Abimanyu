@@ -345,6 +345,8 @@
                 let totalPph = $('#totalPPH').val().replace(/,/gi, '') || 0;
                 let note = $('#note').val();
                 let fakturPajak =$('#fakturPajak').val();
+                let totalAmount = $('#totalAmount').val().replace(/,/gi, '') || 0;
+                let grandTotal = $('#totalNetto').val().replace(/,/gi, '') || 0;
 
                 $.ajax({
                     type: "post",
@@ -361,7 +363,9 @@
                         soNumber:soNumber,
                         dnNumber:dnNumber,
                         poNumber:poNumber,
-                        fakturPajak:fakturPajak
+                        fakturPajak:fakturPajak,
+                        totalAmount:totalAmount,
+                        grandTotal:grandTotal
                     },
                     dataType: "json",
                     success: function(data) {

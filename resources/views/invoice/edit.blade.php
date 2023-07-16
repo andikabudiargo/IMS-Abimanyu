@@ -17,7 +17,7 @@
                 </div>
                 <div class="card-content collapse show">
                     <div class="card-body">
-                        <form id="frmAdd" name="frmAdd" autocomplete="off">
+                        <form id="frmAdd" name="frmAdd"  autocomplete="off">
                             @csrf
                             <input type="text" id="ppn" name="ppn"  values="10" hidden>
                             <input type="text" id="pph23" name="ppn23" values="2" hidden>
@@ -353,6 +353,7 @@
     let currentDate = todayDate('dd-mm-yyyy');
     
     $(document).ready(function(){
+        validateFormToast('frmAdd');
         let detail = {!!  $detail !!};
         for (let i = 0; i < detail.length; i++) {
             article=detail[i].article_code;
@@ -504,6 +505,8 @@
                 let invNumber = $('#invNumber').val();
                 let note = $('#note').val();
                 let fakturPajak =$('#fakturPajak').val();
+                let totalAmount = $('#totalAmount').val().replace(/,/gi, '') || 0;
+                let grandTotal = $('#totalNetto').val().replace(/,/gi, '') || 0;
 
                 $.ajax({
                     type: "post",
@@ -520,7 +523,9 @@
                         note:note,
                         soNumber:soNumber,
                         dnNumber:dnNumber,
-                        fakturPajak:fakturPajak
+                        fakturPajak:fakturPajak,
+                        totalAmount:totalAmount,
+                        grandTotal:grandTotal
                     },
                     dataType: "json",
                     success: function(data) {

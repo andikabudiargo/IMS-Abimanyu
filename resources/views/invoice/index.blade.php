@@ -43,7 +43,7 @@
                 <select class="select2 form-control" id="searchStatus" name="searchStatus">
                     <option value="">All</option>
                     @foreach($status as $index=>$val)
-                        <option value="{{ $index }}">{{ $index }} - {{ $val }}</option>
+                        <option value="{{ $index }}">{{ $val }}</option>
                     @endforeach
                 </select>
               </div>
@@ -101,8 +101,7 @@
     $(document).on('click', '#deleteButton', function(event) {
         event.preventDefault();
         href = $(this).data('href');
-        console.log(href);
-        $('#modalConfirmationCancel').attr("action", href);
+        $('#modalConfirmation').attr("action", href);
     });
   });
 

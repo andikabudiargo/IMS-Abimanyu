@@ -454,6 +454,24 @@ class BankPenerimaanController extends Controller
                         'updated_at' => date('Y-m-d H:i:s')
                     ]);
                 }
+
+                $listInvoice=DB::table('kas_det')
+                ->where('voucher_number',$vcNumber)
+                ->pluck('reference')->toArray();
+                
+                //update invoice jadi paid
+                // ['1'=>'DRAFT','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','6'=>'CLOSED','6'=>'PAID'];
+                if($status == '3'){
+                    DB::table('invoice_hdr')
+                    ->whereIn('invoice_number',$listInvoice)
+                    ->update(
+                        [   
+                            'status' =>'6',
+                            'updated_by' => Auth::user()->username,
+                            'updated_at' => date('Y-m-d H:i:s'),
+                        ]
+                    );
+                }
                 
                 DB::commit();
                 $title ="Approve $this->title";
@@ -693,7 +711,7 @@ class BankPenerimaanController extends Controller
         $amount = db::table('invoice_hdr')
         ->where('invoice_number',$refNumber)
         // ->select(db::raw("dpp+vat as amount"))
-        ->select(db::raw("dpp as amount"))
+        ->select(db::raw("grand_total as amount"))
         ->value('amount');
 
         return response()->json(array('amount' => $amount));
