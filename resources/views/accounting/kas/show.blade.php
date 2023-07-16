@@ -66,12 +66,15 @@
                     <table class="table-bordered" width="100%">
                         <thead>
                             <tr>
-                                <th class="isian" style="width: 30%">
+                                <td class="isian" style="width: 20%">
                                     <label>Account</label>
-                                </th>
-                                <th class="isian" style="">
+                                </td>
+                                <td class="isian"style="width: 25%">
                                     <label>Description</label>
-                                </th>
+                                </td>
+                                <td class="isian" style="">
+                                    <label>Referensi</label>
+                                </td>
                                 <th class="isian" style="">
                                     <label>CC</label>
                                 </th>
@@ -91,6 +94,9 @@
                                 </td>
                                 <td class="isian" style="">
                                     {{ $item->description }}
+                                </td>
+                                <td class="isian" style="">
+                                    {{ $item->reference }}
                                 </td>
                                 <td class="isian" style="">
                                     {{ $item->cost_center_name }}

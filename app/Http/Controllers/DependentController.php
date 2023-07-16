@@ -259,6 +259,15 @@ class DependentController extends Controller
                 $default='';
                 $defaulttxt='Choose invoice';
                 break;
+            case 'referenceAr': 
+                $table='invoice_hdr';
+                $field ='customer_id';
+                $order ='invoice_number';
+                $value = $code;
+                $name  ='invoice_number';
+                $default='';
+                $defaulttxt='Choose invoice';
+                break;
             break;
                 default:
                     $table='';
@@ -495,6 +504,20 @@ class DependentController extends Controller
                 ->from('kas_det') 
                 ->leftJoin('kas_hdr','kas_hdr.voucher_number','kas_det.voucher_number')
                 ->where('kas_hdr.status','<>','5')
+                ->where('kas_det.voucher_type','like','BK%')
+                ->where('kas_det.voucher_number','like','KK%');
+            })
+            ->orderBy($order)
+            ->get();
+        }elseif($dependent =='referenceAr'){
+            $data= DB::table($table)
+            // ->where($field,$code)
+            ->where('status','=','1') //POSTED
+            ->whereNotIn(DB::raw("invoice_number"), function($query) {
+                $query->select(DB::raw("reference"))
+                ->from('kas_det') 
+                ->leftJoin('kas_hdr','kas_hdr.voucher_number','kas_det.voucher_number')
+                ->where('kas_hdr.status','<>','5')
                 ->where('kas_det.voucher_number','like','BK%')
                 ->where('kas_det.voucher_number','like','KK%');
             })
@@ -554,6 +577,8 @@ class DependentController extends Controller
                 }
             }elseif($dependent =='reference'){
                 $output .="<option value='$row->ap_number'>$row->ap_number</option>";
+            }elseif($dependent =='referenceAr'){
+                $output .="<option value='$row->invoice_number'>$row->invoice_number</option>";
             }else{
                 $output .='<option value="'.$row->$value.'">'.$row->$name.'</option>';
             }

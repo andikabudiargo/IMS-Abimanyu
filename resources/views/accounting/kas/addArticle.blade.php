@@ -36,17 +36,21 @@
         <table class="table-bordered" style="width: 98%;table-layout: fixed;">
             <tbody>
                 <tr>
-                    <td class="isian" style="width: 30%">
+                    <td class="isian" style="width: 20%">
                         <select class="dynamicSelect form-control" id="account" name="account[]">
                         </select>
                     </td>
-                    <td class="isian" style="">
+                    <td class="isian" style="width: 25%">
                         <input type="text" class="form-control-plaintext tombol-panah" 
                         data-type-el-kiri="select" 
                         data-nama-el-kiri='account'
                         data-type-el-kanan='select'
                         data-nama-el-kanan='vcCc'
                         id="vcDesc" name="vcDesc[]"  maxlength="100" />
+                    </td>
+                    <td class="isian" style="">
+                        <select class="form-control tombol-panah" id="vcRef" name="vcRef[]">                            
+                        </select>
                     </td>
                     <td class="isian" style="">
                         <select class="form-control tombol-panah" id="vcCc" name="vcCc[]" required>
@@ -111,6 +115,7 @@
         let objTotalVcDebit= $('#vcTotalDebit');
         let objVcCredit= $('#item_row input[name="vcCredit[]"]');
         let objTotalVcCredit= $('#vcTotalCredit');
+        let objSelisih= $('#selisih');
         // let objTotalAmount= $('#totalAmount');
         let TotalDebit=0;
         let TotalCredit=0;
@@ -127,11 +132,91 @@
 
         objTotalVcDebit.val(humanizeNumber(TotalDebit));
         objTotalVcCredit.val(humanizeNumber(TotalCredit));
+        objSelisih.val(humanizeNumber(TotalCredit-TotalDebit));
 
         // if (type =='penerimaan'){
         //     objTotalAmount.val(humanizeNumber(TotalCredit));
         // }else{
         //     objTotalAmount.val(TotalDebit);
         // }
+    }
+
+    function findInvoice(){
+        let objAccount = $('#item_row select[name="account[]"]');
+        let objVcRef= $('#item_row select[name="vcRef[]"]');
+        let objVcDebit= $('#item_row input[name="vcDebit[]"]');
+        let objVcCredit= $('#item_row input[name="vcCredit[]"]');
+        
+        objAccount.change(function(e){        
+            let objIndex = objAccount.index(this);
+            let accountNumber = objAccount.eq(objIndex).val();
+            let recFrom = $('#recFrom').val();
+            let objCust = "vcRef"+(objIndex+1);
+            if(accountNumber){
+                if (accountNumber =='1100.40'){
+                    // if(recFrom){
+                        invList('referenceAr',objCust,recFrom,'');
+                    // }else{
+                    //     Swal.fire('Warning..','Kolom bayar ke /supplier code masih kosong','warning');
+                    // }
+                }else{
+                    objVcDebit.eq(objIndex).val("");
+                    objVcCredit.eq(objIndex).val("");
+                    objVcRef.eq(objIndex).empty().trigger('change');
+                    hitungGrandTotal();
+                }
+            }
+        });
+    }
+
+    function invList(dependent,obj,value,ref) {
+      $.ajax({
+        url:"{{route('dynamic.dependent')}}",
+        method:"POST",
+        data:{
+            dependent:dependent,
+            value:value
+        },
+        success:function(result){
+            $('#'+obj).html(result).select2();
+            $('#'+obj).val(ref).trigger('change');
+        }
+      })
+    }
+
+    function getAmount(){
+        let objRef = $('#item_row select[name="vcRef[]"]');
+        objRef.change(function(e){ 
+            let objIndex = objRef.index(this);
+            let vRef = objRef.eq(objIndex).val();
+            if(vRef){
+                getAmountValue(vRef,objIndex); 
+            }
+        });
+    }   
+
+    function getAmountValue(vRef,objIndex) {
+        let objVcDebit= $('#item_row input[name="vcDebit[]"]');
+        let objVcCredit= $('#item_row input[name="vcCredit[]"]');
+        $.ajax({
+            type: "get",
+            url: "{{ route('kasPenerimaan.get.invoice.amount') }}",
+            data: {
+                vRef:vRef
+            },
+            dataType: "json",
+            success: function(data) {
+                objVcCredit.eq(objIndex).val('');
+                objVcDebit.eq(objIndex).val('');
+                if(data.amount){
+                    objVcDebit.eq(objIndex).val('');
+                    objVcCredit.eq(objIndex).val(humanizeNumber(data.amount));
+                    hitungGrandTotal();
+                }
+            },
+            error: function(error) {
+                console.log(error);
+            }
+        });
     }
 </script>

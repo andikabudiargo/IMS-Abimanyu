@@ -570,7 +570,7 @@ class ForcastingSalesController extends Controller
                                     data-toggle='modal'
                                     data-target='#smallModal'
                                     data-href='". route("bankKeluar.destroy", ['id'=>Crypt::encryptString($data->id)]) ."'>
-                                    <i data-feather='trash-2'></i>
+                                    <i data-feather='trash-2' class='feather-14-red'></i>
                                     Delete
                                 </a>";
             }

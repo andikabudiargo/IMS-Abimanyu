@@ -83,11 +83,11 @@
                                         </div>
                                         <div class="form-group col-md-3">
                                             <label for="invoiceDate">Invoice Date</label>
-                                            <input type="text" id="invoiceDate" name="invoiceDate" class="form-control" placeholder="DD-MM-YYYY" value="" />
+                                            <input type="text" id="invoiceDate" name="invoiceDate" class="form-control" placeholder="DD-MM-YYYY" value="" required/>
                                         </div> 
                                         <div class="form-group col-md-5">
                                             <label for="taxInvoiceNumber">Tax Invoice Number</label>
-                                            <input type="text" id="taxInvoiceNumber" name="taxInvoiceNumber" class="form-control" value="" />
+                                            <input type="text" id="taxInvoiceNumber" name="taxInvoiceNumber" class="form-control" value="" disabled/>
                                         </div>
                                     </div>
                                     <div class="form-row">

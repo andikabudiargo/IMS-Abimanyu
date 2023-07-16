@@ -515,7 +515,7 @@ class WorkingOrderSheetController extends Controller
                                     data-toggle='modal'
                                     data-target='#smallModal'
                                     data-href='". route("purchaseOrder.destroy", ["id"=>$data->id]) ."'>
-                                    <i data-feather='trash-2'></i>
+                                    <i data-feather='trash-2' class='feather-14-red'></i>
                                     Delete
                                 </a>";
             }

@@ -163,15 +163,15 @@
                                         </div>
                                     </div>
                                     <div class="form-group row mb-03">
-                                        <label for="totalPPN" class="col-sm-4 col-form-label titik-dua">PPN <span id="nilaiPPN"></span> </label>
+                                        <label for="totalPPN" class="col-sm-4 col-form-label titik-dua">PPN <span id="nilaiPPN">{{ $header->vat >0 ? $nilaiPPN."%" : '' }}</span> </label>
                                         <div class="col-sm-1" style="padding-right: 0rem;display: flex;align-items: center;">
                                             <div class="custom-control custom-checkbox">
-                                                <input type="checkbox" class="custom-control-input" id="vatCheck" name="vatCheck" />
+                                                <input type="checkbox" class="custom-control-input" id="vatCheck" name="vatCheck" {{ $header->vat >0 ? 'checked' : '' }}/>
                                                 <label class="custom-control-label" for="vatCheck"></label>
                                             </div>
                                         </div>    
                                         <div class="col-sm-5">
-                                            <input type="text" class="form-control text-right font-weight-bold   disabled-el numeral-mask-digit" id="totalPPN" name="totalPPN" disabled/>
+                                            <input type="text" class="form-control text-right font-weight-bold   disabled-el numeral-mask-digit" id="totalPPN" name="totalPPN" value="{{ $header->vat>0 ? $header->vat : 0 }}"  {{ $header->vat > 0 ? '' : 'disabled' }} {{ $header->vat > 0 ? 'required' : '' }}/>
                                         </div>
                                     </div>
                                     <div class="form-group row mb-03">
@@ -183,7 +183,7 @@
                                             </div>
                                         </div> 
                                         <div class="col-sm-5">
-                                            <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el" id="totalPPH23" name="totalPPH23" value="{{ $header->pph23_type == 'PPH23' ? $header->pph23 : 0 }}" {{ $header->pph23_type == 'PPH23' ? '' : 'disabled' }} />
+                                            <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el" id="totalPPH23" name="totalPPH23" value="{{ $header->pph23_type == 'PPH23' ? $header->pph23 : 0 }}" {{ $header->pph23_type == 'PPH23' ? '' : 'disabled' }} {{ $header->pph23_type == 'PPH23' ? 'required' : '' }} />
                                         </div>
                                     </div>
                                     <div class="form-group row mb-03">
@@ -195,7 +195,7 @@
                                             </div>
                                         </div> 
                                         <div class="col-sm-5">
-                                            <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el" id="totalPPH21" name="totalPPH21" value="{{ $header->pph23_type == 'PPH21' ? $header->pph23 : 0 }}" {{ $header->pph23_type == 'PPH21' ? '' : 'disabled' }}/>
+                                            <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el" id="totalPPH21" name="totalPPH21" value="{{ $header->pph23_type == 'PPH21' ? $header->pph23 : 0 }}" {{ $header->pph23_type == 'PPH21' ? '' : 'disabled' }} {{ $header->pph23_type == 'PPH21' ? 'required' : '' }}/>
                                         </div>
                                     </div>
                                     <div class="form-group row mb-03">
@@ -207,7 +207,7 @@
                                             </div>
                                         </div> 
                                         <div class="col-sm-5">
-                                            <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el" id="totalPPH42" name="totalPPH42" value="{{ $header->pph23_type == 'PPH42' ? $header->pph23 : 0 }}" {{ $header->pph23_type == 'PPH42' ? '' : 'disabled' }}/>
+                                            <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el" id="totalPPH42" name="totalPPH42" value="{{ $header->pph23_type == 'PPH42' ? $header->pph23 : 0 }}" {{ $header->pph23_type == 'PPH42' ? '' : 'disabled' }} {{ $header->pph23_type == 'PPH42' ? 'required' : '' }}/>
                                         </div>
                                     </div>
                                     <div class="form-group row mb-03">
@@ -227,13 +227,13 @@
                                         <input type="text" id ="approveLevel" name ="approveLevel" class="d-none" value="{{ $approveValidate[0]->next_level }}">
                                         <input type="text" id ="maxLevel" name ="maxLevel" class="d-none" value="{{ $approveValidate[0]->max_level }}">
                                         <button class="btn btn-success" type="button" id="cmdApprove" name="cmdApprove">Approve</button>
-                                    @if( $status =='DRAFT')
+                                    {{-- @if( $status =='DRAFT') --}}
                                         <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave" >Update</button>
-                                    @endif
+                                    {{-- @endif --}}
                                     @else
-                                        @if( !$approveValidate && $status =='DRAFT')
+                                        {{-- @if( !$approveValidate && $status =='DRAFT') --}}
                                             <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave" >Update</button>
-                                        @endif
+                                        {{-- @endif --}}
                                     @endif
 
                                     @if( $status =='APPROVED')

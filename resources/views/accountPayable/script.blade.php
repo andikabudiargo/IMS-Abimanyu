@@ -7,7 +7,6 @@
     let sNilaiPPH23= "{{ $nilaiPPH23 }}";
     let sNilaiPPH21= "{{ $nilaiPPH21 }}";
     let sNilaiPPH42= "{{ $nilaiPPH42 }}";
-    
     let showDetail="";
     let edit="";
     
@@ -26,12 +25,15 @@
             $('#totalPPH21').attr('disabled','disabled');
             $('#totalPPH42').attr('disabled','disabled');
             $('#totalPPH23').focus().select();
+            $("#totalPPH23").prop('required',true);
             mask_thousand_digit(2);
             mask_thousand();
             hitungTotal();
         }else{
-            $("#totalPPH23").val(0);
+            $("#totalPPH23").val('');
             $("#nilaiPPH23").text('');
+            $('#totalPPH23').attr('disabled','disabled');
+            $("#totalPPH23").prop('required',false);
             hitungTotal();  
         }
     });
@@ -51,12 +53,15 @@
             $('#totalPPH23').attr('disabled','disabled');
             $('#totalPPH42').attr('disabled','disabled');
             $('#totalPPH21').focus().select();
+            $("#totalPPH21").prop('required',true);
             mask_thousand_digit(2);
             mask_thousand();
             hitungTotal();
         }else{
-            $("#totalPPH21").val(0);
+            $("#totalPPH21").val('');
             $("#nilaiPPH21").text('');
+            $('#totalPPH21').attr('disabled','disabled');
+            $("#totalPPH21").prop('required',false);
             hitungTotal();  
         }
     });
@@ -76,12 +81,15 @@
             $('#totalPPH21').attr('disabled','disabled');
             $('#totalPPH23').attr('disabled','disabled');
             $('#totalPPH42').focus().select();
+            $("#totalPPH42").prop('required',true);
             mask_thousand_digit(2);
             mask_thousand();
             hitungTotal();
         }else{
-            $("#totalPPH42").val(0);
+            $("#totalPPH42").val('');
             $("#nilaiPPH42").text('');
+            $('#totalPPH42').attr('disabled','disabled');
+            $("#totalPPH42").prop('required',false);
             hitungTotal();  
         }
     });
@@ -91,12 +99,22 @@
             let basisAmount = parseInt($('#basisAmount').val().replace(/,/gi, '')) || 0;
             $("#totalPPN").val(basisAmount * (sNilaiPPN/100));
             $("#nilaiPPN").text(sNilaiPPN+'%');
+            $("#totalPPN").removeAttr('disabled');
+            $("#taxInvoiceNumber").removeAttr('disabled');
+            $("#taxInvoiceNumber").prop('required',true);
+            $("#totalPPN").prop('required',true);
+            $("#totalPPN").focus().select();
             mask_thousand_digit(2);
             mask_thousand();
             hitungTotal();
         }else{
-            $("#totalPPN").val(0);
+            $("#totalPPN").val('');
             $("#nilaiPPN").text('');
+            $("#taxInvoiceNumber").val('');
+            $("#taxInvoiceNumber").attr('disabled','disabled');
+            $("#taxInvoiceNumber").prop('required',false);
+            $("#totalPPN").prop('required',false);
+            $("#totalPPN").attr('disabled','disabled');
             hitungTotal();
         }
     });
@@ -203,7 +221,6 @@
                         if(apNumber){
                             if (edit == 'true'){
                                 cmdSubmit();
-                                edit='false';
                             }
                         }
                     }else{
@@ -250,19 +267,19 @@
         $('#currency').val("IDR").trigger("change");
         $('#rate').val("");
         $('#accountBa').val("").trigger("change");
-        $("#vatCheck").prop("checked",false);
+        
         $("#listOfLpb > tbody").empty();
         $("#listOfRec > tbody").empty();
         $('#cmdSubmit').attr('disabled','disabled');
         $('#basisAmount').val(0);
         
-        $("#nilaiPPN").text('');
-        $('#totalPPN').val(0);
+        
 
         if (edit == 'false'){
             $('#pph23Check').prop('checked',false);
             $('#pph21Check').prop('checked',false);
             $('#pph42Check').prop('checked',false);
+            $("#vatCheck").prop("checked",false);
             $("#nilaiPPH23").text('');
             $("#nilaiPPH21").text('');
             $("#nilaiPPH42").text('');
@@ -270,6 +287,8 @@
             $('#totalPPH21').val(0);
             $('#totalPPH42').val(0);
             $('#totalDiscount').val(0);
+            $("#nilaiPPN").text('');
+            $('#totalPPN').val(0);
         }
         hitungTotal();
     }
@@ -312,22 +331,20 @@
 
                     $('#totalPO').val(humanizeNumber(result.summaryRec[0].total_amount_po));
                     $('#basisAmount').val(humanizeNumber(result.summaryRec[0].basis_amount));
-                    $('#totalPPN').val(humanizeNumber(result.summaryRec[0].nilai_pajak));
                     
-                    if (result.summaryRec[0].nilai_pajak>0){
-                        $("#vatCheck").prop("checked",true );
+                    if ((result.summaryRec[0].nilai_pajak>0) && (edit=='false')){
+                        $("#vatCheck").prop("checked",true);
                         $('#nilaiPPN').text(sNilaiPPN+"%");
+                        $("#taxInvoiceNumber").removeAttr('disabled');
+                        $("#taxInvoiceNumber").prop('required',true);
+                        $("#totalPPN").removeAttr('disabled');
+                        $("#totalPPN").prop('required',true);
+                        $('#nilaiPPN').val(humanizeNumber(result.summaryRec[0].vat));
+                        $('#totalPPN').val(humanizeNumber(result.summaryRec[0].nilai_pajak));
                     }
-
-                    // if (result.summaryRec[0].pph22>0){
-                    //     $('#pph23Check').prop('checked',true);
-                    //     $('#nilaiPPH23').text(sNilaiPPH+"%");
-                    // }
-                    
-                    $('#nilaiPPN').val(humanizeNumber(result.summaryRec[0].vat));
-                    // $('#totalPPH23').val(humanizeNumber(result.summaryRec[0].pph22));
-
+                                        
                     hitungTotal();
+                    edit == false;
 
                 },
                 error: function (response) {

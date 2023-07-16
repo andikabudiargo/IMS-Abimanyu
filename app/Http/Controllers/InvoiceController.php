@@ -733,8 +733,8 @@ class InvoiceController extends Controller
                                         data-toggle='modal'
                                         data-target='#smallModalCancel'
                                         data-href='". route("invoice.destroy", ['id'=>Crypt::encryptString($data->id)]) ."'>
-                                        <i data-feather='trash-2'></i>
-                                        Cancel
+                                        <i data-feather='trash-2' class='feather-14-red'></i>
+                                        Delete
                                     </a>";
                 }
             }
@@ -746,8 +746,7 @@ class InvoiceController extends Controller
 
         ->addColumn('invoice_number', function ($data) {
             $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-danger'];            
-            // $statusInv = ['NEW','VALIDATE','APPROVED','POSTED','DELETED','PAID'];
-            // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED'];
+            // $data['status'] = ['1'=>'DRAFT','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','6'=>'CLOSED','6'=>'PAID'];
             return '<span style="display: none;">'.$data->invoice_number.'</span><a class="text-left badge d-block '.$badges[$data->status - 1].'" name="'.$data->invoice_number.'" href="'. route('invoice.show', ['id'=>Crypt::encryptString($data->id)]) .'" ><span>'.$data->invoice_number.'</span></a>';
         })
         ->addColumn('status', function ($data) {

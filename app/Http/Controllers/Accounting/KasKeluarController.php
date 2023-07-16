@@ -602,7 +602,7 @@ class KasKeluarController extends Controller
                                     data-toggle='modal'
                                     data-target='#smallModal'
                                     data-href='". route("kasKeluar.destroy", ['id'=>Crypt::encryptString($data->id)]) ."'>
-                                    <i data-feather='trash-2'></i>
+                                    <i data-feather='trash-2' class='feather-14-red'></i>
                                     Delete
                                 </a>";
             }
@@ -643,6 +643,7 @@ class KasKeluarController extends Controller
         ->leftJoin('accounts','accounts.account','kas_det.account')
         ->select('kas_det.*','accounts.description as account_name')
         ->where('voucher_number',$vcNumber)
+        ->orderBy('kas_det.debit')
         ->get();
 
         $data['total']=DB::table('kas_det')

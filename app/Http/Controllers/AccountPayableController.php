@@ -16,6 +16,16 @@ use PDF;
 use AppHelpers;
 use Approval;
 
+/*
+catatan:
+- kalau sudah di posting (POSTED) itu sudah masuk ke tabel kas_det dan kas_hdr
+kalau
+Delete : dihapus di tabel ap_invoice, ap_invoice_detail,kas_det,kas_hdr,approval_history tidak bisa di kembalikan lagi
+Edit: akan edit tabel ap_invoice, ap_invoice_detail,kas_det,kas_hdr
+Edit: kalau sudah di approved maka semua approved akan dihapus di tabel approval_history jadi harus approved lagi
+
+*/
+
 class AccountPayableController extends Controller
 {
     private $title;
@@ -89,16 +99,10 @@ class AccountPayableController extends Controller
         ->orderBy('nama')
         ->get();
 
-        $data['kolom'] = $this->getTableColoumn();
+        $data['kolom'] = $this->getTableColoumn();        
 
-        // status
-        // 1. Draft
-        // 2. Updated
-        // 3. Submitted / Posted
-        // 4. Canceled
-        // 5. Paid
-
-        $data['status'] = ['1'=>'DRAFT','2'=>'UPDATED','3'=>'POSTED','4'=>'CANCELED','5'=>'PAID'];
+        // $data['status'] = ['1'=>'DRAFT','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','6'=>'CLOSED','7'=>'PAID'];
+        $data['status'] = ['1'=>'DRAFT','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','7'=>'PAID'];
             
         return view("accountPayable.index",$data);
     }
@@ -244,9 +248,10 @@ class AccountPayableController extends Controller
             ->whereNotIn(DB::raw("rec_number"), function($query) use ($poNumber,$apNumber) {
                 $query->select("rec_number")
                 ->from('ap_invoice_detail')
-                ->whereIn('ap_number',DB::table('ap_invoice')
-                                        ->whereIn('status',['4'])
-                                        ->pluck('ap_number')->toArray())
+                /*walaupun udah posting masih bisa di edit*/
+                // ->whereIn('ap_number',DB::table('ap_invoice')
+                //                         ->whereIn('status',['4'])
+                //                         ->pluck('ap_number')->toArray())
                 ->orWhere('ap_number','<>',$apNumber);
             })
             ->orderBy("rec_number")
@@ -449,9 +454,6 @@ class AccountPayableController extends Controller
         $username =  Auth::user()->username;
         $suppCode = $request->supplier;
         $poNumber = $request->poNumber;
-        // $profInvoice = $request->profInvoice;
-        // $recNumber = $request->recNumber;
-        // $dueDate = $request->dueDate;
         $currency = $request->currency;
         $rate = is_null($request->rate) ? 0 : preg_replace('/[^0-9.]+/', '', $request->rate);
         $invoiceDate= $request->invoiceDate;
@@ -498,8 +500,6 @@ class AccountPayableController extends Controller
         if($pph42 > 0 && $nilaiPph ==0){
             $nilaiPph=$pph42;
         }
-
-        
                 
         $accountVat   ='1100.73';
         $acountTotal  ='2000.11';
@@ -521,14 +521,8 @@ class AccountPayableController extends Controller
         }
                 
         $status = '1';
-        $authorizedBy = "";
-        
-        // status
-        // 1. Draft
-        // 2. Update
-        // 3. Posting
-        // 4. Cancel
-        // 5. Paid
+                
+        // $status = ['1'=>'DRAFT','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','6'=>'CLOSED','6'=>'PAID']
         
         $messages = [
             'required' => 'The field is required.',
@@ -761,13 +755,13 @@ class AccountPayableController extends Controller
             
         $data['recNumbers'] = substr($arrayData, 0, -1);
 
-        $data['sub_details'] = DB::table('ap_invoice')
-        ->leftJoin('third_party', 'third_party.kode', '=', 'ap_invoice.supplier_id')
-        ->where('old_ap_number',$data['header']->ap_number)
-        ->where('status','6')
-        ->select('ap_invoice.*','nama')
-        ->orderBy('ap_invoice.id')
-        ->get();
+        // $data['sub_details'] = DB::table('ap_invoice')
+        // ->leftJoin('third_party', 'third_party.kode', '=', 'ap_invoice.supplier_id')
+        // ->where('old_ap_number',$data['header']->ap_number)
+        // ->where('status','6')
+        // ->select('ap_invoice.*','nama')
+        // ->orderBy('ap_invoice.id')
+        // ->get();
 
         $data['supps'] = DB::table('third_party')
         ->where ('third_party_type','=','supp')
@@ -857,8 +851,6 @@ class AccountPayableController extends Controller
         if($pph42 > 0 && $nilaiPph ==0){
             $nilaiPph=$pph42;
         }
-
-        
                 
         $accountVat   ='1100.73';
         $acountTotal  ='2000.11';
@@ -879,8 +871,9 @@ class AccountPayableController extends Controller
             $accountPph=$accountPph42;
         }
 
-        $status = '1';
-        $authorizedBy = "";
+        $getLastStatus = DB::table('ap_invoice')->where('id',$id)->value('status');
+
+        $status = $getLastStatus;
         
         // $data['status'] = ['1'=>'DRAFT','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','6'=>'CLOSED','6'=>'PAID'];
         
@@ -951,6 +944,20 @@ class AccountPayableController extends Controller
                     }
                      
                     DB::table('ap_invoice_detail')->insert($dataReceiving);
+                }
+
+                if($getLastStatus == '4'){
+
+                    DB::table('kas_hdr')
+                    ->where('voucher_number',$apNumber)
+                    ->where('voucher_type','AP')
+                    ->delete();
+            
+                    DB::table('kas_det')
+                    ->where('voucher_number',$apNumber)
+                    ->delete();
+
+                    $this->prosesPosting($apNumber);
                 }
                                                                             
                 DB::commit();
@@ -1032,11 +1039,112 @@ class AccountPayableController extends Controller
         }
     }
 
+    public function prosesPosting($apNumber){
+        
+        $apData = db::table('ap_invoice')
+        ->leftJoin('third_party', 'third_party.kode', '=', 'ap_invoice.supplier_id')
+        ->select('ap_invoice.*','third_party.nama as supplier_name')
+        ->where('ap_number',$apNumber)->first();
+
+        DB::table('kas_hdr')->insert([
+            'voucher_number' =>$apNumber,
+            'voucher_type' =>$this->moduleCode,
+            'voucher_date' =>date('Y-m-d'), //tanggal posting
+            'paid_to' => $apData->supplier_id,
+            'description' => $apNumber,
+            'amount' => $apData->grand_total,
+            'period' =>date('n'),
+            'year' =>date('Y'),                        
+            'note' => $apData->note,
+            'status' => '1',
+            'created_by' => Auth::user()->username,
+            'updated_by' => Auth::user()->username,
+            'created_at' => date('Y-m-d H:i:s'),
+            'updated_at' => date('Y-m-d H:i:s')
+        ]);
+
+        // $reference = $apNumber;
+        $reference = '';
+
+        $dataSet = [];
+        $dataSet[] = [
+            'voucher_number' => $apNumber,
+            'account' =>$apData->account_ba,
+            'description' => $apNumber.' '.$apData->supplier_name,
+            'debit' => $apData->basis_amount,
+            'credit' => 0,
+            'reference' => $reference,  //sementara tidak di masukan belum tau fungsinya apa
+            'created_by' => Auth::user()->username,
+            'updated_by' => Auth::user()->username,
+            'created_at' => date('Y-m-d H:i:s'),
+            'updated_at' => date('Y-m-d H:i:s')
+        ];
+
+        if($apData->vat > 0){
+            $dataSet[] = [
+                'voucher_number' => $apNumber,
+                'account' =>$apData->account_vat,
+                'description' => $apNumber.' '.$apData->supplier_name,
+                'debit' => $apData->vat,
+                'credit' => 0,
+                'reference' => $reference,
+                'created_by' => Auth::user()->username,
+                'updated_by' => Auth::user()->username,
+                'created_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s')
+            ];
+        }
+
+        //belum ada no account nya
+        // if($apData->total_discount > 0){
+        //     $dataSet[] = [
+        //         'voucher_number' => $apNumber,
+        //         'account' =>$apData->account_total,
+        //         'description' => $apNumber.' '.$apData->supplier_name,
+        //         'debit' => 0,
+        //         'credit' => $apData->total_discount,
+        //         'reference' => $reference,
+        //         'created_by' => Auth::user()->username,
+        //         'updated_by' => Auth::user()->username,
+        //         'created_at' => date('Y-m-d H:i:s'),
+        //         'updated_at' => date('Y-m-d H:i:s')
+        //     ];  
+        // }
+
+        if($apData->pph23 > 0){
+            $dataSet[] = [
+                'voucher_number' => $apNumber,
+                'account' =>$apData->account_pph,
+                'description' => $apNumber.' '.$apData->supplier_name,
+                'debit' => 0,
+                'credit' => $apData->pph23,
+                'reference' => $reference,
+                'created_by' => Auth::user()->username,
+                'updated_by' => Auth::user()->username,
+                'created_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s')
+            ];  
+        }
+
+        $dataSet[] = [
+            'voucher_number' => $apNumber,
+            'account' =>$apData->account_total,
+            'description' => $apNumber.' '.$apData->supplier_name,
+            'debit' => 0,
+            'credit' => $apData->grand_total,
+            'reference' => $reference,
+            'created_by' => Auth::user()->username,
+            'updated_by' => Auth::user()->username,
+            'created_at' => date('Y-m-d H:i:s'),
+            'updated_at' => date('Y-m-d H:i:s')
+        ];  
+
+        DB::table('kas_det')->insert($dataSet);
+    }
+
     public function posting(Request $request)
     {
-      
         // $data['status'] = ['1'=>'DRAFT','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','6'=>'CLOSED','6'=>'PAID'];
-
         $username =  Auth::user()->username;
         $apNumber = $request->apNumber;
         $statusAp ="Posted";
@@ -1057,57 +1165,59 @@ class AccountPayableController extends Controller
 
         if($rowAffected){
 
+            $this->prosesPosting($apNumber);
+
             // $hasilUpdate = AppHelpers::resetCode($this->voucherCode);
             // $apNumber = $this->getLastCodeVoucher($this->voucherCode);
 
-            $apData = db::table('ap_invoice')
-            ->leftJoin('third_party', 'third_party.kode', '=', 'ap_invoice.supplier_id')
-            ->select('ap_invoice.*','third_party.nama as supplier_name')
-            ->where('ap_number',$apNumber)->first();
+            // $apData = db::table('ap_invoice')
+            // ->leftJoin('third_party', 'third_party.kode', '=', 'ap_invoice.supplier_id')
+            // ->select('ap_invoice.*','third_party.nama as supplier_name')
+            // ->where('ap_number',$apNumber)->first();
 
-            DB::table('kas_hdr')->insert([
-                'voucher_number' =>$apNumber,
-                'voucher_type' =>$this->moduleCode,
-                'voucher_date' =>date('Y-m-d'), //tanggal posting
-                'paid_to' => $apData->supplier_id,
-                'description' => $apNumber,
-                'amount' => $apData->grand_total,
-                'period' =>date('n'),
-                'year' =>date('Y'),                        
-                'note' => $apData->note,
-                'status' => '1',
-                'created_by' => Auth::user()->username,
-                'updated_by' => Auth::user()->username,
-                'created_at' => date('Y-m-d H:i:s'),
-                'updated_at' => date('Y-m-d H:i:s')
-            ]);
+            // DB::table('kas_hdr')->insert([
+            //     'voucher_number' =>$apNumber,
+            //     'voucher_type' =>$this->moduleCode,
+            //     'voucher_date' =>date('Y-m-d'), //tanggal posting
+            //     'paid_to' => $apData->supplier_id,
+            //     'description' => $apNumber,
+            //     'amount' => $apData->grand_total,
+            //     'period' =>date('n'),
+            //     'year' =>date('Y'),                        
+            //     'note' => $apData->note,
+            //     'status' => '1',
+            //     'created_by' => Auth::user()->username,
+            //     'updated_by' => Auth::user()->username,
+            //     'created_at' => date('Y-m-d H:i:s'),
+            //     'updated_at' => date('Y-m-d H:i:s')
+            // ]);
     
-            $dataSet = [];
-            $dataSet[] = [
-                'voucher_number' => $apNumber,
-                'account' =>$apData->account_ba,
-                'description' => $apNumber.' '.$apData->supplier_name,
-                'debit' => $apData->basis_amount,
-                'credit' => 0,
-                'reference' => $apNumber,
-                'created_by' => Auth::user()->username,
-                'updated_by' => Auth::user()->username,
-                'created_at' => date('Y-m-d H:i:s'),
-                'updated_at' => date('Y-m-d H:i:s')
-            ];
+            // $dataSet = [];
+            // $dataSet[] = [
+            //     'voucher_number' => $apNumber,
+            //     'account' =>$apData->account_ba,
+            //     'description' => $apNumber.' '.$apData->supplier_name,
+            //     'debit' => $apData->basis_amount,
+            //     'credit' => 0,
+            //     // 'reference' => $reference,  //sementara tidak di masukan belum tau fungsinya apa
+            //     'created_by' => Auth::user()->username,
+            //     'updated_by' => Auth::user()->username,
+            //     'created_at' => date('Y-m-d H:i:s'),
+            //     'updated_at' => date('Y-m-d H:i:s')
+            // ];
 
-            $dataSet[] = [
-                'voucher_number' => $apNumber,
-                'account' =>$apData->account_vat,
-                'description' => $apNumber.' '.$apData->supplier_name,
-                'debit' => $apData->vat,
-                'credit' => 0,
-                'reference' => $apNumber,
-                'created_by' => Auth::user()->username,
-                'updated_by' => Auth::user()->username,
-                'created_at' => date('Y-m-d H:i:s'),
-                'updated_at' => date('Y-m-d H:i:s')
-            ];
+            // $dataSet[] = [
+            //     'voucher_number' => $apNumber,
+            //     'account' =>$apData->account_vat,
+            //     'description' => $apNumber.' '.$apData->supplier_name,
+            //     'debit' => $apData->vat,
+            //     'credit' => 0,
+            //     'reference' => $reference,
+            //     'created_by' => Auth::user()->username,
+            //     'updated_by' => Auth::user()->username,
+            //     'created_at' => date('Y-m-d H:i:s'),
+            //     'updated_at' => date('Y-m-d H:i:s')
+            // ];
 
             //belum ada no account nya
             // if($apData->total_discount > 0){
@@ -1117,7 +1227,7 @@ class AccountPayableController extends Controller
             //         'description' => $apNumber.' '.$apData->supplier_name,
             //         'debit' => 0,
             //         'credit' => $apData->total_discount,
-            //         'reference' => $apNumber,
+            //         'reference' => $reference,
             //         'created_by' => Auth::user()->username,
             //         'updated_by' => Auth::user()->username,
             //         'created_at' => date('Y-m-d H:i:s'),
@@ -1125,29 +1235,14 @@ class AccountPayableController extends Controller
             //     ];  
             // }
 
-            if($apData->pph23 > 0){
-                $dataSet[] = [
-                    'voucher_number' => $apNumber,
-                    'account' =>$apData->account_pph,
-                    'description' => $apNumber.' '.$apData->supplier_name,
-                    'debit' => 0,
-                    'credit' => $apData->pph23,
-                    'reference' => $apNumber,
-                    'created_by' => Auth::user()->username,
-                    'updated_by' => Auth::user()->username,
-                    'created_at' => date('Y-m-d H:i:s'),
-                    'updated_at' => date('Y-m-d H:i:s')
-                ];  
-            }
-
-            // if($apData->pph21 > 0){
+            // if($apData->pph23 > 0){
             //     $dataSet[] = [
             //         'voucher_number' => $apNumber,
             //         'account' =>$apData->account_pph,
             //         'description' => $apNumber.' '.$apData->supplier_name,
             //         'debit' => 0,
-            //         'credit' => $apData->pph21,
-            //         'reference' => $apNumber,
+            //         'credit' => $apData->pph23,
+            //         'reference' => $reference,
             //         'created_by' => Auth::user()->username,
             //         'updated_by' => Auth::user()->username,
             //         'created_at' => date('Y-m-d H:i:s'),
@@ -1155,35 +1250,20 @@ class AccountPayableController extends Controller
             //     ];  
             // }
 
-            // if($apData->PPH42 > 0){
-            //     $dataSet[] = [
-            //         'voucher_number' => $apNumber,
-            //         'account' =>$apData->account_pph,
-            //         'description' => $apNumber.' '.$apData->supplier_name,
-            //         'debit' => 0,
-            //         'credit' => $apData->PPH42,
-            //         'reference' => $apNumber,
-            //         'created_by' => Auth::user()->username,
-            //         'updated_by' => Auth::user()->username,
-            //         'created_at' => date('Y-m-d H:i:s'),
-            //         'updated_at' => date('Y-m-d H:i:s')
-            //     ];  
-            // }
-
-            $dataSet[] = [
-                'voucher_number' => $apNumber,
-                'account' =>$apData->account_total,
-                'description' => $apNumber.' '.$apData->supplier_name,
-                'debit' => 0,
-                'credit' => $apData->grand_total,
-                'reference' => $apNumber,
-                'created_by' => Auth::user()->username,
-                'updated_by' => Auth::user()->username,
-                'created_at' => date('Y-m-d H:i:s'),
-                'updated_at' => date('Y-m-d H:i:s')
-            ];  
+            // $dataSet[] = [
+            //     'voucher_number' => $apNumber,
+            //     'account' =>$apData->account_total,
+            //     'description' => $apNumber.' '.$apData->supplier_name,
+            //     'debit' => 0,
+            //     'credit' => $apData->grand_total,
+            //     'reference' => $reference,
+            //     'created_by' => Auth::user()->username,
+            //     'updated_by' => Auth::user()->username,
+            //     'created_at' => date('Y-m-d H:i:s'),
+            //     'updated_at' => date('Y-m-d H:i:s')
+            // ];  
     
-            DB::table('kas_det')->insert($dataSet);
+            // DB::table('kas_det')->insert($dataSet);
             
         }
 
@@ -1310,52 +1390,53 @@ class AccountPayableController extends Controller
 
     public function destroy(Request $request)
     {
-        // status
-        // 1. Draft
-        // 2. Updated
-        // 3. Posted
-        // 4. Canceled
-        // 5. Paid
-        // 6. Revised
+        $statusCode = ['DRAFT','VALIDATED','APPROVED','POSTED','CANCELED','CLOSED','PAID'];
 
         $username =  Auth::user()->username;       
         $id=Crypt::decryptString($request->id);
-        $status = "4";
-
+        
         $data= DB::table('ap_invoice')
         ->where('id',$id)
         ->get()->first();
 
         $apNumber = $data->ap_number;
-        $invNumber = $data->inv_number;
-        $note = $data->note;
-
-        $rowAffected=DB::table('ap_invoice')
+        
+        $rowAffected = DB::table('ap_invoice')
         ->where('ap_number',$apNumber)
-        ->update(
-            [   
-                'inv_number' => $invNumber."(C)",
-                'status' => $status,
-                'note' => $note,
-                'updated_by' => Auth::user()->username,
-                'updated_at' => date('Y-m-d H:i:s')
-            ]
-        );
+        ->delete();
 
         if ($rowAffected){
+            DB::table('ap_invoice_detail')
+            ->where('ap_number',$apNumber)
+            ->delete();
+
+            DB::table('kas_hdr')
+            ->where('voucher_number',$apNumber)
+            ->where('voucher_type',$this->moduleCode)
+            ->delete();
+
+            DB::table('kas_det')
+            ->where('voucher_number',$apNumber)
+            ->delete();
+
+            DB::table('approval_history')
+            ->where('module_number',$apNumber)
+            ->where('module_code',$this->moduleCode)
+            ->delete();
+
             DB::commit();
-            $title ='Cancel input invoice';
+            $title ='Delete input invoice';
             $alert  ="success";
-            $message  = "$apNumber is successfully cancel";
-            \LogActivity::addToLog('AP Invoice update ',"username: $username Status $message");
+            $message  = "$apNumber is successfully deleted";
+            \LogActivity::addToLog('AP Invoice delete ',"username: $username Status $message");
             return redirect()->back()->with(array('status' => 1, 'message' => $message,'alert'=>$alert,'apNumber'=>$apNumber));
 
         }else{
             DB::rollBack();
-            $title ='Cancel input invoice';
+            $title ='Delete input invoice';
             $alert  ="warning";
-            $message  = "$apNumber is failed to cancel";
-            \LogActivity::addToLog('Posting AP ',"username: $username Status $message");
+            $message  = "$apNumber is failed to delete";
+            \LogActivity::addToLog('Delete AP ',"username: $username Status $message");
             return response()->back()->with(array('status' => 0, 'message' => $message,'alert'=>$alert,'apNumber'=>$apNumber));
         }
 
@@ -1373,6 +1454,8 @@ class AccountPayableController extends Controller
         $apDate = $request->apDate;
         $fromDate = "";
         $toDate = "";
+
+        // dd($searchStatus);
        
         if ($apDate){
             $date = explode("to",$apDate);
@@ -1394,7 +1477,7 @@ class AccountPayableController extends Controller
             $searchPo ? $query->where('po_number','ilike','%'.$searchPo.'%') : '';
             $searchAp ? $query->where('ap_number','ilike','%'.$searchAp.'%') : '';
             $searchSupplier ? $query->where('supplier_id','ilike','%'.$searchSupplier.'%') : '';
-            $searchStatus ? $query->where('status','=','.$searchStatus.') : '';
+            $searchStatus ? $query->where('ap_invoice.status','=',$searchStatus) : '';
             $apDate ? $query->whereBetween('inv_date', [$fromDate, $toDate]) : '';
         })
         ->where('ap_invoice.status','<>','6')
@@ -1403,7 +1486,7 @@ class AccountPayableController extends Controller
             ,DB::raw("(select STRING_AGG ( a.rec_number,',' ORDER BY a.id) as list_rec from ap_invoice_detail a where ap_number = ap_invoice.ap_number) as list_rec")
             ,db::raw("concat(third_party.kode,'-',third_party.nama) as supplier_name")
         )
-        ->orderBy('id')
+        ->orderBy('ap_invoice.id')
         ->get(); 
 
         return Datatables::of($data)
@@ -1423,14 +1506,14 @@ class AccountPayableController extends Controller
                 // }
             }
 
-            if (($data->status != '3') && ($data->status != '4') && ($data->status != '5')){
+            // if (($data->status != '3') && ($data->status != '4') && ($data->status != '5')){
                 if (Auth::user()->can('ap-edit')) {
                 $buttons .=         '<a href="'. route('ap.edit',['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                         <i data-feather="file-text"></i>
                                         <span>'. __("Edit") .'</span>
                                     </a>';
                 }
-            }
+            // }
 
             $buttons .=         '<a href="'. route('ap.show', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                             <i data-feather="list"></i>
@@ -1464,19 +1547,7 @@ class AccountPayableController extends Controller
             //     }
             // }
                 
-            // if (($data->status != '5' && $data->status != '4' )){
-            //     if (Auth::user()->can('receiving-delete')) {
-            //     $buttons .=         "<a href='javascript:;'
-            //                             id='deleteButton'
-            //                             class='dropdown-item'
-            //                             data-toggle='modal'
-            //                             data-target='#smallModalCancel'
-            //                             data-href='". route("ap.destroy", ["id"=>Crypt::encryptString($data->id)]) ."'>
-            //                             <i data-feather='trash-2'></i>
-            //                             Cancel
-            //                         </a>";
-            //     }
-            // }
+
             if (($data->status == '4')){
                 $buttons .=         '<a href="'. route('ap.print', ['id'=>Crypt::encryptString($data->id)]) .'" target="_blank" class="dropdown-item">
                                     <i data-feather="printer"></i>
@@ -1489,6 +1560,20 @@ class AccountPayableController extends Controller
                                     <i data-feather="printer"></i>
                                     <span>'. __("Print Slip") .'</span>
                                 </a>';
+            }
+
+            if (($data->status != '7')){
+                if (Auth::user()->can('ap-delete')) {
+                $buttons .=         "<a href='javascript:;'
+                                        id='deleteButton'
+                                        class='dropdown-item'
+                                        data-toggle='modal'
+                                        data-target='#smallModal'
+                                        data-href='". route("ap.destroy", ["id"=>Crypt::encryptString($data->id)]) ."'>
+                                        <i data-feather='trash-2' class='feather-14-red'></i>
+                                        Delete
+                                    </a>";
+                }
             }
 
             $buttons .=     '</div>

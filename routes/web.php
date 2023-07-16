@@ -647,6 +647,7 @@ Route::group( ['middleware' => ['auth']], function() {
 	// Route::get('kasPenerimaan/revision',['as'=>'kasPenerimaan.revision','uses'=>'Accounting\KasPenerimaanController@revision','middleware' => ['permission:kasPenerimaan-revision']]);
 	// Route::get('kasPenerimaan/validate',['as'=>'kasPenerimaan.validate','uses'=>'Accounting\KasPenerimaanController@validasi']);
 	Route::get('kasPenerimaan/approve',['as'=>'kasPenerimaan.approve','uses'=>'Accounting\KasPenerimaanController@approve']);
+	Route::get('kasPenerimaan/get/invoice/ammount',['as'=>'kasPenerimaan.get.invoice.amount','uses'=>'Accounting\KasPenerimaanController@getInvoiceAmount']);
 
 	Route::get('kasKeluar',['as'=>'kasKeluar.index','uses'=>'Accounting\KasKeluarController@index','middleware' => ['permission:pettyCash-index']]);
 	Route::get('kasKeluar/create',['as'=>'kasKeluar.create','uses'=>'Accounting\KasKeluarController@create']);

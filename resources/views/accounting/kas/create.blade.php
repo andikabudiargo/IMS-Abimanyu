@@ -83,11 +83,14 @@
                         <table class="" style="width:98%;table-layout: fixed;">
                             <tbody>
                                 <tr>
-                                    <td class="isian" style="width: 30%">
+                                    <td class="isian" style="width: 20%">
                                         <label>Account</label>
                                     </td>
-                                    <td class="isian" style="">
+                                    <td class="isian"style="width: 25%">
                                         <label>Description</label>
+                                    </td>
+                                    <td class="isian" style="">
+                                        <label>Referensi</label>
                                     </td>
                                     <td class="isian" style="">
                                         <label>CC</label>
@@ -108,15 +111,11 @@
                     <div class="" id="item_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px">
                         <input type="text" id ="last_row_number" class="d-none" value="0">
                     </div>
-                    <table class="" style="width: 98%;table-layout: fixed;">
+                    <table class="table-bordered" style="width: 98%;table-layout: fixed;">
                         <tbody>
                             <tr>
-                                <td class="isian" style="width: 30%">
-                                    <label>Total</label>
-                                </td>
-                                <td class="isian" style="">
-                                </td>
-                                <td class="isian" style="">
+                                <td colspan="4" class="isian text-right" style="border-left: 1px solid white;border-bottom: 1px solid white;">
+                                    <label style="font-size: 12pt;">Total</label>
                                 </td>
                                 <td class="isian" style="width: 10%">
                                     <input type="text" class="form-control-plaintext numeral-mask text-right" id="vcTotalDebit" disabled />
@@ -124,7 +123,19 @@
                                 <td class="isian" style="width: 10%">
                                     <input type="text" class="form-control-plaintext numeral-mask text-right" id= "vcTotalCredit" disabled />
                                 </td>
-                                <td class="isian text-center" style="width: 5%">
+                                <td class="isian text-center" style="width: 5%;border-right: 1px solid white;border-bottom: 1px solid white;">
+                                </td>
+                            </tr>
+                            <tr>
+                                <td colspan="4" class="isian text-right" style="border-left: 1px solid white;border-bottom: 1px solid white;">
+                                    <label style="font-size: 12pt;">Selisih</label>
+                                </td>
+                                <td class="isian" style="width: 10%">
+                                </td>
+                                <td class="isian" style="width: 10%">
+                                    <input type="text" class="form-control-plaintext numeral-mask text-right" id="selisih" disabled />
+                                </td>
+                                <td class="isian text-center" style="width: 5%;border-right: 1px solid white;border-bottom: 1px solid white;">
                                 </td>
                             </tr>
                         </tbody>
@@ -212,13 +223,7 @@
     $(document).ready(function(){           
         validateFormToast('frmAdd');
         vcDate.val(currentDate);
-
         add_new_row();
-        add_new_row();
-        add_new_row();
-        add_new_row();
-        add_new_row();
-        
     });
     
     vcDate = $('#vcDate');
@@ -246,6 +251,7 @@
                 $('.disabled-el').removeAttr('disabled');
                 // ambil semua data article
                 let objvcDesc= $('#item_row input[name="vcDesc[]"]');
+                let objVcRef= $('#item_row select[name="vcRef[]"]');
                 let objVcCc= $('#item_row select[name="vcCc[]"]');
                 let objVcDebit= $('#item_row input[name="vcDebit[]"]');
                 let objVcCredit= $('#item_row input[name="vcCredit[]"]');
@@ -260,6 +266,7 @@
                     if ($this.val()){
                         let sAccount=$this.val();
                         let sDesc=objvcDesc.eq(i).val();
+                        let sRef=objVcRef.eq(i).val();
                         let sCc=objVcCc.eq(i).val();
                         let sDebit=objVcDebit.eq(i).val().replace(/,/gi, '') || 0;
                         let sCredit=objVcCredit.eq(i).val().replace(/,/gi, '') || 0;
@@ -268,6 +275,7 @@
                             details.push({
                                 "account":sAccount,
                                 "description":sDesc,
+                                "reference":sRef,
                                 "cc":sCc,
                                 "debit":sDebit,
                                 "credit":sCredit,
@@ -330,12 +338,13 @@
         }
     });
 
-    let cloneCount=1;
+    let cloneCount=0;
     function add_new_row() {
         $("#item_row").append($("#new_row").clone().html());
         cloneCount++;
         $("#item_row").find('#baru').attr('id', 'new_row'+ cloneCount);
         $("#new_row"+ cloneCount).find('#vcDesc').attr('id', 'vcDesc'+ cloneCount);
+        $("#new_row"+ cloneCount).find('#vcRef').attr('id', 'vcRef'+ cloneCount);
         $("#new_row"+ cloneCount).find('#account').attr('id', 'account'+ cloneCount);
         $("#new_row"+ cloneCount).find('#vcCc').attr('id', 'vcCc'+ cloneCount);
         accList('account','account'+ cloneCount);
@@ -350,6 +359,8 @@
         mask_thousand();
         hitungTotal();
         hitungGrandTotal();
+        findInvoice();
+        getAmount();
         $('[data-toggle="tooltip"]').tooltip();
         
         // $("#vcDesc"+ cloneCount).autocomplete({
@@ -422,6 +433,85 @@
             $("#recFromDesc").val(contentText[1].trim());
         }    
     });
+
+    // function findInvoice(){
+    //     let objAccount = $('#item_row select[name="account[]"]');
+    //     let objVcRef= $('#item_row select[name="vcRef[]"]');
+    //     let objVcDebit= $('#item_row input[name="vcDebit[]"]');
+    //     let objVcCredit= $('#item_row input[name="vcCredit[]"]');
+        
+    //     objAccount.change(function(e){        
+    //         let objIndex = objAccount.index(this);
+    //         let accountNumber = objAccount.eq(objIndex).val();
+    //         let recFrom = $('#recFrom').val();
+    //         let objCust = "vcRef"+(objIndex+1);
+    //         if(accountNumber){
+    //             if (accountNumber =='1100.40'){
+    //                 // if(recFrom){
+    //                     invList('referenceAr',objCust,recFrom);
+    //                 // }else{
+    //                 //     Swal.fire('Warning..','Kolom bayar ke /supplier code masih kosong','warning');
+    //                 // }
+    //             }else{
+    //                 objVcDebit.eq(objIndex).val("");
+    //                 objVcCredit.eq(objIndex).val("");
+    //                 objVcRef.eq(objIndex).empty().trigger('change');
+    //                 hitungGrandTotal();
+    //             }
+    //         }
+    //     });
+    // }
+
+    // function invList(dependent,obj,value) {
+    //   $.ajax({
+    //     url:"{{route('dynamic.dependent')}}",
+    //     method:"POST",
+    //     data:{
+    //         dependent:dependent,
+    //         value:value
+    //     },
+    //     success:function(result){
+    //         $('#'+obj).html(result);
+    //         $('#'+obj).val("").trigger('change');
+    //     }
+    //   })
+    // }
+
+    // function getAmount(){
+    //     let objRef = $('#item_row select[name="vcRef[]"]');
+    //     objRef.change(function(e){ 
+    //         let objIndex = objRef.index(this);
+    //         let vRef = objRef.eq(objIndex).val();
+    //         if(vRef){
+    //             getAmountValue(vRef,objIndex); 
+    //         }
+    //     });
+    // }   
+
+    // function getAmountValue(vRef,objIndex) {
+    //     let objVcDebit= $('#item_row input[name="vcDebit[]"]');
+    //     let objVcCredit= $('#item_row input[name="vcCredit[]"]');
+    //     $.ajax({
+    //         type: "get",
+    //         url: "{{ route('kasPenerimaan.get.invoice.amount') }}",
+    //         data: {
+    //             vRef:vRef
+    //         },
+    //         dataType: "json",
+    //         success: function(data) {
+    //             objVcCredit.eq(objIndex).val('');
+    //             objVcDebit.eq(objIndex).val('');
+    //             if(data.amount){
+    //                 objVcDebit.eq(objIndex).val(humanizeNumber(data.amount));
+    //                 objVcCredit.eq(objIndex).val('');
+    //                 hitungGrandTotal();
+    //             }
+    //         },
+    //         error: function(error) {
+    //             console.log(error);
+    //         }
+    //     });
+    // }
 
     $.ajaxSetup({
         headers: {

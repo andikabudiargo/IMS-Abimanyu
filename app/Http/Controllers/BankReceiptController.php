@@ -812,7 +812,7 @@ class BankReceiptController extends Controller
                                         data-toggle='modal'
                                         data-target='#smallModalCancel'
                                         data-href='". route("disbursement.destroy", ["id"=>Crypt::encryptString($data->id)]) ."'>
-                                        <i data-feather='trash-2'></i>
+                                        <i data-feather='trash-2' class='feather-14-red'></i>
                                         Cancel
                                     </a>";
                 }

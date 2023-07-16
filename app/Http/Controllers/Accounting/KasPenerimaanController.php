@@ -192,7 +192,7 @@ class KasPenerimaanController extends Controller
                             'cost_center' => $val->cc,
                             'debit' => $val->debit,
                             'credit' => $val->credit,
-                            // 'reference' => ,
+                            'reference' => $val->reference,
                             'created_by' => Auth::user()->username,
                             'updated_by' => Auth::user()->username,
                             'created_at' => date('Y-m-d H:i:s'),
@@ -246,7 +246,7 @@ class KasPenerimaanController extends Controller
             ,'depts.name as cost_center_name'
         )
         ->where('voucher_number',$vcNumber)
-        ->orderBy('id')
+        ->orderBy('credit')
         ->get();
 
         $data['total']=DB::table('kas_det')
@@ -390,7 +390,7 @@ class KasPenerimaanController extends Controller
                             'cost_center' => $val->cc,
                             'debit' => $val->debit,
                             'credit' => $val->credit,
-                            // 'reference' => ,
+                            'reference' => $val->reference,
                             'created_by' => Auth::user()->username,
                             'updated_by' => Auth::user()->username,
                             'created_at' => date('Y-m-d H:i:s'),
@@ -603,7 +603,7 @@ class KasPenerimaanController extends Controller
                                     data-toggle='modal'
                                     data-target='#smallModal'
                                     data-href='". route("kasPenerimaan.destroy", ['id'=>Crypt::encryptString($data->id)]) ."'>
-                                    <i data-feather='trash-2'></i>
+                                    <i data-feather='trash-2' class='feather-14-red'></i>
                                     Delete
                                 </a>";
             }
@@ -643,6 +643,7 @@ class KasPenerimaanController extends Controller
         ->leftJoin('accounts','accounts.account','kas_det.account')
         ->select('kas_det.*','accounts.description as account_name')
         ->where('voucher_number',$vcNumber)
+        ->orderBy('kas_det.credit')
         ->get();
 
         $data['total']=DB::table('kas_det')
@@ -680,10 +681,21 @@ class KasPenerimaanController extends Controller
         return view('accounting.kas.print',$data);
 
         // view()->share($data);
-
         // $pdf = PDF::loadView('accounting.kas.print');
         // return $pdf->stream("$vcNumber.pdf");
 
+    }
+
+    public function getInvoiceAmount(Request $request)
+    {
+        $refNumber = $request->vRef;
+        $amount = db::table('invoice_hdr')
+        ->where('invoice_number',$refNumber)
+        // ->select(db::raw("dpp+vat as amount"))
+        ->select(db::raw("dpp as amount"))
+        ->value('amount');
+
+        return response()->json(array('amount' => $amount));
     }
 
 }

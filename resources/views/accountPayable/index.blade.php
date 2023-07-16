@@ -17,10 +17,6 @@
       <div class="card-body">
         <form class="needs-validation" novalidate>
             <div class="form-row">
-              {{-- <div class="form-group col-md-3 d-none"> 
-                <label for="searchRec">Rec Number</label>
-                <input type="text" class="form-control text-uppercase" id="searchRec" name="searchRec" placeholder=""  />
-              </div> --}}
               <div class="form-group col-md-3"> 
                 <label for="searchPo">PO Number</label>
                 <input type="text" class="form-control text-uppercase" id="searchPo" name="searchPo" placeholder=""  />
@@ -47,7 +43,7 @@
                 <select class="select2 form-control" id="searchStatus" name="searchStatus">
                     <option value="">All</option>
                     @foreach($status as $index=>$val)
-                        <option value="{{ $index }}">{{ $index }} - {{ $val }}</option>
+                        <option value="{{ $index }}">{{ $val }}</option>
                     @endforeach
                 </select>
               </div>
@@ -105,14 +101,14 @@
     $(document).on('click', '#deleteButton', function(event) {
         event.preventDefault();
         href = $(this).data('href');
-        $('#modalConfirmationCancel').attr("action", href);
+        $('#modalConfirmation').attr("action", href);
     });
   });
 
   let showAlert = "{{ Session::get('alert') }}";
 
   if ( showAlert ){
-    showList();
+    // showList();
     $("#alert-message-alert").fadeTo(5000, 500).slideUp(500, function(){
       $("#alert-message-alert").slideUp(500);
     });
