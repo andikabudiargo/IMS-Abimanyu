@@ -80,43 +80,16 @@
                 </div>
                 <div class="card-body" >
                     <div>
-                        <table class="" style="width:98%;table-layout: fixed;">
-                            <tbody>
-                                <tr>
-                                    <td class="isian" style="width: 30%">
-                                        <label>Account</label>
-                                    </td>
-                                    <td class="isian" style="">
-                                        <label>Description</label>
-                                    </td>
-                                    <td class="isian" style="">
-                                        <label>CC</label>
-                                    </td>
-                                    <td class="isian" style="width: 10%">
-                                        <label>Debit</label>
-                                    </td>
-                                    <td class="isian" style="width: 10%">
-                                        <label>Credit</label>
-                                    </td>
-                                    <td class="isian" style="width: 5%">
-                                        <label>-</label>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
+                        @include('accounting.bank.tableHeader')
                     </div>      
                     <div class="" id="item_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px">
                         <input type="text" id ="last_row_number" class="d-none" value="0">
                     </div>
-                    <table class="" style="width: 98%;table-layout: fixed;">
+                    <table class="table-bordered" style="width: 98%;table-layout: fixed;">
                         <tbody>
                             <tr>
-                                <td class="isian" style="width: 30%">
-                                    <label>Total</label>
-                                </td>
-                                <td class="isian" style="">
-                                </td>
-                                <td class="isian" style="">
+                                <td colspan="4" class="isian text-right" style="border-left: 1px solid white;border-bottom: 1px solid white;">
+                                    <label style="font-size: 12pt;">Total</label>
                                 </td>
                                 <td class="isian" style="width: 10%">
                                     <input type="text" class="form-control-plaintext numeral-mask text-right" id="vcTotalDebit" disabled />
@@ -124,7 +97,19 @@
                                 <td class="isian" style="width: 10%">
                                     <input type="text" class="form-control-plaintext numeral-mask text-right" id= "vcTotalCredit" disabled />
                                 </td>
-                                <td class="isian text-center" style="width: 5%">
+                                <td class="isian text-center" style="width: 5%;border-right: 1px solid white;border-bottom: 1px solid white;">
+                                </td>
+                            </tr>
+                            <tr>
+                                <td colspan="4" class="isian text-right" style="border-left: 1px solid white;border-bottom: 1px solid white;">
+                                    <label style="font-size: 12pt;">Selisih</label>
+                                </td>
+                                <td class="isian" style="width: 10%">
+                                </td>
+                                <td class="isian" style="width: 10%">
+                                    <input type="text" class="form-control-plaintext numeral-mask text-right" id="selisih" disabled />
+                                </td>
+                                <td class="isian text-center" style="width: 5%;border-right: 1px solid white;border-bottom: 1px solid white;">
                                 </td>
                             </tr>
                         </tbody>
@@ -147,7 +132,7 @@
     </div>
 </section>
 
-@include('accounting.kas.addArticle')
+@include('accounting.bank.addArticle')
 @endsection
 @section('styles')
 <link rel="stylesheet" type="text/css" href="{{ asset('assets/css/jquery-ui.css') }}">
@@ -214,10 +199,10 @@
         vcDate.val(currentDate);
 
         add_new_row();
-        add_new_row();
-        add_new_row();
-        add_new_row();
-        add_new_row();
+        // add_new_row();
+        // add_new_row();
+        // add_new_row();
+        // add_new_row();
         
     });
     
@@ -246,6 +231,7 @@
                 $('.disabled-el').removeAttr('disabled');
                 // ambil semua data article
                 let objvcDesc= $('#item_row input[name="vcDesc[]"]');
+                let objVcRef= $('#item_row select[name="vcRef[]"]');
                 let objVcCc= $('#item_row select[name="vcCc[]"]');
                 let objVcDebit= $('#item_row input[name="vcDebit[]"]');
                 let objVcCredit= $('#item_row input[name="vcCredit[]"]');
@@ -260,6 +246,7 @@
                     if ($this.val()){
                         let sAccount=$this.val();
                         let sDesc=objvcDesc.eq(i).val();
+                        let sRef=objVcRef.eq(i).val();
                         let sCc=objVcCc.eq(i).val();
                         let sDebit=objVcDebit.eq(i).val().replace(/,/gi, '') || 0;
                         let sCredit=objVcCredit.eq(i).val().replace(/,/gi, '') || 0;
@@ -268,6 +255,7 @@
                             details.push({
                                 "account":sAccount,
                                 "description":sDesc,
+                                "reference":sRef,
                                 "cc":sCc,
                                 "debit":sDebit,
                                 "credit":sCredit,
@@ -330,12 +318,13 @@
         }
     });
 
-    let cloneCount=1;
+    let cloneCount=0;
     function add_new_row() {
         $("#item_row").append($("#new_row").clone().html());
         cloneCount++;
         $("#item_row").find('#baru').attr('id', 'new_row'+ cloneCount);
         $("#new_row"+ cloneCount).find('#vcDesc').attr('id', 'vcDesc'+ cloneCount);
+        $("#new_row"+ cloneCount).find('#vcRef').attr('id', 'vcRef'+ cloneCount);
         $("#new_row"+ cloneCount).find('#account').attr('id', 'account'+ cloneCount);
         $("#new_row"+ cloneCount).find('#vcCc').attr('id', 'vcCc'+ cloneCount);
         accList('account','account'+ cloneCount);
@@ -344,18 +333,15 @@
         $("#vcCc"+cloneCount).select2();
 
         $('#remove_button').tooltip();
-        // tombolPanah('vcDebit');
-        // tombolPanah('vcCredit');
+        
         activate_angka();
         mask_thousand();
         hitungTotal();
         hitungGrandTotal();
+        findInvoice();
+        getAmount();
         $('[data-toggle="tooltip"]').tooltip();
         
-        // $("#vcDesc"+ cloneCount).autocomplete({
-        //     source: availableTags
-        // });
-
     };
 
     function accList(dependent,obj) {

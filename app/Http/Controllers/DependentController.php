@@ -512,7 +512,7 @@ class DependentController extends Controller
         }elseif($dependent =='referenceAr'){
             $data= DB::table($table)
             // ->where($field,$code)
-            ->where('status','=','1') //POSTED
+            ->where('status','=','3') //approved
             ->whereNotIn(DB::raw("invoice_number"), function($query) {
                 $query->select(DB::raw("reference"))
                 ->from('kas_det') 

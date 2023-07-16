@@ -129,6 +129,8 @@ class InvoiceController extends Controller
         $gudang = 'false';
         $kurs = 1;
         $fakturPajak  = $request->fakturPajak;
+        $dpp = $request->totalAmount;
+        $grandTotal = $request->totalNetto;
 
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED','9'=>'PAID'];
 
@@ -331,7 +333,7 @@ class InvoiceController extends Controller
         $kurs = 1;
         $fakturPajak  = $request->fakturPajak;
 
-        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED','9'=>'PAID'];
+        // $data['status'] = ['1'=>'DRAFT','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','6'=>'CLOSED','6'=>'PAID'];
 
         $customMessages = [
             'required' => 'The field is required.',

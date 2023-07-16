@@ -192,7 +192,7 @@ class BankPenerimaanController extends Controller
                             'cost_center' => $val->cc,
                             'debit' => $val->debit,
                             'credit' => $val->credit,
-                            // 'reference' => ,
+                            'reference' => $val->reference,
                             'created_by' => Auth::user()->username,
                             'updated_by' => Auth::user()->username,
                             'created_at' => date('Y-m-d H:i:s'),
@@ -390,7 +390,7 @@ class BankPenerimaanController extends Controller
                             'cost_center' => $val->cc,
                             'debit' => $val->debit,
                             'credit' => $val->credit,
-                            // 'reference' => ,
+                            'reference' => $val->reference,
                             'created_by' => Auth::user()->username,
                             'updated_by' => Auth::user()->username,
                             'created_at' => date('Y-m-d H:i:s'),
@@ -643,6 +643,7 @@ class BankPenerimaanController extends Controller
         ->leftJoin('accounts','accounts.account','kas_det.account')
         ->select('kas_det.*','accounts.description as account_name')
         ->where('voucher_number',$vcNumber)
+        ->orderBy('credit')
         ->get();
 
         $data['total']=DB::table('kas_det')
@@ -684,6 +685,18 @@ class BankPenerimaanController extends Controller
         // $pdf = PDF::loadView('accounting.bank.print');
         // return $pdf->stream("$vcNumber.pdf");
 
+    }
+
+    public function getInvoiceAmount(Request $request)
+    {
+        $refNumber = $request->vRef;
+        $amount = db::table('invoice_hdr')
+        ->where('invoice_number',$refNumber)
+        // ->select(db::raw("dpp+vat as amount"))
+        ->select(db::raw("dpp as amount"))
+        ->value('amount');
+
+        return response()->json(array('amount' => $amount));
     }
 
 }

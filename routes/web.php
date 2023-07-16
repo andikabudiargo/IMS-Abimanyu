@@ -671,6 +671,7 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('bankPenerimaan/delete',['as'=>'bankPenerimaan.destroy','uses'=>'Accounting\BankPenerimaanController@destroy']);
 	Route::get('bankPenerimaan/print',['as'=>'bankPenerimaan.print','uses'=>'Accounting\BankPenerimaanController@print']);
 	Route::get('bankPenerimaan/approve',['as'=>'bankPenerimaan.approve','uses'=>'Accounting\BankPenerimaanController@approve']);
+	Route::get('bankPenerimaan/get/invoice/ammount',['as'=>'bankPenerimaan.get.invoice.amount','uses'=>'Accounting\BankPenerimaanController@getInvoiceAmount']);
 
 	Route::get('bankKeluar',['as'=>'bankKeluar.index','uses'=>'Accounting\BankKeluarController@index','middleware' => ['permission:pettyCash-index']]);
 	Route::get('bankKeluar/create',['as'=>'bankKeluar.create','uses'=>'Accounting\BankKeluarController@create']);

@@ -72,6 +72,9 @@
                                 <th class="isian" style="">
                                     <label>Description</label>
                                 </th>
+                                <td class="isian" style="">
+                                    <label>Referensi</label>
+                                </td>
                                 <th class="isian" style="">
                                     <label>CC</label>
                                 </th>
@@ -91,6 +94,9 @@
                                 </td>
                                 <td class="isian" style="">
                                     {{ $item->description }}
+                                </td>
+                                <td class="isian" style="">
+                                    {{ $item->reference }}
                                 </td>
                                 <td class="isian" style="">
                                     {{ $item->cost_center_name }}
