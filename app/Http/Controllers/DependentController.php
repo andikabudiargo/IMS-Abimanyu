@@ -504,7 +504,7 @@ class DependentController extends Controller
                 ->from('kas_det') 
                 ->leftJoin('kas_hdr','kas_hdr.voucher_number','kas_det.voucher_number')
                 ->where('kas_hdr.status','<>','5')
-                ->where('kas_det.voucher_type','like','BK%')
+                ->where('kas_det.voucher_number','like','BK%')
                 ->where('kas_det.voucher_number','like','KK%');
             })
             ->orderBy($order)
