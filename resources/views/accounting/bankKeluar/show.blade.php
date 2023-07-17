@@ -70,7 +70,7 @@
                                     <label>Description</label>
                                 </th>
                                 <th class="isian" style="">
-                                    <label>Referensi</label>
+                                    <label>Invoice Number</label>
                                 </th>
                                 <th class="isian" style="">
                                     <label>CC</label>

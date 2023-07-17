@@ -36,11 +36,11 @@
         <table class="table-bordered" style="width: 98%;table-layout: fixed;">
             <tbody>
                 <tr>
-                    <td class="isian" style="width: 30%">
+                    <td class="isian" style="width: 20%">
                         <select class="dynamicSelect form-control cekoki" id="account" name="account[]">
                         </select>
                     </td>
-                    <td class="isian" style="">
+                    <td class="isian" style="width: 25%">
                         <input type="text" class="form-control-plaintext tombol-panah" 
                         data-type-el-kiri="select" 
                         data-nama-el-kiri='account'

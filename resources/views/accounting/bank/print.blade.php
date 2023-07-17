@@ -231,6 +231,7 @@
                                 <tr>
                                     <th width="10%">No Account</th>
                                     <th width="40%">Account Name</th>
+                                    <th width="20%">Invoice Number</th>
                                     <th width="40%">Keterangan</th>
                                     <th width="10%">Debet</th>
                                     <th width="10%">Kredit</th>
@@ -241,6 +242,7 @@
                                     <tr >
                                         <td align="left">{{ $val->account }}</td>
                                         <td align="left">{{ $val->account_name }}</td>
+                                        <td align="left">{{ $val->reference }}</td>
                                         <td align="left">{{ $val->description }}</td>
                                         <td align="right">{{ number_format($val->debit) }}</td>
                                         <td align="right">{{ number_format($val->credit) }}</td>

@@ -83,10 +83,10 @@
                         <table class="" style="width:98%;table-layout: fixed;">
                             <tbody>
                                 <tr>
-                                    <td class="isian" style="width: 30%">
+                                    <td class="isian" style="width: 20%">
                                         <label>Account</label>
                                     </td>
-                                    <td class="isian" style="">
+                                    <td class="isian" style="width: 20%">
                                         <label>Description</label>
                                     </td>
                                     <td class="isian" style="">
@@ -201,7 +201,6 @@
         </div>
     </div>
 </section>
-
 @include('accounting.kasKeluar.addArticle')
 @endsection
 @section('styles')

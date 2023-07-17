@@ -80,33 +80,7 @@
                 </div>
                 <div class="card-body" >
                     <div>
-                        <table class="" style="width:98%;table-layout: fixed;">
-                            <tbody>
-                                <tr>
-                                    <td class="isian" style="width: 30%">
-                                        <label>Account</label>
-                                    </td>
-                                    <td class="isian" style="">
-                                        <label>Description</label>
-                                    </td>
-                                    <td class="isian" style="">
-                                        <label>Referensi</label>
-                                    </td>
-                                    <td class="isian" style="">
-                                        <label>CC</label>
-                                    </td>
-                                    <td class="isian" style="width: 10%">
-                                        <label>Debit</label>
-                                    </td>
-                                    <td class="isian" style="width: 10%">
-                                        <label>Credit</label>
-                                    </td>
-                                    <td class="isian" style="width: 5%">
-                                        <label>-</label>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
+                        @include('accounting.bank.tableHeader')
                     </div>      
                     <div class="" id="item_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px">
                         <input type="text" id ="last_row_number" class="d-none" value="0">
