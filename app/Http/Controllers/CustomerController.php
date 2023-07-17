@@ -69,7 +69,7 @@ class CustomerController extends Controller
         ->get();
 
         $data['accounts'] = DB::table('accounts')
-        ->where ('status','=','1')
+        ->where('parent_id','1100.40')
         ->orderBy('description')
         ->get();
 
@@ -263,7 +263,7 @@ class CustomerController extends Controller
         ->get();
 
         $data['accounts'] = DB::table('accounts')
-        ->where ('status','=','1')
+        ->where('parent_id','1100.40')
         ->orderBy('description')
         ->get();
 

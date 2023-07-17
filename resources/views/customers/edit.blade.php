@@ -55,6 +55,17 @@
                     </div>
                     <div class="form-row">
                         <div class="form-group col-md-6">
+                            <label class="form-label" for="account">COA Piutang</label>
+                            <select class="select2 w-100" id="account" name="account">
+                                <option value=""></option>
+                                @foreach($accounts as $val)
+                                    <option value="{{$val->account}}" {{ $val->account == old("account",$customers->account) ? "selected" : ""}} >{{$val->account}} | {{$val->description}} </option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
                             <label class="form-label" for="nama">Nama</label>
                             <input type="text" id="nama" name="nama" value="{{ old('nama',$customers->nama) }}" class="form-control" required maxlength="100" autofocus/>
                         </div>
@@ -172,17 +183,6 @@
                                 <option value="">All</option>
                                 @foreach($cities as $val)
                                     <option value="{{$val->region_code}}" {{ $val->region_code == old("areaKirim",$customers->area_kirim) ? "selected" : ""}} >{{$val->region_name}}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group col-md-6">
-                            <label class="form-label" for="account">Account</label>
-                            <select class="select2 w-100" id="account" name="account">
-                                <option value="">All</option>
-                                @foreach($accounts as $val)
-                                    <option value="{{$val->account}}" {{ $val->account == old("account",$customers->account) ? "selected" : ""}} >{{$val->account}} | {{$val->description}} </option>
                                 @endforeach
                             </select>
                         </div>

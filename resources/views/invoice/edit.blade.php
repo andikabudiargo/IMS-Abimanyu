@@ -189,9 +189,9 @@
                                 @endif
                             @endif
 
-                            @if( $status =='APPROVED')
+                            {{-- @if( $status =='APPROVED')
                                 <button class="btn btn-primary" type="button" id="cmdPosting" name="cmdPosting" >Posting</button>
-                            @endif
+                            @endif --}}
                         </div>
                     </div>
                     <hr>

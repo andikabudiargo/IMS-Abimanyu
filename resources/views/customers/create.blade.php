@@ -46,7 +46,6 @@
                             <label class="form-label" for="kode">Kode</label>
                             <input type="text" id="kode" name="kode" value="{{ old('kode') }}" class="form-control" maxlength="20" autofocus/>
                         </div> --}}
-                        
                     </div>
                     <div class="form-row">
                         <div class="form-group col-md-6">
@@ -62,6 +61,17 @@
                                 <input type="checkbox" class="custom-control-input" id="epte" name="epte" {{ old('epte') == 't' ? 'checked' : '' }} />
                                 <label class="custom-control-label" for="epte">EPTE</label>
                             </div>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <label class="form-label" for="account">COA Piutang</label>
+                            <select class="select2 w-100" id="account" name="account">
+                                <option value=""></option>
+                                @foreach($accounts as $val)
+                                    <option value="{{$val->account}}" {{ $val->account == old("account") ? "selected" : ""}} >{{$val->account}} | {{$val->description}} </option>
+                                @endforeach
+                            </select>
                         </div>
                     </div>
                     <div class="form-row">
@@ -177,17 +187,7 @@
                             </select>
                         </div>
                     </div>
-                    <div class="form-row">
-                        <div class="form-group col-md-6">
-                            <label class="form-label" for="account">Account</label>
-                            <select class="select2 w-100" id="account" name="account">
-                                <option value="">All</option>
-                                @foreach($accounts as $val)
-                                    <option value="{{$val->account}}" {{ $val->account == old("account") ? "selected" : ""}} >{{$val->account}} | {{$val->description}} </option>
-                                @endforeach
-                            </select>
-                        </div>
-                    </div>
+                   
                     <div class="d-flex justify-content-between">
                         <button class="btn btn-outline-secondary btn-prev" disabled>
                             <i data-feather="arrow-left" class="align-middle mr-sm-25 mr-0"></i>

@@ -314,12 +314,11 @@
                         });
                     }
 
-                    console.log(articles);
-
                     if (qty == 0){
                         pesan +="QTY of items "+ articleDesc +" cannot be 0 <br>"; 
                         flag=1;
                     }
+
                     // if (inisial !== customer){
                     //     pesan +="This article "+ articleName +" does not belong to the customer "+custName +" <br>"; 
                     //     flag=1;

@@ -145,12 +145,11 @@
         objAccount.change(function(e){        
             let objIndex = objAccount.index(this);
             let accountNumber = objAccount.eq(objIndex).val();
-            let recFrom = $('#recFrom').val();
             let objCust = "vcRef"+(objIndex+1);
             if(accountNumber){
-                if (accountNumber =='1100.40'){
+                if (accountNumber.substring(0,7) =='1100.40'){
                     // if(recFrom){
-                        invList('referenceAr',objCust,recFrom,'');
+                        invList('referenceAr',objCust,accountNumber,'');
                     // }else{
                     //     Swal.fire('Warning..','Kolom bayar ke /supplier code masih kosong','warning');
                     // }

@@ -510,19 +510,22 @@ class DependentController extends Controller
             ->orderBy($order)
             ->get();
         }elseif($dependent =='referenceAr'){
+
+            $customerId = DB::table('third_party')->where('account',$code)->value('kode');
             $data= DB::table($table)
-            // ->where($field,$code)
+            ->where($field,$customerId)
             ->where('status','=','3') //approved
             ->whereNotIn(DB::raw("invoice_number"), function($query) {
                 $query->select(DB::raw("reference"))
                 ->from('kas_det') 
                 ->leftJoin('kas_hdr','kas_hdr.voucher_number','kas_det.voucher_number')
                 ->where('kas_hdr.status','<>','5')
-                ->where('kas_det.voucher_number','like','BK%')
-                ->where('kas_det.voucher_number','like','KK%');
+                ->where('kas_det.voucher_number','like','BM%')
+                ->where('kas_det.voucher_number','like','KM%');
             })
             ->orderBy($order)
             ->get();
+
         }else{
             $data= DB::table($table) 
             ->where($field,$code)

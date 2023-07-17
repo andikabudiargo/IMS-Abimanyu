@@ -129,7 +129,7 @@ class InvoiceController extends Controller
         $kurs = 1;
         $fakturPajak  = $request->fakturPajak;
         $dpp = $request->totalAmount;
-        $grandTotal = $request->totalNetto;
+        $grandTotal = $request->grandTotal;
 
        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','6'=>'PAID','7'=>'REVISED'];
 
@@ -335,7 +335,7 @@ class InvoiceController extends Controller
         $kurs = 1;
         $fakturPajak  = $request->fakturPajak;
         $dpp = $request->totalAmount;
-        $grandTotal = $request->totalNetto;
+        $grandTotal = $request->grandTotal;
 
         // $data['status'] = ['1'=>'DRAFT','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','6'=>'CLOSED','6'=>'PAID'];
 

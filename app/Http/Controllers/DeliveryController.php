@@ -852,6 +852,7 @@ class DeliveryController extends Controller
             $searchDn ? $query->where('delivery_number','ilike','%'.$searchDn.'%') : '';
             $searchSo ? $query->where('so_number','ilike','%'.$searchSo.'%') : '';
             $searchStatus ? $query->where('delivery_hdr.status',$searchStatus) : '';
+            $searchCustomer ? $query->where('delivery_hdr.customer_id',$searchCustomer) : '';
             $requestDate ? $query->whereBetween(DB::raw("to_date(delivery_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
         })
         ->where('delivery_hdr.status','!=','7')
