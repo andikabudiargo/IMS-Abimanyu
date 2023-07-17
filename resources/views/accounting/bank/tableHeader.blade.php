@@ -8,7 +8,7 @@
                 <label>Description</label>
             </td>
             <td class="isian" style="">
-                <label>Invoice Number</label>
+                <label>Referensi</label>
             </td>
             <td class="isian" style="">
                 <label>CC</label>

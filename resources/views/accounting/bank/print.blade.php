@@ -231,7 +231,7 @@
                                 <tr>
                                     <th width="10%">No Account</th>
                                     <th width="40%">Account Name</th>
-                                    <th width="20%">Invoice Number</th>
+                                    <th width="20%">Referensi</th>
                                     <th width="40%">Keterangan</th>
                                     <th width="10%">Debet</th>
                                     <th width="10%">Kredit</th>

@@ -80,7 +80,7 @@
                 </div>
                 <div class="card-body" >
                     <div>
-                        @include('accounting.bank.tableHeader')
+                        @include('accounting.bankKeluar.tableHeader')
                     </div>      
                     <div class="" id="item_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px">
                         <input type="text" id ="last_row_number" class="d-none" value="0">
