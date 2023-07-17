@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Models\Dept;
+use App\Models\UserDept;
 use Spatie\Permission\Models\Role;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Auth;
@@ -88,6 +90,7 @@ class UserController extends Controller
             ['data'=>'group_id','name'=>'group_id','title'=>'','orderable'=> false,'searchable'=> false],
             ['data'=>'name', 'name'=>'name','title'=>'Name'],
             ['data'=>'username', 'name'=>'username','title'=>'Username'],
+            ['data'=>'dept', 'name'=>'dept','title'=>'Department'],
             ['data'=>'email', 'name'=>'email','title'=>'Email'],
             ['data'=>'status', 'name'=>'status','title'=>'Status'],
             ['data'=>'roles', 'name'=>'roles','title'=>'Roles'],
@@ -116,7 +119,8 @@ class UserController extends Controller
     {
         \LogActivity::addToLog('User create','');
         $roles = Role::pluck('name','name')->all();
-        return view('users.create',compact('roles'));
+        $depts = Dept::pluck('name','code')->all();
+        return view('users.create',compact('roles','depts'));
     }
 
     /**
@@ -133,7 +137,8 @@ class UserController extends Controller
             'name' => 'required',
             'username' => 'required|unique:users,username',
             'password' => 'required|same:confirm-password',
-            'roles' => 'required'
+            'roles' => 'required',
+            'depts' => 'required'
         ]);
     
         $input = $request->all();
@@ -141,6 +146,22 @@ class UserController extends Controller
         $input['status'] = '1';
         $user = User::create($input);
         $user->assignRole($request->input('roles'));
+
+        $username=$request->input('username'); 
+        $depts = $request->input('depts');
+        
+        DB::table('user_dept')->where('username',$username)->delete();
+
+        foreach ($depts as $val) {
+            $data[] = [
+                'username' => $username,
+                'dept' => $val,
+                'created_by' => Auth::user()->username,
+                'created_at' => date('Y-m-d H:i:s'),
+            ];
+        }
+        DB::table('user_dept')->insert($data);
+            
         return redirect()->route('users.index')
                         ->with('success','User created successfully');
     }
@@ -170,7 +191,10 @@ class UserController extends Controller
         $user = User::find($id);
         $roles = Role::pluck('name','name')->all();
         $userRole = $user->roles->pluck('name','name')->all();
-        return view('users.edit',compact('user','roles','userRole'));
+        $depts = Dept::pluck('name','code')->all();
+        $userDept = UserDept::where('username',$user->username)->pluck('dept')->all();
+                
+        return view('users.edit',compact('user','roles','userRole','depts','userDept'));
     }
 
     public function userUpdateStatus(Request $request)
@@ -223,7 +247,8 @@ class UserController extends Controller
         $this->validate($request, [
             'name' => 'required',
             'password' => 'same:confirm-password',
-            'roles' => 'required'
+            'roles' => 'required',
+            'depts' => 'required'
         ]);
 
         $input = $request->all();
@@ -238,6 +263,22 @@ class UserController extends Controller
         DB::table('model_has_roles')->where('model_id',$id)->delete();
 
         $user->assignRole($request->input('roles'));
+
+        $username=$user->username;
+        $depts = $request->input('depts');
+        
+        DB::table('user_dept')->where('username',$username)->delete();
+
+        foreach ($depts as $val) {
+            $data[] = [
+                'username' => $username,
+                'dept' => $val,
+                'created_by' => Auth::user()->username,
+                'created_at' => date('Y-m-d H:i:s'),
+            ];
+        }
+        DB::table('user_dept')->insert($data);
+
         return redirect()->route('users.index')
                         ->with('success','User updated successfully');
     }
@@ -252,7 +293,13 @@ class UserController extends Controller
     public function destroy($id)
     {
         \LogActivity::addToLog('User Delete data');
+        
+        $user= User::find($id);
+        $usernameDelete=$user->username;       
+        DB::table('user_dept')->where('username',$usernameDelete)->delete();
+
         User::find($id)->delete();
+
         return redirect()->route('users.index')
                         ->with('success','User deleted successfully');
     }
@@ -265,6 +312,11 @@ class UserController extends Controller
         $message = "User $id Deleted";
         $title = "User";
         \LogActivity::addToLog($title,"username: $username Status $message");
+
+        $user= User::find($id);
+        $usernameDelete=$user->username;       
+        DB::table('user_dept')->where('username',$usernameDelete)->delete();
+
         User::find($id)->delete();
         return response()->json(array('message' => $message));
     }
@@ -273,9 +325,11 @@ class UserController extends Controller
     {
         $id = Auth::user()->id;
         $user = User::find($id);
-        // $user = User::where('username','=',$username);
-        // return response()->json($user);
-        return view('users.profile',compact('user'));
+        $depts = UserDept::where('username',$user->username)
+        ->leftJoin('depts','depts.code','user_dept.dept')
+        ->pluck('name','name')->toArray();
+        // $depts = implode(",", $depts);
+        return view('users.profile',compact('user','depts'));
     }
 
     public function changePassword(Request $request)
@@ -364,10 +418,11 @@ class UserController extends Controller
     public function userLists(Request $request)
     {
         $query = $request->get('q');
-        $user = User::where('name', 'LIKE', '%' . $query . '%');
+        $user = User::where('name', 'LIKE', '%' . $query . '%')
+        ->select('users.*'
+        ,db::raw("(select STRING_AGG((select name from depts where code = user_dept.dept), ',' ORDER BY dept) AS main from user_dept where username = users.username) as dept")
+        );
             
-        // $sqlku="SELECT *,'' as group_id  from users where name like '%$query%'order by username";
-        // $user = DB::table(DB::raw("($sqlku) as oki"));
         return Datatables::of($user)
         ->addColumn('action', function ($user) {
             $buttons = '<div class="d-inline-flex">
@@ -398,6 +453,9 @@ class UserController extends Controller
         ->addColumn('group_id', function ($user) {
             return '';
         })
+        ->addColumn('dept', function ($user) {
+            return $user->dept;
+        })
         ->addColumn('status', function ($user) {
             if ($user->status =='1') {
                 $status = '<div class="custom-control custom-switch custom-control-inline">
@@ -412,7 +470,7 @@ class UserController extends Controller
             }
             return $status;
         })
-        ->rawColumns(['action','status'])
+        ->rawColumns(['action','status','dept'])
         ->make(true);
     }
 

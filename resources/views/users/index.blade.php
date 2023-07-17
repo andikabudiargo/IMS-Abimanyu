@@ -30,14 +30,14 @@
   </div>
 </section>
 <section id="table-users">
-  <div class="card">
+  {{-- <div class="card">
     <h5 class="card-header">Search Filter</h5>
     <div class="d-flex justify-content-between align-items-center mx-50 row pt-0 pb-2">
       <div class="col-md-4 user_role"></div>
       <div class="col-md-4 user_name"></div>
       <div class="col-md-4 user_email"></div>
     </div>
-  </div>
+  </div> --}}
   <div class="card">
     <div class="card-header">
       <h4 class="card-title">List User</h4>

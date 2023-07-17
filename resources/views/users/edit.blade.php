@@ -52,6 +52,10 @@
                                 {!! Form::password('confirm-password', array('placeholder' => 'Confirm Password','class' => 'form-control')) !!}
                             </div>
                         </div>
+                        <div class="form-group col-md-12">
+                            <label>Department</label>
+                            {!! Form::select('depts[]', $depts,$userDept, array('class' => 'select2 form-control select2-hidden-accessible','multiple'=>'multiple','required')) !!}
+                        </div>
                         <div class="col-md-12">
                             <div class="form-group">
                                 {{ Form::select('roles[]', $roles,$userRole, array('class' => 'select2 form-control select2-hidden-accessible','multiple'=>'multiple')) }}

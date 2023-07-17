@@ -82,8 +82,28 @@
                                     <div class="col-12 col-sm-6">
                                         <div class="form-group">
                                             <label for="account-company">Company</label>
-                                            <input type="text" class="form-control" id="company" name="company" placeholder="Company name" value="PT Abimmanyu Sekar Nusantara" disabled>
+                                            <input type="text" class="form-control" id="company" name="company" placeholder="Company name" value="PT Abimanyu Sekar Nusantara" disabled>
                                         </div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-12 col-sm-12">
+                                        <div class="form-group">
+
+                                            <strong>Dept:</strong>                                
+                                            @if(!empty($depts))
+                                                @foreach($depts as $v)
+                                                    <label class="badge badge-success">{{ $v }}</label>
+                                                @endforeach
+                                
+                                            @endif
+                                
+                                        </div>
+
+                                        {{-- <div class="form-group">
+                                            <label for="account-company">Department</label>
+                                            <input type="text" class="form-control" id="dept" name="dept" value="{{ $depts }}" disabled>
+                                        </div> --}}
                                     </div>
                                 </div>
                                     <button type="button" id="cmdSaveProfile" class="btn btn-primary mr-1 mt-1">Save changes</button>
