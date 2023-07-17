@@ -579,7 +579,7 @@ class DependentController extends Controller
                     $output .="<option value='$row->pr_number'>$row->pr_number</option>";
                 }
             }elseif($dependent =='reference'){
-                $output .="<option value='$row->ap_number'>$row->ap_number</option>";
+                $output .="<option value='$row->inv_number'>$row->inv_number</option>";
             }elseif($dependent =='referenceAr'){
                 $output .="<option value='$row->invoice_number'>$row->invoice_number</option>";
             }else{
