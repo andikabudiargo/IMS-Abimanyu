@@ -709,8 +709,8 @@ class KasKeluarController extends Controller
     {
         $refNumber = $request->vRef;
         $amount = db::table('ap_invoice')
-        ->where('ap_number',$refNumber)
-        ->select(db::raw("basis_amount+vat as amount"))
+        ->where('inv_number',$refNumber)
+        ->select(db::raw("grand_total as amount"))
         ->value('amount');
 
         return response()->json(array('amount' => $amount));
