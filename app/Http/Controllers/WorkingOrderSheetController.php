@@ -775,6 +775,7 @@ class WorkingOrderSheetController extends Controller
         ,DB::raw("(SELECT article_qty from article_stock where article_code = wo_det.article_rm_code and site_code ='HO' and location_number='WH') as qty_rm")
         )
         ->where('wo_code',$woNumber)
+        ->orderBy('urutan')
         ->get();
 
         // $data['totals']=DB::select("SELECT sum(plan_tag) as total_tag from wo_det where wo_code = '$woNumber'");
