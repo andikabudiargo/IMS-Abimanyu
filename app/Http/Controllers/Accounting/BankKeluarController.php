@@ -643,7 +643,7 @@ class BankKeluarController extends Controller
     {
         $id=Crypt::decryptString($request->id);
 
-        $data['title'] ='Kas Keluar';
+        $data['title'] ='Bank Keluar';
         
         $data['header'] = DB::table('kas_hdr')
         // ->leftJoin('third_party','third_party.kode','kas_hdr.paid_to')

@@ -644,7 +644,7 @@ class BankPenerimaanController extends Controller
     {
         $id=Crypt::decryptString($request->id);
 
-        $data['title'] ='Kas Masuk';
+        $data['title'] ='Bank Masuk';
         
         $data['header']=DB::table('kas_hdr')
         // ->leftJoin('accounts','accounts.account','kas_hdr.receive_from')

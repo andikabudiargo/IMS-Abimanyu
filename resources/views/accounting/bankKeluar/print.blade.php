@@ -293,7 +293,7 @@
                             </tr>
                             <tr>
                                 <td align="center"></td>
-                                <td align="center" height="25">{{ $approval1 ? 'Approval 1':'' }}</td>
+                                <td align="center" height="50">{{ $approval1 ? 'Approval 1':'' }}</td>
                                 <td align="center"></td>
                                 <td align="center">{{ $approval1 ? 'Approval 2':'' }}</td>
                                 <td align="center"></td>
