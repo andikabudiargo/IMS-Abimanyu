@@ -277,6 +277,7 @@
         let note = $('#note').val();
         let paidTo = $('#paidTo').val();
         let vcNumber = $('#voucherNumber').val();
+        let paidToDesc = $('#paidToDesc').val();
     
         if (((parseInt(objTotalVcDebit)-parseInt(objTotalVcCredit)) == 0) && (parseInt(objTotalVcCredit)==parseInt(totalAmount))){
             if (!$("#frmAdd")[0].checkValidity()){
@@ -339,6 +340,7 @@
                             totalAmount:totalAmount,
                             paidTo:paidTo,
                             vcNumber:vcNumber,
+                            paidToDesc:paidToDesc
                         },
                         dataType: "json",
                         success: function(data) {

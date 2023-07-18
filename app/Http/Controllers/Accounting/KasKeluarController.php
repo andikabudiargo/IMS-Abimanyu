@@ -32,8 +32,8 @@ class KasKeluarController extends Controller
             ['data'=>'action','name'=>'action','title'=>'action','orderable'=> false,'searchable'=>false],
             ['data'=>'voucher_number','name'=>'voucher_number','title'=>'Voucher Number'],
             ['data'=>'voucher_date','name'=>'voucher_date','title'=>'Date'],
-            // ['data'=>'supplier_name','name'=>'supplier_name','title'=>'Paid To'],
-            ['data'=>'description','name'=>'description','title'=>'Paid To'],
+            ['data'=>'supplier_name','name'=>'supplier_name','title'=>'Paid To'],
+            // ['data'=>'description','name'=>'description','title'=>'Paid To'],
             ['data'=>'amount','name'=>'amount','title'=>'Amount'],
             ['data'=>'period','name'=>'period','title'=>'Period'],
             ['data'=>'note','name'=>'note','title'=>'Note'],
@@ -87,6 +87,9 @@ class KasKeluarController extends Controller
         $month = str_pad(date('n'),2,"0",STR_PAD_LEFT);
         $year = date('y');
         $code="$key/$month/$year/$newCode";
+
+        
+        
         return $code;
     }
 
@@ -570,7 +573,8 @@ class KasKeluarController extends Controller
         ->select(
             'kas_hdr.*'
             ,'kas_hdr.status as statusku'
-            ,db::raw("concat(third_party.kode,'-',third_party.nama) as supplier_name")
+            // ,db::raw("concat(third_party.kode,'-',third_party.nama) as supplier_name")
+            ,db::raw("case when paid_to = 'other' then kas_hdr.description else third_party.nama end as supplier_name")
         )
         ->orderBy('id')
         ->get(); 
