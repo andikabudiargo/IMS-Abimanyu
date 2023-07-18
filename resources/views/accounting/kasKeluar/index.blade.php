@@ -22,7 +22,7 @@
                 <label for="seachVc">Voucher Number</label>
                 <input type="text" class="form-control text-uppercase" id="seachVc" name="seachVc" placeholder=""  />
               </div>
-              <div class="col-md-3 form-group">
+              <div class="form-group col-md-3 ">
                 <label class="form-label" for="vcDate">Date</label>
                 <input type="text" id="vcDate" name="vcDate" class="form-control flatpickr-range" placeholder="YYYY-MM-DD to YYYY-MM-DD" />
               </div>
@@ -42,6 +42,17 @@
                   @for ($i = 2000; $i <= 2050 ; $i++)
                       <option value="{{ $i }}">{{ $i }}</option>
                   @endfor
+                </select>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group col-md-2"> 
+                <label class="form-label" for="searchStatus">Invoice Status</label>
+                <select class="select2 form-control" id="searchStatus" name="searchStatus">
+                    <option value="">All</option>
+                    @foreach($status as $index=>$val)
+                        <option value="{{ $index }}">{{ $val }}</option>
+                    @endforeach
                 </select>
               </div>
             </div>
@@ -132,11 +143,12 @@
     let vcDate = $("#vcDate").val();
     let period = $("#period").val();
     let year = $("#year").val();
-    showList(seachVc,vcDate,period,year);
+    let searchStatus = $("#searchStatus").val();
+    showList(seachVc,vcDate,period,year,searchStatus);
 
   });
 
-  const showList = (seachVc,vcDate,period,year) => {
+  const showList = (seachVc,vcDate,period,year,searchStatus) => {
     if ($('#detailedTable tr').length >0){
         let table= $('#detailedTable').DataTable();
         table.destroy();
@@ -160,7 +172,8 @@
         seachVc:seachVc,
         vcDate:vcDate,
         period:period,
-        year:year
+        year:year,
+        searchStatus:searchStatus
       },
       orderColumn:[[ 1, 'desc' ]],
       excelFileName:'kas_pembayaran'
