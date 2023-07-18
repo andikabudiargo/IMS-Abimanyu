@@ -41,7 +41,7 @@
                             <div class="form-row">
                                 <div class="form-group col-md-6">
                                     <label for="paidTo">Bayar Ke*</label>
-                                    <select class="select2 form-control" id="paidTo" name="paidTo" required disabled>
+                                    <select class="select2 form-control" id="paidTo" name="paidTo" required>
                                         <option value=""></option>
                                         @foreach ($suppliers as $val)
                                             <option value="{{ $val->kode }}" {{$val->kode == $header->paid_to ? "selected" : ""}}>{{ $val->kode }} | {{ $val->nama }}</option>
@@ -531,7 +531,32 @@
         });
     });
 
-    $("#paidTo").on('select2:close', function(){
+    $('#paidTo').change(function(e){
+        let objAccount = $('#item_row select[name="account[]"]');
+        let objVcRef= $('#item_row select[name="vcRef[]"]');
+        let objVcDebit= $('#item_row input[name="vcDebit[]"]');
+        let objVcCredit= $('#item_row input[name="vcCredit[]"]');
+
+        let paidTo = $('#paidTo').val();
+        if (paidTo){
+            objAccount.map(function(i){
+                let $this=$(this);
+                let objSupp = "vcRef"+(i+1);
+                if ($this.val()){
+                    if ($this.val() =='2000.11'){
+                        invList('reference',objSupp,paidTo);
+                        objVcDebit.eq(i).val("");
+                        objVcCredit.eq(i).val("");
+                        objVcRef.empty().trigger('change');
+                        hitungGrandTotal();
+                    }
+                    
+                }
+            });
+        }
+    });
+
+    $('#paidTo').on('select2:close', function(){
         let content = this.value;
         let contentText = $("#paidTo").select2('data')[0].text;
         if(content =='other'){

@@ -486,7 +486,7 @@
         }
     });
 
-    $("#paidTo").on('select2:close', function(){
+    $('#paidTo').on('select2:close', function(){
         let content = this.value;
         let contentText = $("#paidTo").select2('data')[0].text;
         if(content =='other'){
