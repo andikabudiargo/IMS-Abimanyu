@@ -134,7 +134,7 @@
             border-bottom: none;
             border-left: thin solid var(--line-color);
             border-right: thin solid var(--line-color);
-            height: 25px;
+            /* height: 25px; */
         }
 
         #tblContent tr:last-child{
@@ -272,7 +272,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach ($details as $val )
+                        @foreach ($details as $val )
                             <tr>
                                 <td style="border-right: 1px solid black;border-bottom: none;" align="center" scope="row" >{{ ++$no }}</td>
                                 {{-- <td  align="left">{{ $val->article_alternative_code }}</td> --}}
@@ -285,7 +285,7 @@
                             </tr>
                         @endforeach
                         
-                        <?php $totalBaris = 10 ?>
+                        <?php $totalBaris = 11 ?>
 
                         @for ($i=1;$i< $totalBaris-(count($details));$i++)
                             <tr >
