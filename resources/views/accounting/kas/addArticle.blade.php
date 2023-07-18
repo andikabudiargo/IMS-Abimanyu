@@ -153,7 +153,7 @@
             let recFrom = $('#recFrom').val();
             let objCust = "vcRef"+(objIndex+1);
             if(accountNumber){
-                if (accountNumber =='1100.40'){
+                if (accountNumber.substring(0,7) =='1100.40'){
                     // if(recFrom){
                         invList('referenceAr',objCust,recFrom,'');
                     // }else{
