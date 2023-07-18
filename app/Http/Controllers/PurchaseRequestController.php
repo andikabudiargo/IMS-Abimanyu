@@ -903,7 +903,7 @@ class PurchaseRequestController extends Controller
         bom_det.article_code as article_code_det
         ,production_detail_temp.qty as qty_order
         ,production_detail_temp.uom as uom_order
-        ,bom_det.qty * coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = bom_det.uom),1) as qty_bom
+        ,bom_det.qty * coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = article.uom),1) as qty_bom
         ,bom_det.uom as uom_bom
         ,article.uom as uom_article
         ,bom_hdr.article_code 
