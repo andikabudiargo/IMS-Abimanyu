@@ -198,6 +198,10 @@
             .hide-print {
                 display: none;
             }
+
+            .putih{
+                color:white !important;
+            }
         }
 
     </style>
@@ -289,8 +293,9 @@
 
                         @for ($i=1;$i< $totalBaris-(count($details));$i++)
                             <tr >
-                                <td style="border-right: 1px solid black;" class="putih"></td>
-                                <td style="border-right: 1px solid black;" class="putih">2222222222222 22222222222222222222 222222222222222222</td>
+                                <td style="border-right: 1px solid black;" class="putih" height="25"></td>
+                                {{-- <td style="border-right: 1px solid black;"  style="color:white !important">2222222222222 22222222222222222222 222222222222222222</td> --}}
+                                <td style="border-right: 1px solid black;"  style="color:white !important"></td>
                                 <td style="border-right: 1px solid black;" ></td>
                                 <td style="border-right: 1px solid black;" ></td>
                                 <td style="border-right: 1px solid black;" ></td>
