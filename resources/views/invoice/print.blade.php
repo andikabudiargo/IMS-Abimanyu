@@ -102,8 +102,17 @@
                 padding:0px;
             }
 
-            .putih{
-                color:white;
+            .hide-print {
+                display: none;
+            }
+
+
+            .putih1{
+                color:white !important;
+            }
+
+            .fprint p{
+                color:white !important;
             }
 
         }
@@ -134,7 +143,7 @@
             border-bottom: none;
             border-left: thin solid var(--line-color);
             border-right: thin solid var(--line-color);
-            /* height: 25px; */
+            height: 25px;
         }
 
         #tblContent tr:last-child{
@@ -192,16 +201,6 @@
 
         .huruf-tebal{
             font-weight: bold;
-        }
-
-        @media print {
-            .hide-print {
-                display: none;
-            }
-
-            .putih{
-                color:white !important;
-            }
         }
 
     </style>
@@ -287,15 +286,17 @@
                                 <td  style="border-right: 1px solid black;padding:0 3px 0 3px" align="right">{{ number_format(($val->qty*$val->price),2) }}</td>
                                 <td  style="border-right: 1px solid black;padding:0 3px 0 3px" align="right">{{ number_format(($val->qty*$val->price_service),2) }}</td>
                             </tr>
+                                                       
                         @endforeach
                         
                         <?php $totalBaris = 11 ?>
 
                         @for ($i=1;$i< $totalBaris-(count($details));$i++)
                             <tr >
-                                <td style="border-right: 1px solid black;" class="putih" height="25"></td>
-                                {{-- <td style="border-right: 1px solid black;"  style="color:white !important">2222222222222 22222222222222222222 222222222222222222</td> --}}
-                                <td style="border-right: 1px solid black;"  style="color:white !important"></td>
+                                {{-- <td style="border-right: 1px solid black;" class="putih" height="25"></td>
+                                <td style="border-right: 1px solid black;"  style="color:white !important"></td> --}}
+                                <td style="border-right: 1px solid black;" ><div style="height:35px;"></div></td>
+                                <td style="border-right: 1px solid black;" ></td>
                                 <td style="border-right: 1px solid black;" ></td>
                                 <td style="border-right: 1px solid black;" ></td>
                                 <td style="border-right: 1px solid black;" ></td>
