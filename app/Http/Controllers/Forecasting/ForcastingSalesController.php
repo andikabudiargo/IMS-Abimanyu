@@ -68,8 +68,9 @@ class ForcastingSalesController extends Controller
     public function index(Request $request)
     {
         $data['title'] = $this->title;
-        
         $data['kolom'] = $this->getTableColoumn();
+
+        $data['bulan'] = ['1'=>"Januari",'2'=>"Februari",'3'=>"Maret",'4'=>"April",'5'=>"Mei",'6'=>"Juni",'7'=>"Juli",'8'=>"Agustus",'9'=>"September",'10'=>"Oktober",'11'=>"November",'12'=>"Desmeber"];
     
         return view("forecasting.sales.index",$data);
     }
@@ -83,6 +84,8 @@ class ForcastingSalesController extends Controller
         ->where('third_party_type','cust')
         ->orderBy('nama')
         ->get();
+
+        $data['bulan'] = ['1'=>"Januari",'2'=>"Februari",'3'=>"Maret",'4'=>"April",'5'=>"Mei",'6'=>"Juni",'7'=>"Juli",'8'=>"Agustus",'9'=>"September",'10'=>"Oktober",'11'=>"November",'12'=>"Desmeber"];
 
         return view("forecasting.sales.create",$data);
 
@@ -663,6 +666,35 @@ class ForcastingSalesController extends Controller
         ->value('amount');
 
         return response()->json(array('amount' => $amount));
+    }
+
+    public function getArticle(Request $request)
+    {
+        $customerCode = $request->customerCode;
+
+        $data= DB::table('article') 
+        ->leftJoin('group_materials','group_materials.code','=','article.group_of_material')
+        ->where('third_party',$customerCode)
+        ->orderBy('article.article_desc')
+        ->distinct('article.article_desc')
+        ->select('article.*'
+        ,'article.article_alternative_code'
+        ,'article.article_code as artikel_code'
+        ,'article.article_desc'
+        ,'article.costprice'
+        ,'article.uom as uom1'
+        ,'group_materials.name as group')
+        ->get();
+
+        $output='';
+        $output .='<option value="">Choose Article</option>';
+
+        foreach ($data as $row){
+            $output .='<option value="'.$row->article_code.'"  data-detail="'.$row->article_code.'">'.$row->article_alternative_code.' - '. $row->article_desc.'</option>';
+        }
+
+        return $output;
+
     }
 
 }

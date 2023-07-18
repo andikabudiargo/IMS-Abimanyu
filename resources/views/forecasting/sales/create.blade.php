@@ -20,51 +20,64 @@
                             @csrf
                             <input type="text" id="article" name="article" hidden>
                             <div class="form-row">
-                                <div class="form-group col-md-4">
-                                    <label for="voucherNumber">Voucher Number</label>
-                                    <input type="text" id="voucherNumber" name="voucherNumber" class="form-control" disabled/>
-                                </div>
                                 <div class="form-group col-md-3">
-                                    <label for="vcDate">Date*</label>
-                                    <input type="text" id="vcDate" name="vcDate" class="form-control" placeholder="DD-MM-YYYY" required />
-                                </div>
-                                <div class="form-group col-md-3">
-                                    <label class="form-label" for="period">Period*</label>
-                                    <select class="select2 form-control" id="period" name="period" required>
+                                    <label class="form-label" for="year">Tahun*</label>
+                                    <select class="select2 form-control" id="year" name="year" required>
                                         <option value=""></option>
-                                        @for ($i = 1; $i <= 12; $i++)
+                                        @for ($i = 2000; $i <= 2050; $i++)
                                             <option value="{{ $i }}">{{ $i }}</option>
                                         @endfor
                                     </select>
                                 </div>
-                            </div>
-                            <div class="form-row">
-                                <div class="form-group col-md-4">
-                                    <label for="recFrom">Received From*</label>
-                                    <select class="select2 form-control" id="recFrom" name="recFrom" required>
+                                <div class="form-group col-md-3">
+                                    <label class="form-label" for="bulanAwal">Bulan Awal*</label>
+                                    <select class="select2 form-control" id="bulanAwal" name="bulanAwal" required>
                                         <option value=""></option>
-                                        
-                                        <option value="other">Other</option>
+                                        @foreach ($bulan as $key=>$val)
+                                            <option value="{{ $key }}">{{ $val }}</option>
+                                        @endforeach
                                     </select>
                                 </div>
-                                <div class="form-group col-md-3 d-none other-desc">
-                                    <div class="form-group">
-                                        <label for="recFromDesc">Other Received From Desc*</label>
-                                        <input type="text" id="recFromDesc" name="recFromDesc" class="form-control" required/>
-                                    </div>
-                                </div>
                                 <div class="form-group col-md-3">
-                                    <div class="form-group">
-                                        <label for="totalAmount">Amount*</label>
-                                        <input type="text" id="totalAmount" name="totalAmount" class="form-control text-right numeral-mask" maxlength="12" required/>
-                                    </div>
+                                    <label class="form-label" for="bulanAkhir">Bulan Akhir*</label>
+                                    <select class="select2 form-control" id="bulanAkhir" name="bulanAkhir" required>
+                                        <option value=""></option>
+                                        @foreach ($bulan as $key=>$val)
+                                            <option value="{{ $key }}">{{ $val }}</option>
+                                        @endforeach
+                                    </select>
                                 </div>
                             </div>
                             <div class="form-row">
-                                <div class="form-group col-md-10">
-                                    <label class="form-label" for="note">Notes</label>
-                                    <textarea type="text" id="note" name="note" class="form-control" rows="1" ></textarea>
+                                <div class="form-group col-md-6">
+                                    <label for="customerCode">Customer</label>
+                                    <select class="select2 form-control" id="customerCode" name="customerCode">
+                                        <option value="">Choose Customer</option>
+                                        @foreach($customers as $val)
+                                        <option value="{{ $val->kode }}">{{ $val->nama }}</option>
+                                        @endforeach
+                                    </select>
                                 </div>
+                            </div>
+                            <div>
+                                <table id="detailTable" style="width:98%;table-layout: fixed;">
+                                    <tbody>
+                                        <tr id="judulTabel">
+                                            <th class="isian" style="width: 30%">
+                                                <label>Article</label>
+                                            </th>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>      
+                            <div class="" id="item_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px">
+                                <input type="text" id ="last_row_number" class="d-none" value="0">
+                            </div>
+                            <div class="d-flex justify-content-between align-items-end mt-75 ml-75">
+                                <button class="btn btn-primary btn-prev" type="button" id="addNewRow" onclick="add_new_row();">
+                                    <i data-feather="plus" class="align-middle mr-sm-25 mr-0"></i>
+                                    <span class="align-middle d-sm-inline-block d-none">Add</span>
+                                </button>
                             </div>
                         </form>
                     </div>
@@ -77,51 +90,6 @@
                     <h4 class="card-title">Detail data</h4>
                 </div>
                 <div class="card-body" >
-                    <div>
-                        <table id="detailTable" style="width:98%;table-layout: fixed;">
-                            <tbody>
-                                <tr id="judulTabel">
-                                    <th class="isian" style="width: 30%">
-                                        <label>Customer</label>
-                                    </th>
-                                    <th class="isian" style="">
-                                        <label>Article</label>
-                                    </th>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>      
-                    <div class="" id="item_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px">
-                        <input type="text" id ="last_row_number" class="d-none" value="0">
-                    </div>
-                    {{-- <table class="" style="width: 98%;table-layout: fixed;">
-                        <tbody>
-                            <tr>
-                                <td class="isian" style="width: 30%">
-                                    <label>Total</label>
-                                </td>
-                                <td class="isian" style="">
-                                </td>
-                                <td class="isian" style="">
-                                </td>
-                                <td class="isian" style="width: 10%">
-                                    <input type="text" class="form-control-plaintext numeral-mask text-right" id="vcTotalDebit" disabled />
-                                </td>
-                                <td class="isian" style="width: 10%">
-                                    <input type="text" class="form-control-plaintext numeral-mask text-right" id= "vcTotalCredit" disabled />
-                                </td>
-                                <td class="isian text-center" style="width: 5%">
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table> --}}
-                    <div class="d-flex justify-content-between align-items-end mt-75 ml-75">
-                        <button class="btn btn-primary btn-prev" type="button" id="addNewRow" onclick="add_new_row();">
-                            <i data-feather="plus" class="align-middle mr-sm-25 mr-0"></i>
-                            <span class="align-middle d-sm-inline-block d-none">Add row</span>
-                        </button>
-                    </div>
-                    <hr>
                     <div class="col-12">
                         <a href="{{ route('bankPenerimaan.index') }}" class="btn btn-light">Back</a>
                         <button class="btn btn-info" type="button" id="cmdNew" name="cmdNew">New</button>
@@ -189,29 +157,13 @@
 @section('scripts')
 <script src="{{ asset('assets/js/ui.1.13.0.jquery-ui.js') }}"></script>
 <script type="text/javascript">
-    let currentDate = todayDate('dd-mm-yyyy');   
-    
-    // var availableTags =;
-    // availableTags=availableTags.replace(/[[\]]/g,'');
-    // availableTags=availableTags.replace(/&quot;/g,'').split(",");
+    let currentDate = todayDate('dd-mm-yyyy'); 
         
-    $(document).ready(function(){           
-        validateFormToast('frmAdd');
-        vcDate.val(currentDate);
-        let listJudul = add_judul(6,12);
-
-        $("#judulTabel").append(listJudul);
-
-        add_new_row();
-
-        
-    });
-
     add_month =(startMonth,endMonth,urutan)=>{
         let list  = "";
-        let year='2023';
-        for(i=startMonth;i<=endMonth;i++){
-            
+        let year=$('#year').val().slice(-2);
+
+        for(i=parseInt(startMonth);i<=parseInt(endMonth);i++){
             list+= `<td class="isian" style="">
                                 <input type="text" data-urutan="${urutan}" class="form-control-plaintext tombol-panah numeral-mask text-right data-bulan" 
                                 data-type-el-kiri="input" 
@@ -220,41 +172,70 @@
                                 data-nama-el-kanan='month${i+1}'
                                 data-month='${i}'
                                 data-year='${year}'
-                                id="${year}${i}" name="month${i}[]"  
+                                id="${year}${i}" 
+                                name="month${i}[]"  
                                 value=${i}
                                 maxlength="6" />
                             </td>`; 
         }
-        list+=`<td class="isian text-center" style="width: 5%">
-                <a onmouseover="this.style.cursor='pointer'" onclick="$(this).parents('.tanda-baris').remove();hitungGrandTotal()" data-toggle="tooltip" data-placement="left" title="Delete row">
-                    <i data-feather="trash-2" class="remove_button feather-24">
-                    </i>
-                </a>
-            </td>`;
-            
-
+        
         return list;
     }
 
     add_judul =(startMonth,endMonth)=>{
         let judul = "";
-        let year='23';
+        let year=$('#year').val().slice(-2);;
         let bulan=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Okt','Nov','Dec'];
         for(i=startMonth;i<=endMonth;i++){
             
             let namaBulan = bulan[i-1];
-            judul+=`<th class="isian" style="">
+            judul+=`<th class="isian text-center" >
                         <label>${namaBulan}${year}</label>
                     </th>`;
 
         }
 
-        judul+=`<th class="isian" style="">
-                        <label>Action</label>
-                    </th>`;
-
         return judul;
     }
+
+    $('#customerCode').change(function(e){
+        let $this= $(this);
+        let customer = $this.val();
+        let bulanAwal = $('#bulanAwal').val();
+        let bulanAkhir = $('#bulanAkhir').val();
+        let cloneCount=1;
+
+        // $("#judulTabel th").remove();
+        $("#tabelBaru td").remove();
+        articleList(customer);
+        let listJudul = add_judul(bulanAwal,bulanAkhir);
+        $("#judulTabel").append(listJudul);
+        let isiBulan = add_month(bulanAwal,bulanAkhir,cloneCount);            
+        $("#item_row").append($("#new_row").clone().html());
+        $("#tabelBaru").append(isiBulan);
+        $('#customerId').select2();
+        activate_angka();
+        mask_thousand();
+    });
+    
+    $(document).ready(function(){           
+        validateFormToast('frmAdd');
+        vcDate.val(currentDate);
+       
+        feather.replace({
+            width: 14,
+            height: 14
+        });
+
+        // add_new_row();
+        
+    });
+
+    $('#customerId').change(function(e){
+        
+    });
+
+   
     
     vcDate = $('#vcDate');
     if (vcDate.length) {
@@ -262,10 +243,23 @@
             dateFormat: "d-m-Y",
         });
     }
+
+    $("#addNewRow").click(function(){
+
+        $(".data-bulan").map(function(i) {  
+            let $this=$(this);
+            let urutan= $this.data("urutan");
+            let month= $this.data("month");
+            let year= $this.data("year");
+            let objCustomerId= $('#customerId'+urutan).val();
+            // console.log($this.attr('id'));
+            // console.log($this.val());
+            // console.log(objCustomerId.eq(i).val());
+            console.log(urutan+"-"+month+'-'+year+'-'+objCustomerId+"-"+$this.attr('id')+"="+$this.val());
+        });
+    })
     
     $("#cmdSave").click(function(){  
-
-
         $(".data-bulan").map(function(i) {  
                     let $this=$(this);
                     
@@ -413,8 +407,8 @@
         $("#new_row"+ cloneCount).find('#article').attr('id', 'article'+ cloneCount);
         $("#new_row"+ cloneCount).find('#customerId').attr('id', 'customerId'+ cloneCount);
         
-        let IsiBulan = add_month(6,12,cloneCount);               
-        $("#new_table_row"+ cloneCount).append(IsiBulan);
+        let isiBulan = add_month(6,12,cloneCount);               
+        $("#new_table_row"+ cloneCount).append(isiBulan);
         feather.replace({
             width: 14,
             height: 14
@@ -435,19 +429,22 @@
 
     };
 
-    function accList(dependent,obj) {
+    function articleList(customer) {
       $.ajax({
-        url:"{{route('dynamic.dependent')}}",
+        url:"{{route('forecastSales.get.article')}}",
         method:"POST",
         data:{
-            dependent:dependent
+            customerCode:customer
         },
         success:function(result){
-            $('#'+obj).html(result);
-            $('#'+obj).val('').trigger('change');
+            $('#articleId').html(result);
+            $('#articleId').val('').trigger('change');
+            $('#articleId').select2();
         }
       })
     }
+
+    
 
     $("#cmdNew").click(function(){ 
         let objAccount= $('#item_row select[name="account[]"]');

@@ -261,9 +261,11 @@
                                         <td align="left"></td>
                                         <td align="right"></td>
                                         <td align="right"></td>
+                                        <td align="right"></td>
                                     </tr>
                                 @endfor
                                 <tr>
+                                    <td  align="left" class="border-atas" ></td>
                                     <td  align="left" class="border-atas" ></td>
                                     <td  align="left" class="border-atas" ></td>
                                     <td  align="left" class="border-atas" >Total</td>
@@ -271,7 +273,7 @@
                                     <td  align="right" class="border-atas" >{{ number_format($total->total_credit)}}</td>
                                 </tr>
                                 <tr class="border-atas">
-                                    <td  align="left" class="border-atas" colspan="5">Note: {{ $header->note }}</td>
+                                    <td  align="left" class="border-atas" colspan="6">Note: {{ $header->note }}</td>
                                 </tr>
                             </tbody>
                         </table>

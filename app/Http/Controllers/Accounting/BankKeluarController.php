@@ -661,7 +661,7 @@ class BankKeluarController extends Controller
         ->leftJoin('accounts','accounts.account','kas_det.account')
         ->select('kas_det.*','accounts.description as account_name')
         ->where('voucher_number',$vcNumber)
-        ->orderBy('debit')
+        ->orderBy('credit')
         ->get();
 
         $data['total']=DB::table('kas_det')

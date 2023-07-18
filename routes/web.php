@@ -697,6 +697,8 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('forecastSales/approve',['as'=>'forecastSales.approve','uses'=>'Forecasting\ForcastingSalesController@approve']);
 	Route::get('forecastSales/get/invoice/ammount',['as'=>'forecastSales.get.invoice.amount','uses'=>'Forecasting\ForcastingSalesController@getInvoiceAmount']);
 
+	Route::post('forecastSales/get/article',['as'=>'forecastSales.get.article','uses'=>'Forecasting\ForcastingSalesController@getArticle']);
+
 
 	Route::get('stockTake',['as'=>'stockTake.index','uses'=>'StockTake\StockTakeController@index']);
 	Route::post('stockTake/import',['as'=>'stockTake.import','uses'=>'StockTake\StockTakeController@import']);

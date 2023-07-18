@@ -37,23 +37,9 @@
             <tbody>
                 <tr id="tabelBaru">
                     <td class="isian" style="width: 30%">
-                        <select class="dynamicSelect form-control" id="customerId" name="customerId[]" required>
-                            <option value="">Choose Customer</option>
-                            @foreach($customers as $val)
-                            <option value="{{ $val->kode }}">{{ $val->nama }}</option>
-                            @endforeach
+                        <select class="form-control tombol-panah" id="articleId1" name="articleId1[]" required>
                         </select>
                     </td>
-                    <td class="isian" style="">
-                        <select class="form-control tombol-panah" id="article" name="article[]" required>
-                        </select>
-                    </td>
-                    {{-- <td class="isian text-center" style="width: 5%">
-                        <a onmouseover="this.style.cursor='pointer'" onclick="$(this).parents('.tanda-baris').remove();hitungGrandTotal()" data-toggle="tooltip" data-placement="left" title="Delete row">
-                            <i data-feather="trash-2" class="remove_button feather-24">
-                            </i>
-                        </a>
-                    </td> --}}
                 </tr>
             </tbody>
         </table>
