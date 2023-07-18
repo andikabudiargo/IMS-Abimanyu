@@ -175,7 +175,7 @@
         year:year,
         searchStatus:searchStatus
       },
-      orderColumn:[[ 1, 'desc' ]],
+      orderColumn:[[ 7, 'desc' ]],
       excelFileName:'kas_pembayaran'
     });
   }
