@@ -318,7 +318,7 @@
         </li>
         <li class=" navigation-header"><span data-i18n="PPIC">PPIC</span><i data-feather="more-horizontal"></i>
         </li>
-        <li class=" {{ in_array(\Request::segment(1), ['boms','workingOrders','workOrderSheet','deliveryPlan','wosMixing']) ? 'active' : '' }} nav-item">
+        <li class=" {{ in_array(\Request::segment(1), ['boms','bom','workingOrders','workOrderSheet','deliveryPlan','wosMixing']) ? 'active' : '' }} nav-item">
           <a class="d-flex align-items-center" href="javascript:void(0);">
             <i data-feather='tool'></i>
             <span class="menu-title text-truncate" data-i18n="Form Elements">PPIC
@@ -397,6 +397,16 @@
               </a>
             </li>
             @endcan
+
+            @can('bom-index')
+            <li class="{{ \Request::segment(1) == 'bom' ? 'active' : '' }}" >
+              <a class="d-flex align-items-center" href="{{ route('bom.report.index') }}">
+                <i data-feather="circle"></i>
+                <span class="menu-item text-truncate" data-i18n="Input">BOM Report</span>
+              </a>
+            </li>
+            @endcan
+
           </ul>
         </li>
         <li class=" navigation-header"><span data-i18n="Production">Production</span><i data-feather="more-horizontal"></i>

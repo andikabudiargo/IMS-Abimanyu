@@ -248,14 +248,6 @@
                                         <td align="right">{{ number_format($val->debit) }}</td>
                                         <td align="right">{{ number_format($val->credit) }}</td>
                                     </tr>
-                                    <tr >
-                                        <td align="left">{{ $val->account }}</td>
-                                        <td align="left">{{ $val->account_name }}</td>
-                                        <td align="left">{{ $val->reference }}</td>
-                                        <td align="left">{{ $val->description }}</td>
-                                        <td align="right">{{ number_format($val->debit) }}</td>
-                                        <td align="right">{{ number_format($val->credit) }}</td>
-                                    </tr>
                                 @endforeach      
                                                     
                                 {{-- @if(count($details)>7)
