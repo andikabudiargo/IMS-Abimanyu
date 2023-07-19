@@ -139,7 +139,7 @@
     <table width="100%">
         <tbody>
             <tr>
-                <td rowspan='5' valign="top" style="border: 1px solid #0c0c0c;padding-left:10px;width: 65%;font-size: 10px;">
+                <td valign="top" style="border: 1px solid #0c0c0c;padding-left:10px;width: 65%;font-size: 10px;">
                 {{-- Notes:{{ $keterangan }}<br> --}}
                 Notes:<br>
                 1. Surat jalan harus mencantumkan No. PO<br>
@@ -153,12 +153,19 @@
                 6. Jatuh tempo invoice dihitung dari tanggal terima invoice <br>
                 7. Penerimaan invoice dari senin s/d kamis, waktu penerimaan paling lambat pukul 15.00 WIB
                 </td>
+                <td valign="top" align="right" style="padding-right:0px">
+                    <table width="100%">
+                        <tbody>
+                            <tr><td >Subtotal</td><td>:</td></td><td align="right">{{ number_format($totals[0]->gross) }}</td></tr>
+                            <tr><td >Discount</td><td>:</td><td align="right">{{ number_format($totals[0]->discount) }}</td></tr>
+                            <tr><td >PPN11%</td><td>:</td><td align="right">{{ number_format($totals[0]->ppn) }}</td></tr>
+                            <tr><td >Total:</td><td>:</td><td align="right">{{ number_format($totals[0]->netto) }}</td></tr>
+                        </tbody>
+                    </table>
+                </td>
             </tr>
             {{-- <tr><td rowspan='6' style="width: 65%;">{{ $keterangan }}</td></tr> --}}
-            <tr><td >Subtotal</td><td>:</td></td><td align="right">{{ number_format($totals[0]->gross) }}</td></tr>
-            <tr><td >Discount:</td><td>:</td><td align="right">{{ number_format($totals[0]->discount) }}</td></tr>
-            <tr><td >PPN 11%:</td><td>:</td><td align="right">{{ number_format($totals[0]->ppn) }}</td></tr>
-            <tr><td >Total:</td><td>:</td><td align="right">{{ number_format($totals[0]->netto) }}</td></tr>
+            
         </tbody>
     </table>
     <table width="100%" border="0">
