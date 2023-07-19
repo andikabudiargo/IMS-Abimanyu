@@ -188,10 +188,11 @@
         validateFormToast('frmAdd');
         vcDate.val(currentDate);
         add_new_row();
-        // add_new_row();
-        // add_new_row();
-        // add_new_row();
-        // add_new_row();
+        add_new_row();
+        add_new_row();
+        add_new_row();
+        add_new_row();
+        add_new_row();
         
     });
     

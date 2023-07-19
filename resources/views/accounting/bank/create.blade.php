@@ -131,7 +131,6 @@
         </div>
     </div>
 </section>
-
 @include('accounting.bank.addArticle')
 @endsection
 @section('styles')
@@ -199,10 +198,10 @@
         vcDate.val(currentDate);
 
         add_new_row();
-        // add_new_row();
-        // add_new_row();
-        // add_new_row();
-        // add_new_row();
+        add_new_row();
+        add_new_row();
+        add_new_row();
+        
         
     });
     

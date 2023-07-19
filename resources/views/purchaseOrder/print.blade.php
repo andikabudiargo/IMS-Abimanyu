@@ -44,13 +44,11 @@
     }
       
 </style>
-
 </head>
 <body>
 {{-- @if($status == "3")
     <div id ="watermark">
 @endif --}}
-
     <div class="header">
         <table width="100%">
             <tr>
@@ -58,16 +56,16 @@
                     <h2>PURCHASE ORDER</h2>
                     <table width="100%" style="padding-left:0px" >
                         <tr>
-                            <td style="width: 40%;">Date</td><td>:{{ $poDate }}</td>
+                            <td style="width: 40%;padding:0px">Date</td><td>:{{ $poDate }}</td>
                         </tr>
                         <tr>
-                            <td>PO Number</td><td>:{{ $poNumber }}</td>
+                            <td style="width: 40%;padding:0px">PO Number</td><td>:{{ $poNumber }}</td>
                         </tr>
                         <tr>
-                            <td>Term</td><td>:{{ $poTerm }}</td>
+                            <td style="width: 40%;padding:0px">Term</td><td>:{{ $poTerm }}</td>
                         </tr>
                         <tr>
-                            <td>Delivery Date</td><td>:{{ $poDelDate }}</td>
+                            <td style="width: 40%;padding:0px">Delivery Date</td><td>:{{ $poDelDate }}</td>
                         </tr>
                     </table>
                 </td>
@@ -122,18 +120,18 @@
                     <td style="border-bottom: 1px solid #ddd;" align="right">{{ $val->uom }}</td>
                     <td style="border-bottom: 1px solid #ddd;" align="right">{{ number_format($val->price) }}</td>
                     {{-- <td style="border-bottom: 1px solid #ddd;" align="right">{{ number_format($val->ppn) }}</td> --}}
-                    <td style="border-bottom: 1px solid #ddd;" align="right">{{ number_format(($val->qty*$val->price)+$val->ppn) }}</td>
+                    <td style="border-bottom: 1px solid #ddd;" align="right">{{ number_format(($val->qty*$val->price)) }}</td>
                 </tr>
             @endforeach
         </tbody>
         <tfoot>
             @foreach ($totals as $val )
                 <tr style="border-bottom: 1px solid #ddd;">
-                    <td style="border-bottom: 1px solid #ddd;" align="left" colspan="3">Total</td>
+                    <td style="border-bottom: 1px solid #ddd;" align="left" colspan="3">DPP</td>
                     <td style="border-bottom: 1px solid #ddd;" align="right" >{{ number_format($val->qty) }}</td>
                     <td style="border-bottom: 1px solid #ddd;" align="right" ></td>
                     <td style="border-bottom: 1px solid #ddd;" align="right" ></td>
-                    <td style="border-bottom: 1px solid #ddd;" align="right" class="gray">{{ number_format($val->netto)}}</td>
+                    <td style="border-bottom: 1px solid #ddd;" align="right" class="gray">{{ number_format($val->dpp)}}</td>
                 </tr>
             @endforeach
         </tfoot>
@@ -152,7 +150,8 @@
                    - 2 Rangkap tanda terima barang<br>
                    - 2 Rangkap Invoice<br>
                 5. Pada saat penagihan harap lampirkan tanda terima Barang<br>
-                6. Jatuh tempo invoice dihitung dari tanggal terima invoice
+                6. Jatuh tempo invoice dihitung dari tanggal terima invoice <br>
+                7. Penerimaan invoice dari senin s/d kamis, waktu penerimaan paling lambat pukul 15.00 WIB
                 </td>
             </tr>
             {{-- <tr><td rowspan='6' style="width: 65%;">{{ $keterangan }}</td></tr> --}}
@@ -172,13 +171,7 @@
             <td align="center">Menyetujui</td>
         </tr>
         <tr>
-            <td align="center"></td>
-            <td align="center"></td>
-            <td align="center"></td>
-            <td align="center"></td>
-        </tr>
-        <tr>
-            <td align="center"></td>
+            <td align="center" height="30"></td>
             <td align="center"></td>
             <td align="center"></td>
             <td align="center"></td>
@@ -190,19 +183,7 @@
             <td align="center">( _____________  )</td>
         </tr>
     </table>
-    {{-- @if($status == '3')
-    <table>
-        <tr>
-            <td align="center" style="width:30%;" style="">Authorization</td><td></td>
-        </tr>
-        <tr>
-            <td align="center" style="height:50px"></td><td></td>
-        </tr>
-        <tr>
-            <td align="center">(     {{ $approved }}     )</td><td></td>
-        </tr>
-    </table>
-    @endif --}}
+   
 {{-- @if($status == "3")
 </div>
 @endif --}}

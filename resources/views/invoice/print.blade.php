@@ -251,7 +251,7 @@
                                 <strong> Customer: </strong><br>
                                 {{ $customers->nama }} <br>
                                 {{ $customers->alamat_kirim_1 }} <br>
-                                <strong>No. NPWP Customer : </strong> {{ $customers->npwp }}
+                                <strong>No. NPWP : </strong> {{ $customers->npwp }}
                             </td>
                             <td width="38%" valign="top" style="border: 1px solid #0c0c0c;padding-left:5px;padding-right:5px">
                                 <br>
@@ -344,7 +344,6 @@
                             @endforeach
                             <tr>
                                 <td valign="top" width="60%" colspan="5" style="border-right: 1px solid white;font-size: 11pt;">
-                                    <br>
                                     Note:<br>
                                     Please transfer to our account <br>	
                                     Mohon transfer ke rekening kami	<br>
@@ -358,8 +357,8 @@
                                 <td valign="top" colspan="2" align="center" >
                                     <br>
                                     Purwakarta, {{ $tanggalHariIni }} <br>
-                                    <br><br><br><br><br><br><br>
-                                    ( Budi Mulyadi )<br> 
+                                    <br><br><br><br><br><br>
+                                    ( Budi Mulyadi )
                                 </td>
                             </tr>
                         </tfoot>

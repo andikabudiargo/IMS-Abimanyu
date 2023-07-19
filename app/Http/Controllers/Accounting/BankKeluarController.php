@@ -662,6 +662,7 @@ class BankKeluarController extends Controller
         ->select('kas_det.*','accounts.description as account_name')
         ->where('voucher_number',$vcNumber)
         ->orderBy('credit')
+        ->orderBy('id')
         ->get();
 
         $data['total']=DB::table('kas_det')

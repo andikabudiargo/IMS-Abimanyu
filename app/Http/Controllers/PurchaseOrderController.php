@@ -1289,7 +1289,10 @@ class PurchaseOrderController extends Controller
         ->where('po_number',$poNumber)
         ->get();
 
-        $data['totals']=DB::select("SELECT *,(gross-discount)+ppn as netto from (
+        $data['totals']=DB::select("SELECT *
+        ,(gross-discount)+ppn as netto 
+        ,(gross-discount) as dpp 
+        from (
             select a.po_number,authorized_by,validate_by,sum(qty) as qty,sum(qty*price) as gross,sum(discount) as discount,sum(qty*price*b.ppn/100) as ppn from purchase_order_det a
             left join purchase_order_hdr b
             on a.po_number = b.po_number 

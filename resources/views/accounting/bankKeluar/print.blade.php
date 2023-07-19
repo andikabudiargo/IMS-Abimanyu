@@ -230,11 +230,11 @@
                             <thead>
                                 <tr>
                                     <th width="10%">No Account</th>
-                                    <th width="40%">Account Name</th>
+                                    <th width="30%">Account Name</th>
                                     <th width="20%">Referensi</th>
                                     <th width="40%">Keterangan</th>
-                                    <th width="10%">Debet</th>
-                                    <th width="10%">Kredit</th>
+                                    <th width="15%">Debet</th>
+                                    <th width="15%">Kredit</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -249,15 +249,18 @@
                                     </tr>
                                 @endforeach      
                                                     
-                                @if(count($details)>7)
-                                    <?php $totalBaris = 16 ?>
+                                {{-- @if(count($details)>7)
+                                    <?php //$totalBaris = 16 ?>
                                 @else
-                                    <?php $totalBaris = 7 ?>
-                                @endif
+                                    <?php //$totalBaris = 7 ?>
+                                @endif --}}
+
+                                <?php $totalBaris = 25 ?>
 
                                 @for ($i=1;$i< $totalBaris-(count($details));$i++)
                                     <tr >
-                                        <td align="right" class="putih" height="16"></td>
+                                        {{-- <td align="right" class="putih" height="16"></td> --}}
+                                        <td style="border-right: 1px solid black;" ><div style="height:25px;"></div></td>
                                         <td align="left"></td>
                                         <td align="left"></td>
                                         <td align="right"></td>
