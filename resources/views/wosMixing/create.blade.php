@@ -123,7 +123,12 @@
     document.querySelector('#cmdSave').addEventListener('click',() =>{
         let element = document.getElementById('cmdSave');
         let oEdit = document.getElementById('oEdit');
-        simpanData(oEdit.value);
+
+        if (!$("#frmAdd")[0].checkValidity()){
+            $("#frmAdd").submit();
+        }else{ 
+            simpanData(oEdit.value);
+        }
     });  
 
     objWosCode.change(function(e){

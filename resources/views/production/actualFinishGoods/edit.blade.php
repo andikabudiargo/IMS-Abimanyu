@@ -96,11 +96,11 @@
                                         <input type="text" id ="approveLevel" name ="approveLevel" class="d-none" value="{{ $approveValidate[0]->next_level }}">
                                         <input type="text" id ="maxLevel" name ="maxLevel" class="d-none" value="{{ $approveValidate[0]->max_level }}">
                                         <button class="btn btn-success" type="button" id="cmdApprove" name="cmdApprove">Approve</button>
-                                        @if( $statusPrd =='POSTED')
+                                        @if( $statusPrd =='POSTED WO' || $statusPrd =='INPUT FG')
                                             <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Save</button>
                                         @endif
                                     @else
-                                        @if( !$approveValidate && $statusPrd =='POSTED')
+                                        @if( !$approveValidate && ($statusPrd =='POSTED' || $statusPrd =='INPUT FG'))
                                             <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Save</button>
                                         @endif
                                     @endif

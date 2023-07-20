@@ -369,8 +369,9 @@ class ActualFinishGoodsController extends Controller
 
         $data['oEdit']=true;
 
-         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','6'=>'CLOSED'];
-        $statusPrd = ['NEW','VALIDATED','APPROVED','POSTED','','CANCELED'];
+        
+        // $status = ['NEW','VALIDATED','APPROVED ACT LOADING','POSTED WO','CANCELED','CLOSED','REVISED','INPUT FG','POSTED FG'];
+        $statusPrd = ['NEW','VALIDATED','APPROVED ACT LOADING','POSTED WO','CANCELED','CLOSED','REVISED','INPUT FG','POSTED FG'];
         $data['statusPrd'] = $statusPrd[$data['header']->status-1];
 
         return view("production.actualFinishGoods.edit",$data);
@@ -542,7 +543,7 @@ class ActualFinishGoodsController extends Controller
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
 
             if (Auth::user()->can('actualFinishGoods-edit')) {
-                if($data->status == '4'){
+                if($data->status == '4' || $data->status == '8'){
                     $buttons .=         '<a href="'. route('production.actualFinishGoods.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                         <i data-feather="file-text"></i>
                                         Input Finish Goods
@@ -611,7 +612,7 @@ class ActualFinishGoodsController extends Controller
         ->addColumn('status', function ($data) {
             // $data['status'] = ['1'=>'NEW','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','6'=>'CLOSED','7'=>'REVISED','8'=>'INPUT FG','9'=>'POSTED FG'];
             $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-primary','badge-warning'];
-            $status = ['NEW','VALIDATED','APPROVED','POSTED WO','CANCELED','CLOSED','REVISED','INPUT FG','POSTED FG'];
+            $status = ['NEW','VALIDATED','APPROVED ACT LOADING','POSTED WO','CANCELED','CLOSED','REVISED','INPUT FG','POSTED FG'];
             return "<div class='badge ".$badges[$data->status - 1]."'>".$status[$data->status - 1]."</div>";
         })
         ->rawColumns(['action','status'])

@@ -488,6 +488,10 @@ class DependentController extends Controller
             // wos bisa dipanggil di wos mixing walaupun baru di level 1
             $data= DB::table($table)
             ->whereIn('status',['2','3'])
+            ->whereNotIn(DB::raw("wo_code"), function($query) {
+                $query->select(DB::raw("wos_number"))
+                ->from('wos_mixing_hdr');
+            })
             ->orderBy($order)
             ->get();
         }elseif($dependent =='wos_list_mix'){

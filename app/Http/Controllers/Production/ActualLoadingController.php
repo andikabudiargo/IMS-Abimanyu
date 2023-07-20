@@ -331,6 +331,8 @@ class ActualLoadingController extends Controller
         $status = '4';
         $moduleCode = $this->moduleCode;
         $todayDate = date('Y-m-d');
+
+        // $status = ['NEW','VALIDATED','APPROVED','POSTED','CANCELED','CLOSED','REVISED','INPUT FG','POSTED FG'];
         
         if ($prdNumber){
             $data = DB::table('production_det')
@@ -865,7 +867,7 @@ class ActualLoadingController extends Controller
         ->addColumn('status', function ($data) {
             // $data['status'] = ['1'=>'NEW','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','6'=>'CLOSED','7'=>'REVISED','8'=>'INPUT FG','9'=>'POSTED FG'];
             $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-primary','badge-warning'];
-            $status = ['NEW','VALIDATED','APPROVED','POSTED','CANCELED','CLOSED','REVISED','INPUT FG','POSTED FG'];
+            $status = ['NEW','VALIDATED','APPROVED ACT LOADING','POSTED WO','CANCELED','CLOSED','REVISED','INPUT FG','POSTED FG'];
             return "<div class='badge ".$badges[$data->status - 1]."'>".$status[$data->status - 1]."</div>";
         })
         ->rawColumns(['action','status'])
