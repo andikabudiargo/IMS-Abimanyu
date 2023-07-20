@@ -96,6 +96,9 @@ class KasPenerimaanController extends Controller
         $data['kolom'] = $this->getTableColoumn();
         $data['kolomDetail'] = $this->getTableColoumnDetail();
 
+        $status = ['NEW','VALIDATED','APPROVED','','DELETED','CLOSED'];
+        $data['status'] = ['1'=>'NEW','2'=>'VALIDATED','3'=>'APPROVED'];
+
         return view("accounting.kas.index",$data);
     }
 
@@ -542,6 +545,7 @@ class KasPenerimaanController extends Controller
         $year = $request->year;
         $fromDate = "";
         $toDate = "";
+        $searchStatus=$request->searchStatus;
 
         if ($vcDate){
             $date = explode("to",$vcDate);
@@ -559,11 +563,12 @@ class KasPenerimaanController extends Controller
 
         $data = DB::table('kas_hdr')
         // ->leftJoin('accounts','accounts.account','kas_hdr.receive_from')
-        ->where(function ($query) use ($seachVc,$vcDate,$fromDate,$toDate,$period,$year) {
+        ->where(function ($query) use ($seachVc,$vcDate,$fromDate,$toDate,$period,$year,$searchStatus) {
             $seachVc ? $query->where('voucher_number','ilike','%'.$seachVc.'%') : '';
             $vcDate ? $query->whereBetween('voucher_date', [$fromDate, $toDate]) : '';
             $period ? $query->where('period', $period) : '';
             $year ? $query->where('year', $year) : '';
+            $searchStatus ? $query->where('kas_hdr.status', $searchStatus) : '';
         })
         ->where('voucher_type',$vcType)
         ->where('kas_hdr.status','<>','5')

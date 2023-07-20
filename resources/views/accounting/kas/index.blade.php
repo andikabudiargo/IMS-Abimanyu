@@ -46,6 +46,17 @@
               </div>
             </div>
             <div class="form-row">
+              <div class="form-group col-md-2"> 
+                <label class="form-label" for="searchStatus">Invoice Status</label>
+                <select class="select2 form-control" id="searchStatus" name="searchStatus">
+                    <option value="">All</option>
+                    @foreach($status as $index=>$val)
+                        <option value="{{ $index }}">{{ $val }}</option>
+                    @endforeach
+                </select>
+              </div>
+            </div>
+            <div class="form-row">
                 <div class="col-12"> 
                     <button type="button" class="btn btn-primary" id ="btnSearch" name="btnSearch">Search</button>
                     {{-- @can('pettyCash-create') --}}
@@ -136,11 +147,12 @@ td.wrapok {
     let vcDate = $("#vcDate").val();
     let period = $("#period").val();
     let year = $("#year").val();
-    showList(seachVc,vcDate,period,year);
+    let searchStatus = $("#searchStatus").val();
+    showList(seachVc,vcDate,period,year,searchStatus);
 
   });
 
-  const showList = (seachVc,vcDate,period,year) => {
+  const showList = (seachVc,vcDate,period,year,searchStatus) => {
     if ($('#detailedTable tr').length >0){
         let table= $('#detailedTable').DataTable();
         table.destroy();
@@ -165,7 +177,8 @@ td.wrapok {
         seachVc:seachVc,
         vcDate:vcDate,
         period:period,
-        year:year
+        year:year,
+        searchStatus:searchStatus
       },
       orderColumn:[[ 1, 'desc' ]],
       excelFileName:'kas_penerimaan'

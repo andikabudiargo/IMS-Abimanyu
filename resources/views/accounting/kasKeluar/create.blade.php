@@ -85,17 +85,11 @@
                     <div class="" id="item_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px">
                         <input type="text" id ="last_row_number" class="d-none" value="0">
                     </div>
-                    <table class="" style="width: 98%;table-layout: fixed;">
+                    <table class="table-bordered" style="width: 98%;table-layout: fixed;">
                         <tbody>
                             <tr>
-                                <td class="isian" style="width: 30%">
-                                    <label>Total</label>
-                                </td>
-                                <td class="isian" style="">
-                                </td>
-                                <td class="isian" style="">
-                                </td>
-                                <td class="isian" style="">
+                                <td colspan="4" class="isian text-right" style="border-left: 1px solid white;border-bottom: 1px solid white;">
+                                    <label style="font-size: 12pt;">Total</label>
                                 </td>
                                 <td class="isian" style="width: 10%">
                                     <input type="text" class="form-control-plaintext numeral-mask text-right" id="vcTotalDebit" disabled />
@@ -103,7 +97,19 @@
                                 <td class="isian" style="width: 10%">
                                     <input type="text" class="form-control-plaintext numeral-mask text-right" id= "vcTotalCredit" disabled />
                                 </td>
-                                <td class="isian text-center" style="width: 5%">
+                                <td class="isian text-center" style="width: 5%;border-right: 1px solid white;border-bottom: 1px solid white;">
+                                </td>
+                            </tr>
+                            <tr>
+                                <td colspan="4" class="isian text-right" style="border-left: 1px solid white;border-bottom: 1px solid white;">
+                                    <label style="font-size: 12pt;">Selisih</label>
+                                </td>
+                                <td class="isian" style="width: 10%">
+                                </td>
+                                <td class="isian" style="width: 10%">
+                                    <input type="text" class="form-control-plaintext numeral-mask text-right" id="selisih" disabled />
+                                </td>
+                                <td class="isian text-center" style="width: 5%;border-right: 1px solid white;border-bottom: 1px solid white;">
                                 </td>
                             </tr>
                         </tbody>

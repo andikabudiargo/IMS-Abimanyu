@@ -115,6 +115,7 @@
         let objTotalVcDebit= $('#vcTotalDebit');
         let objVcCredit= $('#item_row input[name="vcCredit[]"]');
         let objTotalVcCredit= $('#vcTotalCredit');
+        let objSelisih= $('#selisih');
         // let objTotalAmount= $('#totalAmount');
         let TotalDebit=0;
         let TotalCredit=0;
@@ -131,6 +132,7 @@
 
         objTotalVcDebit.val(humanizeNumber(TotalDebit));
         objTotalVcCredit.val(humanizeNumber(TotalCredit));
+        objSelisih.val(humanizeNumber(TotalDebit-TotalCredit));
 
     }
 
