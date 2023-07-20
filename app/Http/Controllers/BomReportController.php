@@ -30,25 +30,24 @@ class BomReportController extends Controller
     public function getTableColoumn(){
         $kolom=
         [
-            ['data'=>'action','name'=>'action','title'=>'action','orderable'=>false,'searchable'=>false],
             ['data'=>'bom_code','name'=>'bom_code','title'=>'BOM Code'],
-            ['data'=>'customer','name'=>'customer','title'=>'Customer'],
-            ['data'=>'num_revision','name'=>'num_revision','title'=>'Revision'],
-            ['data'=>'article_des','name'=>'article_des','title'=>'Article'],
+            ['data'=>'customer_code','name'=>'customer_code','title'=>'Customer'],
+            ['data'=>'article_fg','name'=>'article_fg','title'=>'Article FG'],
+            ['data'=>'article_des','name'=>'article_des','title'=>'Article FG Desc'],
+            ['data'=>'article_ch','name'=>'article_ch','title'=>'Article Chemical'],
+            ['data'=>'article_des_det','name'=>'article_des_det','title'=>'Article Chemical Desc'],
+            ['data'=>'qty','name'=>'qty','title'=>'QTY Bom'],
+            ['data'=>'uom_bom','name'=>'uom_bom','title'=>'UOM BOM'],
+            ['data'=>'uom_con','name'=>'uom_con','title'=>'UOM Con'],
             ['data'=>'part_no','name'=>'part_no','title'=>'Part No'],
             ['data'=>'model','name'=>'model','title'=>'Model'],
             ['data'=>'group_of_material','name'=>'group_of_material','title'=>'Group'],
-            ['data'=>'status','name'=>'status','title'=>'Status'],
+            ['data'=>'statusku','name'=>'statusku','title'=>'Status'],
             ['data'=>'note','name'=>'note','title'=>'Note'],
             ['data'=>'tag','name'=>'tag','title'=>'Tag'],
             ['data'=>'pass_rate','name'=>'pass_rate','title'=>'Pass Rate'],
             ['data'=>'pass_thru','name'=>'pass_thru','title'=>'Pass Thru'],
             ['data'=>'cycle_time','name'=>'cycle_time','title'=>'Cycle Time'],
-            ['data'=>'approval_by','name'=>'approval_by','title'=>'Approval By'],
-            ['data'=>'created_by','name'=>'created_by','title'=>'Created By'],
-            ['data'=>'created_at','name'=>'created_at','title'=>'Created At'],
-            ['data'=>'updated_by','name'=>'updated_by','title'=>'Updated By'],
-            ['data'=>'updated_at','name'=>'updated_at','title'=>'Updated At'],
         ];
         return json_encode($kolom, true);
     }
@@ -79,6 +78,49 @@ class BomReportController extends Controller
     }
 
     public function list(Request $request)
+    {
+        $username =  Auth::user()->username;
+        $searchBom = strtolower($request->searchBom);
+        $articleMaterial = $request->articleMaterial;
+        $articleCode = $request->articleCode;
+
+        $data = DB::table('bom_det')
+        ->leftJoin('bom_hdr','bom_hdr.bom_code','bom_det.bom_code')
+        ->leftJoin('article','article.article_code','bom_hdr.article_code')
+        ->leftJoin('article as b','b.article_code','bom_det.article_code')
+        ->where(function ($query) use ($searchBom,$articleCode,$articleMaterial) {
+            $searchBom ? $query->where('bom_det.bom_code','ilike','%'.$searchBom.'%') : '';
+            $articleCode ? $query->where('bom_hdr.article_code','ilike','%'.$articleCode.'%') : '';
+            $articleMaterial ? $query->where('bom_det.article_code','ilike','%'.$articleMaterial.'%') : '';
+        })
+        ->where('bom_hdr.status','<>','7')
+        ->select('bom_det.*','bom_hdr.*'
+        ,'bom_hdr.status as statusku'
+        ,'bom_det.uom as uom_bom'
+        ,'article.article_alternative_code as article_fg'
+        ,'b.article_alternative_code as article_ch'
+        ,'article.article_desc as article_des'
+        ,'b.article_desc as article_des_det'
+        )       
+
+        ->orderBy('bom_det.bom_code')
+        ->get(); 
+       
+        return Datatables::of($data)
+        ->addColumn('statusku', function ($data) {
+            $status = ['NEW','VALIDATE','APPROVED','RECEIVED','DELETED','CLOSED','REVISED','DECLINE'];
+            if ($data->statusku > 0 ){
+                return $status[$data->statusku - 1];
+            }else{
+                return '';
+            }
+            
+        })
+        ->rawColumns(['statusku'])
+        ->make(true);
+    }
+
+    public function listMaterial(Request $request)
     {
        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'RECEIVED','5'=>'DELETED','6'=>'CLOSED','7'=>'REVISED','8'=>'DECLINE'];
         $username =  Auth::user()->username;
@@ -190,189 +232,5 @@ class BomReportController extends Controller
         ->make(true);
     }
 
-    public function print(Request $request)
-    {
-        $id=Crypt::decryptString($request->id);
-        
-        $data['bomHdr']=DB::table('bom_hdr')
-        ->leftJoin('third_party','third_party.kode','bom_hdr.customer')
-        ->leftJoin('article','article.article_code','bom_hdr.article_code')
-        ->select('bom_hdr.*','third_party.*','article.*','bom_hdr.note as note_hdr')
-        ->where('bom_hdr.id',$id)
-        ->first();
-
-        $bomNumber=$data['bomHdr']->bom_code;
-
-        $data['title'] = "$bomNumber";
-       
-        $data['details']=DB::table('bom_det')
-        ->leftJoin('article','article.article_code','bom_det.article_code')
-        ->leftJoin('third_party','third_party.kode','article.third_party')
-        ->select('bom_det.*'
-        ,'article.article_alternative_code'
-        ,'article.article_desc'
-        ,'third_party.nama')
-        ->where('bom_code',$bomNumber)
-        ->orderBy('bom_det.id')
-        ->get();
-
-        $username="";
-        $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode,$bomNumber,$username);
-        
-        $data['keterangan']=$data['bomHdr'] -> note;
-        $data['bomNumber'] =$bomNumber;
-        
-        $data['status'] ='1';
-        $data['no'] =0;
-
-        view()->share($data);
-
-        $pdf = PDF::loadView('bom.print')->setPaper([0, 0, 595.28, 841.89], 'portrait');
-        return $pdf->stream("PO_$bomNumber.pdf");
-
-    }
-
-    public function revision(Request $request){
-        $username =  Auth::user()->username;
-        $id=Crypt::decryptString($request->id);
-        $bomOrigin=DB::table('bom_hdr')->where('id',$id)->value('bom_code');
-        $numRevision = $request->nR ? $request->nR + 1 : 1 ;
-        $bomNew = $bomOrigin.'-R'.$numRevision;
-        $checkNewBom=DB::table('bom_hdr')->where('bom_code',$bomNew)->count();
-
-        if ($checkNewBom > 0){
-            $bomNew = $bomOrigin.'-R'.($numRevision+1);
-        }
-                
-        $sqlHdr = "INSERT into bom_hdr 
-        (
-            bom_code,
-            customer,
-            article_code,
-            uom,
-            group_of_material,
-            status,
-            note,
-            tag,
-            pass_rate,
-            pass_thru,
-            cycle_time,
-            created_by,
-            updated_by,
-            created_at,
-            updated_at,
-            origin_bom_code,
-            num_revision,
-            authorized_by,
-            revised_by,
-            revised_at,
-            part_no,
-            model,
-            article_code_rm
-        )
-        select 
-            '$bomNew',
-            customer,
-            article_code,
-            uom,
-            group_of_material,
-            '7',
-            note,
-            tag,
-            pass_rate,
-            pass_thru,
-            cycle_time,
-            '$username',
-            '$username',
-            '".date('Y-m-d H:i:s')."',
-            '".date('Y-m-d H:i:s')."',
-            '$bomOrigin',
-            $numRevision,
-            authorized_by,
-            '$username',
-            '".date('Y-m-d H:i:s')."',
-            part_no,
-            model,
-            article_code_rm
-        from bom_hdr where bom_code = '$bomOrigin'";
-
-        $sqlDet="INSERT into bom_det
-        (
-            bom_code,
-            article_code,
-            qty,
-            uom,
-            cost_price,
-            article_type,
-            customer_code,
-            status,
-            note,
-            created_by,
-            updated_by,
-            created_at,
-            updated_at,
-            uom_con,
-            urutan
-        )
-        select 
-            '$bomNew',
-            article_code,
-            qty,
-            uom,
-            cost_price,
-            article_type,
-            customer_code,
-            status,
-            note,
-            '$username',
-            '$username',
-            '".date('Y-m-d H:i:s')."',
-            '".date('Y-m-d H:i:s')."',
-            uom_con,
-            urutan
-        from bom_det where bom_code = '$bomOrigin' order by id";
-
-        $rowAffected =  DB::select($sqlHdr);
-        if ($rowAffected){
-            DB::select($sqlDet);
-
-            DB::table('bom_hdr')
-            ->where('bom_code',$bomOrigin)
-            ->update(
-                [
-                    'num_revision' => $numRevision,
-                    'status' => '1',
-                    'revised_by'=>Auth::user()->username,
-                    'revised_at'=> date('Y-m-d H:i:s'),
-                    'updated_by' => Auth::user()->username,
-                    'updated_at' => date('Y-m-d H:i:s')
-                ]
-            );
-
-            DB::table('approval_history')
-            ->where('module_number',$bomOrigin)
-            ->update(
-                [
-                    'module_number' => $bomNew,
-                    'status' => '0',
-                    'updated_by' => Auth::user()->username,
-                    'updated_at' => date('Y-m-d H:i:s')
-                ]
-            );
-            
-            $title ="Save $this->title";
-            $alert  ="success";
-            $message  = "$title Revision PO: $bomOrigin to $bomNew is successfully saved";
-            \LogActivity::addToLog($title,"username: $username Status $message");
-            // return $this->showEdit(Crypt::encryptString($id));
-            return redirect()->route('bom.edit', ['id'=>Crypt::encryptString($id)]);
-        }else{
-            $title ="Save $this->title";
-            $alert  ="warning";
-            $message  = "$title Revision PO: $bomOrigin to $bomNew is failed to save";
-            \LogActivity::addToLog($title,"username: $username Status $message");
-            return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);
-        }
-        
-    }
+    
 }

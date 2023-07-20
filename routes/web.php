@@ -446,7 +446,7 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('boms/revision',['as'=>'bom.revision','uses'=>'BomController@revision','middleware' => ['permission:bom-revision']]);
 
 	Route::get('bom/report',['as'=>'bom.report.index','uses'=>'BomReportController@index','middleware' => ['permission:bom-index']]);
-	Route::get('bom/report/list',['as'=>'bom.report.list','uses'=>'BomReportController@list']);
+	Route::post('bom/report/list',['as'=>'bom.report.list','uses'=>'BomReportController@list']);
 
 	Route::get('deliveryPlan/create',['as'=>'deliveryPlan.create','uses'=>'DeliveryPlanController@create','middleware' => ['permission:workingOrder-create']]);
 	Route::get('deliveryPlan/generate',['as'=>'deliveryPlan.generate','uses'=>'DeliveryPlanController@generatePlan']);

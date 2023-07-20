@@ -30,8 +30,8 @@
                 </select>
               </div>
               <div class="form-group col-md-4">
-                <label class="form-label" for="articleCode">Article Material</label>
-                <select class="select2 form-control" id="articleCode" name="articleCode">
+                <label class="form-label" for="articleMaterial">Article Material</label>
+                <select class="select2 form-control" id="articleMaterial" name="articleMaterial">
                     <option value="">All</option>
                     @foreach($materials as $val)
                         <option value="{{ $val->article_code }}" >{{ $val->article_alternative_code }} - {{ $val->article_desc }}</option>
@@ -49,13 +49,10 @@
               </div> --}}
             </div>
             <div class="form-row">
-                <div class="col-12"> 
-                    <button type="button" class="btn btn-primary" id ="btnSearch" name="btnSearch">Search</button>
-                    @can('bom-create')
-                    <a href="{{ route('bom.create') }}" class="btn btn-info"><i class="fa fa-plus"></i> Create</a>
-                    @endcan
-                </div>
-            </div>
+              <div class="col-12"> 
+                  <button type="button" class="btn btn-primary" id ="btnSearch" name="btnSearch">Search</button>
+              </div>
+          </div>
         </form>
       </div>
     </div>
@@ -97,22 +94,17 @@
 <script type="text/javascript">
   let searchBom = $("#searchBom");
   let articleCode = $("#articleCode");
-  let status = $("#status");
-  
+  let articleMaterial = $("#articleMaterial");
+
   $(document).ready(function(){    
 
   });
 
-  //refresh di cards
-  $('a[data-action="reload"]').on('click', function () {
-    showList(searchBom.val(),articleCode.val(),status.val());
-  });
-
   $("#btnSearch").click(function(e){
-    showList(searchBom.val(),articleCode.val(),status.val());
+    showList(searchBom.val(),articleCode.val(),articleMaterial.val());
   });
 
-  const showList = (searchBom,articleCode,status) => {
+  const showList = (searchBom,articleCode,articleMaterial) => {
     if ($('#detailedTable tr').length >0){
         let table= $('#detailedTable').DataTable();
         table.destroy();
@@ -121,21 +113,25 @@
     }
     showDataTables({
       tableId:"detailedTable",
-      route:"{{ route('bom.list') }}",
+      route:"{{ route('bom.report.list') }}",
       kolom:{!! $kolom !!},
-      arrColPrint:[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18],
+      arrColPrint:[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17],
       columnDefs :[
         { width: '5%', targets: 0 },
       ],
+      type:'POST',
       dataSearch:  {
         searchBom:searchBom,
         articleCode:articleCode,
-        status:status
+        articleMaterial:articleMaterial
       },
       orderColumn:[[ 1, 'desc' ]],
-      excelFileName:'bom'
+      excelFileName:'detail_bom',
+      
     });
   }
+
+
 
   $.ajaxSetup({
     headers: {
