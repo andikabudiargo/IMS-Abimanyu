@@ -19,3 +19,9 @@
         overflow-y: auto;
     }
 </style>
+
+<script type="text/javascript">      
+    $('.modal').on('shown.bs.modal', function () {
+        $('.select2').select2();
+    })
+</script>

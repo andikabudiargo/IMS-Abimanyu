@@ -485,8 +485,9 @@ class DependentController extends Controller
             ->get();
         }elseif($dependent =='wos_list'){
             //untuk wos minimal sudah di approved sekali statusnya udah validated
+            // wos bisa dipanggil di wos mixing walaupun baru di level 1
             $data= DB::table($table)
-            ->where('status','=','3')
+            ->whereIn('status',['2','3'])
             ->orderBy($order)
             ->get();
         }elseif($dependent =='wos_list_mix'){

@@ -66,8 +66,9 @@ class BomReportController extends Controller
         $data['materials'] = DB::table('article')
         ->leftJoin('third_party','article.third_party','third_party.kode')
         ->leftJoin('group_materials','group_materials.code','=','article.group_of_material')
-        ->where('article_type','<>','FG')
-        ->where('article_type','<>','RM')
+        ->whereIn('article_type',['CM1','CM2','PT']) 
+        // ->where('article_type','<>','FG')
+        // ->where('article_type','<>','RM')
         ->select('article.*', 'third_party.nama as cust_name','group_materials.name as group')
         ->get();
        

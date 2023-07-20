@@ -99,6 +99,19 @@
   let search = document.querySelector('#btnSearch');
   let refresh = document.querySelector('a[data-action="reload"]');
 
+  $(document).ready(function() {
+    
+  });
+
+  function initiateSelect2() {
+  $('.select2').select2();
+  }
+  initiateSelect2();
+  // when modal is open
+  $('.modal').on('shown.bs.modal', function () {
+    initiateSelect2();
+  })
+
   document.addEventListener("DOMContentLoaded", function(event) {
     showListMaster();
     showListLevel();
