@@ -490,7 +490,8 @@ class DependentController extends Controller
             ->whereIn('status',['2','3'])
             ->whereNotIn(DB::raw("wo_code"), function($query) {
                 $query->select(DB::raw("wos_number"))
-                ->from('wos_mixing_hdr');
+                ->from('wos_mixing_hdr')
+                ->where('wos_number','<>',null);
             })
             ->orderBy($order)
             ->get();
