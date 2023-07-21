@@ -573,7 +573,10 @@
                 },
                 success:function(result){
                     for(let i=0;i<result.data.length;i++){
-                        add_new_row_pr(result.data[i].artikel_code,result.data[i].article_description,result.data[i].group,result.data[i].qty_stock,result.data[i].qty*1,result.data[i].uom1,result.data[i].uom_group,result.data[i].cost_price,result.data[i].last_price,prNumber);
+                        // tampilkan kalo qty nya lebih dari 0
+                        if (result.data[i].qty*1 > 0){
+                            add_new_row_pr(result.data[i].artikel_code,result.data[i].article_description,result.data[i].group,result.data[i].qty_stock,result.data[i].qty*1,result.data[i].uom1,result.data[i].uom_group,result.data[i].cost_price,result.data[i].last_price,prNumber);
+                        }
                     }
                     disabledEnabledSelect2();
                     $('#prSelect').val("").trigger("change");

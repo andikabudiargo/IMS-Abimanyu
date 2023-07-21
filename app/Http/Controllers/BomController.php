@@ -654,7 +654,6 @@ class BomController extends Controller
             }
 
             if ( $data->statusku and ($data->status == '2' or $data->status == '1') ){
-                
                 $buttons .= '<a href="'. route('bom.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                 <i data-feather="check"></i>
                                 <span>'. __("Approve") .'</span>

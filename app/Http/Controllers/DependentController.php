@@ -421,7 +421,7 @@ class DependentController extends Controller
             ->whereIn('pr_number', function ($query) {
                 $query->select('pr_number')->from('purchase_request_hdr')
                 ->whereIn('order_type',['std','tso','rm'])
-                ->where('status','3');
+                ->whereIn('status',['3','7']);
             })
             // permintaan bu ifah tidak si filter by supplier
             // 11 04 2022 permintaan batal dari bu Yorin, jadi tetap di filter
