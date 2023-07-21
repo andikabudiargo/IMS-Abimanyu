@@ -1360,13 +1360,13 @@ class PurchaseOrderController extends Controller
             ,DB::raw("(select coalesce(sum(qty),0) from purchase_order_det 
                 where article_code = purchase_request_det.article_code 
                 and pr_number = purchase_request_det.pr_number
-                and po_number in (select po_number from purchase_order_hdr where status = '3')
+                and po_number in (select po_number from purchase_order_hdr where status not in ('5','6','7','8'))
                 ) as qty_po")
             //qty yang dikeluarkan adalah qty sisa dari PR dikurangi qty yang sudah di order
             ,DB::raw("purchase_request_det.qty - (select coalesce(sum(qty),0) from purchase_order_det 
                 where article_code = purchase_request_det.article_code 
                 and pr_number = purchase_request_det.pr_number
-                and po_number in (select po_number from purchase_order_hdr where status = '3')
+                and po_number in (select po_number from purchase_order_hdr where status not in ('5','6','7','8'))
                 ) as qty")
             )
             ->get();
