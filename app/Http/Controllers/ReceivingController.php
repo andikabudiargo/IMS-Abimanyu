@@ -952,7 +952,7 @@ class ReceivingController extends Controller
         ,DB::raw("TO_CHAR(price*qty,'999,999,999') as total_dpp")
         ,DB::raw("(select STRING_AGG((select name from users where username = a.username), ' -> ' ORDER BY approval_order) AS main from approval_history a where module_number = receiving_hdr.rec_number) as approval_by")
         ,DB::raw("(select concat(kode,'-',nama) from third_party where kode = receiving_hdr.supplier_id limit 1) as supp_name")
-        ,DB::raw("(select (select name from depts where code = dept) as nama_dept from purchase_request_hdr where pr_number in (select pr_number from purchase_request_det where po_number = receiving_hdr.po_number) limi 1)")
+        ,DB::raw("(select (select name from depts where code = dept) as nama_dept from purchase_request_hdr where pr_number in (select pr_number from purchase_request_det where po_number = receiving_hdr.po_number) limit 1)")
         )
         ->orderBy('receiving_det.id')
         ->get(); 
