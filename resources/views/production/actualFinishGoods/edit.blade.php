@@ -100,7 +100,7 @@
                                             <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Save</button>
                                         @endif
                                     @else
-                                        @if( !$approveValidate && ($statusPrd =='POSTED' || $statusPrd =='INPUT FG'))
+                                        @if( !$approveValidate && ($statusPrd =='POSTED WO' || $statusPrd =='INPUT FG'))
                                             <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Save</button>
                                         @endif
                                     @endif
