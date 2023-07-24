@@ -235,7 +235,7 @@
                             <thead>
                                 <tr>
                                     <th width="10%">No Account</th>
-                                    <th width="15%">Account Name</th>
+                                    <th width="20%">Account Name</th>
                                     <th width="15%">Referensi</th>
                                     <th width="">Keterangan</th>
                                     <th width="13%">Debet</th>
