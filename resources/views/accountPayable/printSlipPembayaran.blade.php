@@ -56,7 +56,7 @@
         }
 
         .header, .header-space{
-                height: 140px;
+                height: 145px;
         }
 
         .footer, .footer-space {
@@ -219,7 +219,6 @@
             <tr>
                 <td>
                     <div class="header-space">
-                        
                         <table width="100%">
                             <tr>
                                 <td style="vertical-align: bottom;">
