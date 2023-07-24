@@ -670,7 +670,8 @@ class KasKeluarController extends Controller
         ->leftJoin('accounts','accounts.account','kas_det.account')
         ->select('kas_det.*','accounts.description as account_name')
         ->where('voucher_number',$vcNumber)
-        ->orderBy('kas_det.debit')
+        // ->orderBy('kas_det.debit')
+        ->orderBy('kas_det.id')
         ->get();
 
         $data['total']=DB::table('kas_det')

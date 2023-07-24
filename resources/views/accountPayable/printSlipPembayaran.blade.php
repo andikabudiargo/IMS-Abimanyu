@@ -234,15 +234,21 @@
                                     <table>
                                         <tr class="tanpa-padding">
                                             <td class="tanpa-padding font-14" width="15%">Receive AP</td>
-                                            <td class="tanpa-padding font-14" width="50%">: {{ $apDate }}</td>
-                                            <td class="tanpa-padding font-14" >Supplier</td>
-                                            <td class="tanpa-padding font-14">: {{ $supplierName }}</td>
+                                            <td class="tanpa-padding font-14" width="50%">: {{ $invDate }}</td>
+                                            <td class="tanpa-padding font-14" ></td>
+                                            <td class="tanpa-padding font-14"></td>
                                         </tr>
                                         <tr class="tanpa-padding">
+                                            <td class="tanpa-padding font-14" >Supplier</td>
+                                            <td class="tanpa-padding font-14">: {{ $supplierName }}</td>
+                                            <td class="tanpa-padding font-14" ></td>
                                             <td class="tanpa-padding font-14"></td>
-                                            <td class="tanpa-padding font-14"></td>
+                                        </tr>
+                                        <tr class="tanpa-padding">
                                             <td class="tanpa-padding font-14" >Term</td>
                                             <td class="tanpa-padding font-14">: {{ $top }}</td>
+                                            <td class="tanpa-padding font-14" ></td>
+                                            <td class="tanpa-padding font-14"></td>
                                         </tr>
                                     </table>
                                 </td>

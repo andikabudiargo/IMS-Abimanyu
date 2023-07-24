@@ -104,6 +104,10 @@
                 color:white;
             }
 
+            .hide-print {
+                display: none;
+            }
+
         }
         
         * {
@@ -231,11 +235,11 @@
                             <thead>
                                 <tr>
                                     <th width="10%">No Account</th>
-                                    <th width="30%">Account Name</th>
-                                    <th width="20%">Referensi</th>
-                                    <th width="40%">Keterangan</th>
-                                    <th width="15%">Debet</th>
-                                    <th width="15%">Kredit</th>
+                                    <th width="15%">Account Name</th>
+                                    <th width="15%">Referensi</th>
+                                    <th width="">Keterangan</th>
+                                    <th width="13%">Debet</th>
+                                    <th width="13%">Kredit</th>
                                 </tr>
                             </thead>
                             <tbody>
