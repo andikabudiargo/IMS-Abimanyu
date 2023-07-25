@@ -212,12 +212,12 @@
                                         <tr class="tanpa-padding">
                                             <td class="tanpa-padding font-14" width="10%">Tanggal</td>
                                             <td class="tanpa-padding font-14">: {{ $header->voucher_date }}</td>
-                                            <td>Departemen:</td>
+                                            <td style="text-align:right">Departemen</td><td>: {{ $costCenter }}</td>
                                         </tr>
                                         <tr class="tanpa-padding">
                                             <td class="tanpa-padding font-14">Dari</td>
                                             <td class="tanpa-padding font-14">: {{ $header->receive_name }}</td>
-                                            <td>{{ $costCenter }}</td>
+                                            <td></td><td></td>
                                         </tr>
                                     </table>
                                 </td>
