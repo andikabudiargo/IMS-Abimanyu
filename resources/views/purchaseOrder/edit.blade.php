@@ -108,17 +108,13 @@
                                 @foreach ($detail as $key =>$item)
                                     <div id="new_row{{ $key }}" class="tanda-baris" >
                                         <div class="form-row d-flex align-items-center">
-                                            {{-- <div class="col-md-2 col-12">
+                                            <div class="col-md-2 col-12">
                                                 <div class="form-group margin-nol">
-                                                    <label for="pRequest" class="d-block d-md-none">Purchase Request</label>
-                                                    <select class="form-control dynamicSelect sku-select-system" id="pRequest{{ $key }}" name="pRequest[]" data-dependent="pRequest">
-                                                        @foreach($prHeader as $val)
-                                                            <option value="{{ $val->pr_number }}" {{ $val->pr_number == $item->pr_number ? "selected" :"" }} >{{ $val->pr_number }}</option>
-                                                        @endforeach
-                                                    </select>
+                                                    <label for="prNumber" class="d-block d-md-none">PR Number</label>
+                                                    <input type="text" class="form-control disabled-el" id = "prNumber" name="prNumber[]" value="{{ $item->pr_number }}" disabled>
                                                 </div>
-                                            </div> --}}
-                                            <div class="col-md-5 col-12">
+                                            </div>
+                                            <div class="col-md-3 col-12">
                                                 <div class="form-group margin-nol">
                                                     <label for="articleDesc" class="d-block d-md-none">Article</label>
                                                     <input type="text" class="form-control disabled-el" id = "articleDesc" name="articleDesc[]" value="{{ $item->article_alternative_code }} - {{ $item->article_desc }}" disabled>

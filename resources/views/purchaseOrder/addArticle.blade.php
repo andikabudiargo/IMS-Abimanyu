@@ -2,7 +2,13 @@
 <div id="new_row" name="new_row[]" class="d-none">
     <div id="baru" class="tanda-baris" >
         <div class="form-row d-flex align-items-center">
-            <div class="col-md-5 col-12">
+            <div class="col-md-2 col-12">
+                <div class="form-group margin-nol">
+                    <label for="prNumber" class="d-block d-md-none">PR Number</label>
+                    <input type="text" class="form-control disabled-el" id = "prNumber" name="prNumber[]">
+                </div>
+            </div>
+            <div class="col-md-3 col-12">
                 <div class="form-group margin-nol">
                     <label for="articleDesc" class="d-block d-md-none">Article</label>
                     <input type="text" class="form-control disabled-el" id = "articleDesc" name="articleDesc[]">
@@ -71,9 +77,15 @@
 <div id="new_row_show" name="new_row_show[]" class="d-none">
     <div id="baru_show">
         <div class="form-row d-flex align-items-center">
+            <div class="col-md-2 col-12">
+                <div class="form-group margin-nol">
+                    <label for="prNumber" class="d-block d-md-none">PR Number</label>
+                    <input type="text" class="form-control" id="prNumber" name="prNumber[]" disabled>
+                </div>
+            </div>
             <div class="col-md-3 col-12">
                 <div class="form-group margin-nol">
-                    <label for="articleId" class="d-block d-md-none">Article</label>
+                    <label for="articleIdShow" class="d-block d-md-none">Article</label>
                     <input type="text" class="form-control" id="articleIdShow" name="articleIdShow[]" disabled>
                 </div>
             </div>
@@ -529,6 +541,7 @@
         $("#new_row"+ cloneCount).find('#listPrice').attr('id', 'listPrice'+ cloneCount);
         $("#new_row"+ cloneCount).find('#totalLine').attr('id', 'totalLine'+ cloneCount);
         $("#new_row"+ cloneCount).find('#pRequest').attr('id', 'pRequest'+ cloneCount);
+        $("#new_row"+ cloneCount).find('#prNumber').attr('id', 'prNumber'+ cloneCount);
 
         $("#articleId"+cloneCount).val(articleCode);
         $("#articleDesc"+cloneCount).val(articleDesc);
@@ -539,6 +552,7 @@
         $("#newPrice"+cloneCount).val(lastPrice);
         $("#totalLine"+cloneCount).val(qty*lastPrice);
         $("#pRequest"+cloneCount).val(prNumber);
+        $("#prNumber"+cloneCount).val(prNumber);
 
         let idNya = 'newPrice'+ cloneCount;
         $("#listPrice"+cloneCount).attr("onClick", `listPrice('${articleCode}','${articleDesc}','${idNya}');`);
