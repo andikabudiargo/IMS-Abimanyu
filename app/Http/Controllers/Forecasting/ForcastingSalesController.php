@@ -70,7 +70,12 @@ class ForcastingSalesController extends Controller
         $data['title'] = $this->title;
         $data['kolom'] = $this->getTableColoumn();
 
-        $data['bulan'] = ['1'=>"Januari",'2'=>"Februari",'3'=>"Maret",'4'=>"April",'5'=>"Mei",'6'=>"Juni",'7'=>"Juli",'8'=>"Agustus",'9'=>"September",'10'=>"Oktober",'11'=>"November",'12'=>"Desmeber"];
+        $data['customers'] = DB::table('third_party')
+        ->where('third_party_type','cust')
+        ->orderBy('nama')
+        ->get();
+
+        $data['bulan'] = ['1'=>"Januari",'2'=>"Februari",'3'=>"Maret",'4'=>"April",'5'=>"Mei",'6'=>"Juni",'7'=>"Juli",'8'=>"Agustus",'9'=>"September",'10'=>"Oktober",'11'=>"November",'12'=>"Desember"];
     
         return view("forecasting.sales.index",$data);
     }
@@ -85,7 +90,7 @@ class ForcastingSalesController extends Controller
         ->orderBy('nama')
         ->get();
 
-        $data['bulan'] = ['1'=>"Januari",'2'=>"Februari",'3'=>"Maret",'4'=>"April",'5'=>"Mei",'6'=>"Juni",'7'=>"Juli",'8'=>"Agustus",'9'=>"September",'10'=>"Oktober",'11'=>"November",'12'=>"Desmeber"];
+        $data['bulan'] = ['1'=>"Januari",'2'=>"Februari",'3'=>"Maret",'4'=>"April",'5'=>"Mei",'6'=>"Juni",'7'=>"Juli",'8'=>"Agustus",'9'=>"September",'10'=>"Oktober",'11'=>"November",'12'=>"Desember"];
 
         return view("forecasting.sales.create",$data);
 
@@ -121,7 +126,7 @@ class ForcastingSalesController extends Controller
         $validation = Validator::make($request->all(),$messages = [
             // 'poNumber'=>'required|unique:purchase_order_hdr,po_number',
             // 'pcNumber'  => 'required',
-            'period'  => 'required'
+            // 'period'  => 'required'
         ]);
         
         $error_array = array();
@@ -139,56 +144,53 @@ class ForcastingSalesController extends Controller
             $vcNumber = $this->getLastCode($leadCode);
             DB::beginTransaction();
             try {
-                    DB::table('kas_hdr')->insert([
-                        'voucher_number' =>$vcNumber,
-                        'voucher_type' =>$leadCode,
-                        'voucher_date' =>$vcDate,
-                        // 'receive_from' =>$recFrom,
-                        'paid_to' => $paidTo,
-                        'description' => $paidToDesc,
-                        'amount' =>$totalAmount,
-                        'period' =>$period,
-                        'year' =>date('Y'),                        
-                        'note' => $note,
-                        'status' => $status,
-                        'created_by' => Auth::user()->username,
-                        'updated_by' => Auth::user()->username,
-                        'created_at' => date('Y-m-d H:i:s'),
-                        'updated_at' => date('Y-m-d H:i:s')
-                    ]);
-
+                    // DB::table('forecasting_sales_hdr')->insert([
+                    //     'created_by' => Auth::user()->username,
+                    //     'updated_by' => Auth::user()->username,
+                    //     'created_at' => date('Y-m-d H:i:s'),
+                    //     'updated_at' => date('Y-m-d H:i:s')
+                    // ]);
+                    
+                    $listCode =[];
                     $dataSet = [];
                     foreach ($details as $val) {
                         $dataSet[] = [
-                            'voucher_number' => $vcNumber,
-                            'account' => $val->account,
-                            'description' => $val->description,
-                            'cost_center' => $val->cc,
-                            'debit' => $val->debit,
-                            'credit' => $val->credit,
-                            'reference' => $val->reference,
+                            'fc_code' => $val->fc_code.$val->article_code,
+                            'customer_id' =>$val->customer_id,
+                            'article_code' =>$val->article_code,
+                            'qty' =>is_null($val->qty) ? 0 : preg_replace('/[^0-9.]+/', '', $val->qty),
+                            'year' =>$val->year,
+                            'month' =>$val->month,
                             'created_by' => Auth::user()->username,
                             'updated_by' => Auth::user()->username,
                             'created_at' => date('Y-m-d H:i:s'),
                             'updated_at' => date('Y-m-d H:i:s')
                         ];
+
+                        $listCode[]=[$val->fc_code.$val->article_code]; 
+                        $fcNumber=$val->fc_code;
                     }
 
-                    DB::table('kas_det')->insert($dataSet);
+                    // $rowAffected = 
+                    DB::table('forecasting_sales')->whereIn('fc_code',$listCode)->delete();
+
+                    // if ($rowAffected){
+                        DB::table('forecasting_sales')->insert($dataSet);
+                    // }
 
                     DB::commit();
                     $title ="Save $this->title";
                     $alert  ="success";
-                    $message  = "$title $vcNumber is successfully saved";
+                    $message  = "$title $fcNumber is successfully saved";
                     \LogActivity::addToLog($title,"username: $username Status $message");
-                    return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'vcNumber'=>$vcNumber));
+                    return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'fcNumber'=>$fcNumber));
             } catch (Exception $e) {
                 DB::rollBack();
                 $title ="Save $this->title";
                 $alert  ="warning";
-                $message  = "$vcNumber is failed to save";
+                $message  = "$fcNumber is failed to save";
                 \LogActivity::addToLog($title,"username: $username Status $message");
-                return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'pcNumber'=>$vcNumber));
+                return response()->json(array('status' => 0,'title' => $title, 'message' => $message,'alert'=>$alert,'fcNumber'=>$fcNumber));
             }
         }
     }
@@ -446,43 +448,29 @@ class ForcastingSalesController extends Controller
     public function destroy(Request $request)
     {
         $username =  Auth::user()->username;    
-        $id=Crypt::decryptString($request->id);   
-        $status = '5'; //DELETED
-        
-        /*
-            status nya bukan 6 bisa di delete
-            status 6 = closed
-        */
+        $customerId=$request->customerId;
+        $articleCode=$request->articleCode;
+        $year=$request->year;
+        $articleDesc=$request->articleDesc;
 
-        $vcNumber = DB::table('kas_hdr')->where('id',$id)->where('status','<>','6')->value('voucher_number');
-
-        $rowAffected=DB::table('kas_hdr')
-        ->where('voucher_number',$vcNumber)
-        ->update(
-            [
-                'status' =>$status,
-                'updated_by' => Auth::user()->username,
-                'updated_at' => date('Y-m-d H:i:s')
-            ]
-        );
-        
-        // $rowAffected = DB::table('kas_hdr')->where('id',$id)->delete();
+        $rowAffected=DB::table('forecasting_sales')
+        ->where('customer_id',$customerId)
+        ->where('article_code',$articleCode)
+        ->where('year',$year)
+        ->delete();
 
         if($rowAffected>0){
-            // DB::table('kas_det')->where('voucher_number',$vcNumber)->delete();
             $title ="Delete $this->title";
             $alert  ="success";
-            $message  = "$vcNumber Successfully Deleted";
-            \LogActivity::addToLog('KM delete ',"username: $username Status $message");
-            // return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);  
-            return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);
+            $message  = "$articleDesc Successfully Deleted";
+            \LogActivity::addToLog('FC Sales ',"username: $username Status $message");
+            return response()->json(array('status'=>"1",'message'=>$message,'alert'=>$alert));
         }else{
             $title ="Delete $this->title";
             $alert  ="warning";
-            $message  = "$vcNumber Failed to Delete";
-            \LogActivity::addToLog('KM delete ',"username: $username Status $message");
-            // return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);
-            return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);
+            $message  = "$articleDesc Failed to Delete";
+            \LogActivity::addToLog('FC Sales delete ',"username: $username Status $message");
+            return response()->json(array('status'=>"0",'message'=>$message,'alert'=>$alert));
         }
     }
 
@@ -657,17 +645,6 @@ class ForcastingSalesController extends Controller
 
     }
 
-    public function getInvoiceAmount(Request $request)
-    {
-        $refNumber = $request->vRef;
-        $amount = db::table('ap_invoice')
-        ->where('ap_number',$refNumber)
-        ->select(db::raw("basis_amount+vat as amount"))
-        ->value('amount');
-
-        return response()->json(array('amount' => $amount));
-    }
-
     public function getArticle(Request $request)
     {
         $customerCode = $request->customerCode;
@@ -694,6 +671,71 @@ class ForcastingSalesController extends Controller
         }
 
         return $output;
+
+    }
+
+    public function getQtyArticle(Request $request)
+    {
+        $customerCode = $request->customerCode;
+        $article = $request->article;
+        $year = $request->year;
+        $articleId = $request->articleId;
+
+        $data= DB::table('forecasting_sales') 
+        ->where('customer_id',$customerCode)
+        ->where('year',$year)
+        ->where('article_code',$articleId)
+        ->get();
+        
+        return response()->json(array('data'=>$data));
+
+    }
+
+    public function getListArticle(Request $request)
+    {
+        $customerCode = $request->customerCode;
+        $year = $request->year;
+        $bulanAwal = $request->bulanAwal;
+        $bulanAkhir = $request->bulanAkhir;
+
+        $data= DB::table('forecasting_sales') 
+        ->where('customer_id',$customerCode)
+        ->where('year',$year)
+        ->get();
+        $namaBulan="";
+        $conversi = ['satu','satu','dua','tiga','empat','lima','enam','tujuh','delapan','sembilan','sepuluh','sebelas','duabelas'];
+        for ($i=$bulanAwal;$i<=$bulanAkhir;$i++){
+            $namaBulan.="sum(case when month = '$i' then qty end) as $conversi[$i],";
+        }
+
+        $namaBulan=substr($namaBulan ,0,-1);
+
+        $filter = $customerCode ? "and a.customer_id = '$customerCode'" :'';
+
+        $data = db::select("SELECT a.customer_id,c.nama,a.article_code,b.article_alternative_code,b.article_desc,a.year,
+        $namaBulan
+        -- sum(case when month = '1' then qty end) as satu,
+        -- sum(case when month = '2' then qty end) as dua,
+        -- sum(case when month = '3' then qty end) as tiga,
+        -- sum(case when month = '4' then qty end) as empat,
+        -- sum(case when month = '5' then qty end) as lima,
+        -- sum(case when month = '6' then qty end) as enam,
+        -- sum(case when month = '7' then qty end) as tujuh,
+        -- sum(case when month = '8' then qty end) as delapan,
+        -- sum(case when month = '9' then qty end) as sembilan,
+        -- sum(case when month = '10' then qty end) as sepuluh,
+        -- sum(case when month = '11' then qty end) as sebelas,
+        -- sum(case when month = '12' then qty end) as duabelas
+        from forecasting_sales a 
+        left join article b on b.article_code = a.article_code
+        left join third_party c on a.customer_id = c.kode
+        where a.year = '$year'
+        $filter
+        -- and a.customer_id = '$customerCode'
+        group by a.customer_id, a.article_code,b.article_desc,b.article_alternative_code,a.year,c.nama
+        order by article_alternative_code");
+
+        return response()->json(array('data'=>$data));
 
     }
 

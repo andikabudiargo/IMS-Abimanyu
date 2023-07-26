@@ -98,7 +98,7 @@
         </li>
         <li class=" navigation-header"><span data-i18n="Marketing">Marketing</span><i data-feather="more-horizontal"></i>
         </li>
-        <li class=" {{ in_array(\Request::segment(1), ['salesOrders','customers','targetSo']) ? 'active' : '' }} nav-item">
+        <li class=" {{ in_array(\Request::segment(1), ['salesOrders','customers','targetSo','forecastSales']) ? 'active' : '' }} nav-item">
           <a class="d-flex align-items-center" href="javascript:void(0);">
             <i data-feather='layers'></i>
             <span class="menu-title text-truncate" data-i18n="Form Elements">Sales
@@ -121,6 +121,14 @@
               </a>
             </li>
             @endcan
+            
+            <li class="{{ \Request::is(['forecastSales','forecastSales/create']) ? 'active' : '' }}">
+              <a class="d-flex align-items-center" href="{{ route('forecastSales.index') }} ">
+                <i data-feather="circle"></i>
+                <span class="menu-item text-truncate" data-i18n="Input">Forecasting</span>
+              </a>
+            </li>
+
             @can('customer-index')
             <li class="{{ \Request::segment(1) == 'customers'  ? 'active' : '' }}">
               <a class="d-flex align-items-center" href="{{ route('customers.index') }}">
@@ -129,6 +137,7 @@
               </a>
             </li>
             @endcan
+
             {{-- <li class="{{ \Request::segment(1) == 'invoice' ? 'active' : '' }} " >
               <a class="d-flex align-items-center" href="{{ route('invoice.index') }}">
                 <i data-feather="circle"></i>
@@ -143,7 +152,7 @@
             </li> --}}
           </ul>
         </li>
-        <li class=" {{ in_array(\Request::segment(1), ['purchaseOrders','suppliers','purchaseRequests','forecastSales']) ? 'active' : '' }} nav-item">
+        <li class=" {{ in_array(\Request::segment(1), ['purchaseOrders','suppliers','purchaseRequests']) ? 'active' : '' }} nav-item">
           <a class="d-flex align-items-center" href="javascript:void(0);">
             <i data-feather='shopping-cart'></i>
             <span class="menu-title text-truncate" data-i18n="Form Elements">Purchasing
@@ -180,12 +189,6 @@
                 <span class="menu-item text-truncate" data-i18n="Input">Delivery Instruction</span>
               </a>
             </li>
-            {{-- <li class="{{ \Request::is(['forecastSales','forecastSales/create']) ? 'active' : '' }}">
-              <a class="d-flex align-items-center" href="{{ route('forecastSales.index') }} ">
-                <i data-feather="circle"></i>
-                <span class="menu-item text-truncate" data-i18n="Input">Forcast</span>
-              </a>
-            </li> --}}
           </ul>
         </li>
         <li class=" navigation-header"><span data-i18n="Logistic">Logistic</span><i data-feather="more-horizontal"></i>

@@ -698,9 +698,10 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('forecastSales/delete',['as'=>'forecastSales.destroy','uses'=>'Forecasting\ForcastingSalesController@destroy']);
 	Route::get('forecastSales/print',['as'=>'forecastSales.print','uses'=>'Forecasting\ForcastingSalesController@print']);
 	Route::get('forecastSales/approve',['as'=>'forecastSales.approve','uses'=>'Forecasting\ForcastingSalesController@approve']);
-	Route::get('forecastSales/get/invoice/ammount',['as'=>'forecastSales.get.invoice.amount','uses'=>'Forecasting\ForcastingSalesController@getInvoiceAmount']);
 
 	Route::post('forecastSales/get/article',['as'=>'forecastSales.get.article','uses'=>'Forecasting\ForcastingSalesController@getArticle']);
+	Route::post('forecastSales/get/qty/article',['as'=>'forecastSales.get.qty.article','uses'=>'Forecasting\ForcastingSalesController@getQtyArticle']);
+	Route::post('forecastSales/get/list/article',['as'=>'forecastSales.get.list.article','uses'=>'Forecasting\ForcastingSalesController@getListArticle']);
 
 
 	Route::get('stockTake',['as'=>'stockTake.index','uses'=>'StockTake\StockTakeController@index']);

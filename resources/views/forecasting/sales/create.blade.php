@@ -7,12 +7,12 @@
         <div class="col-md-12">
             <div class="card">
                 <div class="card-header">
-                    <h4 class="card-title">Status: New</h4>
+                    {{-- <h4 class="card-title">Status: New</h4>
                     <div class="heading-elements">
                         <ul class="list-inline mb-0">
                             <li><a data-action="collapse"><i data-feather="chevron-down"></i></a></li>
                         </ul>
-                    </div>    
+                    </div>     --}}
                 </div>
                 <div class="card-content collapse show">
                     <div class="card-body">
@@ -20,16 +20,16 @@
                             @csrf
                             <input type="text" id="article" name="article" hidden>
                             <div class="form-row">
-                                <div class="form-group col-md-3">
+                                <div class="form-group col-md-2">
                                     <label class="form-label" for="year">Tahun*</label>
                                     <select class="select2 form-control" id="year" name="year" required>
                                         <option value=""></option>
-                                        @for ($i = 2000; $i <= 2050; $i++)
+                                        @for ($i = 2022; $i <= 2050; $i++)
                                             <option value="{{ $i }}">{{ $i }}</option>
                                         @endfor
                                     </select>
                                 </div>
-                                <div class="form-group col-md-3">
+                                <div class="form-group col-md-2">
                                     <label class="form-label" for="bulanAwal">Bulan Awal*</label>
                                     <select class="select2 form-control" id="bulanAwal" name="bulanAwal" required>
                                         <option value=""></option>
@@ -38,7 +38,7 @@
                                         @endforeach
                                     </select>
                                 </div>
-                                <div class="form-group col-md-3">
+                                <div class="form-group col-md-2">
                                     <label class="form-label" for="bulanAkhir">Bulan Akhir*</label>
                                     <select class="select2 form-control" id="bulanAkhir" name="bulanAkhir" required>
                                         <option value=""></option>
@@ -63,20 +63,17 @@
                                 <table id="detailTable" style="width:98%;table-layout: fixed;">
                                     <tbody>
                                         <tr id="judulTabel">
-                                            <th class="isian" style="width: 30%">
-                                                <label>Article</label>
-                                            </th>
                                         </tr>
                                     </tbody>
                                 </table>
                             </div>      
                             <div class="" id="item_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px">
-                                <input type="text" id ="last_row_number" class="d-none" value="0">
                             </div>
-                            <div class="d-flex justify-content-between align-items-end mt-75 ml-75">
-                                <button class="btn btn-primary btn-prev" type="button" id="addNewRow" onclick="add_new_row();">
+                            <br>
+                            <div>
+                                <button class="btn btn-primary btn-prev" type="button" id="cmdSave" name="cmdSave">
                                     <i data-feather="plus" class="align-middle mr-sm-25 mr-0"></i>
-                                    <span class="align-middle d-sm-inline-block d-none">Add</span>
+                                    <span class="align-middle d-sm-inline-block d-none">Save</span>
                                 </button>
                             </div>
                         </form>
@@ -91,9 +88,14 @@
                 </div>
                 <div class="card-body" >
                     <div class="col-12">
-                        <a href="{{ route('bankPenerimaan.index') }}" class="btn btn-light">Back</a>
-                        <button class="btn btn-info" type="button" id="cmdNew" name="cmdNew">New</button>
-                        <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Save</button>
+                        <div class="card-datatable table-responsive pt-0">
+                            <table id="listTable" class="display" style="width:100%">
+                                <thead>
+                                </thead>
+                                <tbody>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -124,6 +126,11 @@
     td.isian{
         padding-right:10px;
         padding-left:10px;
+    }
+
+    td.nopadding{
+        padding-right:0px;
+        padding-left:0px;
     }
 
     td.isian-satu{
@@ -158,84 +165,148 @@
 <script src="{{ asset('assets/js/ui.1.13.0.jquery-ui.js') }}"></script>
 <script type="text/javascript">
     let currentDate = todayDate('dd-mm-yyyy'); 
-        
-    add_month =(startMonth,endMonth,urutan)=>{
-        let list  = "";
-        let year=$('#year').val().slice(-2);
 
-        for(i=parseInt(startMonth);i<=parseInt(endMonth);i++){
-            list+= `<td class="isian" style="">
-                                <input type="text" data-urutan="${urutan}" class="form-control-plaintext tombol-panah numeral-mask text-right data-bulan" 
-                                data-type-el-kiri="input" 
-                                data-nama-el-kiri='month${i-1}'
-                                data-type-el-kanan='input'
-                                data-nama-el-kanan='month${i+1}'
-                                data-month='${i}'
-                                data-year='${year}'
-                                id="${year}${i}" 
-                                name="month${i}[]"  
-                                value=${i}
-                                maxlength="6" />
-                            </td>`; 
-        }
-        
-        return list;
-    }
-
-    add_judul =(startMonth,endMonth)=>{
-        let judul = "";
-        let year=$('#year').val().slice(-2);;
-        let bulan=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Okt','Nov','Dec'];
-        for(i=startMonth;i<=endMonth;i++){
-            
-            let namaBulan = bulan[i-1];
-            judul+=`<th class="isian text-center" >
-                        <label>${namaBulan}${year}</label>
-                    </th>`;
-
-        }
-
-        return judul;
-    }
-
-    $('#customerCode').change(function(e){
-        let $this= $(this);
-        let customer = $this.val();
-        let bulanAwal = $('#bulanAwal').val();
-        let bulanAkhir = $('#bulanAkhir').val();
-        let cloneCount=1;
-
-        // $("#judulTabel th").remove();
-        $("#tabelBaru td").remove();
-        articleList(customer);
-        let listJudul = add_judul(bulanAwal,bulanAkhir);
-        $("#judulTabel").append(listJudul);
-        let isiBulan = add_month(bulanAwal,bulanAkhir,cloneCount);            
-        $("#item_row").append($("#new_row").clone().html());
-        $("#tabelBaru").append(isiBulan);
-        $('#customerId').select2();
-        activate_angka();
-        mask_thousand();
-    });
-    
     $(document).ready(function(){           
         validateFormToast('frmAdd');
-        vcDate.val(currentDate);
-       
+        $("#cmdSave").hide();
         feather.replace({
             width: 14,
             height: 14
-        });
-
-        // add_new_row();
-        
+        });        
     });
 
-    $('#customerId').change(function(e){
-        
+    $('#customerCode,#year,#bulanAwal,#bulanAkhir').change(function(e){
+        let $this= $(this);
+        let idku= $this.attr('id');
+        if ($this.val()){
+            $("#judulTabel th").remove();
+            listDetailBulan();
+        }
+
+        if ($('#customerCode').val()){            
+            let bulanAwal = $('#bulanAwal').val();
+            let bulanAkhir = $('#bulanAkhir').val();
+            let year = $('#year').val().slice(-2);;
+            let listJudul = add_judul(bulanAwal,bulanAkhir);
+            let customer= $('#customerCode').val();
+            // $("#judulListTabel").append(listJudul);
+            // console.log(listJudul);
+            
+            if ($('#listTable tr').length >0){
+                console.log("ada");
+                let table= $('#listTable').DataTable();
+                table.destroy();
+                $('#listTable tbody > tr').remove();
+                $("#listTable thead > tr").remove();
+            }
+
+            $('#listTable thead').append("<tr><td>Action</td>"+listJudul+"</tr>");
+
+            $.ajax({
+                url:"{{route('forecastSales.get.list.article')}}",
+                method:"POST",
+                data:{
+                    customerCode:customer,
+                    year:year,
+                    bulanAwal:bulanAwal,
+                    bulanAkhir:bulanAkhir
+                },
+                success:function(result){
+                    let conversi = ['satu','satu','dua','tiga','empat','lima','enam','tujuh','delapan','sembilan','sepuluh','sebelas','duabelas'];
+                    for(i=0;i< result.data.length;i++){
+                        list=`<td ><button class="btn btn-danger btn-sm" type="button" onclick="deleteArticle('${result.data[i].customer_id}','${result.data[i].article_code}','${result.data[i].year}','${result.data[i].article_desc}')" id="cmdEdit" name="cmdEdit" >Delete</button> 
+                            <button class="btn btn-success btn-sm" type="button" onclick="editArticle('${result.data[i].article_code}')" id="cmdEdit" name="cmdEdit" >Edit</button>
+                            </td>`
+                        list+=`<td >${result.data[i].article_desc}</td>`
+                        for(a=parseInt(bulanAwal);a<=parseInt(bulanAkhir);a++){
+                            z=conversi[a];
+                            let qty = result.data[i][z];
+                            list+= `<td class="text-right"> ${qty ? humanizeNumber(qty) : 0} </td>`; 
+                        }
+                        $('#listTable tbody').append("<tr>"+list+"</tr>");
+                    }
+
+                    $('#listTable').DataTable({
+                        bDestroy: true, //pakai ini supaya bisa di load berulang2
+                        scrollX: true,
+                    });
+                }
+            })
+        }
+
+    });
+ 
+    $('body').on('change', '#articleId', function() {
+        let $this= $(this);
+        let year=$('#year').val().slice(-2);
+        let bulanAwal = $('#bulanAwal').val();
+        let bulanAkhir = $('#bulanAkhir').val();
+
+        if ($this.val()){
+
+            for(i=parseInt(bulanAwal);i<=parseInt(bulanAkhir);i++){
+                $('#'+year+i).val(0);
+            }
+
+            let article = $this.val();
+            let customer = $('#customerCode').val();
+            let articleId = $('#articleId').val();
+
+            $.ajax({
+                url:"{{route('forecastSales.get.qty.article')}}",
+                method:"POST",
+                data:{
+                    customerCode:customer,
+                    article:article,
+                    year:year,
+                    articleId:articleId
+                },
+                success:function(result){
+                    for(i=0;i< result.data.length;i++){
+                        $('#'+result.data[i].year+result.data[i].month).val(result.data[i].qty).trigger('input');
+                    }
+                    activate_angka();
+                    mask_thousand();
+                }
+            })
+        }
     });
 
-   
+    editArticle = (articleCode) =>{
+        $('#articleId').val(articleCode).trigger('change');
+    }
+
+    deleteArticle = (customerId,articleCode,year,articleDesc) =>{
+        Swal.fire({
+            icon: 'warning',
+            title: `Do you want to delete the article <br> ${articleDesc}?`,
+            showCancelButton: true,
+            confirmButtonText: 'Yes',
+            cancelButtonText: 'Cancel',
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url:"{{route('forecastSales.destroy')}}",
+                    method:"POST",
+                    data:{
+                        customerId:customerId,
+                        articleCode:articleCode,
+                        year:year,
+                        articleDesc:articleDesc
+                    },
+                    success:function(result){
+                        $('#customerCode').val(customerId).trigger('change');
+                        Swal.fire(result.message, '', result.alert);
+                    }
+                })
+                
+            } else if (result.isDenied) {
+                // Swal.fire('Changes are not saved', '', 'info')
+            }
+        })
+    }
     
     vcDate = $('#vcDate');
     if (vcDate.length) {
@@ -244,259 +315,61 @@
         });
     }
 
-    $("#addNewRow").click(function(){
+    $("#cmdSave").click(function(){
+        let details = [];
+        let flag = 0;
+        let pesan ='';
 
         $(".data-bulan").map(function(i) {  
             let $this=$(this);
             let urutan= $this.data("urutan");
             let month= $this.data("month");
             let year= $this.data("year");
-            let objCustomerId= $('#customerId'+urutan).val();
-            // console.log($this.attr('id'));
-            // console.log($this.val());
-            // console.log(objCustomerId.eq(i).val());
-            console.log(urutan+"-"+month+'-'+year+'-'+objCustomerId+"-"+$this.attr('id')+"="+$this.val());
+            let customerCode= $('#customerCode').val();
+            let articleId= $('#articleId').val();
+            
+            details.push({
+                "fc_code": customerCode+year+month,
+                "customer_id": customerCode,
+                "article_code": articleId,
+                "qty": $this.val(),
+                "year": year,
+                "month": month
+            });
+
         });
+
+        if (flag == 0){
+            let customerCodeIni= $('#customerCode').val();
+            $.ajax({
+                type: "post",
+                url: "{{ route('forecastSales.store') }}",
+                data: {
+                    details:JSON.stringify(details),
+                },
+                dataType: "json",
+                success: function(data) {
+                    if (data.status == 0 ){
+                        let message="";
+                        for(let i = 0; i < data.message.length; i++) {
+                            show_msg(data.title, data.message[i], data.alert);
+                        }
+                    }else{
+                        show_msg(data.title, data.message, data.alert);
+                        emptyList();
+                        $('#customerCode').val(customerCodeIni).trigger('change');
+
+                    }
+                },
+                error: function(error) {
+                    console.log(error);
+                }
+            });
+        }else{
+            Swal.fire('Warning..',pesan,'warning');
+        }
     })
     
-    $("#cmdSave").click(function(){  
-        $(".data-bulan").map(function(i) {  
-                    let $this=$(this);
-                    
-                    let urutan= $this.data("urutan");
-                    let month= $this.data("month");
-                    let year= $this.data("year");
-                    let objCustomerId= $('#customerId'+urutan).val();
-                    // console.log($this.attr('id'));
-                    // console.log($this.val());
-                    // console.log(objCustomerId.eq(i).val());
-                    console.log(urutan+"-"+month+'-'+year+'-'+objCustomerId+"-"+$this.attr('id')+"="+$this.val());
-
-                    // if ($this.val()){
-                    //     let sAccount=$this.val();
-                    //     let sDesc=objvcDesc.eq(i).val();
-                    //     let sCc=objVcCc.eq(i).val();
-                    //     let sDebit=objVcDebit.eq(i).val().replace(/,/gi, '') || 0;
-                    //     let sCredit=objVcCredit.eq(i).val().replace(/,/gi, '') || 0;
-
-                    //     if ((sDesc!=='') && ((sDebit + sCredit) > 0) && (sAccount!=='') && (sCc!=='')){
-                    //         details.push({
-                    //             "account":sAccount,
-                    //             "description":sDesc,
-                    //             "cc":sCc,
-                    //             "debit":sDebit,
-                    //             "credit":sCredit,
-                    //         });
-                    //     }
-
-                    //     if ((sDesc =='') || (sCc =='') || ((sDebit + sCredit) == 0)){
-                    //         cekIsi++;
-                    //     }
-
-                    // }
-        });
-
-
-        // let objTotalVcDebit= $('#vcTotalDebit').val().replace(/,/gi, '') || 0;
-        // let objTotalVcCredit= $('#vcTotalCredit').val().replace(/,/gi, '') || 0;
-        // let vcDate = $('#vcDate').val();
-        // let period = $('#period').val();
-        // let totalAmount = $('#totalAmount').val().replace(/,/gi, '') || 0;
-        // let note = $('#note').val();
-        // let recFrom = $('#recFrom').val();
-        // let recFromDesc = $('#recFromDesc').val();
-            
-        // if (!$("#frmAdd")[0].checkValidity()){
-        //     $("#frmAdd").submit();
-        // }else{  
-        //     if (((parseInt(objTotalVcDebit)-parseInt(objTotalVcCredit)) == 0) && (parseInt(objTotalVcCredit)==parseInt(totalAmount))){ 
-        //         $('#cmdSave').attr('disabled','disabled');
-        //         $('.disabled-el').removeAttr('disabled');
-        //         // ambil semua data article
-        //         let objvcDesc= $('#item_row input[name="vcDesc[]"]');
-        //         let objVcCc= $('#item_row select[name="vcCc[]"]');
-        //         let objVcDebit= $('#item_row input[name="vcDebit[]"]');
-        //         let objVcCredit= $('#item_row input[name="vcCredit[]"]');
-        //         let objAccount= $('#item_row select[name="account[]"]');
-        //         let details = []; 
-        //         let flag=0; 
-        //         let pesan="";
-        //         let cekIsi=0;
-
-        //         objAccount.map(function(i) {  
-        //             let $this=$(this);
-        //             if ($this.val()){
-        //                 let sAccount=$this.val();
-        //                 let sDesc=objvcDesc.eq(i).val();
-        //                 let sCc=objVcCc.eq(i).val();
-        //                 let sDebit=objVcDebit.eq(i).val().replace(/,/gi, '') || 0;
-        //                 let sCredit=objVcCredit.eq(i).val().replace(/,/gi, '') || 0;
-
-        //                 if ((sDesc!=='') && ((sDebit + sCredit) > 0) && (sAccount!=='') && (sCc!=='')){
-        //                     details.push({
-        //                         "account":sAccount,
-        //                         "description":sDesc,
-        //                         "cc":sCc,
-        //                         "debit":sDebit,
-        //                         "credit":sCredit,
-        //                     });
-        //                 }
-
-        //                 if ((sDesc =='') || (sCc =='') || ((sDebit + sCredit) == 0)){
-        //                     cekIsi++;
-        //                 }
-
-        //             }
-        //         });
-
-        //         if ((details.length == 0) || (cekIsi >0)){
-        //             pesan +="Detail must be filled Out completely <br>"; 
-        //             flag=1;
-        //         }
-
-        //         if (flag == 0){
-        //             $.ajax({
-        //                 type: "post",
-        //                 url: "{{ route('bankPenerimaan.store') }}",
-        //                 data: {
-        //                     details:JSON.stringify(details),
-        //                     vcDate:vcDate,
-        //                     period:period,
-        //                     note:note,
-        //                     totalAmount:totalAmount,
-        //                     recFrom:recFrom,
-        //                     recFromDesc:recFromDesc
-        //                 },
-        //                 dataType: "json",
-        //                 success: function(data) {
-        //                     if (data.status == 0 ){
-        //                         let message="";
-        //                         for(let i = 0; i < data.message.length; i++) {
-        //                             show_msg(data.title, data.message[i], data.alert);
-        //                         }                        
-        //                         $('#voucherNumber').attr('disabled','disabled');
-        //                     }else{
-        //                         show_msg(data.title, data.message, data.alert);
-        //                         $('#voucherNumber').val(data.vcNumber);
-        //                         $('#voucherNumber').attr('disabled','disabled');
-        //                         $('#cmdSave').attr('disabled','disabled');
-        //                         $('#addNewRow').attr('disabled','disabled');
-        //                         window.location.href = "{{ route('bankPenerimaan.create') }}";
-        //                     }
-        //                 },
-        //                 error: function(error) {
-        //                     console.log(error);
-        //                 }
-        //             });
-        //         }else{
-        //             $('#cmdSave').removeAttr('disabled');
-        //             Swal.fire('Warning..',pesan,'warning');
-        //         }
-        //     }else{
-        //         Swal.fire('Warning..',"Data belum balance",'warning');
-        //     }
-        // }
-    });
-
-    let cloneCount=1;
-    function add_new_row() {
-        $("#item_row").append($("#new_row").clone().html());
-        cloneCount++;
-        $("#item_row").find('#baru').attr('id', 'new_row'+ cloneCount);
-        $("#item_row").find('#tabelBaru').attr('id', 'new_table_row'+ cloneCount);
-        $("#new_row"+ cloneCount).find('#article').attr('id', 'article'+ cloneCount);
-        $("#new_row"+ cloneCount).find('#customerId').attr('id', 'customerId'+ cloneCount);
-        
-        let isiBulan = add_month(6,12,cloneCount);               
-        $("#new_table_row"+ cloneCount).append(isiBulan);
-        feather.replace({
-            width: 14,
-            height: 14
-        });
-               
-        $("#customerId"+cloneCount).select2();
-        $('#remove_button').tooltip();
-        
-        activate_angka();
-        mask_thousand();
-        // hitungTotal();
-        // hitungGrandTotal();
-        // $('[data-toggle="tooltip"]').tooltip();
-        
-        // $("#vcDesc"+ cloneCount).autocomplete({
-        //     source: availableTags
-        // });
-
-    };
-
-    function articleList(customer) {
-      $.ajax({
-        url:"{{route('forecastSales.get.article')}}",
-        method:"POST",
-        data:{
-            customerCode:customer
-        },
-        success:function(result){
-            $('#articleId').html(result);
-            $('#articleId').val('').trigger('change');
-            $('#articleId').select2();
-        }
-      })
-    }
-
-    
-
-    $("#cmdNew").click(function(){ 
-        let objAccount= $('#item_row select[name="account[]"]');
-        let details = [];
-        objAccount.map(function(i) {  
-            let $this=$(this);
-            if ($this.val()){
-                let sAccount=$this.val();
-                if (sAccount!==''){
-                    details.push({
-                        "account":sAccount
-                    });
-                }
-            }
-        });
-
-        if (details.length > 0){
-            Swal.fire({
-                title: 'Akan input data baru?',
-                text: "Apakah data sebelumnya akan di simpan!",
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#3085d6',
-                cancelButtonColor: '#d33',
-                confirmButtonText: 'Ya',
-                cancelButtonText: 'Tidak'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    $("#cmdSave").click();
-                }else{
-                    window.location.href = "{{ route('bankPenerimaan.create') }}";
-                }
-            })
-        }else{
-            window.location.href = "{{ route('bankPenerimaan.create') }}";
-        }
-    });
-
-    $("#recFrom").on('select2:close', function(){
-        let content = this.value;
-        let contentText = $("#recFrom").select2('data')[0].text;
-        if(content =='other'){
-            $(".other-desc").removeClass("d-none");
-            $("#recFromDesc").val("");
-            $("#recFromDesc").focus();
-        }else{
-            $(".other-desc").addClass("d-none");
-            contentText = contentText.split("|");
-            $("#recFromDesc").val(contentText[1].trim());
-        }    
-    });
-
     $.ajaxSetup({
         headers: {
             'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
