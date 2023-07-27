@@ -264,11 +264,11 @@
                     //jquery
                     //cek apakah article ada yang double input ato ngk
                     let obj = $.grep(articles, function(obj){
-                        return obj.article_code === plu;
+                        return obj.article_code+obj.pRequest === plu+pRequest;
                     })[0];
                     
                     if(obj) {
-                        pesan +="Article "+articleName+" entered more than once !! <br>"; 
+                        pesan +=`Article ${plu} - PR:${pRequest} entered more than once !! <br>`;
                         flag=1;
                     } else {
                         if ((plu!=='') && (qty> 0)){
@@ -340,12 +340,14 @@
                                 show_msg(data.title, data.message[i], data.alert);
                             }
                             $('#poNumber').attr('disabled','disabled');
+                            $('.disabled-el').attr('disabled','disabled');
                         }else{
                             show_msg(data.title, data.message, data.alert);
                             $('#poNumber').attr('disabled','disabled');
                             $('#addNewRow').attr('disabled','disabled');
                             $('#cmdSave').attr('disabled','disabled');
                             $('#poNumber').val(data.poNumber);
+                            $('.disabled-el').attr('disabled','disabled');
                         }
                     },
                     error: function(error) {
@@ -394,11 +396,11 @@
                     //jquery
                     //cek apakah article ada yang double input ato ngk
                     let obj = $.grep(articles, function(obj){
-                        return obj.article_code === plu;
+                        return obj.article_code+obj.pRequest === plu+pRequest;
                     })[0];
                     
                     if(obj) {
-                        pesan +="Article "+plu+" entered more than once !! <br>"; 
+                        pesan +=`Article ${plu} - PR:${pRequest} entered more than once !! <br>`; 
                         flag=1;
                     } else {
                         if ((plu!=='') && (qty> 0)){
@@ -474,6 +476,7 @@
                                 show_msg(data.title, data.message[i], data.alert);
                             }
                             $('#poNumber').attr('disabled','disabled');
+                            $('.disabled-el').attr('disabled','disabled');
                         }else{
                             show_msg(data.title, data.message, data.alert);
                             $('#poNumber').attr('disabled','disabled');
@@ -481,6 +484,7 @@
                             $('#cmdUpdate').attr('disabled','disabled');
                             $('#addNewRow').attr('disabled','disabled');
                             $('#poNumber').val(data.poNumber);
+                            $('.disabled-el').attr('disabled','disabled');
                             window.location.reload();
                         }
                     },
@@ -574,6 +578,7 @@
         mask_thousand();
         $('#remove_button').tooltip();
         $('[data-toggle="tooltip"]').tooltip();
+        $('.disabled-el').attr('disabled','disabled');
     };
 
     function changeSelectPr(suppCode,prNumber) {
@@ -606,13 +611,12 @@
         arrValueSelected.forEach((key, index) => {
             prSelect.find("option[value='" + key + "']").attr('disabled',true).trigger("chosen:updated");
         });
-
+        
         if (arrValueSelected.length > 0){
             objSupplier.attr('disabled','disabled');
         }else{
             objSupplier.removeAttr('disabled');
         }
-        
     }
 
     function changeselect(dependent,obj,value,type) {
@@ -693,6 +697,7 @@
 
     function hitungGrandTotal(){
         let objArticle = $('#article_row select[name="articleId[]"]');
+        let objPrNumber = $('#article_row input[name="prNumber[]"]');
         let objQtyTiw= $('#article_row input[name="qtyOrder[]"]');
         let objQTY= $('#article_row input[name="qtyOrder[]"]');
         let objNewPrice= $('#article_row input[name="newPrice[]"]');
@@ -707,7 +712,7 @@
         totalQty = sumFromArray(qty);
         totalAmount = sumFromArray(qty,price);
 
-        $("#totalRow").val(objArticle.length);
+        $("#totalRow").val(objPrNumber.length);
         $("#nilaiPPN").text(ppn+"%");
         $("#totalQTY").val(humanizeNumber(totalQty));
         $("#totalAmount").val(humanizeNumber(totalAmount));

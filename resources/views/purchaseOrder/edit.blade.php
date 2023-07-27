@@ -43,7 +43,7 @@
                             <div class="form-row">
                                 <div class="form-group col-md-6">
                                     <label class="form-label" for="supplier">Supplier*</label>
-                                    <select class="select2 form-control" id="supplier" name="supplier" required>
+                                    <select class="select2 form-control disabled-el" id="supplier" name="supplier" disabled required>
                                         <option value="">All</option>
                                         @foreach($supps as $val)
                                             <option value="{{$val->kode}}" {{$val->kode == $header->supplier_id ? "selected" : ""}} >{{$val->kode}} - {{$val->nama}}</option>
@@ -101,6 +101,18 @@
                     <h4 class="card-title">Article</h4>
                 </div>
                 <div class="card-body">
+                    <form action="">
+                        <div class="form-row">
+                            <div class="col-md-4 col-12">
+                                <div class="form-group margin-nol">
+                                    <label class="form-label" for="prSelect">Purchase Request</label>
+                                    <select class="dynamicSelect form-control select2 " id="prSelect" name="prSelect" title="Apabila sudah ada di daftar akan disabled">
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                    <hr>
                     <div class="container-list-item">
                         <div class="lebar-list-item">
                             @include('purchaseOrder.headerColumn')
@@ -174,7 +186,7 @@
                                             </div>
                                             <div class="col-md-1 col-12">
                                                 <div class="form-group margin-nol">
-                                                    <a onmouseover="this.style.cursor='pointer'" onclick="$(this).parents('.tanda-baris').remove();hitungGrandTotal();">
+                                                    <a onmouseover="this.style.cursor='pointer'" onclick="$(this).parents('.tanda-baris').remove();hitungGrandTotal();disabledEnabledSelect2()">
                                                         <i data-feather="trash-2" class="remove_button feather-24">
                                                         </i>
                                                     </a>
@@ -198,7 +210,7 @@
                             <div class="form-group row mb-03">
                                 <label for="totalRow" class="col-sm-4 col-form-label titik-dua">Row(s)</label>
                                 <div class="col-sm-3">
-                                    <input type="text" class="form-control text-right font-weight-bold" id="totalRow" />
+                                    <input type="text" class="form-control text-right font-weight-bold" id="totalRow" disabled />
                                 </div>
                             </div>
                             <div class="form-group row mb-03">
@@ -353,6 +365,19 @@
         $('.sku-select-system').select2();
         mask_thousand_satuan();
         mask_thousand_digit(numberOfDecimalDigit);
+        let suppCode = $(this).val();
+
+        changeselect('pRequest','prSelect',"{{ $header->supplier_id }}");
+        setTimeout(() => { 
+            disabledEnabledSelect2();
+        }, 500);
+        
+    });
+
+    prSelect.change(function(e){        
+        let prNumber = $(this).val();
+        let suppCode = $('#supplier').val();
+        changeSelectPr(suppCode,prNumber);
     });
                
 </script>

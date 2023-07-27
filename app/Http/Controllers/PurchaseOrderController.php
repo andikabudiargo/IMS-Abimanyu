@@ -707,22 +707,42 @@ class PurchaseOrderController extends Controller
                     $dataset=[];
                     foreach ($articles as $val) {
                         $dataSet[] = [
-                            $poNumber.$val->article_code
+                            $poNumber.$val->article_code.$val->pRequest
                         ];
+
+                        DB::table('purchase_request_det')
+                        ->where('pr_number',$val->pRequest)
+                        ->where('article_code',$val->article_code)
+                        ->where('po_number',$poNumber)
+                        ->where('supp_code',$supplier)
+                        ->update(
+                            [
+                            'po_number' => '',
+                            'updated_by' => Auth::user()->username,
+                            'updated_at' => date('Y-m-d H:i:s')
+                            ]
+                        );
                         
                     }
 
-                    //Delete kalo article tidak ada di po $poNumber dan article nya $val->article_code
-                    //berdasarkan 2 kondisi
+                    /*
+                        Delete kalo article tidak ada di po $poNumber dan article nya $val->article_code
+                        berdasarkan 2 kondisi
+                        Tambah kondisinya berdasarkan no PR jadi pr_number+poNumber+article_code
+                    */
+
                     DB::table('purchase_order_det')
-                        ->whereNotIn(DB::raw("CONCAT(po_number,article_code)"),$dataSet)
+                        ->whereNotIn(DB::raw("CONCAT(po_number,article_code,pr_number)"),$dataSet)
                         ->where('po_number',$poNumber)
                         ->delete();
                                   
                     foreach ($articles as $val) {
                         DB::table('purchase_order_det')
                         ->updateOrInsert(
-                            ['po_number' => $poNumber,'article_code' => $val->article_code],
+                            ['po_number' => $poNumber
+                            ,'article_code' => $val->article_code
+                            ,'pr_number' => $val->pRequest
+                            ],
                             [
                             'po_number' => $poNumber,
                             'pr_number' => $val->pRequest,
@@ -737,6 +757,8 @@ class PurchaseOrderController extends Controller
                             'updated_at' => date('Y-m-d H:i:s')
                             ]
                         );
+
+                        // update juga di PR kalau ada yang di delete PR nya maka no PO di PR tesebut juga di delete
                         
                         DB::table('purchase_request_det')
                         ->where('pr_number',$val->pRequest)
@@ -749,6 +771,10 @@ class PurchaseOrderController extends Controller
                             'updated_at' => date('Y-m-d H:i:s')
                             ]
                         );
+
+                        /*
+                        PR nya berubah status jadi sudah dibikin PO
+                        */
 
                         DB::table('purchase_request_hdr')
                         ->where('pr_number',$val->pRequest)
