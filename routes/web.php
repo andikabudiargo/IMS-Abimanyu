@@ -688,7 +688,7 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('bankKeluar/approve',['as'=>'bankKeluar.approve','uses'=>'Accounting\BankKeluarController@approve']);
 	Route::get('bankKeluar/get/invoice/ammount',['as'=>'bankKeluar.get.invoice.amount','uses'=>'Accounting\BankKeluarController@getInvoiceAmount']);
 
-	Route::get('forecastSales',['as'=>'forecastSales.index','uses'=>'Forecasting\ForcastingSalesController@index','middleware' => ['permission:pettyCash-index']]);
+	Route::get('forecastSales',['as'=>'forecastSales.index','uses'=>'Forecasting\ForcastingSalesController@index']);
 	Route::get('forecastSales/create',['as'=>'forecastSales.create','uses'=>'Forecasting\ForcastingSalesController@create']);
 	Route::post('forecastSales/store',['as'=>'forecastSales.store','uses'=>'Forecasting\ForcastingSalesController@store']);
 	Route::get('forecastSales/list',['as'=>'forecastSales.list','uses'=>'Forecasting\ForcastingSalesController@list']);
@@ -703,6 +703,15 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('forecastSales/get/qty/article',['as'=>'forecastSales.get.qty.article','uses'=>'Forecasting\ForcastingSalesController@getQtyArticle']);
 	Route::post('forecastSales/get/list/article',['as'=>'forecastSales.get.list.article','uses'=>'Forecasting\ForcastingSalesController@getListArticle']);
 
+
+	Route::get('forecastPurchase',['as'=>'forecastPurchase.index','uses'=>'Forecasting\ForcastingPurchaseController@index']);
+	Route::get('forecastPurchase/create',['as'=>'forecastPurchase.create','uses'=>'Forecasting\ForcastingPurchaseController@create']);
+	Route::post('forecastPurchase/store',['as'=>'forecastPurchase.store','uses'=>'Forecasting\ForcastingPurchaseController@store']);
+	Route::post('forecastPurchase/delete',['as'=>'forecastPurchase.destroy','uses'=>'Forecasting\ForcastingPurchaseController@destroy']);
+	Route::get('forecastPurchase/print',['as'=>'forecastPurchase.print','uses'=>'Forecasting\ForcastingPurchaseController@print']);
+	Route::post('forecastPurchase/get/article',['as'=>'forecastPurchase.get.article','uses'=>'Forecasting\ForcastingPurchaseController@getArticle']);
+	Route::post('forecastPurchase/get/qty/article',['as'=>'forecastPurchase.get.qty.article','uses'=>'Forecasting\ForcastingPurchaseController@getQtyArticle']);
+	Route::post('forecastPurchase/get/list/article',['as'=>'forecastPurchase.get.list.article','uses'=>'Forecasting\ForcastingPurchaseController@getListArticle']);
 
 	Route::get('stockTake',['as'=>'stockTake.index','uses'=>'StockTake\StockTakeController@index']);
 	Route::post('stockTake/import',['as'=>'stockTake.import','uses'=>'StockTake\StockTakeController@import']);

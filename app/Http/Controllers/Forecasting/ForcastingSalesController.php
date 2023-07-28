@@ -704,36 +704,39 @@ class ForcastingSalesController extends Controller
         ->get();
         $namaBulan="";
         $conversi = ['satu','satu','dua','tiga','empat','lima','enam','tujuh','delapan','sembilan','sepuluh','sebelas','duabelas'];
-        for ($i=$bulanAwal;$i<=$bulanAkhir;$i++){
-            $namaBulan.="sum(case when month = '$i' then qty end) as $conversi[$i],";
+
+        if($bulanAwal&&$bulanAkhir&&$year){
+            for ($i=$bulanAwal;$i<=$bulanAkhir;$i++){
+                $namaBulan.="sum(case when month = '$i' then qty end) as $conversi[$i],";
+            }
+
+            $namaBulan=substr($namaBulan ,0,-1);
+
+            $filter = $customerCode ? "and a.customer_id = '$customerCode'" :'';
+
+            $data = db::select("SELECT a.customer_id,c.nama,a.article_code,b.article_alternative_code,b.article_desc,a.year,
+            $namaBulan
+            -- sum(case when month = '1' then qty end) as satu,
+            -- sum(case when month = '2' then qty end) as dua,
+            -- sum(case when month = '3' then qty end) as tiga,
+            -- sum(case when month = '4' then qty end) as empat,
+            -- sum(case when month = '5' then qty end) as lima,
+            -- sum(case when month = '6' then qty end) as enam,
+            -- sum(case when month = '7' then qty end) as tujuh,
+            -- sum(case when month = '8' then qty end) as delapan,
+            -- sum(case when month = '9' then qty end) as sembilan,
+            -- sum(case when month = '10' then qty end) as sepuluh,
+            -- sum(case when month = '11' then qty end) as sebelas,
+            -- sum(case when month = '12' then qty end) as duabelas
+            from forecasting_sales a 
+            left join article b on b.article_code = a.article_code
+            left join third_party c on a.customer_id = c.kode
+            where a.year = '$year'
+            $filter
+            -- and a.customer_id = '$customerCode'
+            group by a.customer_id, a.article_code,b.article_desc,b.article_alternative_code,a.year,c.nama
+            order by article_alternative_code");
         }
-
-        $namaBulan=substr($namaBulan ,0,-1);
-
-        $filter = $customerCode ? "and a.customer_id = '$customerCode'" :'';
-
-        $data = db::select("SELECT a.customer_id,c.nama,a.article_code,b.article_alternative_code,b.article_desc,a.year,
-        $namaBulan
-        -- sum(case when month = '1' then qty end) as satu,
-        -- sum(case when month = '2' then qty end) as dua,
-        -- sum(case when month = '3' then qty end) as tiga,
-        -- sum(case when month = '4' then qty end) as empat,
-        -- sum(case when month = '5' then qty end) as lima,
-        -- sum(case when month = '6' then qty end) as enam,
-        -- sum(case when month = '7' then qty end) as tujuh,
-        -- sum(case when month = '8' then qty end) as delapan,
-        -- sum(case when month = '9' then qty end) as sembilan,
-        -- sum(case when month = '10' then qty end) as sepuluh,
-        -- sum(case when month = '11' then qty end) as sebelas,
-        -- sum(case when month = '12' then qty end) as duabelas
-        from forecasting_sales a 
-        left join article b on b.article_code = a.article_code
-        left join third_party c on a.customer_id = c.kode
-        where a.year = '$year'
-        $filter
-        -- and a.customer_id = '$customerCode'
-        group by a.customer_id, a.article_code,b.article_desc,b.article_alternative_code,a.year,c.nama
-        order by article_alternative_code");
 
         return response()->json(array('data'=>$data));
 

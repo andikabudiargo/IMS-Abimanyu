@@ -152,7 +152,7 @@
             </li> --}}
           </ul>
         </li>
-        <li class=" {{ in_array(\Request::segment(1), ['purchaseOrders','suppliers','purchaseRequests']) ? 'active' : '' }} nav-item">
+        <li class=" {{ in_array(\Request::segment(1), ['purchaseOrders','suppliers','purchaseRequests','forecastPurchase']) ? 'active' : '' }} nav-item">
           <a class="d-flex align-items-center" href="javascript:void(0);">
             <i data-feather='shopping-cart'></i>
             <span class="menu-title text-truncate" data-i18n="Form Elements">Purchasing
@@ -175,6 +175,12 @@
               </a>
             </li>
             @endcan
+            <li class="{{ \Request::is(['forecastPurchase','forecastPurchase/create']) ? 'active' : '' }}">
+              <a class="d-flex align-items-center" href="{{ route('forecastPurchase.index') }} ">
+                <i data-feather="circle"></i>
+                <span class="menu-item text-truncate" data-i18n="Input">Forecasting</span>
+              </a>
+            </li>
             @can('supplier-index')
             <li class="{{ \Request::segment(1) == 'suppliers'  ? 'active' : '' }}">
               <a class="d-flex align-items-center" href="{{ route('suppliers.index') }}">

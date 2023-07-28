@@ -31,6 +31,22 @@
                                 </div>
                             </div>
                             <div class="form-row">
+                                <div class="form-group col-md-3">
+                                    <label class="form-label" for="noteSelect">Notes</label>
+                                    <select class="select2 form-control" id="noteSelect" name="noteSelect">
+                                        <option value=""></option>
+                                        <option value="WOS SHIFT A" {{ old('noteSelect',$header->note)== 'WOS SHIFT A' ? 'selected' : '' }} >WOS SHIFT A</option>
+                                        <option value="WOS SHIFT B" {{ old('noteSelect',$header->note)== 'WOS SHIFT A' ? 'selected' : '' }}>WOS SHIFT B</option>
+                                        <option value="WOS BOOTH WERATE" {{ old('noteSelect',$header->note)== 'WOS BOOTH WERATE' ? 'selected' : '' }}>WOS BOOTH WERATE</option>
+                                        <option value="WOS SHIFT 2" {{ old('noteSelect',$header->note)== 'WOS SHIFT 2' ? 'selected' : '' }}>WOS SHIFT 2</option>
+                                        <option value="WOSH BOOTH 3-B" {{ old('noteSelect',$header->note)== 'WOSH BOOTH 3-B' ? 'selected' : '' }}>WOSH BOOTH 3-B</option>
+                                        <option value="Consumable SHIFT A" {{ old('noteSelect',$header->note)== 'Consumable SHIFT A' ? 'selected' : '' }}>Consumable SHIFT A</option>
+                                        <option value="Consumable SHIFT B" {{ old('noteSelect',$header->note)== 'Consumable SHIFT B' ? 'selected' : '' }}>Consumable SHIFT B</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-row">
                                 <div class="form-group col-md-5">
                                     <label class="form-label" for="note">Notes</label>
                                     <textarea type="text" id="note" name="note" class="form-control" rows="1" >{{ old('trDate',$header->note) }}</textarea>
@@ -155,6 +171,8 @@
 <script type="text/javascript">
     const updateBtn = document.querySelector('#cmdUpdate');
     const approveBtn = document.querySelector('#cmdApprove');
+    let objNoteSelect = $('#noteSelect');
+    let objNote = $('#note');
 
     if (updateBtn) {
         updateBtn.addEventListener('click',() =>{
@@ -190,6 +208,17 @@
             }
         }
         
+    });
+
+    objNoteSelect.change(function(e){
+        let optionVal = $(this).val(); 
+        if (optionVal=='other'){
+            objNote.removeAttr('disabled');
+            objNote.val('');
+        }else{
+            objNote.attr('disabled','disabled');
+            objNote.val(optionVal);
+        }
     });
 </script>
 @endsection

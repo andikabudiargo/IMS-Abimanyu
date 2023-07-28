@@ -30,7 +30,7 @@
                                     <input type="text" id="trDate" name="trDate" class="form-control" placeholder="DD-MM-YYYY" required/>
                                 </div>
                             </div>
-                            <div class="form-row">
+                            <div class="form-row d-none">
                                 <div class="form-group col-md-2">
                                     <label class="form-label" for="toType">Transfer Type</label>
                                     <select class="select2 form-control" id="toType" name="toType" required disabled>
@@ -48,9 +48,25 @@
                                 
                             </div> --}}
                             <div class="form-row">
-                                <div class="form-group col-md-6">
+                                <div class="form-group col-md-3">
+                                    <label class="form-label" for="noteSelect">Notes</label>
+                                    <select class="select2 form-control" id="noteSelect" name="noteSelect">
+                                        <option value=""></option>
+                                        <option value="WOS SHIFT A">WOS SHIFT A</option>
+                                        <option value="WOS SHIFT B">WOS SHIFT B</option>
+                                        <option value="WOS BOOTH WERATE">WOS BOOTH WERATE</option>
+                                        <option value="WOS SHIFT 2">WOS SHIFT 2</option>
+                                        <option value="WOSH BOOTH 3-B">WOSH BOOTH 3-B</option>
+                                        <option value="Consumable SHIFT A">Consumable SHIFT A</option>
+                                        <option value="Consumable SHIFT B">Consumable SHIFT B</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group col-md-5">
                                     <label class="form-label" for="note">Notes</label>
-                                    <textarea type="text" id="note" name="note" class="form-control" rows="1" ></textarea>
+                                    <textarea type="text" id="note" name="note" class="form-control" rows="1" disabled></textarea>
                                 </div>
                             </div>                            
                         </form>
@@ -100,7 +116,8 @@
                     <hr>
                     <div class="form-row mt-75">
                         <div class="col-md-12">
-                            <button class="btn btn-success" type="reset" id="cmdNew" name="cmdCancel" data-trType="TROUT">New</button>
+                            <a href="{{ route('transferOut.index') }}" class="btn btn-light">Back</a>
+                            <button class="btn btn-info" type="reset" id="cmdNew" name="cmdCancel" data-trType="TROUT">New</button>
                             <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave" data-trType="TROUT">Save</button>
                         </div>
                     </div>
@@ -120,6 +137,9 @@
     let objToType = $('#toType');
     let objTsoCode = $('#tsoCode');
     let objTsoBox = $('#tsoBox');
+    let objNoteSelect = $('#noteSelect');
+    let objNote = $('#note');
+
     document.querySelector('#cmdSave').addEventListener('click',() =>{
         let element = document.getElementById('cmdSave');
         let oEdit = document.getElementById('oEdit');
@@ -131,6 +151,7 @@
         $('#trDate').val(currentDate);
         isiArticle('trArticle');
         objTsoBox.hide();
+        objNote.attr('disabled','disabled');
     });
 
     objToType.change(function(e){
@@ -168,6 +189,17 @@
                     console.log(error);
                 }
             });
+        }
+    });
+
+    objNoteSelect.change(function(e){
+        let optionVal = $(this).val(); 
+        if (optionVal=='other'){
+            objNote.removeAttr('disabled');
+            objNote.val('');
+        }else{
+            objNote.attr('disabled','disabled');
+            objNote.val(optionVal);
         }
     });
 </script>

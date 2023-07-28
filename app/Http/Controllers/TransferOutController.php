@@ -860,14 +860,14 @@ class TransferOutController extends Controller
 
             return $buttons;
         })
-        ->addColumn('tr_number', function ($data) {
-            $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-danger'];            
-            // $statusTr = ['NEW','VALIDATED','APPROVED','POSTED','CANCELED'];
-            // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED'];
-            return '<span style="display: none;">'.$data->tr_number.'</span><a class="text-left badge d-block '.$badges[$data->status - 1].'" name="'.$data->tr_number.'" href="'. route('transferOut.show', ['id'=>Crypt::encryptString($data->id)]) .'" ><span>'.$data->tr_number.'</span></a>';
-        })
+        // ->addColumn('tr_number', function ($data) {
+        //     $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-danger'];            
+        //     // $statusTr = ['NEW','VALIDATED','APPROVED','POSTED','CANCELED'];
+        //     // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED'];
+        //     return '<span style="display: none;">'.$data->tr_number.'</span><a class="text-left badge d-block '.$badges[$data->status - 1].'" name="'.$data->tr_number.'" href="'. route('transferOut.show', ['id'=>Crypt::encryptString($data->id)]) .'" ><span>'.$data->tr_number.'</span></a>';
+        // })
         ->addColumn('status', function ($data) {
-            $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-danger'];            
+            $badges=['badge-primary','badge-info','badge-warning','badge-success','badge-danger','badge-dark','badge-secondary','badge-danger'];            
             $statusTr = ['NEW','VALIDATED','APPROVED','POSTED','CANCELED'];
             return "<div class='badge ".$badges[$data->status - 1]."'>".$statusTr[$data->status - 1]."</div>";
         })
