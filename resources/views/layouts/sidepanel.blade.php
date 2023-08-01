@@ -248,7 +248,7 @@
             </li>
             @endcan
             @can('transferIn-index')
-            <li class="{{ \Request::is(['transferIn','transferIn/create']) ? 'active' : '' }}">
+            <li class="{{ \Request::is(['transferIn','transferIn/create','transferIn/show']) ? 'active' : '' }}">
               <a class="d-flex align-items-center" href="{{ route('transferIn.index') }}">
                 <i data-feather="circle"></i>
                 <span class="menu-item text-truncate" data-i18n="Input">Transfer in</span>
@@ -256,7 +256,7 @@
             </li>
             @endcan
             @can('transferOut-index')
-            <li class="{{ \Request::is(['transferOut','transferOut/create']) ? 'active' : '' }}">
+            <li class="{{ \Request::is(['transferOut','transferOut/create','transferOut/show']) ? 'active' : '' }}">
               <a class="d-flex align-items-center" href="{{ route('transferOut.index') }}">
                 <i data-feather="circle"></i>
                 <span class="menu-item text-truncate" data-i18n="Input">Transfer out</span>

@@ -112,12 +112,18 @@ class PurchaseRequestController extends Controller
     {
         $data['title'] = "Create $this->title";
         $data['subtitle'] = "Create $this->title";
+        $username =  Auth::user()->username;
         
         $data['uoms'] = DB::table('uom')
         ->orderBy('name')
         ->get();
 
         $data['depts'] = DB::table('depts')
+        ->whereIn('depts.code', function($query) use ($username) {
+            $query->select('dept')
+            ->from('user_dept') 
+            ->where('username',$username);
+        })
         ->orderBy('name')
         ->get();
 
@@ -280,6 +286,8 @@ class PurchaseRequestController extends Controller
 
         $prNumber = $data['headers'][0]->pr_number;
 
+        $dept= $data['headers'][0]->dept;
+
         $data['details'] = DB::table('purchase_request_det')
         ->whereIn('purchase_request_det.pr_number', function($query) use ($prNumber){
             $query->select('pr_number')->from('purchase_request_hdr')->where('origin_pr_number',$prNumber);
@@ -298,8 +306,38 @@ class PurchaseRequestController extends Controller
         ->orderBy('name')
         ->get();
 
-        $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode,$prNumber,$username);
-        $data['approveValidate'] = Approval::approveValidate($this->moduleCode,$prNumber,$username);
+        // $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode,$prNumber,$username);
+        // $data['approveValidate'] = Approval::approveValidate($this->moduleCode,$prNumber,$username);
+
+        $moduleCode = $this->moduleCode;
+        $moduleNumber = $prNumber;
+
+        $data['approvalHistory'] = DB::select("SELECT DISTINCT ON (a.approval_order) a.approval_order 
+        ,(select name from users where username = a.username) as name
+        ,(select STRING_AGG((select name from users where username = p.username),',' ORDER BY module_code) AS main from approval_level p where module_code = a.module_code and approval_order = a.approval_order and username in (select username from user_dept where dept = '$dept')) as petugas
+        ,(select approval_number from approval_master where module_code = a.module_code) as max_approval,
+        case when module_number is not null then true else false end status
+        ,b.status as statusApprove
+        from approval_level a
+        left join (select * from approval_history where module_number = '$moduleNumber') b
+        on b.module_code = a.module_code and b.approval_order = a.approval_order and b.username = a.username
+        where a.approval_order <= (select approval_number from approval_master where module_code ='$moduleCode')
+        and a.module_code = '$moduleCode'
+        order by a.approval_order,module_number");
+
+
+        $data['approveValidate'] = DB::select("SELECT username= '$username' as validate,current_level + 1 as next_level,* from (
+            select username,approval_order,
+            (select max(approval_number) from approval_master where module_code = a.module_code ) as max_level,
+            COALESCE((select max(approval_order) from approval_history
+            where module_code = a.module_code
+            and module_number = '$moduleNumber'),'0') as current_level
+            from approval_level a 
+            where module_code = '$moduleCode' and username = '$username') b
+            where approval_order = current_level+1
+            and username in (select username from user_dept where dept = '$dept' and username = '$username')
+            ");
+
 
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATED','3'=>'APPROVED','4'=>'RECEIVED','5'=>'CANCELED','6'=>"CLOSE",'7'=>'PO'];
         $statusPr = ['NEW','VALIDATED','APPROVED','RECEIVED','CANCELED','CLOSED','PO'];
@@ -319,6 +357,8 @@ class PurchaseRequestController extends Controller
         $data['header'] = DB::table('purchase_request_hdr')
         ->where('id',$id)
         ->get()->first();
+        
+        $dept= $data['header']->dept;
 
         $prNumber = $data['header']->pr_number;
         $orderType = $data['header']->order_type;
@@ -338,6 +378,11 @@ class PurchaseRequestController extends Controller
         ->get();   
 
         $data['depts'] = DB::table('depts')
+        ->whereIn('depts.code', function($query) use ($username) {
+            $query->select('dept')
+            ->from('user_dept') 
+            ->where('username',$username);
+        })
         ->orderBy('name')
         ->get();
 
@@ -345,8 +390,35 @@ class PurchaseRequestController extends Controller
         ->orderBy('name')
         ->get();
 
-        $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode,$prNumber,$username);
-        $data['approveValidate'] = Approval::approveValidate($this->moduleCode,$prNumber,$username);
+        // $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode,$prNumber,$username);
+        $moduleCode = $this->moduleCode;
+        $moduleNumber = $prNumber;
+        $data['approvalHistory'] = DB::select("SELECT DISTINCT ON (a.approval_order) a.approval_order 
+        ,(select name from users where username = a.username) as name
+        ,(select STRING_AGG((select name from users where username = p.username),',' ORDER BY module_code) AS main from approval_level p where module_code = a.module_code and approval_order = a.approval_order and username in (select username from user_dept where dept = '$dept')) as petugas
+        ,(select approval_number from approval_master where module_code = a.module_code) as max_approval,
+        case when module_number is not null then true else false end status
+        ,b.status as statusApprove
+        from approval_level a
+        left join (select * from approval_history where module_number = '$moduleNumber') b
+        on b.module_code = a.module_code and b.approval_order = a.approval_order and b.username = a.username
+        where a.approval_order <= (select approval_number from approval_master where module_code ='$moduleCode')
+        and a.module_code = '$moduleCode'
+        order by a.approval_order,module_number");
+
+        // $data['approveValidate'] = Approval::approveValidate($this->moduleCode,$prNumber,$username);
+
+        $data['approveValidate'] = DB::select("SELECT username= '$username' as validate,current_level + 1 as next_level,* from (
+            select username,approval_order,
+            (select max(approval_number) from approval_master where module_code = a.module_code ) as max_level,
+            COALESCE((select max(approval_order) from approval_history
+            where module_code = a.module_code
+            and module_number = '$moduleNumber'),'0') as current_level
+            from approval_level a 
+            where module_code = '$moduleCode' and username = '$username') b
+            where approval_order = current_level+1
+            and username in (select username from user_dept where dept = '$dept' and username = '$username')
+            ");
 
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATED','3'=>'APPROVED','4'=>'RECEIVED','5'=>'CANCELED','6'=>"CLOSE",'7'=>'PO'];
         $statusPr = ['NEW','VALIDATED','APPROVED','RECEIVED','CANCELED','CLOSED','PO'];
@@ -585,6 +657,8 @@ class PurchaseRequestController extends Controller
         // 7 = po
         // 8 = revised   
 
+        $username =  Auth::user()->username;
+        
         $searchPr = strtolower($request->searchPr);
         $orderType = strtolower($request->orderType);
         $searchStatus = $request->searchStatus;
@@ -615,6 +689,11 @@ class PurchaseRequestController extends Controller
             $searchPr ? $query->where('purchase_request_hdr.pr_number','ilike','%'.$searchPr.'%') : '';
             $searchStatus ? $query->where('purchase_request_hdr.status',$searchStatus) : '';
             $requestDate ? $query->whereBetween(DB::raw("to_date(date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
+        })
+        ->whereIn('purchase_request_hdr.dept', function($query) use ($username) {
+            $query->select('dept')
+            ->from('user_dept') 
+            ->where('username',$username);
         })
         ->where('purchase_request_hdr.status','!=','8')
         ->select('purchase_request_hdr.*'
@@ -848,6 +927,41 @@ class PurchaseRequestController extends Controller
         $data['prStatus'] = $statusPr[$prHdr->status-1];
 
         $data['no'] =0;
+
+        $data['approval1']=DB::table('approval_history')
+        ->leftJoin('users','users.username','approval_history.username')
+        ->where('module_code',$this->moduleCode)
+        ->where('module_number',$prNumber)
+        ->where('approval_order',1)
+        ->first();
+
+        $data['approval2']=DB::table('approval_history')
+        ->leftJoin('users','users.username','approval_history.username')
+        ->where('module_code',$this->moduleCode)
+        ->where('module_number',$prNumber)
+        ->where('approval_order',2)
+        ->first();
+
+        $data['approval3']=DB::table('approval_history')
+        ->leftJoin('users','users.username','approval_history.username')
+        ->where('module_code',$this->moduleCode)
+        ->where('module_number',$prNumber)
+        ->where('approval_order',3)
+        ->first();
+
+        $data['approval4']=DB::table('approval_history')
+        ->leftJoin('users','users.username','approval_history.username')
+        ->where('module_code',$this->moduleCode)
+        ->where('module_number',$prNumber)
+        ->where('approval_order',4)
+        ->first();
+
+        $data['approval5']=DB::table('approval_history')
+        ->leftJoin('users','users.username','approval_history.username')
+        ->where('module_code',$this->moduleCode)
+        ->where('module_number',$prNumber)
+        ->where('approval_order',5)
+        ->first();
 
         view()->share($data);
 

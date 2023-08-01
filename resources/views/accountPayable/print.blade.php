@@ -303,9 +303,9 @@
                                 <td align="center"></td>
                                 <td align="center" height="25">{{ $approval1 ? 'Approval 1':'' }}</td>
                                 <td align="center"></td>
-                                <td align="center">{{ $approval1 ? 'Approval 2':'' }}</td>
+                                <td align="center">{{ $approval2 ? 'Approval 2':'' }}</td>
                                 <td align="center"></td>
-                                <td align="center">{{ $approval1 ? 'Approval 3':'' }}</td>
+                                <td align="center">{{ $approval3 ? 'Approval 3':'' }}</td>
                                 <td align="center"></td>
                             </tr>
                             <tr>

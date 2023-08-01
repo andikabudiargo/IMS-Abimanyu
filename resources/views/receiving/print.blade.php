@@ -17,13 +17,13 @@
         /** Paper sizes **/
         body.A3           .sheet { width: 297mm; height: 419mm }
         body.A3.landscape .sheet { width: 420mm; height: 296mm }
-        /* body.A4           .sheet { width: 210mm; height: 296mm } */
-        body.A4A5           .sheet { width: 210mm; height: 148mm }
         body.A4           .sheet { width: 210mm; height: 296mm }
-        /* body.A4           .sheet { width: 210mm; height: 148mm } */
+        body.A4A5           .sheet { width: 210mm; height: 148mm }
         body.A4.landscape .sheet { width: 297mm; height: 209mm }
         body.A5           .sheet { width: 148mm; height: 209mm }
         body.A5.landscape .sheet { width: 210mm; height: 147mm }
+        
+        
 
         /** Padding area **/
         .sheet.padding-10mm { padding: 10mm }
@@ -242,7 +242,7 @@
                     </tr>
                     <tr><td colspan="2" height="10"></td></tr>
                     <tr>
-                        <td align="center">Authorized By</td>
+                        <td align="center" width="50%"></td>
                         <td align="center">Prepared By</td>
                     </tr>
                     <tr>
@@ -252,7 +252,7 @@
                     <tr>
                         {{-- <td align="center"> {{ $approved }} </td>
                         <td align="center"> {{ $recHdr->created_by }} </td> --}}
-                        <td align="center">( _________ )</td>
+                        <td align="center"></td>
                         <td align="center">( _________ )</td>
                     </tr>
                 </table>

@@ -10,7 +10,7 @@
             margin: 0;
             overflow: hidden;
             position: relative;
-            /* box-sizing: border-box; */
+            box-sizing: border-box;
             page-break-after: always;
         }
 
@@ -103,6 +103,10 @@
                 color:white;
             }
 
+            .hide-print {
+                display: none;
+            }
+
         }
         
         * {
@@ -179,6 +183,11 @@
     </style>
 </head>
 <body class="{{ (count($details)) < 7 ? "A4A5" : "A4" }}">
+<div class="row hide-print" style="margin-left:20px;margin-top:20px">
+    <div class="col-md-12">
+        <button class="btn btn-primary" type="button" id="cmdPrint" name="cmdPrint">Print</button>
+    </div>
+</div>
 <div class="sheet padding-5mm">
     <table>
         <thead>
@@ -230,8 +239,8 @@
                                 </td>
                                 <td width="50%" valign="top" style="border-left: thin solid var(--line-color);padding-left:5px" class="font-small">
                                     <strong>Kepada Yth.</strong><br>
-                                        {{ $customers->nama }} <br>
-                                        {{ $customers->alamat_kirim_1 }} <br>
+                                        {{ $customers ? $customers->nama : ''  }} <br>
+                                        {{ $customers ? $customers->alamat_kirim_1 : '' }} <br>
                                 </td>
                             </tr>
                         </table>
@@ -331,8 +340,9 @@
         </tfoot>
     </table>
 </div>
+<script src="{{ asset('app-assets/vendors/js/vendors.min.js') }}"></script>
 <script>
-    window.onload= function () {
+    $("#cmdPrint").click(function(){ 
         window.print();
         window.onafterprint = function () {
             window.close();
@@ -342,7 +352,7 @@
                 window.close(); 
             }, 200); 
         }
-    }
+    });
 </script>
 </body>
 </html>

@@ -418,7 +418,7 @@ class UserController extends Controller
     public function userLists(Request $request)
     {
         $query = $request->get('q');
-        $user = User::where('name', 'LIKE', '%' . $query . '%')
+        $user = User::where('name', 'ilike', '%' . $query . '%')
         ->select('users.*'
         ,db::raw("(select STRING_AGG((select name from depts where code = user_dept.dept), ',' ORDER BY dept) AS main from user_dept where username = users.username) as dept")
         );
