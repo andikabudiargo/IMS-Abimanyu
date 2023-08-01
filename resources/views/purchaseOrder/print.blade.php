@@ -170,7 +170,7 @@
     </table>
     <table width="100%" border="0" cellspacing="10">
         <tr><td colspan="2" height="100"></td></tr>
-        <tr><td colspan="2" height="100"></td></tr>
+        {{-- <tr><td colspan="2" height="100"></td></tr> --}}
         <tr>
             <td align="center">Dibuat</td>
             <td align="center">Diperiksa</td>
