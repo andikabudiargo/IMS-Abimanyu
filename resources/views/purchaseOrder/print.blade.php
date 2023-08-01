@@ -178,7 +178,7 @@
             <td align="center" width="25%">Menyetujui</td>
         </tr>
         <tr>
-            <td align="center" height="30">{{ $approval1 ? 'Approval 1':'' }}</td>
+            <td align="center" height="20">{{ $approval1 ? 'Approval 1':'' }}</td>
             <td align="center">{{ $approval2 ? 'Approval 2':'' }}</td>
             <td align="center">{{ $approval3 ? 'Approval 3':'' }}</td>
             <td align="center">{{ $approval4 ? 'Approval 4':'' }}</td>
