@@ -1347,6 +1347,36 @@ class PurchaseOrderController extends Controller
         ->orderBy('approval_order','desc')
         ->value('users.name');
 
+
+        $data['approval1']=DB::table('approval_history')
+        ->leftJoin('users','users.username','approval_history.username')
+        ->where('module_code',$this->moduleCode)
+        ->where('module_number',$poNumber)
+        ->where('approval_order',1)
+        ->first();
+
+        $data['approval2']=DB::table('approval_history')
+        ->leftJoin('users','users.username','approval_history.username')
+        ->where('module_code',$this->moduleCode)
+        ->where('module_number',$poNumber)
+        ->where('approval_order',2)
+        ->first();
+
+        $data['approval3']=DB::table('approval_history')
+        ->leftJoin('users','users.username','approval_history.username')
+        ->where('module_code',$this->moduleCode)
+        ->where('module_number',$poNumber)
+        ->where('approval_order',3)
+        ->first();
+
+        $data['approval4']=DB::table('approval_history')
+        ->leftJoin('users','users.username','approval_history.username')
+        ->where('module_code',$this->moduleCode)
+        ->where('module_number',$poNumber)
+        ->where('approval_order',4)
+        ->first();
+
+
         view()->share($data);
 
         $pdf = PDF::loadView('purchaseOrder.print');

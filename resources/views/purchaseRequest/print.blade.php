@@ -137,8 +137,8 @@
             <td align="center"  style="border-bottom: 1px solid black;">{{ $approval1 ? $approval1->name:'' }}</td>
             <td align="center" style="border-bottom: 1px solid black;">  {{ $approval2 ? $approval2->name:'' }}  </td>
             <td align="center" style="border-bottom: 1px solid black;">  {{ $approval3 ? $approval3->name:'' }}  </td>
-            <td align="center" style="border-bottom: 1px solid black;">  {{ $approval3 ? $approval4->name:'' }}  </td>
-            <td align="center" style="border-bottom: 1px solid black;">  {{ $approval3 ? $approval5->name:'' }}  </td>
+            <td align="center" style="border-bottom: 1px solid black;">  {{ $approval4 ? $approval4->name:'' }}  </td>
+            <td align="center" style="border-bottom: 1px solid black;">  {{ $approval5 ? $approval5->name:'' }}  </td>
         </tr>
     </table>
     {{-- <table width="100%" border="0">

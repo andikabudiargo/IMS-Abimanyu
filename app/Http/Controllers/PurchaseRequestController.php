@@ -74,14 +74,24 @@ class PurchaseRequestController extends Controller
 
     public function index(Request $request)
     {
+        $username =  Auth::user()->username;
         $data['title'] = "$this->title";
         $data['kolom'] = $this->getTableColoumn();
         $data['kolomDetail'] = $this->getTableColoumnDetail();
         $data['status'] = ['1'=>'NEW','2'=>'VALIDATED','3'=>'APPROVED','7'=>'PO'];
 
         $data['depts'] = DB::table('depts')
+        ->whereIn('depts.code', function($query) use ($username) {
+            $query->select('dept')
+            ->from('user_dept') 
+            ->where('username',$username);
+        })
         ->orderBy('name')
         ->get();
+
+        // $data['depts'] = DB::table('depts')
+        // ->orderBy('name')
+        // ->get();
             
         return view("purchaseRequest.index",$data);
     }
@@ -822,6 +832,8 @@ class PurchaseRequestController extends Controller
 
     public function listDetail(Request $request)
     {
+        $username =  Auth::user()->username;
+        
         $seachPr = strtolower($request->seachPr);
         $orderType = strtolower($request->orderType);
         $searchStatus = $request->searchStatus;
@@ -848,6 +860,11 @@ class PurchaseRequestController extends Controller
             $seachPr ? $query->where('purchase_request_det.pr_number','ilike','%'.$seachPr.'%') : '';
             $searchStatus ? $query->where('purchase_request_hdr.status',$searchStatus) : '';
             $requestDate ? $query->whereBetween(DB::raw("to_date(purchase_request_hdr.date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
+        })
+        ->whereIn('purchase_request_hdr.dept', function($query) use ($username) {
+            $query->select('dept')
+            ->from('user_dept') 
+            ->where('username',$username);
         })
         ->select('purchase_request_det.*'
         // ,DB::raw("(select concat(code,'-',name) from depts where code = purchase_request_hdr.dept limit 1) as dept_name")

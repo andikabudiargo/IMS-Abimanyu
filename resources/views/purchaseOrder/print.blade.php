@@ -168,7 +168,7 @@
             
         </tbody>
     </table>
-    <table width="100%" border="0">
+    <table width="100%" border="0" cellspacing="10">
         <tr><td colspan="2" height="100"></td></tr>
         <tr><td colspan="2" height="100"></td></tr>
         <tr>
@@ -178,16 +178,20 @@
             <td align="center">Menyetujui</td>
         </tr>
         <tr>
-            <td align="center" height="30"></td>
-            <td align="center"></td>
-            <td align="center"></td>
-            <td align="center"></td>
+            <td align="center" height="30">{{ $approval1 ? 'Approval 1':'' }}</td>
+            <td align="center">{{ $approval2 ? 'Approval 2':'' }}</td>
+            <td align="center">{{ $approval3 ? 'Approval 3':'' }}</td>
+            <td align="center">{{ $approval4 ? 'Approval 4':'' }}</td>
         </tr>
         <tr>
-            <td align="center">( _____________ )</td>
+            <td align="center"  style="border-bottom: 1px solid black;">{{ $approval1 ? $approval1->name:'' }}</td>
+            <td align="center" style="border-bottom: 1px solid black;">  {{ $approval2 ? $approval2->name:'' }}  </td>
+            <td align="center" style="border-bottom: 1px solid black;">  {{ $approval3 ? $approval3->name:'' }}  </td>
+            <td align="center" style="border-bottom: 1px solid black;">  {{ $approval4 ? $approval4->name:'' }}  </td>
+            {{-- <td align="center">( _____________ )</td>
             <td align="center">( _____________  )</td>
             <td align="center">( _____________  )</td>
-            <td align="center">( _____________  )</td>
+            <td align="center">( _____________  )</td> --}}
         </tr>
     </table>
    
