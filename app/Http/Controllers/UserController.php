@@ -87,7 +87,8 @@ class UserController extends Controller
 
     public function getTableColoumn(){
         $kolom=[
-            ['data'=>'group_id','name'=>'group_id','title'=>'','orderable'=> false,'searchable'=> false],
+            ['data'=>'action', 'name'=>'action','title'=>'action','orderable'=>false,'searchable'=>false],
+            // ['data'=>'group_id','name'=>'group_id','title'=>'','orderable'=> false,'searchable'=> false],
             ['data'=>'name', 'name'=>'name','title'=>'Name'],
             ['data'=>'username', 'name'=>'username','title'=>'Username'],
             ['data'=>'dept', 'name'=>'dept','title'=>'Department'],
@@ -96,7 +97,7 @@ class UserController extends Controller
             ['data'=>'roles', 'name'=>'roles','title'=>'Roles'],
             ['data'=>'last_login_at', 'name'=>'last_login_at','title'=>'Last login'],
             ['data'=>'last_login_ip', 'name'=>'last_login_ip','title'=>'Last IP'],
-            ['data'=>'action', 'name'=>'action','title'=>'action','orderable'=>false,'searchable'=>false]
+            
         ];
 
         return json_encode($kolom, true);

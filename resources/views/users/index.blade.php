@@ -67,6 +67,9 @@
 @endsection
 @section('styles')
 <style>
+  td.wrapok {
+    white-space:normal
+  }
 </style>
 @endsection
 
@@ -164,7 +167,7 @@
   }
   
   function tampildata(nama){
-    let arr_col_print =[1,2,3,4]; 
+    let arr_col_print =[1,2,3,4,5,6,7]; 
     $(function(){
         var oTable =$("#detailedTable").DataTable({
             ajax:{
@@ -180,37 +183,37 @@
               [ '10', '25', '50', 'all' ]
             ],
             buttons: buttonExportGlob(arr_col_print),
-            responsive: {
-              details: {
-                display: $.fn.dataTable.Responsive.display.modal({
-                  header: function (row) {
-                    var data = row.data();
-                    return 'Details of ' + data['name'];
-                  }
-                }),
-                type: 'column',
-                renderer: function (api, rowIdx, columns) {
-                  var data = $.map(columns, function (col, i) {
-                    return col.title !== '' // ? Do not show row in modal popup if title is blank (for check box)
-                      ? '<tr data-dt-row="' +
-                          col.rowIndex +
-                          '" data-dt-column="' +
-                          col.columnIndex +
-                          '">' +
-                          '<td>' +
-                          col.title +
-                          ':' +
-                          '</td> ' +
-                          '<td>' +
-                          col.data +
-                          '</td>' +
-                          '</tr>'
-                      : '';
-                  }).join('');
-                  return data ? $('<table class="table"/>').append(data) : false;
-                }
-              }
-            },
+            // responsive: {
+            //   details: {
+            //     display: $.fn.dataTable.Responsive.display.modal({
+            //       header: function (row) {
+            //         var data = row.data();
+            //         return 'Details of ' + data['name'];
+            //       }
+            //     }),
+            //     type: 'column',
+            //     renderer: function (api, rowIdx, columns) {
+            //       var data = $.map(columns, function (col, i) {
+            //         return col.title !== '' // ? Do not show row in modal popup if title is blank (for check box)
+            //           ? '<tr data-dt-row="' +
+            //               col.rowIndex +
+            //               '" data-dt-column="' +
+            //               col.columnIndex +
+            //               '">' +
+            //               '<td>' +
+            //               col.title +
+            //               ':' +
+            //               '</td> ' +
+            //               '<td>' +
+            //               col.data +
+            //               '</td>' +
+            //               '</tr>'
+            //           : '';
+            //       }).join('');
+            //       return data ? $('<table class="table"/>').append(data) : false;
+            //     }
+            //   }
+            // },
             language: {
               paginate: {
                 // remove previous & next text from pagination
@@ -219,148 +222,148 @@
               }
             },
             columnDefs: [
-              {
-                // For Responsive
-                className: 'control',
-                orderable: false,
-                responsivePriority: 2,
-                targets: 0
-              },
+              // {
+              //   // For Responsive
+              //   className: 'control',
+              //   orderable: false,
+              //   responsivePriority: 2,
+              //   targets: 0
+              // },
               {
                 targets: 1,
                 visible: false
               },
-              {
-                // Avatar image/badge, Name and post
-                targets: 2,
-                responsivePriority: 4,
-                render: function (data, type, full, meta) {
-                  var $user_img = full['avatar'],
-                    $name = full['username'],
-                    $post = full['name'];
-                    if ($user_img) {
-                        // For Avatar image
-                        var $output =
-                          '<img src="' + assetPath + 'images/avatars/' + $user_img + '" alt="Avatar" width="32" height="32">';
-                      } else {
-                        // For Avatar badge
-                        var stateNum = full['status'];
-                        var states = ['success', 'danger', 'warning', 'info', 'dark', 'primary', 'secondary'];
-                        var $state = states[stateNum],
-                          $name = full['username'],
-                          $initials = $name.match(/\b\w/g) || [];
-                        $initials = (($initials.shift() || '') + ($initials.pop() || '')).toUpperCase();
-                        $output = '<span class="avatar-content">' + $initials + '</span>';
-                    }
+              // {
+              //   // Avatar image/badge, Name and post
+              //   targets: 2,
+              //   responsivePriority: 4,
+              //   render: function (data, type, full, meta) {
+              //     var $user_img = full['avatar'],
+              //       $name = full['username'],
+              //       $post = full['name'];
+              //       if ($user_img) {
+              //           // For Avatar image
+              //           var $output =
+              //             '<img src="' + assetPath + 'images/avatars/' + $user_img + '" alt="Avatar" width="32" height="32">';
+              //         } else {
+              //           // For Avatar badge
+              //           var stateNum = full['status'];
+              //           var states = ['success', 'danger', 'warning', 'info', 'dark', 'primary', 'secondary'];
+              //           var $state = states[stateNum],
+              //             $name = full['username'],
+              //             $initials = $name.match(/\b\w/g) || [];
+              //           $initials = (($initials.shift() || '') + ($initials.pop() || '')).toUpperCase();
+              //           $output = '<span class="avatar-content">' + $initials + '</span>';
+              //       }
 
-                    var colorClass = $user_img === '' ? ' bg-light-' + $state + ' ' : '';
-                    // Creates full output for row
-                    var $row_output =
-                      '<div class="d-flex justify-content-left align-items-center">' +
-                      '<div class="avatar ' +
-                      colorClass +
-                      ' mr-1">' +
-                      $output +
-                      '</div>' +
-                      '<div class="d-flex flex-column">' +
-                      '<span class="emp_name text-truncate font-weight-bold">' +
-                      $name +
-                      '</span>' +
-                      '<small class="emp_post text-truncate text-muted">' +
-                      $post +
-                      '</small>' +
-                      '</div>' +
-                      '</div>';
-                    return $row_output;
-                }
-              },
-              {
-                responsivePriority: 1,
-                targets: 2
-              },
-              { width: '10%', targets: 8 }
+              //       var colorClass = $user_img === '' ? ' bg-light-' + $state + ' ' : '';
+              //       // Creates full output for row
+              //       var $row_output =
+              //         '<div class="d-flex justify-content-left align-items-center">' +
+              //         '<div class="avatar ' +
+              //         colorClass +
+              //         ' mr-1">' +
+              //         $output +
+              //         '</div>' +
+              //         '<div class="d-flex flex-column">' +
+              //         '<span class="emp_name text-truncate font-weight-bold">' +
+              //         $name +
+              //         '</span>' +
+              //         '<small class="emp_post text-truncate text-muted">' +
+              //         $post +
+              //         '</small>' +
+              //         '</div>' +
+              //         '</div>';
+              //       return $row_output;
+              //   }
+              // },
+              // {
+              //   responsivePriority: 1,
+              //   targets: 2
+              // },
+              { width: '10%', targets: 8 },
+              {targets:[3], class:"wrapok"}
             ],
             drawCallback: function( settings ) {
               feather.replace({
                     width: 14,
                     height: 14
               });
-
               lockUnlock();
             },
             order: [[ 1, 'asc' ]],
             bDestroy: true, //pakai ini supaya bisa di load berulang2
             // scrollX: true, //pakai ini supaya waktu responsive  bisa di scroll horizontal
             columns: {!! $kolom !!},
-            initComplete: function () {
-              // Adding role filter once table initialized
-              $( "#UserRole" ).remove();
-              $( "#UserName" ).remove();
-              this.api()
-                .columns(3)
-                .every(function () {
-                  var column = this;
-                  var select = $(
-                    '<select id="UserRole" class="form-control text-capitalize mb-md-0 mb-2"><option value=""> Select Email </option></select>'
-                  )
-                    .appendTo('.user_email')
-                    .on('change', function () {
-                      var val = $.fn.dataTable.util.escapeRegex($(this).val());
-                      column.search(val ? '^' + val + '$' : '', true, false).draw();
-                    });
+            // initComplete: function () {
+            //   // Adding role filter once table initialized
+            //   $( "#UserRole" ).remove();
+            //   $( "#UserName" ).remove();
+            //   this.api()
+            //     .columns(3)
+            //     .every(function () {
+            //       var column = this;
+            //       var select = $(
+            //         '<select id="UserRole" class="form-control text-capitalize mb-md-0 mb-2"><option value=""> Select Email </option></select>'
+            //       )
+            //         .appendTo('.user_email')
+            //         .on('change', function () {
+            //           var val = $.fn.dataTable.util.escapeRegex($(this).val());
+            //           column.search(val ? '^' + val + '$' : '', true, false).draw();
+            //         });
 
-                  column
-                    .data()
-                    .unique()
-                    .sort()
-                    .each(function (d, j) {
-                      select.append('<option value="' + d + '" class="text-capitalize">' + d + '</option>');
-                    });
-                });
-              this.api()
-                .columns(5)
-                .every(function () {
-                  var column = this;
-                  var select = $(
-                    '<select id="UserRole" class="form-control text-capitalize mb-md-0 mb-2"><option value=""> Select Role </option></select>'
-                  )
-                    .appendTo('.user_role')
-                    .on('change', function () {
-                      var val = $.fn.dataTable.util.escapeRegex($(this).val());
-                      column.search(val ? '^' + val + '$' : '', true, false).draw();
-                    });
+            //       column
+            //         .data()
+            //         .unique()
+            //         .sort()
+            //         .each(function (d, j) {
+            //           select.append('<option value="' + d + '" class="text-capitalize">' + d + '</option>');
+            //         });
+            //     });
+            //   this.api()
+            //     .columns(5)
+            //     .every(function () {
+            //       var column = this;
+            //       var select = $(
+            //         '<select id="UserRole" class="form-control text-capitalize mb-md-0 mb-2"><option value=""> Select Role </option></select>'
+            //       )
+            //         .appendTo('.user_role')
+            //         .on('change', function () {
+            //           var val = $.fn.dataTable.util.escapeRegex($(this).val());
+            //           column.search(val ? '^' + val + '$' : '', true, false).draw();
+            //         });
 
-                  column
-                    .data()
-                    .unique()
-                    .sort()
-                    .each(function (d, j) {
-                      select.append('<option value="' + d + '" class="text-capitalize">' + d + '</option>');
-                    });
-                });
-              // Adding plan filter once table initialized
-              this.api()
-                .columns(2)
-                .every(function () {
-                  var column = this;
-                  var select = $(
-                    '<select id="UserName" class="form-control text-capitalize mb-md-0 mb-2"><option value=""> Select Username </option></select>'
-                  )
-                    .appendTo('.user_name')
-                    .on('change', function () {
-                      var val = $.fn.dataTable.util.escapeRegex($(this).val());
-                      column.search(val ? '^' + val + '$' : '', true, false).draw();
-                    });
+            //       column
+            //         .data()
+            //         .unique()
+            //         .sort()
+            //         .each(function (d, j) {
+            //           select.append('<option value="' + d + '" class="text-capitalize">' + d + '</option>');
+            //         });
+            //     });
+            //   // Adding plan filter once table initialized
+            //   this.api()
+            //     .columns(2)
+            //     .every(function () {
+            //       var column = this;
+            //       var select = $(
+            //         '<select id="UserName" class="form-control text-capitalize mb-md-0 mb-2"><option value=""> Select Username </option></select>'
+            //       )
+            //         .appendTo('.user_name')
+            //         .on('change', function () {
+            //           var val = $.fn.dataTable.util.escapeRegex($(this).val());
+            //           column.search(val ? '^' + val + '$' : '', true, false).draw();
+            //         });
 
-                  column
-                    .data()
-                    .unique()
-                    .sort()
-                    .each(function (d, j) {
-                      select.append('<option value="' + d + '" class="text-capitalize">' + d + '</option>');
-                    });
-                });
-            }
+            //       column
+            //         .data()
+            //         .unique()
+            //         .sort()
+            //         .each(function (d, j) {
+            //           select.append('<option value="' + d + '" class="text-capitalize">' + d + '</option>');
+            //         });
+            //     });
+            // }
       });
       // $('div.head-label').html('<h6 class="mb-0">Data Users</h6>');
     });
