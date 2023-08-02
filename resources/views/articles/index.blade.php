@@ -118,6 +118,7 @@
 @endsection
 @section('scripts')
 <script type="text/javascript">
+  let $body = $('body');
   $(document).ready(function(){
     $(document).on('click', '#deleteButton', function(event) {
         event.preventDefault();
@@ -142,7 +143,7 @@
       let group = $("#searchGroup").val();
       let supp = $("#searchSupplier").val();
       let type = $("#searchType").val();
-      showList(name,code,group,supp,type);
+      showList(name,code,group,supp,type);      
   });
 
   const showList = (name,code,group,supp,type) => {

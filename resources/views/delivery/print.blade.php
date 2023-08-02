@@ -182,7 +182,8 @@
 
     </style>
 </head>
-<body class="{{ (count($details)) < 7 ? "A4A5" : "A4" }}">
+{{-- <body class="{{ (count($details)) < 7 ? "A4A5" : "A4" }}"> --}}
+<body class="A4">
 <div class="row hide-print" style="margin-left:20px;margin-top:20px">
     <div class="col-md-12">
         <button class="btn btn-primary" type="button" id="cmdPrint" name="cmdPrint">Print</button>
@@ -273,15 +274,17 @@
                                     </tr>
                                 @endforeach      
                                                     
-                                @if(count($details)>7)
-                                    <?php $totalBaris = 16 ?>
-                                @else
-                                    <?php $totalBaris = 7 ?>
-                                @endif
+                                {{-- @if(count($details)>7) --}}
+                                    {{-- <?php //$totalBaris = 16 ?> --}}
+                                {{-- @else --}}
+                                    {{-- <?php //$totalBaris = 7 ?> --}}
+                                {{-- @endif --}}
+
+                                <?php $totalBaris = 16 ?>
 
                                 @for ($i=1;$i< $totalBaris-(count($details));$i++)
                                     <tr >
-                                        <td align="right" class="putih" height="16"></td>
+                                        <td align="right" class="putih"><div style="height:35px;"></div></td>
                                         <td align="left"></td>
                                         <td align="left"></td>
                                         <td align="right"></td>

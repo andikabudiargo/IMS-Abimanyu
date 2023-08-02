@@ -76,7 +76,6 @@
             </tr>
         </table>
     </div>
- 
     <table>
         <tr>
             <td width="45%" valign="top" style="border: 1px solid #0c0c0c;padding-left:10px">
@@ -127,7 +126,7 @@
         <tfoot>
             @foreach ($totals as $val )
                 <tr style="border-bottom: 1px solid #ddd;">
-                    <td style="border-bottom: 1px solid #ddd;" align="left" colspan="3">DPP</td>
+                    <td style="border-bottom: 1px solid #ddd;" align="left" colspan="3"></td>
                     <td style="border-bottom: 1px solid #ddd;" align="right" >{{ number_format($val->qty) }}</td>
                     <td style="border-bottom: 1px solid #ddd;" align="right" ></td>
                     <td style="border-bottom: 1px solid #ddd;" align="right" ></td>
@@ -140,8 +139,8 @@
         <tbody>
             <tr>
                 <td valign="top" style="border: 1px solid #0c0c0c;padding-left:10px;width: 65%;font-size: 10px;">
-                {{-- Notes:{{ $keterangan }}<br> --}}
-                Notes:<br>
+                Notes:{{ $keterangan }}<br><br>
+                {{-- Notes:<br> --}}
                 1. Surat jalan harus mencantumkan No. PO<br>
                 2. Barang harus diterima di gudang kami paling lambat jam 15:30 WIB<br>
                 3. Pembayaran sesuai dengan schedule yang telah ditentukan perusahaan<br>

@@ -157,7 +157,7 @@
                                         </div>
                                     </div>
                                     <div class="form-group row mb-03 d-none">
-                                        <label for="totalPPN" class="col-sm-4 col-form-label titik-dua">Discount </label>
+                                        <label for="totalDiscount" class="col-sm-4 col-form-label titik-dua">Discount </label>
                                         <div class="col-sm-6">
                                             <input type="text" class="form-control text-right font-weight-bold numeral-mask disabled-el" id="totalDiscount" name="totalDiscount" />
                                         </div>

@@ -3,7 +3,7 @@
 @section('content')
 @include('layouts.breadcrumb')
 @include('partials.alert')
-<section id="add-index">
+<section id="edit-index">
     <div class="form-row">
         <div class="col-md-12">
             <div class="card">
@@ -136,38 +136,38 @@
                             <div class="form-group row mb-03">
                                 <label for="totalAmount" class="col-sm-4 col-form-label titik-dua tanpa-padding">DPP</label>
                                 <div class="col-sm-6">
-                                    <input type="text" class="form-control text-right font-weight-bold" id="totalAmount" disabled />
-                                    <input type="hidden" class="form-control text-right font-weight-bold" id="totalAmountJasa" disabled />
+                                    <input type="text" class="form-control text-right font-weight-bold numeral-mask disabled-el" id="totalAmount" value="{{ $header->grand_total>0 ? $header->grand_total : 0 }}"disabled />
+                                    <input type="text" class="form-control text-right font-weight-bold" id="totalAmountJasa" disabled />
                                 </div>
                             </div>
                             <div class="form-group row mb-03">
                                 <label for="totalPPN" class="col-sm-4 col-form-label titik-dua">PPN <span id="nilaiPPN"></span> </label>
                                 <div class="col-sm-1" style="padding-right: 0rem;display: flex;align-items: center;">
                                     <div class="custom-control custom-checkbox">
-                                        <input type="checkbox" class="custom-control-input" id="vatCheck" name="vatCheck" />
+                                        <input type="checkbox" class="custom-control-input" id="vatCheck" name="vatCheck" {{ $header->total_ppn >0 ? 'checked' : '' }} />
                                         <label class="custom-control-label" for="vatCheck"></label>
                                     </div>
                                 </div>    
                                 <div class="col-sm-5">
-                                    <input type="text" class="form-control text-right font-weight-bold numeral-mask disabled-el" id="totalPPN"  name="totalPPN" disabled/>
+                                    <input type="text" class="form-control text-right font-weight-bold numeral-mask disabled-el" id="totalPPN"  name="totalPPN" value="{{ $header->total_ppn>0 ? $header->total_ppn : 0 }}"  {{ $header->total_ppn > 0 ? '' : 'disabled' }} {{ $header->total_ppn > 0 ? 'required' : '' }}/>
                                 </div>
                             </div>
                             <div class="form-group row mb-03">
                                 <label for="totalPPH" class="col-sm-4 col-form-label titik-dua">PPH23 <span id="nilaiPPH"></span> </label>
                                 <div class="col-sm-1" style="padding-right: 0rem;display: flex;align-items: center;">
                                     <div class="custom-control custom-checkbox">
-                                        <input type="checkbox" class="custom-control-input" id="pph23Check" name="pph23Check" />
+                                        <input type="checkbox" class="custom-control-input" id="pph23Check" name="pph23Check" name="vatCheck" {{ $header->total_pph >0 ? 'checked' : '' }}/>
                                         <label class="custom-control-label" for="pph23Check"></label>
                                     </div>
                                 </div> 
                                 <div class="col-sm-5">
-                                    <input type="text" class="form-control text-right font-weight-bold numeral-mask disabled-el" id="totalPPH" name="totalPPH" disabled/>
+                                    <input type="text" class="form-control text-right font-weight-bold numeral-mask disabled-el" id="totalPPH" name="totalPPH" value="{{ $header->total_pph>0 ? $header->total_pph : 0 }}"  {{ $header->total_pph > 0 ? '' : 'disabled' }} {{ $header->total_pph > 0 ? 'required' : '' }}/>
                                 </div>
                             </div>
                             <div class="form-group row mb-03">
                                 <label for="totalNetto" class="col-sm-4 col-form-label titik-dua tanpa-padding">Netto</label>
                                 <div class="col-sm-6">
-                                    <input type="text" class="form-control text-right font-weight-bold" id="totalNetto" disabled/>
+                                    <input type="text" class="form-control text-right font-weight-bold" id="totalNetto" value="{{ $header->grand_total>0 ? $header->grand_total : 0 }}" disabled/>
                                 </div>
                             </div>
                         </div>
@@ -354,6 +354,8 @@
     
     $(document).ready(function(){
         validateFormToast('frmAdd');
+        edit='true';
+        showDetail='false';
         let detail = {!!  $detail !!};
         for (let i = 0; i < detail.length; i++) {
             article=detail[i].article_code;
@@ -554,58 +556,7 @@
             }
         }
     });
-
-    // $("#cmdPosting").click(function(){
         
-    //     let recNumber = $('#recNumber').val();            
-    //     $.ajax({
-    //         type: "post",
-    //         url: "{{ route('receiving.posting') }}",
-    //         data: {
-    //             recNumber:recNumber
-    //         },
-    //         dataType: "json",
-    //         success: function(data) {
-    //             if (data.status == 0 ){
-    //                 let message="";
-    //                 for(let i = 0; i < data.message.length; i++) {
-    //                     message += "-"+data.message[i]+"<br>";                           
-    //                 }
-    //                 $("#alert-message-success").addClass(data.alert);
-    //                 $("#alert-message-success .alert-body").html(message);
-    //                 $("#alert-message-success").show();
-    //                 $("#alert-message-success").fadeTo(5000, 500).slideUp(500, function(){
-    //                     $("#alert-message-success").slideUp(500);
-    //                 });
-    //                 $('#recNumber').attr('disabled','disabled');
-    //                 $('#cmdSave').show();
-    //                 $('#cmdPosting').hide();
-
-    //             }else{
-    //                 $("#alert-message-success").addClass(data.alert);
-    //                 $("#alert-message-success .alert-body").html(data.message);
-    //                 $("#alert-message-success").show();
-    //                 $("#alert-message-success").fadeTo(5000, 500).slideUp(500, function(){
-    //                     $("#alert-message-success").slideUp(500);
-    //                 });
-    //                 $('#statusText').text(data.statusRec);
-    //                 $('#cmdSave').hide();
-    //                 $('#deleteButton').hide();
-    //                 $('#cmdPosting').hide();
-    //                 $('#recNumber').attr('disabled','disabled');
-    //                 $('#poNumber').attr('disabled','disabled');
-    //                 $('#addNewRow').attr('disabled','disabled');
-                    
-    //             }
-    //         },
-    //         error: function(error) {
-    //             console.log(error);
-    //         }
-    //     });
-            
-        
-    // });
-    
     let cloneCount=0;
     function add_new_row(article,articleCode,articleDesc,qty,uomGroup,uom,price,priceJasa,soCode,dnNumber,poNumber) {
         $("#article_row").append($("#new_row").clone().html());
@@ -637,9 +588,9 @@
         $('#totalJasa'+ cloneCount).val(qty*priceJasa).trigger('change');
         $('#subTotal'+ cloneCount).val((qty*price)+(qty*priceJasa)).trigger('change');
         tombolPanah('qtyInv');
-        mask_thousand();
         hitungTotal();
         hitungGrandTotal();
+        mask_thousand();
         
     }
 

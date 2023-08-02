@@ -192,7 +192,9 @@ class InvoiceController extends Controller
                     'created_at' => date('Y-m-d H:i:s'),
                     'updated_at' => date('Y-m-d H:i:s'),
                     'faktur_pajak' =>$fakturPajak,
-                    'grand_total' =>$grandTotal
+                    'grand_total' =>$grandTotal,
+                    'total_ppn' =>$totalPpn,
+                    'total_pph' =>$totalPph
                 ]);
 
                 $dataSet = [];
@@ -396,7 +398,9 @@ class InvoiceController extends Controller
                             'updated_by' => Auth::user()->username,
                             'updated_at' => date('Y-m-d H:i:s'),
                             'faktur_pajak' =>$fakturPajak,
-                            'grand_total' =>$grandTotal
+                            'grand_total' =>$grandTotal,
+                            'total_ppn' =>$totalPpn,
+                            'total_pph' =>$totalPph
                         ]
                     );
 
@@ -792,12 +796,12 @@ class InvoiceController extends Controller
             "tlp" =>  ""
         );
         
-        $data['suppliers']=array(
-            'nama'=>'PT ABIMANYU SEKAR NUSANTARA',
-            'alamat'=>'KP. KARANG MULYA RT 014 RW 005 DESA CIKOPO',
-            'kota' =>'KEC. BUNGURSARI KAB. PURWAKARTA JAWA BARAT',
-            'tlp' => ''
-        );
+        // $data['suppliers']=array(
+        //     'nama'=>'PT ABIMANYU SEKAR NUSANTARA',
+        //     'alamat'=>'KP. KARANG MULYA RT 014 RW 005 DESA CIKOPO',
+        //     'kota' =>'KEC. BUNGURSARI KAB. PURWAKARTA JAWA BARAT',
+        //     'tlp' => ''
+        // );
         
         $invHdr=DB::table('invoice_hdr')
         ->where('id',$id)
@@ -864,7 +868,29 @@ class InvoiceController extends Controller
 
         // $data['tanggalHariIni']=date("d F Y");
 
-        return view('invoice.print',$data);
+        if ($data['totals'][0]->total_material > 0 and $data['totals'][0]->total_service > 0){
+            $printType = '12';  
+        }
+
+        if ($data['totals'][0]->total_material > 0 and $data['totals'][0]->total_service == 0){
+            $printType = '1';
+        }
+
+        if ($data['totals'][0]->total_material == 0 and $data['totals'][0]->total_service > 0){
+            $printType = '2';
+        }
+        
+        $data['printType'] = $printType;
+
+        if ($printType == '12'){
+            return view('invoice.print',$data);    
+        }else{
+            return view('invoice.printV2',$data);    
+        }
+
+
+        // return view('invoice.print',$data);
+        // return view('invoice.printV2',$data);
 
         // view()->share($data);
 

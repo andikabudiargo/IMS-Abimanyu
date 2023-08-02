@@ -133,6 +133,8 @@
             $('[data-toggle="tooltip"]').click(function () {
                 $('[data-toggle="tooltip"]').tooltip("hide");
             });
+            // $(".modern-nav-toggle").click();
+            
         });
 
         $(window).on('load', function() {
@@ -154,7 +156,6 @@
 
         // let numberOfDecimalDigit = {{ env('APP_NUMBER_OFF_DECIMAL_DIGIT',2) }}
         let numberOfDecimalDigit = {{ $decimalPlaces }};
-
         // $("input[type='text']").click(function () {
         //     $(this).select();
         // });

@@ -774,7 +774,7 @@ class ArticleController extends Controller
                 $decimal = 0;
             }
             $qty = number_format($data->qty,$decimal);
-            return $data->qty < 0 ? "<div class='text-red'>$qty</div>" : "<div class='text-hitam'>$qty</div>";
+            return $data->qty < 0 ? "<div class='text-red'>$qty</div>" : "<div class='text-hijau'>$qty</div>";
         })
         ->addColumn('balanceqty', function ($data) {
             // $artilceQty = $data->uom_group =='PIECE' ? number_format($data->article_qty) : number_format($data->article_qty,3);

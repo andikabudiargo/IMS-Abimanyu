@@ -273,8 +273,6 @@
         $('#cmdSubmit').attr('disabled','disabled');
         $('#basisAmount').val(0);
         
-        
-
         if (edit == 'false'){
             $('#pph23Check').prop('checked',false);
             $('#pph21Check').prop('checked',false);

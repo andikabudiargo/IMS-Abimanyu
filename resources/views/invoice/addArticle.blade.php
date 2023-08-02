@@ -90,6 +90,7 @@
 
     let sNilaiPPN= "{{ $nilaiPPN }}";
     let sNilaiPPH= "{{ $nilaiPPH }}";
+    let edit='false';
 
     customer.change(function(){
         searchSo('soNumber',$(this).val());
@@ -197,7 +198,7 @@
             objTotalJasa.eq(indexnya).val(totalJasa).trigger('input');
             objSubTotal.eq(indexnya).val(total+totalJasa).trigger('input');
             hitungGrandTotal();
-
+            mask_thousand();
         });
 
         objPrice.keyup(function() {
@@ -211,10 +212,11 @@
             objTotalJasa.eq(indexnya).val(totalJasa).trigger('input');
             objSubTotal.eq(indexnya).val(total+totalJasa).trigger('input');
             hitungGrandTotal();
+            mask_thousand();
         });    
 
         objPriceJasa.keyup(function() {
-            let indexnya= objPrice.index(this);
+            let indexnya= objPriceJasa.index(this);
             let qty = objQtyInv.eq(indexnya).val().replace(/,/gi, '') || 0; 
             let price = objPrice.eq(indexnya).val().replace(/,/gi, '')||0;
             let total = qty*price;
@@ -224,6 +226,7 @@
             objTotalJasa.eq(indexnya).val(totalJasa).trigger('input');
             objSubTotal.eq(indexnya).val(total+totalJasa).trigger('input');
             hitungGrandTotal();
+            mask_thousand();
         });
         
     }
@@ -251,23 +254,35 @@
             totalAmountJasa+= (qty*priceJasa);
         }).get();
 
-        $("#vatCheck").prop("checked",true);
-        if(totalAmountJasa){
-            $("#pph23Check").prop("checked",true);
-        }else{
-            $("#pph23Check").prop("checked",false);
-        }
         
-        $("#totalRow").val(objArticle.length);
-        $("#nilaiPPN").text(ppn+"%");
-        $("#nilaiPPH23").text(pph23+"%");
-        $("#totalQTY").val(humanizeNumber(totalQty));
-        $("#totalAmount").val(humanizeNumber(totalAmount));
+        // $("#vatCheck").prop("checked",true);
+        
+        // if((totalAmountJasa + totalAmount) > 0 ){
+        //     $("#pph23Check").prop("checked",true);
+        // }else{
+        //     $("#pph23Check").prop("checked",false);
+        // }
+
         $("#totalAmountJasa").val(humanizeNumber(totalAmountJasa));
-        $("#totalPPN").val(humanizeNumber((parseInt(ppn)*totalAmountMaterial)/100));
-        if(totalAmountJasa){
-            $("#totalPPH").val("-"+humanizeNumber((pph23*totalAmountJasa)/100));
+        
+        if(edit == 'false'){
+            $("#totalRow").val(objArticle.length);
+            $("#nilaiPPN").text(ppn+"%");
+            $("#nilaiPPH23").text(pph23+"%");
+            $("#totalQTY").val(humanizeNumber(totalQty));
+            $("#totalAmount").val(humanizeNumber(totalAmount));
+            $("#totalAmountJasa").val(humanizeNumber(totalAmountJasa));
+            $("#totalPPN").val(humanizeNumber((parseInt(ppn)*totalAmountMaterial)/100));
+    
+            if ($('#pph23Check').is(':checked')){
+                if(totalAmountJasa > 0){
+                    $("#totalPPH").val(humanizeNumber(totalAmountJasa * (sNilaiPPH/100)));
+                }else{
+                    $("#totalPPH").val(humanizeNumber(totalAmount * (sNilaiPPH/100)));
+                }
+            }
         }
+
         $("#totalNetto").val(humanizeNumber(totalAmount+((parseInt(ppn)*totalAmount)/100)-((pph23*totalAmountJasa)/100)));
     }
 
@@ -278,7 +293,12 @@
     $("#pph23Check").change(function() {
         if(this.checked) {
             let totalAmountJasa = parseInt($('#totalAmountJasa').val().replace(/,/gi, '')) || 0;
-            $("#totalPPH").val(totalAmountJasa * (sNilaiPPH/100));
+            let totalAmount = parseInt($('#totalAmount').val().replace(/,/gi, '')) || 0;
+            if (totalAmountJasa){
+                $("#totalPPH").val(totalAmountJasa * (sNilaiPPH/100));
+            }else{
+                $("#totalPPH").val(totalAmount * (sNilaiPPH/100));
+            }
             $("#nilaiPPH").text(sNilaiPPH+'%');
             $('#totalPPH').removeAttr('disabled');
             $('#totalPPH').focus().select();
@@ -297,11 +317,16 @@
             let totalAmount = parseInt($('#totalAmount').val().replace(/,/gi, '')) || 0;
             $("#totalPPN").val(totalAmount * (sNilaiPPN/100)).trigger("change");
             $("#nilaiPPN").text(sNilaiPPN+'%');
+            $("#totalPPN").removeAttr('disabled');
+            $("#totalPPN").prop('required',true);
+            $("#totalPPN").focus().select();
             mask_thousand();
             totalSummary();
         }else{
             $("#totalPPN").val(0);
             $("#nilaiPPN").text('');
+            $("#totalPPN").prop('required',false);
+            $("#totalPPN").attr('disabled','disabled');
             totalSummary();
         }
     });

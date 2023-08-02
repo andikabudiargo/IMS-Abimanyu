@@ -1330,7 +1330,7 @@ class PurchaseOrderController extends Controller
         ->where('kode',$poHdr -> supplier_id)
         ->get();
 
-        $data['keterangan']=$poHdr -> note;
+        $data['keterangan']=$poHdr ->note;
         $data['poNumber'] =$poNumber;
         $data['poDate'] =$poHdr -> po_date;
         $data['poTerm'] =$poHdr -> termin;
