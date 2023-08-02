@@ -449,7 +449,7 @@
           </ul>
         </li>
 
-       
+        @can('accounting-menu')
         <li class=" navigation-header"><span data-i18n="Finance Accounting">Finance Accounting</span><i data-feather="more-horizontal"></i>
         </li>
         <li class=" {{ in_array(\Request::segment(1), ['aps','banks','pettyCash','proforma','bankReceipt','invoice','dnReceipt','kasPenerimaan','kasKeluar','bankPenerimaan','bankKeluar']) ? 'active' : '' }} nav-item">
@@ -468,14 +468,15 @@
             </li>
             @endcan
 
+           
             <li><a class="d-flex align-items-center" href="#"><i data-feather="circle"></i><span class="menu-item text-truncate" data-i18n="Invoice">Invoice</span></a>
               <ul class="menu-content">
                 @can('ap-index')
                   <li class="{{ \Request::segment(1) == 'aps'  ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('aps.index') }}"><span class="menu-item text-truncate" data-i18n="Invoice supplier">Invoice Supplier</span></a>
                   </li>
-                @endcan
                   <li class="{{ \Request::segment(1) == 'invoice' ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('invoice.index') }}"><span class="menu-item text-truncate" data-i18n="Invoice customer">Invoice Customer</span></a>
                   </li>
+                @endcan
                 {{-- @can('ap-proforma-index')
                   <li class="{{ \Request::segment(1) == 'proforma'  ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('apProforma.index') }}"><span class="menu-item text-truncate" data-i18n="Proforma Invoice">Proforma Invoice</span></a>
                   </li>
@@ -577,8 +578,6 @@
               </a>
             </li>
             @endcan --}}
-
-
             @can('bank-index')
             <li class="{{ \Request::segment(1) == 'banks'  ? 'active' : '' }}">
               <a class="d-flex align-items-center" href="{{ route('banks.index') }}">
@@ -641,6 +640,10 @@
             </li>
             @endcan
           </ul>
+        </li>
+        @endcan
+
+        <li class=" navigation-header"><span data-i18n="hrm">HRM</span><i data-feather="more-horizontal"></i>
         </li>
         <li class=" {{ in_array(\Request::segment(1), ['employees','jobPositions','depts']) ? 'active' : '' }} nav-item">
           <a class="d-flex align-items-center" href="javascript:void(0);">
