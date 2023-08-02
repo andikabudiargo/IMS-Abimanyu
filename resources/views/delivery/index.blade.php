@@ -3,7 +3,6 @@
 @section('content')
 @include('layouts.breadcrumb')
 @include('partials.alert')
-
 <section id="article-index">
   <div class="card">
     <div class="card-header">  
@@ -62,7 +61,6 @@
     </div>
   </div>
 </section>
-
 <section id="table-article">
   <div class="card">
     <div class="card-header">
@@ -95,6 +93,9 @@
 @endsection
 @section('styles')
 <style>
+  .text-hijau {
+    color:rgb(6, 248, 22);
+  }
 </style>
 @endsection
 @section('scripts')
