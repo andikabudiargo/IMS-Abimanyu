@@ -24,7 +24,6 @@
         body.A5.landscape .sheet { width: 210mm; height: 147mm }
         
         
-
         /** Padding area **/
         .sheet.padding-10mm { padding: 10mm }
         .sheet.padding-5mm { padding: 5mm }
@@ -89,6 +88,10 @@
             }
             @page :header {
                 display: none
+            }
+
+            .hide-print {
+                display: none;
             }
 
         }
@@ -164,6 +167,11 @@
     </style>
 </head>
 <body class="{{ (count($details)) < 8 ? "A4A5" : "A4" }}">
+<div class="row hide-print" style="margin-left:20px;margin-top:20px">
+    <div class="col-md-12">
+        <button class="btn btn-primary" type="button" id="cmdPrint" name="cmdPrint">Print</button>
+    </div>
+</div>
 <div class="sheet padding-5mm">
     <table >
         <thead><tr><td>
@@ -219,6 +227,7 @@
                             <th width="10%" class="border-header">Code</th>
                             <th width="45%" class="border-header">Description</th>
                             <th width="10%" class="border-header">Qty</th>
+                            <th width="5%" class="border-header">UOM</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -228,6 +237,7 @@
                                 <td class="border-bottom" align="left">{{ $val->article_alternative_code }}</td>
                                 <td class="border-bottom" align="left">{{ $val->article_desc }}</td>
                                 <td class="border-bottom" align="right">{{ number_format($val->qty) }}</td>
+                                <td class="border-bottom" >{{ $val->uom_rec}}</td>
                             </tr>
                         @endforeach
                     </tbody>
@@ -265,8 +275,9 @@
     </table>
 </div>
 
+<script src="{{ asset('app-assets/vendors/js/vendors.min.js') }}"></script>
 <script>
-    window.onload= function () {
+    $("#cmdPrint").click(function(){ 
         window.print();
         window.onafterprint = function () {
             window.close();
@@ -276,7 +287,7 @@
                 window.close(); 
             }, 200); 
         }
-    }
+    });
 </script>
 </body>
 </html>
