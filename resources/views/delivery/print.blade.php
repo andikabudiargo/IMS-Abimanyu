@@ -272,10 +272,11 @@
                                         <td align="right">{{ number_format($val->qty) }}</td>
                                         <td align="left">{{ $val->uom }}</td>
                                     </tr>
+                                    
                                 @endforeach      
                                                     
-                                @if(count($details)>5)
-                                    <?php $totalBaris = 16 ?>
+                                @if((count($details))>5)
+                                    <?php $totalBaris = 23 ?>
                                 @else
                                     <?php $totalBaris = 4 ?>
                                 @endif
