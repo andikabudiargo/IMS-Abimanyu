@@ -128,7 +128,7 @@
         <tr>
             <th width="5%" >No</th>
             <th width="" >Material</th>
-            <th width="20%" >Brand</th>
+            <th width="21%" >Brand</th>
             <th width="5%" >Consumption</th>
             <th width="5%" >Unit</th>
             <th width="10%">Kode Barang</th>
@@ -137,12 +137,12 @@
         <tbody>
             @foreach ($details as $val )
                 <tr >
-                    <td class="detail-padding" scope="row" >{{ ++$no }}</td>
-                    <td class="detail-padding" align="left">{{ $val->article_desc }}</td>
-                    <td class="detail-padding font-10" align="left">{{ $val->nama }}</td>
-                    <td class="detail-padding" align="right">{{ $val->qty }}</td>
-                    <td class="detail-padding" align="left">{{ $val->uom }}</td>
-                    <td class="detail-padding" align="left">{{ $val->article_alternative_code }}</td>
+                    <td class="detail-padding" align="center" scope="row" style="padding-left:3px;padding-right:3px">{{ ++$no }}</td>
+                    <td class="detail-padding" align="left" style="padding-left:3px;padding-right:3px">{{ $val->article_desc }}</td>
+                    <td class="detail-padding font-10" align="left" style="padding-left:3px;padding-right:3px">{{ $val->nama }}</td>
+                    <td class="detail-padding" align="right" style="padding-left:3px;padding-right:3px">{{ $val->qty }}</td>
+                    <td class="detail-padding" align="left" style="padding-left:3px;padding-right:3px">{{ $val->uom }}</td>
+                    <td class="detail-padding" align="left" style="padding-left:3px;padding-right:3px">{{ $val->article_alternative_code }}</td>
                 </tr>
             @endforeach
         </tbody>
