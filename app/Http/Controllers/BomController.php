@@ -65,9 +65,9 @@ class BomController extends Controller
         ->get();
 
         $statistic = db::select("SELECT count(*) as jumlah_bom,
-        sum(case when status = '1' then 1 end) as jumlah_baru,
-        sum(case when status = '2' then 1 end) as jumlah_validate,
-        sum(case when status = '3' then 1 end) as jumlah_approve
+        sum(case when status = '1' then 1 else 0 end) as jumlah_baru,
+        sum(case when status = '2' then 1 else 0 end) as jumlah_validate,
+        sum(case when status = '3' then 1 else 0 end) as jumlah_approve
         from bom_hdr where status <> '7'");
 
         $data['bomTotal'] = $statistic[0]->jumlah_bom;
