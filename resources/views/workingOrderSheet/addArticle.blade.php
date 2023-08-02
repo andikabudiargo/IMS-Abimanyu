@@ -353,7 +353,7 @@
     if (wosDate.length) {
         wosDate.flatpickr({
             dateFormat: "d-m-Y",
-            minDate: currentDate
+            // minDate: currentDate
         });
     }
 

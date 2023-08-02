@@ -423,9 +423,15 @@ class DependentController extends Controller
                 ->whereIn('order_type',['std','tso','rm'])
                 ->whereIn('status',['3','7']);
             })
-            // permintaan bu ifah tidak si filter by supplier
-            // 11 04 2022 permintaan batal dari bu Yorin, jadi tetap di filter
-            ->where($field,$code)
+            /* permintaan bu ifah tidak si filter by supplier
+              11 04 2022 permintaan batal dari bu Yorin, jadi tetap di filter
+              2/5/2023 Antisipasi kalau pas pembuatan PR belum punya kode supplier,jadi ambil article nya dari article
+              berdasarkan kode supplier
+            */
+            ->where('supp_code',$code)
+            // ->whereIn("$table.article_code", function($query) use ($suppCode){
+            //     $query->select('article_code')->from('article')->where('third_party',$suppCode);
+            // })
             // ->where('po_number','=',null)
             ->orderBy($order)
             ->distinct($order)

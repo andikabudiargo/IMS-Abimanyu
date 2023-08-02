@@ -1402,6 +1402,9 @@ class PurchaseOrderController extends Controller
             ->leftJoin('article_supplier','article_supplier.article_code','=','purchase_request_det.article_code')
             ->leftJoin('uom','uom.code','=','purchase_request_det.uom')            
             ->where('article_supplier.supplier_code',$suppCode)
+            // ->whereIn('article_supplier.supplier_code', function($query) use ($suppCode){
+            //     $query->select('kode')->from('third_pary')->where('third_party_type','supp')->where('kode',$suppCode);
+            // })
             ->where('pr_number','=',$prNumber)
             ->orderBy('article.article_desc')
             ->distinct('article.article_desc')
