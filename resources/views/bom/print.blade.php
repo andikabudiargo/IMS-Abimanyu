@@ -127,11 +127,11 @@
         <thead style="background-color: lightgray;">
         <tr>
             <th width="5%" >No</th>
-            <th width="40%" >Material</th>
-            <th width="10%" >Brand</th>
+            <th width="" >Material</th>
+            <th width="20%" >Brand</th>
             <th width="5%" >Consumption</th>
             <th width="5%" >Unit</th>
-            <th>Kode Barang</th>
+            <th width="10%">Kode Barang</th>
         </tr>
         </thead>
         <tbody>
@@ -139,7 +139,7 @@
                 <tr >
                     <td class="detail-padding" scope="row" >{{ ++$no }}</td>
                     <td class="detail-padding" align="left">{{ $val->article_desc }}</td>
-                    <td class="detail-padding" align="left">{{ $val->nama }}</td>
+                    <td class="detail-padding font-10" align="left">{{ $val->nama }}</td>
                     <td class="detail-padding" align="right">{{ $val->qty }}</td>
                     <td class="detail-padding" align="left">{{ $val->uom }}</td>
                     <td class="detail-padding" align="left">{{ $val->article_alternative_code }}</td>
