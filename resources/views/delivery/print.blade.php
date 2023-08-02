@@ -182,7 +182,7 @@
 
     </style>
 </head>
-<body class="{{ (count($details)) < 6 ? "A4A5" : "A4" }}">
+<body class="{{ (count($details)) < 5 ? "A4A5" : "A4" }}">
 {{-- <body class="A4"> --}}
 <div class="row hide-print" style="margin-left:20px;margin-top:20px">
     <div class="col-md-12">
@@ -277,7 +277,7 @@
                                 @if(count($details)>5)
                                     <?php $totalBaris = 16 ?>
                                 @else
-                                    <?php $totalBaris = 5 ?>
+                                    <?php $totalBaris = 4 ?>
                                 @endif
 
                                 {{-- <?php //$totalBaris = 16 ?> --}}
