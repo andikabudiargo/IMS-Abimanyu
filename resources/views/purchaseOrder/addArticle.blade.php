@@ -2,7 +2,7 @@
 <div id="new_row" name="new_row[]" class="d-none">
     <div id="baru" class="tanda-baris" >
         <div class="form-row d-flex align-items-center">
-            <div class="col-md-2 col-12">
+            <div class="col-md-2 col-12" >
                 <div class="form-group margin-nol">
                     <label for="prNumber" class="d-block d-md-none">PR Number</label>
                     <input type="text" class="form-control disabled-el" id = "prNumber" name="prNumber[]">
@@ -11,7 +11,7 @@
             <div class="col-md-3 col-12">
                 <div class="form-group margin-nol">
                     <label for="articleDesc" class="d-block d-md-none">Article</label>
-                    <input type="text" class="form-control disabled-el" id = "articleDesc" name="articleDesc[]">
+                    <input type="text" class="form-control disabled-el" id = "articleDesc" name="articleDesc[]" data-toggle="tooltip" data-placement="top" title="">
                     <input type="hidden" class="form-control disabled-el" id = "articleId" name="articleId[]">
                     <input type="hidden" class="form-control disabled-el" id = "pRequest" name="pRequest[]">
                 </div>
@@ -22,7 +22,7 @@
                     <input type="text" class="form-control numeral-mask-satuan text-right" id = "qtyStock" name="qtyStock[]" disabled>
                 </div>
             </div>
-            <div class="col-md-1 col-12">
+            <div class="col-md-2 col-12">
                 <div class="form-group margin-nol">
                     <label for="qtyOrder" class="d-block d-md-none">QTY Order</label>
                     <div class="input-group input-group-merge">
@@ -55,13 +55,13 @@
                     </div>
                 </div>
             </div>
-            <div class="col-md-2 col-12">
+            <div class="col-md-2 col-12" style="max-width: 12%;">
                 <div class="form-group margin-nol">
                     <label for="totalLine" class="d-block d-md-none">Total</label>
                     <input type="text" class="form-control numeral-mask text-right" id="totalLine" name="totalLine[]" disabled>
                 </div>
             </div>
-            <div class="col-md-1 col-12">
+            <div class="col-md-1 col-12" style="max-width: 3%;">
                 <div class="form-group margin-nol">
                     <a onmouseover="this.style.cursor='pointer'" onclick="$(this).parents('.tanda-baris').remove();hitungGrandTotal();disabledEnabledSelect2();">
                         <i data-feather="trash-2" class="remove_button feather-24">
@@ -152,7 +152,7 @@
     and (max-device-width: 1600px) 
     and (-webkit-min-device-pixel-ratio: 1) { 
         .lebar-list-item{
-            width:150%;
+            width:100%;
         }
         .container-list-item{
             max-width:100%;
@@ -549,6 +549,7 @@
 
         $("#articleId"+cloneCount).val(articleCode);
         $("#articleDesc"+cloneCount).val(articleDesc);
+        $("#articleDesc"+cloneCount).attr('title',articleDesc);
         $("#qtyStock"+cloneCount).val(qtyStock*1);
         $("#uom"+cloneCount).text(uom);
         $("#qtyOrder"+cloneCount).val(qty);
