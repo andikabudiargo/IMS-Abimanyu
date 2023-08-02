@@ -120,7 +120,7 @@
                                 @foreach ($detail as $key =>$item)
                                     <div id="new_row{{ $key }}" class="tanda-baris" >
                                         <div class="form-row d-flex align-items-center">
-                                            <div class="col-md-2 col-12" style="max-width: 12.66667%;">
+                                            <div class="col-md-2 col-12">
                                                 <div class="form-group margin-nol">
                                                     <label for="prNumber" class="d-block d-md-none">PR Number</label>
                                                     <input type="text" class="form-control disabled-el" id = "prNumber" name="prNumber[]" value="{{ $item->pr_number }}" disabled>
@@ -140,7 +140,7 @@
                                                     <input type="text" class="form-control {{ $item->uom_group  == 'PIECE' ? 'numeral-mask-satuan' : 'numeral-mask-digit' }} text-right" id="qty_stock" name="qty_stock[]" value="{{ $item->qty_stock == 0 ? 0 :$item->qty_stock*1 }}" disabled>
                                                 </div>
                                             </div>
-                                            <div class="col-md-2 col-12" style="max-width: 10.66667%;">
+                                            <div class="col-md-2 col-12">
                                                 <div class="form-group margin-nol">
                                                     <label for="qtyOrder" class="d-block d-md-none">QTY Order</label>
                                                     <div class="input-group input-group-merge">
@@ -157,7 +157,7 @@
                                                     <input type="text" class="form-control numeral-mask text-right" id= "price" name="price[]" value="{{ $item->old_price }}"  maxlength="11">
                                                 </div>
                                             </div>
-                                            <div class="col-md-2 col-12" style="max-width: 10.66667%;">
+                                            <div class="col-md-2 col-12">
                                                 <div class="form-group margin-nol">
                                                     <label for="price" class="d-block d-md-none">Price</label>
                                                     <div class="input-group input-group-merge">
