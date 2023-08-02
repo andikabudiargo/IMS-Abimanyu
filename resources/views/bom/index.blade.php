@@ -3,6 +3,41 @@
 @section('content')
 @include('layouts.breadcrumb')
 <section id="article-index">
+  <div class="row match-height">
+    <!-- Bar Chart - Orders -->
+    <div class="col-lg-3 col-md-3 col-6">
+        <div class="card">
+            <div class="card-body pb-50">
+                <h6>Total BOM</h6>
+                <h2 class="font-weight-bolder mb-1">{{ $bomTotal }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-3 col-6">
+        <div class="card card-tiny-line-stats">
+            <div class="card-body pb-50">
+                <h6>BOM Baru</h6>
+                <h2 class="font-weight-bolder mb-1">{{ $bomBaru }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-3 col-6">
+      <div class="card card-tiny-line-stats">
+          <div class="card-body pb-50">
+              <h6>Status Validate</h6>
+              <h2 class="font-weight-bolder mb-1">{{ $bomValidate }}</h2>
+          </div>
+      </div>
+    </div>
+    <div class="col-lg-3 col-md-3 col-6">
+      <div class="card card-tiny-line-stats">
+          <div class="card-body pb-50">
+              <h6>Status Approved</h6>
+              <h2 class="font-weight-bolder mb-1">{{ $bomApprove }}</h2>
+          </div>
+      </div>
+    </div>
+  </div>
   <div class="card">
     <div class="card-header">  
       <h4 class="card-title">Filter</h4>
@@ -11,7 +46,7 @@
             <li><a data-action="collapse"><i data-feather="chevron-down"></i></a></li>
         </ul>
       </div>
-    </div>
+    </div>    
     <div class="card-content collapse show">
       <div class="card-body">
         <form class="needs-validation" novalidate>
@@ -80,6 +115,7 @@
   </div>
 </section>
 @endsection
+{{-- <link rel="stylesheet" type="text/css" href="{{ asset('app-assets/css/pages/dashboard-ecommerce.css') }}"> --}}
 @section('styles')
 <style>
 </style>

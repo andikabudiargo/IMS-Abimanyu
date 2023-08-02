@@ -63,6 +63,17 @@ class BomController extends Controller
         ->where('article_type','FG')
         ->select('article.*', 'third_party.nama as cust_name','group_materials.name as group')
         ->get();
+
+        $statistic = db::select("SELECT count(*) as jumlah_bom,
+        sum(case when status = '1' then 1 end) as jumlah_baru,
+        sum(case when status = '2' then 1 end) as jumlah_validate,
+        sum(case when status = '3' then 1 end) as jumlah_approve
+        from bom_hdr where status <> '7'");
+
+        $data['bomTotal'] = $statistic[0]->jumlah_bom;
+        $data['bomBaru'] = $statistic[0]->jumlah_baru;
+        $data['bomValidate'] = $statistic[0]->jumlah_validate;
+        $data['bomApprove'] = $statistic[0]->jumlah_approve;
        
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'RECEIVED','5'=>'DELETED','6'=>'CLOSED','7'=>'REVISED'];
         $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','5'=>'DELETED'];

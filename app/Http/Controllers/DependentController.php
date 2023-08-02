@@ -428,9 +428,16 @@ class DependentController extends Controller
               2/5/2023 Antisipasi kalau pas pembuatan PR belum punya kode supplier,jadi ambil article nya dari article
               berdasarkan kode supplier
             */
-            ->where('supp_code',$code)
-            // ->whereIn("$table.article_code", function($query) use ($suppCode){
-            //     $query->select('article_code')->from('article')->where('third_party',$suppCode);
+            // ->where('supp_code',$code)
+
+            //untuk single supplier atau main supplier
+            ->whereIn("$table.article_code", function($query) use ($code){
+                $query->select('article_code')->from('article')->where('third_party',$code);
+            })
+
+            //untuk multi supplier
+            // ->whereIn("$table.article_code", function($query) use ($code){
+            //     $query->select('article_code')->from('article_supplier')->where('supplier_code',$code);
             // })
             // ->where('po_number','=',null)
             ->orderBy($order)

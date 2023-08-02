@@ -101,6 +101,7 @@
                                                 <tr>
                                                     <th>No</th>
                                                     <th>Article</th>
+                                                    <th width="20%">Supplier</th>
                                                     <th class="text-right">QTY</th>
                                                     <th class="text-left">UOM</th>
                                                     {{-- <th class="text-left">History</th> --}}
@@ -126,6 +127,7 @@
                                                     <tr>
                                                         <td class="text-right"></td>
                                                         <td >{{ $item->article }}</td>
+                                                        <td >{{ $item->supplier_name }}</td>
                                                         <td class="text-right">{{ number_format($item->qty) }} </td>
                                                         <td>{{ $item->uom }}</td>
                                                         {{-- <td class="text-left">{{ $item->notes }}</td> --}}

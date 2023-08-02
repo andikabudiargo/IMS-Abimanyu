@@ -187,13 +187,21 @@
                 <td align="center" style="height: 40px;"></td>
             </tr>
             <tr>
-                @foreach($approvalHistory as $val)
+
+                <td align="center"></td>
+                <td align="center"></td>
+                <td align="center"></td>
+                <td align="center"></td>
+                <td align="center"></td>
+                <td align="center"></td>
+
+                {{-- @foreach($approvalHistory as $val)
                     @if($val->status == true)
                         <td align="center">{{ $val->name }}</td>
                     @else
                         <td align="center"></td>
                     @endif
-                @endforeach
+                @endforeach --}}
             </tr>
         </table> 
     </footer>

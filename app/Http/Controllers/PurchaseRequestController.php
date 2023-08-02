@@ -304,10 +304,13 @@ class PurchaseRequestController extends Controller
         })
         ->leftJoin('uom','uom.code','=','purchase_request_det.uom')
         ->leftJoin('article','article.article_code','=','purchase_request_det.article_code')
+        ->leftJoin('third_party','third_party.kode','purchase_request_det.supp_code')
         ->select('purchase_request_det'.'.*'
             ,'uom.uom_group'
+            ,'third_party.nama as supplier_name'
             ,DB::raw("concat(article_alternative_code,'-',article_desc) as article")
             ,DB::raw("(select STRING_AGG( (qty::real)::text,' -> ' ORDER BY pr_number) AS main from purchase_request_det p where article_code = purchase_request_det.article_code and pr_number like '$prNumber%' ) as notes")
+
         )
         ->orderBy('purchase_request_det.id')
         ->get();       
