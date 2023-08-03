@@ -176,10 +176,8 @@
                 <td width="10%" align="center">Approved By</td>
                 <td width="10%" align="center"></td>
                 <td width="10%" align="center"></td>
-                <td width="10%" align="center">Marketing</td>
             </tr>
             <tr>
-                <td align="center" style="height: 40px;"></td>
                 <td align="center" style="height: 40px;"></td>
                 <td align="center" style="height: 40px;"></td>
                 <td align="center" style="height: 40px;"></td>
@@ -202,7 +200,7 @@
                         <td align="center"></td>
                     @endif
                 @endforeach
-                <td align="center"></td>
+                
             </tr>
         </table> 
     </footer>
