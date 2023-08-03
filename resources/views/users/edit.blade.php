@@ -58,6 +58,7 @@
                         </div>
                         <div class="col-md-12">
                             <div class="form-group">
+                                <label>Role</label>
                                 {{ Form::select('roles[]', $roles,$userRole, array('class' => 'select2 form-control select2-hidden-accessible','multiple'=>'multiple')) }}
                             </div>
                         </div>
