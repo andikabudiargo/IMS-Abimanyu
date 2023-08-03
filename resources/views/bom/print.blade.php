@@ -174,8 +174,8 @@
                 <td width="10%" align="center">Prepared By</td>
                 <td width="10%" align="center">Checked By</td>
                 <td width="10%" align="center">Approved By</td>
-                <td width="10%" align="center"></td>
-                <td width="10%" align="center"></td>
+                <td width="10%" align="center">Approved By</td>
+                <td width="10%" align="center">Approved By</td>
             </tr>
             <tr>
                 <td align="center" style="height: 40px;"></td>
