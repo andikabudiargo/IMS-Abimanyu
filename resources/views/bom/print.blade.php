@@ -174,8 +174,8 @@
                 <td width="10%" align="center">Prepared By</td>
                 <td width="10%" align="center">Checked By</td>
                 <td width="10%" align="center">Approved By</td>
-                <td width="10%" align="center">Produksi</td>
-                <td width="10%" align="center">PPIC</td>
+                <td width="10%" align="center"></td>
+                <td width="10%" align="center"></td>
                 <td width="10%" align="center">Marketing</td>
             </tr>
             <tr>
