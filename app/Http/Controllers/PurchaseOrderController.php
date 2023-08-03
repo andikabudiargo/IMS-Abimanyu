@@ -1045,8 +1045,14 @@ class PurchaseOrderController extends Controller
              
         if ($orderDate  != '' ){
             $date = explode("to",$orderDate);
-            $date1=trim($date[0]);
-            $date2=trim($date[1]);
+            if(count($date)==2){
+                $date1=trim($date[0]);
+                $date2=trim($date[1]);
+            }else{
+                $date1=$orderDate;
+                $date2=$orderDate;
+            }
+            
             $filter.= "to_date(po_date, 'DD/MM/YYYY')  BETWEEN to_date('$date1', 'DD/MM/YYYY') and to_date('$date2', 'DD/MM/YYYY') and ";
         }
         
