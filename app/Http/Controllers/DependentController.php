@@ -431,15 +431,16 @@ class DependentController extends Controller
             // ->where('supp_code',$code)
 
             //untuk single supplier atau main supplier
-            ->whereIn("$table.article_code", function($query) use ($code){
-                $query->select('article_code')->from('article')->where('third_party',$code);
-            })
-
-            //untuk multi supplier
             // ->whereIn("$table.article_code", function($query) use ($code){
-            //     $query->select('article_code')->from('article_supplier')->where('supplier_code',$code);
+            //     $query->select('article_code')->from('article')->where('third_party',$code);
             // })
-            // ->where('po_number','=',null)
+            
+            //untuk multi supplier
+            ->whereIn("$table.article_code", function($query) use ($code){
+                $query->select('article_code')->from('article_supplier')->where('supplier_code',$code);
+            })
+            ->where('po_number','=',null)
+
             ->orderBy($order)
             ->distinct($order)
             ->select('purchase_request_det.*',

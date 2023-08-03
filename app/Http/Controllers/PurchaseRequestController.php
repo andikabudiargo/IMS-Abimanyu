@@ -643,6 +643,13 @@ class PurchaseRequestController extends Controller
         $rowAffected = DB::table('purchase_request_hdr')->where('id',$id)->delete();
         if($rowAffected>0){
             DB::table('purchase_request_det')->where('pr_number',$pr_number)->delete();
+            DB::table('target_order_hdr')->where('pr_number',$pr_number)
+            ->update(
+                [
+                    'pr_number' => null
+                ]
+            );
+
             $title ="Delete $this->title";
             $alert  ="success";
             $message  = "$title $pr_number Successfully Deleted";
