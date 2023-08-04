@@ -396,7 +396,7 @@ class TransferInController extends Controller
                 ]
             );
 
-            $movements = DB::table('transfer_det1')
+            $movements = DB::table('transfer_det')
             ->leftJoin('transfer_hdr','transfer_hdr.tr_number','transfer_det.tr_number')
             ->leftJoin('article','article.article_code','transfer_det.article_code')
             ->where('transfer_det.tr_number',$trNumber)
