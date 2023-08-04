@@ -278,7 +278,7 @@ class TransferInController extends Controller
                     ,'transfer_det.article_code'
                     ,'article.article_desc'
                     ,DB::raw("0 as movement_min")
-                    ,DB::RAW("(uom_conversion(transfer_det.uom,article.uom)*transfer_det.qty) as movement_plus")
+                    ,DB::RAW("coalesce((uom_conversion(transfer_det.uom,article.uom)*transfer_det.qty),1) as movement_plus")
                     ,DB::raw(" 0 as movement_price ")
                     ,'transfer_hdr.tr_number as movement_transnno'
                     ,DB::raw("'$trType' as movement_type")
@@ -351,7 +351,7 @@ class TransferInController extends Controller
         ->where('transfer_det.tr_number',$trNumber)
         ->where('transfer_hdr.status','4')
         ->select('transfer_det.*','article.article_type','article.uom as uom_article',
-            DB::RAW("transfer_det.qty*uom_conversion(transfer_det.uom,article.uom) as total_qty")
+            DB::RAW("transfer_det.qty*coalesce(uom_conversion(transfer_det.uom,article.uom),1) as total_qty")
         )
         ->get();
 
@@ -408,7 +408,7 @@ class TransferInController extends Controller
                 ,'transfer_det.article_code'
                 ,'article.article_desc'
                 ,DB::raw("0 as movement_plus")
-                ,DB::RAW("(uom_conversion(transfer_det.uom,article.uom)*transfer_det.qty) as movement_min")
+                ,DB::RAW("coalesce((uom_conversion(transfer_det.uom,article.uom)*transfer_det.qty),1) as movement_min")
                 ,DB::raw(" 0 as movement_price ")
                 ,'transfer_hdr.tr_number as movement_transnno'
                 ,DB::raw("'$trType' as movement_type")
