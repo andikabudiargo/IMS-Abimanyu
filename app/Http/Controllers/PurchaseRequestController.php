@@ -1106,7 +1106,7 @@ class PurchaseRequestController extends Controller
         ,1 as qty_bom
         ,article.uom as uom_bom
         ,article.uom as uom_article
-        ,bom_hdr.article_code_rm 
+        ,bom_hdr.article_code_rm
         ,1 as factor_qty
         ,coalesce(article.min_package,1) as min_package
         ,coalesce(article.safety_stock,0) as safety_stock 
@@ -1119,6 +1119,7 @@ class PurchaseRequestController extends Controller
         where production_detail_temp.code ='$randomCode'
         and bom_hdr.status = '3'
         and article_alternative_code is not null
+        and article.article_type = 'RMP'
         order by article_alternative_code
         ) a
         group by article_code_det,alternative,article_desc,uom_article,min_package,safety_stock,qty_stock
