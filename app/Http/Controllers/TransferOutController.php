@@ -278,7 +278,7 @@ class TransferOutController extends Controller
                     ,'transfer_det.article_code'
                     ,'article.article_desc'
                     ,DB::raw("0 as movement_plus")
-                    ,DB::RAW("(uom_conversion(transfer_det.uom,article.uom)*transfer_det.qty) as movement_min")
+                    ,DB::RAW("coalesce((uom_conversion(transfer_det.uom,article.uom)*transfer_det.qty),1) as movement_min")
                     ,DB::raw(" 0 as movement_price ")
                     ,'transfer_hdr.tr_number as movement_transnno'
                     ,DB::raw("'$trType' as movement_type")
