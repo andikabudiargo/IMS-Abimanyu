@@ -80,19 +80,24 @@ class PurchaseRequestController extends Controller
         $data['kolomDetail'] = $this->getTableColoumnDetail();
         $data['status'] = ['1'=>'NEW','2'=>'VALIDATED','3'=>'APPROVED','7'=>'PO'];
 
-        $data['depts'] = DB::table('depts')
-        ->whereIn('depts.code', function($query) use ($username) {
-            $query->select('dept')
-            ->from('user_dept') 
-            ->where('username',$username);
-        })
-        ->orderBy('name')
-        ->get();
+        $deptPurcashing = db::table('user_dept')
+        ->where('username',$username)
+        ->where('dept','008')->count();
+        if ($deptPurcashing){
+            $data['depts'] = DB::table('depts')
+            ->orderBy('name')
+            ->get();
+        }else{
+            $data['depts'] = DB::table('depts')
+            ->whereIn('depts.code', function($query) use ($username) {
+                $query->select('dept')
+                ->from('user_dept') 
+                ->where('username',$username);
+            })
+            ->orderBy('name')
+            ->get();
+        }
 
-        // $data['depts'] = DB::table('depts')
-        // ->orderBy('name')
-        // ->get();
-            
         return view("purchaseRequest.index",$data);
     }
 
@@ -678,7 +683,6 @@ class PurchaseRequestController extends Controller
         // 8 = revised   
 
         $username =  Auth::user()->username;
-        
         $searchPr = strtolower($request->searchPr);
         $orderType = strtolower($request->orderType);
         $searchStatus = $request->searchStatus;
@@ -686,6 +690,10 @@ class PurchaseRequestController extends Controller
         $dept = $request->dept;
         $fromDate ="";
         $toDate = "";
+
+        $deptPurcashing = db::table('user_dept')
+        ->where('username',$username)
+        ->where('dept','008')->count();
  
         if ($requestDate){
             $date = explode("to",$requestDate);
@@ -710,10 +718,15 @@ class PurchaseRequestController extends Controller
             $searchStatus ? $query->where('purchase_request_hdr.status',$searchStatus) : '';
             $requestDate ? $query->whereBetween(DB::raw("to_date(date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
         })
-        ->whereIn('purchase_request_hdr.dept', function($query) use ($username) {
-            $query->select('dept')
-            ->from('user_dept') 
-            ->where('username',$username);
+        ->whereIn('purchase_request_hdr.dept', function($query) use ($username,$deptPurcashing) {
+            if($deptPurcashing > 0){
+                $query->select('dept')
+                ->from('depts');
+            }else{
+                $query->select('dept')
+                ->from('user_dept') 
+                ->where('username',$username);
+            }
         })
         ->where('purchase_request_hdr.status','!=','8')
         ->select('purchase_request_hdr.*'
@@ -843,7 +856,6 @@ class PurchaseRequestController extends Controller
     public function listDetail(Request $request)
     {
         $username =  Auth::user()->username;
-        
         $seachPr = strtolower($request->seachPr);
         $orderType = strtolower($request->orderType);
         $searchStatus = $request->searchStatus;
@@ -851,6 +863,10 @@ class PurchaseRequestController extends Controller
         $dept = $request->dept;
         $fromDate ="";
         $toDate = "";
+
+        $deptPurcashing = db::table('user_dept')
+        ->where('username',$username)
+        ->where('dept','008')->count();
 
         if ($requestDate){
             $date = explode("to",$requestDate);
@@ -871,10 +887,15 @@ class PurchaseRequestController extends Controller
             $searchStatus ? $query->where('purchase_request_hdr.status',$searchStatus) : '';
             $requestDate ? $query->whereBetween(DB::raw("to_date(purchase_request_hdr.date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
         })
-        ->whereIn('purchase_request_hdr.dept', function($query) use ($username) {
-            $query->select('dept')
-            ->from('user_dept') 
-            ->where('username',$username);
+        ->whereIn('purchase_request_hdr.dept', function($query) use ($username,$deptPurcashing) {
+            if($deptPurcashing > 0){
+                $query->select('dept')
+                ->from('depts');
+            }else{
+                $query->select('dept')
+                ->from('user_dept') 
+                ->where('username',$username);
+            }
         })
         ->select('purchase_request_det.*'
         // ,DB::raw("(select concat(code,'-',name) from depts where code = purchase_request_hdr.dept limit 1) as dept_name")

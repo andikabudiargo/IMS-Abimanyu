@@ -198,7 +198,7 @@ class DeptController extends Controller
         ->addColumn('action', function ($data) {
             $buttons = '<div class="d-inline-flex">
                             <a class="pr-1 dropdown-toggle hide-arrow text-primary" data-toggle="dropdown">
-                                <i data-feather="more-vertical"></i>
+                                <i data-feather="menu"></i>
                             </a>';
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
             if (Auth::user()->can('department-edit')) {
@@ -223,9 +223,9 @@ class DeptController extends Controller
 
             return $buttons;
             })
-        ->addColumn('group_id', function ($user) {
-            return '';
-        })
+        // ->addColumn('group_id', function ($user) {
+        //     return '';
+        // })
         ->rawColumns(['action'])
         ->make(true);
     }

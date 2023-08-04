@@ -3,7 +3,7 @@
 <head>
     <meta http-equiv="content-type" content="text/html;charset=UTF-8" />
     <meta charset="utf-8" />
-    <title>Transfer In</title>
+    <title>Transfer Out</title>
     <style>
         /** Define the margins of your page **/
         @page {

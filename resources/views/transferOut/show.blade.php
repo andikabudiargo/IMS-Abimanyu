@@ -53,7 +53,7 @@
                                     <tr>
                                         <td ></td>
                                         <td >{{ $item->article }}</td>
-                                        <td class="text-right">{{ number_format($item->qty) }} {{ $item->uom }}</td>
+                                        <td class="text-right">{{ number_format($item->qty,2) }} {{ $item->uom }}</td>
                                         <td class="text-right">{{ $item->note }}</td>
                                     </tr>
                                 @endforeach

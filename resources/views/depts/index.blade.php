@@ -3,72 +3,70 @@
 @section('content')
 @include('layouts.breadcrumb')
 @include('partials.alert')
-
 <section id="depts-index">
-    <div class="row">
-      <div class="col-12">
-        <div class="card">
-          {{-- <div class="card-header">  
-            <div class="card-title">@yield('title')
-            </div>
-          </div> --}}
-          <div class="card-body">
-            <form class="needs-validation" novalidate>
-                <div class="form-row">
-                    <div class="col-md-4"> 
-                        <div class="form-group">
-                        <label for="basicInput">Kode</label>
-                        <input type="text" class="form-control text-uppercase" id="searchDeptCode" name="searchDeptCode" placeholder=""  />
-                        </div>
-                    </div>
-                    <div class="col-md-4"> 
-                    <div class="form-group">
-                        <label for="basicInput">Keterangan</label>
-                        <input type="text" class="form-control text-uppercase" id="searchDept" name="searchDept" placeholder="" />
-                    </div>
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="col-12"> 
-                        <button type="button" class="btn btn-primary" id ="btnSearch" name="btnSearch">Search</button>
-                        @can('department-create')
-                        <a href="{{ route('dept.create') }}" class="btn btn-info"><i class="fa fa-plus"></i> Create</a>
-                        @endcan
-                    </div>
-                </div>
-            </form>
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        {{-- <div class="card-header">  
+          <div class="card-title">@yield('title')
           </div>
-        </div>
-      </div>
-    </div>
-</section>
-
-<section id="table-depts">
-    <div class="card">
-      <div class="card-header">
-        <h4 class="card-title"> @yield('title') List</h4>
-        <div class="heading-elements">
-            <ul class="list-inline mb-0">
-                <li><a data-action="collapse"><i data-feather="chevron-down"></i></a></li>
-                <li><a data-action="reload"><i data-feather="rotate-cw"></i></a></li>
-            </ul>
-        </div>
-      </div>
-      <div class="card-content collapse show">
+        </div> --}}
         <div class="card-body">
-          <div class="row">
-              <div class="col-sm-12">
-                <div class="card-datatable table-responsive pt-0">
-                  <table id="detailedTable" class="table">
-                    <thead class="thead-light">
-                    </thead>
-                  </table>
-                </div>
+          <form class="needs-validation" novalidate>
+              <div class="form-row">
+                  <div class="col-md-4"> 
+                      <div class="form-group">
+                      <label for="basicInput">Kode</label>
+                      <input type="text" class="form-control text-uppercase" id="searchDeptCode" name="searchDeptCode" placeholder=""  />
+                      </div>
+                  </div>
+                  <div class="col-md-4"> 
+                  <div class="form-group">
+                      <label for="basicInput">Keterangan</label>
+                      <input type="text" class="form-control text-uppercase" id="searchDept" name="searchDept" placeholder="" />
+                  </div>
+                  </div>
               </div>
-          </div>  
+              <div class="form-row">
+                  <div class="col-12"> 
+                      <button type="button" class="btn btn-primary" id ="btnSearch" name="btnSearch">Search</button>
+                      @can('department-create')
+                      <a href="{{ route('dept.create') }}" class="btn btn-info"><i class="fa fa-plus"></i> Create</a>
+                      @endcan
+                  </div>
+              </div>
+          </form>
         </div>
       </div>
     </div>
+  </div>
+</section>
+<section id="table-depts">
+  <div class="card">
+    <div class="card-header">
+      <h4 class="card-title"> @yield('title') List</h4>
+      <div class="heading-elements">
+          <ul class="list-inline mb-0">
+              <li><a data-action="collapse"><i data-feather="chevron-down"></i></a></li>
+              <li><a data-action="reload"><i data-feather="rotate-cw"></i></a></li>
+          </ul>
+      </div>
+    </div>
+    <div class="card-content collapse show">
+      <div class="card-body">
+        <div class="row">
+            <div class="col-sm-12">
+              <div class="card-datatable table-responsive pt-0">
+                <table id="detailedTable" class="table">
+                  <thead class="thead-light">
+                  </thead>
+                </table>
+              </div>
+            </div>
+        </div>  
+      </div>
+    </div>
+  </div>
 </section>
 @include('partials.delete-modal')
 @endsection
@@ -83,10 +81,9 @@
     $(document).on('click', '#deleteButton', function(event) {
         event.preventDefault();
         href = $(this).data('href');
-        console.log(href);
         $('#modalConfirmation').attr("action", href);
     });
-
+    showList('','');
   });
 
    
@@ -120,7 +117,7 @@
         '<"col-sm-12 col-md-6"i>' +
         '<"col-sm-12 col-md-6"p>' +
         '>';
-    let arr_col_print =[2,3,4]; 
+    let arr_col_print =[1,2,3]; 
     $(function(){
       let oTable =$("#detailedTable").DataTable({
         ajax:
@@ -136,8 +133,8 @@
         buttons: true,
         dom:dtdom,
         lengthMenu: [
-          [ 10, 25, 50, -1 ],
-          [ '10', '25', '50', 'all' ]
+          [ 20, 25, 50, -1 ],
+          [ '20', '25', '50', 'all' ]
         ],
         buttons: [
           {
@@ -224,18 +221,19 @@
           }
         },
         columnDefs: [
-          {
-            // For Responsive
-            className: 'control',
-            orderable: false,
-            responsivePriority: 2,
-            targets: 0
-          },
-          {
-            responsivePriority: 1,
-            targets: 3
-          },
-          { width: '10%', targets: 1 }
+          // {
+          //   // For Responsive
+          //   className: 'control',
+          //   orderable: false,
+          //   responsivePriority: 2,
+          //   targets: 0
+          // },
+          // {
+          //   responsivePriority: 1,
+          //   targets: 3
+          // },
+          // { width: '10%', targets: 1 },
+          { width: '5%', targets: 0 }
         ],
         drawCallback: function( settings ) {
           feather.replace({
@@ -247,7 +245,7 @@
         bDestroy: true, //pakai ini supaya bisa di load berulang2
         // scrollX: true, //pakai ini supaya waktu responsive  bisa di scroll horizontal
         columns: [
-            { data: 'group_id',name:'group_id', title:'',orderable: false, searchable: false },
+            // { data: 'group_id',name:'group_id', title:'',orderable: false, searchable: false },
             { data: 'action', name: 'action',title:'action', orderable: false, searchable: false },
             { data: 'code', name: 'code',title:'Kode' },
             { data: 'name', name: 'name',title:'Nama' },

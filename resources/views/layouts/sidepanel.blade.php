@@ -82,7 +82,7 @@
               </a>
             </li>
             @endcan
-            <li class="{{ \Request::segment(1) == 'stockTake' ? 'active' : '' }} disabled">
+            {{-- <li class="{{ \Request::segment(1) == 'stockTake' ? 'active' : '' }} disabled">
               <a class="d-flex align-items-center" href="{{ route('articles.index') }} ">
                 <i data-feather="circle"></i>
                 <span class="menu-item text-truncate" data-i18n="Input">Stocktake</span>
@@ -93,7 +93,7 @@
                 <i data-feather="circle"></i>
                 <span class="menu-item text-truncate" data-i18n="Input">Adjustment</span>
               </a>
-            </li>
+            </li> --}}
           </ul>
         </li>
         <li class=" navigation-header"><span data-i18n="Marketing">Marketing</span><i data-feather="more-horizontal"></i>

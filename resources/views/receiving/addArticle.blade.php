@@ -137,7 +137,7 @@
         },
         success:function(result){
             $('#'+obj).html(result);
-            $('#'+obj).val('').trigger('change');
+            // $('#'+obj).val('').trigger('change');
         },
         error: function (response) {
             //Error here

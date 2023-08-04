@@ -674,6 +674,8 @@ class ReceivingController extends Controller
             ->update(
                 [   
                     'status' => $status,
+                    'po_number'=>DB::raw("CONCAT(po_number,';','(C)')") ,
+                    'do_number'=>DB::raw("CONCAT(do_number,';','(C)')") ,
                     'note' => DB::raw("CONCAT(note,';','$reason')") ,
                     'updated_by' => Auth::user()->username,
                     'updated_at' => date('Y-m-d H:i:s')
@@ -1037,9 +1039,11 @@ class ReceivingController extends Controller
         ->select("po_number")
         ->get();          
 
-        $output .='<option value=""></option>';            
-        foreach ($data as $row){
-            $output .='<option value="'.$row->po_number.'">'.$row->po_number.'</option>';            
+        if (count($data)>0){
+            $output .='<option value="Choose PO">Choose PO</option>';            
+            foreach ($data as $row){
+                $output .='<option value="'.$row->po_number.'">'.$row->po_number.'</option>';            
+            }
         }
         return $output;
     }
