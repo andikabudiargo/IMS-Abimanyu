@@ -20,8 +20,11 @@
     }
 </style>
 
-<script type="text/javascript">      
-    $('.modal').on('shown.bs.modal', function () {
-        $('.select2').select2();
-    })
+
+<script type="text/javascript">     
+    // $(document).ready(function(){ 
+    //     $('.modal').on('shown.bs.modal', function () {
+    //         $('.select2').select2();
+    //     })
+    // });
 </script>

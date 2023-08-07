@@ -137,6 +137,10 @@
             
         });
 
+        $('.modal').on('shown.bs.modal', function () {
+            $('.select2').select2();
+        })
+
         $(window).on('load', function() {
             if (feather) {
                 feather.replace({
