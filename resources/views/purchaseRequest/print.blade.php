@@ -110,7 +110,7 @@
                     <td scope="row" class="border-bottom" align="right">{{ ++$no }}</td>
                     <td class="border-bottom" align="left">{{ $val->article_alternative_code }}</td>
                     <td class="border-bottom" align="left">{{ $val->article_desc }}</td>
-                    <td class="border-bottom" align="left">{{ $val->supp_name }}</td>
+                    <td class="border-bottom" align="left" style="font-size: 10px;">{{ $val->supp_name }}</td>
                     <td class="border-bottom" align="right">{{ number_format($val->qty) }}</td>
                     <td class="border-bottom" align="left">{{ $val->uom }}</td>
                     <td class="border-bottom" align="left">{{ $val->notes }}</td>
