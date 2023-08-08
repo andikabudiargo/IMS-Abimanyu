@@ -1113,8 +1113,8 @@ class TargetSoController extends Controller
             ,qty
             ,uom
             ,uom_con
-            ,coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = bom_det.uom),1) as nilai_konversi
-            ,qty * coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = bom_det.uom),1) as qty_hasil_konversi
+            ,coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = article.uom),1) as nilai_konversi
+            ,qty * coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = article.uom),1) as qty_hasil_konversi
             from bom_det where bom_code in 
             (
             select bom_code
@@ -1173,6 +1173,8 @@ class TargetSoController extends Controller
             left join article on article.article_code = bom_hdr.article_code_rm
             where bom_hdr.status = '3'
             and article_alternative_code is not null
+            and article.article_type = 'RMP'
+            order by article_alternative_code
             ) as oki
             left join article on article.article_code = oki.article_code_rm
             order by alternative

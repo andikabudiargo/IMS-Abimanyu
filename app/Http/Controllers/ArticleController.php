@@ -881,11 +881,14 @@ class ArticleController extends Controller
         $nama = strtoupper($request->nama);
         $group = $request->group;
         $uom = $request->uom;
-        $price = $request->price;
-        $price = $price ? str_replace(",","",$price) : $price;
-        $sapetiStok = $request->safetyStock;
-        $safetyStock = $sapetiStok ? str_replace(",","",$sapetiStok) : $sapetiStok;
-        $minimumPackage = $request->minimumPackage ? str_replace(",","",$request->minimumPackage) : $request->minimumPackage;
+        // $price = $request->price;
+        // $price = $price ? str_replace(",","",$price) : $price;
+        // $sapetiStok = $request->safetyStock;
+        // $safetyStock = $sapetiStok ? str_replace(",","",$sapetiStok) : $sapetiStok;
+        // $minimumPackage = $request->minimumPackage ? str_replace(",","",$request->minimumPackage) : $request->minimumPackage;
+        $price = preg_replace('/[^0-9.]/', '', $request->price);
+        $safetyStock = preg_replace('/[^0-9.]/', '', $request->safetyStock);
+        $minimumPackage = preg_replace('/[^0-9.]/', '', $request->minimumPackage);
         $note = $request->note;
         $files = $request->files;
         /*
@@ -896,7 +899,7 @@ class ArticleController extends Controller
         $status = '1';
         $pesan = '';
         $brand = $request->brand;
-        $orderable = $request->orderableCheck;
+        $orderable = $request->orderableCheck == 'on' ? '1' : '0';
 
         $colorCode = $request->colorCode;
         $variant = $request->variant;
@@ -1015,7 +1018,6 @@ class ArticleController extends Controller
             \LogActivity::addToLog($title,"username: $username Status $message");
             return redirect()->back()->with(['status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'articleCode'=>$articleAltCode]);
         }    
-
     }
 
     public function requestList(Request $request)
@@ -1037,7 +1039,7 @@ class ArticleController extends Controller
         ,'article_request.uom'
         ,'quality'
         ,'note'
-        ,'article_request.id'
+        ,'article_request.id as idku'
         ,'group_materials.name as group'
         ,'third_party.nama as cust'
         ,'safety_stock'
@@ -1063,12 +1065,12 @@ class ArticleController extends Controller
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
         
             if (Auth::user()->can('article-edit')) {
-            $buttons .=         '<a href="'. route('article.edit',  ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+            $buttons .=         '<a href="'. route('article.edit',  ['id'=>Crypt::encryptString($data->idku)]) .'" class="dropdown-item">
                                     <i data-feather="file-text"></i>
                                     Edit
                                 </a>';
             }
-            $buttons .=         '<a href="'. route('article.show', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+            $buttons .=         '<a href="'. route('article.show', ['id'=>Crypt::encryptString($data->idku)]) .'" class="dropdown-item">
                                     <i data-feather="list"></i>
                                     Detail
                                 </a>';
@@ -1078,7 +1080,7 @@ class ArticleController extends Controller
                                     class="dropdown-item"
                                     data-toggle="modal"
                                     data-target="#smallModal"
-                                    data-href="'. route("article.request.destroy", ['id'=>Crypt::encryptString($data->id)]) .'">
+                                    data-href="'. route("article.request.destroy", ['id'=>Crypt::encryptString($data->idku)]) .'">
                                     <i data-feather="trash-2" class="feather-14-red"></i>
                                     Delete
                                 </a>';

@@ -235,15 +235,15 @@ class PurchaseRequestController extends Controller
                     $dataSet[] = [
                         'pr_number' => $prNumber,
                         'article_code' => $val->article_code,
-                        // 'qty' => preg_replace('/[^0-9]/', '', $val->qty),
+                        // 'qty' => preg_replace('/[^0-9.]/', '', $val->qty),
                         'qty' => $val->qty,
                         'uom' => $val->uom,
                         'supp_code' => $val->supp,
                         'note' => $val->note,
                         'created_by' => Auth::user()->username,
                         'created_at' => date('Y-m-d H:i:s'),
-                        // 'qty_hitung' => preg_replace('/[^0-9]/', '', $val->qty_hitung),
-                        // 'qty_stock' => preg_replace('/[^0-9]/', '', $val->qty_stock) ,
+                        // 'qty_hitung' => preg_replace('/[^0-9.]/', '', $val->qty_hitung),
+                        // 'qty_stock' => preg_replace('/[^0-9.]/', '', $val->qty_stock) ,
                         'qty_hitung' =>$val->qty_hitung,
                         'qty_stock' => $val->qty_stock,
                     ];
@@ -1600,8 +1600,8 @@ class PurchaseRequestController extends Controller
             ,qty
             ,uom
             ,uom_con
-            ,coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = bom_det.uom),1) as nilai_konversi
-            ,qty * coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = bom_det.uom),1) as qty_hasil_konversi
+            ,coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = article.uom),1) as nilai_konversi
+            ,qty * coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = article.uom),1) as qty_hasil_konversi
             from bom_det where bom_code in 
             (
             select bom_code
@@ -1660,6 +1660,8 @@ class PurchaseRequestController extends Controller
             left join article on article.article_code = bom_hdr.article_code_rm
             where bom_hdr.status = '3'
             and article_alternative_code is not null
+            and article.article_type = 'RMP'
+            order by article_alternative_code
             ) as oki
             left join article on article.article_code = oki.article_code_rm
             order by alternative

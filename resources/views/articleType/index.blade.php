@@ -110,6 +110,9 @@
         name:nama,
         code:code
       },
+      columnDefs :[
+        { width: '5%', targets: 0 },
+      ],
       orderColumn:[[2,'asc']],
     });
   }
