@@ -50,6 +50,14 @@
               </a>
             </li>
             @endcan
+            @can('article-request')
+            <li class="{{ \Request::is(['articles/request','articles/request/create','articles/request/edit','articles/request/show']) ? 'active' : '' }}">
+              <a class="d-flex align-items-center" href="{{ route('article.request') }}">
+                <i data-feather="circle"></i>
+                <span class="menu-item text-truncate" data-i18n="Input">Article Request</span>
+              </a>
+            </li>
+            @endcan
             @can('uom-index')
             <li class="{{ \Request::segment(1) == 'uoms'  ? 'active' : '' }}">
               <a class="d-flex align-items-center" href="{{ route('uoms.index') }}">

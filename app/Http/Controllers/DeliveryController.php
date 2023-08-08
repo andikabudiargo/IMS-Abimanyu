@@ -297,7 +297,7 @@ class DeliveryController extends Controller
         $data['approveValidate'] = Approval::approveValidate($this->moduleCode,$dnNumber,$username);
 
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED','8'=>'RECEIVED'];
-        $statusDel = ['NEW','VALIDATE','APPROVED','POSTED','CANCELED','','REVISED'];
+        $statusDel = ['NEW','VALIDATE','APPROVED','POSTED','CANCELED','','REVISED','RECEIVED'];
         $data['statusDel'] = $statusDel[$data['headers'][0]->status-1];
 
         return view("delivery.show",$data);
@@ -338,7 +338,7 @@ class DeliveryController extends Controller
         $data['approveValidate'] = Approval::approveValidate($this->moduleCode,$dnNumber,$username);
 
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED','8'=>'RECEIVED'];
-        $statusDel = ['NEW','VALIDATE','APPROVED','POSTED','CANCELED','','REVISED'];
+        $statusDel = ['NEW','VALIDATE','APPROVED','POSTED','CANCELED','','REVISED','RECEIVED'];
         $data['statusDel'] = $statusDel[$data['header']->status-1];
 
         return view("delivery.edit",$data);        
@@ -950,14 +950,14 @@ class DeliveryController extends Controller
 
         ->addColumn('delivery_number', function ($data) {
             $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-danger'];            
-            $statusDel = ['NEW','VALIDATE','APPROVED','POSTED','CANCELED','','','RECEIPT'];
+            $statusDel = ['NEW','VALIDATE','APPROVED','POSTED','CANCELED','','','RECEIVED'];
              // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED','8'=>'RECEIVED'];
             return '<span style="display: none;">'.$data->delivery_number.'</span><a class="text-left badge d-block '.$badges[$data->status - 1].'" name="'.$data->delivery_number.'" href="'. route('delivery.show', ['id'=>Crypt::encryptString($data->id)]) .'" ><span>'.$data->delivery_number.'</span></a>';
         })
 
         ->addColumn('status', function ($data) {
             $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-danger'];            
-            $statusDel = ['NEW','VALIDATE','APPROVED','POSTED','CANCELED','','','RECEIPT'];
+            $statusDel = ['NEW','VALIDATE','APPROVED','POSTED','CANCELED','','','RECEIVED'];
             return "<div class='badge ".$badges[$data->status - 1]."'>".$statusDel[$data->status - 1]."</div>";
         })
 

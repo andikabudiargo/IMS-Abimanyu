@@ -194,6 +194,12 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('articles/get/supplier',['as'=>'get.supplier','uses'=>'ArticleController@getSupplier']);
 	Route::get('articles/movement',['as'=>'article.movement','uses'=>'ArticleController@movement']);
 
+	Route::get('articles/request',['as'=>'article.request','uses'=>'ArticleController@requestIndex']);
+	Route::get('articles/request/list',['as'=>'article.request.list','uses'=>'ArticleController@requestList']);
+	Route::get('articles/request/create',['as'=>'article.request.create','uses'=>'ArticleController@requestCreate']);
+	Route::post('articles/request/store',['as'=>'article.request.store','uses'=>'ArticleController@requestStore']);
+	Route::post('articles/request/delete',['as'=>'article.request.destroy','uses'=>'ArticleController@requestDestroy']);
+
 	Route::get('articleTypes',['as'=>'articleTypes.index','uses'=>'ArticleTypeController@index','middleware' => ['permission:articleType-index']]);
 	Route::get('articleTypes/create',['as'=>'articleType.create','uses'=>'ArticleTypeController@create','middleware' => ['permission:articleType-create']]);
 	Route::post('articleTypes/store',['as'=>'articleType.store','uses'=>'ArticleTypeController@store']);

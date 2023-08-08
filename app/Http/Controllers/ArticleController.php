@@ -485,9 +485,21 @@ class ArticleController extends Controller
                         $artCode.$val
                     ];
                 }
+
+                $getArticleCode = db::table('article')->where('id',$id)->value('article_code');
+
+                /*Update di BOM untuk main customer nya di update sesuai dengan di article*/
+                DB::table('bom_hdr')
+                ->where('article_code',$getArticleCode)
+                ->update(
+                [ 
+                    'customer' => $cust[0]
+                ]); 
                     
-                //Delete kalo article tidak ada di po $poNumber dan article nya $val->article_code
-                //berdasarkan 2 kondisi
+                /*
+                Delete kalo article tidak ada di po $poNumber dan article nya $val->article_code
+                berdasarkan 2 kondisi
+                */
                 DB::table('article_supplier')
                 ->whereNotIn(DB::raw("CONCAT(article_code,supplier_code)"),$dataSet)
                 ->where('article_code',$artCode)
@@ -707,12 +719,12 @@ class ArticleController extends Controller
             //kalo barang finish goods hanya punya nya customer, tapi kalo raw material yang punyanya bisa customer bisa supplier
             // $code == 'FG' ? $query->where('third_party_type','cust') : $query->where('third_party_type','supp');  //tadinya ini
             $code == 'FG' ? $query->where('third_party_type','cust') : '';
-            $code != 'FG' && $code != 'RM' ? $query->where('third_party_type','supp') : '';
+            $code != 'FG' ? $query->where('third_party_type','supp') : '';
 
         })->get();
         
         $output='';
-        $output .= $code == 'FG'?'<option value=""></option>':'<option value="All">All</option>';
+        $output .= $code == 'FG'?'<option value=""></option>':'<option value=""></option>';
 
         foreach ($data as $row){
             $output .="<option value='$row->kode'>$row->kode - $row->nama</option>";
@@ -787,6 +799,301 @@ class ArticleController extends Controller
             return $data->balanceqty < 0 ? "<div class='text-red'>$balanceQty</div>" : "<div class='text-hitam'>$balanceQty</div>";
         })
         ->rawColumns(['qty','balanceqty'])
+        ->make(true);
+    }
+
+    /*request article*/
+
+    public function getTableColoumnRequest(){
+        $kolom=    
+        [
+            ['data'=>'action','name'=>'action','title'=>'action','orderable'=>false, 'searchable'=>false],
+            ['data'=>'status','name'=>'status','title'=>'Status'],
+            ['data'=>'desc','name'=>'article_desc','title'=>'Name'],
+            ['data'=>'third_party','name'=>'third_party','title'=>'Cust/supp'],
+            ['data'=>'cust','name'=>'third_party.nama','title'=>'Custs/Supp'],
+            ['data'=>'costprice','name'=>'costprice','title'=>'Price'],
+            ['data'=>'uom','name'=>'uom','title'=>'UOM'],
+            ['data'=>'article_type','name'=>'article_type','title'=>'Type'],
+            ['data'=>'safety_stock','name'=>'safety_stock','title'=>'Safety Stock'],
+            ['data'=>'min_package','name'=>'min_package','title'=>'Min Package'],
+            ['data'=>'group','name'=>'group_materials.name','title'=>'Group'],
+            ['data'=>'note','name'=>'note','title'=>'Note'],
+            ['data'=>'created_by','name'=>'created_by','title'=>'Requested By'],
+            ['data'=>'created_at','name'=>'created_at','title'=>'Requested At'],
+            ['data'=>'approved_by','name'=>'approved_by','title'=>'Approved By'],
+            ['data'=>'approved_at','name'=>'approved_at','title'=>'Approved At']
+        ];
+        return json_encode($kolom, true);
+    }
+
+    public function requestIndex(Request $request)
+    {
+        $data['title'] = "$this->title Request";
+
+        $data['types'] = DB::table('article_types')
+        ->where ('status','=',1)
+        ->orderBy('name')
+        ->get();
+    
+        $data['supps'] = DB::table('third_party')
+        ->orderBy('nama')
+        ->get();        
+
+        $data['groups'] = DB::table('group_materials')
+        ->where ('status','=',1)
+        ->orderBy('name')
+        ->get();
+
+        $data['kolom'] = $this->getTableColoumnRequest();
+        
+        return view("articles.request",$data);
+    }
+
+    public function requestCreate(Request $request)
+    {
+        $data['title'] = "Request $this->title";
+        $data['subtitle'] = "Request New $this->title";
+        
+        $data['types'] = DB::table('article_types')
+        ->where ('status','=',1)
+        ->orderBy('name')
+        ->get();
+
+        $data['groups'] = DB::table('group_materials')
+        ->where ('status','=',1)
+        ->orderBy('name')
+        ->get();
+
+        $data['uoms'] = DB::table('uom')
+        ->orderBy('name')
+        ->get();
+                        
+        return view("articles.requestCreate",$data);
+    }
+
+    public function requestStore(Request $request)
+    {
+        // Dump, Die, Debug Fungsinya untuk nge-debug hasil dari submit
+        $username =  Auth::user()->username;
+        $type = $request->articleType;
+        $cust = $request->cust;
+        $nama = strtoupper($request->nama);
+        $group = $request->group;
+        $uom = $request->uom;
+        $price = $request->price;
+        $price = $price ? str_replace(",","",$price) : $price;
+        $sapetiStok = $request->safetyStock;
+        $safetyStock = $sapetiStok ? str_replace(",","",$sapetiStok) : $sapetiStok;
+        $minimumPackage = $request->minimumPackage ? str_replace(",","",$request->minimumPackage) : $request->minimumPackage;
+        $note = $request->note;
+        $files = $request->files;
+        /*
+        status 1 = request
+        status 2 = approved
+        status 3 = decline
+        */
+        $status = '1';
+        $pesan = '';
+        $brand = $request->brand;
+        $orderable = $request->orderableCheck;
+
+        $colorCode = $request->colorCode;
+        $variant = $request->variant;
+
+        $messages = [
+            'required' => 'The field is required.',
+            'unique' => 'The code has already been taken',
+        ];
+        
+        Validator::extend('iunique', function ($attribute, $value, $parameters, $validator) {
+            $query = DB::table($parameters[0]);
+            $column = $query->getGrammar()->wrap($parameters[1]);
+            return !$query->whereRaw("lower({$column}) = lower(?)", [$value])->count();
+        });
+
+        $rule = [
+            'nama'=>'required',
+            'articleType'=>'required',
+            'minimumPackage'=>'required'
+        ];
+
+        $this->validate($request,$rule,$messages);
+                
+        DB::beginTransaction();
+        try {
+                $artCode = uniqid();
+                DB::table('article_request')->insert([
+                    'article_code' => $artCode,
+                    'article_desc' => $nama,
+                    'group_of_material' => $group,
+                    'third_party' => $cust[0],
+                    'note' => $note,
+                    'uom' => $uom,
+                    'safety_stock' => $safetyStock,
+                    'min_package' => $minimumPackage,
+                    'costprice' => $price,
+                    'status' => $status,
+                    'color_code' => $colorCode,
+                    'variant' => $variant,
+                    'article_type' => $type,
+                    'created_by' => Auth::user()->username,
+                    'updated_by' => Auth::user()->username,
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s'),
+                    'brand' => $brand,
+                    'orderable' =>$orderable
+                ]); 
+
+                foreach($cust as $val){
+                    DB::table('article_supplier_request')->insert([
+                        'article_code' => $artCode,
+                        'supplier_code' => $val,
+                        'main_supplier' => $cust[0] == $val ? 'Y' : 'N',
+                        'created_by' => Auth::user()->username,
+                        'updated_by' => Auth::user()->username,
+                        'created_at' => date('Y-m-d H:i:s'),
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]); 
+                }
+
+                // if($files){
+                //     foreach($files as $val){
+                //         DB::table('images')->insert([
+                //             'key' => $artCode,
+                //             'name' => $nama,
+                //             'path' => $val,
+                //             'created_by' => Auth::user()->username,
+                //             'updated_by' => Auth::user()->username,
+                //             'created_at' => date('Y-m-d H:i:s'),
+                //             'updated_at' => date('Y-m-d H:i:s')
+                //         ]); 
+                //     }
+                // }
+               
+                DB::commit();
+                $title ="Save Request $this->title";
+                $alert  ="success";
+                $message  = "$this->title $artCode is successfully saved";
+                \LogActivity::addToLog($title,"username: $username Status $message");
+                return redirect()->back()->with(['status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'articleCode'=>$artCode]);  
+
+        } catch (Exception $e) {
+            DB::rollBack();
+            $title ="Save Request $this->title";
+            $alert  ="warning";
+            $message  = "$this->title $artCode is failed to save";
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return redirect()->back()->with(['status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'articleCode'=>$artCode]);
+        }        
+    }
+
+    public function requestDestroy(Request $request)
+    {
+        $username =  Auth::user()->username;
+        $id=Crypt::decryptString($request->id);
+
+        DB::beginTransaction();
+        try {
+
+            $articleAltCode=db::table('article')->where('id',$id)->value('article_desc');
+            
+            $row_affected=DB::table('article')
+            ->where('id',$id)->delete();
+
+            DB::commit();
+            $title ="Delete $this->title";
+            $alert  ="success";
+            $message  = "$this->title $articleAltCode is successfully deleted";
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return redirect()->back()->with(['status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'articleCode'=>$articleAltCode]);
+        } catch (Exception $e) {
+            DB::rollBack();
+            $title ="Delete $this->title";
+            $alert  ="warning";
+            $message  = "$this->title $articleAltCode is failed to delete";
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return redirect()->back()->with(['status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'articleCode'=>$articleAltCode]);
+        }    
+
+    }
+
+    public function requestList(Request $request)
+    {
+        $code = strtolower($request->code);
+        $name = strtolower($request->name);
+        $group = strtolower($request->group);
+        $cust = strtolower($request->cust);
+        $supp = strtolower($request->supp);
+        $type = strtolower($request->type);
+
+        $data=DB::table('article_request')
+        ->select('article_request.*'
+        ,'costprice'
+        ,'article_request.article_code as art_code'
+        ,'article_alternative_code as code'
+        ,'article_desc as desc'
+        ,'brand'
+        ,'article_request.uom'
+        ,'quality'
+        ,'note'
+        ,'article_request.id'
+        ,'group_materials.name as group'
+        ,'third_party.nama as cust'
+        ,'safety_stock'
+        ,'min_package'
+        ,'uom.uom_group')
+        ->leftJoin('group_materials', 'group_materials.code', '=', 'article_request.group_of_material')
+        ->leftJoin('third_party', 'third_party.kode', '=', 'article_request.third_party')
+        ->leftJoin('uom','uom.code','article_request.uom')
+        ->where(function ($query) use ($name,$group,$cust,$supp,$type) {
+            $name ? $query->where('article_desc','ilike','%'.$name.'%') :'';
+            $group ? $query->where('group_of_material','ilike','%'.$group.'%') :'';
+            $cust ? $query->where('third_party','ilike','%'.$cust.'%') :'';
+            $supp ? $query->where('third_party','ilike','%'.$supp.'%') :'';
+            $type ? $query->where('article_type','ilike',$type.'%') :'';      
+        })->orderBy('article_desc')->get();
+       
+        return Datatables::of($data)
+        ->addColumn('action', function ($data) {
+            $buttons = '<div class="d-inline-flex">
+                            <a class="pr-1 dropdown-toggle hide-arrow" data-toggle="dropdown">
+                                <i data-feather="menu"></i>
+                            </a>';
+            $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
+        
+            if (Auth::user()->can('article-edit')) {
+            $buttons .=         '<a href="'. route('article.edit',  ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+                                    <i data-feather="file-text"></i>
+                                    Edit
+                                </a>';
+            }
+            $buttons .=         '<a href="'. route('article.show', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+                                    <i data-feather="list"></i>
+                                    Detail
+                                </a>';
+            if (Auth::user()->can('article-delete')) {
+            $buttons .=         '<a href="javascript:;"
+                                    id="deleteButton"
+                                    class="dropdown-item"
+                                    data-toggle="modal"
+                                    data-target="#smallModal"
+                                    data-href="'. route("article.request.destroy", ['id'=>Crypt::encryptString($data->id)]) .'">
+                                    <i data-feather="trash-2" class="feather-14-red"></i>
+                                    Delete
+                                </a>';
+            }
+            $buttons .=     '</div>
+                        </div>';
+
+            return $buttons;
+        })
+        ->addColumn('status', function ($data) {
+            $badges=['badge-light-success','badge-light-primary','badge-light-danger'];
+            $statusCode = ['Requested','Approved','Decline'];
+            return "<div class='badge badge-pill ".$badges[$data->status-1]."'>".$statusCode[$data->status-1]."</div>";
+        })
+        ->rawColumns(['action','article_alternative_code','status','article_qty'])
         ->make(true);
     }
     

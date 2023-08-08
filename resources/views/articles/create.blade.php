@@ -11,12 +11,12 @@
                         @csrf
                         <div class="form-row d-none">
                             <div class="form-group col-md-12">
-                                <label for="kode">Article Code 1</label>
+                                <label for="kode">Article Code</label>
                                 <input type="text" id="kode" name="kode" class="form-control disabled-el"  value="{{ old('kode') }}" disabled />
                             </div>
                         </div>
                         <div class="form-row">
-                            <div class="form-group col-md-12">
+                            <div class="form-group col-md-8">
                                 <label class="form-label" for="articleType">Article Type*</label>
                                 <select class="select2 form-control" id="articleType" name="articleType" autofocus required>
                                     <option value=""></option>
@@ -24,7 +24,13 @@
                                         <option value="{{$val->code}}" {{ $val->code == old("articleType") ? "selected" : ""}}>{{$val->code}} - {{$val->name}}</option>
                                     @endforeach
                                 </select>
-                            </div>            
+                            </div>
+                            <div class="form-group col-md-4" style="padding-right: 0rem;display: flex;justify-content:flex-start;align-self:flex-end;align-items: center;">
+                                <div class="custom-control custom-checkbox">
+                                    <input type="checkbox" class="custom-control-input" id="orderableCheck" name="orderableCheck"  checked/>
+                                    <label class="custom-control-label" for="orderableCheck">Orderable</label>
+                                </div>
+                            </div>
                         </div>
                         <div class="form-row">
                             <div class="form-group col-md-12">
