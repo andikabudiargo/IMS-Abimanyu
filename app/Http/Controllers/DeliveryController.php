@@ -990,7 +990,7 @@ class DeliveryController extends Controller
              
         $data['title'] =$dnNumber;
 
-        $statusDel = ['NEW','VALIDATE','APPROVED','','','PAID','REVISED'];
+        $statusDel = ['NEW','VALIDATE','APPROVED','','','PAID','REVISED','RECEIVED'];
         $data['statusDel'] = $statusDel[$data['dnHdr']->status-1];
        
         $data['details']=DB::table('delivery_det')
