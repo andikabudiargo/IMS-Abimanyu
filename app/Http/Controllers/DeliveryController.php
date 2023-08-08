@@ -871,7 +871,7 @@ class DeliveryController extends Controller
                             </a>';
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
             
-            if (($data->status != '3') && ($data->status != '4')){
+            if (($data->status != '3') && ($data->status != '4') && ($data->status != '8')){
                 if (Auth::user()->can('receiving-edit')) {
                 $buttons .=         '<a href="'. route('delivery.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                         <i data-feather="file-text"></i>
@@ -880,7 +880,7 @@ class DeliveryController extends Controller
                 }
             }
 
-            if (($data->status != '3') && ($data->status != '4')){
+            if (($data->status != '3') && ($data->status != '4') && ($data->status != '8')){
                 if (Auth::user()->can('receiving-edit')) {
                 $buttons .=         '<a href="'. route('delivery.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                         <i data-feather="check"></i>
@@ -929,7 +929,7 @@ class DeliveryController extends Controller
                                     Detail
                                 </a>';
                 
-            if (($data->status != '3') && ($data->status != '4')){
+            if (($data->status != '3') && ($data->status != '4')&& ($data->status != '8')){
                 if (Auth::user()->can('receiving-delete')) {
                 $buttons .=         "<a href='javascript:;'
                                         id='deleteButton'
