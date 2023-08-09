@@ -1111,11 +1111,13 @@ class TargetSoController extends Controller
             ,bom_det.article_code as article_bom
             ,(select article_code from bom_hdr where bom_code = bom_det.bom_code) as article_code_fg
             ,qty
-            ,uom
+            ,bom_det.uom
             ,uom_con
             ,coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = article.uom),1) as nilai_konversi
             ,qty * coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = article.uom),1) as qty_hasil_konversi
-            from bom_det where bom_code in 
+            from bom_det 
+            left join article on article.article_code = bom_det.article_code
+            where bom_code in 
             (
             select bom_code
             from (select article_code,qty_target as qty from target_order_det where tso_code = '$tsoCode') as production_detail_temp

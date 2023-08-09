@@ -1555,61 +1555,61 @@ class PurchaseRequestController extends Controller
                 created_at
             )
             select 
-            '$prNumber' as pr_number
-            ,article_code
-            ,qty
-            ,uom
-            ,supp_code
-            ,qty_hitung
-            ,qty_stock
-            ,'$username'
-            ,now()
+                '$prNumber' as pr_number
+                ,article_code
+                ,qty
+                ,uom
+                ,supp_code
+                ,qty_hitung
+                ,qty_stock
+                ,'$username'
+                ,now()
             from 
             (select 
-            alternative
-            ,'$prNumber' as pr_number
-            ,article_code
-            ,ceil(((sum(qty_target * qty_bom)-qty_stock)+safety_stock)/min_package) * min_package as qty
-            ,mari.uom
-            ,(select third_party from article where article_code = mari.article_code) as supp_code
-            ,ceil(((sum(qty_target * qty_bom)-qty_stock)+safety_stock)/min_package) * min_package as qty_hitung
-            ,qty_stock
-            ,'$username'
-            ,now()
+                alternative
+                ,'$prNumber' as pr_number
+                ,article_code
+                ,ceil(((sum(qty_target * qty_bom)-qty_stock)+safety_stock)/min_package) * min_package as qty
+                ,mari.uom
+                ,(select third_party from article where article_code = mari.article_code) as supp_code
+                ,ceil(((sum(qty_target * qty_bom)-qty_stock)+safety_stock)/min_package) * min_package as qty_hitung
+                ,qty_stock
+                ,'$username'
+                ,now()
             from 
             (
-            select 
-            bom_code
-            ,oki.article_bom as article_code
-            ,(select article_alternative_code from article where article_code = oki.article_bom) as alternative
-            ,(select sum(qty_target) from target_order_det where tso_code = '$tsoCode' and target_order_det.article_code = oki.article_code_fg group by target_order_det.article_code) as qty_target
-            ,qty 
-            ,article.uom as uom
-            ,uom_con
-            ,nilai_konversi
-            ,qty_hasil_konversi as qty_bom
-            ,(select sum(qty_target) from target_order_det where tso_code = '$tsoCode' and target_order_det.article_code = oki.article_code_fg group by target_order_det.article_code) * qty_hasil_konversi  as qty_total_order
-            ,coalesce(min_package,1) as min_package
-            ,coalesce(safety_stock,0) as safety_stock
-            ,get_last_qty(oki.article_bom,'$stockDate','$siteCode','$location') as qty_stock
-            from 
-            (
-            select bom_code
-            ,bom_det.article_code as article_bom
-            ,(select article_code from bom_hdr where bom_code = bom_det.bom_code) as article_code_fg
-            ,qty
-            ,uom
-            ,uom_con
-            ,coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = bom_det.uom),1) as nilai_konversi
-            ,qty * coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = bom_det.uom),1) as qty_hasil_konversi
-            from bom_det where bom_code in 
-            (
-            select bom_code
-            from (select article_code,qty_target as qty from target_order_det where tso_code = '$tsoCode') as production_detail_temp
-            left join bom_hdr on bom_hdr.article_code=production_detail_temp.article_code
-            where bom_hdr.status = '3'
-            )
-            ) as oki
+                select 
+                bom_code
+                ,oki.article_bom as article_code
+                ,(select article_alternative_code from article where article_code = oki.article_bom) as alternative
+                ,(select sum(qty_target) from target_order_det where tso_code = '$tsoCode' and target_order_det.article_code = oki.article_code_fg group by target_order_det.article_code) as qty_target
+                ,qty 
+                ,article.uom as uom
+                ,uom_con
+                ,nilai_konversi
+                ,qty_hasil_konversi as qty_bom
+                ,(select sum(qty_target) from target_order_det where tso_code = '$tsoCode' and target_order_det.article_code = oki.article_code_fg group by target_order_det.article_code) * qty_hasil_konversi  as qty_total_order
+                ,coalesce(min_package,1) as min_package
+                ,coalesce(safety_stock,0) as safety_stock
+                ,get_last_qty(oki.article_bom,'$stockDate','$siteCode','$location') as qty_stock
+                from 
+                (
+                    select bom_code
+                    ,bom_det.article_code as article_bom
+                    ,(select article_code from bom_hdr where bom_code = bom_det.bom_code) as article_code_fg
+                    ,qty
+                    ,bom_det.uom
+                    ,uom_con
+                    ,coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = article.uom),1) as nilai_konversi
+                    ,qty * coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = article.uom),1) as qty_hasil_konversi
+                    from bom_det 
+                    left join article on article.article_code = bom_det.article_code
+                    where bom_code in 
+                    ( select bom_code
+                        from (select article_code,qty_target as qty from target_order_det where tso_code = '$tsoCode') as production_detail_temp
+                        left join bom_hdr on bom_hdr.article_code=production_detail_temp.article_code
+                        where bom_hdr.status = '3')
+                ) as oki
             left join article on article.article_code = oki.article_bom
             order by alternative
             ) as mari 
