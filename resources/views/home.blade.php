@@ -23,6 +23,88 @@
     </div>
     @endif
     <div class="form-row">
+        <div class="col-lg-12 col-12">
+            <div class="card">
+                <div class="card-header" style="color:#2FA07E"><strong>BOM has been approved for the past seven days </strong></div>
+                <div class="card-body" >
+                    <div class="tableFixHead" >
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Bom</th>
+                                    <th>Article FG</th>
+                                    <th>Article Desc</th>
+                                    <th>Customer</th>
+                                    <th>Customer Name</th>
+                                    <th>Note</th>
+                                    <th>Created At</th>
+                                    <th>Updated At</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($listBom as $key=>$val)
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div>
+                                                <div class="font-weight-bolder">{{ $val->bom_code }}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div>
+                                                <div class="font-weight-bolder">{{ $val->article_code }}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div>
+                                                <div class="font-weight-bolder">{{ $val->article_name }}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="text-right">{{ $val->customer }}</td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div>
+                                                <div class="font-weight-bolder">{{ $val->customer_name }}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div>
+                                                <div class="font-weight-bolder">{{ $val->note }}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div>
+                                                <div class="font-weight-bolder">{{ $val->created_at }}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div>
+                                                <div class="font-weight-bolder">{{ $val->updated_at }}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!--/ Company Table Card -->
+    </div>
+    <div class="form-row">
         <!-- Company Table Card -->
         <div class="col-lg-12 col-12">
             <div class="card">
@@ -220,7 +302,7 @@
             <div class="card">
                 <div class="card-header">PR that must be approve </div>
                 <div class="card-body p-0">
-                    <div class="table-responsive">
+                    <div class="tableFixHead">
                         <table class="table">
                             <thead>
                                 <tr>
@@ -291,23 +373,27 @@
                                         </div>
                                     </td>
                                     <td>
-                                        <a class="btn btn-outline-info btn-sm" 
-                                            id="cmdDetailPrHome{{ $key }}" 
-                                            name="cmdDetailPrHome{{ $key }}" 
-                                            href="{{ route('purchaseRequest.show', ['id'=>Crypt::encryptString($val->id)]) }}"> 
-                                            <i data-feather='list'></i>
-                                            Detail
-                                        </a>
-                                        <a href='javascript:;'
-                                            onclick="action(this)"
-                                            id = 'buttonPrHome{{ $key }}'
-                                            class="btn btn-outline-success btn-sm buttonPr-{{ $val->id }}"
-                                            data-id-class = "buttonPr-{{ $val->id }}"
-                                            data-doc-number='{{ $val->pr_number }}'
-                                            data-url='{{ route("purchaseRequest.approve", ["prNumber"=>$val->pr_number]) }}'>
-                                            <i data-feather='check-circle'></i>
-                                            Approve
-                                        </a>
+                                        <div class="d-flex align-items-center">
+                                            <div>
+                                                <a class="btn btn-outline-info btn-sm" 
+                                                    id="cmdDetailPrHome{{ $key }}" 
+                                                    name="cmdDetailPrHome{{ $key }}" 
+                                                    href="{{ route('purchaseRequest.show', ['id'=>Crypt::encryptString($val->id)]) }}"> 
+                                                    <i data-feather='list'></i>
+                                                    Detail
+                                                </a>
+                                                <a href='javascript:;'
+                                                    onclick="action(this)"
+                                                    id = 'buttonPrHome{{ $key }}'
+                                                    class="btn btn-outline-success btn-sm buttonPr-{{ $val->id }}"
+                                                    data-id-class = "buttonPr-{{ $val->id }}"
+                                                    data-doc-number='{{ $val->pr_number }}'
+                                                    data-url='{{ route("purchaseRequest.approve", ["prNumber"=>$val->pr_number]) }}'>
+                                                    <i data-feather='check-circle'></i>
+                                                    Approve
+                                                </a>
+                                            </div>
+                                        </div>
                                     </td>
                                 </tr>
                                 @endforeach
@@ -421,6 +507,31 @@
 @endsection
 
 @section('styles')
+
+<style>
+
+    .tableFixHead {
+        overflow-y: auto; /* make the table scrollable if height is more than 200 px  */
+        height: 300px; /* gives an initial height of 200px to the table */
+    }
+    .tableFixHead thead th {
+        position: sticky; /* make the table heads sticky */
+        top: 0px; /* table head will be placed from the top of the table and sticks to it */
+    }
+    table {
+        border-collapse: collapse; /* make the table borders collapse to each other */
+        width: 100%;
+    }
+    /* th,
+    td {
+    padding: 8px 16px;
+    border: 1px solid #ccc;
+    }
+    th {
+    background: #eee;
+    } */
+    
+</style>
 @endsection
 @section('scripts')
 <script type="text/javascript">

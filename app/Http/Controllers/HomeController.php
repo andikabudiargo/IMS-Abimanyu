@@ -81,7 +81,7 @@ class HomeController extends Controller
         ) as Oki
         where current_level+1 = berhak_approve");
 
-    $data['listPrHome'] = DB::select("SELECT * from (
+        $data['listPrHome'] = DB::select("SELECT * from (
         select 
             id
             ,pr_number
@@ -105,7 +105,7 @@ class HomeController extends Controller
         ) as Oki
         where current_level+1 = berhak_approve");
         
-    $data['listTsoHome'] = DB::select("SELECT * from (
+        $data['listTsoHome'] = DB::select("SELECT * from (
         select 
             id
             ,tso_code
@@ -124,8 +124,15 @@ class HomeController extends Controller
         ) as Oki
         where current_level+1 = berhak_approve");
 
-        $data['greeting'] = self::greeting();            
+        $data['greeting'] = self::greeting();    
 
+        //bom yang status nya approved 2 minggu ke belakang
+        $data['listBom']=DB::select("SELECT bom_code, customer
+        ,(select nama from third_party where kode = customer) as customer_name
+        ,(select article_alternative_code from article where article_code = bom_hdr.article_code) as article_code
+        ,(select article_desc from article where article_code = bom_hdr.article_code) as article_name
+        ,note,created_at,updated_at from bom_hdr where status ='3' and  updated_at >= now() - interval '2 week'");
+        
         return view('home',$data);
     }
 
