@@ -132,6 +132,8 @@ class HomeController extends Controller
         ,(select article_alternative_code from article where article_code = bom_hdr.article_code) as article_code
         ,(select article_desc from article where article_code = bom_hdr.article_code) as article_name
         ,note,created_at,updated_at from bom_hdr where status ='3' and  updated_at >= now() - interval '2 week'");
+
+        $data['bomCount'] = count($data['listBom']);
         
         return view('home',$data);
     }

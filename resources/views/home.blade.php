@@ -22,11 +22,11 @@
         </div>
     </div>
     @endif
-    {{-- @if(count($listPrHome)>0) --}}
+    @if(count($listBom)>0)
     <div class="form-row">
         <div class="col-lg-12 col-12">
             <div class="card">
-                <div class="card-header" style="color:#2FA07E"><strong>BOM has been approved for the past seven days <div class="badge badge-pill badge-info"> {{ count($listPrHome) }}</div></strong></div>
+                <div class="card-header" style="color:#2FA07E"><strong>BOM has been approved for the past seven days <div class="badge badge-pill badge-info"> {{ count($listBom) }}</div></strong></div>
                 <div class="card-body" >
                     <div class="tableFixHead" >
                         <table class="table">
@@ -105,7 +105,7 @@
         </div>
         <!--/ Company Table Card -->
     </div>
-    {{-- @endif --}}
+    @endif
     <div class="form-row">
         <!-- Company Table Card -->
         <div class="col-lg-12 col-12">
