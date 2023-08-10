@@ -22,7 +22,7 @@
         </div>
     </div>
     @endif
-    @if(count($listPrHome)>0)
+    {{-- @if(count($listPrHome)>0) --}}
     <div class="form-row">
         <div class="col-lg-12 col-12">
             <div class="card">
@@ -105,7 +105,7 @@
         </div>
         <!--/ Company Table Card -->
     </div>
-    @endif
+    {{-- @endif --}}
     <div class="form-row">
         <!-- Company Table Card -->
         <div class="col-lg-12 col-12">
