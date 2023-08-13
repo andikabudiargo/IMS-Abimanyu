@@ -50,7 +50,7 @@
               </a>
             </li>
             @endcan
-            @can('article-request')
+            @can('article-request-index')
             <li class="{{ \Request::is(['articles/request','articles/request/create','articles/request/edit','articles/request/show']) ? 'active' : '' }}">
               <a class="d-flex align-items-center" href="{{ route('article.request') }}">
                 <i data-feather="circle"></i>

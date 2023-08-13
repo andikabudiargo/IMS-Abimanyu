@@ -199,7 +199,12 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('articles/request/create',['as'=>'article.request.create','uses'=>'ArticleController@requestCreate']);
 	Route::post('articles/request/store',['as'=>'article.request.store','uses'=>'ArticleController@requestStore']);
 	Route::post('articles/request/delete',['as'=>'article.request.destroy','uses'=>'ArticleController@requestDestroy']);
-
+	Route::get('articles/request/edit',['as'=>'article.request.edit','uses'=>'ArticleController@requestEdit']);
+	Route::post('articles/request/update',['as'=>'article.request.update','uses'=>'ArticleController@requestUpdate']);
+	Route::get('articles/request/show',['as'=>'article.request.show','uses'=>'ArticleController@requestshow']);
+	Route::post('articles/request/submit',['as'=>'article.request.submit','uses'=>'ArticleController@requestSubmit']);
+	Route::post('articles/request/approve',['as'=>'article.request.approve','uses'=>'ArticleController@requestApprove']);
+	
 	Route::get('articleTypes',['as'=>'articleTypes.index','uses'=>'ArticleTypeController@index','middleware' => ['permission:articleType-index']]);
 	Route::get('articleTypes/create',['as'=>'articleType.create','uses'=>'ArticleTypeController@create','middleware' => ['permission:articleType-create']]);
 	Route::post('articleTypes/store',['as'=>'articleType.store','uses'=>'ArticleTypeController@store']);

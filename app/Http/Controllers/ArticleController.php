@@ -16,10 +16,12 @@ class ArticleController extends Controller
 {
     private $title;
     private $decimalPlaces;
+    private $moduleCode;
     public function __construct()
     {
         $this->title = "Article";
         $this->decimalPlaces = config('globalParam.decimal');
+        $this->moduleCode = "ART";
     }
 
     public function getTableColoumn(){
@@ -234,6 +236,8 @@ class ArticleController extends Controller
         $colorCode = $request->colorCode;
         $variant = $request->variant;
 
+        $orderable = $request->orderableCheck == 'on' ? '1' : '0';
+
         $messages = [
             'required' => 'The field is required.',
             'unique' => 'The code has already been taken',
@@ -278,7 +282,8 @@ class ArticleController extends Controller
                     'updated_by' => Auth::user()->username,
                     'created_at' => date('Y-m-d H:i:s'),
                     'updated_at' => date('Y-m-d H:i:s'),
-                    'brand' => $brand
+                    'brand' => $brand,
+                    'orderable' =>$orderable
                 ]); 
 
                 foreach($cust as $val){
@@ -333,7 +338,8 @@ class ArticleController extends Controller
         
         $data['article'] = DB::table('article')
         ->where('id',$id)
-        ->get(['brand','article_code','costprice','article_alternative_code as code','article_desc as desc','uom','quality','note','id','group_of_material as group','third_party as cust','quality','status','article_type','imgfile','color_code','variant','safety_stock','min_package'])->first();
+        ->get(['brand','article_code','costprice','article_alternative_code as code','article_desc as desc','uom','quality','note','id','group_of_material as group','third_party as cust','quality','status','article_type','imgfile','color_code','variant','safety_stock','min_package','orderable'])->first();
+        
 
         $data['images'] = DB::table('images')
         ->where('key',$data['article']->article_code)
@@ -376,16 +382,16 @@ class ArticleController extends Controller
     public function show(Request $request)
     {
         $id=Crypt::decryptString($request->id);
-        $data['title'] = "Edit Article";
-        $data['subtitle'] = "Edit Article";
+        $data['title'] = "Detail $this->title";
+        $data['subtitle'] = "Detail $this->title";
         
         $data['article'] = DB::table('article')
         ->where('id',$id)
-        ->get(['article_code','costprice','article_alternative_code as code','article_desc as desc','uom','quality','note','id','group_of_material as group','third_party as cust','quality','status','article_type','imgfile','color_code','variant','safety_stock','min_package'])->first();
+        ->get(['article_code','costprice','article_alternative_code as code','article_desc as desc','uom','quality','note','id','group_of_material as group','third_party as cust','quality','status','article_type','imgfile','color_code','variant','safety_stock','min_package','orderable'])->first();
 
-        $data['images'] = DB::table('images')
-        ->where('key',$data['article']->article_code)
-        ->get();
+        // $data['images'] = DB::table('images')
+        // ->where('key',$data['article']->article_code)
+        // ->get();
 
         $data['types'] = DB::table('article_types')
         ->where ('status','=',1)
@@ -436,11 +442,12 @@ class ArticleController extends Controller
         $note = $request->note;
         $files = $request->files;
         $fileDihapus = $request->fileDihapus;
-        $status = $request->statu == 'on' ? '0' : '1';
+        $status = $request->status == 'on' ? '1' : '0';
         $pesan = '';
         $colorCode = $request->colorCode;
         $variant = $request->variant;
         $brand = $request->brand;
+        $orderable = $request->orderableCheck == 'on' ? '1' : '0';
 
         // status : 1= aktif, 0= freeze        
         $messages = [
@@ -475,7 +482,8 @@ class ArticleController extends Controller
                         'variant' => $variant,
                         'updated_by' => Auth::user()->username,
                         'updated_at' => date('Y-m-d H:i:s'),
-                        'brand' => $brand
+                        'brand' => $brand,
+                        'orderable' =>$orderable
                     ]
                 );
                 
@@ -808,7 +816,8 @@ class ArticleController extends Controller
         $kolom=    
         [
             ['data'=>'action','name'=>'action','title'=>'action','orderable'=>false, 'searchable'=>false],
-            ['data'=>'status','name'=>'status','title'=>'Status'],
+            ['data'=>'status_approve','name'=>'status_approve','title'=>'Status'],
+            ['data'=>'statusKu','name'=>'statusKu','title'=>'Status','visible'=>false],
             ['data'=>'desc','name'=>'article_desc','title'=>'Name'],
             ['data'=>'third_party','name'=>'third_party','title'=>'Cust/supp'],
             ['data'=>'cust','name'=>'third_party.nama','title'=>'Custs/Supp'],
@@ -822,7 +831,9 @@ class ArticleController extends Controller
             ['data'=>'created_by','name'=>'created_by','title'=>'Requested By'],
             ['data'=>'created_at','name'=>'created_at','title'=>'Requested At'],
             ['data'=>'approved_by','name'=>'approved_by','title'=>'Approved By'],
-            ['data'=>'approved_at','name'=>'approved_at','title'=>'Approved At']
+            ['data'=>'approved_at','name'=>'approved_at','title'=>'Approved At'],
+            ['data'=>'submitted_by','name'=>'submitted_by','title'=>'Submitted By'],
+            ['data'=>'submitted_at','name'=>'submitted_at','title'=>'Submitted At']
         ];
         return json_encode($kolom, true);
     }
@@ -886,17 +897,19 @@ class ArticleController extends Controller
         // $sapetiStok = $request->safetyStock;
         // $safetyStock = $sapetiStok ? str_replace(",","",$sapetiStok) : $sapetiStok;
         // $minimumPackage = $request->minimumPackage ? str_replace(",","",$request->minimumPackage) : $request->minimumPackage;
-        $price = preg_replace('/[^0-9.]/', '', $request->price);
-        $safetyStock = preg_replace('/[^0-9.]/', '', $request->safetyStock);
+        $price = is_null($request->price) ? 0 : preg_replace('/[^0-9.]/', '', $request->price);
+        $safetyStock = is_null($request->safetyStock) ? 0 : preg_replace('/[^0-9.]/', '', $request->safetyStock);
         $minimumPackage = preg_replace('/[^0-9.]/', '', $request->minimumPackage);
         $note = $request->note;
         $files = $request->files;
         /*
-        status 1 = request
+        status 1 = requested
         status 2 = approved
-        status 3 = decline
+        status 3 = submitted
+        status 4 = Rejected
         */
-        $status = '1';
+        $status = $request->status == 'on' ? '1' : '0';
+        $statusApprove ='1';
         $pesan = '';
         $brand = $request->brand;
         $orderable = $request->orderableCheck == 'on' ? '1' : '0';
@@ -937,6 +950,7 @@ class ArticleController extends Controller
                     'min_package' => $minimumPackage,
                     'costprice' => $price,
                     'status' => $status,
+                    'status_approve' => $statusApprove,
                     'color_code' => $colorCode,
                     'variant' => $variant,
                     'article_type' => $type,
@@ -999,25 +1013,316 @@ class ArticleController extends Controller
         DB::beginTransaction();
         try {
 
-            $articleAltCode=db::table('article')->where('id',$id)->value('article_desc');
+            $articleDesc=db::table('article_request')->where('id',$id)->value('article_desc');
             
-            $row_affected=DB::table('article')
+            $row_affected=DB::table('article_request')
             ->where('id',$id)->delete();
 
             DB::commit();
             $title ="Delete $this->title";
             $alert  ="success";
-            $message  = "$this->title $articleAltCode is successfully deleted";
+            $message  = "$this->title $articleDesc is successfully deleted";
             \LogActivity::addToLog($title,"username: $username Status $message");
-            return redirect()->back()->with(['status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'articleCode'=>$articleAltCode]);
+            return redirect()->back()->with(['status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'articleCode'=>$articleDesc]);
         } catch (Exception $e) {
             DB::rollBack();
             $title ="Delete $this->title";
             $alert  ="warning";
-            $message  = "$this->title $articleAltCode is failed to delete";
+            $message  = "$this->title $articleDesc is failed to delete";
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return redirect()->back()->with(['status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'articleCode'=>$articleDesc]);
+        }    
+    }
+
+    public function requestEdit(Request $request)
+    {
+        $id=Crypt::decryptString($request->id);
+        $data['title'] = "Edit Request $this->title";
+        $data['subtitle'] = "Edit Request $this->title";
+
+        $username =  Auth::user()->username;
+        
+        $data['article'] = DB::table('article_request')
+        ->where('id',$id)
+        ->get(['brand','article_code','costprice','article_alternative_code as code','article_desc as desc','uom','quality','note','id','group_of_material as group','third_party as cust','quality','status','article_type','imgfile','color_code','variant','safety_stock','min_package','orderable','status_approve'])->first();
+
+        $data['bisaApprove'] = DB::table('article_request')
+        ->select('article_request.*'
+        ,DB::RAW("(SELECT count(*) from user_dept where username = created_by and dept in (select dept from user_dept where username = '$username')) as bisa_approve"))
+        ->where('id',$id)
+        ->value('bisa_approve');
+
+        // $data['images'] = DB::table('images')
+        // ->where('key',$data['article']->article_code)
+        // ->get();
+
+        $data['types'] = DB::table('article_types')
+        ->where ('status','=',1)
+        ->orderBy('name')
+        ->get();
+
+        $code = $data['article']->article_type;
+        $data['custs'] = DB::table('third_party')->where(function ($query) use ($code) {
+            $code == 'FG' ? $query->where('third_party_type','cust') : '';
+            $code != 'FG' ? $query->where('third_party_type','supp') : '';
+        })->get();
+
+        $data['groups'] = DB::table('group_materials')
+        ->where ('status','=',1)
+        ->orderBy('name')
+        ->get();
+
+        $data['uoms'] = DB::table('uom')
+        ->orderBy('name')
+        ->get();
+
+        // $data['articles']= DB::table('article') 
+        // ->orderBy('article_desc')
+        // ->distinct('article_desc')
+        // ->pluck('article_desc');
+
+        $data['suppliers']= DB::table('article_supplier_request') 
+        ->where('article_code',$data['article']->article_code)
+        ->orderBy('id')
+        ->pluck('supplier_code')->toArray();
+
+        return view('articles.requestEdit',$data);
+        
+    }
+
+    public function requestUpdate(Request $request)
+    {
+        $username =  Auth::user()->username;
+        $id = $request->id;
+        $artCode = $request->artCode;
+        $articleAltCode = $request->kode;
+        $type = $request->articleType;
+        $cust = $request->cust;
+        $nama = strtoupper($request->nama);
+        $group = $request->group;
+        $uom = $request->uom;
+        $price = preg_replace('/[^0-9.]/', '', $request->price);
+        $safetyStock = preg_replace('/[^0-9.]/', '', $request->safetyStock);
+        $minimumPackage = preg_replace('/[^0-9.]/', '', $request->minimumPackage);
+        $note = $request->note;
+        // $files = $request->files;
+        // $fileDihapus = $request->fileDihapus;
+        $status = $request->status == 'on' ? '1' : '0';
+        $pesan = '';
+        $colorCode = $request->colorCode;
+        $variant = $request->variant;
+        $brand = $request->brand;
+
+        $orderable = $request->orderableCheck == 'on' ? '1' : '0';
+        $statusApprove = '1';
+
+        // status : 1= aktif, 0= freeze        
+        $messages = [
+            'required' => 'The field is required.',
+            'unique' => 'The code has already been taken',
+            'iunique' => "The code $nama has already been taken",
+        ];
+        
+        $rule = [
+            'nama'=>'required'
+        ];
+
+        $this->validate($request,$rule,$messages);
+        
+        DB::beginTransaction();
+
+        try {
+                $row_affected=DB::table('article_request')
+                ->where('id',$id)
+                ->update(
+                    [
+                        'article_desc' => $nama,
+                        'group_of_material' => $group,
+                        'third_party' => $cust[0],
+                        'note' => $note,
+                        'uom' => $uom,
+                        'safety_stock' => $safetyStock,
+                        'min_package' => $minimumPackage,
+                        'costprice' => $price,
+                        'status' => $status,
+                        'status_approve' => $statusApprove,
+                        'color_code' => $colorCode,
+                        'variant' => $variant,
+                        'updated_by' => Auth::user()->username,
+                        'updated_at' => date('Y-m-d H:i:s'),
+                        'brand' => $brand,
+                        'orderable' =>$orderable
+                    ]
+                );
+                
+                $dataset=[];
+                foreach ($cust as $val) {
+                    $dataSet[] = [
+                        $artCode.$val
+                    ];
+                }
+
+                $getArticleCode = db::table('article_request')->where('id',$id)->value('article_code');
+
+                /*
+                Delete kalo article tidak ada di po $poNumber dan article nya $val->article_code
+                berdasarkan 2 kondisi
+                */
+                DB::table('article_supplier_request')
+                ->whereNotIn(DB::raw("CONCAT(article_code,supplier_code)"),$dataSet)
+                ->where('article_code',$artCode)
+                ->delete();
+                    
+                foreach($cust as $val){
+                    DB::table('article_supplier_request')
+                    ->updateOrInsert(
+                    ['article_code' => $artCode,'supplier_code' => $val],
+                    [ 
+                        'article_code' => $artCode,
+                        'supplier_code' => $val,
+                        'main_supplier' => $cust[0] == $val ? 'Y' : 'N',
+                        'created_by' => Auth::user()->username,
+                        'updated_by' => Auth::user()->username,
+                        'created_at' => date('Y-m-d H:i:s'),
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]); 
+                }
+
+                // if($fileDihapus){
+                //     DB::table('images')->whereIn('path',$fileDihapus)->delete();
+                // }
+                
+                // if($files){
+                //     foreach($files as $val){
+                //         DB::table('images')->insert([
+                //             'key' => $artCode,
+                //             'name' => $nama,
+                //             'path' => $val,
+                //             'created_by' => Auth::user()->username,
+                //             'updated_by' => Auth::user()->username,
+                //             'created_at' => date('Y-m-d H:i:s'),
+                //             'updated_at' => date('Y-m-d H:i:s')
+                //         ]); 
+                //     }
+                // }
+                
+                DB::commit();
+
+                if($row_affected>0){
+                    DB::commit();
+                    $title ="Update $this->title";
+                    $alert  ="success";
+                    $message  = "$this->title $articleAltCode is successfully updated";
+                    \LogActivity::addToLog($title,"username: $username Status $message");
+                    return redirect()->back()->with(['status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'articleCode'=>$articleAltCode]);
+                }else{
+                    $title ="Update $this->title";
+                    $alert  ="warning";
+                    $message  = "$this->title $articleAltCode is failed to updated";
+                    \LogActivity::addToLog($title,"username: $username Status $message");
+                    return redirect()->back()->with(['status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'articleCode'=>$articleAltCode]);
+                }
+
+        } catch (Exception $e) {
+            DB::rollBack();
+            $title ="Update $this->title";
+            $alert  ="warning";
+            $message  = "$this->title $articleAltCode is failed to updated";
             \LogActivity::addToLog($title,"username: $username Status $message");
             return redirect()->back()->with(['status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'articleCode'=>$articleAltCode]);
-        }    
+        }
+    }
+
+    public function requestApprove(Request $request)
+    {
+        $username =  Auth::user()->username;
+        $id = $request->id;
+        $artCode = $request->nama;
+        $statusApprove = '2';
+        $status = $request->status == 'on' ? '1' : '0';
+                
+        DB::beginTransaction();
+
+        try {
+                $row_affected=DB::table('article_request')
+                ->where('id',$id)
+                ->update(
+                    [
+                        'status_approve' => $statusApprove,
+                        'approved_by' => Auth::user()->username,
+                        'approved_at' => date('Y-m-d H:i:s')
+                    ]
+                );
+                
+                DB::commit();
+
+                if($row_affected>0){
+                    DB::commit();
+                    $title ="Approve $this->title";
+                    $alert  ="success";
+                    $message  = "$this->title $artCode is successfully Approved";
+                    \LogActivity::addToLog($title,"username: $username Status $message");
+                    return redirect()->route('article.request')->with(['status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'articleCode'=>$artCode]);
+                }else{
+                    $title ="Approve $this->title";
+                    $alert  ="warning";
+                    $message  = "$this->title $artCode is failed to Approve";
+                    \LogActivity::addToLog($title,"username: $username Status $message");
+                    return redirect()->route('article.request')->with(['status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'articleCode'=>$artCode]);
+                }
+
+        } catch (Exception $e) {
+            DB::rollBack();
+            $title ="Approve $this->title";
+            $alert  ="warning";
+            $message  = "$this->title $articleAltCode is failed to Approve";
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return redirect()->route('article.request')->with(['status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'articleCode'=>$articleAltCode]);
+        }
+    }
+
+    public function requestShow(Request $request)
+    {
+        $id=Crypt::decryptString($request->id);
+        $data['title'] = "Detail Request $this->title";
+        $data['subtitle'] = "Detail Request $this->title";
+        
+        $data['article'] = DB::table('article_request')
+        ->where('id',$id)
+        ->get(['article_code','costprice','article_alternative_code as code','article_desc as desc','uom','quality','note','id','group_of_material as group','third_party as cust','quality','status','article_type','imgfile','color_code','variant','safety_stock','min_package','orderable'])->first();
+
+        // $data['images'] = DB::table('images')
+        // ->where('key',$data['article']->article_code)
+        // ->get();
+
+        $data['types'] = DB::table('article_types')
+        ->where ('status','=',1)
+        ->orderBy('name')
+        ->get();
+
+        $data['article']->article_type  == 'FG' || $data['article']->article_type  == 'RM'  ? $typeTP = 'cust' : $typeTP = 'supp';
+
+        $data['custs'] = DB::table('third_party')
+        ->where ('third_party_type','=',$typeTP)
+        ->orderBy('nama')
+        ->get();
+
+        $data['groups'] = DB::table('group_materials')
+        ->where ('status','=',1)
+        ->orderBy('name')
+        ->get();
+
+        $data['uoms'] = DB::table('uom')
+        ->orderBy('name')
+        ->get();
+
+        $data['suppliers']= DB::table('article_supplier_request') 
+        ->where('article_code',$data['article']->article_code)
+        ->orderBy('id')
+        ->pluck('supplier_code')->toArray();
+        
+        return view('articles.requestShow',$data);
+        
     }
 
     public function requestList(Request $request)
@@ -1028,6 +1333,11 @@ class ArticleController extends Controller
         $cust = strtolower($request->cust);
         $supp = strtolower($request->supp);
         $type = strtolower($request->type);
+        $status = $request->status;
+        
+        $username =  Auth::user()->username;
+
+        // $berhakApprove = Approval::approveValidate($this->moduleCode,$bomNumber,$username);
 
         $data=DB::table('article_request')
         ->select('article_request.*'
@@ -1044,16 +1354,19 @@ class ArticleController extends Controller
         ,'third_party.nama as cust'
         ,'safety_stock'
         ,'min_package'
-        ,'uom.uom_group')
+        ,'uom.uom_group'
+        ,DB::RAW("(SELECT count(*) from user_dept where username = created_by and dept in (select dept from user_dept where username = '$username')) as bisa_approve")
+        )
         ->leftJoin('group_materials', 'group_materials.code', '=', 'article_request.group_of_material')
         ->leftJoin('third_party', 'third_party.kode', '=', 'article_request.third_party')
         ->leftJoin('uom','uom.code','article_request.uom')
-        ->where(function ($query) use ($name,$group,$cust,$supp,$type) {
+        ->where(function ($query) use ($name,$group,$cust,$supp,$type,$status) {
             $name ? $query->where('article_desc','ilike','%'.$name.'%') :'';
             $group ? $query->where('group_of_material','ilike','%'.$group.'%') :'';
             $cust ? $query->where('third_party','ilike','%'.$cust.'%') :'';
             $supp ? $query->where('third_party','ilike','%'.$supp.'%') :'';
             $type ? $query->where('article_type','ilike',$type.'%') :'';      
+            $status ? $query->where('article_request.status',$status) :''; 
         })->orderBy('article_desc')->get();
        
         return Datatables::of($data)
@@ -1064,17 +1377,41 @@ class ArticleController extends Controller
                             </a>';
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
         
-            if (Auth::user()->can('article-edit')) {
-            $buttons .=         '<a href="'. route('article.edit',  ['id'=>Crypt::encryptString($data->idku)]) .'" class="dropdown-item">
+            if (Auth::user()->can('article-edit') && $data->status_approve != '3') {
+            $buttons .=         '<a href="'. route('article.request.edit',  ['id'=>Crypt::encryptString($data->idku)]) .'" class="dropdown-item">
                                     <i data-feather="file-text"></i>
                                     Edit
                                 </a>';
             }
-            $buttons .=         '<a href="'. route('article.show', ['id'=>Crypt::encryptString($data->idku)]) .'" class="dropdown-item">
+
+            if (Auth::user()->can('article-request-approve')){
+
+                if ($data->bisa_approve > 0 && $data->status_approve == '1' ) {
+                    $buttons .=         '<a href="'. route('article.request.edit',  ['id'=>Crypt::encryptString($data->idku)]) .'" class="dropdown-item">
+                                            <i data-feather="check"></i>
+                                            Approve
+                                        </a>';
+                }
+
+            }
+
+            if (Auth::user()->can('article-request-submit')){
+                
+                if ( $data->status_approve == '2' ) {
+                    $buttons .=         '<a href="'. route('article.request.edit',  ['id'=>Crypt::encryptString($data->idku)]) .'" class="dropdown-item">
+                                            <i data-feather="check"></i>
+                                            Submit
+                                        </a>';
+                }
+
+            }
+
+            $buttons .=         '<a href="'. route('article.request.show', ['id'=>Crypt::encryptString($data->idku)]) .'" class="dropdown-item">
                                     <i data-feather="list"></i>
                                     Detail
                                 </a>';
-            if (Auth::user()->can('article-delete')) {
+
+            if (Auth::user()->can('article-delete') && $data->status_approve != '3') {
             $buttons .=         '<a href="javascript:;"
                                     id="deleteButton"
                                     class="dropdown-item"
@@ -1090,13 +1427,149 @@ class ArticleController extends Controller
 
             return $buttons;
         })
-        ->addColumn('status', function ($data) {
-            $badges=['badge-light-success','badge-light-primary','badge-light-danger'];
-            $statusCode = ['Requested','Approved','Decline'];
-            return "<div class='badge badge-pill ".$badges[$data->status-1]."'>".$statusCode[$data->status-1]."</div>";
+        ->addColumn('status_approve', function ($data) {
+            /*
+            status 1 = requested
+            status 2 = approved
+            status 3 = submitted
+            status 4 = Rejected
+            */
+            if($data->status_approve > 0){
+                $badges=['badge-light-success','badge-light-primary','badge-light-danger'];
+                $statusCode = ['Requested','Approved','Submitted','Rejected'];
+                return "<div class='badge badge-pill ".$badges[$data->status_approve-1]."'>".$statusCode[$data->status_approve-1]."</div>";
+            }else{
+                return $data->status_approve;
+            }
         })
-        ->rawColumns(['action','article_alternative_code','status','article_qty'])
+        ->addColumn('statusKu', function ($data) {
+            return $data->status;
+        })
+        ->rawColumns(['action','status','status_approve'])
         ->make(true);
+    }
+
+    public function requestSubmit(Request $request)
+    {
+        $username =  Auth::user()->username;
+        $articleCodeRequest = $request->artCode;
+        $type = $request->articleType;
+        $cust = $request->cust;
+        $nama = strtoupper($request->nama);
+        $group = $request->group;
+        $uom = $request->uom;
+        $price = is_null($request->price) ? 0 : preg_replace('/[^0-9.]/', '', $request->price);
+        $safetyStock = is_null($request->safetyStock) ? 0 : preg_replace('/[^0-9.]/', '', $request->safetyStock);
+        $minimumPackage = preg_replace('/[^0-9.]/', '', $request->minimumPackage);
+        $note = $request->note;
+        $files = $request->files;
+        $statusApprove = '3';
+        $pesan = '';
+        $brand = $request->brand;
+        $colorCode = $request->colorCode;
+        $variant = $request->variant;
+        $status = $request->status == 'on' ? '1' : '0';
+        $orderable = $request->orderableCheck == 'on' ? '1' : '0';
+
+        $messages = [
+            'required' => 'The field is required.',
+            'unique' => 'The code has already been taken',
+        ];
+        
+        Validator::extend('iunique', function ($attribute, $value, $parameters, $validator) {
+            $query = DB::table($parameters[0]);
+            $column = $query->getGrammar()->wrap($parameters[1]);
+            return !$query->whereRaw("lower({$column}) = lower(?)", [$value])->count();
+        });
+
+        $rule = [
+            'nama'=>'required',
+            'articleType'=>'required',
+            'minimumPackage'=>'required'
+        ];
+
+        $this->validate($request,$rule,$messages);
+
+        $articleCode = $this->articleCodeCreate($cust,$type);
+                
+        DB::beginTransaction();
+        try {
+                $artCode = $this->getArticleCode();
+                $articleDet =  explode("~",$articleCode); 
+                DB::table('article')->insert([
+                    'article_code' => $artCode,
+                    'article_alternative_code' => $articleDet[0],
+                    'article_desc' => $nama,
+                    'group_of_material' => $group,
+                    'third_party' => $cust[0],
+                    'note' => $note,
+                    'uom' => $uom,
+                    'safety_stock' => $safetyStock,
+                    'min_package' => $minimumPackage,
+                    'costprice' => $price,
+                    'status' => $status,
+                    'color_code' => $colorCode,
+                    'variant' => $variant,
+                    'article_type' => $articleDet[1],
+                    'created_by' => Auth::user()->username,
+                    'updated_by' => Auth::user()->username,
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s'),
+                    'brand' => $brand,
+                    'orderable' =>$orderable
+                ]); 
+
+                foreach($cust as $val){
+                    DB::table('article_supplier')->insert([
+                        'article_code' => $artCode,
+                        'supplier_code' => $val,
+                        'main_supplier' => $cust[0] == $val ? 'Y' : 'N',
+                        'created_by' => Auth::user()->username,
+                        'updated_by' => Auth::user()->username,
+                        'created_at' => date('Y-m-d H:i:s'),
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]); 
+                }
+
+                $row_affected=DB::table('article_request')
+                ->where('article_code',$articleCodeRequest)
+                ->update(
+                    [
+                        'status_approve' => '3',
+                        'submitted_by' => Auth::user()->username,
+                        'submitted_at' => date('Y-m-d H:i:s')
+                    ]
+                );
+
+                // if($files){
+                //     foreach($files as $val){
+                //         DB::table('images')->insert([
+                //             'key' => $artCode,
+                //             'name' => $nama,
+                //             'path' => $val,
+                //             'created_by' => Auth::user()->username,
+                //             'updated_by' => Auth::user()->username,
+                //             'created_at' => date('Y-m-d H:i:s'),
+                //             'updated_at' => date('Y-m-d H:i:s')
+                //         ]); 
+                //     }
+                // }
+               
+                DB::commit();
+                $title ="Save $this->title";
+                $alert  ="success";
+                $message  = "$this->title $articleCode is successfully saved";
+                \LogActivity::addToLog($title,"username: $username Status $message");
+                return redirect()->route('article.request')->with(['status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'articleCode'=>$articleCode]);
+
+        } catch (Exception $e) {
+            DB::rollBack();
+            $title ="Save $this->title";
+            $alert  ="warning";
+            $message  = "$this->title $articleCode is failed to save";
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return redirect()->back()->with(['status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'articleCode'=>$articleCode]);
+        }   
     }
     
 }

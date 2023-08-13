@@ -8,7 +8,7 @@
         <div class="col-md-6">
             <div class="card">
                 <div class="card-body">
-                    <form id="frmAdd" name="frmAdd" action="{{ route('article.update',['id'=> $article->id,'artCode' =>$article->article_code])}}" method="post" autocomplete="off">
+                    <form id="frmAdd" name="frmAdd" autocomplete="off">
                         @csrf
                         <div class="form-row">
                             <div class="col-md-4">
@@ -19,7 +19,7 @@
                             </div>
                         </div>
                         <div class="form-row">
-                            <div class="form-group col-md-6">
+                            <div class="form-group col-md-8">
                                 <label class="form-label" for="articleType">Article Type*</label>
                                 <select class="select2 form-control" id="articleType" name="articleType" disabled>
                                     <option value="">All</option>
@@ -27,7 +27,13 @@
                                         <option value="{{$val->code}}" {{ $val->code == old("articleType",$article->article_type) ? "selected" : ""}}>{{$val->code}} - {{$val->name}}</option>
                                     @endforeach
                                 </select>
-                            </div>       
+                            </div>   
+                            <div class="form-group col-md-4" style="padding-right: 0rem;display: flex;justify-content:flex-start;align-self:flex-end;align-items: center;">
+                                <div class="custom-control custom-checkbox">
+                                    <input type="checkbox" class="custom-control-input" id="orderableCheck" name="orderableCheck"  {{ old("group",$article->orderable) ? "checked" : ""}} disabled/>
+                                    <label class="custom-control-label" for="orderableCheck">Orderable</label>
+                                </div>
+                            </div>    
                         </div>
                         <div class="form-row">       
                             <div class="form-group col-md-12">
@@ -118,7 +124,7 @@
                     </form>
                     <div class="form-row">
                         <div class="col-md-12">
-                            <a href="{{ route('articles.index') }}" class="btn btn-success">
+                            <a href="{{ route('articles.index') }}" class="btn btn-outline-secondary">
                                 Back
                             </a>
                         </div>

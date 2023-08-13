@@ -49,17 +49,18 @@
                       <label class="form-label" for="searchStatus">Status</label>
                       <select class="select2 form-control" id="searchStatus" name="searchStatus">
                           <option value="">All</option>
-                          <option value="1" selected>Requested</option>
+                          <option value="1" >Requested</option>
                           <option value="2" >Approved</option>
-                          <option value="3" >Decline</option>
+                          <option value="3" >Submitted</option>
+                          {{-- <option value="4" >Decline</option> --}}
                       </select>
                     </div>
                 </div>
                 <div class="form-row">
                     <div class="col-12"> 
                         <button type="button" class="btn btn-primary" id ="btnSearch" name="btnSearch">Search</button>
-                        @can('article-create')
-                        <a href="{{ route('article.request.create') }}" class="btn btn-info"><i class="fa fa-plus"></i> Create</a>
+                        @can('article-request-create')
+                          <a href="{{ route('article.request.create') }}" class="btn btn-info"><i class="fa fa-plus"></i> Create</a>
                         @endcan
                     </div>
                 </div>
@@ -106,7 +107,7 @@
 <script type="text/javascript">
   let $body = $('body');
   let name = $("#searchName");
-  let status = $("#seachStatus");
+  let status = $("#searchStatus");
   let group = $("#searchGroup");
   let supp = $("#searchSupplier");
   let type = $("#searchType");
@@ -143,17 +144,18 @@
       arrColPrint:[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16],
       columnDefs :[
         { width: '5%', targets: 0 },
-        { className: 'text-right','targets': [ 5,7,8,9 ] },
+        { className: 'text-right','targets': [ 6,8,9,10 ] },
       ],
       dataSearch:  {
         name:name,
         status:status,
         group:group,
         supp:supp,
-        type:type
+        type:type,
+        status:status
       },
       orderColumn:[[ 2, 'asc' ]],
-      excelFileName:'article'
+      excelFileName:'article_request'
     });
   }
 

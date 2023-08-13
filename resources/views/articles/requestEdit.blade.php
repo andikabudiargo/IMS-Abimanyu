@@ -7,32 +7,25 @@
         <div class="col-md-6">
             <div class="card">
                 <div class="card-body">
-                    <form id="frmAdd" name="frmAdd" action="{{ route('article.update',['id'=> $article->id,'artCode' =>$article->article_code])}}" method="post" autocomplete="off">
+                    <form id="frmAdd" name="frmAdd"  method="post" autocomplete="off">
                         @csrf
-                        <div class="form-row">
-                            <div class="col-md-4">
-                                <div class="form-group">
-                                    <label for="kode">Article Code</label>
-                                    <input type="text" id="kode" name="kode" class="form-control disabled-el" value="{{ old('kode',$article->code) }}" disabled />
-                                </div>
-                            </div>
-                        </div>
                         <div class="form-row">
                             <div class="form-group col-md-8">
                                 <label class="form-label" for="articleType">Article Type*</label>
-                                <select class="select2 form-control" id="articleType" name="articleType" disabled>
+                                <input type="hidden" id="artCode" name="artCode" class="form-control disabled-el" value="{{ old('artCode',$article->article_code) }}" disabled />
+                                <select class="select2 form-control disabled-el" id="articleType" name="articleType" disabled>
                                     <option value="">All</option>
                                     @foreach($types as $val)
                                         <option value="{{$val->code}}" {{ $val->code == old("articleType",$article->article_type) ? "selected" : ""}}>{{$val->code}} - {{$val->name}}</option>
                                     @endforeach
                                 </select>
-                            </div>   
+                            </div> 
                             <div class="form-group col-md-4" style="padding-right: 0rem;display: flex;justify-content:flex-start;align-self:flex-end;align-items: center;">
                                 <div class="custom-control custom-checkbox">
                                     <input type="checkbox" class="custom-control-input" id="orderableCheck" name="orderableCheck"  {{ old("orderableCheck",$article->orderable) ? "checked" : ""}} />
                                     <label class="custom-control-label" for="orderableCheck">Orderable</label>
                                 </div>
-                            </div>    
+                            </div>
                         </div>
                         <div class="form-row">       
                             <div class="form-group col-md-12">
@@ -127,7 +120,19 @@
                                 <input type="checkbox" class="custom-control-input" id="status" name="status"  {{ old('status',$article->status) == '1' ? 'checked' : '' }} />
                                 <label class="custom-control-label" for="status">Active</label>
                             </div>
-                        </div>                        
+                        </div>     
+                        <div class="form-row">
+                            <div class="col-12">
+                                <a href="{{ route('article.request') }}" class="btn btn-outline-secondary">Back</a>
+                                <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave" >Update</button>
+                                @if($bisaApprove > 0 && $article->status_approve == '1' )
+                                    <button class="btn btn-success" type="button" id="cmdApprove" name="cmdApprove" >Approve</button>
+                                @endif
+                                @if($article->status_approve == '2' )
+                                    <button class="btn btn-success" type="button" id="cmdSubmit" name="cmdSubmit" >Submit</button>
+                                @endif
+                            </div>
+                        </div>                   
                     </form>
                     {{-- <div class="form-row">
                         <div class="col-md-12">
@@ -145,12 +150,12 @@
                             </div>
                         </div>
                     </div> --}}
-                    <div class="form-row">
+                    {{-- <div class="form-row">
                         <div class="col-12">
                             <a href="{{ route('articles.index') }}" class="btn btn-outline-secondary">Back</a>
                             <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Update</button>
                         </div>
-                    </div>
+                    </div> --}}
                 </div>
             </div>
         </div>
@@ -253,9 +258,33 @@
             $("#frmAdd").submit();
         }else{
             $('.disabled-el').removeAttr('disabled');
-            $("#frmAdd").submit();
+            $("#frmAdd").attr("action", "{{ route('article.request.update',['id'=> $article->id]) }}").submit();
         }
     });
+
+    $("#cmdSubmit").click(function (e) {
+        e.preventDefault();
+        if (!$("#frmAdd")[0].checkValidity()){
+            $('.disabled-el').removeAttr('disabled');
+            $("#frmAdd").submit();
+        }else{
+            $('.disabled-el').removeAttr('disabled');
+            $("#frmAdd").attr("action", "{{ route('article.request.submit') }}").submit();
+        }
+    });
+
+    $("#cmdApprove").click(function (e) {
+        e.preventDefault();
+        if (!$("#frmAdd")[0].checkValidity()){
+            $('.disabled-el').removeAttr('disabled');
+            $("#frmAdd").submit();
+        }else{
+            $('.disabled-el').removeAttr('disabled');
+            $("#frmAdd").attr("action", "{{ route('article.request.approve',['id'=> $article->id]) }}").submit();
+        }
+    });
+
+    
 
     // let availableTags ="{{-- $articles --}}";
     // availableTags=availableTags.replace(/[[\]]/g,'');
