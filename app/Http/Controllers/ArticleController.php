@@ -908,7 +908,8 @@ class ArticleController extends Controller
         status 3 = submitted
         status 4 = Rejected
         */
-        $status = $request->status == 'on' ? '1' : '0';
+        // $status = $request->status == 'on' ? '1' : '0';
+        $status = '1';
         $statusApprove ='1';
         $pesan = '';
         $brand = $request->brand;
