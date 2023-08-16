@@ -248,7 +248,8 @@
             planTime = detail[i].plan_time;
             planTag = detail[i].plan_tag;
             originTag = detail[i].origin_tag;
-            add_new_row_edit(soCode,articleCode,articleRm,qtySo,uom,planQtyFresh,planQtyRepaint,planTime,planTag,originTag);
+            tone = detail[i].tone;
+            add_new_row_edit(soCode,articleCode,articleRm,qtySo,uom,planQtyFresh,planQtyRepaint,planTime,planTag,originTag,tone);
         }
     });   
     

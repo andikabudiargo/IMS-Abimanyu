@@ -352,7 +352,7 @@
                 let objQtyRepaint = $('#article_row input[name="qtyRepaint[]"]');
                 let qtyProd = objQtyProd.eq(objIndex).val().replace(/,/gi, '') || 0;
                 let qtyRepaint = objQtyRepaint.eq(objIndex).val().replace(/,/gi, '') || 0;
-                let qtyTag = result;
+                let qtyTag = result || 0;
 
                 if (qtyProd || qtyRepaint){
                     objTag.eq(objIndex).val((parseInt(qtyProd)+parseInt(qtyRepaint))*parseFloat(qtyTag));
@@ -654,7 +654,7 @@
             let sEfficiency = efficiency.val();
             let sNote = note.val();
             let sSprayBooth = $('#sprayBooth').val();
-            let tone = $('#article_row select[name="tone[]"]');
+            let objTone = $('#article_row select[name="tone[]"]');
             
 
             objArticle.map(function(i) {  
@@ -671,6 +671,7 @@
                     let tag = objTag.eq(i).val();
                     let tagAsli = objTagAsli.eq(i).val();
                     let waktu = objWaktu.eq(i).val();
+                    let tone = objTone.eq(i).val();
 
                     // cek urutan harus sesuai jangan ada urutan yang double
                     let obj = articles.find(obj => obj.urutan == urutan);
@@ -739,7 +740,7 @@
                         workHour:sWorkHour,
                         efficiency:sEfficiency,
                         note:sNote,
-                        sSprayBooth:sSprayBooth
+                        sprayBooth:sSprayBooth
 
                     },
                     dataType: "json",
