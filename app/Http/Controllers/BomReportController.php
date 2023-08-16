@@ -39,15 +39,16 @@ class BomReportController extends Controller
             ['data'=>'qty','name'=>'qty','title'=>'QTY Bom'],
             ['data'=>'uom_bom','name'=>'uom_bom','title'=>'UOM BOM'],
             ['data'=>'uom_con','name'=>'uom_con','title'=>'UOM Con'],
+            ['data'=>'conversi','name'=>'conversi','title'=>'Conversi'],
             ['data'=>'part_no','name'=>'part_no','title'=>'Part No'],
             ['data'=>'model','name'=>'model','title'=>'Model'],
             ['data'=>'group_of_material','name'=>'group_of_material','title'=>'Group'],
             ['data'=>'statusku','name'=>'statusku','title'=>'Status'],
             ['data'=>'note','name'=>'note','title'=>'Note'],
-            ['data'=>'tag','name'=>'tag','title'=>'Tag'],
-            ['data'=>'pass_rate','name'=>'pass_rate','title'=>'Pass Rate'],
-            ['data'=>'pass_thru','name'=>'pass_thru','title'=>'Pass Thru'],
-            ['data'=>'cycle_time','name'=>'cycle_time','title'=>'Cycle Time'],
+            // ['data'=>'tag','name'=>'tag','title'=>'Tag','visible'=>false],
+            // ['data'=>'pass_rate','name'=>'pass_rate','title'=>'Pass Rate','visible'=>false],
+            // ['data'=>'pass_thru','name'=>'pass_thru','title'=>'Pass Thru','visible'=>false],
+            // ['data'=>'cycle_time','name'=>'cycle_time','title'=>'Cycle Time','visible'=>false],
         ];
         return json_encode($kolom, true);
     }
@@ -102,8 +103,8 @@ class BomReportController extends Controller
         ,'b.article_alternative_code as article_ch'
         ,'article.article_desc as article_des'
         ,'b.article_desc as article_des_det'
+        ,db::raw("(coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = b.uom),1)) as conversi")
         )       
-
         ->orderBy('bom_det.bom_code')
         ->get(); 
        
