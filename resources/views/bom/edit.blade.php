@@ -67,7 +67,7 @@
                                     <input type="text" id="model" name="model" value="{{ old('model',$header->model) }}" class="form-control" />
                                 </div>
                             </div>
-                            <div class="form-row">
+                            {{-- <div class="form-row">
                                 <div class="form-group col-md-2">
                                     <label for="tag">Tact*</label>
                                     <input type="text" id="tag" name="tag" value="{{ old('tag',$header->tag) }}" class="form-control numeral-mask-digit" maxlength="5" />
@@ -90,7 +90,7 @@
                                     <label for="cycleTime">Cycle time buffing</label>
                                     <input type="text" id="cycleTime" name="cycleTime" value="{{ old('cycleTime',$header->cycle_time) }}" class="form-control numeral-mask-digit" maxlength="5"/>
                                 </div>
-                            </div>
+                            </div> --}}
                             <div class="form-row">
                                 <div class="form-group col-md-8">
                                     <label class="form-label" for="note">Notes</label>
@@ -99,6 +99,29 @@
                             </div>
                             
                         </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="card-title">Spray Booth</h4>
+                </div>
+                <div class="card-body">
+                    <div class="container-list-item">
+                        <div class="lebar-list-item">
+                            @include('bom.headerColumnSb')
+                            <div class="" id="article_row_sb" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px">
+                                <input type="text" id ="last_row_number_sb" class="d-none" value="0">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-end mt-75">
+                        <button class="btn btn-primary btn-prev" type="button" id="addNewRowSp" onclick="add_new_row_sb();">
+                            <i data-feather="plus" class="align-middle mr-sm-25 mr-0"></i>
+                            <span class="align-middle d-sm-inline-block d-none">Add</span>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -189,7 +212,6 @@
         </div>
     </div>
 </section>
-
 @endsection
 @section('styles')
 <style>
@@ -200,6 +222,7 @@
 @endsection
 @section('scripts')
 @include('bom.addArticle')
+@include('bom.addArticleSb')
 <script type="text/javascript">
     let currentDate = "{{ $currentDateValue }}";
     const approveBtn = document.querySelector('#cmdApprove'); 
@@ -207,6 +230,7 @@
         validateForm('frmAdd');
         mask_thousand_digit(numberOfDecimalDigit);
         let detail = {!!  $detail !!};
+        let sprayBooths = {!!  $sprayBooth !!};
         for(let i=0;i<detail.length;i++){
             article = detail[i].article_code;
             qty = detail[i].qty;
@@ -216,12 +240,22 @@
             uomMember = detail[i].uom_member;
             uoms = detail[i].uoms;
             factor = detail[i].factor_qty;
-            add_new_row_edit(article,qty,uom,uomCon,typeName,uomMember,uoms,factor);
+            pos = detail[i].pos;
+            add_new_row_edit(article,qty,uom,uomCon,typeName,uomMember,uoms,factor,pos);
+        }
+
+        for(let a=0;a<sprayBooths.length;a++){
+            let sprayBooth = sprayBooths[a].spray_booth;
+            let tone = sprayBooths[a].tone;
+            let tack =  sprayBooths[a].tack;
+            let passRate =  sprayBooths[a].pass_rate;
+            let passThru =  sprayBooths[a].pass_thru;
+            let cycleTime =  sprayBooths[a].cycle_time;
+            add_new_row_edit_sb(sprayBooth,tone,tack,passRate,passThru,cycleTime);
         }
     });
 
     if (approveBtn) {
-        
         approveBtn.addEventListener('click',() =>{
             let bomNumber = $('#bomNumber').val();
             approve(bomNumber);
@@ -232,118 +266,6 @@
         let oEdit = true;
         saveData(oEdit);
     });
-
-    // $("#cmdUpdate").click(function(){  
-    //     if (!$("#frmAdd")[0].checkValidity()){
-    //         $("#frmAdd").submit();
-    //     }else{
-    //         $('.disabled-el').removeAttr('disabled');
-    //         let bomNumber = $('#bomNumber').val();
-    //         let objArticle = $("#article_row select[name='article_id[]']");
-    //         let objQty = $('#article_row input[name="qtyBom[]"]');
-    //         let objUom = $('#article_row select[name="uom[]"]');
-    //         let objUomCon = $('#article_row select[name="uomCon[]"]');
-    //         let articleCode = $('#articleCode').val();
-    //         let articleCode1 = $('#articleCode').find(":selected").data("detail").split("|");
-    //         let uom = articleCode1[1];
-    //         let group = articleCode1[5];
-    //         let customer  = articleCode1[4];
-    //         let tag = $('#tag').val().replace(/,/gi, '') || 0;
-    //         let passRate = $('#passRate').val().replace(/,/gi, '') || 0;
-    //         let passThru = $('#passThru').val().replace(/,/gi, '') || 0;
-    //         let cycleTime = $('#cycleTime').val().replace(/,/gi, '') || 0;
-            
-    //         let note = $('#note').val();
-    //         let articles = []; 
-    //         let flag=0; 
-    //         let pesan="";
-
-    //         objArticle.map(function(i) {  
-    //             let $this=$(this);
-    //             if ($this.val()){
-    //                 let articleName=$this.select2('data')[0].text;
-    //                 let plu=$this.val();
-    //                 let uom=objUom.eq(i).val();
-    //                 let detail = $this.find(":selected").data("detail").split("|");
-    //                 let type=detail[4];
-    //                 let qty=objQty.eq(i).val().replace(/,/gi, '') || 0;
-
-    //                 let obj = articles.find(obj => obj.plu == plu);
-                    
-    //                 if(obj) {
-    //                     pesan +="Article "+articleName+" entered more than once !! <br>"; 
-    //                     flag=1;
-    //                 } else {
-    //                     if ((plu!=='') && (qty> 0)){
-    //                         articles.push({
-    //                             "article_code":plu,
-    //                             "qty":qty,
-    //                             "uom":uom,
-    //                             "customer_code":customer,
-    //                             "type":type
-    //                         });
-    //                     }
-    //                 } 
-
-    //                 console.log(articles);
-                
-    //                 if (qty == 0){
-    //                     pesan +="QTY of items "+ articleName +" cannot be 0 <br>"; 
-    //                     flag=1;
-    //                 }
-    //             }
-    //         });
-
-    //         if (customer == ''){
-    //             pesan +="Customer must be filled in <br>"; 
-    //             flag=1;
-    //         }
-
-    //         if (articles.length == 0){
-    //             pesan +="Articles must be filled in completely <br>"; 
-    //             flag=1;
-    //         }
-
-    //         if (flag==0){
-    //             $.ajax({
-    //                 type: "post",
-    //                 url: "{{ route('bom.update') }}",
-    //                 data: {
-    //                     articles:JSON.stringify(articles),
-    //                     articleCode:articleCode,
-    //                     customer:customer,
-    //                     note:note,
-    //                     group:group,
-    //                     uom:uom,
-    //                     bomNumber:bomNumber,
-    //                     tag:tag,
-    //                     passRate:passRate,
-    //                     passThru:passThru,
-    //                     cycleTime:cycleTime
-    //                 },
-    //                 dataType: "json",
-    //                 success: function(data) {
-    //                     if (data.status == 0 ){
-    //                         let message="";
-    //                         for(let i = 0; i < data.message.length; i++) {
-    //                             message += "-"+data.message[i]+"<br>";                           
-    //                         }
-    //                         show_msg("Update BOM", message, data.alert);
-    //                     }else{
-    //                         show_msg("Update BOM", data.message, data.alert);
-    //                     }
-    //                 },
-    //                 error: function(error) {
-    //                     console.log(error);
-    //                 }
-    //             });
-
-    //         }else{
-    //             Swal.fire('Warning..',pesan,'warning');
-    //         }
-    //     }
-    
-    // });
   
     $.ajaxSetup({
         headers: {

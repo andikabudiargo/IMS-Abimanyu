@@ -70,12 +70,24 @@
                     </select>
                 </div>
             </div>
-            <div class="col-md-4 col-12">
+            <div class="col-md-3 col-12">
                 <div class="form-group margin-nol">
                     <label for="articleId" class="d-block d-md-none">Article</label>
                     <select class="dynamicSelect form-control" id="articleId" name="articleId[]" data-dependent="articleId">
                     </select>
                     <input type="hidden" class="form-control" id="articleRm" name="articleRm[]" />
+                </div>
+            </div>
+            <div class="col-md-1 col-12">
+                <div class="form-group margin-nol">
+                    <label for="tone" class="d-block d-md-none">Tone</label>
+                    <select form-control" id="tone" name="tone[]">
+                        <option value=""></option>
+                        <option value="t1">Tone 1</option>
+                        <option value="t2">Tone 2</option>
+                        <option value="t3">Tone 3</option>
+                        <option value="t4">Tone 4</option>
+                    </select>
                 </div>
             </div>
             <div class="col-md-1 col-12">
@@ -139,7 +151,7 @@
     const sumTimeRequired = $('#sumTimeRequired');
     const sumRemainTime = $('#sumRemainTime');
     const oEdit = $('#oEdit');
-    
+        
     approve = (woNumber,objButton) => {
         $('#'+objButton).attr('disabled','disabled');
         $.ajax({
@@ -171,7 +183,7 @@
     }
 
     let cloneCountEdit=0;
-    function add_new_row_edit(noSo,noArticle,noArticleRm,qtySo,qtySoUom,qtyProd,qtyRepaint,waktu,tag,tagAsli) {
+    function add_new_row_edit(noSo,noArticle,noArticleRm,qtySo,qtySoUom,qtyProd,qtyRepaint,waktu,tag,tagAsli,tone) {
         let waktuAwal = $('#wosTime').val()+":00";
         $("#article_row").append($("#new_row").clone().html());
         cloneCountEdit++;
@@ -186,6 +198,7 @@
         $("#new_row"+ cloneCountEdit).find('#waktu').attr('id', 'waktu'+ cloneCountEdit);
         $("#new_row"+ cloneCountEdit).find('#tag').attr('id', 'tag'+ cloneCountEdit);
         $("#new_row"+ cloneCountEdit).find('#tagAsli').attr('id', 'tagAsli'+ cloneCountEdit);
+        $("#new_row"+ cloneCountEdit).find('#tone').attr('id', 'tone'+ cloneCountEdit);
         changeselect('salesOrder','salesOrder'+ cloneCountEdit,noSo);
         changeSelectArticleEdit('searchFromSO','articleId'+ cloneCountEdit,noSo,noArticle);
         $('#urutan'+ cloneCountEdit).val(cloneCountEdit);
@@ -193,11 +206,13 @@
         $('#qtyProd'+ cloneCountEdit).val(qtyProd);
         $('#qtyRepaint'+ cloneCountEdit).val(qtyRepaint);
         $('#waktu'+ cloneCountEdit).val(waktuAwal);
+        $('#tone'+ cloneCountEdit).val(tone);
         $('#tag'+ cloneCountEdit).val(parseFloat(tagAsli)*(parseInt(qtyProd)+parseInt(qtyRepaint)));
         $('#tagAsli'+ cloneCountEdit).val(tagAsli);
         $('#articleRm'+ cloneCountEdit).val(noArticleRm);
         $("#articleId"+cloneCountEdit).select2();
         $("#salesOrder"+cloneCountEdit).select2();
+        $("#tone"+cloneCountEdit).select2();
         $('#remove_button').tooltip();
         tombolPanah('qtyProd');
         mask_thousand_satuan();
@@ -287,10 +302,12 @@
         $("#new_row"+ cloneCount).find('#articleId').attr('id', 'articleId'+ cloneCount);
         $("#new_row"+ cloneCount).find('#salesOrder').attr('id', 'salesOrder'+ cloneCount);
         $("#new_row"+ cloneCount).find('#urutan').attr('id', 'urutan'+ cloneCount);
+        $("#new_row"+ cloneCount).find('#tone').attr('id', 'tone'+ cloneCount);
         $('#urutan'+ cloneCount).val(cloneCount);
         changeselect('salesOrder','salesOrder'+ cloneCount,'','');
         $("#articleId"+cloneCount).select2();
         $("#salesOrder"+cloneCount).select2();
+        $("#tone"+cloneCount).select2();
         $('#remove_button').tooltip();
         tombolPanah('qtyProd');
         activate_angka();
@@ -298,6 +315,53 @@
         isiListArticle();
         updatQty();
     };
+
+    function getTack(articleCode,sprayBooth,tone,objIndex) {
+        $.ajax({
+            url:"{{ route('workingOrderSheet.get.tack') }}",
+            method:"GET",
+            data:{
+                articleCode:articleCode,
+                sprayBooth:sprayBooth,
+                tone:tone
+            },
+            success:function(result){
+                let objTag = $('input[name="tag[]"]');
+                let objTagAsli = $('input[name="tagAsli[]"]');
+                let objWaktu = $('input[name="waktu[]"]');
+                objTag.eq(objIndex).val(result || 0) ;
+                objTagAsli.eq(objIndex).val(result || 0);
+                objWaktu.eq(objIndex).val($('#wosTime').val()+":00");
+            }
+        })
+    }
+
+    function getTackHitung(articleCode,sprayBooth,tone,objIndex) {
+        $.ajax({
+            url:"{{ route('workingOrderSheet.get.tack') }}",
+            method:"GET",
+            data:{
+                articleCode:articleCode,
+                sprayBooth:sprayBooth,
+                tone:tone
+            },
+            success:function(result){
+                let objTag = $('input[name="tag[]"]');
+                let objTagAsli = $('input[name="tagAsli[]"]');
+                let objQtyProd = $('#article_row input[name="qtyProd[]"]');
+                let objQtyRepaint = $('#article_row input[name="qtyRepaint[]"]');
+                let qtyProd = objQtyProd.eq(objIndex).val().replace(/,/gi, '') || 0;
+                let qtyRepaint = objQtyRepaint.eq(objIndex).val().replace(/,/gi, '') || 0;
+                let qtyTag = result;
+
+                if (qtyProd || qtyRepaint){
+                    objTag.eq(objIndex).val((parseInt(qtyProd)+parseInt(qtyRepaint))*parseFloat(qtyTag));
+                }else{
+                    objTag.eq(objIndex).val(qtyTag);
+                }
+            }
+        })
+    }
 
     function isiListArticle(){
         let objSo = $('#article_row select[name="salesOrder[]"]');
@@ -314,6 +378,7 @@
     function splitArticle(){
         // split article with delimiter |
         let objArticle = $('#article_row select[name="articleId[]"]');
+        let objTone = $('#article_row select[name="tone[]"]');
         let objArticleRm = $('input[name="articleRm[]"]');
         let objQtyOrder = $('input[name="qtyOrder[]"]');
         let objQtyProd = $('input[name="qtyProd[]"]');
@@ -330,9 +395,9 @@
                 objArticleRm.eq(objIndex).val(articleRm);
                 objQtyProd.eq(objIndex).val('');
                 objQtyOrder.eq(objIndex).val(arrDetail[3]);
-                objTag.eq(objIndex).val(arrDetail[2] || 0) ;
-                objTagAsli.eq(objIndex).val(arrDetail[2] || 0) ;
-                objWaktu.eq(objIndex).val($('#wosTime').val()+":00");
+                // objTag.eq(objIndex).val(arrDetail[2] || 0) ;
+                // objTagAsli.eq(objIndex).val(arrDetail[2] || 0) ;
+                // objWaktu.eq(objIndex).val($('#wosTime').val()+":00");
                 if (detail){
                     setTimeout(() => {
                         objQtyProd.eq(objIndex).focus().select();
@@ -343,10 +408,31 @@
             }else{
                 objQtyProd.eq(objIndex).val('');
                 objQtyOrder.eq(objIndex).val('');
-                objTag.eq(objIndex).val('');
+                // objTag.eq(objIndex).val('');
+                // objTagAsli.eq(objIndex).val('');
+                // objWaktu.eq(objIndex).val('');
+            }
+		});
+
+        objTone.change(function(e){        
+            let objIndex = objTone.index(this);
+            let tone = objTone.eq(objIndex).val();
+            let sprayBooth = $('#sprayBooth').val();
+            let articleCode = objArticle.eq(objIndex).val();
+            getTack(articleCode,sprayBooth,tone,objIndex);
+                        
+            if (tone){
+                getTack(articleCode,sprayBooth,tone,objIndex);
+                // console.log("iko");
+                // objTag.eq(objIndex).val(tack || 0) ;
+                // objTagAsli.eq(objIndex).val(tack || 0);
+                // objWaktu.eq(objIndex).val($('#wosTime').val()+":00");
+            }else{
+                objTag.eq(objIndex).val('') ;
                 objTagAsli.eq(objIndex).val('');
                 objWaktu.eq(objIndex).val('');
             }
+
 		});
     }
 
@@ -485,39 +571,58 @@
         let objQtyRepaint = $('#article_row input[name="qtyRepaint[]"]');
         let objTag = $('#article_row input[name="tag[]"]');
         let objArticle = $('#article_row select[name="articleId[]"]');
+        let objTone = $('#article_row select[name="tone[]"]');
+        
         objQtyProd.keyup(function(e){        
             let objIndex = objQtyProd.index(this);
             let qtyProd = objQtyProd.eq(objIndex).val().replace(/,/gi, '') || 0;
             let qtyRepaint = objQtyRepaint.eq(objIndex).val().replace(/,/gi, '') || 0;
-            let detail = objArticle.eq(objIndex).find(":selected").data("detail");
-            if (detail){
-                let arrDetail = detail.split("|");
-                qtyTag = arrDetail[2].replace(/,/gi, '') || 0;
-            }
-            if (qtyProd || qtyRepaint){
-                objTag.eq(objIndex).val((parseInt(qtyProd)+parseInt(qtyRepaint))*parseFloat(qtyTag));
-            }else{
-                objTag.eq(objIndex).val(qtyTag);
-            }
+            // let detail = objArticle.eq(objIndex).find(":selected").data("detail");
+            // if (detail){
+            //     let arrDetail = detail.split("|");
+            //     qtyTag = arrDetail[2].replace(/,/gi, '') || 0;
+
+            // }
+
+            let tone = objTone.eq(objIndex).val();
+            let sprayBooth = $('#sprayBooth').val();
+            let articleCode = objArticle.eq(objIndex).val();
+            // let qtyTag = getTack(articleCode,sprayBooth,tone) || 0;
+
+            getTackHitung(articleCode,sprayBooth,tone,objIndex);
+            
+            // if (qtyProd || qtyRepaint){
+            //     objTag.eq(objIndex).val((parseInt(qtyProd)+parseInt(qtyRepaint))*parseFloat(qtyTag));
+            // }else{
+            //     objTag.eq(objIndex).val(qtyTag);
+            // }
             sumData();
             hitungWaktu();
 		});
 
         objQtyRepaint.keyup(function(e){        
             let objIndex = objQtyRepaint.index(this);
-            console.log(objIndex);
             let qtyProd = objQtyProd.eq(objIndex).val().replace(/,/gi, '') || 0;
             let qtyRepaint = objQtyRepaint.eq(objIndex).val().replace(/,/gi, '') || 0;
             let detail = objArticle.eq(objIndex).find(":selected").data("detail");
-            if (detail){
-                let arrDetail = detail.split("|");
-                qtyTag = arrDetail[2].replace(/,/gi, '') || 0;
-            }
-            if (qtyProd || qtyRepaint){
-                objTag.eq(objIndex).val((parseInt(qtyProd)+parseInt(qtyRepaint))*parseFloat(qtyTag));
-            }else{
-                objTag.eq(objIndex).val(qtyTag);
-            }
+            // if (detail){
+            //     let arrDetail = detail.split("|");
+            //     qtyTag = arrDetail[2].replace(/,/gi, '') || 0;
+            // }
+
+            let tone = objTone.eq(objIndex).val();
+            let sprayBooth = $('#sprayBooth').val();
+            let articleCode = objArticle.eq(objIndex).val();
+
+            getTackHitung(articleCode,sprayBooth,tone,objIndex);
+
+            // let qtyTag = getTack(articleCode,sprayBooth,tone) || 0;
+            
+            // if (qtyProd || qtyRepaint){
+            //     objTag.eq(objIndex).val((parseInt(qtyProd)+parseInt(qtyRepaint))*parseFloat(qtyTag));
+            // }else{
+            //     objTag.eq(objIndex).val(qtyTag);
+            // }
             sumData();
             hitungWaktu();
 		});
@@ -548,6 +653,9 @@
             let sWorkHour = workHour.val();
             let sEfficiency = efficiency.val();
             let sNote = note.val();
+            let sSprayBooth = $('#sprayBooth').val();
+            let tone = $('#article_row select[name="tone[]"]');
+            
 
             objArticle.map(function(i) {  
                 let $this=$(this);
@@ -584,7 +692,8 @@
                                 "tag":tag,
                                 "tag_asli":tagAsli,
                                 "waktu":waktu,
-                                "status": articleRm == 'none'?'0':'1'
+                                "status": articleRm == 'none'?'0':'1',
+                                "tone":tone
                             });
                         }
                     }
@@ -601,7 +710,7 @@
                 $('#article_row').find('div').remove();
                 cloneCountEdit=0;
                 articles.map(function(i) {
-                    add_new_row_edit(i.so_code,i.article_code,i.article_rm,i.qty_so,i.uom,i.qty_prod,i.qty_repaint,i.waktu,i.tag,i.tag_asli);
+                    add_new_row_edit(i.so_code,i.article_code,i.article_rm,i.qty_so,i.uom,i.qty_prod,i.qty_repaint,i.waktu,i.tag,i.tag_asli,i.tone);
                 })
             }else{
                 pesan +="Articles must be filled in completely <br>"; 
@@ -629,7 +738,9 @@
                         group:sWosGroup,
                         workHour:sWorkHour,
                         efficiency:sEfficiency,
-                        note:sNote
+                        note:sNote,
+                        sSprayBooth:sSprayBooth
+
                     },
                     dataType: "json",
                     success: function(data) {

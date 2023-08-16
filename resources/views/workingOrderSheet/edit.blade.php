@@ -62,6 +62,20 @@
                                 </div>
                             </div>
                             <div class="row">
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label for="sprayBooth">Spray booth</label>
+                                        <select class="select2 form-control" id="sprayBooth" name="sprayBooth[]" required>
+                                            <option value=""></option>
+                                            <option value="sb1" {{ $header->spray_booth == 'sb1' ? 'selected' : '' }}>Spray Booth 1</option>
+                                            <option value="sb2" {{ $header->spray_booth == 'sb2' ? 'selected' : '' }}>Spray Booth 2</option>
+                                            <option value="sb3" {{ $header->spray_booth == 'sb3' ? 'selected' : '' }}>Spray Booth 3</option>
+                                            <option value="sb4" {{ $header->spray_booth == 'sb4' ? 'selected' : '' }}>Spray Booth 4</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
                                 <div class="form-group col-md-10">
                                     <label class="form-label" for="note">Notes</label>
                                     <textarea type="text" id="note" name="note" value="{{ $header->note  }}" class="form-control" rows="1" ></textarea>

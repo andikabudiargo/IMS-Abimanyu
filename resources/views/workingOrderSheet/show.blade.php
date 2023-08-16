@@ -77,6 +77,20 @@
                                             </div>
                                         </div>
                                         <div class="row">
+                                            <div class="col-md-4">
+                                                <div class="form-group">
+                                                    <label for="sprayBooth">Spray booth</label>
+                                                    <select class="select2 form-control" id="sprayBooth" name="sprayBooth[]" required>
+                                                        <option value=""></option>
+                                                        <option value="sb1" {{ $header->spray_booth == 'sb1' ? 'selected' : '' }}>Spray Booth 1</option>
+                                                        <option value="sb2" {{ $header->spray_booth == 'sb2' ? 'selected' : '' }}>Spray Booth 2</option>
+                                                        <option value="sb3" {{ $header->spray_booth == 'sb3' ? 'selected' : '' }}>Spray Booth 3</option>
+                                                        <option value="sb4" {{ $header->spray_booth == 'sb4' ? 'selected' : '' }}>Spray Booth 4</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="row">
                                             <div class="form-group col-md-10">
                                                 <label class="form-label" for="note">Notes</label>
                                                 <textarea type="text" id="note" name="note" value="{{ $header2->note  }}" class="form-control" rows="1" disabled></textarea>
@@ -92,11 +106,12 @@
                                                     <th >Urutan</th>
                                                     <th >So Number</th>
                                                     <th >Article Code</th>
+                                                    <th >Tone</th>
                                                     <th class="text-right">Qty SO</th>
                                                     <th class="text-right">Qty Fresh</th>
                                                     <th class="text-right">Qty Repaint</th>
                                                     <th class="text-left">Waktu</th>
-                                                    <th class="text-right">Tag</th>
+                                                    <th class="text-right">Tack</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -106,6 +121,7 @@
                                                         <td >{{ $item->urutan }}</td>
                                                         <td >{{ $item->so_code }}</td>
                                                         <td >{{ $item->article }}</td>
+                                                        <td >{{ $item->tone }}</td>
                                                         <td class="text-right">{{ number_format($item->so_qty) }}</td>
                                                         <td class="text-right">{{ number_format($item->plan_qty_fresh) }}</td>
                                                         <td class="text-right">{{ number_format($item->plan_qty_repaint) }}</td>
@@ -121,7 +137,7 @@
                                         <div class="table-responsive main-table mt-75">
                                             <table class="table table-bordered w-100" >
                                                 <tr>
-                                                    <td rowspan="3">Total Tag</td>
+                                                    <td rowspan="3">Total Tack</td>
                                                     <td>Waktu tersedia <span id="sumWorkHour"></span> x3600"x95%</td>
                                                     <td class="text-right" id="sumTimeRequired{{ $key }}">{{ number_format($header2->sum_time_required) }}</td>
                                                 </tr>

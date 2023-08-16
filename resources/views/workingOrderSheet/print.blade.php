@@ -191,7 +191,7 @@
     </table>
     <table width="100%" border="1" class="font-8 border-garis header-padding" style="margin-top:3px">
         <tr>
-            <td rowspan="2" colspan="3">Total tag</td>
+            <td rowspan="2" colspan="3">Total tack</td>
             <td >{{ $header->working_hour }}</td>
             <td >x 3600" x {{ $header->efficiency }}% = </td>
             <td colspan="2"></td>

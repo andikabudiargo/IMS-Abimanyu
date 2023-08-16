@@ -533,7 +533,7 @@
             indexTarget = indexnya+1;
             if (indexTarget == jumObj){
                 if (tekanAdd == 'true'){
-                    add_new_row();    
+                    // add_new_row();    
                 }
             }
             obj.eq(indexTarget).focus().select();    
@@ -596,7 +596,8 @@
         let objKiri = objnameKiri ? $('input[name="'+objnameKiri+'[]"]') : '';
         let indexnya,indexTarget;
         obj.keyup(function(e) {
-            indexnya= obj.index(this);
+            indexnya= obj.index(this)||0;
+            console.log(indexnya);
             indexnya=parseInt(indexnya);
             if (e.keyCode == 38) {
                 //panah atas
@@ -607,6 +608,7 @@
             if (e.keyCode == 40) {
                 //panah bawah
                 indexTarget = indexnya+1;
+                console.log(indexTarget);
                 obj.eq(indexTarget).focus().select();
                 return false;
             }

@@ -127,6 +127,7 @@ class WorkingOrderSheetController extends Controller
         $note = $request->note;
         $status = '1';
         $oEdit = true;
+        $sprayBooth = $request->sprayBooth;
 
         $messages = [
             'required' => 'The field is required.',
@@ -175,7 +176,8 @@ class WorkingOrderSheetController extends Controller
                         'created_by' => Auth::user()->username,
                         'updated_by' => Auth::user()->username,
                         'created_at' => date('Y-m-d H:i:s'),
-                        'updated_at' => date('Y-m-d H:i:s')
+                        'updated_at' => date('Y-m-d H:i:s'),
+                        'spray_booth' => $sprayBooth
                     ]);
 
                     $dataSet = [];
@@ -201,7 +203,8 @@ class WorkingOrderSheetController extends Controller
                             "qty_repaint" => 0,
                             "created_by" => Auth::user()->username,
                             "status" => $val->status,
-                            "created_at" => date('Y-m-d H:i:s')
+                            "created_at" => date('Y-m-d H:i:s'),
+                            "tone" =>$val->tone
                         ];
                     }
 
@@ -320,6 +323,7 @@ class WorkingOrderSheetController extends Controller
         $note = $request->note;
         $oEdit = true;
         $woNumber = $request->wosNumber;
+        $sprayBooth = $request->sprayBooth;
 
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATED','3'=>'APPROVED','4'=>'PROCESS','5'=>'CANCELED'];
         
@@ -365,7 +369,8 @@ class WorkingOrderSheetController extends Controller
                             'efficiency' => $efficiency,
                             'note' => $note,
                             'updated_by' => Auth::user()->username,
-                            'updated_at' => date('Y-m-d H:i:s')
+                            'updated_at' => date('Y-m-d H:i:s'),
+                            'spray_booth' => $sprayBooth
                         ]
                     );
 
@@ -396,7 +401,8 @@ class WorkingOrderSheetController extends Controller
                             "qty_repaint" => 0,
                             "created_by" => Auth::user()->username,
                             "status" => $val->status,
-                            "created_at" => date('Y-m-d H:i:s')
+                            "created_at" => date('Y-m-d H:i:s'),
+                            "tone" =>$val->tone
                         ];
                     }
 
@@ -472,7 +478,8 @@ class WorkingOrderSheetController extends Controller
             created_by,
             updated_by,
             created_at,
-            updated_at
+            updated_at,
+            spray_booth
         )
         select 
             '$woNew',
@@ -489,7 +496,8 @@ class WorkingOrderSheetController extends Controller
             '$username',
             '$username',
             '".date('Y-m-d H:i:s')."',
-            '".date('Y-m-d H:i:s')."'
+            '".date('Y-m-d H:i:s')."',
+            spray_booth
         from wo_hdr where wo_code = '$woOrigin'";
 
         $sqlDet="INSERT into wo_det
@@ -516,7 +524,8 @@ class WorkingOrderSheetController extends Controller
             created_by,
             updated_by,
             created_at,
-            updated_at
+            updated_at,
+            tone
         )
         select '$woNew',
             so_code,
@@ -540,7 +549,8 @@ class WorkingOrderSheetController extends Controller
             '$username',
             '$username',
             '".date('Y-m-d H:i:s')."',
-            '".date('Y-m-d H:i:s')."' 
+            '".date('Y-m-d H:i:s')."',
+            tone
         from wo_det where wo_code = '$woOrigin'";
 
         $rowAffected =  DB::select($sqlHdr);
@@ -654,6 +664,11 @@ class WorkingOrderSheetController extends Controller
                                     </a>';
                 }
             }
+
+            $buttons .=         '<a href="'. route('workingOrderSheet.show', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+                                    <i data-feather="list"></i>
+                                    Detail
+                                </a>';
             
             if (($data->status == '2') || ($data->status == '3') ){
                 if (Auth::user()->can('workingOrder-revision')) {
@@ -843,5 +858,26 @@ class WorkingOrderSheetController extends Controller
             \LogActivity::addToLog($title,"username: $username Status $message");
             return response()->json(array('statusWo' => $status,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'woNumber'=>$woNumber));
         }
+    }
+
+    public function getTack(Request $request)
+    {
+        $username =  Auth::user()->username;
+        $articleCode = $request->articleCode;
+        $sprayBooth = $request->sprayBooth;
+        $tone = $request->tone;
+
+        $bomCode = db::table('bom_hdr')->where('article_code',$articleCode)
+        ->where('status','3')
+        ->value('bom_code');
+
+        $tack= DB::table('bom_spray_booth')
+        ->where('bom_code',$bomCode)
+        ->where('spray_booth',$sprayBooth)
+        ->where('tone',$tone)
+        ->value('tack');
+
+        return $tack;                
+        
     }
 }

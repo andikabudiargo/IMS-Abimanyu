@@ -23,7 +23,7 @@
             <div class="col-md-2 col-12">
                 <div class="form-group">
                     <label for="qty_order" class="d-block d-md-none">QTY</label>
-                    <input type="text" class="form-control numeral-mask-digit text-right" id = "qty_order" name="qty_order[]" maxlength="9"/>
+                    <input type="text" class="form-control numeral-mask-digit text-right tombol-panah" id = "qty_order" name="qty_order[]" maxlength="9"/>
                     <input type="hidden" class="form-control" id = "qtyHitung" name="qtyHitung[]" />
                 </div>
             </div>
@@ -36,7 +36,7 @@
             <div class="col-md-2 col-12">
                 <div class="form-group">
                     <label for="note" class="d-block d-md-none">Note</label>
-                    <input type="text" class="form-control" id = "note" name="note[]"  maxlength="100">
+                    <input type="text" class="form-control tombol-panah" id = "note" name="note[]"  maxlength="100">
                 </div>
             </div>
             <div class="col-md-1 col-12">
@@ -206,7 +206,7 @@
         $('#note'+ cloneCount).val(note);
         $('#article_id'+ cloneCount).attr('disabled','disabled');
         $('#remove_button').tooltip();
-        tombolPanah('qty_order');
+        // tombolPanah('qty_order');
         mask_thousand_digit(numberOfDecimalDigit);
         compareQty();
         recordCount();
@@ -247,7 +247,7 @@
             mask_thousand_digit(numberOfDecimalDigit);
         }
 
-        tombolPanah('qty_order');
+        // tombolPanah('qty_order');
         recordCount();
         compareQty();
     };
@@ -278,7 +278,7 @@
         changeselect(depentName,'article_id'+ cloneCount);
         $("#article_id"+cloneCount).select2();
         $('#remove_button').tooltip();
-        tombolPanah('qty_order');
+        // tombolPanah('qty_order');
         splitArticle();
         recordCount();
     };

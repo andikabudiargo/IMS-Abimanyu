@@ -2,7 +2,7 @@
     <div class="table-responsive main-table mt-75">
         <table class="table table-bordered w-100" >
             <tr>
-                <td rowspan="3">Total Tag</td>
+                <td rowspan="3">Total Tack</td>
                 <td>Waktu tersedia <span id="sumWorkHour"></span> x3600"x<span id="noEfficiency"></span>%</td>
                 <td class="text-right" id="sumTimeRequired"></td>
             </tr>

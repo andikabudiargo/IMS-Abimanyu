@@ -72,9 +72,19 @@
                                     <input type="text" id="model" name="model" class="form-control" />
                                 </div>
                             </div>
-                            <div class="form-row">
+
+                            {{-- <div class="form-row">
+                                <div class="form-group col-md-8">
+                                    <label class="form-label" for="articleCodeRm">Spray booth</label>
+                                    <select class="select2 form-control" id="articleCodeRm" name="articleCodeRm" required>
+                                        <option value=""></option>
+                                        @foreach($articlesRm as $val)
+                                            <option value="{{ $val->article_code }}" {{ $val->article_code == old("articleCodeRm") ? "selected" : ""}} >{{ $val->article_alternative_code }} - {{ $val->article_desc }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
                                 <div class="form-group col-md-2">
-                                    <label for="tag">Tact*</label>
+                                    <label for="tag">Tack*</label>
                                     <input type="text" id="tag" name="tag" value="{{ old('tag') }}" class="form-control numeral-mask-digit" maxlength="5" required/>
                                 </div>
                                 <div class="form-group col-md-2">
@@ -94,7 +104,52 @@
                                     <label for="cycleTime">Cycle time buffing</label>
                                     <input type="text" id="cycleTime" name="cycleTime" value="{{ old('cycleTime') }}" class="form-control numeral-mask-digit" maxlength="5" required/>
                                 </div>
-                            </div>
+                            </div> --}}
+
+                            {{-- <div class="form-row">
+                                <div class="form-group col-md-2">
+                                    <label class="form-label" for="sprayBooth">Spray booth</label>
+                                    <select class="select2 form-control" id="sprayBooth" name="sprayBooth" required>
+                                        <option value=""></option>
+                                        <option value="sp1">Spray Booth 1</option>
+                                        <option value="sp2">Spray Booth 2</option>
+                                        <option value="sp3">Spray Booth 3</option>
+                                        <option value="sp4">Spray Booth 4</option>
+                                    </select>
+                                </div>
+                                <div class="form-group col-md-2">
+                                    <label class="form-label" for="tone">Tone</label>
+                                    <select class="select2 form-control" id="tone" name="tone" required>
+                                        <option value=""></option>
+                                        <option value="t1">Tone 1</option>
+                                        <option value="t2">Tone 2</option>
+                                        <option value="t3">Tone 3</option>
+                                        <option value="t4">Tone 4</option>
+                                    </select>
+                                </div>
+                                <div class="form-group col-md-2">
+                                    <label for="tag">Tack*</label>
+                                    <input type="text" id="tag" name="tag" value="{{ old('tag') }}" class="form-control numeral-mask-digit" maxlength="5" required/>
+                                </div>
+                                <div class="form-group col-md-2">
+                                    <label for="passRate">Pass Rate*</label>
+                                    <input type="text" id="passRate" name="passRate" value="{{ old('passRate') }}" class="form-control numeral-mask-digit" maxlength="5" required/>
+                                </div>
+                                <div class="form-group col-md-2">
+                                    <label for="passThru">Pass trough*</label>
+                                    <div class="input-group input-group-merge">
+                                        <input type="text" id="passThru" name="passThru" value="{{ old('passThru') }}" class="form-control numeral-mask-digit" maxlength="5" required/>
+                                        <div class="input-group-append">
+                                            <span class="input-group-text">%</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="form-group col-md-2">
+                                    <label for="cycleTime">Cycle time buffing</label>
+                                    <input type="text" id="cycleTime" name="cycleTime" value="{{ old('cycleTime') }}" class="form-control numeral-mask-digit" maxlength="5" required/>
+                                </div>
+                            </div> --}}
+
                             <div class="form-row">
                                 <div class="form-group col-md-8">
                                     <label class="form-label" for="note">Notes</label>
@@ -102,6 +157,29 @@
                                 </div>
                             </div>
                         </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="card-title">Spray Booth</h4>
+                </div>
+                <div class="card-body">
+                    <div class="container-list-item">
+                        <div class="lebar-list-item">
+                            @include('bom.headerColumnSb')
+                            <div class="" id="article_row_sb" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px">
+                                <input type="text" id ="last_row_number_sb" class="d-none" value="0">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-end mt-75">
+                        <button class="btn btn-primary btn-prev" type="button" id="addNewRowSp" onclick="add_new_row_sb();">
+                            <i data-feather="plus" class="align-middle mr-sm-25 mr-0"></i>
+                            <span class="align-middle d-sm-inline-block d-none">Add</span>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -129,6 +207,7 @@
                     <hr>
                     <div class="form-row">
                         <div class="col-md-12 col-12">
+                            <a href="{{ route('boms.index') }}" class="btn btn-light">Back</a>
                             <button class="btn btn-success" type="reset" id="cmdNew" name="cmdCancel">New</button>
                             <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Save</button>
                         </div>
@@ -177,6 +256,7 @@
 @endsection
 @section('scripts')
 @include('bom.addArticle')
+@include('bom.addArticleSb')
 <script type="text/javascript">
         
     $(document).ready(function(){     

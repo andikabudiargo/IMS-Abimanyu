@@ -459,7 +459,7 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('bom/report',['as'=>'bom.report.index','uses'=>'BomReportController@index','middleware' => ['permission:bom-index']]);
 	Route::post('bom/report/list',['as'=>'bom.report.list','uses'=>'BomReportController@list']);
 
-	Route::get('deliveryPlan/create',['as'=>'deliveryPlan.create','uses'=>'DeliveryPlanController@create','middleware' => ['permission:workingOrder-create']]);
+	Route::get('deliveryPlan/create',['as'=>'deliveryPlan.create','uses'=>'DeliveryPlanController@create']);
 	Route::get('deliveryPlan/generate',['as'=>'deliveryPlan.generate','uses'=>'DeliveryPlanController@generatePlan']);
 	Route::get('deliveryPlan/reGenerate',['as'=>'deliveryPlan.reGenerate','uses'=>'DeliveryPlanController@reGeneratePlan']);
 	Route::get('deliveryPlan/listSo',['as'=>'deliveryPlan.listSo','uses'=>'DeliveryPlanController@listSo']);
@@ -492,6 +492,7 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('workOrderSheet/print',['as'=>'workingOrderSheet.print','uses'=>'WorkingOrderSheetController@print']);
 	Route::post('workOrderSheet/approve',['as'=>'workingOrderSheet.approve','uses'=>'WorkingOrderSheetController@approve']);
 	Route::get('workOrderSheet/revision',['as'=>'workingOrderSheet.revision','uses'=>'WorkingOrderSheetController@revision','middleware' => ['permission:workingOrder-revision']]);
+	Route::get('workOrderSheet/get/tack',['as'=>'workingOrderSheet.get.tack','uses'=>'WorkingOrderSheetController@getTack']);
 
 	Route::get('production',['as'=>'production.index','uses'=>'ProductionController@index','middleware' => ['permission:production-index']]);
 	Route::get('production/create',['as'=>'production.create','uses'=>'ProductionController@create','middleware' => ['permission:production-create']]);

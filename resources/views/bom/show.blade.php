@@ -77,7 +77,7 @@
                                                 <input type="text" id="model" name="model" value="{{ $header2->model }}" class="form-control" />
                                             </div>
                                         </div>
-                                        <div class="form-row">
+                                        {{-- <div class="form-row">
                                             <div class="form-group col-md-2">
                                                 <label for="tag">Tact</label>
                                                 <input type="text" id="tag" name="tag" value="{{ old('tag',$header2->tag) }}" class="form-control numeral-mask-digit" maxlength="5" disabled/>
@@ -86,7 +86,6 @@
                                                 <label for="passRate">Pass Rate</label>
                                                 <input type="text" id="passRate" name="passRate" value="{{ old('passRate',$header2->pass_rate) }}" class="form-control numeral-mask-digit" maxlength="5" disabled/>
                                             </div>
-            
                                             <div class="form-group col-md-2">
                                                 <label for="passThru">Pass trough</label>
                                                 <div class="input-group input-group-merge">
@@ -100,7 +99,7 @@
                                                 <label for="cycleTime">Cycle time buffing</label>
                                                 <input type="text" id="cycleTime" name="cycleTime" value="{{ old('cycleTime',$header2->cycle_time) }}" class="form-control numeral-mask-digit" maxlength="5" disabled/>
                                             </div>
-                                        </div>
+                                        </div> --}}
                                         <div class="form-row">
                                             <div class="form-group col-md-8">
                                                 <label class="form-label" for="note">Notes</label>
@@ -109,6 +108,38 @@
                                         </div>
                                     </form>
                                     <hr>
+                                    <h4 class="card-title">Spray Booth</h4>
+                                    <div class="table-responsive main-table">
+                                        <table class="table table-bordered w-100" >
+                                            <thead class="thead-dark">
+                                                <tr>
+                                                    <th >No</th>
+                                                    <th >Spray Booth</th>
+                                                    <th >Tone</th>
+                                                    <th class="text-right">Tack</th>
+                                                    <th class="text-right">Pass Rate</th>
+                                                    <th class="text-right">Pass Thru</th>
+                                                    <th class="text-right">Cycle time buffing</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                            @foreach( $sprayBooths as $key =>$item1 )
+                                                @if($item1->bom_code === $header2->bom_code )
+                                                    <tr>
+                                                        <td ></td>
+                                                        <td >{{ $item1->spray_booth ? $arrSprayBooth[$item1->spray_booth]:'' }}</td>
+                                                        <td >{{ $item1->tone ? $arrTone[$item1->tone] : '' }}</td>
+                                                        <td class="text-right">{{ $item1->tack }}</td>
+                                                        <td class="text-right">{{ $item1->pass_rate }}</td>
+                                                        <td class="text-right">{{ $item1->pass_thru }}</td>
+                                                        <td class="text-right">{{ $item1->cycle_time }}</td>
+                                                    </tr>
+                                                @endif
+                                            @endforeach
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <hr>
                                     <h4 class="card-title">Article</h4>
                                     <div class="table-responsive main-table">
                                         <table class="table table-bordered w-100" >
@@ -116,6 +147,7 @@
                                                 <tr>
                                                     <th>No</th>
                                                     <th>Article Code</th>
+                                                    <th>POS</th>
                                                     <th >Log.Uom</th>
                                                     <th class="text-right">QTY</th>
                                                     <th class="text-left">Bom Uom</th>
@@ -130,6 +162,7 @@
                                                     <tr>
                                                         <td ></td>
                                                         <td >{{ $item->article }}</td>
+                                                        <td >{{ $item->pos ? $arrPos[$item->pos] :'' }}</td>
                                                         <td >{{ $item->original_uom }}</td>
                                                         <td class="text-right">{{ number_format($item->qty,$decimalPlaces) }}</td>
                                                         <td class="text-left">{{ $item->uom }}</td>

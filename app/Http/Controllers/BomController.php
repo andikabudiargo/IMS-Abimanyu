@@ -40,10 +40,10 @@ class BomController extends Controller
             ['data'=>'group_of_material','name'=>'group_of_material','title'=>'Group'],
             ['data'=>'status','name'=>'status','title'=>'Status'],
             ['data'=>'note','name'=>'note','title'=>'Note'],
-            ['data'=>'tag','name'=>'tag','title'=>'Tag'],
-            ['data'=>'pass_rate','name'=>'pass_rate','title'=>'Pass Rate'],
-            ['data'=>'pass_thru','name'=>'pass_thru','title'=>'Pass Thru'],
-            ['data'=>'cycle_time','name'=>'cycle_time','title'=>'Cycle Time'],
+            // ['data'=>'tag','name'=>'tag','title'=>'Tag','visible'=>false],
+            // ['data'=>'pass_rate','name'=>'pass_rate','title'=>'Pass Rate','visible'=>false],
+            // ['data'=>'pass_thru','name'=>'pass_thru','title'=>'Pass Thru','visible'=>false],
+            // ['data'=>'cycle_time','name'=>'cycle_time','title'=>'Cycle Time','visible'=>false],
             ['data'=>'approval_by','name'=>'approval_by','title'=>'Approval By'],
             ['data'=>'created_by','name'=>'created_by','title'=>'Created By'],
             ['data'=>'created_at','name'=>'created_at','title'=>'Created At'],
@@ -140,6 +140,7 @@ class BomController extends Controller
     {
         $username =  Auth::user()->username;
         $articles = json_decode($request -> articles);
+        $sprayBooth = json_decode($request -> sprayBooths);
         $articleCode = $request->articleCode;
         $articleCodeRm = $request->articleCodeRm;
         $customer = $request->customer;
@@ -187,55 +188,76 @@ class BomController extends Controller
             $bomNumber = $this->getLastCode('BOM');
             DB::beginTransaction();
             try {
-                    $id = DB::table('bom_hdr')->insertGetId([
+                $id = DB::table('bom_hdr')->insertGetId([
+                    'bom_code' => $bomNumber,
+                    'customer' => $customer,
+                    'article_code' => $articleCode,
+                    'article_code_rm' => $articleCodeRm,
+                    'uom' => $uom,
+                    'group_of_material' => $group,
+                    'status' => $status,
+                    // 'tag' => $tag,
+                    // 'pass_rate' => $passRate,
+                    // 'pass_thru' => $passThru,
+                    // 'cycle_time' => $cycleTime,
+                    'note' => $note,
+                    'part_no' => $partNo,
+                    'model' => $model,
+                    'created_by' => Auth::user()->username,
+                    'updated_by' => Auth::user()->username,
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s'),
+                    'origin_bom_code' => $bomNumber
+                ]);
+
+                $dataSet = [];
+                foreach ($articles as $val) {
+                    $dataSet[] = [
                         'bom_code' => $bomNumber,
-                        'customer' => $customer,
-                        'article_code' => $articleCode,
-                        'article_code_rm' => $articleCodeRm,
-                        'uom' => $uom,
-                        'group_of_material' => $group,
-                        'status' => $status,
-                        'tag' => $tag,
-                        'pass_rate' => $passRate,
-                        'pass_thru' => $passThru,
-                        'cycle_time' => $cycleTime,
-                        'note' => $note,
-                        'part_no' => $partNo,
-                        'model' => $model,
+                        'article_code' => $val->article_code,
+                        'qty' => $val->qty,
+                        'uom' => $val->uom,
+                        'uom_con' => $val->uom_con,
+                        // 'cost_price' => $val->price,
+                        'article_type' => $val->type,
+                        'customer_code' => $val->customer_code,
+                        // 'note' => $val->note,
+                        'status' => '1',
                         'created_by' => Auth::user()->username,
-                        'updated_by' => Auth::user()->username,
                         'created_at' => date('Y-m-d H:i:s'),
-                        'updated_at' => date('Y-m-d H:i:s'),
-                        'origin_bom_code' => $bomNumber
-                    ]);
+                        'urutan' => $val->urutan,
+                        'pos'=>$val->pos
+                    ];
+                }
 
-                    $dataSet = [];
-                    foreach ($articles as $val) {
-                        $dataSet[] = [
-                            'bom_code' => $bomNumber,
-                            'article_code' => $val->article_code,
-                            'qty' => $val->qty,
-                            'uom' => $val->uom,
-                            'uom_con' => $val->uom_con,
-                            // 'cost_price' => $val->price,
-                            'article_type' => $val->type,
-                            'customer_code' => $val->customer_code,
-                            // 'note' => $val->note,
-                            'status' => '1',
-                            'created_by' => Auth::user()->username,
-                            'created_at' => date('Y-m-d H:i:s'),
-                            'urutan' => $val->urutan
-                        ];
-                    }
+                DB::table('bom_det')->insert($dataSet);
 
-                    DB::table('bom_det')->insert($dataSet);
+                DB::table('bom_spray_booth')->where('bom_code',$bomNumber)->delete();
 
-                    DB::commit();
-                    $title ='Save BOM';
-                    $alert  ="success";
-                    $message  = "$title $bomNumber is successfully saved";
-                    \LogActivity::addToLog($title,"username: $username Status $message");
-                    return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'bomNumber'=>$bomNumber,'oEdit'=>true));
+                $dataSetSb = [];
+                foreach ($sprayBooth as $val) {
+                    $dataSetSb[] = [
+                        'bom_code' => $bomNumber,
+                        'spray_booth' => $val->spray_booth,
+                        'tone' => $val->tone,
+                        'tack' => $val->tack,
+                        'pass_rate' => $val->pass_rate,
+                        'pass_thru' => $val->pass_thru,
+                        'urutan' => $val->urutan,
+                        'cycle_time' => $val->cycle_time,
+                        'created_by' => Auth::user()->username,
+                        'created_at' => date('Y-m-d H:i:s')
+                    ];
+                }
+
+                DB::table('bom_spray_booth')->insert($dataSetSb);
+
+                DB::commit();
+                $title ='Save BOM';
+                $alert  ="success";
+                $message  = "$title $bomNumber is successfully saved";
+                \LogActivity::addToLog($title,"username: $username Status $message");
+                return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'bomNumber'=>$bomNumber,'oEdit'=>true));
             } catch (Exception $e) {
                 DB::rollBack();
                 $title ='Save BOM';
@@ -296,6 +318,15 @@ class BomController extends Controller
         ->orderBy('bom_det.id')
         ->get();
 
+        $data['sprayBooths'] = DB::table('bom_spray_booth')
+        ->whereIn('bom_spray_booth.bom_code', function($query) use ($bomNumber){
+            $query->select('bom_code')->from('bom_hdr')->where('origin_bom_code',$bomNumber);
+        })
+        ->select('bom_spray_booth.*')
+        // ->where('bom_det.bom_code',$bomNumber)
+        ->orderBy('bom_spray_booth.id')
+        ->get();
+
         $data['articleHeader']= DB::table('article')
         ->leftJoin('third_party','article.third_party','third_party.kode')
         ->leftJoin('group_materials','group_materials.code','=','article.group_of_material')
@@ -317,6 +348,10 @@ class BomController extends Controller
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'RECEIVED','5'=>'DELETED','6'=>'CLOSED','7'=>'REVISED','8'=>'DECLINE'];
         $statusPr = ['NEW','VALIDATE','APPROVED','RECEIVED','DELETED','CLOSED','REVISED','DECLINE'];
         $data['statusBom'] = $statusPr[$data['headers'][0]->status-1];
+
+        $data['arrSprayBooth'] = ['sb1'=>'Spray Booth 1','sb2'=>'Spray Booth 2','sb3'=>'Spray Booth 3','sb4'=>'Spray Booth 4'];
+        $data['arrTone'] = ['t1'=>'Tone 1','t2'=>'Tone 2','t3'=>'Tone 3','t4'=>'Tone 4'];
+        $data['arrPos'] = ['pc'=>'Primer Coat','bc'=>'Base Coat','mbc'=>'Mica Base Coat','cc'=>'Clear Coat'];
 
         return view("bom.show",$data);
         
@@ -370,6 +405,12 @@ class BomController extends Controller
         ->orderBy('bom_det.id')
         ->get();
 
+        $data['sprayBooth'] = DB::table('bom_spray_booth')
+        ->where('bom_code',$bomNumber)
+        ->select('bom_spray_booth.*')
+        ->orderBy('urutan')
+        ->get();
+
         // $data['articleHeader']= DB::table('article')
         // ->leftJoin('third_party','article.third_party','third_party.kode')
         // ->leftJoin('group_materials','group_materials.code','=','article.group_of_material')
@@ -405,6 +446,7 @@ class BomController extends Controller
         $username =  Auth::user()->username;
         $bomNumber = $request -> bomNumber;
         $articles = json_decode($request -> articles);
+        $sprayBooth = json_decode($request -> sprayBooths);
         $articleCode = $request->articleCode;
         $articleCodeRm = $request->articleCodeRm;
         $customer = $request->customer;
@@ -451,71 +493,112 @@ class BomController extends Controller
         }else{
             DB::beginTransaction();
             try {
-                    $row_affected=DB::table('bom_hdr')
+                $row_affected=DB::table('bom_hdr')
+                ->where('bom_code',$bomNumber)
+                ->update(
+                    [
+                        // 'bom_code' => $bomNumber,
+                        // 'customer' => $customer,
+                        // 'article_code' => $articleCode,
+                        // 'uom' => $uom,
+                        'article_code_rm' => $articleCodeRm,
+                        'group_of_material' => $group,
+                        'status' => $status,
+                        // 'tag' => $tag,
+                        // 'pass_rate' => $passRate,
+                        // 'pass_thru' => $passThru,
+                        // 'cycle_time' => $cycleTime,
+                        'note' => $note,
+                        'part_no' => $partNo,
+                        'model' => $model,
+                        'updated_by' => Auth::user()->username,
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]
+                );
+
+                $dataset=[];
+                foreach ($articles as $val) {
+                    $dataSet[] = [
+                        $bomNumber.$val->article_code
+                    ];                  
+                }
+
+                /*
+                Delete kalo article tidak ada di $bomNumber dan article nya $val->article_code
+                berdasarkan 2 kondisi
+                */
+                DB::table('bom_det')
+                    // ->whereNotIn(DB::raw("CONCAT(bom_code,article_code)"),$dataSet)
                     ->where('bom_code',$bomNumber)
-                    ->update(
-                        [
-                            // 'bom_code' => $bomNumber,
-                            // 'customer' => $customer,
-                            // 'article_code' => $articleCode,
-                            // 'uom' => $uom,
-                            'article_code_rm' => $articleCodeRm,
-                            'group_of_material' => $group,
-                            'status' => $status,
-                            'tag' => $tag,
-                            'pass_rate' => $passRate,
-                            'pass_thru' => $passThru,
-                            'cycle_time' => $cycleTime,
-                            'note' => $note,
-                            'part_no' => $partNo,
-                            'model' => $model,
-                            'updated_by' => Auth::user()->username,
-                            'updated_at' => date('Y-m-d H:i:s')
-                        ]
-                    );
+                    ->delete();
 
-                    $dataset=[];
-                    foreach ($articles as $val) {
-                        $dataSet[] = [
-                            $bomNumber.$val->article_code
-                        ];
-                        
-                    }
+                // foreach ($articles as $val) {
+                //     DB::table('bom_det')
+                //     ->updateOrInsert(
+                //         ['bom_code' => $bomNumber,'article_code' => $val->article_code],
+                //         [
+                //             'bom_code' => $bomNumber,
+                //             'article_code' => $val->article_code,
+                //             'qty' => $val->qty,
+                //             'uom' => $val->uom,
+                //             'uom_con' => $val->uom_con,
+                //             // 'cost_price' => $val->price,
+                //             'article_type' => $val->type,
+                //             'customer_code' => $val->customer_code,
+                //             // 'note' => $val->note,
+                //             'created_by' => Auth::user()->username,
+                //             'created_at' => date('Y-m-d H:i:s'),
+                //             'urutan' => $val->urutan,
+                //             'pos'=>$val->pos
+                //         ]
+                //     );
+                // }
 
-                    //Delete kalo article tidak ada di $bomNumber dan article nya $val->article_code
-                    //berdasarkan 2 kondisi
-                    DB::table('bom_det')
-                        // ->whereNotIn(DB::raw("CONCAT(bom_code,article_code)"),$dataSet)
-                        ->where('bom_code',$bomNumber)
-                        ->delete();
+                foreach ($articles as $val) {
+                    $idKu= DB::table('bom_det')
+                    ->insertGetId([
+                        'bom_code' => $bomNumber,
+                        'article_code' => $val->article_code,
+                        'qty' => $val->qty,
+                        'uom' => $val->uom,
+                        'uom_con' => $val->uom_con,
+                        // 'cost_price' => $val->price,
+                        'article_type' => $val->type,
+                        'customer_code' => $val->customer_code,
+                        // 'note' => $val->note,
+                        'created_by' => Auth::user()->username,
+                        'created_at' => date('Y-m-d H:i:s'),
+                        'urutan' => $val->urutan,
+                        'pos'=>$val->pos
+                    ]);
+                }
 
-                    foreach ($articles as $val) {
-                        DB::table('bom_det')
-                        ->updateOrInsert(
-                            ['bom_code' => $bomNumber,'article_code' => $val->article_code],
-                            [
-                                'bom_code' => $bomNumber,
-                                'article_code' => $val->article_code,
-                                'qty' => $val->qty,
-                                'uom' => $val->uom,
-                                'uom_con' => $val->uom_con,
-                                // 'cost_price' => $val->price,
-                                'article_type' => $val->type,
-                                'customer_code' => $val->customer_code,
-                                // 'note' => $val->note,
-                                'created_by' => Auth::user()->username,
-                                'created_at' => date('Y-m-d H:i:s'),
-                                'urutan' => $val->urutan
-                            ]
-                        );
-                    }
-                    
-                    DB::commit();
-                    $title ="Update $this->title";
-                    $alert  ="success";
-                    $message  = "$title $bomNumber is successfully updated";
-                    \LogActivity::addToLog($title,"username: $username Status $message");
-                    return response()->json(array('status' => 1, 'message' => $message,'alert'=>$alert,'bomNumber'=>$bomNumber,'oEdit'=>true));
+                DB::table('bom_spray_booth')->where('bom_code',$bomNumber)->delete();
+
+                $dataSetSb = [];
+                foreach ($sprayBooth as $val) {
+                    $dataSetSb[] = [
+                        'bom_code' => $bomNumber,
+                        'spray_booth' => $val->spray_booth,
+                        'tone' => $val->tone,
+                        'tack' => $val->tack,
+                        'pass_rate' => $val->pass_rate,
+                        'pass_thru' => $val->pass_thru,
+                        'cycle_time' => $val->cycle_time,
+                        'urutan' => $val->urutan,
+                        'created_by' => Auth::user()->username,
+                        'created_at' => date('Y-m-d H:i:s')
+                    ];
+                }
+
+                DB::table('bom_spray_booth')->insert($dataSetSb);
+                
+                DB::commit();
+                $title ="Update $this->title";
+                $alert  ="success";
+                $message  = "$title $bomNumber is successfully updated";
+                \LogActivity::addToLog($title,"username: $username Status $message");
+                return response()->json(array('status' => 1, 'message' => $message,'alert'=>$alert,'bomNumber'=>$bomNumber,'oEdit'=>true));
 
             } catch (Exception $e) {
                 DB::rollBack();
@@ -593,6 +676,8 @@ class BomController extends Controller
         // $bom_code = DB::table('bom_hdr')->where('id',$id)->value('bom_code');
         if ($bomStatus!=3){
             $rowAffected = DB::table('bom_hdr')->where('bom_code',$bomCode)->where('status','<>','3')->delete();
+            DB::table('bom_det')->where('bom_code',$bomCode)->delete();
+            DB::table('bom_spray_booth')->where('bom_code',$bomCode)->delete();
         }else{
             $rowAffected = DB::table('bom_hdr')->where('bom_code',$bomCode)->update([
                 'status' => 5,
@@ -770,7 +855,8 @@ class BomController extends Controller
 
     }
 
-    public function revision(Request $request){
+    public function revision(Request $request)
+    {
         $username =  Auth::user()->username;
         $id=Crypt::decryptString($request->id);
         $bomOrigin=DB::table('bom_hdr')->where('id',$id)->value('bom_code');
@@ -850,7 +936,8 @@ class BomController extends Controller
             created_at,
             updated_at,
             uom_con,
-            urutan
+            urutan,
+            pos
         )
         select 
             '$bomNew',
@@ -867,12 +954,40 @@ class BomController extends Controller
             '".date('Y-m-d H:i:s')."',
             '".date('Y-m-d H:i:s')."',
             uom_con,
-            urutan
+            urutan,
+            pos
         from bom_det where bom_code = '$bomOrigin' order by id";
+
+        $sqlAprayBooth="INSERT into bom_spray_booth
+        (
+            bom_code,
+            spray_booth,
+            tone,
+            tack,
+            pass_rate,
+            pass_thru,
+            urutan,
+            cycle_time,
+            created_by,
+            created_at
+        )
+        select 
+            '$bomNew',
+            spray_booth,
+            tone,
+            tack,
+            pass_rate,
+            pass_thru,
+            urutan,
+            cycle_time,
+            '$username',
+            '".date('Y-m-d H:i:s')."'
+        from bom_spray_booth where bom_code = '$bomOrigin' order by id";
 
         $rowAffected =  DB::select($sqlHdr);
         if ($rowAffected){
             DB::select($sqlDet);
+            DB::select($sqlAprayBooth);
 
             DB::table('bom_hdr')
             ->where('bom_code',$bomOrigin)
