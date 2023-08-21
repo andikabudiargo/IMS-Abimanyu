@@ -135,7 +135,8 @@
         </tr>
         </thead>
         <tbody>
-            @foreach ($details as $val )
+            {!! $barisDetail !!}
+            {{-- @foreach ($details as $val )
                 <tr >
                     <td class="detail-padding" align="center" scope="row" style="padding-left:3px;padding-right:3px">{{ ++$no }}</td>
                     <td class="detail-padding" align="left" style="padding-left:3px;padding-right:3px">{{ $val->article_desc }}</td>
@@ -144,7 +145,7 @@
                     <td class="detail-padding" align="left" style="padding-left:3px;padding-right:3px">{{ $val->uom }}</td>
                     <td class="detail-padding" align="left" style="padding-left:3px;padding-right:3px">{{ $val->article_alternative_code }}</td>
                 </tr>
-            @endforeach
+            @endforeach --}}
         </tbody>
     </table>
 
