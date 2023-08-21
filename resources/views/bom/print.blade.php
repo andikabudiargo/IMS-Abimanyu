@@ -194,11 +194,13 @@
                 <td align="center"></td>
                 <td align="center"></td> --}}
 
-                @foreach($approvalHistory as $val)
-                    @if($val->status == true)
-                        <td align="center">{{ $val->name }}</td>
-                    @else
-                        <td align="center"></td>
+                @foreach($approvalHistory as $key=>$val)
+                    @if($key<6)
+                        @if($val->status == true)
+                            <td align="center">{{ $val->name }}</td>
+                        @else
+                            <td align="center"></td>
+                        @endif
                     @endif
                 @endforeach
                 

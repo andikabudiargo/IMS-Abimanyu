@@ -848,7 +848,6 @@ class BomController extends Controller
         $data['status'] ='1';
         $data['no'] =0;
 
-
         $judulGroup=DB::table('bom_det')
         ->leftJoin('bom_pos','bom_pos.pos_code','bom_det.pos')
         ->select('pos_code','pos_name')
@@ -858,51 +857,51 @@ class BomController extends Controller
         ->get();
 
         
-            $barisAll="";
-            foreach($judulGroup as $val){
-                $groupPos = $val->pos_code ? $val->pos_code : '';
-                if($val->pos_code != null){
-                    $barisJudul = "<tr><td colspan='6' align='center' style='background-color:yellow'>".strtoupper($val->pos_name)."</td> </tr>";
-                    $isiJudul=DB::table('bom_det')
-                    ->leftJoin('article','article.article_code','bom_det.article_code')
-                    ->leftJoin('third_party','third_party.kode','article.third_party')
-                    ->select('bom_det.*'
-                    ,'article.article_alternative_code'
-                    ,'article.article_desc'
-                    ,'third_party.nama')
-                    ->where('bom_code',$bomNumber)
-                    ->where('bom_det.pos',$groupPos)
-                    ->orderBy('bom_det.id')
-                    ->get();
-                }else{
-                    $barisJudul = "";
-                    $isiJudul=DB::table('bom_det')
-                    ->leftJoin('article','article.article_code','bom_det.article_code')
-                    ->leftJoin('third_party','third_party.kode','article.third_party')
-                    ->select('bom_det.*'
-                    ,'article.article_alternative_code'
-                    ,'article.article_desc'
-                    ,'third_party.nama')
-                    ->where('bom_code',$bomNumber)
-                    // ->where('bom_det.pos',$groupPos)
-                    ->orderBy('bom_det.id')
-                    ->get();
-                }
-                $barisIsiJudul='';
-                foreach($isiJudul as $key=>$item){
-                    $no = $key+1;
-                    $barisIsiJudul .= "<tr >
-                        <td class='detail-padding' align='center' scope='row' style='padding-left:3px;padding-right:3px'>$no</td>
-                        <td class='detail-padding' align='left' style='padding-left:3px;padding-right:3px'>$item->article_desc</td>
-                        <td class='detail-padding font-10' align='left' style='padding-left:3px;padding-right:3px'>$item->nama</td>
-                        <td class='detail-padding' align='right' style='padding-left:3px;padding-right:3px'>$item->qty</td>
-                        <td class='detail-padding' align='left' style='padding-left:3px;padding-right:3px'>$item->uom</td>
-                        <td class='detail-padding' align='left' style='padding-left:3px;padding-right:3px'>$item->article_alternative_code</td>
-                    </tr>";
-                }
-    
-                $barisAll = $barisAll.$barisJudul.$barisIsiJudul;
-            };
+        $barisAll="";
+        foreach($judulGroup as $val){
+            $groupPos = $val->pos_code ? $val->pos_code : '';
+            if($val->pos_code != null){
+                $barisJudul = "<tr><td colspan='6' align='center' style='background-color:yellow'>".strtoupper($val->pos_name)."</td> </tr>";
+                $isiJudul=DB::table('bom_det')
+                ->leftJoin('article','article.article_code','bom_det.article_code')
+                ->leftJoin('third_party','third_party.kode','article.third_party')
+                ->select('bom_det.*'
+                ,'article.article_alternative_code'
+                ,'article.article_desc'
+                ,'third_party.nama')
+                ->where('bom_code',$bomNumber)
+                ->where('bom_det.pos',$groupPos)
+                ->orderBy('bom_det.id')
+                ->get();
+            }else{
+                $barisJudul = "";
+                $isiJudul=DB::table('bom_det')
+                ->leftJoin('article','article.article_code','bom_det.article_code')
+                ->leftJoin('third_party','third_party.kode','article.third_party')
+                ->select('bom_det.*'
+                ,'article.article_alternative_code'
+                ,'article.article_desc'
+                ,'third_party.nama')
+                ->where('bom_code',$bomNumber)
+                // ->where('bom_det.pos',$groupPos)
+                ->orderBy('bom_det.id')
+                ->get();
+            }
+            $barisIsiJudul='';
+            foreach($isiJudul as $key=>$item){
+                $no = $key+1;
+                $barisIsiJudul .= "<tr >
+                    <td class='detail-padding' align='center' scope='row' style='padding-left:3px;padding-right:3px'>$no</td>
+                    <td class='detail-padding' align='left' style='padding-left:3px;padding-right:3px'>$item->article_desc</td>
+                    <td class='detail-padding font-10' align='left' style='padding-left:3px;padding-right:3px'>$item->nama</td>
+                    <td class='detail-padding' align='right' style='padding-left:3px;padding-right:3px'>$item->qty</td>
+                    <td class='detail-padding' align='left' style='padding-left:3px;padding-right:3px'>$item->uom</td>
+                    <td class='detail-padding' align='left' style='padding-left:3px;padding-right:3px'>$item->article_alternative_code</td>
+                </tr>";
+            }
+
+            $barisAll = $barisAll.$barisJudul.$barisIsiJudul;
+        };
         
 
         $data['barisDetail']=$barisAll;
