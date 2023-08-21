@@ -1035,7 +1035,7 @@ class PurchaseRequestController extends Controller
         foreach ($articles as $val) {
             $dataSet[] = [
                 'code' => $randomCode,
-                'article_code' => $val->article_code,
+                'article_code' => $val->article_code, //article_code FG dari TSO
                 'qty' => $val->qty_target //untuk perhitungan pakai yang qty_target sudah di konfirmasi ke bu ifah
                 // 'qty' => $val->qty_forcast
             ];
@@ -1079,7 +1079,8 @@ class PurchaseRequestController extends Controller
         ,article_desc
         from production_detail_temp
         left join bom_hdr on bom_hdr.article_code=production_detail_temp.article_code
-        left join bom_det on  bom_det.bom_code = bom_hdr.bom_code
+        --left join bom_det on bom_det.bom_code = bom_hdr.bom_code
+        left join (select bom_code,sum(qty) as qty,uom_con,uom,article_code from bom_det where bom_code in (select bom_code from bom_hdr where status = '3') group by bom_code,article_code,uom_con,uom) bom_det on bom_det.bom_code = bom_hdr.bom_code
         left join article on article.article_code = bom_det.article_code
         where production_detail_temp.code ='$randomCode'
         and bom_hdr.status = '3'
@@ -1594,21 +1595,26 @@ class PurchaseRequestController extends Controller
                 ,get_last_qty(oki.article_bom,'$stockDate','$siteCode','$location') as qty_stock
                 from 
                 (
+                    select *,
+                    coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = article.uom),1) as nilai_konversi
+                    ,qty * coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = article.uom),1) as qty_hasil_konversi
+                    from (
                     select bom_code
                     ,bom_det.article_code as article_bom
                     ,(select article_code from bom_hdr where bom_code = bom_det.bom_code) as article_code_fg
-                    ,qty
+                    ,sum(qty) as qty
                     ,bom_det.uom
                     ,uom_con
-                    ,coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = article.uom),1) as nilai_konversi
-                    ,qty * coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = article.uom),1) as qty_hasil_konversi
+                    -- ,coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = article.uom),1) as nilai_konversi
+                    -- ,qty * coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = article.uom),1) as qty_hasil_konversi
                     from bom_det 
-                    left join article on article.article_code = bom_det.article_code
                     where bom_code in 
                     ( select bom_code
                         from (select article_code,qty_target as qty from target_order_det where tso_code = '$tsoCode') as production_detail_temp
                         left join bom_hdr on bom_hdr.article_code=production_detail_temp.article_code
                         where bom_hdr.status = '3')
+                    group by bom_det.bom_code,bom_det.article_code,bom_det.uom_con,bom_det.uom) bom_det
+                    left join article on article.article_code = bom_det.article_bom
                 ) as oki
             left join article on article.article_code = oki.article_bom
             order by alternative

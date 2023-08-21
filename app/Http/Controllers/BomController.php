@@ -816,6 +816,14 @@ class BomController extends Controller
     public function print(Request $request)
     {
         $id=Crypt::decryptString($request->id);
+
+        $oki=DB::table('bom_hdr1')
+        ->leftJoin(db::raw("(select * from bom_det where bom_code=bom_hdr.bom_code) as a"),'a.bom_code','bom_hdr.bom_code')
+        ->where('bom_hdr.id',$id)
+        ->get();
+
+        dd($oki);
+
         
         $data['bomHdr']=DB::table('bom_hdr')
         ->leftJoin('third_party','third_party.kode','bom_hdr.customer')
