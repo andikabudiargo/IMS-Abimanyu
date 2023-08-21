@@ -195,7 +195,7 @@
                 <td align="center"></td> --}}
 
                 @foreach($approvalHistory as $key=>$val)
-                    @if($key<6)
+                    @if($key<5)
                         @if($val->status == true)
                             <td align="center">{{ $val->name }}</td>
                         @else
