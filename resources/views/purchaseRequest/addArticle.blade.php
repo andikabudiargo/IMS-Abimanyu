@@ -36,7 +36,7 @@
             <div class="col-md-2 col-12">
                 <div class="form-group">
                     <label for="note" class="d-block d-md-none">Note</label>
-                    <input type="text" class="form-control tombol-panah" id = "note" name="note[]"  maxlength="100">
+                    <input type="text" class="form-control" id = "note" name="note[]"  maxlength="100">
                 </div>
             </div>
             <div class="col-md-1 col-12">
