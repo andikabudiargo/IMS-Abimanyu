@@ -6,6 +6,11 @@
     </div>
     <div class="col-md-2 col-12 d-none d-md-block">
         <div class="form-group">
+            <label class="d-none d-md-block">Stripping</label>
+        </div>
+    </div>
+    <div class="col-md-1 col-12 d-none d-md-block">
+        <div class="form-group">
             <label class="d-none d-md-block">Tone</label>
         </div>
     </div>
@@ -14,7 +19,7 @@
             <label class="d-none d-md-block">Tack*</label>
         </div>
     </div>
-    <div class="col-md-2 col-12 d-none d-md-block">
+    <div class="col-md-1 col-12 d-none d-md-block">
         <div class="form-group">
             <label class="d-none d-md-block">Pass Rate*</label>
         </div>

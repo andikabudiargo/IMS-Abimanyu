@@ -246,7 +246,8 @@ class BomController extends Controller
                         'urutan' => $val->urutan,
                         'cycle_time' => $val->cycle_time,
                         'created_by' => Auth::user()->username,
-                        'created_at' => date('Y-m-d H:i:s')
+                        'created_at' => date('Y-m-d H:i:s'),
+                        'stripping' => $val->stripping,
                     ];
                 }
 
@@ -349,9 +350,9 @@ class BomController extends Controller
         $statusPr = ['NEW','VALIDATE','APPROVED','RECEIVED','DELETED','CLOSED','REVISED','DECLINE'];
         $data['statusBom'] = $statusPr[$data['headers'][0]->status-1];
 
-        $data['arrSprayBooth'] = ['sb1'=>'Spray Booth 1','sb2'=>'Spray Booth 2','sb3'=>'Spray Booth 3','sb4'=>'Spray Booth 4'];
+        $data['arrSprayBooth'] = ['sb1'=>'Spray Booth 1','sb1'=>'Spray Booth 1','sb2'=>'Spray Booth 2','sb3'=>'Spray Booth 3','sb4'=>'Spray Booth 4'];
         $data['arrTone'] = ['t1'=>'Tone 1','t2'=>'Tone 2','t3'=>'Tone 3','t4'=>'Tone 4'];
-        $data['arrPos'] = ['pc'=>'Primer Coat','bc'=>'Base Coat','mbc'=>'Mica Base Coat','cc'=>'Clear Coat'];
+        $data['arrPos'] = ['pr'=>'Preparation','pc'=>'Primer Coat','bc'=>'Base Coat','mbc'=>'Mica Base Coat','cc'=>'Clear Coat'];
 
         return view("bom.show",$data);
         
@@ -587,7 +588,8 @@ class BomController extends Controller
                         'cycle_time' => $val->cycle_time,
                         'urutan' => $val->urutan,
                         'created_by' => Auth::user()->username,
-                        'created_at' => date('Y-m-d H:i:s')
+                        'created_at' => date('Y-m-d H:i:s'),
+                        'stripping' => $val->stripping,
                     ];
                 }
 

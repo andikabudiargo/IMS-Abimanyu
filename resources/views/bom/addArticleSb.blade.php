@@ -50,6 +50,18 @@
             </div>
             <div class="col-md-2 col-12">
                 <div class="form-group">
+                    <label class="d-block d-md-none" for="stripping">Stripping</label>
+                    <select class="select2 form-control" id="stripping" name="stripping[]" required>
+                        <option value=""></option>
+                        <option value="t1">Tone 1</option>
+                        <option value="t2">Tone 2</option>
+                        <option value="t3">Tone 3</option>
+                        <option value="t4">Tone 4</option>
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-1 col-12">
+                <div class="form-group">
                     <label class="d-block d-md-none" for="tone">Tone</label>
                     <select class="select2 form-control" id="tone" name="tone[]" required>
                         <option value=""></option>
@@ -66,7 +78,7 @@
                     <input type="text" id="tack" name="tack[]" value="{{ old('tack') }}" class="form-control numeral-mask-digit tombol-panah" maxlength="5" required/>
                 </div>
             </div>
-            <div class="col-md-2 col-12">
+            <div class="col-md-1 col-12">
                 <div class="form-group">
                     <label for="passRate" class="d-block d-md-none">Pass Rate*</label>
                     <input type="text" id="passRate" name="passRate[]" value="{{ old('passRate') }}" class="form-control numeral-mask-digit tombol-panah" maxlength="5" required/>
@@ -105,12 +117,13 @@
 
 <script type="text/javascript">
     let cloneCountSb=0;
-    add_new_row_edit_sb = (sprayBooth,tone,tack,passRate,passThru,cycleTime) => {
+    add_new_row_edit_sb = (sprayBooth,tone,tack,passRate,passThru,cycleTime,stripping) => {
         $("#article_row_sb").append($("#new_row_sb").clone().html());
         cloneCountSb++;
         console.log(sprayBooth);
         $("#article_row_sb").find('#baru_sb').attr('id', 'new_row_sb'+ cloneCountSb);
         $("#new_row_sb"+ cloneCountSb).find('#sprayBooth').attr('id', 'sprayBooth'+ cloneCountSb);
+        $("#new_row_sb"+ cloneCountSb).find('#stripping').attr('id', 'stripping'+ cloneCountSb);
         $("#new_row_sb"+ cloneCountSb).find('#tone').attr('id', 'tone'+ cloneCountSb);
         $("#new_row_sb"+ cloneCountSb).find('#tack').attr('id', 'tack'+ cloneCountSb);
         $("#new_row_sb"+ cloneCountSb).find('#passRate').attr('id', 'passRate'+ cloneCountSb);
@@ -118,7 +131,9 @@
         $("#new_row_sb"+ cloneCountSb).find('#cycleTime').attr('id', 'cycleTime'+ cloneCountSb);
         $("#sprayBooth"+cloneCountSb).select2();
         $("#tone"+cloneCountSb).select2();
+        $("#stripping"+cloneCountSb).select2();
         $("#sprayBooth"+ cloneCountSb).val(sprayBooth).trigger('change');
+        $("#stripping"+ cloneCountSb).val(stripping).trigger('change');
         $("#tone"+ cloneCountSb).val(tone).trigger('change');
         $("#tack"+ cloneCountSb).val(tack);
         $("#passRate"+ cloneCountSb).val(passRate);
@@ -134,6 +149,7 @@
         cloneCountSb++;
         $("#article_row_sb").find('#baru_sb').attr('id', 'new_row_sb'+ cloneCountSb);
         $("#new_row_sb"+ cloneCountSb).find('#sprayBooth').attr('id', 'sprayBooth'+ cloneCountSb);
+        $("#new_row_sb"+ cloneCountSb).find('#stripping').attr('id', 'stripping'+ cloneCountSb);
         $("#new_row_sb"+ cloneCountSb).find('#tone').attr('id', 'tone'+ cloneCountSb);
         $("#new_row_sb"+ cloneCountSb).find('#tack').attr('id', 'tack'+ cloneCountSb);
         $("#new_row_sb"+ cloneCountSb).find('#passRate').attr('id', 'passRate'+ cloneCountSb);
@@ -142,6 +158,7 @@
         $("#new_row_sb"+ cloneCountSb).find('#cycleTime').attr('id', 'cycleTime'+ cloneCountSb);
         $("#sprayBooth"+cloneCountSb).select2();
         $("#tone"+cloneCountSb).select2();
+        $("#stripping"+cloneCountSb).select2();
         $('#remove_button').tooltip();
         mask_thousand_digit(numberOfDecimalDigit);
     };

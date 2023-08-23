@@ -251,7 +251,8 @@
             let passRate =  sprayBooths[a].pass_rate;
             let passThru =  sprayBooths[a].pass_thru;
             let cycleTime =  sprayBooths[a].cycle_time;
-            add_new_row_edit_sb(sprayBooth,tone,tack,passRate,passThru,cycleTime);
+            let stripping =  sprayBooths[a].stripping;
+            add_new_row_edit_sb(sprayBooth,tone,tack,passRate,passThru,cycleTime,stripping);
         }
     });
 

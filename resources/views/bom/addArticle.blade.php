@@ -48,6 +48,7 @@
                     <label for="pos" class="d-block d-md-none">POS</label>
                     <select class="form-control" id="pos" name="pos[]">
                         <option value=""></option>
+                        <option value="pr">Preparation</option>
                         <option value="pc">Primer Coat</option>
                         <option value="bc">Base Coat</option>
                         <option value="mbc">Mica Base Coat</option>
@@ -271,6 +272,7 @@
             let objPassRate = $('#article_row_sb input[name="passRate[]"]');
             let objPassThru = $('#article_row_sb input[name="passThru[]"]');
             let objCycleTime = $('#article_row_sb input[name="cycleTime[]"]');
+            let objStripping = $('#article_row_sb select[name="stripping[]"]');
             
             if (oEdit){
                 articleCode = $('#articleCode').data('article-code');
@@ -350,6 +352,8 @@
                     let passRate = objPassRate.eq(i).val().replace(/,/gi, '') || 0;
                     let passThru = objPassThru.eq(i).val().replace(/,/gi, '') || 0;
                     let cycleTime = objCycleTime.eq(i).val().replace(/,/gi, '') || 0;
+                    let stripping = objStripping.eq(i).val();
+                    
 
                     let obj = sprayBooths.find(obj => obj.spray_booth+obj.tone == sprayBooth+tone);
                     if(obj) {
@@ -364,7 +368,8 @@
                                 "tack":tack,
                                 "pass_rate":passRate,
                                 "pass_thru":passThru,
-                                "cycle_time":cycleTime
+                                "cycle_time":cycleTime,
+                                "stripping": stripping
                             });
                         }
                     } 
