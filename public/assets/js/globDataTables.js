@@ -170,6 +170,7 @@ let showDataTables = (opt) => {
           bDestroy: true, //pakai ini supaya bisa di load berulang2
           // scrollX: true, //pakai ini supaya waktu responsive  bisa di scroll horizontal
           columns: opt.kolom,
+          scrollY: 440,
       });
     });
     //$('div.head-label').html('<h6 class="mb-0">Data Users</h6>');   
