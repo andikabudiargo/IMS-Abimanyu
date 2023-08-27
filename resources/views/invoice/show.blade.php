@@ -19,50 +19,83 @@
                     <div class="card-body">
                         <form id="frmAdd" name="frmAdd" autocomplete="off">
                             @csrf
-                            {{-- <input type="text" id="article" name="article" hidden> --}}
-                            <input type="text" id="ppn" name="ppn"  values="10" hidden>
-                            <input type="text" id="pph23" name="ppn23" values="2" hidden>
-                            <div class="form-row">
-                                <div class="form-group col-md-3">
-                                    <label for="invNumber">Invoice Number</label> <small class="text-muted"> automatic </small>
-                                    <input type="text" id="invNumber" name="invNumber" value="{{ $header->invoice_number }}" class="form-control text-hitam disabled-el"  disabled />
+                            <input type="text" id="ppn" name="ppn" values="{{ $nilaiPPN }}" hidden>
+                            <input type="text" id="pph23" name="ppn23" values="{{ $nilaiPPH }}" hidden>
+                            <div class="row">
+                                <div class="col-md-6 col-12">
+                                    <div class="form-row">
+                                        <div class="form-group col-md-6">
+                                            <label for="invNumber">Invoice Number</label> <small class="text-muted"> automatic </small>
+                                            <input type="text" id="invNumber" name="invNumber" value="{{ $header->invoice_number }}" class="form-control text-hitam disabled-el"  disabled />
+                                        </div>
+                                        <div class="form-group col-md-6">
+                                            <label for="invDate">Invoice Date*</label>
+                                            <input type="text" id="invDate" name="invDate" value="{{ $header->invoice_date }}" class="form-control" placeholder="DD-MM-YYYY"  disabled />
+                                        </div>                               
+                                    </div>
+                                    <div class="form-row">
+                                        <div class="form-group col-md-12">
+                                            <label class="form-label" for="customer">Customer*</label>
+                                            <select class="select2 form-control" id="customer" name="customer" required disabled>
+                                                <option value="">All</option>
+                                                @foreach($customers as $val)
+                                                    <option value="{{$val->kode}}" {{$val->kode == $header->customer_id ? "selected" : ""}} >{{$val->kode}} - {{$val->nama}}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                        <div class="form-group col-md-12">
+                                            <label class="form-label" for="soNumber" disabled>SO Number*</label>
+                                            <input type="text" id="soNumber" name="soNumber" value="{{ $header->so_number }}" class="form-control" disabled />
+                                        </div>
+                                    </div>
+                                    {{-- <div class="form-row">
+                                        <div class="form-group col-md-3">
+                                            <label class="form-label" for="dnNumber"  disabled>DN Number*</label>
+                                            <input type="text" id="dnNumber" name="dnNumber" value="{{ $header->dn_number }}" class="form-control" disabled />
+                                        </div>
+                                        <div class="form-group col-md-6">
+                                            <label for="fakturPajak">Faktur pajak*</label>
+                                            <input type="text" id="fakturPajak" name="fakturPajak" value="{{ $header->faktur_pajak }}" class="form-control" disabled />
+                                        </div>
+                                    </div> --}}
+                                    <div class="form-row">
+                                        <div class="form-group col-md-12">
+                                            <label class="form-label" for="note">Notes</label>
+                                            <textarea type="text" id="note" name="note" class="form-control" rows="1"  disabled>{{ $header->note }}</textarea>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="form-group col-md-2">
-                                    <label for="invDate">Invoice Date*</label>
-                                    <input type="text" id="invDate" name="invDate" value="{{ $header->invoice_date }}" class="form-control" placeholder="DD-MM-YYYY"  disabled />
-                                </div>                               
+                            
+                                <div class="col-md-6 col-12">
+                                    <div class="form-row">
+                                        <div class="col-sm-12">
+                                            <p class="mb-0">List DN*</p>
+                                            <div class="card-datatable table-responsive pt-0">
+                                                <table class="table table-bordered" id="listOfDn">
+                                                    <thead>
+                                                        <tr>
+                                                            <th scope="col" width="30%">DN Number</th>
+                                                            <th scope="col" width="30%">Date</th>
+                                                            <th scope="col" width="30%">PO Number</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        @foreach($delivery as $val)
+                                                        <tr>
+                                                            <td>{{ $val->delivery_number }}</td>
+                                                            <td>{{ $val->delivery_date }}</td>
+                                                            <td>{{ $val->po_number }}</td>
+                                                        </tr>
+                                                        @endforeach
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="form-row">
-                                <div class="form-group col-md-5">
-                                    <label class="form-label" for="customer">Customer*</label>
-                                    <select class="select2 form-control" id="customer" name="customer" required disabled>
-                                        <option value="">All</option>
-                                        @foreach($customers as $val)
-                                            <option value="{{$val->kode}}" {{$val->kode == $header->customer_id ? "selected" : ""}} >{{$val->kode}} - {{$val->nama}}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                                <div class="form-group col-md-6">
-                                    <label class="form-label" for="soNumber" disabled>SO Number*</label>
-                                    <input type="text" id="soNumber" name="soNumber" value="{{ $header->so_number }}" class="form-control" disabled />
-                                </div>
-                            </div>
-                            <div class="form-row">
-                                <div class="form-group col-md-3">
-                                    <label class="form-label" for="dnNumber"  disabled>DN Number*</label>
-                                    <input type="text" id="dnNumber" name="dnNumber" value="{{ $header->dn_number }}" class="form-control" disabled />
-                                </div>
-                                <div class="form-group col-md-6">
-                                    <label for="fakturPajak">Faktur pajak*</label>
-                                    <input type="text" id="fakturPajak" name="fakturPajak" value="{{ $header->faktur_pajak }}" class="form-control" disabled />
-                                </div>
-                            </div>
-                            <div class="form-row">
-                                <div class="form-group col-md-12">
-                                    <label class="form-label" for="note">Notes</label>
-                                    <textarea type="text" id="note" name="note" class="form-control" rows="1"  disabled>{{ $header->note }}</textarea>
-                                </div>
-                            </div>
+
+                            
                         </form>
                     </div>
                 </div>
@@ -74,40 +107,43 @@
                     <h4 class="card-title">Article</h4>
                 </div>
                 <div class="card-body">
-                    <div>
-                        <table class="" style="width:98%;table-layout: fixed;">
-                            <tbody>
-                                <tr>
-                                    <td class="" style="width: 39%">
-                                        <label>Article Code</label>
-                                    </td>
-                                    <td class="isian" style="width: 5%">
-                                        <label>Qty</label>
-                                    </td>
-                                    <td class="isian" style="width: 5%">
-                                        <label>UOM</label>
-                                    </td>
-                                    <td class="isian" style="width: 10%">
-                                        <label>Material Price</label>
-                                    </td>
-                                    <td class="isian" style="width: 10%">
-                                        <label>Service Price</label>
-                                    </td>
-                                    <td class="isian" style="width: 10%">
-                                        <label>T.Material</label>
-                                    </td>
-                                    <td class="isian" style="width: 10%">
-                                        <label>T.Service</label>
-                                    </td>
-                                    <td class="isian" style="width: 10%">
-                                        <label>Total</label>
-                                    </td>
-                                    <td class="isian text-center" style="width: 5%">
-                                        <label>-</label>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
+
+                    <div class="form-row">
+                        <div class="col-sm-12">
+                            <p class="mb-0">Detail DN</p>
+                            <div class="card-datatable table-responsive pt-0">
+                                <table class="table table-bordered" id="listOfRec">
+                                    <thead>
+                                        <tr>
+                                            <th scope="col" width="20%">Article Code</th>
+                                            <th scope="col" width="40%">Desc</th>
+                                            <th scope="col" width="10%">Qty</th>
+                                            <th scope="col" width="10%">UOM</th>
+                                            <th scope="col" width="10%">Material Price</th>
+                                            <th scope="col" width="10%">Service Price</th>
+                                            <th scope="col" width="10%">T.Material</th>
+                                            <th scope="col" width="10%">T.Service</th>
+                                            <th scope="col" width="10%">Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach($detail as $item)
+                                        <tr>
+                                            <td>{{ $item->article }}</td>
+                                            <td>{{ $item->desc }}</td>
+                                            <td class="text-right">{{ number_format($item->qty) }}</td>
+                                            <td>{{ $item->uom }}</td>
+                                            <td class="text-right">{{ number_format($item->price) }}</td>
+                                            <td class="text-right">{{ number_format($item->price_service) }}</td>
+                                            <td class="text-right">{{ number_format($item->qty*$item->price) }}</td>
+                                            <td class="text-right">{{ number_format($item->qty*$item->price_service) }}</td>
+                                            <td class="text-right">{{ number_format(($item->qty*$item->price)+($item->qty*$item->price_service)) }}</td>
+                                        </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
                     <div class="" id="article_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px">
                         <input type="text" id ="last_row_number" class="d-none" value="{{ count($detail) }}">
@@ -116,7 +152,7 @@
                     </div>
                     <div class="d-flex justify-content-between align-items-end mt-75">
                         <div class="col-md-4">
-                            <div class="form-group row mb-03">
+                            {{-- <div class="form-group row mb-03">
                                 <label for="totalRow" class="col-sm-4 col-form-label titik-dua tanpa-padding">Row(s)</label>
                                 <div class="col-sm-3">
                                     <input type="text" class="form-control text-right font-weight-bold" id="totalRow" disabled/>
@@ -127,31 +163,31 @@
                                 <div class="col-sm-3">
                                     <input type="text" class="form-control text-right font-weight-bold" id="totalQTY" disabled/>
                                 </div>
-                            </div>
+                            </div> --}}
                         </div>
                         <div class="col-md-4">
                             <div class="form-group row mb-03">
                                 <label for="totalAmount" class="col-sm-4 col-form-label titik-dua tanpa-padding">Bruto</label>
                                 <div class="col-sm-6">
-                                    <input type="text" class="form-control text-right font-weight-bold" id="totalAmount" disabled />
+                                    <input type="text" class="form-control text-right font-weight-bold" id="totalAmount" value="{{ number_format($header->grand_total-$header->total_ppn) }}" disabled />
                                 </div>
                             </div>
                             <div class="form-group row mb-03">
                                 <label for="totalPPN" class="col-sm-4 col-form-label titik-dua tanpa-padding">PPN <span id="nilaiPPN"></span> </label>
                                 <div class="col-sm-6">
-                                    <input type="text" class="form-control text-right font-weight-bold" id="totalPPN" disabled/>
+                                    <input type="text" class="form-control text-right font-weight-bold" id="totalPPN" value="{{ number_format($header->total_ppn) }}"  disabled/>
                                 </div>
                             </div>
                             <div class="form-group row mb-03">
                                 <label for="totalPPH" class="col-sm-4 col-form-label titik-dua tanpa-padding">PPH23 <span id="nilaiPPH23"></span> </label>
                                 <div class="col-sm-6">
-                                    <input type="text" class="form-control text-right font-weight-bold" id="totalPPH" disabled/>
+                                    <input type="text" class="form-control text-right font-weight-bold" id="totalPPH" value="{{ number_format($header->total_pph) }}" disabled/>
                                 </div>
                             </div>
                             <div class="form-group row mb-03">
                                 <label for="totalNetto" class="col-sm-4 col-form-label titik-dua tanpa-padding">Netto</label>
                                 <div class="col-sm-6">
-                                    <input type="text" class="form-control text-right font-weight-bold" id="totalNetto" disabled/>
+                                    <input type="text" class="form-control text-right font-weight-bold" id="totalNetto" value="{{ number_format($header->grand_total) }}" disabled/>
                                 </div>
                             </div>
                         </div>

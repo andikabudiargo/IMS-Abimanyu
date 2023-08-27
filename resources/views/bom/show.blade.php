@@ -115,7 +115,7 @@
                                                 <tr>
                                                     <th >No</th>
                                                     <th >Spray Booth</th>
-                                                    <th >Stripping</th>
+                                                    {{-- <th >Stripping</th> --}}
                                                     <th >Tone</th>
                                                     <th class="text-right">Tack</th>
                                                     <th class="text-right">Pass Rate</th>
@@ -129,7 +129,7 @@
                                                     <tr>
                                                         <td ></td>
                                                         <td >{{ $item1->spray_booth ? $arrSprayBooth[$item1->spray_booth]:'' }}</td>
-                                                        <td >{{ $item1->stripping ? $arrTone[$item1->stripping] : '' }}</td>
+                                                        {{-- <td >{{ $item1->stripping ? $arrTone[$item1->stripping] : '' }}</td> --}}
                                                         <td >{{ $item1->tone ? $arrTone[$item1->tone] : '' }}</td>
                                                         <td class="text-right">{{ $item1->tack }}</td>
                                                         <td class="text-right">{{ $item1->pass_rate }}</td>
@@ -148,8 +148,9 @@
                                             <thead class="thead-dark">
                                                 <tr>
                                                     <th>No</th>
-                                                    <th>Article Code</th>
+                                                    <th>Tone</th>
                                                     <th>POS</th>
+                                                    <th>Article Code</th>
                                                     <th >Log.Uom</th>
                                                     <th class="text-right">QTY</th>
                                                     <th class="text-left">Bom Uom</th>
@@ -163,8 +164,9 @@
                                                 @if($item->bom_code === $header2->bom_code )
                                                     <tr>
                                                         <td ></td>
-                                                        <td >{{ $item->article }}</td>
+                                                        <td >{{ $item->tone ? $arrTone[$item->tone] :'' }}</td>
                                                         <td >{{ $item->pos ? $arrPos[$item->pos] :'' }}</td>
+                                                        <td >{{ $item->article }}</td>
                                                         <td >{{ $item->original_uom }}</td>
                                                         <td class="text-right">{{ number_format($item->qty,$decimalPlaces) }}</td>
                                                         <td class="text-left">{{ $item->uom }}</td>

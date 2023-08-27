@@ -293,12 +293,14 @@ class DependentController extends Controller
         }elseif($dependent =='article_bom'){
             $data= DB::table($table) 
             ->leftJoin('article_types','article_types.code','=',$table.'.article_type')
+            ->leftJoin('third_party','third_party.kode','article.third_party')
             ->leftJoin('uom','uom.code','=',$table.'.uom')
             ->whereNotIn('article_type',['FG','RM'])
             ->orderBy($order)
             ->select($table.'.*'
             ,'article_types.name as type_name'
             ,'uom.uom_group'
+            ,'third_party.nama'
             ,DB::RAW("(select 
                         string_agg(concat(unit_to,';',(uom_conversion(a.unit_to,article.uom))),',' order by unit_from) as uom_member 
                         from uom_con a where unit_from = $table.uom)")
@@ -573,6 +575,7 @@ class DependentController extends Controller
                 $output .='<option value="'.$row->article_code.'" 
                 data-detail="'.$row->article_code.'|'.$row->uom.'|'.$row->costprice.'|'.$row->article_type.'|'.$row->type_name.'" 
                 data-uom-group="'.$row->uom_group.'" 
+                data-brand="'.$row->nama.'" 
                 data-uom-member="'.$row->uom_member.'">
                 '.$row->article_alternative_code.' - '. $row->article_desc.'
                 </option>';

@@ -241,7 +241,8 @@
             uoms = detail[i].uoms;
             factor = detail[i].factor_qty;
             pos = detail[i].pos;
-            add_new_row_edit(article,qty,uom,uomCon,typeName,uomMember,uoms,factor,pos);
+            tone = detail[i].tone;
+            add_new_row_edit(article,qty,uom,uomCon,typeName,uomMember,uoms,factor,pos,tone);
         }
 
         for(let a=0;a<sprayBooths.length;a++){
@@ -251,8 +252,10 @@
             let passRate =  sprayBooths[a].pass_rate;
             let passThru =  sprayBooths[a].pass_thru;
             let cycleTime =  sprayBooths[a].cycle_time;
-            let stripping =  sprayBooths[a].stripping;
-            add_new_row_edit_sb(sprayBooth,tone,tack,passRate,passThru,cycleTime,stripping);
+            add_new_row_edit_sb(sprayBooth,tone,tack,passRate,passThru,cycleTime);
+            // let stripping =  sprayBooths[a].stripping;
+            // add_new_row_edit_sb(sprayBooth,tone,tack,passRate,passThru,cycleTime,stripping);
+            
         }
     });
 

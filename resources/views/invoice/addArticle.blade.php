@@ -38,6 +38,7 @@
                 <tr>
                     <td class="isian disabled" style="width: 39%">
                         <input type="text" class="form-control-plaintext text-hitam" id = "articleId" name="articleId[]" data-code="" data-uom=""  data-price="" data-po-number="" data-so-code="" disabled>
+                        <input type="hidden" class="form-control-plaintext" id = "dnNumber" name="dnNumber[]" >
                     </td>
                     {{-- <td class="isian disabled" style="width: 5%">
                         <input type="text" class="form-control-plaintext text-hitam numeral-mask-digit text-right" id = "qty_po" name="qty_po[]" disabled>
@@ -70,12 +71,12 @@
                         <input type="text" class="form-control-plaintext numeral-mask text-right" id = "subTotal" name="subTotal[]" disabled>
                         {{-- <span class="text-hitam text-hitam" id="subTotal" name="subTotal[]"></span> --}}
                     </td>
-                    <td class="isian text-center" style="width: 5%">
+                    {{-- <td class="isian text-center" style="width: 5%">
                         <a onmouseover="this.style.cursor='pointer'" onclick="$(this).parents('.tanda-baris').remove();hitungGrandTotal()">
                             <i data-feather="trash-2" class="remove_button feather-24">
                             </i>
                         </a>
-                    </td>
+                    </td> --}}
                 </tr>
             </tbody>
         </table>
@@ -90,7 +91,8 @@
 
     let sNilaiPPN= "{{ $nilaiPPN }}";
     let sNilaiPPH= "{{ $nilaiPPH }}";
-    let edit='false';
+    let showDetail="";
+    let edit="";
 
     customer.change(function(){
         searchSo('soNumber',$(this).val());
@@ -116,17 +118,34 @@
         }
     }
 
-    function searchDn(obj,value) {
-        if(value){
+    function searchDn(soNumber) {
+        let invNumber = $('#invNumber').val();
+        console.log('kesini');
+        $("#listOfDn > tbody").empty();
+        if(soNumber){
             $.ajax({
                 url:"{{ route('invoice.list.dn') }}",
                 method:"GET",
                 data:{
-                    value:value,
+                    soNumber:soNumber,
+                    invNumber:invNumber,
+                    edit:edit
                 },
                 success:function(result){
-                    $('#'+obj).html(result);
-                    $('#'+obj).val('').trigger('change');
+                    if(result){
+                        $('#cmdSubmit').removeAttr('disabled');
+                        $("#listOfDn tbody").append(result);
+                        // if(invNumber){
+                        //     if (edit == 'true'){
+                        //         cmdSubmit();
+                        //     }
+                        // }
+                    }else{
+                        $('#cmdSubmit').attr('disabled','disabled');
+                    }
+
+                    // $('#'+obj).html(result);
+                    // $('#'+obj).val('').trigger('change');
                 },
                 error: function (response) {
                     //Error here
@@ -136,42 +155,8 @@
         }
     }
 
-    function searchDnDet(dnNumber,soNumber) {
-        if(dnNumber){
-            $.ajax({
-                url:"{{ route('invoice.dn.det') }}",
-                method:"GET",
-                data:{
-                    soNumber:soNumber,
-                    dnNumber:dnNumber
-                },
-                success:function(result){                
-                    if(result.length > 0 ){
-                        for (let i = 0; i < result.length; i++) {
-                            article=result[i].article_code;
-                            articleCode=result[i].article_alternative_code;
-                            articleDesc=result[i].article_desc;
-                            qtyDn=result[i].qty_dn;
-                            uomGroup=result[i].uom_group;
-                            uom=result[i].uom;
-                            price=result[i].price;
-                            priceService=result[i].price_service;
-                            soCode=result[i].so_number;
-                            dnNumber=result[i].delivery_number;
-                            poNumber=result[i].po_number;
-                            add_new_row(article,articleCode,articleDesc,qtyDn,uomGroup,uom,price,priceService,soCode,dnNumber,poNumber);
-                        }
-                    }
-                },
-                error: function (response) {
-                    Swal.fire("Warning","Get detail DN failed","warning");
-                }
-            })
-        }
-    }
-
     soNumber.change(function(){
-        searchDn('dnNumber',$(this).val());
+        searchDn($(this).val());
     })
 
     dnNumber.change(function(){
@@ -237,8 +222,8 @@
         let objQTY= $('#article_row input[name="qtyInv[]"]');
         let objPrice= $('#article_row input[name="price[]"]');
         let objPriceJasa= $('#article_row input[name="priceJasa[]"]');
-        let ppn= $('#ppn').val() || sNilaiPPN;
-        let pph23= $('#pph23').val() || sNilaiPPN;
+        let ppn= sNilaiPPN;
+        let pph23= sNilaiPPN;
         let totalQty= 0;
         let totalAmount=0
         let totalAmountJasa=0
@@ -249,6 +234,7 @@
             let price = parseInt(objPrice.eq(i).val().replace(/,/gi, '')) || 0;
             let priceJasa = parseInt(objPriceJasa.eq(i).val().replace(/,/gi, '')) || 0;
             totalQty+= qty;
+            
             totalAmount+= (qty*price)+(qty*priceJasa);
             totalAmountMaterial+= (qty*price)+(qty*priceJasa);
             totalAmountJasa+= (qty*priceJasa);
@@ -264,13 +250,13 @@
         // }
 
         $("#totalAmountJasa").val(humanizeNumber(totalAmountJasa));
+        $("#totalRow").val(objArticle.length);
+        $("#totalQTY").val(humanizeNumber(totalQty));
+        $("#totalAmount").val(humanizeNumber(totalAmount));
         
         if(edit == 'false'){
-            $("#totalRow").val(objArticle.length);
             $("#nilaiPPN").text(ppn+"%");
             $("#nilaiPPH23").text(pph23+"%");
-            $("#totalQTY").val(humanizeNumber(totalQty));
-            $("#totalAmount").val(humanizeNumber(totalAmount));
             $("#totalAmountJasa").val(humanizeNumber(totalAmountJasa));
             $("#totalPPN").val(humanizeNumber((parseInt(ppn)*totalAmountMaterial)/100));
     
@@ -283,7 +269,13 @@
             }
         }
 
-        $("#totalNetto").val(humanizeNumber(totalAmount+((parseInt(ppn)*totalAmount)/100)-((pph23*totalAmountJasa)/100)));
+        let tDpp =  totalAmount;
+        let tPpn = $("#totalPPN").val().replace(/,/gi, '') || 0;
+        let tPph = $("#totalPPH").val().replace(/,/gi, '') || 0;
+
+        $("#totalNetto").val(humanizeNumber((tDpp+parseFloat(tPpn))-parseFloat(tPph)));
+
+        jumlahDetail();
     }
 
     $('#totalPPH').keyup(function() {
@@ -315,7 +307,7 @@
     $("#vatCheck").change(function() {
         if(this.checked) {
             let totalAmount = parseInt($('#totalAmount').val().replace(/,/gi, '')) || 0;
-            $("#totalPPN").val(totalAmount * (sNilaiPPN/100)).trigger("change");
+            $("#totalPPN").val(totalAmount * (sNilaiPPN/100)).trigger("input");
             $("#nilaiPPN").text(sNilaiPPN+'%');
             $("#totalPPN").removeAttr('disabled');
             $("#totalPPN").prop('required',true);
@@ -336,6 +328,122 @@
         let jumlahPpn = $("#totalPPN").val().replace(/,/gi, '') || 0;
         let jumlahJasa = $('#totalPPH').val().replace(/,/gi, '') || 0;
         $("#totalNetto").val(humanizeNumber((parseInt(totalAmount1)+parseInt(jumlahPpn))-parseInt(jumlahJasa)));
+    }
+
+    jumlahDetail = () =>{
+        let jumlahData = $('#article_row input[name="articleId[]"]').length;
+        if (jumlahData > 0 ){
+            $('#soNumber').attr('disabled','dieabled');
+            $('#customer').attr('disabled','dieabled');
+        }else{
+            $('#soNumber').removeAttr('disabled');
+            $('#customer').removeAttr('disabled');
+        }
+    }
+
+    cmdSubmit=()=> {
+        let dnNumber="";
+        let arrDn = $("input[name='dnNumber[]']").map(function(){return $(this).val();}).get();
+        let jumlahCheck = 0;
+
+        $('input:checkbox[name=customCheck]:checked').each(function(){
+            // if(jQuery.inArray($(this).data('dn-number'), arrDn) == -1) {    
+                dnNumber += $(this).data('dn-number')+",";
+            // }
+            jumlahCheck++;
+        });
+
+        dnNumber=dnNumber.slice(0,-1);
+        let soNumber= $('#soNumber').val();
+        $("#article_row").empty();
+        
+        if(jumlahCheck > 0 && soNumber){
+            $.ajax({
+                url:"{{ route('invoice.dn.det') }}",
+                method:"GET",
+                data:{
+                    soNumber:soNumber,
+                    dnNumber:dnNumber
+                },
+                success:function(result){
+                    if(result.length > 0 ){
+                        for (let i = 0; i < result.length; i++) {
+                            article=result[i].article_code;
+                            articleCode=result[i].article_alternative_code;
+                            articleDesc=result[i].article_desc;
+                            qtyDn=result[i].qty_dn;
+                            uomGroup=result[i].uom_group;
+                            uom=result[i].uom;
+                            price=result[i].price;
+                            priceService=result[i].price_service;
+                            soCode=result[i].so_number;
+                            dnNumber=result[i].delivery_number;
+                            poNumber=result[i].po_number;
+                            add_new_row(article,articleCode,articleDesc,qtyDn,uomGroup,uom,price,priceService,soCode,dnNumber,poNumber);
+                        }
+                    }
+                    jumlahDetail();
+                },
+                error: function (response) {
+                    //Error here
+                    Swal.fire("Warning","Get list data failed","warning");
+                }
+            })
+            jumlahDetail();
+            hitungTotal();
+            hitungGrandTotal();
+        }else{
+            // Swal.fire("Warning","Po atau No Receiving belum dipilih","warning");
+            $("#article_row").empty();
+            jumlahDetail();
+            hitungTotal();
+            hitungGrandTotal();
+        }
+    }
+
+    $("#cmdSubmit").click(function (e) {
+        cmdSubmit();        
+    });
+
+    let cloneCount=0;
+    function add_new_row(article,articleCode,articleDesc,qty,uomGroup,uom,price,priceJasa,soCode,dnNumber,poNumber) {
+        // $('#poNumberi').val(poNumber);
+        $("#article_row").append($("#new_row").clone().html());
+        cloneCount++;
+        $("#article_row").find('#baru').attr('id', 'new_row'+ cloneCount);
+        $("#new_row"+ cloneCount).find('#uom').attr('id', 'uom'+ cloneCount);
+        $("#new_row"+ cloneCount).find('#qtyInv').attr('id', 'qtyInv'+ cloneCount);
+        $("#new_row"+ cloneCount).find('#totalLine').attr('id', 'totalLine'+ cloneCount);
+        $("#new_row"+ cloneCount).find('#totalJasa').attr('id', 'totalJasa'+ cloneCount);
+        $("#new_row"+ cloneCount).find('#subTotal').attr('id', 'subTotal'+ cloneCount);
+        $("#new_row"+ cloneCount).find('#articleId').attr('id', 'articleId'+ cloneCount);
+        $("#new_row"+ cloneCount).find('#price').attr('id', 'price'+ cloneCount);
+        $("#new_row"+ cloneCount).find('#priceJasa').attr('id', 'priceJasa'+cloneCount);
+        $("#new_row"+ cloneCount).find('#dnNumber').attr('id', 'dnNumber'+cloneCount);
+        $('#articleId'+ cloneCount).attr('data-code', article);
+        $('#articleId'+ cloneCount).attr('data-desc', articleDesc);
+        $('#articleId'+ cloneCount).attr('data-uom', uom);
+        $('#articleId'+ cloneCount).attr('data-price', price);
+        $('#articleId'+ cloneCount).attr('data-price-service', priceJasa);
+        $('#articleId'+ cloneCount).attr('data-so-code', soCode);
+        $('#articleId'+ cloneCount).attr('data-dn-number', dnNumber);
+        $('#articleId'+ cloneCount).attr('data-po-number', poNumber);
+        // $('#articleId'+ cloneCount).val(articleCode +" - " + articleDesc);
+        $('#articleId'+ cloneCount).val(articleDesc);
+        $('#price'+ cloneCount).val(price);
+        $('#priceJasa'+ cloneCount).val(priceJasa);
+        $('#qtyInv'+ cloneCount).val(qty);
+        $('#uom'+ cloneCount).val(uom);
+        $('#dnNumber'+ cloneCount).val(dnNumber);
+        $('#totalLine'+ cloneCount).val(qty*price).trigger('input');
+        $('#totalJasa'+ cloneCount).val(qty*priceJasa).trigger('input');
+        $('#subTotal'+ cloneCount).val((qty*price)+(qty*priceJasa)).trigger('input');
+
+        tombolPanah('qtyInv');
+        hitungTotal();
+        hitungGrandTotal();
+        mask_thousand();
+        
     }
 
 </script>

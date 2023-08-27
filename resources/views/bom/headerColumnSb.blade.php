@@ -4,11 +4,11 @@
             <label class="d-none d-md-block">Spray Booth</label>
         </div>
     </div>
-    <div class="col-md-2 col-12 d-none d-md-block">
+    {{-- <div class="col-md-2 col-12 d-none d-md-block">
         <div class="form-group">
             <label class="d-none d-md-block">Stripping</label>
         </div>
-    </div>
+    </div> --}}
     <div class="col-md-1 col-12 d-none d-md-block">
         <div class="form-group">
             <label class="d-none d-md-block">Tone</label>

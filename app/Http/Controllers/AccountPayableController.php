@@ -238,7 +238,7 @@ class AccountPayableController extends Controller
         $showDetail= $request->showDetail;
         $output="";
 
-        $edit = $request->edit;        
+        $edit = $request->edit;
 
         if($edit == 'true'){
 
@@ -284,7 +284,6 @@ class AccountPayableController extends Controller
                 array_push($arrayData,$val);
             }
             $details = $arrayData;
-            // dd($details);
         }else{
             $details=[];
         }
@@ -292,9 +291,6 @@ class AccountPayableController extends Controller
         $output="";
         foreach ($data as $key=>$row){
             $checked = in_array($row->rec_number, $details) ? 'checked' :'';
-
-            // dd($showDetail);
-
             if($showDetail =='true' && $checked ){
                 $output .="<tr>
                             <td>

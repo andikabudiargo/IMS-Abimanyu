@@ -985,18 +985,24 @@ class WosMixingController extends Controller
                 //yang dihitung datanya cuma yang fresh yang repaint tidak motong chemical lagi 
                 //'qty' => $val->plan_qty_fresh+$val->plan_qty_repaint
                 'qty' => $val->plan_qty_fresh,
-                'uom' => 'PCS'
+                'uom' => 'PCS',
+                'tone' => $val->tone
             ];
         }
 
         DB::table('wo_detail_temp')->insert($dataSet);
 
+        /*
+            pada saat wos mixing di ambil data di wos nya sesuai dengan tone yang ada di BOM
+            BOM juga di grouping berdasarkan tone nya
+        */
+
         $data=DB::select("SELECT 
         article_code_det as article_code
         ,min_package 
         ,safety_stock
-        ,sum(qty_order * qty_bom) as total
-        ,sum(qty_order * qty_bom) as grand_total
+        ,sum(plan_qty_fresh * qty_bom) as total
+        ,sum(plan_qty_fresh * qty_bom) as grand_total
         ,uom_article as uom
         --,(select string_agg(unit_to,',' order by unit_from) as uom_member from uom_con where unit_from = a.uom_bom)
         ,(select uom_group from uom where uom.code = uom_article) as uom_group
@@ -1006,7 +1012,7 @@ class WosMixingController extends Controller
         from(
         select 
         bom_det.article_code as article_code_det
-        ,wo_detail_temp.qty as qty_order
+        ,wo_detail_temp.qty as plan_qty_fresh
         ,wo_detail_temp.uom as uom_order
         ,bom_det.qty * coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = bom_det.uom),1) as qty_bom
         ,bom_det.uom as uom_bom
@@ -1020,27 +1026,28 @@ class WosMixingController extends Controller
         from wo_detail_temp
         left join bom_hdr on bom_hdr.article_code=wo_detail_temp.article_code
         --left join bom_det on  bom_det.bom_code = bom_hdr.bom_code
-        left join (select bom_code,sum(qty) as qty,uom_con,uom,article_code from bom_det where bom_code in (select bom_code from bom_hdr where status = '3') group by bom_code,article_code,uom_con,uom) bom_det on  bom_det.bom_code = bom_hdr.bom_code
+        --left join (select bom_code,sum(qty) as qty,uom_con,uom,article_code from bom_det where bom_code in (select bom_code from bom_hdr where status = '3') group by bom_code,article_code,uom_con,uom) bom_det on  bom_det.bom_code = bom_hdr.bom_code and bom_det.tone = wo_detail_temp.tone
+        left join (select bom_code,sum(qty) as qty,uom_con,uom,article_code from bom_det where bom_code in (select bom_code from bom_hdr where status = '3') group by bom_code,article_code,uom_con,uom,tone) bom_det on  bom_det.bom_code = bom_hdr.bom_code and bom_det.tone = wo_detail_temp.tone
         left join article on article.article_code = bom_det.article_code
         where wo_detail_temp.code ='$randomCode'
         and bom_hdr.status = '3'
         order by article_alternative_code
         ) a
         group by article_code_det,alternative,article_desc,uom_article,min_package,safety_stock
-        having sum(qty_order * qty_bom) > 0
+        having sum(plan_qty_fresh * qty_bom) > 0
         order by alternative");
 
         // $data=DB::select("SELECT 
         // article_code_det as article_code
         // ,min_package 
-        // ,sum(qty_order * qty_bom) as total
-        // ,sum(qty_order * qty_bom) as grand_total
+        // ,sum(plan_qty_fresh * qty_bom) as total
+        // ,sum(plan_qty_fresh * qty_bom) as grand_total
         // ,uom_bom as uom 
         // ,(select string_agg(unit_to,',' order by unit_from) as uom_member from uom_con where unit_from = a.uom_bom)
         // from(
         // select 
         // bom_det.article_code as article_code_det
-        // ,wo_detail_temp.qty as qty_order
+        // ,wo_detail_temp.qty as plan_qty_fresh
         // ,wo_detail_temp.uom as uom_order
         // ,bom_det.qty * coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = wo_detail_temp.uom),1) as qty_bom
         // ,bom_det.uom as uom_bom

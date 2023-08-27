@@ -19,51 +19,86 @@
                     <div class="card-body">
                         <form id="frmAdd" name="frmAdd"  autocomplete="off">
                             @csrf
-                            <input type="text" id="ppn" name="ppn"  values="10" hidden>
-                            <input type="text" id="pph23" name="ppn23" values="2" hidden>
-                            <div class="form-row">
-                                <div class="form-group col-md-3">
-                                    <label for="invNumber">Invoice Number</label> <small class="text-muted"> automatic </small>
-                                    <input type="text" id="invNumber" name="invNumber" value="{{ $header->invoice_number }}" class="form-control text-hitam disabled-el"  disabled />
+                            <input type="text" id="ppn" name="ppn" values="{{ $nilaiPPN }}" hidden>
+                            <input type="text" id="pph23" name="ppn23" values="{{ $nilaiPPH }}" hidden>
+                            <div class="row">
+                                <div class="col-md-6 col-12">
+                                    <div class="form-row">
+                                        <div class="form-group col-md-6">
+                                            <label for="invNumber">Invoice Number</label> <small class="text-muted"> automatic </small>
+                                            <input type="text" id="invNumber" name="invNumber" value="{{ $header->invoice_number }}" class="form-control text-hitam disabled-el"  disabled />
+                                        </div>
+                                        <div class="form-group col-md-6">
+                                            <label for="invDate">Invoice Date*</label>
+                                            <input type="text" id="invDate" name="invDate" value="{{ $header->invoice_date }}" class="form-control" placeholder="DD-MM-YYYY" required />
+                                        </div>                               
+                                    </div>
+                                    <div class="form-row">
+                                        <div class="form-group col-md-12">
+                                            <label class="form-label" for="customer">Customer*</label>
+                                            <select class="select2 form-control" id="customer" name="customer" required disabled>
+                                                <option value="">All</option>
+                                                @foreach($customers as $val)
+                                                    <option value="{{$val->kode}}" {{$val->kode == $header->customer_id ? "selected" : ""}} >{{$val->kode}} - {{$val->nama}}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="form-row">
+                                        <div class="form-group col-md-12">
+                                            <label class="form-label" for="soNumber">SO Number*</label>
+                                            <input type="text" id="soNumber" name="soNumber" value="{{ $header->so_number }}" class="form-control" disabled />
+                                        </div>
+                                    </div>
+                                    <div class="form-row">
+                                        <div class="form-group col-md-12">
+                                            <label class="form-label" for="note">Notes</label>
+                                            <textarea type="text" id="note" name="note" class="form-control" rows="1" >{{ $header->note }}</textarea>
+                                        </div>
+                                    </div>
+                                    {{-- <div class="form-row">
+                                        <div class="form-group col-md-5">
+                                            <label class="form-label" for="dnNumber">DN Number*</label>
+                                            <input type="text" id="dnNumber" name="dnNumber" value="{{ $header->dn_number }}" class="form-control" disabled /> --}}
+                                            {{-- <select class="select2 form-control" id="dnNumber" name="dnNumber" >
+                                            </select> --}}
+                                        {{-- </div> --}}
+                                        {{-- <div class="form-group col-md-6">
+                                            <label for="fakturPajak">Faktur pajak*</label>
+                                            <input type="text" id="fakturPajak" name="fakturPajak" value="{{ $header->faktur_pajak }}" class="form-control" required />
+                                        </div> --}}
+                                    {{-- </div> --}}
+                                    
+                                    
+                                    
+
                                 </div>
-                                <div class="form-group col-md-2">
-                                    <label for="invDate">Invoice Date*</label>
-                                    <input type="text" id="invDate" name="invDate" value="{{ $header->invoice_date }}" class="form-control" placeholder="DD-MM-YYYY" required />
-                                </div>                               
-                            </div>
-                            <div class="form-row">
-                                <div class="form-group col-md-5">
-                                    <label class="form-label" for="customer">Customer*</label>
-                                    <select class="select2 form-control" id="customer" name="customer" required disabled>
-                                        <option value="">All</option>
-                                        @foreach($customers as $val)
-                                            <option value="{{$val->kode}}" {{$val->kode == $header->customer_id ? "selected" : ""}} >{{$val->kode}} - {{$val->nama}}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                                <div class="form-group col-md-6">
-                                    <label class="form-label" for="soNumber">SO Number*</label>
-                                    <input type="text" id="soNumber" name="soNumber" value="{{ $header->so_number }}" class="form-control" disabled />
-                                    {{-- <select class="select2 form-control" id="soNumber" name="soNumber">
-                                    </select> --}}
-                                </div>
-                            </div>
-                            <div class="form-row">
-                                <div class="form-group col-md-5">
-                                    <label class="form-label" for="dnNumber">DN Number*</label>
-                                    <input type="text" id="dnNumber" name="dnNumber" value="{{ $header->dn_number }}" class="form-control" disabled />
-                                    {{-- <select class="select2 form-control" id="dnNumber" name="dnNumber" >
-                                    </select> --}}
-                                </div>
-                                <div class="form-group col-md-6">
-                                    <label for="fakturPajak">Faktur pajak*</label>
-                                    <input type="text" id="fakturPajak" name="fakturPajak" value="{{ $header->faktur_pajak }}" class="form-control" required />
-                                </div>
-                            </div>
-                            <div class="form-row">
-                                <div class="form-group col-md-12">
-                                    <label class="form-label" for="note">Notes</label>
-                                    <textarea type="text" id="note" name="note" class="form-control" rows="1" >{{ $header->note }}</textarea>
+                                <div class="col-md-6 col-12">
+                                    <div class="form-row">
+                                        <div class="col-sm-12">
+                                            <p class="mb-0">List DN*</p>
+                                            <div class="card-datatable table-responsive pt-0">
+                                                <table class="table table-bordered" id="listOfDn">
+                                                    <thead>
+                                                        <tr>
+                                                            <th scope="col" width="10%">Check</th>
+                                                            <th scope="col" width="30%">DN Number</th>
+                                                            <th scope="col" width="30%">Date</th>
+                                                            <th scope="col" width="30%">PO Number</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <br>
+                                    <div class="form-row">
+                                        <div class="col-md-12">
+                                            <button class="btn btn-primary" type="button" id="cmdSubmit" name="cmdSubmit">Submit</button>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </form>
@@ -77,41 +112,7 @@
                     <h4 class="card-title">Article</h4>
                 </div>
                 <div class="card-body">
-                    <div>
-                        <table class="" style="width:98%;table-layout: fixed;">
-                            <tbody>
-                                <tr>
-                                    <td class="" style="width: 39%">
-                                        <label>Article Code</label>
-                                    </td>
-                                    <td class="isian" style="width: 5%">
-                                        <label>Qty</label>
-                                    </td>
-                                    <td class="isian" style="width: 5%">
-                                        <label>UOM</label>
-                                    </td>
-                                    <td class="isian" style="width: 10%">
-                                        <label>Material Price</label>
-                                    </td>
-                                    <td class="isian" style="width: 10%">
-                                        <label>Service Price</label>
-                                    </td>
-                                    <td class="isian" style="width: 10%">
-                                        <label>T.Material</label>
-                                    </td>
-                                    <td class="isian" style="width: 10%">
-                                        <label>T.Service</label>
-                                    </td>
-                                    <td class="isian" style="width: 10%">
-                                        <label>Total</label>
-                                    </td>
-                                    <td class="isian text-center" style="width: 5%">
-                                        <label>-</label>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
+                    @include('invoice.headerColumn')
                     <div class="" id="article_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px">
                         <input type="text" id ="last_row_number" class="d-none" value="{{ count($detail) }}">
                     </div>
@@ -137,7 +138,7 @@
                                 <label for="totalAmount" class="col-sm-4 col-form-label titik-dua tanpa-padding">DPP</label>
                                 <div class="col-sm-6">
                                     <input type="text" class="form-control text-right font-weight-bold numeral-mask disabled-el" id="totalAmount" value="{{ $header->grand_total>0 ? $header->grand_total : 0 }}"disabled />
-                                    <input type="text" class="form-control text-right font-weight-bold" id="totalAmountJasa" disabled />
+                                    <input type="hidden" class="form-control text-right font-weight-bold" id="totalAmountJasa" disabled />
                                 </div>
                             </div>
                             <div class="form-group row mb-03">
@@ -354,9 +355,8 @@
     
     $(document).ready(function(){
         validateFormToast('frmAdd');
-        edit='true';
-        showDetail='false';
         let detail = {!!  $detail !!};
+        console.log()
         for (let i = 0; i < detail.length; i++) {
             article=detail[i].article_code;
             articleCode=detail[i].article_alternative_code;
@@ -371,8 +371,12 @@
             poNumber=detail[i].po_number;
             add_new_row(article,articleCode,articleDesc,qtySo,uomGroup,uom,price,priceService,soCode,dnNumberData,poNumber);
         }
-        $('#totalPPH').attr('disabled','disabled');
+        // $('#totalPPH').attr('disabled','disabled');
         hitungTotal();
+        edit='true';
+        showDetail='false';
+        let soNumber = '{{ $soNumber }}';
+        searchDn(soNumber);
     });
 
     const approveBtn = document.querySelector('#cmdApprove');
@@ -500,8 +504,8 @@
                 let customer = $('#customer').val()
                 let soNumber = $('#soNumber').val()
                 let dnNumber = $('#dnNumber').val()
-                let ppn = $('#ppn').val().replace(/,/gi, '') || 10;
-                let pph23 = $('#pph23').val().replace(/,/gi, '') || 2;
+                let ppn = $('#ppn').val().replace(/,/gi, '');
+                let pph23 = $('#pph23').val().replace(/,/gi, '');
                 let totalPpn = $('#totalPPN').val().replace(/,/gi, '') || 0;
                 let totalPph = $('#totalPPH').val().replace(/,/gi, '') || 0;
                 let invNumber = $('#invNumber').val();
@@ -557,59 +561,41 @@
         }
     });
         
-    let cloneCount=0;
-    function add_new_row(article,articleCode,articleDesc,qty,uomGroup,uom,price,priceJasa,soCode,dnNumber,poNumber) {
-        $("#article_row").append($("#new_row").clone().html());
-        cloneCount++;
-        $("#article_row").find('#baru').attr('id', 'new_row'+ cloneCount);
-        $("#new_row"+ cloneCount).find('#uom').attr('id', 'uom'+ cloneCount);
-        $("#new_row"+ cloneCount).find('#qtyInv').attr('id', 'qtyInv'+ cloneCount);
-        $("#new_row"+ cloneCount).find('#totalLine').attr('id', 'totalLine'+ cloneCount);
-        $("#new_row"+ cloneCount).find('#totalJasa').attr('id', 'totalJasa'+ cloneCount);
-        $("#new_row"+ cloneCount).find('#subTotal').attr('id', 'subTotal'+ cloneCount);
-        $("#new_row"+ cloneCount).find('#articleId').attr('id', 'articleId'+ cloneCount);
-        $("#new_row"+ cloneCount).find('#price').attr('id', 'price'+ cloneCount);
-        $("#new_row"+ cloneCount).find('#priceJasa').attr('id', 'priceJasa'+cloneCount);
-        $('#articleId'+ cloneCount).attr('data-code', article);
-        $('#articleId'+ cloneCount).attr('data-desc', articleDesc);
-        $('#articleId'+ cloneCount).attr('data-uom', uom);
-        $('#articleId'+ cloneCount).attr('data-price', price);
-        $('#articleId'+ cloneCount).attr('data-price-service', priceJasa);
-        $('#articleId'+ cloneCount).attr('data-so-code', soCode);
-        $('#articleId'+ cloneCount).attr('data-dn-number', dnNumber);
-        $('#articleId'+ cloneCount).attr('data-po-number', poNumber);
-        // $('#articleId'+ cloneCount).val(articleCode +" - " + articleDesc);
-        $('#articleId'+ cloneCount).val(articleDesc);
-        $('#price'+ cloneCount).val(price);
-        $('#priceJasa'+ cloneCount).val(priceJasa);
-        $('#qtyInv'+ cloneCount).val(qty);
-        $('#uom'+ cloneCount).val(uom);
-        $('#totalLine'+ cloneCount).val(qty*price).trigger('change');
-        $('#totalJasa'+ cloneCount).val(qty*priceJasa).trigger('change');
-        $('#subTotal'+ cloneCount).val((qty*price)+(qty*priceJasa)).trigger('change');
-        tombolPanah('qtyInv');
-        hitungTotal();
-        hitungGrandTotal();
-        mask_thousand();
-        
-    }
-
-    function listUom(obj,value,uom,uomSelect) {
-      $.ajax({
-        url:"{{ route('receiving.list.uom') }}",
-        method:"GET",
-        data:{
-            value:value,
-        },
-        success:function(result){
-            $('#'+obj).html(result);
-            $('#'+obj).val(uomSelect).trigger('change');            
-        },
-        error: function (response) {
-            Swal.fire("Warning","Get list UOM failed","warning");
-        }
-      })
-    }
+    // let cloneCount=0;
+    // function add_new_row(article,articleCode,articleDesc,qty,uomGroup,uom,price,priceJasa,soCode,dnNumber,poNumber) {
+    //     $("#article_row").append($("#new_row").clone().html());
+    //     cloneCount++;
+    //     $("#article_row").find('#baru').attr('id', 'new_row'+ cloneCount);
+    //     $("#new_row"+ cloneCount).find('#uom').attr('id', 'uom'+ cloneCount);
+    //     $("#new_row"+ cloneCount).find('#qtyInv').attr('id', 'qtyInv'+ cloneCount);
+    //     $("#new_row"+ cloneCount).find('#totalLine').attr('id', 'totalLine'+ cloneCount);
+    //     $("#new_row"+ cloneCount).find('#totalJasa').attr('id', 'totalJasa'+ cloneCount);
+    //     $("#new_row"+ cloneCount).find('#subTotal').attr('id', 'subTotal'+ cloneCount);
+    //     $("#new_row"+ cloneCount).find('#articleId').attr('id', 'articleId'+ cloneCount);
+    //     $("#new_row"+ cloneCount).find('#price').attr('id', 'price'+ cloneCount);
+    //     $("#new_row"+ cloneCount).find('#priceJasa').attr('id', 'priceJasa'+cloneCount);
+    //     $('#articleId'+ cloneCount).attr('data-code', article);
+    //     $('#articleId'+ cloneCount).attr('data-desc', articleDesc);
+    //     $('#articleId'+ cloneCount).attr('data-uom', uom);
+    //     $('#articleId'+ cloneCount).attr('data-price', price);
+    //     $('#articleId'+ cloneCount).attr('data-price-service', priceJasa);
+    //     $('#articleId'+ cloneCount).attr('data-so-code', soCode);
+    //     $('#articleId'+ cloneCount).attr('data-dn-number', dnNumber);
+    //     $('#articleId'+ cloneCount).attr('data-po-number', poNumber);
+    //     // $('#articleId'+ cloneCount).val(articleCode +" - " + articleDesc);
+    //     $('#articleId'+ cloneCount).val(articleDesc);
+    //     $('#price'+ cloneCount).val(price);
+    //     $('#priceJasa'+ cloneCount).val(priceJasa);
+    //     $('#qtyInv'+ cloneCount).val(qty);
+    //     $('#uom'+ cloneCount).val(uom);
+    //     $('#totalLine'+ cloneCount).val(qty*price).trigger('change');
+    //     $('#totalJasa'+ cloneCount).val(qty*priceJasa).trigger('change');
+    //     $('#subTotal'+ cloneCount).val((qty*price)+(qty*priceJasa)).trigger('change');
+    //     tombolPanah('qtyInv');
+    //     hitungTotal();
+    //     hitungGrandTotal();
+    //     mask_thousand();
+    // }
    
     $.ajaxSetup({
         headers: {

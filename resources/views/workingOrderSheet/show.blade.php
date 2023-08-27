@@ -121,7 +121,7 @@
                                                         <td >{{ $item->urutan }}</td>
                                                         <td >{{ $item->so_code }}</td>
                                                         <td >{{ $item->article }}</td>
-                                                        <td >{{ $item->tone }}</td>
+                                                        <td >{{ $item->tone ? $arrTone[$item->tone] :'' }}</td>
                                                         <td class="text-right">{{ number_format($item->so_qty) }}</td>
                                                         <td class="text-right">{{ number_format($item->plan_qty_fresh) }}</td>
                                                         <td class="text-right">{{ number_format($item->plan_qty_repaint) }}</td>
@@ -229,7 +229,6 @@
 </style>
 @endsection
 @section('scripts')
-@include('bom.addArticle')
 <script type="text/javascript">
     let currentDate = todayDate('dd-mm-yyyy');    
     $(document).ready(function(){           

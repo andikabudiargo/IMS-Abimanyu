@@ -32,63 +32,68 @@
         }
     }
 </style>
-{{-- table row untuk di clone--}}
 <div id="new_row" name="new_row[]" class="d-none">
     <div id="baru" class="tanda-baris barisDetail" >
         <div class="form-row d-flex align-items-center">
-            <div class="col-md-5 col-12">
+            <div class="col-md-1 col-12" style="padding-right:1px">
+                <div class="form-group">
+                    <label for="aTone" class="d-block d-md-none">Tone</label>
+                    <select class="form-control" id="aTone" name="aTone[]">
+                        <option value=""></option>
+                        <option value="t1">Tone 1</option>
+                        <option value="t2">Tone 2</option>
+                        <option value="t3">Tone 3</option>
+                        <option value="t4">Tone 4</option>
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-2 col-12" style="max-width:12.33333%;padding-right:1px">
+                <div class="form-group">
+                    <label for="pos" class="d-block d-md-none">POS</label>
+                    <select class="form-control" id="pos" name="pos[]">
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-4 col-12" style="padding-right:1px">
                 <div class="form-group">
                     <label for="article_id" class="d-block d-md-none">Article Code</label>
                     <select class="dynamicSelect form-control" id="article_id" name="article_id[]" data-dependent="article_id">
                     </select>
                 </div>
             </div>
-            <div class="col-md-2 col-12">
-                <div class="form-group">
-                    <label for="pos" class="d-block d-md-none">POS</label>
-                    <select class="form-control" id="pos" name="pos[]">
-                        <option value=""></option>
-                        <option value="pr">Preparation</option>
-                        <option value="pc">Primer Coat</option>
-                        <option value="bc">Base Coat</option>
-                        <option value="mbc">Mica Base Coat</option>
-                        <option value="cc">Clear Coat</option>
-                    </select>
-                </div>
-            </div>
-            <div class="col-md-1 col-12">
+            <div class="col-md-1 col-12" style="padding-right:1px">
                 <div class="form-group">
                     <label for="qtyBom" class="d-block d-md-none">QTY</label>
                     <input type="text" class="form-control numeral-mask-digit text-right tombol-panah" id ="qtyBom" name="qtyBom[]" maxlength="10" />
                 </div>
             </div>
-            <div class="col-md-1 col-12">
+            <div class="col-md-1 col-12" style="padding-right:1px">
                 <div class="form-group">
                     <label for="uom" class="d-block d-md-none">Uom</label>
                     <select class="form-control" id="uom" name="uom[]">
                     </select>
                 </div>
             </div>
-            <div class="col-md-1 col-12">
+            <div class="col-md-1 col-12" style="padding-right:1px">
                 <div class="form-group">
                     <label for="uomCon" class="d-block d-md-none">Uom Con.</label>
                     <select class="form-control" id="uomCon" name="uomCon[]">
                     </select>
                 </div>
             </div>
-            <div class="col-md-1 col-12">
+            <div class="col-md-1 col-12" style="padding-right:1px">
                 <div class="form-group">
                     <label for="qtyCon" class="d-block d-md-none">QTY Con.</label>
                     <input type="text" class="form-control numeral-mask-digit text-right tombol-panah" id ="qtyCon" name="qtyCon[]" maxlength="10" disabled/>
                 </div>
             </div>
-            <div class="col-md-2 col-12 d-none">
+            <div class="col-md-1 col-12" style="padding-right:1px">
                 <div class="form-group">
-                    <label for="uom" class="d-block d-md-none">Type</label>
-                    <span class="" id = "type" name="type[]"></span>
+                    <label for="brand" class="d-block d-md-none">Brand</label>
+                    <span class="" id = "brand" name="brand[]" style="font-size:10px"></span>
                 </div>
             </div>
-            <div class="col-md-1 col-12">
+            <div class="col-md-1 col-12" style="max-width: 4.33333%;padding-right:1px">
                 <div class="form-group text-center">
                     <a onmouseover="this.style.cursor='pointer'" onclick="$(this).parents('.tanda-baris').remove();">
                         <i data-feather="trash-2" class="remove_button feather-24">
@@ -100,23 +105,38 @@
         <hr class="d-block d-md-none" />
     </div>
 </div>
-{{-- \.table row --}} 
-
 <script type="text/javascript">
+    let bomPosOption="";
+
+    $(document).ready(function(){  
+        let bomPos = {!! $posts !!};
+        console.log(bomPos);
+        validateFormToast("frmAdd");
+        mask_thousand_digit(numberOfDecimalDigit);
+
+        bomPosOption = `<option value=""></option>`;
+        for(let i=0;i<bomPos.length;i++){
+            bomPosOption += `<option value="${ bomPos[i].pos_code }">${ bomPos[i].pos_name }</option>`;
+        }        
+    });
+
     let cloneCount=0;
-    add_new_row_edit = (article,qty,uom,uomCon,typeName,uomMember,uoms,factor,pos) => {
+    add_new_row_edit = (article,qty,uom,uomCon,typeName,uomMember,uoms,factor,pos,tone) => {
         $("#article_row").append($("#new_row").clone().html());
         cloneCount++;
         $("#article_row").find('#baru').attr('id', 'new_row'+ cloneCount);
         $("#new_row"+ cloneCount).find('#article_id').attr('id', 'article_id'+ cloneCount);
         changeselect('article_bom','article_id'+ cloneCount,article);
         $("#new_row"+ cloneCount).find('#pos').attr('id', 'pos'+ cloneCount);
+        $("#new_row"+ cloneCount).find('#aTone').attr('id', 'aTone'+ cloneCount);
         $("#new_row"+ cloneCount).find('#qtyBom').attr('id', 'qtyBom'+ cloneCount);
         $("#qtyBom"+ cloneCount).val(qty);
         $("#new_row"+ cloneCount).find('#type').attr('id', 'type'+ cloneCount);
         $("#type"+ cloneCount).text(typeName);
         $("#article_id"+cloneCount).select2();
         $("#pos"+cloneCount).select2();
+        $("#aTone"+cloneCount).select2();
+        fillPos('pos'+ cloneCount);
         $("#new_row"+ cloneCount).find('#qtyCon').attr('id', 'qtyCon'+ cloneCount);
         $("#qtyCon"+ cloneCount).val(parseFloat(qty)*parseFloat(factor));
 
@@ -152,6 +172,9 @@
         $("#uomCon"+ cloneCount).html(uomOptionCon);
         $("#uomCon"+ cloneCount).val(uomCon).trigger('change');
         $("#pos"+ cloneCount).val(pos).trigger('change');
+        $("#aTone"+ cloneCount).val(tone).trigger('change');
+        $("#uom"+cloneCount).select2();
+        $("#uomCon"+cloneCount).select2();
         $('#remove_button').tooltip();
         hitungTotal();
         mask_thousand_digit(numberOfDecimalDigit);
@@ -162,13 +185,18 @@
         cloneCount++;
         $("#article_row").find('#baru').attr('id', 'new_row'+ cloneCount);
         $("#new_row"+ cloneCount).find('#article_id').attr('id', 'article_id'+ cloneCount);
+        $("#new_row"+ cloneCount).find('#aTone').attr('id', 'aTone'+ cloneCount);
         $("#new_row"+ cloneCount).find('#pos').attr('id', 'pos'+ cloneCount);
+        fillPos('pos'+ cloneCount);
         $("#new_row"+ cloneCount).find('#qtyBom').attr('id', 'qtyBom'+ cloneCount);
         $("#new_row"+ cloneCount).find('#uom').attr('id', 'uom'+ cloneCount);
+        $("#new_row"+ cloneCount).find('#uomCon').attr('id', 'uomCon'+ cloneCount);
         changeselect('article_bom','article_id'+ cloneCount);
         $("#article_id"+cloneCount).select2();
-        $("#uom"+cloneCount).select2();
+        $("uom"+cloneCount).select2();
+        $("uomCon"+cloneCount).select2();
         $("#pos"+cloneCount).select2();
+        $("#aTone"+cloneCount).select2();
         $('#remove_button').tooltip();
         splitArticle('new');
         hitungTotal();
@@ -177,7 +205,7 @@
 
     splitArticle = () => {
         let objArticle = $('#article_row select[name="article_id[]"]');
-        let objType= $('#article_row span[name="type[]"]'); 
+        let objBrand= $('#article_row span[name="brand[]"]'); 
         let objQty = $('#article_row input[name="qtyBom[]"]');
         let objCon = $('#article_row input[name="qtyCon[]"]');
         let objUom = $('#article_row select[name="uom[]"]');
@@ -194,7 +222,8 @@
             let arrDetail = detail.split("|");
             let idUom = objUom.eq(objIndex).attr('id');        
             listUom(idUom,'',arrDetail[1]);
-            objType.eq(objIndex).text(arrDetail[4]);
+            let brand = objArticle.eq(objIndex).find(":selected").data("brand");
+            objBrand.eq(objIndex).text(brand);
 
             let uomGroup = objArticle.eq(objIndex).find(":selected").data("uom-group");
             let uomMember = objArticle.eq(objIndex).find(":selected").data("uom-member");
@@ -210,6 +239,9 @@
                     uomOption +=`<option data-factor = '1'>${arrDetail[1]}</option>`;
                 }
             }
+            let idObjUomCon = objUomCon.eq(objIndex).attr('id');
+            $("#"+idObjUomCon).select2();
+            
             objUomCon.eq(objIndex).html(uomOption);
             objUomCon.eq(objIndex).val(arrDetail[1]).trigger('change');
         
@@ -255,6 +287,11 @@
         })
     }
 
+    fillPos = (obj) => {
+        console.log(bomPosOption);
+        $('#'+obj).append(bomPosOption);
+    }
+
     saveData = (oEdit) => {
         if (!$("#frmAdd")[0].checkValidity()){
             $("#frmAdd").submit();
@@ -265,14 +302,15 @@
             let objUom = $('#article_row select[name="uom[]"]');
             let objUomCon = $('#article_row select[name="uomCon[]"]');
             let objPos = $('#article_row select[name="pos[]"]');
-
+            let objAtone = $('#article_row select[name="aTone[]"]');
+            
             let objSprayBooth = $('#article_row_sb select[name="sprayBooth[]"]');
             let objTone = $('#article_row_sb select[name="tone[]"]');
             let objTack = $('#article_row_sb input[name="tack[]"]');
             let objPassRate = $('#article_row_sb input[name="passRate[]"]');
             let objPassThru = $('#article_row_sb input[name="passThru[]"]');
             let objCycleTime = $('#article_row_sb input[name="cycleTime[]"]');
-            let objStripping = $('#article_row_sb select[name="stripping[]"]');
+            // let objStripping = $('#article_row_sb select[name="stripping[]"]');
             
             if (oEdit){
                 articleCode = $('#articleCode').data('article-code');
@@ -315,6 +353,8 @@
                     let type=detail[3];
                     let qty=objQty.eq(i).val().replace(/,/gi, '') || 0;
                     let pos = objPos.eq(i).val();
+                    let aTone = objAtone.eq(i).val();
+                    
                     // let obj = articles.find(obj => obj.plu == plu);
                     // if(obj) {
                     //     pesan +="Article "+articleName+" entered more than once !! <br>"; 
@@ -331,6 +371,7 @@
                                 "customer_code":customer,
                                 "type":type,
                                 "pos":pos,
+                                "tone":aTone
                             });
                         }
 
@@ -352,7 +393,7 @@
                     let passRate = objPassRate.eq(i).val().replace(/,/gi, '') || 0;
                     let passThru = objPassThru.eq(i).val().replace(/,/gi, '') || 0;
                     let cycleTime = objCycleTime.eq(i).val().replace(/,/gi, '') || 0;
-                    let stripping = objStripping.eq(i).val();
+                    // let stripping = objStripping.eq(i).val();
                     
 
                     let obj = sprayBooths.find(obj => obj.spray_booth+obj.tone == sprayBooth+tone);
@@ -369,7 +410,7 @@
                                 "pass_rate":passRate,
                                 "pass_thru":passThru,
                                 "cycle_time":cycleTime,
-                                "stripping": stripping
+                                // "stripping": stripping
                             });
                         }
                     } 

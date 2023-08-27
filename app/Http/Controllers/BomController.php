@@ -131,6 +131,10 @@ class BomController extends Controller
         // })
         ->get();
 
+        $data['posts'] = DB::table('bom_pos')
+        ->orderBy('pos_name')
+        ->get();
+
         $data['oEdit']=false;
 
         return view("bom.create",$data);
@@ -226,7 +230,8 @@ class BomController extends Controller
                         'created_by' => Auth::user()->username,
                         'created_at' => date('Y-m-d H:i:s'),
                         'urutan' => $val->urutan,
-                        'pos'=>$val->pos
+                        'pos'=>$val->pos,
+                        'tone'=>$val->tone
                     ];
                 }
 
@@ -247,7 +252,7 @@ class BomController extends Controller
                         'cycle_time' => $val->cycle_time,
                         'created_by' => Auth::user()->username,
                         'created_at' => date('Y-m-d H:i:s'),
-                        'stripping' => $val->stripping,
+                        // 'stripping' => $val->stripping,
                     ];
                 }
 
@@ -316,7 +321,8 @@ class BomController extends Controller
         ,DB::raw("concat(article.article_alternative_code,'-',article.article_desc) as article")
         )
         // ->where('bom_det.bom_code',$bomNumber)
-        ->orderBy('bom_det.id')
+        ->orderBy('bom_det.tone')
+        ->orderBy('bom_det.pos')
         ->get();
 
         $data['sprayBooths'] = DB::table('bom_spray_booth')
@@ -353,6 +359,10 @@ class BomController extends Controller
         $data['arrSprayBooth'] = ['sb1'=>'Spray Booth 1','sb1'=>'Spray Booth 1','sb2'=>'Spray Booth 2','sb3'=>'Spray Booth 3','sb4'=>'Spray Booth 4'];
         $data['arrTone'] = ['t1'=>'Tone 1','t2'=>'Tone 2','t3'=>'Tone 3','t4'=>'Tone 4'];
         $data['arrPos'] = ['pr'=>'Preparation','pc'=>'Primer Coat','bc'=>'Base Coat','mbc'=>'Mica Base Coat','cc'=>'Clear Coat'];
+
+        $data['posts'] = DB::table('bom_pos')
+        ->orderBy('pos_name')
+        ->get();
 
         return view("bom.show",$data);
         
@@ -403,7 +413,9 @@ class BomController extends Controller
                         from uom_con a where unit_from = article.uom)")
         ,DB::RAW("(select string_agg(code,',' order by code) as uoms from uom )")
         )
-        ->orderBy('bom_det.id')
+        // ->orderBy('bom_det.id')
+        ->orderBy('bom_det.tone')
+        ->orderBy('bom_det.pos')
         ->get();
 
         $data['sprayBooth'] = DB::table('bom_spray_booth')
@@ -429,6 +441,10 @@ class BomController extends Controller
 
         $data['articlesRm'] = DB::table('article')
         ->whereIn('article_type',['RM','RMP','RMNP'])
+        ->get();
+
+        $data['posts'] = DB::table('bom_pos')
+        ->orderBy('pos_name')
         ->get();
 
         $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode,$bomNumber,$username);
@@ -570,7 +586,8 @@ class BomController extends Controller
                         'created_by' => Auth::user()->username,
                         'created_at' => date('Y-m-d H:i:s'),
                         'urutan' => $val->urutan,
-                        'pos'=>$val->pos
+                        'pos'=>$val->pos,
+                        'tone'=>$val->tone,
                     ]);
                 }
 
@@ -589,7 +606,7 @@ class BomController extends Controller
                         'urutan' => $val->urutan,
                         'created_by' => Auth::user()->username,
                         'created_at' => date('Y-m-d H:i:s'),
-                        'stripping' => $val->stripping,
+                        // 'stripping' => $val->stripping,
                     ];
                 }
 
@@ -850,60 +867,148 @@ class BomController extends Controller
         $data['status'] ='1';
         $data['no'] =0;
 
-        $judulGroup=DB::table('bom_det')
-        ->leftJoin('bom_pos','bom_pos.pos_code','bom_det.pos')
-        ->select('pos_code','pos_name')
+        $judulTone=DB::table('bom_det')
+        ->select('tone')
         ->where('bom_code',$bomNumber)
-        ->distinct('pos_code','pos_name')
-        ->orderBy('pos_name','desc')
+        ->distinct('tone')
+        ->orderBy('tone','asc')
         ->get();
 
-        
+        $arrTone = ['t1'=>'Tone 1','t2'=>'Tone 2','t3'=>'Tone 3','t4'=>'Tone 4'];
         $barisAll="";
-        foreach($judulGroup as $val){
-            $groupPos = $val->pos_code ? $val->pos_code : '';
-            if($val->pos_code != null){
-                $barisJudul = "<tr><td colspan='6' align='center' style='background-color:yellow'>".strtoupper($val->pos_name)."</td> </tr>";
-                $isiJudul=DB::table('bom_det')
-                ->leftJoin('article','article.article_code','bom_det.article_code')
-                ->leftJoin('third_party','third_party.kode','article.third_party')
-                ->select('bom_det.*'
-                ,'article.article_alternative_code'
-                ,'article.article_desc'
-                ,'third_party.nama')
+        $barisSub="";
+        $barisJudul="";
+        foreach($judulTone as $val){
+            $tone = $val->tone ? $val->tone : '';
+
+            if($val->tone != null){
+                $barisTone = "<tr><td colspan='6' align='center' style='background-color:#51b3f0'>".strtoupper($arrTone[$tone])."</td> </tr>";
+                $judulGroup=DB::table('bom_det')
+                ->leftJoin('bom_pos','bom_pos.pos_code','bom_det.pos')
+                ->select('pos_code','pos_name')
                 ->where('bom_code',$bomNumber)
-                ->where('bom_det.pos',$groupPos)
-                ->orderBy('bom_det.id')
+                ->where('tone',$tone)
+                ->distinct('pos_code','pos_name')
+                ->orderBy('pos_name','desc')
                 ->get();
             }else{
-                $barisJudul = "";
-                $isiJudul=DB::table('bom_det')
-                ->leftJoin('article','article.article_code','bom_det.article_code')
-                ->leftJoin('third_party','third_party.kode','article.third_party')
-                ->select('bom_det.*'
-                ,'article.article_alternative_code'
-                ,'article.article_desc'
-                ,'third_party.nama')
+                $barisTone = "";
+                $judulGroup=DB::table('bom_det')
+                ->leftJoin('bom_pos','bom_pos.pos_code','bom_det.pos')
+                ->select('pos_code','pos_name')
                 ->where('bom_code',$bomNumber)
-                // ->where('bom_det.pos',$groupPos)
-                ->orderBy('bom_det.id')
+                ->where('tone','')
+                ->distinct('pos_code','pos_name')
+                ->orderBy('pos_name','desc')
                 ->get();
             }
-            $barisIsiJudul='';
-            foreach($isiJudul as $key=>$item){
-                $no = $key+1;
-                $barisIsiJudul .= "<tr >
-                    <td class='detail-padding' align='center' scope='row' style='padding-left:3px;padding-right:3px'>$no</td>
-                    <td class='detail-padding' align='left' style='padding-left:3px;padding-right:3px'>$item->article_desc</td>
-                    <td class='detail-padding font-10' align='left' style='padding-left:3px;padding-right:3px'>$item->nama</td>
-                    <td class='detail-padding' align='right' style='padding-left:3px;padding-right:3px'>$item->qty</td>
-                    <td class='detail-padding' align='left' style='padding-left:3px;padding-right:3px'>$item->uom</td>
-                    <td class='detail-padding' align='left' style='padding-left:3px;padding-right:3px'>$item->article_alternative_code</td>
-                </tr>";
-            }
+            
+            foreach($judulGroup as $val){
+                $groupPos = $val->pos_code ? $val->pos_code : '';
+                if($val->pos_code != null){
+                    $barisJudul = "<tr><td colspan='6' align='center' style='background-color:yellow'>".strtoupper($val->pos_name)."</td> </tr>";
+                    $isiJudul=DB::table('bom_det')
+                    ->leftJoin('article','article.article_code','bom_det.article_code')
+                    ->leftJoin('third_party','third_party.kode','article.third_party')
+                    ->select('bom_det.*'
+                    ,'article.article_alternative_code'
+                    ,'article.article_desc'
+                    ,'third_party.nama')
+                    ->where('bom_code',$bomNumber)
+                    ->where('bom_det.pos',$groupPos)
+                    ->where(function ($query) use ($tone) {
+                        $tone ? $query->where('tone',$tone) : '';
+                    })
+                    ->where('bom_det.tone',$tone)
+                    ->orderBy('bom_det.id')
+                    ->get();
+                }else{
+                    $barisJudul = "";
+                    $isiJudul=DB::table('bom_det')
+                    ->leftJoin('article','article.article_code','bom_det.article_code')
+                    ->leftJoin('third_party','third_party.kode','article.third_party')
+                    ->select('bom_det.*'
+                    ,'article.article_alternative_code'
+                    ,'article.article_desc'
+                    ,'third_party.nama')
+                    ->where('bom_code',$bomNumber)
+                    ->where(function ($query) use ($tone) {
+                        $tone ? $query->where('tone',$tone) : '';
+                    })
+                    // ->where('bom_det.pos',$groupPos)
+                    ->orderBy('bom_det.id')
+                    ->get();
+                }
 
-            $barisAll = $barisAll.$barisJudul.$barisIsiJudul;
+                $barisIsiJudul='';
+                foreach($isiJudul as $key=>$item){
+                    $no = $key+1;
+                    $barisIsiJudul .= "<tr >
+                        <td class='detail-padding' align='center' scope='row' style='padding-left:3px;padding-right:3px'>$no</td>
+                        <td class='detail-padding' align='left' style='padding-left:3px;padding-right:3px'>$item->article_desc</td>
+                        <td class='detail-padding font-10' align='left' style='padding-left:3px;padding-right:3px'>$item->nama</td>
+                        <td class='detail-padding' align='right' style='padding-left:3px;padding-right:3px'>$item->qty</td>
+                        <td class='detail-padding' align='left' style='padding-left:3px;padding-right:3px'>$item->uom</td>
+                        <td class='detail-padding' align='left' style='padding-left:3px;padding-right:3px'>$item->article_alternative_code</td>
+                    </tr>";
+                }
+
+                $barisSub .=$barisJudul.$barisIsiJudul;
+            };
+
+            
+
+            $barisAll.= $barisTone.$barisSub;
+            $barisSub="";
+            $barisTone="";
         };
+
+        
+        // $barisAll="";
+        // foreach($judulGroup as $val){
+        //     $groupPos = $val->pos_code ? $val->pos_code : '';
+        //     if($val->pos_code != null){
+        //         $barisJudul = "<tr><td colspan='6' align='center' style='background-color:yellow'>".strtoupper($val->pos_name)."</td> </tr>";
+        //         $isiJudul=DB::table('bom_det')
+        //         ->leftJoin('article','article.article_code','bom_det.article_code')
+        //         ->leftJoin('third_party','third_party.kode','article.third_party')
+        //         ->select('bom_det.*'
+        //         ,'article.article_alternative_code'
+        //         ,'article.article_desc'
+        //         ,'third_party.nama')
+        //         ->where('bom_code',$bomNumber)
+        //         ->where('bom_det.pos',$groupPos)
+        //         ->orderBy('bom_det.id')
+        //         ->get();
+        //     }else{
+        //         $barisJudul = "";
+        //         $isiJudul=DB::table('bom_det')
+        //         ->leftJoin('article','article.article_code','bom_det.article_code')
+        //         ->leftJoin('third_party','third_party.kode','article.third_party')
+        //         ->select('bom_det.*'
+        //         ,'article.article_alternative_code'
+        //         ,'article.article_desc'
+        //         ,'third_party.nama')
+        //         ->where('bom_code',$bomNumber)
+        //         // ->where('bom_det.pos',$groupPos)
+        //         ->orderBy('bom_det.id')
+        //         ->get();
+        //     }
+        //     $barisIsiJudul='';
+        //     foreach($isiJudul as $key=>$item){
+        //         $no = $key+1;
+        //         $barisIsiJudul .= "<tr >
+        //             <td class='detail-padding' align='center' scope='row' style='padding-left:3px;padding-right:3px'>$no</td>
+        //             <td class='detail-padding' align='left' style='padding-left:3px;padding-right:3px'>$item->article_desc</td>
+        //             <td class='detail-padding font-10' align='left' style='padding-left:3px;padding-right:3px'>$item->nama</td>
+        //             <td class='detail-padding' align='right' style='padding-left:3px;padding-right:3px'>$item->qty</td>
+        //             <td class='detail-padding' align='left' style='padding-left:3px;padding-right:3px'>$item->uom</td>
+        //             <td class='detail-padding' align='left' style='padding-left:3px;padding-right:3px'>$item->article_alternative_code</td>
+        //         </tr>";
+        //     }
+
+        //     $barisAll = $barisAll.$barisJudul.$barisIsiJudul;
+        // };
         
 
         $data['barisDetail']=$barisAll;
@@ -999,7 +1104,8 @@ class BomController extends Controller
             updated_at,
             uom_con,
             urutan,
-            pos
+            pos,
+            tone
         )
         select 
             '$bomNew',
@@ -1017,7 +1123,8 @@ class BomController extends Controller
             '".date('Y-m-d H:i:s')."',
             uom_con,
             urutan,
-            pos
+            pos,
+            tone
         from bom_det where bom_code = '$bomOrigin' order by id";
 
         $sqlAprayBooth="INSERT into bom_spray_booth

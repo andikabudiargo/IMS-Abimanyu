@@ -252,8 +252,18 @@ class InvoiceController extends Controller
         $data['detail'] = DB::table('invoice_det')
         ->leftJoin('article','article.article_code','=','invoice_det.article_code')
         ->leftJoin('uom','uom.code','invoice_det.uom')
+        ->select('invoice_det.*','article_alternative_code as article','article_desc as desc')
         ->where('invoice_det.invoice_number',$invoiceNumber)
         ->orderBy('invoice_det.id')
+        ->get();
+
+
+        $data['delivery'] = DB::table('delivery_hdr')
+        ->whereIn('delivery_hdr.delivery_number', function($query) use ($invoiceNumber) {
+            $query->select('dn_number')
+            ->from('invoice_det') 
+            ->where('invoice_number',$invoiceNumber);
+        })
         ->get();
 
         $data['customers'] = DB::table('third_party')
@@ -289,6 +299,7 @@ class InvoiceController extends Controller
         ->get()->first();
 
         $invoiceNumber = $data['header']->invoice_number;
+        $data['soNumber'] = $data['header']->so_number;
 
         $data['detail'] = DB::table('invoice_det')
         ->leftJoin('article','article.article_code','=','invoice_det.article_code')
@@ -296,8 +307,6 @@ class InvoiceController extends Controller
         ->where('invoice_det.invoice_number',$invoiceNumber)
         ->orderBy('invoice_det.id')
         ->get();
-
-        // dd($data['detail']);
 
         $data['customers'] = DB::table('third_party')
         ->where ('third_party_type','=','cust')
@@ -639,6 +648,10 @@ class InvoiceController extends Controller
     {
         $so = $request->soNumber;
         $dn = $request->dnNumber;
+
+        $arrayDnNumber = explode(",",$dn);
+        $result = "'" . implode ( "', '", $arrayDnNumber ) . "'";
+
         $data = DB::table('delivery_det')
         ->join('sales_order_det', function ($join) {
             $join->on('sales_order_det.so_code', '=', 'delivery_det.so_number')
@@ -647,7 +660,7 @@ class InvoiceController extends Controller
         ->leftJoin('article','article.article_code','=','delivery_det.article_code')
         ->leftJoin('uom','delivery_det.uom','uom.code')
         ->select('delivery_det.*','article.*','uom.uom_group','sales_order_det.*','delivery_det.qty as qty_dn')
-        ->where('delivery_det.delivery_number',$dn)
+        ->whereIn('delivery_det.delivery_number',$arrayDnNumber)
         ->where('delivery_det.so_number',$so)
         ->orderBy('delivery_det.id')
         ->get();
@@ -901,19 +914,66 @@ class InvoiceController extends Controller
 
     public function listDn(Request $request)
     {
-        $so= $request->value;      
+        $soNumber= $request->soNumber;
+        $invNumber= $request->invNumber;
         $output="";
+        $edit = $request->edit;
 
-        $data= DB::table("delivery_hdr") 
-        ->where("so_number",$so)
-        ->where("status","4")
-        ->orderBy("so_number")
-        ->select("delivery_number","so_number","po_number")
-        ->get();          
+        if($edit == 'true'){
+            $data= DB::table("delivery_hdr") 
+            ->where("so_number",$soNumber)
+            // ->where("status","4")
+            ->where("status","8") //sudah di received
+            // ->whereNotIn(DB::raw("delivery_number"), function($query) {
+            //     $query->select('dn_number')
+            //     ->from('invoice_det');
+            // })
+            ->orderBy("so_number")
+            ->select("delivery_number","so_number","po_number","delivery_date")
+            ->get();
+        }else{
+            $data= DB::table("delivery_hdr") 
+            ->where("so_number",$soNumber)
+            // ->where("status","4")
+            ->where("status","8") //sudah di received
+            ->whereNotIn(DB::raw("delivery_number"), function($query) {
+                $query->select('dn_number')
+                ->from('invoice_det');
+            })
+            ->orderBy("so_number")
+            ->select("delivery_number","so_number","po_number","delivery_date")
+            ->get();
+        }
 
-        $output .='<option value=""></option>';            
-        foreach ($data as $row){
-            $output .='<option value="'.$row->delivery_number.'">'.$row->delivery_number.'</option>';            
+        if ($invNumber){
+            $details = DB::table('invoice_det')->where('invoice_number',$invNumber)->pluck('dn_number');
+            $arrayData=[];
+            foreach($details as $val ){
+                array_push($arrayData,$val);
+            }
+            $details = $arrayData;
+            // dd($details);
+        }else{
+            $details=[];
+        }
+        
+        $showDetail ='false';
+        foreach ($data as $key=>$row){
+            $checked = in_array($row->delivery_number, $details) ? 'checked' :'';           
+            $output .="<tr>
+                        <td>
+                            <div class='custom-control custom-checkbox'>
+                                <input type='checkbox' class='custom-control-input' id='customCheck$key' name='customCheck'
+                                data-dn-date='$row->delivery_date' 
+                                data-dn-number = '$row->delivery_number'
+                                data-sum-qty = '$row->po_number' $checked>
+                                <label class='custom-control-label' for='customCheck$key'></label>
+                            </div>
+                        </td>
+                        <td>$row->delivery_number</td>
+                        <td>$row->delivery_date</td>
+                        <td>$row->po_number</td>
+                    </tr>";
         }        
         
         return $output;
@@ -931,7 +991,8 @@ class InvoiceController extends Controller
             $query->select('so_number')
             ->from('delivery_hdr') 
             ->where('customer_id',$cust)
-            ->where('status','4');
+            // ->where('status','4');
+            ->where('status','8'); // sudah di invoice receive
         })
         ->orderBy("so_code")
         ->select("so_code","po_number")

@@ -263,7 +263,9 @@ class WorkingOrderSheetController extends Controller
 
         $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode,$woCode,$username);
         $data['approveValidate'] = Approval::approveValidate($this->moduleCode,$woCode,$username);
-
+        
+        $data['arrTone'] = ['t1'=>'Tone 1','t2'=>'Tone 2','t3'=>'Tone 3','t4'=>'Tone 4'];
+        
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATED','3'=>'APPROVED','4'=>'','5'=>'',6=>'',7=>'REVISED'];
         $statusWo = ['NEW','VALIDATED','APPROVED','','','','REVISED'];
         $data['statusWo'] = $statusWo[$data['headers'][0]->status-1];
