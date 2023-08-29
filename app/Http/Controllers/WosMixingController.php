@@ -1027,7 +1027,7 @@ class WosMixingController extends Controller
         left join bom_hdr on bom_hdr.article_code=wo_detail_temp.article_code
         --left join bom_det on  bom_det.bom_code = bom_hdr.bom_code
         --left join (select bom_code,sum(qty) as qty,uom_con,uom,article_code from bom_det where bom_code in (select bom_code from bom_hdr where status = '3') group by bom_code,article_code,uom_con,uom) bom_det on  bom_det.bom_code = bom_hdr.bom_code and bom_det.tone = wo_detail_temp.tone
-        left join (select bom_code,sum(qty) as qty,uom_con,uom,article_code from bom_det where bom_code in (select bom_code from bom_hdr where status = '3') group by bom_code,article_code,uom_con,uom,tone) bom_det on  bom_det.bom_code = bom_hdr.bom_code and bom_det.tone = wo_detail_temp.tone
+        left join (select bom_code,sum(qty) as qty,uom_con,uom,article_code,tone from bom_det where bom_code in (select bom_code from bom_hdr where status = '3') group by bom_code,article_code,uom_con,uom,tone) bom_det on  bom_det.bom_code = bom_hdr.bom_code and bom_det.tone = wo_detail_temp.tone
         left join article on article.article_code = bom_det.article_code
         where wo_detail_temp.code ='$randomCode'
         and bom_hdr.status = '3'

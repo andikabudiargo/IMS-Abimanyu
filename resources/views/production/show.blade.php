@@ -198,7 +198,7 @@
 </style>
 @endsection
 @section('scripts')
-@include('bom.addArticle')
+{{-- @include('bom.addArticle') --}}
 <script type="text/javascript">
     let currentDate = todayDate('dd-mm-yyyy');    
     $(document).ready(function(){           

@@ -129,7 +129,7 @@
         </div>
     </div>
 </section>
-@include('bom.addArticle')
+{{-- @include('bom.addArticle') --}}
 @endsection
 @section('styles')
 <style>
