@@ -125,12 +125,18 @@
                             <div class="col-12">
                                 <a href="{{ route('article.request') }}" class="btn btn-outline-secondary">Back</a>
                                 <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave" >Update</button>
-                                @if($bisaApprove > 0 && $article->status_approve == '1' )
-                                    <button class="btn btn-success" type="button" id="cmdApprove" name="cmdApprove" >Approve</button>
-                                @endif
-                                @if($article->status_approve == '2' )
-                                    <button class="btn btn-success" type="button" id="cmdSubmit" name="cmdSubmit" >Submit</button>
-                                @endif
+                                
+                                @can('article-request-approve')
+                                    @if($bisaApprove > 0 && $article->status_approve == '1' )
+                                        <button class="btn btn-success" type="button" id="cmdApprove" name="cmdApprove" >Approve</button>
+                                    @endif
+                                @endcan
+
+                                @can('article-request-submit')
+                                    @if($article->status_approve == '2' )
+                                        <button class="btn btn-success" type="button" id="cmdSubmit" name="cmdSubmit" >Submit</button>
+                                    @endif
+                                @endcan
                             </div>
                         </div>                   
                     </form>
