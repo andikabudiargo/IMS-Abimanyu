@@ -441,8 +441,7 @@ class DependentController extends Controller
             ->whereIn("$table.article_code", function($query) use ($code){
                 $query->select('article_code')->from('article_supplier')->where('supplier_code',$code);
             })
-            ->where('po_number','=',null)
-
+            // ->where('po_number','=',null)
             ->orderBy($order)
             ->distinct($order)
             ->select('purchase_request_det.*',

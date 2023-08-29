@@ -1378,11 +1378,13 @@ class ArticleController extends Controller
                             </a>';
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
         
-            if (Auth::user()->can('article-edit') && $data->status_approve != '3') {
-            $buttons .=         '<a href="'. route('article.request.edit',  ['id'=>Crypt::encryptString($data->idku)]) .'" class="dropdown-item">
+            if (Auth::user()->can('article-request-edit') ) {
+                if ($data->bisa_approve > 0 && $data->status_approve != '3' ) {
+                    $buttons .=         '<a href="'. route('article.request.edit',  ['id'=>Crypt::encryptString($data->idku)]) .'" class="dropdown-item">
                                     <i data-feather="file-text"></i>
                                     Edit
                                 </a>';
+                }
             }
 
             if (Auth::user()->can('article-request-approve')){
@@ -1412,16 +1414,19 @@ class ArticleController extends Controller
                                     Detail
                                 </a>';
 
-            if (Auth::user()->can('article-delete') && $data->status_approve != '3') {
-            $buttons .=         '<a href="javascript:;"
-                                    id="deleteButton"
-                                    class="dropdown-item"
-                                    data-toggle="modal"
-                                    data-target="#smallModal"
-                                    data-href="'. route("article.request.destroy", ['id'=>Crypt::encryptString($data->idku)]) .'">
-                                    <i data-feather="trash-2" class="feather-14-red"></i>
-                                    Delete
-                                </a>';
+            if (Auth::user()->can('article-request-delete')) {
+
+                if ($data->bisa_approve > 0 && $data->status_approve != '3' ) {
+                    $buttons .=         '<a href="javascript:;"
+                                            id="deleteButton"
+                                            class="dropdown-item"
+                                            data-toggle="modal"
+                                            data-target="#smallModal"
+                                            data-href="'. route("article.request.destroy", ['id'=>Crypt::encryptString($data->idku)]) .'">
+                                            <i data-feather="trash-2" class="feather-14-red"></i>
+                                            Delete
+                                        </a>';
+                }
             }
             $buttons .=     '</div>
                         </div>';
