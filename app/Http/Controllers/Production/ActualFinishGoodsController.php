@@ -127,28 +127,6 @@ class ActualFinishGoodsController extends Controller
 
     }
 
-    public function articleCodeCreate(Request $request){
-        $customer = $request->customer;
-        $leadingCode = 'FG';
-
-        $lastCode = DB::table('article')
-        ->where('third_party','=',$customer)
-        ->orderBy('article_alternative_code','DESC')->first();
-
-        if (!$lastCode){
-            $newCode = '00001';
-        }else{
-            $newCode = str_pad(substr($lastCode->article_alternative_code,5)+1, 5, "0", STR_PAD_LEFT);
-        }
-
-        $artilceCode = DB::table('third_party')
-        ->where('kode',$customer)
-        ->select(DB::raw("CONCAT('$leadingCode',inisial,'$newCode') AS new_code"))->value('new_code');
-
-        return  Response()->json($artilceCode);
-    
-    }
-
     public function posting(Request $request)
     {
 

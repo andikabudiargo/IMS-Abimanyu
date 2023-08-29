@@ -168,7 +168,7 @@ let showDataTables = (opt) => {
           },
           order: opt.orderColumn,
           bDestroy: true, //pakai ini supaya bisa di load berulang2
-          // scrollX: true, //pakai ini supaya waktu responsive  bisa di scroll horizontal
+          scrollX: true, //pakai ini supaya waktu responsive  bisa di scroll horizontal
           columns: opt.kolom,
           scrollY: 440,
       });
