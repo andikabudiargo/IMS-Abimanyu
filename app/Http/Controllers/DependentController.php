@@ -419,39 +419,73 @@ class DependentController extends Controller
             ->orderBy($order)
             ->get();
         }elseif($dependent =='pRequest'){
-            $data= DB::table($table) 
-            ->whereIn('pr_number', function ($query) {
-                $query->select('pr_number')->from('purchase_request_hdr')
-                ->whereIn('order_type',['std','tso','rm'])
-                ->whereIn('status',['3','7']);
-            })
-            /* permintaan bu ifah tidak si filter by supplier
-              11 04 2022 permintaan batal dari bu Yorin, jadi tetap di filter
-              2/5/2023 Antisipasi kalau pas pembuatan PR belum punya kode supplier,jadi ambil article nya dari article
-              berdasarkan kode supplier
-            */
-            // ->where('supp_code',$code)
-
-            //untuk single supplier atau main supplier
-            // ->whereIn("$table.article_code", function($query) use ($code){
-            //     $query->select('article_code')->from('article')->where('third_party',$code);
+            // $data= DB::table($table) 
+            // ->whereIn('1pr_number', function ($query) {
+            //     $query->select('pr_number')->from('purchase_request_hdr')
+            //     ->whereIn('order_type',['std','tso','rm'])
+            //     ->whereIn('status',['3','7']);
             // })
+            // /* permintaan bu ifah tidak si filter by supplier
+            //   11 04 2022 permintaan batal dari bu Yorin, jadi tetap di filter
+            //   2/5/2023 Antisipasi kalau pas pembuatan PR belum punya kode supplier,jadi ambil article nya dari article
+            //   berdasarkan kode supplier
+            // */
+            // // ->where('supp_code',$code)
+
+            // //untuk single supplier atau main supplier
+            // // ->whereIn("$table.article_code", function($query) use ($code){
+            // //     $query->select('article_code')->from('article')->where('third_party',$code);
+            // // })
             
-            //untuk multi supplier
-            ->whereIn("$table.article_code", function($query) use ($code){
-                $query->select('article_code')->from('article_supplier')->where('supplier_code',$code);
-            })
-            // ->where('po_number','=',null)
-            ->orderBy($order)
-            ->distinct($order)
-            ->select('purchase_request_det.*',
-                DB::RAW("(select coalesce(sum(qty),0) from purchase_order_det 
-                where article_code = purchase_request_det.article_code 
-                and  pr_number = purchase_request_det.pr_number
-                and po_number in (select po_number from purchase_order_hdr where status = '3')
-                ) as qty_po")
-            )
-            ->get();
+            // //untuk multi supplier
+            // ->whereIn("$table.article_code", function($query) use ($code){
+            //     $query->select('article_code')->from('article_supplier')->where('supplier_code',$code);
+            // })
+            // ->where(DB::raw("purchase_request_det.qty-(select coalesce(sum(qty),0) from purchase_order_det 
+            // where article_code = purchase_request_det.article_code 
+            // and pr_number = purchase_request_det.pr_number
+            // and po_number in (select po_number from purchase_order_hdr where status = '3')
+            // )"),'>',0)
+            // // ->where('po_number','=',null)
+            // ->orderBy($order)
+            // ->distinct($order)
+            // ->select(
+            //     // 'purchase_request_det.*',
+            //     'purchase_request_det.pr_number',
+            //     'purchase_request_det.qty',
+            //     DB::RAW("(select coalesce(sum(qty),0) from purchase_order_det 
+            //     where article_code = purchase_request_det.article_code 
+            //     and  pr_number = purchase_request_det.pr_number
+            //     and po_number in (select po_number from purchase_order_hdr where status = '3')
+            //     ) as qty_po")
+            // )
+            // // and po_number in (select po_number from purchase_order_hdr where status = '3')
+            // ->get();
+
+            $data=db::select("SELECT 
+            distinct on (pr_number) pr_number,qty,
+            --purchase_request_det.*, 
+            (select coalesce(sum(qty),0) 
+            from purchase_order_det 
+            where article_code = purchase_request_det.article_code 
+            and  pr_number = purchase_request_det.pr_number
+            ) as qty_po, 
+            purchase_request_det.qty- (select coalesce(sum(qty),0) 
+            from purchase_order_det 
+            where article_code = purchase_request_det.article_code 
+            and  pr_number = purchase_request_det.pr_number
+            )  as sisa_qty 
+            from purchase_request_det
+            where pr_number in 
+            (select pr_number from purchase_request_hdr where order_type in ('std', 'tso', 'rm') and status in ('3','7')) 
+            and purchase_request_det.article_code in (select article_code from article_supplier where supplier_code = '$code') 
+            and purchase_request_det.qty-(select coalesce(sum(qty),0) 
+            from purchase_order_det 
+            where article_code = purchase_request_det.article_code 
+            and  pr_number = purchase_request_det.pr_number
+            )> 0
+            order by pr_number asc");
+
         }elseif($dependent =='pRequest_sub'){
             $data= DB::table($table) 
             ->whereIn('pr_number', function ($query) {
@@ -597,9 +631,9 @@ class DependentController extends Controller
             }elseif($dependent =='salesOrder'){
                 $output .='<option value="'.$row->$value.'">'.$row->$name.'</option>';
             }elseif($dependent =='pRequest'){
-                if(($row->qty-$row->qty_po) > 0){
+                // if(($row->qty-$row->qty_po) > 0){
                     $output .="<option value='$row->pr_number'>$row->pr_number</option>";
-                }
+                // }
             }elseif($dependent =='reference'){
                 $output .="<option value='$row->inv_number'>$row->inv_number</option>";
             }elseif($dependent =='referenceAr'){
