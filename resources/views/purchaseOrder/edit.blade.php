@@ -369,7 +369,7 @@
 
         changeselect('pRequest','prSelect',"{{ $header->supplier_id }}");
         setTimeout(() => { 
-            disabledEnabledSelect2();
+            // disabledEnabledSelect2();
         }, 500);
         
     });
