@@ -187,6 +187,8 @@
     const objSupplier = $('#supplier');
     const defaultPph23 = "{{ $pph23Value }}";
     const defaultPpn = "{{ $vatValue }}";
+    $("#nilaiPPN").text("{{ $vatValue }}%");
+    $("#nilaiPPH").text("{{ $pph23Value }}%");
    
     if (orderDate.length) {
         orderDate.flatpickr({
@@ -204,7 +206,6 @@
     $('#pkp').change(function() {
         if ($(this).is(':checked')) {
             $('#ppn').val("{{ $vatValue }}");
-            $("#nilaiPPN").text("{{ $vatValue }}%");
             $('#ppn').removeAttr('disabled');
             hitungGrandTotal();
         }else{
@@ -720,7 +721,7 @@
         
 
         $("#totalRow").val(objPrNumber.length);
-        $("#nilaiPPN").text(ppn+"%");
+        // $("#nilaiPPN").text(ppn+"%");
         $("#totalQTY").val(totalQty).trigger("input");
         $("#totalAmount").val(totalAmount).trigger("input");;
         $("#totalDiscount").val((totalAmount*parseFloat(persenDiscount))/100).trigger("input");

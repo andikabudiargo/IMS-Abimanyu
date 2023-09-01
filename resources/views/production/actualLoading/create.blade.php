@@ -188,18 +188,19 @@
             success:function(result){                
                 if(result.length > 0 ){
                     for(let i=0;i< result.length;i++){
-                        soCode = result[i].so_code;
-                        articleId= result[i].article_code;
-                        articleCode = result[i].article;
-                        articleRm = result[i].article_rm_code;
-                        qtySo = result[i].so_qty; //belum ada
-                        uom = 'PCS';
-                        planQtyFresh = result[i].plan_qty_fresh;
-                        planQtyRepaint = result[i].plan_qty_repaint;
-                        planTime = result[i].plan_time;
-                        planTag = result[i].plan_tag;
-                        originTag = result[i].origin_tag;
-                        add_new_row(soCode,articleCode,articleId,articleRm,qtySo,uom,planQtyFresh,planQtyRepaint,planTime,planTag,originTag);
+                        let soCode = result[i].so_code;
+                        let articleId= result[i].article_code;
+                        let articleCode = result[i].article;
+                        let articleRm = result[i].article_rm_code;
+                        let qtySo = result[i].so_qty; //belum ada
+                        let uom = 'PCS';
+                        let planQtyFresh = result[i].plan_qty_fresh;
+                        let planQtyRepaint = result[i].plan_qty_repaint;
+                        let planTime = result[i].plan_time;
+                        let planTag = result[i].plan_tag;
+                        let originTag = result[i].origin_tag;
+                        let tone = result[i].tone;
+                        add_new_row(soCode,articleCode,articleId,articleRm,qtySo,uom,planQtyFresh,planQtyRepaint,planTime,planTag,originTag,tone);
                     }
                 }
             },

@@ -173,7 +173,7 @@
                                 </div>
                             </div>
                             <div class="form-group row mb-03">
-                                <label for="totalPPH" class="col-sm-3 col-form-label titik-dua">PPH <span>23</span> </label>
+                                <label for="totalPPH" class="col-sm-3 col-form-label titik-dua">PPH23 <span id="nilaiPPH"></span> </label>
                                 <div class="col-sm-6">
                                     <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit" id="totalPPH" disabled/>
                                 </div>
@@ -234,7 +234,7 @@
         $("#term").val(top);
         if (pkp =='Y'){
             $("#pkp").attr('checked','checked');
-            $("#nilaiPPN").text("{{ $vatValue }}%");
+            // $("#nilaiPPN").text("{{ $vatValue }}%");
             $("#ppn").val("{{ $vatValue }}");
         }else{
             $("#pkp").removeAttr('checked');
