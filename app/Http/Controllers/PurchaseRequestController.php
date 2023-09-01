@@ -755,7 +755,9 @@ class PurchaseRequestController extends Controller
                 }
             }
 
-            if (Auth::user()->can('purchaseRequest-edit') and ( $data->status_pr == '2' or $data->status_pr == '1')) {
+            // if (Auth::user()->can('purchaseRequest-edit') and ( $data->status_pr == '2' or $data->status_pr == '1')) {
+            //yang bisa di edit hanya posis status masih new atau 1
+            if (Auth::user()->can('purchaseRequest-edit') and ( $data->status_pr == '1')) {
             $buttons .=         '<a href="'. route('purchaseRequest.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                     <i data-feather="file-text"></i>
                                     Edit
