@@ -720,7 +720,7 @@ class PurchaseRequestController extends Controller
         })
         ->whereIn('purchase_request_hdr.dept', function($query) use ($username,$deptPurcashing) {
             if($deptPurcashing > 0){
-                $query->select('dept')
+                $query->select('code')
                 ->from('depts');
             }else{
                 $query->select('dept')
