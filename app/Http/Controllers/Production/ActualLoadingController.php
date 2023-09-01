@@ -341,6 +341,7 @@ class ActualLoadingController extends Controller
             ->where('production_det.prod_code',$prdNumber)
             ->where('production_hdr.status','3')
             ->where('production_det.so_code','<>','other')
+            ->where('tone',db::raw("(select max(tone) from bom_det where article_code = wo_det.article_code)"))
             ->select('production_det.*'
             ,'article.article_type'
             ,'article.uom as uom_article'
@@ -570,6 +571,7 @@ class ActualLoadingController extends Controller
         $data = DB::table('wo_det')
         ->leftJoin('article','article.article_code','=','wo_det.article_code')
         ->where('wo_code',$woCode)
+        // ->where('tone',db::raw("(select max(tone) from bom_det where article_code = wo_det.article_code)"))
         // ->where('so_code','<>','other')
         ->select('wo_det'.'.*'
         ,DB::raw("case when so_code ='other' then wo_det.article_code else concat(article.article_alternative_code,' - ',article.article_desc) end as article")

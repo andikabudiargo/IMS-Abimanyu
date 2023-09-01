@@ -185,6 +185,8 @@
     const objPrRequest = $('#article_row input[name="pRequest[]"]');
     const prSelect = $('#prSelect');
     const objSupplier = $('#supplier');
+    const defaultPph23 = "{{ $pph23Value }}";
+    const defaultPpn = "{{ $vatValue }}";
    
     if (orderDate.length) {
         orderDate.flatpickr({
@@ -309,7 +311,7 @@
                 let totalPph = $('#totalPPH').val().replace(/,/gi, '') || 0;
                 let totalPpn = $('#totalPPN').val().replace(/,/gi, '') || 0;
                 let note = $('#note').val();
-                let persenDiscount = $('#persenDiscount').val() || 0;
+                let persenDiscount = $('#persenDiscount').val().replace(/,/gi, '') || 0;
                 let tax = $('#pkp').is(':checked') ? 'PKP' : '';
                 let poNumber = $('#poNumber').val();
 
@@ -440,7 +442,7 @@
                 let totalPph = $('#totalPPH').val().replace(/,/gi, '') || 0;
                 let totalPpn = $('#totalPPN').val().replace(/,/gi, '') || 0;
                 let note = $('#note').val();
-                let persenDiscount = $('#persenDiscount').val() || 0;
+                let persenDiscount = $('#persenDiscount').val().replace(/,/gi, '') || 0;
                 let poNumber = $('#poNumber').val();
                 let approveLevel = $('#approveLevel').val();
                 let maxLevel = $('#maxLevel').val();
@@ -569,7 +571,8 @@
         }else{
             $("#qtyOrder"+cloneCount).removeClass("numeral-mask-satuan");
             $("#qtyOrder"+cloneCount).addClass("numeral-mask-digit");
-            mask_thousand_digit(numberOfDecimalDigit);
+            mask_thousand_digit(2);
+            // mask_thousand_digit(numberOfDecimalDigit);
         }
 
         tombolPanah('qtyOrder');
@@ -702,8 +705,9 @@
         let objQtyTiw= $('#article_row input[name="qtyOrder[]"]');
         let objQTY= $('#article_row input[name="qtyOrder[]"]');
         let objNewPrice= $('#article_row input[name="newPrice[]"]');
-        let persenDiscount = $('#persenDiscount').val() || 0;
+        let persenDiscount = $('#persenDiscount').val().replace(/,/gi, '') || 0;
         let ppn= $('#ppn').val();
+        let pph23= $('#pph23').val();
         let totalQty= 0;
         let totalAmount=0
 
@@ -713,15 +717,18 @@
         totalQty = sumFromArray(qty);
         totalAmount = sumFromArray(qty,price);
 
+        
+
         $("#totalRow").val(objPrNumber.length);
         $("#nilaiPPN").text(ppn+"%");
-        $("#totalQTY").val(humanizeNumber(totalQty));
-        $("#totalAmount").val(humanizeNumber(totalAmount));
-        $("#totalDiscount").val(humanizeNumber((totalAmount*parseInt(persenDiscount))/100));
-        $("#totalPPN").val(humanizeNumber(parseInt((parseInt(ppn)*totalAmount)/100)));
-        $("#totalPPH").val(0);
-        $("#totalNetto").val(humanizeNumber(parseInt((totalAmount+((parseInt(ppn)*totalAmount)/100))-((totalAmount*parseInt(persenDiscount))/100))));
-
+        $("#totalQTY").val(totalQty).trigger("input");
+        $("#totalAmount").val(totalAmount).trigger("input");;
+        $("#totalDiscount").val((totalAmount*parseFloat(persenDiscount))/100).trigger("input");
+        $("#totalDpp").val(totalAmount-((totalAmount*parseFloat(persenDiscount))/100)).trigger("input");
+        $("#totalPPN").val(parseFloat((parseFloat(ppn)*(totalAmount-((totalAmount*parseFloat(persenDiscount))/100))))/100).trigger("input");
+        $("#totalPPH").val(parseFloat((parseFloat(pph23)*(totalAmount-((totalAmount*parseFloat(persenDiscount))/100))))/100).trigger("input");
+        $("#totalNetto").val((totalAmount-((totalAmount*parseFloat(persenDiscount))/100))+(parseFloat((parseFloat(ppn)*(totalAmount-((totalAmount*parseFloat(persenDiscount))/100))))/100)-(parseFloat((parseFloat(pph23)*(totalAmount-((totalAmount*parseFloat(persenDiscount))/100))))/100)).trigger("input");
+        mask_thousand_digit(2);
     }
 
     $("input[type='text']").click(function () {

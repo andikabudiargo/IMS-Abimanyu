@@ -19,10 +19,31 @@ class PurchaseOrderController extends Controller
 {
     private $title;
     private $moduleCode;
+    private $nilaiPpn;
+    private $nilaiPph23;
+    private $nilaiPph21;
+    private $nilaiPph42;
+
     public function __construct()
     {
         $this->title = "Purchase Order";
         $this->moduleCode = "PO";
+        
+        $this->nilaiPpn = DB::table('attributes')
+        ->where('attr_id','mainppn')
+        ->value('attr_value');
+
+        $this->nilaiPph23 = DB::table('attributes')
+        ->where('attr_id','mainpph23')
+        ->value('attr_value');
+
+        $this->nilaiPph21 = DB::table('attributes')
+        ->where('attr_id','mainpph21')
+        ->value('attr_value');
+
+        $this->nilaiPph42 = DB::table('attributes')
+        ->where('attr_id','mainpph42')
+        ->value('attr_value');
     }
 
     public function getTableColoumn(){
@@ -1322,11 +1343,30 @@ class PurchaseOrderController extends Controller
         ->where('po_number',$poNumber)
         ->get();
 
+        $nilaiPpn = $this->nilaiPpn;
+        $nilaiPph23 = $this->nilaiPph23;
+
         $data['totals']=DB::select("SELECT *
-        ,(gross-discount)+ppn as netto 
-        ,(gross-discount) as dpp 
+        ,gross 
+        ,(gross*nilai_discount/100) as discount 
+        ,(gross-(gross*nilai_discount/100))+((gross-(gross*nilai_discount/100))*nilai_ppn/100)-((gross-(gross*nilai_discount/100))*nilai_pph23/100) as netto 
+        ,(gross-(gross*nilai_discount/100)) as dpp 
+        ,(gross-(gross*nilai_discount/100))*nilai_ppn/100 as ppn 
+        ,(gross-(gross*nilai_discount/100))*nilai_pph23/100 as pph23 
+        ,'$nilaiPpn' as angka_ppn
+        ,'$nilaiPph23' as angka_pph23 
         from (
-            select a.po_number,authorized_by,validate_by,sum(qty) as qty,sum(qty*price) as gross,sum(discount) as discount,sum(qty*price*b.ppn/100) as ppn from purchase_order_det a
+            select a.po_number
+            ,authorized_by
+            ,validate_by
+            ,sum(qty) as qty
+            ,sum(qty*price) as gross
+            ,max(b.discount) as nilai_discount
+            ,max(b.ppn) as nilai_ppn
+            ,max(b.pph22) as nilai_pph23
+            -- ,sum(qty*price*b.ppn/100) as ppn 
+            -- ,sum(qty*price*b.pph22/100) as pph23 
+            from purchase_order_det a
             left join purchase_order_hdr b
             on a.po_number = b.po_number 
             where a.po_number = '$poNumber'

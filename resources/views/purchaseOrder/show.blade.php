@@ -153,14 +153,14 @@
                                                         </tr>
                                                         <tr>
                                                             <td>Discount</td>
-                                                            <td class="text-right">{{ number_format($header2->discount) }}</td>
+                                                            <td class="text-right">{{ number_format($header2->discount,2) }}</td>
                                                         </tr>
                                                         <tr>
                                                             <td>PPN {{ $header2->ppn }}%</td>
                                                             <td class="text-right">{{ number_format($header2->sum_ppn) }}</td>
                                                         </tr>
                                                         <tr>
-                                                            <td>PPH22</td>
+                                                            <td>PPH23</td>
                                                             <td class="text-right">{{ number_format($header2->sum_pph22) }}</td>
                                                         </tr>
                                                         <tr>

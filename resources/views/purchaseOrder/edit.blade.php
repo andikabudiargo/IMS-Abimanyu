@@ -64,6 +64,7 @@
                                     <label class="form-label" for="ppn">PPN</label>
                                     <div class="input-group">
                                         <input type="text" class="form-control angka text-right" id="ppn" name="ppn" value="{{ $header->ppn }}" maxlength="2" />
+                                        <input type="text" class="form-control angka text-right" id="pph23" name="pph23" value="{{ $header->pph22 }}" maxlength="2" />
                                         <div class="input-group-append">
                                             <span class="input-group-text">%</span>
                                         </div>
@@ -222,36 +223,42 @@
                         </div>
                         <div class="col-md-5">
                             <div class="form-group row mb-03">
-                                <label for="totalAmount" class="col-sm-3 col-form-label titik-dua">Bruto</label>
+                                <label for="totalAmount" class="col-sm-3 col-form-label titik-dua">Sub Total</label>
                                 <div class="col-sm-6">
-                                    <input type="text" class="form-control text-right font-weight-bold" id="totalAmount" disabled />
+                                    <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit" id="totalAmount" disabled />
                                 </div>
                             </div>
                             <div class="form-group row mb-03">
-                                <label for="totalPPN" class="col-sm-3 col-form-label titik-dua">Discount </label>
+                                <label for="totalDiscount" class="col-sm-3 col-form-label titik-dua">Discount </label>
                                 <div class="col-sm-2" style="padding-right: 0rem;">
-                                    <input type="text" class="form-control text-right font-weight-bold" id="persenDiscount" maxlength="2"/>
+                                    <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit" id="persenDiscount" value="{{ $header->discount }}" maxlength="2"/>
                                 </div>
                                 <div class="col-sm-4" style="padding-left: 0rem;">
-                                    <input type="text" class="form-control text-right font-weight-bold" id="totalDiscount" disabled/>
+                                    <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit" id="totalDiscount" disabled/>
+                                </div>
+                            </div>
+                            <div class="form-group row mb-03">
+                                <label for="totalDpp" class="col-sm-3 col-form-label titik-dua">DPP</label>
+                                <div class="col-sm-6">
+                                    <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit" id="totalDpp" disabled />
                                 </div>
                             </div>
                             <div class="form-group row mb-03">
                                 <label for="totalPPN" class="col-sm-3 col-form-label titik-dua">PPN <span id="nilaiPPN"></span> </label>
                                 <div class="col-sm-6">
-                                    <input type="text" class="form-control text-right font-weight-bold" id="totalPPN" disabled/>
+                                    <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit" id="totalPPN" disabled/>
                                 </div>
                             </div>
                             <div class="form-group row mb-03">
-                                <label for="totalPPH" class="col-sm-3 col-form-label titik-dua">PPH <span>22</span> </label>
+                                <label for="totalPPH" class="col-sm-3 col-form-label titik-dua">PPH <span>23</span> </label>
                                 <div class="col-sm-6">
-                                    <input type="text" class="form-control text-right font-weight-bold" id="totalPPH" disabled/>
+                                    <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit" id="totalPPH" disabled/>
                                 </div>
                             </div>
                             <div class="form-group row mb-03">
-                                <label for="totalNetto" class="col-sm-3 col-form-label titik-dua">Netto</label>
+                                <label for="totalNetto" class="col-sm-3 col-form-label titik-dua">Total</label>
                                 <div class="col-sm-6">
-                                    <input type="text" class="form-control text-right font-weight-bold" id="totalNetto" disabled/>
+                                    <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit" id="totalNetto" disabled/>
                                 </div>
                             </div>
                         </div>
@@ -364,7 +371,7 @@
         hitungGrandTotal();
         $('.sku-select-system').select2();
         mask_thousand_satuan();
-        mask_thousand_digit(numberOfDecimalDigit);
+        mask_thousand_digit(2);
         let suppCode = $(this).val();
 
         changeselect('pRequest','prSelect',"{{ $header->supplier_id }}");

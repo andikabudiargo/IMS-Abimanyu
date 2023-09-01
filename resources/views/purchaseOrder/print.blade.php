@@ -123,7 +123,7 @@
                 </tr>
             @endforeach
         </tbody>
-        <tfoot>
+        {{-- <tfoot>
             @foreach ($totals as $val )
                 <tr style="border-bottom: 1px solid #ddd;">
                     <td style="border-bottom: 1px solid #ddd;" align="left" colspan="3"></td>
@@ -133,7 +133,7 @@
                     <td style="border-bottom: 1px solid #ddd;" align="right" class="gray">{{ number_format($val->dpp)}}</td>
                 </tr>
             @endforeach
-        </tfoot>
+        </tfoot> --}}
     </table>
     <table width="100%">
         <tbody>
@@ -155,16 +155,17 @@
                 <td valign="top" align="right" style="padding-right:0px">
                     <table width="100%">
                         <tbody>
-                            <tr><td >Subtotal</td><td>:</td></td><td align="right">{{ number_format($totals[0]->gross) }}</td></tr>
-                            <tr><td >Discount</td><td>:</td><td align="right">{{ number_format($totals[0]->discount) }}</td></tr>
-                            <tr><td >PPN11%</td><td>:</td><td align="right">{{ number_format($totals[0]->ppn) }}</td></tr>
-                            <tr><td >Total:</td><td>:</td><td align="right">{{ number_format($totals[0]->netto) }}</td></tr>
+                            <tr><td  width="60%">Subtotal</td><td style="padding:0px">:</td></td><td align="right">{{ number_format($totals[0]->gross,2) }}</td></tr>
+                            <tr><td >Discount {{ $totals[0]->nilai_discount }}%</td><td style="padding:0px">:</td><td align="right">{{ number_format($totals[0]->discount,2) }}</td></tr>
+                            <tr><td >DPP</td><td style="padding:0px">:</td></td><td align="right">{{ number_format($totals[0]->dpp,2) }}</td></tr>
+                            <tr><td >PPN {{ $totals[0]->angka_ppn }}%</td><td style="padding:0px">:</td><td align="right">{{ number_format($totals[0]->ppn,2) }}</td></tr>
+                            <tr><td >PPH23 {{ $totals[0]->angka_pph23 }}%</td><td style="padding:0px">:</td><td align="right">{{ number_format($totals[0]->pph23,2) }}</td></tr>
+                            <tr><td >Total:</td><td style="padding:0px">:</td><td align="right">{{ number_format($totals[0]->netto,2) }}</td></tr>
                         </tbody>
                     </table>
                 </td>
             </tr>
             {{-- <tr><td rowspan='6' style="width: 65%;">{{ $keterangan }}</td></tr> --}}
-            
         </tbody>
     </table>
     <table width="100%" border="0" cellspacing="20">
