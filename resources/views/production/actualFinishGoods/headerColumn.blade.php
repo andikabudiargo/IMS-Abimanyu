@@ -9,9 +9,14 @@
             <label class="d-none d-md-block">SO Number</label>
         </div>
     </div>
-    <div class="col-md-7 col-12 d-none d-md-block">
+    <div class="col-md-6 col-12 d-none d-md-block">
         <div class="form-group">
             <label class="d-none d-md-block">Article Code</label>
+        </div>
+    </div>
+    <div class="col-md-1 col-12 d-none d-md-block">
+        <div class="form-group">
+            <label class="d-none d-md-block">Tone</label>
         </div>
     </div>
     <div class="col-md-1 col-12 d-none d-md-block">

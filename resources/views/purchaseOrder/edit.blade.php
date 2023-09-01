@@ -231,7 +231,7 @@
                             <div class="form-group row mb-03">
                                 <label for="totalDiscount" class="col-sm-3 col-form-label titik-dua">Discount </label>
                                 <div class="col-sm-2" style="padding-right: 0rem;">
-                                    <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit" id="persenDiscount" value="{{ $header->discount }}" maxlength="2"/>
+                                    <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit" id="persenDiscount" value="{{ $header->discount }}" maxlength="5"/>
                                 </div>
                                 <div class="col-sm-4" style="padding-left: 0rem;">
                                     <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit" id="totalDiscount" disabled/>

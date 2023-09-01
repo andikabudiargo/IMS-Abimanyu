@@ -202,7 +202,8 @@
             originTag = detail[i].origin_tag;
             qtyFg=detail[i].act_finish_goods;
             urutan = detail[i].urutan;
-            add_new_row_edit(soCode,articleCode,articleId,articleRm,qtySo,uom,planQtyFresh,planQtyRepaint,planTime,planTag,originTag,qtyFg,urutan);
+            tone = detail[i].tone;
+            add_new_row_edit(soCode,articleCode,articleId,articleRm,qtySo,uom,planQtyFresh,planQtyRepaint,planTime,planTag,originTag,qtyFg,urutan,tone);
         }
     });   
 

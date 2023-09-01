@@ -79,6 +79,18 @@
             </div>
             <div class="col-md-1 col-12">
                 <div class="form-group margin-nol">
+                    <label for="tone" class="d-block d-md-none">Tone</label>
+                    <select class="form-control" id="tone" name="tone[]">
+                        <option value=""></option>
+                        <option value="t1">Tone 1</option>
+                        <option value="t2">Tone 2</option>
+                        <option value="t3">Tone 3</option>
+                        <option value="t4">Tone 4</option>
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-1 col-12">
+                <div class="form-group margin-nol">
                     <label for="qtyFgAct" class="d-block d-md-none">Act.FG</label>
                     <input type="text" class="form-control numeral-mask-satuan text-right" id="qtyFgAct" name="qtyFgAct[]" maxlength="9" />
                 </div>
@@ -134,7 +146,7 @@
 
     let cloneCountEdit=0;
     
-    function add_new_row_edit(noSo,noArticle,noArticleId,noArticleRm,qtySo,qtySoUom,qtyProd,qtyRepaint,waktu,tag,tagAsli,qtyFg,urutan) {
+    function add_new_row_edit(noSo,noArticle,noArticleId,noArticleRm,qtySo,qtySoUom,qtyProd,qtyRepaint,waktu,tag,tagAsli,qtyFg,urutan,tone) {
         let waktuAwal = $('#wosTime').val()+":00";
         $("#article_row").append($("#new_row").clone().html());
         cloneCountEdit++;
@@ -155,6 +167,7 @@
         $("#new_row"+ cloneCountEdit).find('#tagAsli').attr('id', 'tagAsli'+ cloneCountEdit);
         $("#new_row"+ cloneCountEdit).find('#waktuAct').attr('id', 'waktuAct'+ cloneCountEdit);
         $("#new_row"+ cloneCountEdit).find('#tagAct').attr('id', 'tagAct'+ cloneCountEdit);
+        $("#new_row"+ cloneCountEdit).find('#tone').attr('id', 'tone'+ cloneCountEdit);
         $('#urutan'+ cloneCountEdit).val(urutan);
         $('#qtyOrder'+ cloneCountEdit).val(qtySo);
         $('#qtyProd'+ cloneCountEdit).val(qtyProd);
@@ -167,6 +180,8 @@
         $('#qtyRepaintAct'+ cloneCountEdit).val(qtyRepaint);
         $('#tagAct'+ cloneCountEdit).val(nilaiTag);
         $('#tagAct'+ cloneCountEdit).attr('disabled','disabled');
+        $('#tone'+ cloneCountEdit).val(tone);
+        $("#tone"+cloneCountEdit).select2();
 
         if(noSo =='other'){
             $('#qtyRepaintAct'+ cloneCountEdit).attr('disabled','disabled');

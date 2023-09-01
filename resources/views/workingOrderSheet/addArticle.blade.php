@@ -52,8 +52,6 @@
     }
     
 </style>
-
-{{-- table row untuk di clone--}}  
 <div id="new_row" name="new_row[]" class="d-none">
     <div id="baru" class="tanda-baris" >
         <div class="form-row d-flex align-items-center">
@@ -81,7 +79,7 @@
             <div class="col-md-1 col-12">
                 <div class="form-group margin-nol">
                     <label for="tone" class="d-block d-md-none">Tone</label>
-                    <select form-control" id="tone" name="tone[]">
+                    <select class="form-control" id="tone" name="tone[]">
                         <option value=""></option>
                         <option value="t1">Tone 1</option>
                         <option value="t2">Tone 2</option>
@@ -132,8 +130,6 @@
         </div>
     </div>
 </div>
-{{-- \.table row --}} 
-
 <script type="text/javascript">
     let currentDate = todayDate('dd-mm-yyyy');
     const wosDate = $('#wosDate');
@@ -474,6 +470,7 @@
         let objTagAsli = $('#article_row input[name="tagAsli[]"]');
         let objUrutan = $('#article_row input[name="urutan[]"]');
         let objWaktu = $('#article_row input[name="waktu[]"]');
+        let objTone = $('#article_row input[name="tone[]"]');
         
         objArticle.map(function(i) {
 		    let $this=$(this);
@@ -488,6 +485,7 @@
                 let tag =objTag.eq(i).val();
                 let tagAsli = objTagAsli.eq(i).val();
                 let waktu = objWaktu.eq(i).val();
+                let tone = objTone.eq(i).val();
 
                 let obj = articles.find(obj => obj.urutan == urutan);
                 
@@ -508,7 +506,8 @@
                             "tag":tag,
                             "tag_asli":tagAsli,
                             "waktu":waktu,
-                            "status": articleRm == 'none'?'0':'1'
+                            "status": articleRm == 'none'?'0':'1',
+                            "tone": tone
                         });
                     }
                 }
@@ -520,7 +519,7 @@
             $('#article_row').find('div').remove();
             cloneCountEdit=0;
             articles.map(function(i) {
-                add_new_row_edit(i.so_code,i.article_code,i.article_rm,i.qty_so,i.uom,i.qty_prod,i.qty_repaint,i.waktu,i.tag,i.tag_asli);
+                add_new_row_edit(i.so_code,i.article_code,i.article_rm,i.qty_so,i.uom,i.qty_prod,i.qty_repaint,i.waktu,i.tag,i.tag_asli,i.tone);
             })
         }
     });

@@ -92,6 +92,7 @@
                                                     <th >Urutan</th>
                                                     <th >So Number</th>
                                                     <th >Article Code</th>
+                                                    <th >Tone</th>
                                                     <th class="text-right">Qty SO</th>
                                                     <th class="text-right">Qty Fresh</th>
                                                     <th class="text-right">Qty Repaint</th>
@@ -107,6 +108,7 @@
                                                         <td >{{ $item->urutan }}</td>
                                                         <td >{{ $item->so_code }}</td>
                                                         <td >{{ $item->article }}</td>
+                                                        <td >{{ $item->tone ? $arrTone[$item->tone] :'' }}</td>
                                                         <td class="text-right">{{ number_format($item->so_qty) }}</td>
                                                         <td class="text-right">{{ number_format($item->act_qty_fresh) }}</td>
                                                         <td class="text-right">{{ number_format($item->act_qty_repaint) }}</td>

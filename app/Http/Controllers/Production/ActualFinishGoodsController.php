@@ -827,7 +827,8 @@ class ActualFinishGoodsController extends Controller
             created_by,
             updated_by,
             created_at,
-            updated_at
+            updated_at,
+            tone
         )
         select '$prdNew',
             so_code,
@@ -852,7 +853,8 @@ class ActualFinishGoodsController extends Controller
             '$username',
             '$username',
             '".date('Y-m-d H:i:s')."',
-            '".date('Y-m-d H:i:s')."' 
+            '".date('Y-m-d H:i:s')."',
+            tone
         from production_det where prod_code = '$prdOrigin'";
 
         $rowAffected =  DB::select($sqlHdr);

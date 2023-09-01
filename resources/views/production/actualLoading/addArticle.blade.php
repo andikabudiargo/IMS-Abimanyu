@@ -52,8 +52,6 @@
     }
     
 </style>
-
-{{-- table row untuk di clone--}}  
 <div id="new_row" name="new_row[]" class="d-none">
     <div id="baru" class="tanda-baris" >
         <div class="form-row d-flex align-items-center">
@@ -69,7 +67,7 @@
                     <input type="text" class="form-control" id="salesOrder" name="salesOrder[]" disabled/>
                 </div>
             </div>
-            <div class="col-md-5 col-12">
+            <div class="col-md-4 col-12">
                 <div class="form-group margin-nol">
                     <label for="articleName" class="d-block d-md-none">Article</label>
                     <input type="text" class="form-control" id="articleName" name="articleName[]" disabled />
@@ -77,12 +75,18 @@
                     <input type="hidden" class="form-control" id="articleRm" name="articleRm[]" />
                 </div>
             </div>
-            {{-- <div class="col-md-1 col-12">
+            <div class="col-md-1 col-12">
                 <div class="form-group margin-nol">
-                    <label for="qtyOrder" class="d-block d-md-none">QTY SO</label>
-                    <input type="text" class="form-control numeral-mask-satuan text-right" id="qtyOrder" name="qtyOrder[]" disabled />
+                    <label for="tone" class="d-block d-md-none">Tone</label>
+                    <select class="form-control" id="tone" name="tone[]">
+                        <option value=""></option>
+                        <option value="t1">Tone 1</option>
+                        <option value="t2">Tone 2</option>
+                        <option value="t3">Tone 3</option>
+                        <option value="t4">Tone 4</option>
+                    </select>
                 </div>
-            </div> --}}
+            </div>
             <div class="col-md-1 col-12">
                 <div class="form-group margin-nol">
                     <label for="qtyProdAct" class="d-block d-md-none">Act.Fresh</label>
@@ -107,36 +111,10 @@
                     <input type="text" class="form-control" id="waktuAct" name="waktuAct[]" >
                 </div>
             </div>
-            {{-- <div class="col-md-1 col-12">
-                <div class="form-group margin-nol">
-                    <label for="qtyProd" class="d-block d-md-none">QTY Fresh</label>
-                    <input type="text" class="form-control numeral-mask-satuan text-right" id="qtyProd" name="qtyProd[]" maxlength="9" disabled/>
-                </div>
-            </div>
-            <div class="col-md-1 col-12">
-                <div class="form-group margin-nol">
-                    <label for="qtyRepaint" class="d-block d-md-none">QTY Repaint</label>
-                    <input type="text" class="form-control numeral-mask-satuan text-right" id = "qtyRepaint" name="qtyRepaint[]" maxlength="9" disabled/>
-                </div>
-            </div>
-            <div class="col-md-1 col-12">
-                <div class="form-group margin-nol">
-                    <label for="waktu" class="d-block d-md-none">Jam Load</label>
-                    <input type="text" class="form-control" id="waktu" name="waktu[]" disabled>
-                </div>
-            </div>
-            <div class="col-md-1 col-12" style="max-width: 5%;">
-                <div class="form-group margin-nol">
-                    <label for="tag" class="d-block d-md-none">Tag</label>
-                    <input type="text" class="form-control" id="tag" name="tag[]" disabled>
-                </div>
-            </div> --}}
             <input type="hidden" class="form-control" id="tagAsli" name="tagAsli[]" disabled>
         </div>
     </div>
 </div>
-{{-- \.table row --}} 
-
 <script type="text/javascript">
     let currentDate = todayDate('dd-mm-yyyy');
     const wosNumber=$('#wosNumber');
@@ -157,7 +135,7 @@
     const oEdit = $('#oEdit');
 
     let cloneCountEdit=0;
-    function add_new_row(noSo,noArticle,noArticleId,noArticleRm,qtySo,qtySoUom,qtyProd,qtyRepaint,waktu,tag,tagAsli) {
+    function add_new_row(noSo,noArticle,noArticleId,noArticleRm,qtySo,qtySoUom,qtyProd,qtyRepaint,waktu,tag,tagAsli,tone) {
         let waktuAwal = $('#wosTime').val()+":00";
         $("#article_row").append($("#new_row").clone().html());
         cloneCountEdit++;
@@ -177,6 +155,7 @@
         $("#new_row"+ cloneCountEdit).find('#tagAsli').attr('id', 'tagAsli'+ cloneCountEdit);
         $("#new_row"+ cloneCountEdit).find('#waktuAct').attr('id', 'waktuAct'+ cloneCountEdit);
         $("#new_row"+ cloneCountEdit).find('#tagAct').attr('id', 'tagAct'+ cloneCountEdit);
+        $("#new_row"+ cloneCountEdit).find('#tone').attr('id', 'tone'+ cloneCountEdit);
         $('#urutan'+ cloneCountEdit).val(cloneCountEdit);
         $('#qtyOrder'+ cloneCountEdit).val(qtySo);
         $('#qtyProd'+ cloneCountEdit).val(qtyProd);
@@ -194,6 +173,7 @@
         $('#articleName'+ cloneCountEdit).val(noArticle);
         $('#articleId'+ cloneCountEdit).val(noArticleId);
         $('#salesOrder'+ cloneCountEdit).val(noSo);
+        $('#tone'+ cloneCountEdit).val(tone);
         $('#remove_button').tooltip();
         tombolPanah('qtyProdAct');
         tombolPanah('qtyRepaintAct');
@@ -203,7 +183,7 @@
         sumData();
     };
 
-    function add_new_row_edit(noSo,noArticle,noArticleId,noArticleRm,qtySo,qtySoUom,qtyProd,qtyRepaint,waktu,tag,tagAsli) {
+    function add_new_row_edit(noSo,noArticle,noArticleId,noArticleRm,qtySo,qtySoUom,qtyProd,qtyRepaint,waktu,tag,tagAsli,tone) {
         let waktuAwal = $('#wosTime').val()+":00";
         $("#article_row").append($("#new_row").clone().html());
         cloneCountEdit++;
@@ -223,6 +203,7 @@
         $("#new_row"+ cloneCountEdit).find('#tagAsli').attr('id', 'tagAsli'+ cloneCountEdit);
         $("#new_row"+ cloneCountEdit).find('#waktuAct').attr('id', 'waktuAct'+ cloneCountEdit);
         $("#new_row"+ cloneCountEdit).find('#tagAct').attr('id', 'tagAct'+ cloneCountEdit);
+        $("#new_row"+ cloneCountEdit).find('#tone').attr('id', 'tone'+ cloneCountEdit);
         $('#urutan'+ cloneCountEdit).val(cloneCountEdit);
         $('#qtyOrder'+ cloneCountEdit).val(qtySo);
         $('#qtyProd'+ cloneCountEdit).val(qtyProd);
@@ -234,6 +215,7 @@
         $('#qtyRepaintAct'+ cloneCountEdit).val(qtyRepaint);
         $('#tagAct'+ cloneCountEdit).val(nilaiTag);
         $('#tagAct'+ cloneCountEdit).attr('disabled','disabled');
+        $('#tone'+ cloneCountEdit).val(tone);
 
         if(noSo =='other'){
             $('#qtyRepaintAct'+ cloneCountEdit).attr('disabled','disabled');
@@ -313,6 +295,7 @@
         let objTagAsli = $('#article_row input[name="tagAsli[]"]');
         let objUrutan = $('#article_row input[name="urutan[]"]');
         let objWaktu = $('#article_row input[name="waktu[]"]');
+        let objTone = $("#article_row select[name='tone[]']");
         
         objArticle.map(function(i) {
 		    let $this=$(this);
@@ -327,6 +310,7 @@
                 let tag =objTag.eq(i).val();
                 let tagAsli = objTagAsli.eq(i).val();
                 let waktu = objWaktu.eq(i).val();
+                let tone = objTone.eq(i).val();
 
                 let obj = articles.find(obj => obj.urutan == urutan);
                 
@@ -347,7 +331,8 @@
                             "tag":tag,
                             "tag_asli":tagAsli,
                             "waktu":waktu,
-                            "status": articleRm == 'none'?'0':'1'
+                            "status": articleRm == 'none'?'0':'1',
+                            "tone":tone
                         });
                     }
                 }
@@ -359,7 +344,7 @@
             $('#article_row').find('div').remove();
             cloneCountEdit=0;
             articles.map(function(i) {
-                add_new_row_edit(i.so_code,i.article_code,i.article_rm,i.qty_so,i.uom,i.qty_prod,i.qty_repaint,i.waktu,i.tag,i.tag_asli);
+                add_new_row_edit(i.so_code,i.article_code,i.article_rm,i.qty_so,i.uom,i.qty_prod,i.qty_repaint,i.waktu,i.tag,i.tag_asli,i.tone);
             })
         }
     });
