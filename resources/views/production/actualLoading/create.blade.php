@@ -39,6 +39,7 @@
                                                 data-working-hour="{{ $val->working_hour }}"
                                                 data-efficiency="{{ $val->efficiency }}"
                                                 data-note="{{ $val->note }}"
+                                                data-spray-booth="{{ $val->spray_booth }}"
                                                 >{{$val->wo_code}}</option>
                                         @endforeach
                                     </select>
@@ -68,6 +69,20 @@
                                 <div class="form-group col-md-2">
                                     <label for="efficiency">Efficiency*</label>
                                     <input type="text" id="efficiency" name="efficiency" value="95" class="form-control numeral-mask-satuan text-right" maxlength="3" required />
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label for="sprayBooth">Spray booth</label>
+                                        <select class="select2 form-control" id="sprayBooth" name="sprayBooth" required disabled>
+                                            <option value=""></option>
+                                            <option value="sb1">Spray Booth 1</option>
+                                            <option value="sb2">Spray Booth 2</option>
+                                            <option value="sb3">Spray Booth 3</option>
+                                            <option value="sb4">Spray Booth 4</option>
+                                        </select>
+                                    </div>
                                 </div>
                             </div>
                             <div class="row">
@@ -101,6 +116,7 @@
                     <hr>
                     <div class="form-row mt-75">
                         <div class="col-md-12">
+                            <a href="{{ route('production.actualLoading.index') }}" class="btn btn-light">Back</a>
                             <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave" >Save</button>
                         </div>
                     </div>
@@ -155,7 +171,6 @@
 @section('scripts')
 @include('production.actualLoading.addArticle')
 <script type="text/javascript">
-
     const dWosNumber=$('#wosNumber');
     const dWosDate=$('#wosDate');
     const dShift=$('#shift');
@@ -164,6 +179,8 @@
     const dWorkingHour=$('#workingHour');
     const dEfficiency=$('#efficiency');
     const dNote=$('#note');
+    
+
     $(document).ready(function(){           
         validateFormToast("frmAdd");
     });   
@@ -177,6 +194,7 @@
         dWorkingHour.val($(this).find(":selected").data("working-hour"));
         dEfficiency.val($(this).find(":selected").data("efficiency"));
         dNote.val($(this).find(":selected").data("note"));
+        sprayBooth.val($(this).find(":selected").data("spray-booth")).trigger('change');
         sumData();
 
         $.ajax({
@@ -194,10 +212,10 @@
                         let articleRm = result[i].article_rm_code;
                         let qtySo = result[i].so_qty; //belum ada
                         let uom = 'PCS';
-                        let planQtyFresh = result[i].plan_qty_fresh;
-                        let planQtyRepaint = result[i].plan_qty_repaint;
+                        let planQtyFresh = result[i].plan_qty_fresh || 0;
+                        let planQtyRepaint = result[i].plan_qty_repaint || 0;
                         let planTime = result[i].plan_time;
-                        let planTag = result[i].plan_tag;
+                        let planTag = result[i].plan_tag || 0;
                         let originTag = result[i].origin_tag;
                         let tone = result[i].tone;
                         add_new_row(soCode,articleCode,articleId,articleRm,qtySo,uom,planQtyFresh,planQtyRepaint,planTime,planTag,originTag,tone);

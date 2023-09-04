@@ -58,6 +58,19 @@
                                 </div>
                             </div>
                             <div class="row">
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label for="sprayBooth">Spray booth</label>
+                                        <select class="select2 form-control" id="sprayBooth" name="sprayBooth" required disabled>
+                                            <option value=""></option>
+                                            @foreach($arrSprayBooth as $key=>$val)
+                                                <option value="{{ $key }}" {{ $header->spray_booth == $key ? 'selected' : '' }}>{{ $val }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
                                 <div class="form-group col-md-8">
                                     <label class="form-label" for="note">Notes</label>
                                     <textarea type="text" id="note" name="note" class="form-control" rows="1" disabled>{{ $header->note }}</textarea>

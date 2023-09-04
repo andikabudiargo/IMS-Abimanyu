@@ -265,6 +265,7 @@ class WorkingOrderSheetController extends Controller
         $data['approveValidate'] = Approval::approveValidate($this->moduleCode,$woCode,$username);
         
         $data['arrTone'] = ['t1'=>'Tone 1','t2'=>'Tone 2','t3'=>'Tone 3','t4'=>'Tone 4'];
+        $data['arrSprayBooth'] = ['sb1'=>'Spray Booth 1','sb2'=>'Spray Booth 2','sb3'=>'Spray Booth 3','sb4'=>'Spray Booth 4'];
         
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATED','3'=>'APPROVED','4'=>'','5'=>'',6=>'',7=>'REVISED'];
         $statusWo = ['NEW','VALIDATED','APPROVED','','','','REVISED'];
@@ -871,7 +872,7 @@ class WorkingOrderSheetController extends Controller
 
         $bomCode = db::table('bom_hdr')->where('article_code',$articleCode)
         ->where('status','3')
-        ->value('bom_code');
+        ->value('bom_code');       
 
         $tack= DB::table('bom_spray_booth')
         ->where('bom_code',$bomCode)

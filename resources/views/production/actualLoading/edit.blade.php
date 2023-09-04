@@ -71,6 +71,19 @@
                                 </div>
                             </div>
                             <div class="row">
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label for="sprayBooth">Spray booth</label>
+                                        <select class="select2 form-control" id="sprayBooth" name="sprayBooth" required disabled>
+                                            <option value=""></option>
+                                            @foreach($arrSprayBooth as $key=>$val)
+                                                <option value="{{ $key }}" {{ $header->spray_booth == $key ? 'selected' : '' }}>{{ $val }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
                                 <div class="form-group col-md-8">
                                     <label class="form-label" for="note">Notes</label>
                                     <textarea type="text" id="note" name="note" class="form-control" rows="1" >{{ $header->note }}</textarea>
@@ -242,7 +255,8 @@
             planTime = detail[i].act_time;
             planTag = detail[i].act_tag;
             originTag = detail[i].origin_tag;
-            add_new_row_edit(soCode,articleCode,articleId,articleRm,qtySo,uom,planQtyFresh,planQtyRepaint,planTime,planTag,originTag);
+            tone = detail[i].tone;
+            add_new_row_edit(soCode,articleCode,articleId,articleRm,qtySo,uom,planQtyFresh,planQtyRepaint,planTime,planTag,originTag,tone);
         }
     });   
 

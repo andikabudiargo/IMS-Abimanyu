@@ -69,7 +69,7 @@
                     <input type="text" class="form-control" id="salesOrder" name="salesOrder[]" disabled/>
                 </div>
             </div>
-            <div class="col-md-7 col-12">
+            <div class="col-md-6 col-12">
                 <div class="form-group margin-nol">
                     <label for="articleName" class="d-block d-md-none">Article</label>
                     <input type="text" class="form-control" id="articleName" name="articleName[]" disabled />
@@ -80,7 +80,7 @@
             <div class="col-md-1 col-12">
                 <div class="form-group margin-nol">
                     <label for="tone" class="d-block d-md-none">Tone</label>
-                    <select class="form-control" id="tone" name="tone[]">
+                    <select class="form-control" id="tone" name="tone[]" disabled>
                         <option value=""></option>
                         <option value="t1">Tone 1</option>
                         <option value="t2">Tone 2</option>
@@ -375,8 +375,7 @@
                                 // "status": articleRm == 'none'?'0':'1'
                             });
                         }
-
-                        console.log(articles);
+                        
                     }
                 }
             });

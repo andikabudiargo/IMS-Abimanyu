@@ -161,6 +161,7 @@ class ActualLoadingController extends Controller
         $prdDate = date("Y-m-d");
         $status = '1';
         $oEdit = true;
+        $sprayBooth = $request->sprayBooth;
 
         $messages = [
             'required' => 'The field is required.',
@@ -210,7 +211,8 @@ class ActualLoadingController extends Controller
                 created_by,
                 updated_by,
                 created_at,
-                updated_at
+                updated_at,
+                spray_booth
             )
             select 
                 '$prdNumber',
@@ -228,7 +230,8 @@ class ActualLoadingController extends Controller
                 '$username',
                 '$username',
                 '".date('Y-m-d H:i:s')."',
-                '".date('Y-m-d H:i:s')."'
+                '".date('Y-m-d H:i:s')."',
+                spray_booth
             from wo_hdr where wo_code = '$wosNumber'";
 
             $sqlDet="INSERT into production_det
@@ -251,7 +254,8 @@ class ActualLoadingController extends Controller
                 created_by,
                 updated_by,
                 created_at,
-                updated_at
+                updated_at,
+                tone
             )
             select '$prdNumber',
                 so_code,
@@ -271,7 +275,8 @@ class ActualLoadingController extends Controller
                 '$username',
                 '$username',
                 '".date('Y-m-d H:i:s')."',
-                '".date('Y-m-d H:i:s')."' 
+                '".date('Y-m-d H:i:s')."' ,
+                tone
             from wo_det where wo_code = '$wosNumber'";
 
             DB::beginTransaction();
@@ -341,7 +346,7 @@ class ActualLoadingController extends Controller
             ->where('production_det.prod_code',$prdNumber)
             ->where('production_hdr.status','3')
             ->where('production_det.so_code','<>','other')
-            ->where('tone',db::raw("(select max(tone) from bom_det where article_code = wo_det.article_code)"))
+            ->where('tone',db::raw("(select max(tone) from bom_det where bom_code in (select bom_code from bom_hdr where article_code = production_det.article_code))"))
             ->select('production_det.*'
             ,'article.article_type'
             ,'article.uom as uom_article'
@@ -611,6 +616,8 @@ class ActualLoadingController extends Controller
         $data['approveValidate'] = Approval::approveValidate($this->moduleCode,$prdNumber,$username);
 
         $data['oEdit']=true;
+
+        $data['arrSprayBooth'] = ['sb1'=>'Spray Booth 1','sb2'=>'Spray Booth 2','sb3'=>'Spray Booth 3','sb4'=>'Spray Booth 4'];
 
          // $data['status'] = ['1'=>'NEW','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','6'=>'CLOSED'];
         $statusPrd = ['NEW','VALIDATED','APPROVED','POSTED','','CANCELED'];

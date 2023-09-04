@@ -78,7 +78,7 @@
             <div class="col-md-1 col-12">
                 <div class="form-group margin-nol">
                     <label for="tone" class="d-block d-md-none">Tone</label>
-                    <select class="form-control" id="tone" name="tone[]">
+                    <select class="form-control" id="tone" name="tone[]" disabled>
                         <option value=""></option>
                         <option value="t1">Tone 1</option>
                         <option value="t2">Tone 2</option>
@@ -132,6 +132,7 @@
     const sumAvailableTime = $('#sumAvailableTime');
     const sumTimeRequired = $('#sumTimeRequired');
     const sumRemainTime = $('#sumRemainTime');
+    const sprayBooth = $('#sprayBooth');
     const oEdit = $('#oEdit');
 
     let cloneCountEdit=0;
@@ -174,12 +175,13 @@
         $('#articleId'+ cloneCountEdit).val(noArticleId);
         $('#salesOrder'+ cloneCountEdit).val(noSo);
         $('#tone'+ cloneCountEdit).val(tone);
+        $('#tone'+ cloneCountEdit).select2();
         $('#remove_button').tooltip();
-        tombolPanah('qtyProdAct');
-        tombolPanah('qtyRepaintAct');
+        // tombolPanah('qtyProdAct');
+        // tombolPanah('qtyRepaintAct');
         mask_thousand_satuan();
         hitungWaktu(); 
-        updatQty();
+        // updatQty();
         sumData();
     };
 
@@ -225,12 +227,13 @@
         $('#articleName'+ cloneCountEdit).val(noArticle);
         $('#articleId'+ cloneCountEdit).val(noArticleId);
         $('#salesOrder'+ cloneCountEdit).val(noSo);
+        $('#tone'+ cloneCountEdit).select2();
 
         tombolPanah('qtyProdAct');
         tombolPanah('qtyRepaintAct');
         mask_thousand_satuan();
         hitungWaktu(); 
-        updatQty();
+        // updatQty();
         sumData();
     };
 
@@ -386,42 +389,95 @@
         sumRemainTime.text(parseInt(sumTag)-timeReq);
     }
 
-    updatQty=()=>{
+    $(document).on('keyup', "#article_row input[name='qtyProdAct[]']",function () {  
+        // do something here
+        let objIndex = $("#article_row input[name='qtyProdAct[]']").index(this);
         let objQtyProd = $('#article_row input[name="qtyProdAct[]"]');
+        let objTone = $('#article_row select[name="tone[]"]');
         let objQtyRepaint = $('#article_row input[name="qtyRepaintAct[]"]');
         let objTag = $('#article_row input[name="tagAct[]"]');
         let objTagAsli = $('#article_row input[name="tagAsli[]"]');
-        let objArticle = $('#article_row select[name="articleId[]"]');
-        objQtyProd.keyup(function(e){        
-            let objIndex = objQtyProd.index(this);
-            let qtyProd = objQtyProd.eq(objIndex).val().replace(/,/gi, '') || 0;
-            let qtyRepaint = objQtyRepaint.eq(objIndex).val().replace(/,/gi, '') || 0;
-            let qtyTag = objTagAsli.eq(objIndex).val().replace(/,/gi, '') || 0;
+        let objArticle = $('#article_row input[name="articleId[]"]');
 
-            if (qtyProd || qtyRepaint){
-                objTag.eq(objIndex).val((parseInt(qtyProd)+parseInt(qtyRepaint))*parseFloat(qtyTag));
-            }else{
-                objTag.eq(objIndex).val(qtyTag);
-            }
-            sumData();
-            hitungWaktu();
-		});
+        let qtyProd = objQtyProd.eq(objIndex).val().replace(/,/gi, '') || 0;
+        let qtyRepaint = objQtyRepaint.eq(objIndex).val().replace(/,/gi, '') || 0;
+        // let qtyTag = objTagAsli.eq(objIndex).val().replace(/,/gi, '') || 0;
 
-        objQtyRepaint.keyup(function(e){        
-            let objIndex = objQtyRepaint.index(this);
-            let qtyProd = objQtyProd.eq(objIndex).val().replace(/,/gi, '') || 0;
-            let qtyRepaint = objQtyRepaint.eq(objIndex).val().replace(/,/gi, '') || 0;
-            let objTagAsli = $('#article_row input[name="tagAsli[]"]');
-            let qtyTag = objTagAsli.eq(objIndex).val().replace(/,/gi, '') || 0;
-            if (qtyProd || qtyRepaint){
-                objTag.eq(objIndex).val((parseInt(qtyProd)+parseInt(qtyRepaint))*parseFloat(qtyTag));
-            }else{
-                objTag.eq(objIndex).val(qtyTag);
-            }
-            sumData();
-            hitungWaktu();
-		});
-    }
+        let tone = objTone.eq(objIndex).val();
+        let articleCode = objArticle.eq(objIndex).val();
+        let aSprayBooth = $('#sprayBooth').val();
+
+        let qtyTag = getTack(articleCode,aSprayBooth,tone) || 0;
+        
+        if (qtyProd || qtyRepaint){
+            objTag.eq(objIndex).val((parseInt(qtyProd)+parseInt(qtyRepaint))*parseFloat(qtyTag));
+        }else{
+            objTag.eq(objIndex).val(qtyTag);
+        }
+        sumData();
+        hitungWaktu();
+        
+    });
+
+    $(document).on('keyup', "#article_row input[name='qtyRepaintAct[]']",function () {  
+        // do something here
+        let objIndex = $("#article_row input[name='qtyRepaintAct[]']").index(this);
+        let objQtyProd = $('#article_row input[name="qtyProdAct[]"]');
+        let objTone = $('#article_row select[name="tone[]"]');
+        let objQtyRepaint = $('#article_row input[name="qtyRepaintAct[]"]');
+        let objTag = $('#article_row input[name="tagAct[]"]');
+        let objTagAsli = $('#article_row input[name="tagAsli[]"]');
+        let objArticle = $('#article_row input[name="articleId[]"]');
+
+        let qtyProd = objQtyProd.eq(objIndex).val().replace(/,/gi, '') || 0;
+        let qtyRepaint = objQtyRepaint.eq(objIndex).val().replace(/,/gi, '') || 0;
+        // let qtyTag = objTagAsli.eq(objIndex).val().replace(/,/gi, '') || 0;
+
+        let tone = objTone.eq(objIndex).val();
+        let articleCode = objArticle.eq(objIndex).val();
+        let aSprayBooth = $('#sprayBooth').val();
+
+        let qtyTag = getTack(articleCode,aSprayBooth,tone) || 0;
+        
+        if (qtyProd || qtyRepaint){
+            objTag.eq(objIndex).val((parseInt(qtyProd)+parseInt(qtyRepaint))*parseFloat(qtyTag));
+        }else{
+            objTag.eq(objIndex).val(qtyTag);
+        }
+        sumData();
+        hitungWaktu();
+        
+    });
+
+    $(document).on('change', "#article_row select[name='tone[]']",function () {  
+        // do something here
+        let objIndex = $("#article_row select[name='tone[]']").index(this);
+        let objQtyProd = $('#article_row input[name="qtyProdAct[]"]');
+        let objTone = $('#article_row select[name="tone[]"]');
+        let objQtyRepaint = $('#article_row input[name="qtyRepaintAct[]"]');
+        let objTag = $('#article_row input[name="tagAct[]"]');
+        let objTagAsli = $('#article_row input[name="tagAsli[]"]');
+        let objArticle = $('#article_row input[name="articleId[]"]');
+
+        let qtyProd = objQtyProd.eq(objIndex).val().replace(/,/gi, '') || 0;
+        let qtyRepaint = objQtyRepaint.eq(objIndex).val().replace(/,/gi, '') || 0;
+        // let qtyTag = objTagAsli.eq(objIndex).val().replace(/,/gi, '') || 0;
+
+        let tone = objTone.eq(objIndex).val();
+        let articleCode = objArticle.eq(objIndex).val();
+        let aSprayBooth = $('#sprayBooth').val();
+
+        let qtyTag = getTack(articleCode,aSprayBooth,tone) || 0;
+        
+        if (qtyProd || qtyRepaint){
+            objTag.eq(objIndex).val((parseInt(qtyProd)+parseInt(qtyRepaint))*parseFloat(qtyTag));
+        }else{
+            objTag.eq(objIndex).val(0);
+        }
+        sumData();
+        hitungWaktu();
+        
+    });
 
     cmdSave.click(function(){
         if (!$("#frmAdd")[0].checkValidity()){
@@ -440,11 +496,13 @@
             let objTagAsli = $('#article_row input[name="tagAsli[]"]');
             let objUrutan = $('#article_row input[name="urutan[]"]');
             let objWaktu = $('#article_row input[name="waktuAct[]"]');
+            let objTone = $('#article_row select[name="tone[]"]');
             let sWosNumber = wosNumber.val();
             let sWosTime = wosTime.val();
             let sWorkHour = workHour.val();
             let sEfficiency = efficiency.val();
             let sNote = note.val();
+            let sSprayBooth = sprayBooth.val();
 
             objArticle.map(function(i) {  
                 let $this=$(this);
@@ -456,9 +514,10 @@
                     let soCode = objSoCode.eq(i).val();
                     let qtyProd = objQtyProd.eq(i).val().replace(/,/gi, '') || 0;
                     let qtyRepaint = objQtyRepaint.eq(i).val().replace(/,/gi, '') || 0;
-                    let tag = objTag.eq(i).val();
+                    let tag = objTag.eq(i).val() || 0;
                     let tagAsli = objTagAsli.eq(i).val();
                     let waktu = objWaktu.eq(i).val();
+                    let tone = objTone.eq(i).val();
 
                     // cek urutan harus sesuai jangan ada urutan yang double
                     let obj = articles.find(obj => obj.urutan == urutan);
@@ -479,7 +538,8 @@
                                 "act_tag":tag,
                                 "tag_asli":tagAsli,
                                 "act_waktu":waktu,
-                                "status": articleRm == 'none'?'0':'1'
+                                "status": articleRm == 'none'?'0':'1',
+                                "tone":tone
                             });
                         }
                     }
@@ -505,7 +565,8 @@
                         wosTime:sWosTime,
                         workHour:sWorkHour,
                         efficiency:sEfficiency,
-                        note:sNote
+                        note:sNote,
+                        sprayBooth:sSprayBooth
                     },
                     dataType: "json",
                     success: function(data) {
@@ -554,6 +615,52 @@
                 console.log(error);
             }
         });
+    }
+
+    function getTack(articleCode,sprayBooth,tone,objIndex) {
+        let hasil = false;
+        $.ajax({
+            url:"{{ route('workingOrderSheet.get.tack') }}",
+            method:"GET",
+            data:{
+                articleCode:articleCode,
+                sprayBooth:sprayBooth,
+                tone:tone
+            },
+            async: false,
+            success:function(result){
+                hasil = result;
+            }
+        })
+
+        return hasil;
+    }
+
+    function getTackHitung(articleCode,sprayBooth,tone,objIndex) {
+        $.ajax({
+            url:"{{ route('workingOrderSheet.get.tack') }}",
+            method:"GET",
+            data:{
+                articleCode:articleCode,
+                sprayBooth:sprayBooth,
+                tone:tone
+            },
+            success:function(result){
+                let objTag = $('input[name="tag[]"]');
+                let objTagAsli = $('input[name="tagAsli[]"]');
+                let objQtyProd = $('#article_row input[name="qtyProd[]"]');
+                let objQtyRepaint = $('#article_row input[name="qtyRepaint[]"]');
+                let qtyProd = objQtyProd.eq(objIndex).val().replace(/,/gi, '') || 0;
+                let qtyRepaint = objQtyRepaint.eq(objIndex).val().replace(/,/gi, '') || 0;
+                let qtyTag = result || 0;
+
+                if (qtyProd || qtyRepaint){
+                    objTag.eq(objIndex).val((parseInt(qtyProd)+parseInt(qtyRepaint))*parseFloat(qtyTag));
+                }else{
+                    objTag.eq(objIndex).val(qtyTag);
+                }
+            }
+        })
     }
 
 </script>

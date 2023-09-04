@@ -66,7 +66,7 @@
                                 <div class="col-md-4">
                                     <div class="form-group">
                                         <label for="sprayBooth">Spray booth</label>
-                                        <select class="select2 form-control" id="sprayBooth" name="sprayBooth[]" required>
+                                        <select class="select2 form-control" id="sprayBooth" name="sprayBooth" required>
                                             <option value=""></option>
                                             <option value="sb1">Spray Booth 1</option>
                                             <option value="sb2">Spray Booth 2</option>

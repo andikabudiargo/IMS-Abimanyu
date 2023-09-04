@@ -151,6 +151,7 @@ class ActualFinishGoodsController extends Controller
             ->where('production_det.prod_code',$prdNumber)
             ->where('production_hdr.status','8')
             ->where('production_det.so_code','<>','other')
+            ->where('tone',db::raw("(select max(tone) from bom_det where bom_code in (select bom_code from bom_hdr where article_code = production_det.article_code))"))
             ->select('production_det.*'
             ,'article.article_type'
             ,'article.uom as uom_article'
@@ -346,6 +347,8 @@ class ActualFinishGoodsController extends Controller
         $data['approveValidate'] = Approval::approveValidate($this->moduleCode,$prdNumber,$username);
 
         $data['oEdit']=true;
+
+        $data['arrSprayBooth'] = ['sb1'=>'Spray Booth 1','sb2'=>'Spray Booth 2','sb3'=>'Spray Booth 3','sb4'=>'Spray Booth 4'];
 
         
         // $status = ['NEW','VALIDATED','APPROVED ACT LOADING','POSTED WO','CANCELED','CLOSED','REVISED','INPUT FG','POSTED FG'];
