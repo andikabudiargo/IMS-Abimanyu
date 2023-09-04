@@ -310,10 +310,12 @@ class BomController extends Controller
         ->whereIn('bom_det.bom_code', function($query) use ($bomNumber){
             $query->select('bom_code')->from('bom_hdr')->where('origin_bom_code',$bomNumber);
         })
+        ->leftJoin('bom_pos','bom_pos.pos_code','bom_det.pos')
         ->leftJoin('article','article.article_code','=','bom_det.article_code')
         ->leftJoin('uom','uom.code','bom_det.uom')
         ->leftJoin('article_types','article_types.code','=','bom_det.article_type')
         ->select('bom_det.*'
+        ,'bom_pos.pos_name'
         ,'article.uom as original_uom'
         ,'uom.uom_group as uom_group'
         ,'article_types.name as type_name'
@@ -358,7 +360,6 @@ class BomController extends Controller
 
         $data['arrSprayBooth'] = ['sb1'=>'Spray Booth 1','sb1'=>'Spray Booth 1','sb2'=>'Spray Booth 2','sb3'=>'Spray Booth 3','sb4'=>'Spray Booth 4'];
         $data['arrTone'] = ['t1'=>'Tone 1','t2'=>'Tone 2','t3'=>'Tone 3','t4'=>'Tone 4'];
-        $data['arrPos'] = ['pr'=>'Preparation','pc'=>'Primer Coat','bc'=>'Base Coat','mbc'=>'Mica Base Coat','cc'=>'Clear Coat'];
 
         $data['posts'] = DB::table('bom_pos')
         ->orderBy('pos_name')

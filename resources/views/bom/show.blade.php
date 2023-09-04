@@ -165,7 +165,7 @@
                                                     <tr>
                                                         <td ></td>
                                                         <td >{{ $item->tone ? $arrTone[$item->tone] :'' }}</td>
-                                                        <td >{{ $item->pos ? $arrPos[$item->pos] :'' }}</td>
+                                                        <td >{{ $item->pos_name }}</td>
                                                         <td >{{ $item->article }}</td>
                                                         <td >{{ $item->original_uom }}</td>
                                                         <td class="text-right">{{ number_format($item->qty,$decimalPlaces) }}</td>
