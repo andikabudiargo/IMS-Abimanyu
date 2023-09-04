@@ -114,6 +114,7 @@
     </div>
   </div>
 </section>
+@include('partials.delete-modal')
 @endsection
 {{-- <link rel="stylesheet" type="text/css" href="{{ asset('app-assets/css/pages/dashboard-ecommerce.css') }}"> --}}
 @section('styles')
@@ -163,6 +164,13 @@
       excelFileName:'bom'
     });
   }
+
+  let href;
+  $(document).on('click', '#revisionReasonButton', function(event) {
+      event.preventDefault();
+      href = $(this).data('href');
+      $('#modalReasonRevision').attr("action", href);
+  });
 
   $.ajaxSetup({
     headers: {

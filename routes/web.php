@@ -454,7 +454,7 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('boms/delete',['as'=>'bom.destroy','uses'=>'BomController@destroy']);
 	Route::get('boms/code/create',['as'=>'bom.code.create','uses'=>'BomController@articleCodeCreate']);
 	Route::get('boms/print',['as'=>'bom.print','uses'=>'BomController@print']);
-	Route::get('boms/revision',['as'=>'bom.revision','uses'=>'BomController@revision','middleware' => ['permission:bom-revision']]);
+	Route::post('boms/revision',['as'=>'bom.revision','uses'=>'BomController@revision','middleware' => ['permission:bom-revision']]);
 
 	Route::get('bom/report',['as'=>'bom.report.index','uses'=>'BomReportController@index','middleware' => ['permission:bom-index']]);
 	Route::post('bom/report/list',['as'=>'bom.report.list','uses'=>'BomReportController@list']);

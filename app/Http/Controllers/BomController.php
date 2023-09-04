@@ -786,10 +786,21 @@ class BomController extends Controller
                                 </a>';
             if (($data->status == '2') || ($data->status == '3') ){
                 if (Auth::user()->can('bom-revision')) {
-                    $buttons .= '<a href="'. route('bom.revision', ['id'=>Crypt::encryptString($data->id),'nR'=>$data->num_revision]) .'" class="dropdown-item">
-                                    <i data-feather="copy"></i>
-                                    <span>'. __("Revision") .'</span>
-                                </a>';
+
+                    $buttons .=     "<a href='javascript:;'
+                                        id='revisionReasonButton'
+                                        class='dropdown-item'
+                                        data-toggle='modal'
+                                        data-target='#reasonModalRevision'
+                                        data-href='". route("bom.revision", ["id"=>Crypt::encryptString($data->id),"nR"=>$data->num_revision]) ."'>
+                                        <i data-feather='corner-down-left' class='feather-14-red'></i>
+                                        <span>". __('Revision') ."</span>
+                                    </a>";
+
+                    // $buttons .= '<a href="'. route('bom.revision', ['id'=>Crypt::encryptString($data->id),'nR'=>$data->num_revision]) .'" class="dropdown-item">
+                    //                 <i data-feather="copy"></i>
+                    //                 <span>'. __("Revision") .'</span>
+                    //             </a>';
                 }
             }
                 
@@ -1042,6 +1053,10 @@ class BomController extends Controller
         $bomNew = $bomOrigin.'-R'.$numRevision;
         $checkNewBom=DB::table('bom_hdr')->where('bom_code',$bomNew)->count();
 
+        $reasonRequest = $request->reason;
+
+        $reason = "(Revision by $username, $reasonRequest )";
+
         if ($checkNewBom > 0){
             $bomNew = $bomOrigin.'-R'.($numRevision+1);
         }
@@ -1070,7 +1085,8 @@ class BomController extends Controller
             revised_at,
             part_no,
             model,
-            article_code_rm
+            article_code_rm,
+            revision_reason
         )
         select 
             '$bomNew',
@@ -1095,7 +1111,8 @@ class BomController extends Controller
             '".date('Y-m-d H:i:s')."',
             part_no,
             model,
-            article_code_rm
+            article_code_rm,
+            '$reasonRequest'
         from bom_hdr where bom_code = '$bomOrigin'";
 
         $sqlDet="INSERT into bom_det

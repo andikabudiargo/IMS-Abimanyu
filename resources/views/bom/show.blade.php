@@ -106,6 +106,12 @@
                                                 <textarea type="text" id="note" name="note" class="form-control" rows="1" disabled>{{ old('note',$header2->note) }}</textarea>
                                             </div>
                                         </div>
+                                        <div class="form-row">
+                                            <div class="form-group col-md-8">
+                                                <label class="form-label" for="reason">Revision reason</label>
+                                                <input type="text" id="reason" name="reason" value="{{ old('reason',$header2->revision_reason) }}" class="form-control" disabled/>
+                                            </div>
+                                        </div>
                                     </form>
                                     <hr>
                                     <h4 class="card-title">Spray Booth</h4>
