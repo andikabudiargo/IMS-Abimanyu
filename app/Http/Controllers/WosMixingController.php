@@ -929,6 +929,7 @@ class WosMixingController extends Controller
         $shift=$mixHdr->wo_shift;
     
         $data['details']=DB::table('wos_mixing_det')
+        ->leftJoin('article_stock','article_stock.article_code','wos_mixing_det.article_code')
         ->leftJoin('article','article.article_code','wos_mixing_det.article_code')
         ->where('mix_number',$mixNumber)
         ->get();
