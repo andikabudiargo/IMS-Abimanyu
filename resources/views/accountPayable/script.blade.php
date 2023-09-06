@@ -120,12 +120,12 @@
     });
 
     hitungTotal = () => {
-        let ba = parseInt($('#basisAmount').val().replace(/,/gi, '')) || 0;
-        let vat = parseInt($('#totalPPN').val().replace(/,/gi, '')) || 0;
-        let pph23 = parseFloat($('#totalPPH23').val().replace(/,/gi, '')) || 0;
-        let pph21 = parseFloat($('#totalPPH21').val().replace(/,/gi, '')) || 0;
-        let pph42 = parseFloat($('#totalPPH42').val().replace(/,/gi, '')) || 0;
-        let od = parseInt($('#totalDiscount').val().replace(/,/gi, '')) || 0;
+        let ba = parseFloat($('#basisAmount').val().replace(/[^0-9.]/g, '')) || 0;
+        let vat = parseFloat($('#totalPPN').val().replace(/[^0-9.]/g, '')) || 0;
+        let pph23 = parseFloat($('#totalPPH23').val().replace(/[^0-9.]/g, '')) || 0;
+        let pph21 = parseFloat($('#totalPPH21').val().replace(/[^0-9.]/g, '')) || 0;
+        let pph42 = parseFloat($('#totalPPH42').val().replace(/[^0-9.]/g, '')) || 0;
+        let od = parseFloat($('#totalDiscount').val().replace(/[^0-9.]/g, '')) || 0;
         let total;
         
         if(vat){
@@ -133,10 +133,10 @@
         }else{
             total = ba? (ba-od)-(pph23+pph21+pph42) : '';
         }
-
-        $('#grandTotal').val(total);
-        mask_thousand_digit(2);
-        mask_thousand();
+    
+        $('#grandTotal').val(humanizeNumber(parseFloat(total).toFixed(2)));
+        // mask_thousand_digit(2);
+        // mask_thousand();
     }
 
     $("#basisAmount,#totalPPN,#totalPPH23,#totalPPH21,#totalPPH42,#totalDiscount").keyup(function(){
@@ -328,7 +328,7 @@
                     }
 
                     $('#totalPO').val(humanizeNumber(result.summaryRec[0].total_amount_po));
-                    $('#basisAmount').val(humanizeNumber(result.summaryRec[0].basis_amount));
+                    $('#basisAmount').val(humanizeNumber(parseFloat(result.summaryRec[0].basis_amount).toFixed(2)));
                     
                     if ((result.summaryRec[0].nilai_pajak>0) && (edit=='false')){
                         $("#vatCheck").prop("checked",true);
@@ -338,7 +338,7 @@
                         $("#totalPPN").removeAttr('disabled');
                         $("#totalPPN").prop('required',true);
                         $('#nilaiPPN').val(humanizeNumber(result.summaryRec[0].vat));
-                        $('#totalPPN').val(humanizeNumber(result.summaryRec[0].nilai_pajak));
+                        $('#totalPPN').val(humanizeNumber(parseFloat(result.summaryRec[0].nilai_pajak).toFixed(2)));
                     }
                                         
                     hitungTotal();

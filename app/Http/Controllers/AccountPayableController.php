@@ -241,10 +241,10 @@ class AccountPayableController extends Controller
         $edit = $request->edit;
 
         if($edit == 'true'){
-
             $data= DB::table("receiving_hdr") 
-            ->where("po_number",$poNumber)
-            ->where("status","4")
+            // ->leftJoin('purchase_order_hdr','purchase_order_hdr.po_number','receiving_hdr.po_number')
+            ->where("receiving_hdr.po_number",$poNumber)
+            ->where("receiving_hdr.status","4")
             ->whereNotIn(DB::raw("rec_number"), function($query) use ($poNumber,$apNumber) {
                 $query->select("rec_number")
                 ->from('ap_invoice_detail')
@@ -256,6 +256,11 @@ class AccountPayableController extends Controller
             })
             ->orderBy("rec_number")
             ->select("rec_number","do_date","do_number"
+            // ,db::raw("(select sum(qty*price) from purchase_order_det where po_number = purchase_order_hdr.po_number) as sub_total")
+            // ,db::raw("(select sum((qty*price)*purchase_order_hdr.discount/100) from purchase_order_det where po_number = purchase_order_hdr.po_number) as discount")
+            // ,db::raw("(select sum((qty*price)-((qty*price)*purchase_order_hdr.discount/100)) from purchase_order_det where po_number = purchase_order_hdr.po_number) as dpp")
+            // ,db::raw("(select sum(((qty*price)-((qty*price)*purchase_order_hdr.discount/100))*purchase_order_hdr.ppn/100) from purchase_order_det where po_number = purchase_order_hdr.po_number) as ppn")
+            // ,db::raw("(select sum((qty*price)-((qty*price)*purchase_order_hdr.discount/100)+(((qty*price)-((qty*price)*purchase_order_hdr.discount/100))*purchase_order_hdr.ppn/100)-(((qty*price)-((qty*price)*purchase_order_hdr.discount/100))*purchase_order_hdr.pph22/100)) from purchase_order_det where po_number = purchase_order_hdr.po_number) as total")
             ,db::raw("(select sum(qty) as sum_qty from receiving_det where rec_number=receiving_hdr.rec_number) as sum_qty"))
             ->get(); 
 
@@ -264,8 +269,9 @@ class AccountPayableController extends Controller
         }else{
 
             $data= DB::table("receiving_hdr") 
-            ->where("po_number",$poNumber)
-            ->where("status","4")
+            // ->leftJoin('purchase_order_hdr','purchase_order_hdr.po_number','receiving_hdr.po_number')
+            ->where("receiving_hdr.po_number",$poNumber)
+            ->where("receiving_hdr.status","4")
             ->whereNotIn(DB::raw("rec_number"), function($query) use ($poNumber) {
                 $query->select(DB::raw("rec_number"))
                 ->from('ap_invoice_detail');
@@ -273,6 +279,11 @@ class AccountPayableController extends Controller
             })
             ->orderBy("rec_number")
             ->select("rec_number","do_date","do_number"
+            // ,db::raw("(sum(qty*price) from purchase_order_det where po_number = purchase_order_hdr.po_number) as sub_total")
+            // ,db::raw("(select sum((qty*price)*purchase_order_hdr.discount/100) from purchase_order_det where po_number = purchase_order_hdr.po_number) as discount")
+            // ,db::raw("(select sum((qty*price)-((qty*price)*purchase_order_hdr.discount/100)) from purchase_order_det where po_number = purchase_order_hdr.po_number) as dpp")
+            // ,db::raw("(select sum(((qty*price)-((qty*price)*purchase_order_hdr.discount/100))*purchase_order_hdr.ppn/100) from purchase_order_det where po_number = purchase_order_hdr.po_number) as ppn")
+            // ,db::raw("(select sum((qty*price)-((qty*price)*purchase_order_hdr.discount/100)+(((qty*price)-((qty*price)*purchase_order_hdr.discount/100))*purchase_order_hdr.ppn/100)-(((qty*price)-((qty*price)*purchase_order_hdr.discount/100))*purchase_order_hdr.pph22/100)) from purchase_order_det where po_number = purchase_order_hdr.po_number) as total")
             ,db::raw("(select sum(qty) as sum_qty from receiving_det where rec_number=receiving_hdr.rec_number) as sum_qty"))
             ->get(); 
         }
@@ -305,6 +316,7 @@ class AccountPayableController extends Controller
                             <td>$row->rec_number</td>
                             <td>$row->do_date</td>
                             <td>$row->do_number</td>
+                            <td>$row->total</td>
                         </tr>";
             }
 
@@ -350,6 +362,7 @@ class AccountPayableController extends Controller
             $join->on('po.po_number','=','receiving_hdr.po_number')
                 ->on('po.article_code','=','receiving_det.article_code');
         })
+        // ->leftJoin('purchase_order_hdr','purchase_order_hdr.po_number','purchase_order_det.po_number')
         // ->leftJoin(DB::RAW("(select * from purchase_order_det where po_number = '$poNumber') AS po"),'po.po_number','receiving_hdr.po_number')
         ->whereIn('receiving_det.rec_number',$arrayRecNumber)
         ->where('receiving_det.qty','>',0)
@@ -358,6 +371,11 @@ class AccountPayableController extends Controller
         ,'receiving_det.uom_rec as uom'
         ,db::raw("sum(receiving_det.qty) as qty")
         ,'po.price'
+        // ,'po.ppn'
+        // ,'po.pph22'
+        // ,'purchase_order_hdr.discount'
+        // ,db::raw("sum((qty*po.price)-((qty*po.price)*purchase_order_hdr.discount/100)+(((qty*po.price)-((qty*po.price)*purchase_order_hdr.discount/100))*po.ppn/100)-(((qty*po.price)-((qty*po.price)*purchase_order_hdr.discount/100))*po.pph/100)) as total")
+        // )
         ,db::raw("round(sum(receiving_det.qty*po.price)) as total"))
         ->groupBy('article.article_alternative_code')
         ->groupBy('article.article_desc')
@@ -366,19 +384,22 @@ class AccountPayableController extends Controller
         ->get();
 
         $summaryRec =  DB::select("SELECT z.*
+        ,basis_amount1 - (basis_amount1*y.discount/100) as basis_amount
         ,ppn as vat
-        ,round(((basis_amount-discount)*$nilaiPPN/100)) as nilai_pajak
+        ,y.discount as nilai_discount
+        ,round(((basis_amount1-(basis_amount1*y.discount/100))*y.ppn/100)) as nilai_pajak
+        ,round(((basis_amount1-(basis_amount1*y.discount/100))*y.pph22/100)) as nilai_pph
         ,pkp as pkp
         ,pph22 as pph22
-        ,discount
+        ,(basis_amount1*y.discount/100) as discount
         ,(select sum(qty) as qty  from purchase_order_det where po_number = z.po_number) as total_qty_po
+        ,(basis_amount1 - (basis_amount1*y.discount/100)) + ((basis_amount1-(basis_amount1*y.discount/100))*y.ppn/100) - ((basis_amount1-(basis_amount1*y.discount/100))*y.pph22/100) total_netto
         ,round((select sum(qty*price) as qty  from purchase_order_det where po_number = z.po_number)) as total_amount_po
-        ,round((select sum(qty*price) as qty  from purchase_order_det where po_number = z.po_number) -(select sum(basis_amount) from ap_invoice where po_number = z.po_number)) as po_balance
-        ,round((basis_amount-discount)+(basis_amount*ppn/100)+pph22) as total_netto
+        ,round((select sum(qty*price) as qty  from purchase_order_det where po_number = z.po_number) -(select coalesce(sum(basis_amount),0) from ap_invoice where po_number = z.po_number)) as po_balance
         from 
         (select b.po_number
         ,sum(a.qty) as total_qty_rec
-        ,round(sum(a.qty*c.price)) as basis_amount
+        ,round(sum(a.qty*c.price)) as basis_amount1
         from receiving_det a
         left join receiving_hdr b on a.rec_number = b.rec_number 
         left join purchase_order_det c on c.po_number = b.po_number and c.article_code = a.article_code 
@@ -430,7 +451,7 @@ class AccountPayableController extends Controller
         $data['status'] = 'New';
 
         $data['accountBa'] = DB::table('accounts')
-        // ->whereIn('type_code',['11','12','14','15','42','44','46','48'])
+        // ->whereIn('type_code',['po.ppn11','12','14','15','42','44','46','48'])
         ->get();
 
         $data['accounts'] = DB::table('accounts')
