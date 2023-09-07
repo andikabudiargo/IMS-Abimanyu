@@ -57,7 +57,7 @@
                                             </div>
                                         </div>
                                         <div class="form-row">
-                                            <div class="form-group col-md-5">
+                                            <div class="form-group col-md-7">
                                                 <label class="form-label" for="supplier{{ $key }}">Supplier*</label>
                                                 <input type="text" id="supplier{{ $key }}" name="supplier{{ $key }}" class="form-control" value="{{ $header2->supp_name }}" disabled/>
                                             </div>
@@ -71,7 +71,7 @@
                                                     <label class="custom-control-label" for="pkp{{ $key }}">PKP</label>
                                                 </div>
                                             </div>
-                                            <div class="col-md-2">
+                                            {{-- <div class="col-md-2">
                                                 <label class="form-label" for="ppn{{ $key }}">PPN</label>
                                                 <div class="input-group">
                                                     <input type="text" class="form-control angka text-right" id="ppn{{ $key }}" name="ppn{{ $key }}" value="{{$header2->ppn }}" maxlength="2" disabled/>
@@ -79,7 +79,7 @@
                                                         <span class="input-group-text">%</span>
                                                     </div>
                                                 </div>
-                                            </div>
+                                            </div> --}}
                                             <div class="form-group col-md-2 d-none">
                                                 <label for="currency{{ $key }}">Currency*</label>
                                                 <input type="text" id="currency{{ $key }}" name="currency{{ $key }}" class="form-control" value="{{ $header2->currency }}" disabled/>
@@ -141,7 +141,7 @@
                                     <div class="d-flex justify-content-between align-items-end mt-75">
                                         <div class="col-md-4">
                                             <span>ROW : {{ $header2->sum_row }}</span> <br>
-                                            <span>QTY : {{ $header2->sum_qty }}</span>
+                                            <span>QTY : {{ number_format($header2->sum_qty,2) }}</span>
                                         </div>
                                         <div class="col-md-4">
                                             <div class="table-responsive">
@@ -149,23 +149,23 @@
                                                     <tbody>
                                                         <tr>
                                                             <td>Subtotal</td>
-                                                            <td class="text-right">{{ number_format($header2->sum_amount) }}</td>
+                                                            <td class="text-right">{{ number_format($header2->sum_amount,2) }}</td>
                                                         </tr>
                                                         <tr>
-                                                            <td>Discount</td>
-                                                            <td class="text-right">{{ number_format($header2->discount,2) }}</td>
+                                                            <td>Discount {{ number_format($header2->discount,2) }}%</td>
+                                                            <td class="text-right">{{ number_format($header2->sum_discount,2) }}</td>
                                                         </tr>
                                                         <tr>
-                                                            <td>PPN {{ $header2->ppn }}%</td>
-                                                            <td class="text-right">{{ number_format($header2->sum_ppn) }}</td>
+                                                            <td>PPN {{ $vatValue }}%</td>
+                                                            <td class="text-right">{{ number_format($header2->sum_ppn,2) }}</td>
                                                         </tr>
                                                         <tr>
-                                                            <td>PPH23</td>
-                                                            <td class="text-right">{{ number_format($header2->sum_pph22) }}</td>
+                                                            <td>PPH23  {{ $pph23Value }}%</td>
+                                                            <td class="text-right">{{ number_format($header2->sum_pph22,2) }}</td>
                                                         </tr>
                                                         <tr>
                                                             <td>NETTO</td>
-                                                            <td class="text-right">{{ number_format(($header2->sum_amount-$header2->sum_discount)+$header2->sum_ppn) }}</td>
+                                                            <td class="text-right">{{ number_format(($header2->sum_amount-$header2->sum_discount)+$header2->sum_ppn,2) }}</td>
                                                         </tr>
                                                     </tbody>
                                                 </table>

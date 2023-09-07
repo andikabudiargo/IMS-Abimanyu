@@ -224,7 +224,7 @@
             qtyPo =  detail[i].qty;
             uomGroup =  detail[i].uom_group;
             uom =  detail[i].uomQty;
-            qty =  detail[i].qty;
+            qty =  detail[i].qty*1;
             uomQty =  detail[i].uom_rec;
             qtyFree =  detail[i].qty_free;
             uomFree =  detail[i].uom_free;

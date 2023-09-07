@@ -188,10 +188,6 @@
         window.location.reload();
     }
 
-    $("#cmdCancel").click(function(){
-        reloadPage();
-    });
-
     $("#cmdNew").click(function(){
         reloadPage();
     });
@@ -305,6 +301,8 @@
                             objUom.attr('disabled','disabled');
                             objQtyFree.attr('disabled','disabled');
                             objUomFree.attr('disabled','disabled');
+
+                            reloadPage();
                             
                         }
                     },
@@ -334,7 +332,7 @@
         $('#article_id'+ cloneCount).attr('data-price', price);
         $('#article_id'+ cloneCount).val(articleCode +" - " + articleDesc);
         $("#new_row"+ cloneCount).find('#qty_po').attr('id', 'qty_po'+ cloneCount);
-        $('#qty_po'+ cloneCount).val(qtyPo);
+        $('#qty_po'+ cloneCount).val(qtyPo*1);
         $("#new_row"+ cloneCount).find('#qty_rec').attr('id', 'qty_rec'+ cloneCount);
         $('#qty_rec'+ cloneCount).val(qtyRec);
         $('#qty_rec'+ cloneCount).attr('data-uom-group', uomGroup);
@@ -349,7 +347,7 @@
         listUom('uomFree'+ cloneCount,uomGroup,uom);
         tombolPanah('qty_rec');
         tombolPanah('qty_free');
-        mask_thousand_digit(numberOfDecimalDigit);
+        mask_thousand_digit(2);
         hitungTotal();
 
         // if ( uomGroup === 'PIECE' ){

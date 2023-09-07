@@ -2,29 +2,29 @@
 <div id="new_row" name="new_row[]" class="d-none">
     <div id="baru" class="tanda-baris" >
         <div class="form-row d-flex align-items-center">
-            <div class="col-md-2 col-12" >
+            <div class="col-md-2 col-12" style="max-width: 10.66667%;padding-right:2px;">
                 <div class="form-group margin-nol">
                     <label for="prNumber" class="d-block d-md-none">PR Number</label>
-                    <input type="text" class="form-control disabled-el" id = "prNumber" name="prNumber[]">
+                    <input type="text" class="form-control disabled-el" id = "prNumber" name="prNumber[]"  disabled style="font-size:0.8rem;padding-right: 0.4rem;padding-bottom: 0.438rem;padding-left: 0.4rem;" />
                 </div>
             </div>
-            <div class="col-md-3 col-12">
+            <div class="col-md-5 col-12" style="max-width: 38.66667%;padding-right:2px;padding-left:2px;">
                 <div class="form-group margin-nol">
                     <label for="articleDesc" class="d-block d-md-none">Article</label>
-                    <input type="text" class="form-control disabled-el" id = "articleDesc" name="articleDesc[]" data-toggle="tooltip" data-placement="top" title="">
+                    <input type="text" class="form-control disabled-el" id = "articleDesc" name="articleDesc[]" data-toggle="tooltip" data-placement="top" title="" style="font-size:0.9rem" />
                     <input type="hidden" class="form-control disabled-el" id = "articleId" name="articleId[]">
                     <input type="hidden" class="form-control disabled-el" id = "pRequest" name="pRequest[]">
                 </div>
             </div>
-            <div class="col-md-1 col-12">
+            <div class="col-md-1 col-12" style="padding-right:2px;padding-left:2px;">
                 <div class="form-group margin-nol">
                     <label for="qtyStock" class="d-block d-md-none">Stock</label>
-                    <input type="text" class="form-control numeral-mask-satuan text-right" id = "qtyStock" name="qtyStock[]" disabled>
+                    <input type="text" class="form-control numeral-mask-satuan text-right" id = "qtyStock" name="qtyStock[]" disabled />
                 </div>
             </div>
-            <div class="col-md-2 col-12">
+            <div class="col-md-2 col-12" style="max-width: 10.66667%;padding-right:2px;padding-left:2px;">
                 <div class="form-group margin-nol">
-                    <label for="qtyOrder" class="d-block d-md-none">QTY Order</label>
+                    <label for="qtyOrder" class="d-block d-md-none">QTY</label>
                     <div class="input-group input-group-merge">
                         <input type="text" class="form-control numeral-mask-satuan text-right" id = "qtyOrder" name="qtyOrder[]" maxlength="9" />
                         <div class="input-group-append">
@@ -39,7 +39,7 @@
                     <input type="text" class="form-control numeral-mask text-right" id= "price" name="price[]"  maxlength="11">
                 </div>
             </div>
-            <div class="col-md-2 col-12">
+            <div class="col-md-2 col-12" style="max-width: 12.66667%;padding-right:2px;padding-left:2px;">
                 <div class="form-group margin-nol">
                     <label for="price" class="d-block d-md-none">Price</label>
                     <div class="input-group input-group-merge">
@@ -55,7 +55,7 @@
                     </div>
                 </div>
             </div>
-            <div class="col-md-2 col-12" style="max-width: 12%;">
+            <div class="col-md-2 col-12" style="max-width: 10.66667%;padding-right:2px;padding-left:2px;">
                 <div class="form-group margin-nol">
                     <label for="totalLine" class="d-block d-md-none">Total</label>
                     <input type="text" class="form-control numeral-mask text-right" id="totalLine" name="totalLine[]" disabled>
@@ -152,7 +152,7 @@
     and (max-device-width: 1600px) 
     and (-webkit-min-device-pixel-ratio: 1) { 
         .lebar-list-item{
-            width:100%;
+            width:125%;
         }
         .container-list-item{
             max-width:100%;
@@ -222,10 +222,6 @@
     function reloadPage(){
         window.location.reload();
     }
-
-    $("#cmdCancel").click(function(){
-        reloadPage();
-    });
 
     $("#cmdNew").click(function(){
         reloadPage();
@@ -351,6 +347,7 @@
                             $('#cmdSave').attr('disabled','disabled');
                             $('#poNumber').val(data.poNumber);
                             $('.disabled-el').attr('disabled','disabled');
+                            reloadPage();
                         }
                     },
                     error: function(error) {
@@ -533,8 +530,7 @@
         });
     }
  
-    function add_new_row_pr(articleCode,articleDesc,group,qtyStock,qty,uom,uomGroup,costPrice,lastPrice,prNumber) {
-              
+    function add_new_row_pr(articleCode,articleDesc,group,qtyStock,qty,uom,uomGroup,costPrice,lastPrice,prNumber) {       
         $("#article_row").append($("#new_row").clone().html());
         cloneCount++;
         $("#article_row").find('#baru').attr('id', 'new_row'+ cloneCount);
@@ -718,18 +714,22 @@
         totalQty = sumFromArray(qty);
         totalAmount = sumFromArray(qty,price);
 
-        
+        // mask_thousand_digit(2);
+
+        let nilaiPph23 = parseFloat((parseFloat(pph23)*(totalAmount-((totalAmount*parseFloat(persenDiscount))/100))))/100;
+        let nilaiPpn = parseFloat((parseFloat(ppn)*(totalAmount-((totalAmount*parseFloat(persenDiscount))/100))))/100;
+        let nilaiDisc = (totalAmount*parseFloat(persenDiscount))/100;
 
         $("#totalRow").val(objPrNumber.length);
         // $("#nilaiPPN").text(ppn+"%");
-        $("#totalQTY").val(totalQty).trigger("input");
-        $("#totalAmount").val(totalAmount).trigger("input");;
-        $("#totalDiscount").val((totalAmount*parseFloat(persenDiscount))/100).trigger("input");
-        $("#totalDpp").val(totalAmount-((totalAmount*parseFloat(persenDiscount))/100)).trigger("input");
-        $("#totalPPN").val(parseFloat((parseFloat(ppn)*(totalAmount-((totalAmount*parseFloat(persenDiscount))/100))))/100).trigger("input");
-        $("#totalPPH").val(parseFloat((parseFloat(pph23)*(totalAmount-((totalAmount*parseFloat(persenDiscount))/100))))/100).trigger("input");
-        $("#totalNetto").val((totalAmount-((totalAmount*parseFloat(persenDiscount))/100))+(parseFloat((parseFloat(ppn)*(totalAmount-((totalAmount*parseFloat(persenDiscount))/100))))/100)-(parseFloat((parseFloat(pph23)*(totalAmount-((totalAmount*parseFloat(persenDiscount))/100))))/100)).trigger("input");
-        mask_thousand_digit(2);
+        $("#totalQTY").val(totalQty);
+        $("#totalAmount").val(humanizeNumber(totalAmount.toFixed(2)));
+        $("#totalDiscount").val(nilaiDisc ?humanizeNumber(nilaiDisc.toFixed(2)):0);
+        $("#totalDpp").val(humanizeNumber((totalAmount-((totalAmount*parseFloat(persenDiscount))/100)).toFixed(2)));
+        $("#totalPPN").val(nilaiPpn ?humanizeNumber(nilaiPpn.toFixed(2)):0 );
+        $("#totalPPH").val(nilaiPph23 ?humanizeNumber(nilaiPph23.toFixed(2)):0 );
+        $("#totalNetto").val(humanizeNumber(((totalAmount-((totalAmount*parseFloat(persenDiscount))/100))+(parseFloat((parseFloat(ppn)*(totalAmount-((totalAmount*parseFloat(persenDiscount))/100))))/100)-(parseFloat((parseFloat(pph23)*(totalAmount-((totalAmount*parseFloat(persenDiscount))/100))))/100)).toFixed(2)));
+        
     }
 
     $("input[type='text']").click(function () {

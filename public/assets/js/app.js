@@ -432,7 +432,8 @@
             new Cleave(field, {
                 numeral: true,
                 numeralThousandsGroupStyle: 'thousand',
-                numeralDecimalScale: digit
+                numeralDecimalScale: digit,
+                // rawValueTrimPrefix: true //supaya pada saat save hilang tanda thousand separator nya
             });
         });   
     }

@@ -140,7 +140,7 @@
                             <div class="form-group row mb-03">
                                 <label for="totalQTY" class="col-sm-4 col-form-label titik-dua">Total QTY</label>
                                 <div class="col-sm-3">
-                                    <input type="text" class="form-control text-right font-weight-bold" id="totalQTY" disabled/>
+                                    <input type="text" class="form-control text-right font-weight-bold  numeral-mask-satuan" id="totalQTY" disabled/>
                                 </div>
                             </div>
                         </div>
@@ -190,6 +190,7 @@
                     <div class="form-row mt-75">
                         <div class="col-md-12">
                             <a href="{{ route('purchaseOrders.index') }}" class="btn btn-light">Back</a>
+                            <button class="btn btn-info" type="reset" id="cmdNew" name="cmdCancel">New</button>
                             <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Save</button>
                         </div>
                     </div>

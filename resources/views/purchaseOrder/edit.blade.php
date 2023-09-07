@@ -117,33 +117,33 @@
                     <div class="container-list-item">
                         <div class="lebar-list-item">
                             @include('purchaseOrder.headerColumn')
-                            <div class="" id="article_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px">
+                            <div class="" id="article_row" style="max-height: 25rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px">
                                 @foreach ($detail as $key =>$item)
                                     <div id="new_row{{ $key }}" class="tanda-baris" >
                                         <div class="form-row d-flex align-items-center">
-                                            <div class="col-md-2 col-12">
+                                            <div class="col-md-2 col-12" style="max-width: 10.66667%;padding-right:2px;">
                                                 <div class="form-group margin-nol">
                                                     <label for="prNumber" class="d-block d-md-none">PR Number</label>
-                                                    <input type="text" class="form-control disabled-el" id = "prNumber" name="prNumber[]" value="{{ $item->pr_number }}" disabled>
+                                                    <input type="text" class="form-control disabled-el" id = "prNumber" name="prNumber[]" value="{{ $item->pr_number }}" disabled style="font-size:0.8rem;padding-right: 0.4rem;padding-left: 0.4rem;" />
                                                 </div>
                                             </div>
-                                            <div class="col-md-3 col-12">
+                                            <div class="col-md-5 col-12" style="max-width: 38.66667%;padding-right:2px;padding-left:2px;">
                                                 <div class="form-group margin-nol">
                                                     <label for="articleDesc" class="d-block d-md-none">Article</label>
-                                                    <input type="text" class="form-control disabled-el" id = "articleDesc" name="articleDesc[]" value="{{ $item->article_alternative_code }} - {{ $item->article_desc }}" data-toggle="tooltip" data-placement="top" title="{{ $item->article_desc }}" disabled>
+                                                    <input type="text" class="form-control disabled-el" id = "articleDesc" name="articleDesc[]" value="{{ $item->article_alternative_code }} - {{ $item->article_desc }}" data-toggle="tooltip" data-placement="top" title="{{ $item->article_desc }}" disabled style="font-size:0.9rem" />
                                                     <input type="hidden" class="form-control disabled-el" id = "articleId" name="articleId[]" value="{{ $item->article_code }}">
                                                     <input type="hidden" class="form-control disabled-el" id = "pRequest" name="pRequest[]" value="{{ $item->pr_number }}">
                                                 </div>
                                             </div>
-                                            <div class="col-md-1 col-12">
+                                            <div class="col-md-1 col-12" style="padding-right:2px;padding-left:2px;">
                                                 <div class="form-group margin-nol">
                                                     <label for="qty_stock" class="d-block d-md-none">Stock</label>
-                                                    <input type="text" class="form-control {{ $item->uom_group  == 'PIECE' ? 'numeral-mask-satuan' : 'numeral-mask-digit' }} text-right" id="qty_stock" name="qty_stock[]" value="{{ $item->qty_stock == 0 ? 0 :$item->qty_stock*1 }}" disabled>
+                                                    <input type="text" class="form-control {{ $item->uom_group  == 'PIECE' ? 'numeral-mask-satuan' : 'numeral-mask-digit' }} text-right" id="qty_stock" name="qty_stock[]" value="{{ $item->qty_stock == 0 ? 0 :$item->qty_stock*1 }}" disabled />
                                                 </div>
                                             </div>
-                                            <div class="col-md-2 col-12">
+                                            <div class="col-md-2 col-12" style="max-width: 10.66667%;padding-right:2px;padding-left:2px;">
                                                 <div class="form-group margin-nol">
-                                                    <label for="qtyOrder" class="d-block d-md-none">QTY Order</label>
+                                                    <label for="qtyOrder" class="d-block d-md-none">QTY</label>
                                                     <div class="input-group input-group-merge">
                                                         <input type="text" class="form-control {{ $item->uom_group  == 'PIECE' ? 'numeral-mask-satuan' : 'numeral-mask-digit' }} text-right" id="qtyOrder" name="qtyOrder[]" value="{{ $item->qty*1 }}" maxlength="9" />
                                                         <div class="input-group-append">
@@ -158,7 +158,7 @@
                                                     <input type="text" class="form-control numeral-mask text-right" id= "price" name="price[]" value="{{ $item->old_price }}"  maxlength="11">
                                                 </div>
                                             </div>
-                                            <div class="col-md-2 col-12">
+                                            <div class="col-md-2 col-12" style="max-width: 12.66667%;padding-right:2px;padding-left:2px;">
                                                 <div class="form-group margin-nol">
                                                     <label for="price" class="d-block d-md-none">Price</label>
                                                     <div class="input-group input-group-merge">
@@ -179,14 +179,14 @@
                                                     </div>
                                                 </div>
                                             </div>
-                                            <div class="col-md-2 col-12" style="max-width: 12%;">
+                                            <div class="col-md-2 col-12" style="max-width: 10.66667%;padding-right:2px;padding-left:2px;">
                                                 <div class="form-group margin-nol">
                                                     <label for="totalLine" class="d-block d-md-none">Total</label>
                                                     <input type="text" class="form-control numeral-mask text-right" value="{{ number_format($item->qty * $item->price) }}" id="totalLine" name="totalLine[]" disabled>
                                                 </div>
                                             </div>
-                                            <div class="col-md-1 col-12" style="max-width: 3%;">
-                                                <div class="form-group margin-nol">
+                                            <div class="col-md-1 col-12" style="max-width:3%;">
+                                                <div class="form-group margin-nol text-center">
                                                     <a onmouseover="this.style.cursor='pointer'" onclick="$(this).parents('.tanda-baris').remove();hitungGrandTotal();disabledEnabledSelect2()">
                                                         <i data-feather="trash-2" class="remove_button feather-24">
                                                         </i>
@@ -210,26 +210,32 @@
                         <div class="col-md-4">
                             <div class="form-group row mb-03">
                                 <label for="totalRow" class="col-sm-4 col-form-label titik-dua">Row(s)</label>
-                                <div class="col-sm-3">
+                                <div class="col-sm-4">
                                     <input type="text" class="form-control text-right font-weight-bold" id="totalRow" disabled />
                                 </div>
                             </div>
                             <div class="form-group row mb-03">
                                 <label for="totalQTY" class="col-sm-4 col-form-label titik-dua">Total QTY</label>
-                                <div class="col-sm-3">
-                                    <input type="text" class="form-control text-right font-weight-bold" id="totalQTY" disabled/>
+                                <div class="col-sm-4">
+                                    <input type="text" class="form-control text-right font-weight-bold numeral-mask-satuan" id="totalQTY" disabled/>
                                 </div>
                             </div>
                         </div>
                         <div class="col-md-5">
                             <div class="form-group row mb-03">
-                                <label for="totalAmount" class="col-sm-3 col-form-label titik-dua">Sub Total</label>
+                                <div class="col-sm-2"></div>
+                                <div class="col-sm-4">
+                                    <label for="totalAmount" class="col-form-label titik-dua">Sub Total</label>
+                                </div>
                                 <div class="col-sm-6">
                                     <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit" id="totalAmount" disabled />
                                 </div>
                             </div>
                             <div class="form-group row mb-03">
-                                <label for="totalDiscount" class="col-sm-3 col-form-label titik-dua">Discount </label>
+                                <div class="col-sm-2"></div>
+                                <div class="col-sm-4">
+                                    <label for="totalDiscount" class="col-form-label titik-dua">Discount </label>
+                                </div>
                                 <div class="col-sm-2" style="padding-right: 0rem;">
                                     <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit" id="persenDiscount" value="{{ $header->discount }}" maxlength="5"/>
                                 </div>
@@ -238,25 +244,37 @@
                                 </div>
                             </div>
                             <div class="form-group row mb-03">
-                                <label for="totalDpp" class="col-sm-3 col-form-label titik-dua">DPP</label>
+                                <div class="col-sm-2"></div>
+                                <div class="col-sm-4">
+                                    <label for="totalDpp" class="col-form-label titik-dua">DPP</label>
+                                </div>
                                 <div class="col-sm-6">
                                     <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit" id="totalDpp" disabled />
                                 </div>
                             </div>
                             <div class="form-group row mb-03">
-                                <label for="totalPPN" class="col-sm-3 col-form-label titik-dua">PPN <span id="nilaiPPN"></span> </label>
+                                <div class="col-sm-2"></div>
+                                <div class="col-sm-4">
+                                    <label for="totalPPN" class="col-form-label titik-dua">PPN <span id="nilaiPPN"></span> </label>
+                                </div>
                                 <div class="col-sm-6">
-                                    <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit" id="totalPPN" disabled/>
+                                    <input type="text" class="form-control text-right font-weight-bold angka-dua-decimal" id="totalPPN" disabled/>
                                 </div>
                             </div>
                             <div class="form-group row mb-03">
-                                <label for="totalPPH" class="col-sm-3 col-form-label titik-dua">PPH23 <span id="nilaiPPH"></span> </label>
+                                <div class="col-sm-2"></div>
+                                <div class="col-sm-4">
+                                    <label for="totalPPH" class="col-form-label titik-dua">PPH23 <span id="nilaiPPH"></span> </label>
+                                </div>
                                 <div class="col-sm-6">
                                     <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit" id="totalPPH" disabled/>
                                 </div>
                             </div>
                             <div class="form-group row mb-03">
-                                <label for="totalNetto" class="col-sm-3 col-form-label titik-dua">Total</label>
+                                <div class="col-sm-2"></div>
+                                <div class="col-sm-4">
+                                    <label for="totalNetto" class="col-form-label titik-dua">Total</label>
+                                </div>
                                 <div class="col-sm-6">
                                     <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit" id="totalNetto" disabled/>
                                 </div>
@@ -342,6 +360,27 @@
     const approveBtn = document.querySelector('#cmdApprove');
     const declineBtn = document.querySelector('#cmdDecline');
     let cloneCount={{ count($detail) }};
+
+    $(document).ready(function(){           
+        validateForm('frmAdd');
+        tombolPanah('qtyOrder');
+        tombolPanah('price');
+        $('.sku-select-system').select2();
+        let suppCode = $(this).val();
+        changeselect('pRequest','prSelect',"{{ $header->supplier_id }}");
+        setTimeout(() => { 
+            // disabledEnabledSelect2();
+        }, 500);
+
+        activate_angka();
+        mask_thousand();
+        hitungTotal();
+        hitungGrandTotal();
+        mask_thousand_satuan();
+        mask_thousand_digit(2);
+        
+    });
+
     
     if (updateBtn) {
         updateBtn.addEventListener('click',() =>{
@@ -361,26 +400,7 @@
         },{ once:true});
     }
 
-    $(document).ready(function(){           
-        validateForm('frmAdd');
-        tombolPanah('qtyOrder');
-        tombolPanah('price');
-        activate_angka();
-        mask_thousand();
-        hitungTotal();
-        hitungGrandTotal();
-        $('.sku-select-system').select2();
-        mask_thousand_satuan();
-        mask_thousand_digit(2);
-        let suppCode = $(this).val();
-
-        changeselect('pRequest','prSelect',"{{ $header->supplier_id }}");
-        setTimeout(() => { 
-            // disabledEnabledSelect2();
-        }, 500);
-        
-    });
-
+    
     prSelect.change(function(e){        
         let prNumber = $(this).val();
         let suppCode = $('#supplier').val();
