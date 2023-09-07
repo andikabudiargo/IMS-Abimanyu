@@ -142,7 +142,7 @@
                         <td scope="row" class="border-bottom" align="right">{{ ++$no }}</td>
                         <td class="border-bottom" align="left">{{ $val->article_alternative_code }}</td>
                         <td class="border-bottom" align="left">{{ $val->article_desc }}</td>
-                        <td class="border-bottom" align="right">{{ number_format($val->qty,4) }}</td>
+                        <td class="border-bottom" align="right">{{ $val->qty*1 }}</td>
                         <td class="border-bottom" align="right">{{ $val->uom }}</td>
                     </tr>
                 @endforeach
