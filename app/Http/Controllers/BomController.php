@@ -904,8 +904,8 @@ class BomController extends Controller
                     $tone ? $query->where('bom_det.tone',$tone) : '';
                 })
                 //->where('tone',$tone)
-                ->distinct('pos_code','pos_name')
-                ->orderBy('pos_name','desc')
+                ->distinct('pos_code','pos_name','bom_pos.urutan')
+                ->orderBy('bom_pos.urutan','asc')
                 ->get();
 
                 if($val->tone != null){
@@ -928,7 +928,6 @@ class BomController extends Controller
             foreach($judulGroup as $val){
                 $groupPos = $val->pos_code ? $val->pos_code : '';
                 if($val->pos_code != null){
-
                     $barisJudul = "<tr><td colspan='6' align='center' style='background-color:yellow'>".strtoupper($val->pos_name)."</td> </tr>";
                     $isiJudul=DB::table('bom_det')
                     ->leftJoin('article','article.article_code','bom_det.article_code')
