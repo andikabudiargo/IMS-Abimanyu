@@ -5,12 +5,39 @@
 <title>{{ $title }}</title>
 <style type="text/css">
 
-    @page { margin: 10px; }
+    @page { margin: 110px 10px 10px 10px; }
     body { margin: 10px;border: 1px solid black; }
+
+    header { 
+        position: fixed; 
+        top: -93px; 
+        left: 10px; 
+        right: 10px; 
+        height: 50px; 
+    }
+
+    footer {
+        position: fixed; 
+        bottom: 3%; 
+        left: 10px; 
+        right: 10px;
+        height: 180px; 
+    }
+
+    .breakNow {
+         page-break-inside:avoid;  
+         page-break-after:always;    
+    }
+
+    .pagenum:before {
+        content: counter(page);
+    }
+
 
     * {
         font-family: Verdana, Arial, sans-serif;
     }
+
     table{
         font-size: x-small;
     }
@@ -77,90 +104,71 @@
         background-size: 10px 10px;
         background-repeat: no-repeat;
         opacity: 0.1;
-      }
-
-    footer {
-        position: fixed; 
-        bottom: 3%; 
-        left: 10px; 
-        right: 10px;
-        height: 180px; 
     }
+
+   
 </style>
 </head>
 <body>
 {{-- @if($status == "B")
     <div id ="watermark">
 @endif --}}
-    <table width="100%" border="0">
-        <tr>
-            <td width="6%" rowspan="4" class="no-wrap h-tengah">
-                <img src="{{ public_path('app-assets/images/logo/logo_po.png') }}" alt="logo" width="80" height="50" /> 
-            </td>
-            <td valign="middle" colspan="4" rowspan="2" class="header-padding h-tengah" ><h2>BILL OF MATERIALS</h2></td>
-            <td valign="" class="font-10 header-padding" >No Dokumen</td>
-            <td valign="" class="font-10 header-padding" >: ENG-02.08-FM</td>
-        </tr>
-        <tr>            
-            <td valign="" class="font-10 header-padding" >Tgl Berlaku</td>
-            <td valign="" class="font-10 header-padding" >: 25 Nov 2021</td>
-        </tr>
-        <tr>
-            <td valign="" width="3%" class="font-10 header-padding">Part Name</td>
-            <td valign="" width="10%" class="font-10 header-padding">{{ $bomHdr->article_desc }}</td>
-            <td valign="" width="3%" class="font-10 header-padding">Model</td>
-            <td valign="" width="10%" class="font-10 header-padding">{{ $bomHdr->model }}</td>
-            <td valign="" width="4%" class="font-10 header-padding">No Revisi</td>
-            <td valign="" width="5%" class="font-10 header-padding">1</td>
-        </tr>
-        <tr>
-            <td valign="" class="font-10 header-padding">Part No</td>
-            <td valign="" class="font-10 header-padding">{{ $bomHdr->part_no }}</td>
-            <td valign="" class="font-10 header-padding">Customer</td>
-            <td valign="" class="font-10 header-padding">{{ $bomHdr->nama }}</td>
-            <td valign="" class="font-10 header-padding">Halaman</td>
-            <td valign="" class="font-10 header-padding"></td>
-        </tr>        
-    </table>
+    <header>
+        <table width="100%" border="0">
+            <tr>
+                <td width="6%" rowspan="4" class="no-wrap h-tengah">
+                    <img src="{{ public_path('app-assets/images/logo/logo_po.png') }}" alt="logo" width="80" height="50" /> 
+                </td>
+                <td valign="middle" colspan="4" rowspan="2" class="header-padding h-tengah" ><h2>BILL OF MATERIALS</h2></td>
+                <td valign="" class="font-10 header-padding" >No Dokumen</td>
+                <td valign="" class="font-10 header-padding" >: ENG-02.08-FM</td>
+            </tr>
+            <tr>            
+                <td valign="" class="font-10 header-padding" >Tgl Berlaku</td>
+                <td valign="" class="font-10 header-padding" >: 25 Nov 2021</td>
+            </tr>
+            <tr>
+                <td valign="" width="3%" class="font-10 header-padding">Part Name</td>
+                <td valign="" width="10%" class="font-9 header-padding">{{ $bomHdr->article_desc }}</td>
+                <td valign="" width="3%" class="font-10 header-padding">Model</td>
+                <td valign="" width="10%" class="font-10 header-padding">{{ $bomHdr->model }}</td>
+                <td valign="" width="4%" class="font-10 header-padding">No Revisi</td>
+                <td valign="" width="5%" class="font-10 header-padding">1</td>
+            </tr>
+            <tr>
+                <td valign="" class="font-10 header-padding">Part No</td>
+                <td valign="" class="font-10 header-padding">{{ $bomHdr->part_no }}</td>
+                <td valign="" class="font-10 header-padding">Customer</td>
+                <td valign="" class="font-9 header-padding">{{ $bomHdr->nama }}</td>
+                <td valign="" class="font-10 header-padding">Halaman</td>
+                <td valign="" class="font-10 header-padding"><span class="pagenum"></span></td>
+            </tr>        
+        </table>
+    </header>
     
-    <table width="100%">
-        <thead style="background-color: lightgray;">
-        <tr>
-            <th width="5%" >No</th>
-            <th width="" >Material</th>
-            <th width="21%" >Brand</th>
-            <th width="5%" >Consumption</th>
-            <th width="5%" >Unit</th>
-            <th width="10%">Kode Barang</th>
-        </tr>
-        </thead>
-        <tbody>
-            {!! $barisDetail !!}
-            {{-- @foreach ($details as $val )
-                <tr >
-                    <td class="detail-padding" align="center" scope="row" style="padding-left:3px;padding-right:3px">{{ ++$no }}</td>
-                    <td class="detail-padding" align="left" style="padding-left:3px;padding-right:3px">{{ $val->article_desc }}</td>
-                    <td class="detail-padding font-10" align="left" style="padding-left:3px;padding-right:3px">{{ $val->nama }}</td>
-                    <td class="detail-padding" align="right" style="padding-left:3px;padding-right:3px">{{ $val->qty }}</td>
-                    <td class="detail-padding" align="left" style="padding-left:3px;padding-right:3px">{{ $val->uom }}</td>
-                    <td class="detail-padding" align="left" style="padding-left:3px;padding-right:3px">{{ $val->article_alternative_code }}</td>
-                </tr>
-            @endforeach --}}
-        </tbody>
-    </table>
-
+    <main>
+        <table width="100%">
+            <thead style="background-color: lightgray;">
+            <tr>
+                <th width="5%" >No</th>
+                <th width="" >Material</th>
+                <th width="25%" >Brand</th>
+                <th width="5%" >Consumption</th>
+                <th width="5%" >Unit</th>
+                <th width="10%">Kode Barang</th>
+            </tr>
+            </thead>
+            <tbody>
+                {!! $barisDetail !!}                
+            </tbody>
+        </table>
+    </main>
+    @if($jumlahBaris > 32 )
+        <div class="breakNow"></div>
+    @endif
     <footer>
-        
-        {{-- <text class="font-9" style="padding-left:10px;">Note:{{ $bomHdr->note_hdr }}</p> --}}
-        {{-- <h4 class="font-9" style="padding-left:10px;">No Revisi:</h4>
-        <h4 class="font-9" style="padding-left:10px;">Engineering:</h4> --}}
         <textarea class="font-9" type="text" style="height:20%;padding-left:10px;padding-bottom:10px;border:none">Note:<br>{{ $bomHdr->note_hdr }}<br></textarea>
         <table style="border:none;">
-            {{-- <tr>
-                <td colspan="2" style="border:none;">
-                    <textarea class="font-9" type="text" style="padding-left:10px;padding-bottom:10px;border:none">Note:<br>{{ $bomHdr->note_hdr }}<br></textarea>
-                </td>
-            </tr> --}}
             <tr>
                 <td align="Left" class="detail-padding-bawah">No Revisi</td>
                 <td align="Left" class="detail-padding-bawah">:{{ $bomHdr->num_revision }}</td>
@@ -186,14 +194,6 @@
                 <td align="center" style="height: 40px;"></td>
             </tr>
             <tr>
-
-                {{-- <td align="center"></td>
-                <td align="center"></td>
-                <td align="center"></td>
-                <td align="center"></td>
-                <td align="center"></td>
-                <td align="center"></td> --}}
-
                 @foreach($approvalHistory as $key=>$val)
                     @if($key<5)
                         @if($val->status == true)
@@ -207,9 +207,6 @@
             </tr>
         </table> 
     </footer>
-    
-{{-- @if($poNumber == "oki")
-</div>
-@endif --}}
+
 </body>
 </html>

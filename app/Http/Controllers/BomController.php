@@ -890,6 +890,7 @@ class BomController extends Controller
         $barisAll="";
         $barisSub="";
         $barisJudul="";
+        $jumlahBaris=0;
 
         foreach($judulTone as $val){
             $tone = $val->tone ? $val->tone : '';
@@ -910,6 +911,7 @@ class BomController extends Controller
 
                 if($val->tone != null){
                     $barisTone = "<tr><td colspan='6' align='center' style='background-color:#51b3f0'>".strtoupper($arrTone[$tone])."</td> </tr>";
+                    $jumlahBaris++;
                 }else{
                     $barisTone = ""; 
                 }
@@ -944,6 +946,7 @@ class BomController extends Controller
                     // ->where('bom_det.tone',$tone)
                     ->orderBy('bom_det.id')
                     ->get();
+                    $jumlahBaris++;
                 }else{
                     $barisJudul = "";
                     $isiJudul=DB::table('bom_det')
@@ -967,17 +970,16 @@ class BomController extends Controller
                     $barisIsiJudul .= "<tr >
                         <td class='detail-padding' align='center' scope='row' style='padding-left:3px;padding-right:3px'>$no</td>
                         <td class='detail-padding' align='left' style='padding-left:3px;padding-right:3px'>$item->article_desc</td>
-                        <td class='detail-padding font-10' align='left' style='padding-left:3px;padding-right:3px'>$item->nama</td>
+                        <td class='detail-padding font-9' align='left' style='padding-left:3px;padding-right:3px'>$item->nama</td>
                         <td class='detail-padding' align='right' style='padding-left:3px;padding-right:3px'>$item->qty</td>
                         <td class='detail-padding' align='left' style='padding-left:3px;padding-right:3px'>$item->uom</td>
                         <td class='detail-padding' align='left' style='padding-left:3px;padding-right:3px'>$item->article_alternative_code</td>
-                    </tr>";
+                    </tr>";              
+                    $jumlahBaris++;  
                 }
 
                 $barisSub .=$barisJudul.$barisIsiJudul;
             };
-
-            
 
             $barisAll.= $barisTone.$barisSub;
             $barisSub="";
@@ -1031,6 +1033,7 @@ class BomController extends Controller
         //     $barisAll = $barisAll.$barisJudul.$barisIsiJudul;
         // };
         
+        $data['jumlahBaris'] = $jumlahBaris;
 
         $data['barisDetail']=$barisAll;
 
