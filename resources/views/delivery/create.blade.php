@@ -217,10 +217,11 @@
                         });
                     }
 
-                    if (qty > qtySo){
-                        pesan +="Items "+ articleDesc +" QTY Delivery is higher than QTY SO<br>"; 
+                    if (parseInt(qty) > parseInt(qtySo)){
+                        pesan +="Items "+ articleDesc +"-"+qty+"-"+qtySo+" QTY Delivery is higher than QTY SO<br>"; 
                         flag=1;
                     }
+                    
                 }
             });
 
