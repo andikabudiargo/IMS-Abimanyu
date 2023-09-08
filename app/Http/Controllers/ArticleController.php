@@ -1335,8 +1335,13 @@ class ArticleController extends Controller
         $supp = strtolower($request->supp);
         $type = strtolower($request->type);
         $status = $request->status;
-        
         $username =  Auth::user()->username;
+        $userSubmitter = "no";
+
+
+        if (Auth::user()->can('article-request-submit')){
+            $userSubmitter = "yes";
+        }
 
         // $berhakApprove = Approval::approveValidate($this->moduleCode,$bomNumber,$username);
 
@@ -1356,11 +1361,17 @@ class ArticleController extends Controller
         ,'safety_stock'
         ,'min_package'
         ,'uom.uom_group'
-        ,DB::RAW("(SELECT count(*) from user_dept where username = created_by and dept in (select dept from user_dept where username = '$username')) as bisa_approve")
+        ,DB::RAW("(SELECT count(*) from user_dept where username = article_request.created_by and dept in (select dept from user_dept where username = '$username')) as bisa_approve")
         )
         ->leftJoin('group_materials', 'group_materials.code', '=', 'article_request.group_of_material')
         ->leftJoin('third_party', 'third_party.kode', '=', 'article_request.third_party')
-        ->leftJoin('uom','uom.code','article_request.uom')
+        ->leftJoin('uom','uom.code','article_request.uom')        
+        // ->where(DB::RAW("(SELECT count(*) from user_dept where username = article_request.created_by and dept in (select dept from user_dept where username = '$username'))"),">",0)
+        ->where(function ($query1) use ($userSubmitter,$username) {
+            if($userSubmitter === "no"){
+                $query1->where(DB::RAW("(SELECT count(*) from user_dept where username = article_request.created_by and dept in (select dept from user_dept where username = '$username'))"),">",0);
+            }
+        })
         ->where(function ($query) use ($name,$group,$cust,$supp,$type,$status) {
             $name ? $query->where('article_desc','ilike','%'.$name.'%') :'';
             $group ? $query->where('group_of_material','ilike','%'.$group.'%') :'';
@@ -1379,8 +1390,9 @@ class ArticleController extends Controller
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
         
             if (Auth::user()->can('article-request-edit') ) {
-                if ($data->bisa_approve > 0 && $data->status_approve != '3' ) {
-                    $buttons .=         '<a href="'. route('article.request.edit',  ['id'=>Crypt::encryptString($data->idku)]) .'" class="dropdown-item">
+                if (($data->bisa_approve > 0) && ($data->status_approve == '1' ||  $data->status_approve == '2') ) {
+                // if ($data->bisa_approve > 0 ) {
+                    $buttons .= '<a href="'. route('article.request.edit',  ['id'=>Crypt::encryptString($data->idku)]) .'" class="dropdown-item">
                                     <i data-feather="file-text"></i>
                                     Edit
                                 </a>';
@@ -1388,8 +1400,7 @@ class ArticleController extends Controller
             }
 
             if (Auth::user()->can('article-request-approve')){
-
-                if ($data->bisa_approve > 0 && $data->status_approve == '1' ) {
+                if ($data->bisa_approve > 0 && $data->status_approve == '1') {
                     $buttons .=         '<a href="'. route('article.request.edit',  ['id'=>Crypt::encryptString($data->idku)]) .'" class="dropdown-item">
                                             <i data-feather="check"></i>
                                             Approve
@@ -1416,7 +1427,7 @@ class ArticleController extends Controller
 
             if (Auth::user()->can('article-request-delete')) {
 
-                if ($data->bisa_approve > 0 && $data->status_approve != '3' ) {
+                if ($data->bisa_approve > 0 && $data->status_approve == '1' &&  $data->status_approve == '2' ) {
                     $buttons .=         '<a href="javascript:;"
                                             id="deleteButton"
                                             class="dropdown-item"

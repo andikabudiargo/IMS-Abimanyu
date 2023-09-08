@@ -447,7 +447,8 @@ class UserController extends Controller
         ->addColumn('roles', function ($user) {
             $isinya=''; 
             foreach($user->getRoleNames() as $v) {
-                $isinya.= $v;
+                // $isinya.= $v;
+                $isinya.= "<div class='badge badge-info'>".$v."</div>". "  ";
             }
             return $isinya;
         })
@@ -455,7 +456,12 @@ class UserController extends Controller
             return '';
         })
         ->addColumn('dept', function ($user) {
-            return $user->dept;
+            $depts = explode(",",$user->dept);
+            $deptList='';
+            foreach($depts as $val) {
+                $deptList.= "<div class='badge badge-success'>".$val."</div>". "  ";
+            }
+            return $deptList;
         })
         ->addColumn('status', function ($user) {
             if ($user->status =='1') {
@@ -471,9 +477,7 @@ class UserController extends Controller
             }
             return $status;
         })
-        ->rawColumns(['action','status','dept'])
+        ->rawColumns(['action','status','dept','roles'])
         ->make(true);
     }
-
-
 }
