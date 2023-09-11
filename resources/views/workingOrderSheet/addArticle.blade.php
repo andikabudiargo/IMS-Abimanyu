@@ -227,8 +227,8 @@
                 dependent:dependent
             },
             success:function(result){
-                result +='<option value="other">Others</option>';
-                $('#'+obj).html(result);
+                result1 ='<option value="other">Others</option>'+result;
+                $('#'+obj).html(result1);
                 $('#'+obj).val(isiData).trigger('change');
                 $('#'+obj).removeAttr('disabled');
             }
@@ -241,8 +241,8 @@
         if (value ==='other'){
             let result = "";
             result +='<option value="" data-article-rm="none" data-detail=""></option>';
-            result +='<option value="gantiwarna" data-article-rm="none" data-detail="gantiwarna|none|6|||">Ganti Warna</option>';
-            result +='<option value="istirahat"  data-article-rm="none" data-detail="istirahat|none|120|||">Istirahat</option>';
+            result +='<option value="gantiwarna" data-article-rm="none" data-detail="gantiwarna|none|1|||">Ganti Warna</option>';
+            result +='<option value="istirahat"  data-article-rm="none" data-detail="istirahat|none|1|||">Istirahat</option>';
             objArticle.eq(objIndex).html(result);
             objArticle.eq(objIndex).select2();
             objArticle.removeAttr('disabled');
@@ -268,8 +268,8 @@
         if (value ==='other'){
             let result = "";
             result +='<option value="" data-article-rm="none" data-detail=""></option>';
-            result +='<option value="gantiwarna" data-article-rm="none" data-detail="gantiwarna|none|6|||">Ganti Warna</option>';
-            result +='<option value="istirahat"  data-article-rm="none" data-detail="istirahat|none|120|||">Istirahat</option>';
+            result +='<option value="gantiwarna" data-article-rm="none" data-detail="gantiwarna|none|1|||">Ganti Warna</option>';
+            result +='<option value="istirahat"  data-article-rm="none" data-detail="istirahat|none|1|||">Istirahat</option>';
             $('#'+obj).html(result);
             $('#'+obj).val(article).trigger('change');
             $('#'+obj).removeAttr('disabled');
@@ -313,50 +313,65 @@
     };
 
     function getTack(articleCode,sprayBooth,tone,objIndex) {
-        $.ajax({
-            url:"{{ route('workingOrderSheet.get.tack') }}",
-            method:"GET",
-            data:{
-                articleCode:articleCode,
-                sprayBooth:sprayBooth,
-                tone:tone
-            },
-            success:function(result){
-                let objTag = $('input[name="tag[]"]');
-                let objTagAsli = $('input[name="tagAsli[]"]');
-                let objWaktu = $('input[name="waktu[]"]');
-                objTag.eq(objIndex).val(result || 0) ;
-                objTagAsli.eq(objIndex).val(result || 0);
-                objWaktu.eq(objIndex).val($('#wosTime').val()+":00");
-            }
-        })
+        let objTag = $('input[name="tag[]"]');
+        let objTagAsli = $('input[name="tagAsli[]"]');
+        let objWaktu = $('input[name="waktu[]"]');
+
+        if(articleCode === 'gantiwarna' || articleCode ==='istirahat'){
+            objTag.eq(objIndex).val(0) ;
+            objTagAsli.eq(objIndex).val(0);
+            objWaktu.eq(objIndex).val($('#wosTime').val()+":00");
+        }else{
+            $.ajax({
+                url:"{{ route('workingOrderSheet.get.tack') }}",
+                method:"GET",
+                data:{
+                    articleCode:articleCode,
+                    sprayBooth:sprayBooth,
+                    tone:tone
+                },
+                success:function(result){
+                    
+                    objTag.eq(objIndex).val(result || 0) ;
+                    objTagAsli.eq(objIndex).val(result || 0);
+                    objWaktu.eq(objIndex).val($('#wosTime').val()+":00");
+                }
+            })
+        }
     }
 
     function getTackHitung(articleCode,sprayBooth,tone,objIndex) {
-        $.ajax({
-            url:"{{ route('workingOrderSheet.get.tack') }}",
-            method:"GET",
-            data:{
-                articleCode:articleCode,
-                sprayBooth:sprayBooth,
-                tone:tone
-            },
-            success:function(result){
-                let objTag = $('input[name="tag[]"]');
-                let objTagAsli = $('input[name="tagAsli[]"]');
-                let objQtyProd = $('#article_row input[name="qtyProd[]"]');
-                let objQtyRepaint = $('#article_row input[name="qtyRepaint[]"]');
-                let qtyProd = objQtyProd.eq(objIndex).val().replace(/,/gi, '') || 0;
-                let qtyRepaint = objQtyRepaint.eq(objIndex).val().replace(/,/gi, '') || 0;
-                let qtyTag = result || 0;
+        let objTag = $('input[name="tag[]"]');
+        let objTagAsli = $('input[name="tagAsli[]"]');
+        let objQtyProd = $('#article_row input[name="qtyProd[]"]');
+        let objQtyRepaint = $('#article_row input[name="qtyRepaint[]"]');
+        let qtyProd = objQtyProd.eq(objIndex).val().replace(/,/gi, '') || 0;
+        let qtyRepaint = objQtyRepaint.eq(objIndex).val().replace(/,/gi, '') || 0;
 
-                if (qtyProd || qtyRepaint){
-                    objTag.eq(objIndex).val((parseInt(qtyProd)+parseInt(qtyRepaint))*parseFloat(qtyTag));
-                }else{
-                    objTag.eq(objIndex).val(qtyTag);
+        if(articleCode === 'gantiwarna' || articleCode==='istirahat'){
+            objTag.eq(objIndex).val(parseInt(qtyProd)*parseFloat(1));
+        }else{
+            $.ajax({
+                url:"{{ route('workingOrderSheet.get.tack') }}",
+                method:"GET",
+                data:{
+                    articleCode:articleCode,
+                    sprayBooth:sprayBooth,
+                    tone:tone
+                },
+                success:function(result){
+                    
+                    
+                    let qtyTag = result || 0;
+    
+                    if (qtyProd || qtyRepaint){
+                        objTag.eq(objIndex).val((parseInt(qtyProd)+parseInt(qtyRepaint))*parseFloat(qtyTag));
+                    }else{
+                        objTag.eq(objIndex).val(qtyTag);
+                    }
                 }
-            }
-        })
+            })
+        }
     }
 
     function isiListArticle(){
@@ -378,6 +393,7 @@
         let objArticleRm = $('input[name="articleRm[]"]');
         let objQtyOrder = $('input[name="qtyOrder[]"]');
         let objQtyProd = $('input[name="qtyProd[]"]');
+        let objQtyRepaint = $('input[name="qtyRepaint[]"]');
         let objTag = $('input[name="tag[]"]');
         let objTagAsli = $('input[name="tagAsli[]"]');
         let objWaktu = $('input[name="waktu[]"]');
@@ -386,47 +402,74 @@
             let objIndex = objArticle.index(this);
             let detail = objArticle.eq(objIndex).find(":selected").data("detail");
             let articleRm = objArticle.eq(objIndex).find(":selected").data("article-rm");
+            let articleCode =  objArticle.eq(objIndex).val();
+            
+            objTone.eq(objIndex).val('').trigger('change');
+
+            if(articleCode === 'gantiwarna' || articleCode==='istirahat'){
+                objTag.eq(objIndex).val(0) ;
+                objTagAsli.eq(objIndex).val(0) ;
+                objWaktu.eq(objIndex).val($('#wosTime').val()+":00");
+                objQtyRepaint.eq(objIndex).attr('disabled','disabled');
+            }else{
+                objQtyRepaint.eq(objIndex).removeAttr('disabled');
+            }
+
             if (detail){
                 let arrDetail = detail.split("|");
                 objArticleRm.eq(objIndex).val(articleRm);
                 objQtyProd.eq(objIndex).val('');
+                objQtyRepaint.eq(objIndex).val('');
                 objQtyOrder.eq(objIndex).val(arrDetail[3]);
                 // objTag.eq(objIndex).val(arrDetail[2] || 0) ;
                 // objTagAsli.eq(objIndex).val(arrDetail[2] || 0) ;
                 // objWaktu.eq(objIndex).val($('#wosTime').val()+":00");
-                if (detail){
-                    setTimeout(() => {
-                        objQtyProd.eq(objIndex).focus().select();
-                    }, 5);
-                }
+                // if (detail){
+                //     setTimeout(() => {
+                //         objQtyProd.eq(objIndex).focus().select();
+                //     }, 5);
+                // }
                 mask_thousand_satuan();
                 // hitungWaktu();   
             }else{
                 objQtyProd.eq(objIndex).val('');
                 objQtyOrder.eq(objIndex).val('');
+                objQtyRepaint.eq(objIndex).val('');
                 // objTag.eq(objIndex).val('');
                 // objTagAsli.eq(objIndex).val('');
                 // objWaktu.eq(objIndex).val('');
             }
 		});
 
-        objTone.change(function(e){        
+        objTone.change(function(e){
             let objIndex = objTone.index(this);
             let tone = objTone.eq(objIndex).val();
             let sprayBooth = $('#sprayBooth').val();
             let articleCode = objArticle.eq(objIndex).val();
-            getTack(articleCode,sprayBooth,tone,objIndex);
-                        
-            if (tone){
-                getTack(articleCode,sprayBooth,tone,objIndex);
-                // console.log("iko");
-                // objTag.eq(objIndex).val(tack || 0) ;
-                // objTagAsli.eq(objIndex).val(tack || 0);
-                // objWaktu.eq(objIndex).val($('#wosTime').val()+":00");
+
+            if(articleCode === 'gantiwarna' || articleCode==='istirahat'){
+
             }else{
-                objTag.eq(objIndex).val('') ;
-                objTagAsli.eq(objIndex).val('');
-                objWaktu.eq(objIndex).val('');
+                if (sprayBooth){
+                    // getTack(articleCode,sprayBooth,tone,objIndex);
+                    if (tone){
+                        getTack(articleCode,sprayBooth,tone,objIndex);
+                        // console.log("iko");
+                        // objTag.eq(objIndex).val(tack || 0) ;
+                        // objTagAsli.eq(objIndex).val(tack || 0);
+                        // objWaktu.eq(objIndex).val($('#wosTime').val()+":00");
+                    }else{
+                        objTag.eq(objIndex).val(0) ;
+                        objTagAsli.eq(objIndex).val(0);
+                        objWaktu.eq(objIndex).val('');
+                    }
+                }else{
+                    if (tone){
+                        swal.fire('Warning','Spraybooth belum di pilih','warning');
+                        objTone.eq(objIndex).val('').trigger('change');
+                    }
+
+                }
             }
 
 		});
@@ -470,30 +513,42 @@
         let objTagAsli = $('#article_row input[name="tagAsli[]"]');
         let objUrutan = $('#article_row input[name="urutan[]"]');
         let objWaktu = $('#article_row input[name="waktu[]"]');
-        let objTone = $('#article_row input[name="tone[]"]');
-        
-        objArticle.map(function(i) {
+        let objTone = $('#article_row select[name="tone[]"]');
+        let jumlahUrutan = objUrutan.length;
+
+        objSoCode.map(function(i) {
 		    let $this=$(this);
+            
             if ($this.val()){
-                let article=$this.val();
+                let soCode=$this.val();
                 let articleRm = objArticleRm.eq(i).val();
                 let urutan =objUrutan.eq(i).val();
-                let soCode=objSoCode.eq(i).val();
+                let article=objArticle.eq(i).val();
                 let qtyOrder=objQtyOrder.eq(i).val().replace(/,/gi, '') || 0;
                 let qtyProd=objQtyProd.eq(i).val().replace(/,/gi, '') || 0;
                 let qtyRepaint=objQtyRepaint.eq(i).val().replace(/,/gi, '') || 0;
-                let tag =objTag.eq(i).val();
-                let tagAsli = objTagAsli.eq(i).val();
-                let waktu = objWaktu.eq(i).val();
+                let tag =objTag.eq(i).val()||0;
+                let tagAsli = objTagAsli.eq(i).val()||0;
+                let waktu = objWaktu.eq(i).val()||'';
                 let tone = objTone.eq(i).val();
 
                 let obj = articles.find(obj => obj.urutan == urutan);
+
+                if(urutan == '' || urutan == 0){
+                    pesan +="Nilai urutan tidak boleh kosong atau 0 <br>"; 
+                    flag=1;
+                }
+
+                if(parseInt(urutan) > parseInt(jumlahUrutan)){
+                    pesan +=`Nilai urutan tidak boleh melebihi jumlah baris (${jumlahUrutan}) <br>`; 
+                    flag=1;
+                }
                 
-                if(obj) {
+                if( obj && flag==0) {
                     pesan +="Urutan belum sesuai !! <br>"; 
                     flag=1;
                 }else{
-                    if(article){
+                    if(soCode){
                         articles.push({
                             "urutan":urutan,
                             "so_code":soCode,
@@ -514,14 +569,19 @@
             }
         });
 
-        if (articles.length > 0){
-            articles.sort((a, b) => (a.urutan > b.urutan) ? 1 : -1);
-            $('#article_row').find('div').remove();
-            cloneCountEdit=0;
-            articles.map(function(i) {
-                add_new_row_edit(i.so_code,i.article_code,i.article_rm,i.qty_so,i.uom,i.qty_prod,i.qty_repaint,i.waktu,i.tag,i.tag_asli,i.tone);
-            })
+        if (flag == 0){
+            if (articles.length > 0){
+                articles.sort((a, b) => (a.urutan > b.urutan) ? 1 : -1);
+                $('#article_row').find('div').remove();
+                cloneCountEdit=0;
+                articles.map(function(i) {
+                    add_new_row_edit(i.so_code,i.article_code,i.article_rm,i.qty_so,i.uom,i.qty_prod,i.qty_repaint,i.waktu,i.tag,i.tag_asli,i.tone);
+                });                
+            }
+        }else{
+            Swal.fire('Warning..',pesan,'warning');
         }
+
     });
 
     efficiency.keyup(function(e){
@@ -539,7 +599,8 @@
         objWaktu.map(function(i) {  
             let $this=$(this);            
             if (i>0){
-                let nilaiTag = objTag.eq(i-1).val()*30;
+                let nilaiTag = objTag.eq(i-1).val() || 0;
+                nilaiTag = nilaiTag == 'NaN' ? 0 : nilaiTag * 30 ;
                 let currentTime = objWaktu.eq(i-1).val();
                 let currentTimeDetik = currentTime.split(':').reduce((acc,time) => (60 * acc) + +time);
                 nilaiSekarang = currentTimeDetik+nilaiTag;
