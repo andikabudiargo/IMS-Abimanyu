@@ -1689,7 +1689,8 @@ class AccountPayableController extends Controller
         $data['supplierName'] = $apInvoice->supplier_name;
         $data['nomorLpb'] = $apInvoice->list_rec;
         // $data['apDate'] = $apInvoice->ap_date ? $apInvoice->inv_date : '';
-        $data['apDate'] = $apInvoice->ap_date;
+        // $data['apDate'] = $apInvoice->ap_date;
+        $data['invDate'] = $apInvoice->inv_date;
         $data['noPo'] = $apInvoice->po_number;
 
         return view('accountPayable.print',$data);
@@ -1769,7 +1770,8 @@ class AccountPayableController extends Controller
         $data['supplierName'] = $apInvoice->supplier_name;
         $data['nomorLpb'] = $apInvoice->list_rec;
         // $data['apDate'] = $apInvoice->ap_date ? $apInvoice->inv_date : '';
-        $data['invDate'] = $apInvoice->inv_date;
+        // $data['invDate'] = $apInvoice->inv_date;
+        $data['apDate'] = $apInvoice->ap_date;
         $data['noPo'] = $apInvoice->po_number;
         $data['grandTotal'] = $apInvoice->grand_total;
         $data['accountName'] = $apInvoice->account_name;

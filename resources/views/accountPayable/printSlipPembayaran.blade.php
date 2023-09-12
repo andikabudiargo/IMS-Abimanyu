@@ -233,7 +233,7 @@
                                     <table>
                                         <tr class="tanpa-padding">
                                             <td class="tanpa-padding font-14" width="15%">Receive AP</td>
-                                            <td class="tanpa-padding font-14" width="50%">: {{ $invDate }}</td>
+                                            <td class="tanpa-padding font-14" width="50%">: {{ $apDate }}</td>
                                             <td class="tanpa-padding font-14" ></td>
                                             <td class="tanpa-padding font-14"></td>
                                         </tr>

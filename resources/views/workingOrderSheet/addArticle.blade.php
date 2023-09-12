@@ -216,6 +216,7 @@
         updatQty();
         sumData();
         cloneCount=cloneCountEdit;
+        return 'beres';
     };
 
     function changeselect(dependent,obj,isiData) {
@@ -574,15 +575,41 @@
                 articles.sort((a, b) => (a.urutan > b.urutan) ? 1 : -1);
                 $('#article_row').find('div').remove();
                 cloneCountEdit=0;
-                articles.map(function(i) {
-                    add_new_row_edit(i.so_code,i.article_code,i.article_rm,i.qty_so,i.uom,i.qty_prod,i.qty_repaint,i.waktu,i.tag,i.tag_asli,i.tone);
-                });                
+                createSort(articles,function(result){
+                    // console.log(result);
+                    if (result == 'selesai'){
+                        // splitArticle();
+                        // console.log(result);  
+                        setTimeout(() => {
+                            splitArticle();
+                            console.log(result);    
+                        }, 5000);
+                    }
+                });
+
+                // articles.map(function(i) {
+                //     add_new_row_edit(i.so_code,i.article_code,i.article_rm,i.qty_so,i.uom,i.qty_prod,i.qty_repaint,i.waktu,i.tag,i.tag_asli,i.tone);
+                // });                
             }
         }else{
             Swal.fire('Warning..',pesan,'warning');
         }
 
     });
+
+    
+    createSort=(articles,callback) => {
+        let angka = articles.length;
+        articles.map(function(i) {
+            let beres = add_new_row_edit(i.so_code,i.article_code,i.article_rm,i.qty_so,i.uom,i.qty_prod,i.qty_repaint,i.waktu,i.tag,i.tag_asli,i.tone);
+            if (beres == 'beres'){
+                angka--;
+                if (angka == 0 ){
+                    callback('selesai');
+                }
+            }            
+        });
+    }
 
     efficiency.keyup(function(e){
         sumData();
@@ -829,7 +856,6 @@
                 Swal.fire('Warning..',pesan,'warning');
             }
         }
-    
     });
 
 </script>
