@@ -117,9 +117,9 @@
                     <td style="border-bottom: 1px solid #ddd;" align="left">{{ $val->article_desc }}</td>
                     <td style="border-bottom: 1px solid #ddd;" align="right">{{ number_format($val->qty) }}</td>
                     <td style="border-bottom: 1px solid #ddd;" align="right">{{ $val->uom }}</td>
-                    <td style="border-bottom: 1px solid #ddd;" align="right">{{ number_format($val->price) }}</td>
+                    <td style="border-bottom: 1px solid #ddd;" align="right">{{ number_format($val->price,2) }}</td>
                     {{-- <td style="border-bottom: 1px solid #ddd;" align="right">{{ number_format($val->ppn) }}</td> --}}
-                    <td style="border-bottom: 1px solid #ddd;" align="right">{{ number_format(($val->qty*$val->price)) }}</td>
+                    <td style="border-bottom: 1px solid #ddd;" align="right">{{ number_format(($val->qty*$val->price),2) }}</td>
                 </tr>
             @endforeach
         </tbody>
