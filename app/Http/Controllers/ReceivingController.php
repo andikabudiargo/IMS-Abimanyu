@@ -184,7 +184,7 @@ class ReceivingController extends Controller
             $recNumber = $this->getLastCode($leadCode);
             DB::beginTransaction();
             try {
-                    DB::table('receiving_hdr')->insert([
+                    $idKu = DB::table('receiving_hdr')->insertGetId([
                         'rec_number' => $recNumber,
                         'do_number' => $doNumber,
                         'do_date' => $doDate,
@@ -203,6 +203,8 @@ class ReceivingController extends Controller
                         'created_at' => date('Y-m-d H:i:s'),
                         'updated_at' => date('Y-m-d H:i:s')
                     ]);
+
+                    $idKu = Crypt::encryptString($idKu);
 
                     $dataSet = [];
                     foreach ($articles as $val) {
@@ -229,7 +231,7 @@ class ReceivingController extends Controller
                     $message  = "$title $recNumber is successfully saved";
                     $statusRec  = $statusRec;
                     \LogActivity::addToLog($title,"username: $username Status $message");
-                    return response()->json(array('statusRec' => $statusRec, 'title' => $title, 'status' => 1, 'message' => $message,'alert'=>$alert,'recNumber'=>$recNumber));
+                    return response()->json(array('statusRec' => $statusRec, 'title' => $title, 'status' => 1, 'message' => $message,'alert'=>$alert,'recNumber'=>$recNumber,'idKu'=>$idKu));
 
             } catch (Exception $e) {
                 DB::rollBack();
@@ -1064,7 +1066,7 @@ class ReceivingController extends Controller
                     (select po, article_code,sum(qty) as qty,price from (
                         select *,(select po_number from receiving_hdr 
                                    where rec_number = a.rec_number) as po from receiving_det a where rec_number in (
-                                   select rec_number from receiving_hdr where status = '4' and po_number = '$po')
+                                   select rec_number from receiving_hdr where status <> '5' and po_number = '$po')
                     ) z
                 group by po, article_code,price) b
                 on a.po_number = b.po and a.article_code = b.article_code

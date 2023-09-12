@@ -103,14 +103,14 @@
                         <input type="text" class="form-control-plaintext text-hitam text-right" id = "qty_po" name="qty_po[]" disabled>
                     </td>
                     <td class="isian" style="width: 5%">
-                        <input type="text" class="form-control-plaintext text-hitam numeral-mask-digit text-right" id = "qty_rec" name="qty_rec[]" maxlength="11">
+                        <input type="text" class="form-control-plaintext text-hitam numeral-mask-digit text-right" autocomplete="off" id="qty_rec" name="qty_rec[]" maxlength="11">
                     </td>
                     <td class="isian" style="width: 8%">
                         <select class="form-control text-hitam" id="uom" name="uom[]">
                         </select>
                     </td>
                     <td class="isian" style="width: 5%">
-                        <input type="text" class="form-control-plaintext text-hitam numeral-mask-digit text-right" id = "qty_free" name="qty_free[]" maxlength="11" />
+                        <input type="text" class="form-control-plaintext text-hitam numeral-mask-digit text-right" autocomplete="off" id="qty_free" name="qty_free[]" maxlength="11" />
                     </td>
                     <td class="isian" style="width: 8%">
                         <select class="form-control text-hitam" id="uomFree" name="uomFree[]">

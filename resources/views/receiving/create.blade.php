@@ -130,7 +130,8 @@
                     <hr>
                     <div class="form-row">
                         <div class="col-12">
-                            <button class="btn btn-success" type="reset" id="cmdNew" name="cmdCancel">New</button>
+                            <button class="btn btn-success" type="reset" id="cmdNew" name="cmdNew">New</button>
+                            {{-- <button class="btn btn-dark" type="reset" id="cmdPrint" name="cmdPrint">Print</button> --}}
                             <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Save</button>
                             {{-- @can('receiving-posting')
                                 <button class="btn btn-dark" type="button" id="cmdPosting" name="cmdPosting">Posting</button>
@@ -157,7 +158,8 @@
         $('#statusText').text('New');
         $('#recDate').val(currentDate);
         $('#cmdSave').show();
-        $('#cmdPosting').hide();
+        // $('#cmdPosting').hide();
+        // $('#cmdPrint').hide();
     });
 
     invDate = $('#invDate');
@@ -280,7 +282,8 @@
                             }
                             $('#recNumber').attr('disabled','disabled');
                             $('#cmdSave').show();
-                            $('#cmdPosting').hide();
+                            // $('#cmdPosting').hide();
+                            // $('#cmdPrint').hide();
 
                         }else{
                             show_msg(data.title, data.message, data.alert);
@@ -288,7 +291,8 @@
                             $('#recNumber').val(data.recNumber);
                             $('#cmdSave').hide();
                             $('#cmdCancel').hide();
-                            $('#cmdPosting').show();
+                            // $('#cmdPosting').show();
+                            // $('#cmdPrint').show();
                             $('#recNumber').attr('disabled','disabled');
                             $('#cmdSave').attr('disabled','disabled');
                             $('#supplier').attr('disabled','disabled');
@@ -302,6 +306,10 @@
                             objQtyFree.attr('disabled','disabled');
                             objUomFree.attr('disabled','disabled');
 
+                            let id = data.idKu;
+                            let url = "{{ route('receiving.print', ['id'=>':id']) }}";
+                            url = url.replace('%3Aid', id);
+                            window.open(url, '_blank');
                             reloadPage();
                             
                         }
@@ -368,54 +376,6 @@
         //     mask_thousand_digit(numberOfDecimalDigit);
         // }
     }
-
-    $("#cmdPosting").click(function(){
-        let objQty= $('input[name="qty_rec[]"]');
-        let objUom= $('select[name="uom[]"]');
-        let objQtyFree= $('input[name="qty_free[]"]');
-        let objUomFree= $('select[name="uomFree[]"]');
-        let recNumber = $('#recNumber').val();            
-        $.ajax({
-            type: "post",
-            url: "{{ route('receiving.posting') }}",
-            data: {
-                recNumber:recNumber
-            },
-            dataType: "json",
-            success: function(data) {
-                if (data.status == 0 ){
-                    for(let i = 0; i < data.message.length; i++) {
-                        show_msg(data.title, data.message[i], data.alert);
-                    }
-                    $('#recNumber').attr('disabled','disabled');
-                    $('#cmdSave').show();
-                    $('#cmdPosting').hide();
-
-                }else{
-                    show_msg(data.title, data.message, data.alert);
-                    $('#statusText').text(data.statusRec);
-                    $('#cmdSave').hide();
-                    $('#deleteButton').hide();
-                    $('#cmdPosting').hide();
-                    $('#recNumber').attr('disabled','disabled');
-                    $('#poNumber').attr('disabled','disabled');
-                    $('#supplier').attr('disabled','disabled');
-                    $('#invDate').attr('disabled','disabled');
-                    $('#recDate').attr('disabled','disabled');
-                    $('#invNumber').attr('disabled','disabled');
-                    objQty.attr('disabled','disabled');
-                    objUom.attr('disabled','disabled');
-                    objQtyFree.attr('disabled','disabled');
-                    objUomFree.attr('disabled','disabled');
-                    
-                }
-            },
-            error: function(error) {
-                console.log(error);
-            }
-        });
-             
-    });
 
     $('#poNumber').change(function(){
         let value= $(this).val();
