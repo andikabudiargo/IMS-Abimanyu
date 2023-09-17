@@ -2,6 +2,7 @@
 namespace App\Helpers;
 use Request;
 use App\Models\LogActivity as LogActivityModel;
+use DB;
 
 class LogActivity
 {
@@ -20,6 +21,6 @@ class LogActivity
 
     public static function logActivityLists()
     {
-    	return LogActivityModel::latest()->get();
+    	return LogActivityModel::where('created_at','>',db::raw("CURRENT_DATE - INTERVAL '1 months'"))->latest()->get();
     }
 }
