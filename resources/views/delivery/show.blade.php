@@ -43,13 +43,17 @@
                                                 <input type="text" id="dnNumber" name="dnNumber" class="form-control text-hitam disabled-el" value="{{ $header2->delivery_number }}" disabled />
                                             </div>
                                             <div class="form-group col-md-2">
-                                                <label for="dnDate">Delivery Date*</label>
+                                                <label for="dnDate">Delivery Date</label>
                                                 <input type="text" id="dnDate" name="dnDate" class="form-control" placeholder="DD-MM-YYYY" value="{{ $header2->delivery_date }}" disabled />
+                                            </div>
+                                            <div class="form-group col-md-3">
+                                                <label for="poNumber">PO Number</label>
+                                                <input type="text" id="poNumber" name="poNumber" class="form-control" placeholder="DD-MM-YYYY" value="{{ $header2->po_number }}" disabled />
                                             </div>                               
                                         </div>
                                         <div class="form-row">
                                             <div class="form-group col-md-5">
-                                                <label class="form-label" for="customer">Customer*</label>
+                                                <label class="form-label" for="customer">Customer</label>
                                                 <select class="select2 form-control" id="customer" name="customer" disabled>
                                                     {{-- <option value="">All</option> --}}
                                                     @foreach($customers as $val)
@@ -57,13 +61,13 @@
                                                     @endforeach
                                                 </select>
                                             </div>
-                                            <div class="form-group col-md-4">
+                                            <div class="form-group col-md-3">
                                                 <label class="form-label" for="soNumber">SO Number*</label>
                                                 <input type="text" id="soNumber" name="soNumber" class="form-control" value="{{ $header2->so_number }}" disabled />
                                             </div>
                                         </div>
                                         <div class="form-row">
-                                            <div class="form-group col-md-9">
+                                            <div class="form-group col-md-8">
                                                 <label class="form-label" for="note">Notes</label>
                                                 <textarea type="text" id="note" name="note" class="form-control" rows="1" disabled>{{ $header2->note }}</textarea>
                                             </div>

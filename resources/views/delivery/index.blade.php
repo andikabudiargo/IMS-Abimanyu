@@ -124,7 +124,7 @@
       showList();
   });
 
-  rangePickr = $('.flatpickr-range');
+  let rangePickr = $('.flatpickr-range');
   if (rangePickr.length) {
     rangePickr.flatpickr({
       dateFormat: "d-m-Y",
@@ -164,7 +164,7 @@
         searchStatus:searchStatus,
         dnDate:dnDate
       },
-      orderColumn:[[ 3, 'asc' ],[ 2, 'asc' ]],
+      orderColumn:[[ 2, 'asc' ],[ 3, 'asc' ]],
       excelFileName:'delivery_note'
     });
   }

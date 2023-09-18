@@ -56,7 +56,7 @@ class DeliveryReceiptController extends Controller
             ['data'=>'dr_date','name'=>'dr_date','title'=>'Received At'],            
             ['data'=>'submittedBy','name'=>'submittedBy','title'=>'Submitted By'],
             ['data'=>'submitted_at','name'=>'submitted_at','title'=>'Submitted At'],
-            ['data'=>'note','name'=>'note','title'=>'Note'],
+            ['data'=>'notesku','name'=>'notesku','title'=>'Note'],
             ['data'=>'created_by','name'=>'created_by','title'=>'Created By'],
             ['data'=>'created_at','name'=>'created_at','title'=>'Created At'],
         ];
@@ -426,7 +426,7 @@ class DeliveryReceiptController extends Controller
         ->where(function ($query) use ($searchDn,$drDate,$searchStatus,$fromDate,$toDate,$searchStatusDn) {
             $searchDn ? $query->where('delivery_hdr.delivery_number','ilike','%'.$searchDn.'%') : '';
             $searchStatus ? $query->where('dn_receipt.status',$searchStatus) : '';
-            $drDate ? $query->whereBetween(DB::raw("to_date(dn_receipt.dr_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
+            $drDate ? $query->whereBetween(DB::raw("to_date(dn_receipt.dr_date,'YYYY-MM-DD')"), [$fromDate, $toDate]) : '';
             $searchStatusDn ? $query->where('delivery_hdr.status',$searchStatusDn) : '';
             
         })
@@ -440,6 +440,7 @@ class DeliveryReceiptController extends Controller
         ,'a.name as receivedBy'
         ,'dn_receipt.status as statusKu'
         ,'dn_receipt.id as idku'
+        ,'dn_receipt.note as notesku'
         // ,'delivery_hdr.delivery_number as delivery_number_1'
         // ,DB::raw("concat(kode,'-',nama) as customer_name")
         )

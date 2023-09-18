@@ -95,13 +95,13 @@
       showList();
   });
 
-  // rangePickr = $('.flatpickr-range');
-  // if (rangePickr.length) {
-  //   rangePickr.flatpickr({
-  //     dateFormat: "d-m-Y",
-  //     mode: 'range'
-  //   });
-  // }
+  let rangePickr = $('.flatpickr-range');
+  if (rangePickr.length) {
+    rangePickr.flatpickr({
+      dateFormat: "d-m-Y",
+      mode: 'range'
+    });
+  }
 
   $("#btnSearch").click(function(e){
     let searchDn = $("#searchDn").val();
