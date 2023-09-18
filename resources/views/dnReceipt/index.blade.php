@@ -30,6 +30,11 @@
                 <input type="text" id="drDate" name="drDate" class="form-control flatpickr-range" placeholder="YYYY-MM-DD to YYYY-MM-DD" />
               </div>
 
+              <div class="col-md-3 form-group">
+                <label for="dnDate">Delivery Date</label>
+                <input type="text" id="dnDate" name="dnDate" class="form-control flatpickr-range" placeholder="YYYY-MM-DD to YYYY-MM-DD" />
+              </div>
+
               <div class="form-group col-md-2"> 
                 <label class="form-label" for="searchStatus">Delivery Status</label>
                 <select class="select2 form-control" id="searchStatus" name="searchStatus">
@@ -106,11 +111,12 @@
   $("#btnSearch").click(function(e){
     let searchDn = $("#searchDn").val();
     let drDate = $("#drDate").val();
+    let dnDate = $("#dnDate").val();
     let searchStatus = $("#searchStatus").val();
     showList(searchDn,drDate,searchStatus);
   });
 
-  const showList = (searchDn,drDate,searchStatus) => {
+  const showList = (searchDn,drDate,searchStatus,dnDate) => {
     if ($('#detailedTable tr').length >0){
         let table= $('#detailedTable').DataTable();
         table.destroy();
@@ -129,7 +135,8 @@
       dataSearch:  {
         searchDn:searchDn,
         drDate:drDate,
-        searchStatus:searchStatus
+        searchStatus:searchStatus,
+        dnDate:dnDate
       },
       orderColumn:[[ 3, 'desc' ],[ 1, 'asc' ]],
       excelFileName:'dn_receive'

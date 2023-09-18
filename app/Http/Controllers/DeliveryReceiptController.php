@@ -386,7 +386,8 @@ class DeliveryReceiptController extends Controller
     {
         $searchDn = strtolower($request->searchDn);
         $searchStatus = $request->searchStatus;
-        $drDate = $request->drDate;       
+        $drDate = $request->drDate;
+        $dnDate = $request->dnDate;
         $searchStatusDn = '';
 
         if($searchStatus == '0'){
@@ -406,6 +407,8 @@ class DeliveryReceiptController extends Controller
 
         $fromDate ="";
         $toDate = "";
+        $fromDateDn ="";
+        $toDateDn = "";
  
         if ($drDate){
             $date = explode("to",$drDate);
@@ -418,16 +421,28 @@ class DeliveryReceiptController extends Controller
             }
         }
 
+        if ($dnDate){
+            $dateDn = explode("to",$dnDate);
+            if(count($dateDn)>1){
+                $fromDateDn = implode("/", array_reverse(explode("-", trim($dateDn[0]))));
+                $toDateDn = implode("/", array_reverse(explode("-", trim($dateDn[1]))));
+            }else{
+                $fromDateDn = implode("/", array_reverse(explode("-", trim($dateDn[0]))));
+                $toDateDn = $fromDateDn; 
+            }
+        }
+
         $data = DB::table('delivery_hdr')
         ->leftJoin('third_party','third_party.kode','delivery_hdr.customer_id')
         ->leftJoin('dn_receipt','dn_receipt.delivery_number','delivery_hdr.delivery_number')
         ->leftJoin('users as a','dn_receipt.received_by','a.username')
         ->leftJoin('users as b','dn_receipt.submitted_by','b.username')
-        ->where(function ($query) use ($searchDn,$drDate,$searchStatus,$fromDate,$toDate,$searchStatusDn) {
+        ->where(function ($query) use ($searchDn,$drDate,$searchStatus,$fromDate,$toDate,$searchStatusDn,$dnDate,$fromDateDn,$toDateDn) {
             $searchDn ? $query->where('delivery_hdr.delivery_number','ilike','%'.$searchDn.'%') : '';
             $searchStatus ? $query->where('dn_receipt.status',$searchStatus) : '';
             $drDate ? $query->whereBetween(DB::raw("to_date(dn_receipt.dr_date,'YYYY-MM-DD')"), [$fromDate, $toDate]) : '';
             $searchStatusDn ? $query->where('delivery_hdr.status',$searchStatusDn) : '';
+            $dnDate ? $query->whereBetween(DB::raw("to_date(delivery_hdr.delivery_date,'YYYY-MM-DD')"), [$fromDateDn, $toDateDn]) : '';
             
         })
         ->whereIn('delivery_hdr.status',['4','8'])
