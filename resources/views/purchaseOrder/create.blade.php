@@ -208,7 +208,7 @@
 @section('scripts')
 @include('purchaseOrder.addArticle')
 <script type="text/javascript">
-    let cloneCount=1;
+    let cloneCount=0;
 
     $(document).ready(function(){           
         validateFormToast("frmAdd");

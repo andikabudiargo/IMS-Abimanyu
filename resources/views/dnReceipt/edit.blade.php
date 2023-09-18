@@ -16,45 +16,37 @@
                 </div>
                 <div class="card-content collapse show">
                     <div class="card-body">
-                        <form id="frmAdd" name="frmAdd" action="{{ route('dnReceipt.store') }}" method="post" autocomplete="off">
+                        <form id="frmAdd" name="frmAdd" action="{{ route('dnReceipt.update') }}" method="post" autocomplete="off">
                             @csrf
                             <div class="form-row">
                                 <div class="form-group col-md-3">
                                     <label for="drNumber">Receipt Number</label> <small class="text-muted"> automatic</small>
-                                    <input type="text" id="drNumber" name="drNumber" value= "{{ $drNumber }}"class="form-control text-hitam disabled-el"  disabled />
+                                    <input type="text" id="drNumber" name="drNumber" value= "{{ $dnReceipt->dr_number }}"class="form-control text-hitam disabled-el"  disabled />
                                 </div>
                             </div>
                             <div class="form-row">
-                                <div class="form-group col-md-3">
+                                <div class="form-group col-md-5">
                                     <label class="form-label" for="dnNumber">DN Number*</label>
-                                    <input type="hidden" id="deliveryDate" name="deliveryDate" value="{{ old('deliveryDate',$dnDate) }}"/>
-                                    <input type="text" id="dnNumber" name="dnNumber" value= "{{ old('dnNumber',$dnNumber) }}" class="form-control text-hitam disabled-el"  disabled />
-                                    {{-- <select class="select2 form-control" id="dnNumber" name="dnNumber" value="{{ old('dnNumber') }}" required>
-                                        <option value=""></option>
-                                        @foreach($delivery as $val)
-                                            <option value="{{ $val->delivery_number }}" 
-                                                {{ $val->delivery_number == old('dnNumber') ? "selected":"" }}
-                                                data-tanggal={{ $val->delivery_date }} >{{ $val->delivery_date }} - {{ $val->delivery_number }}</option>
-                                        @endforeach
-                                    </select> --}}
+                                    <input type="hidden" id="deliveryDate" name="deliveryDate" value="{{ $dnReceipt->delivery_date }}" />
+                                    <input type="text" id="dnNumber" name="dnNumber" value= "{{ $dnReceipt->delivery_number }}" class="form-control text-hitam disabled-el"  disabled />
                                 </div>
                             </div>
                             <div class="form-row">
                                 <div class="form-group col-md-3">
                                     <label class="form-label" for="receiveBy">Received by*</label>
-                                    <select class="select2 form-control" id="receiveBy" name="receiveBy" required>
+                                    <select class="select2 form-control" id="receiveBy" name="receiveBy" disabled>
                                         <option value=""></option>
                                         @foreach($users as $val)
-                                            <option value="{{ $val->username }}" {{ $val->username == old('receiveBy') ? "selected":"" }} >{{ $val->name }}</option>
+                                            <option value="{{ $val->username }}" {{ $val->username == old('receiveBy',$dnReceipt->received_by) ? "selected":"" }} >{{ $val->name }}</option>
                                         @endforeach
                                     </select>
                                 </div>
                                 <div class="form-group col-md-2">
                                     <label for="receiveAt">Receipt At*</label>
-                                    <input type="text" id="receiveAt" name="receiveAt" value="{{ old('receiveAt') }}" class="form-control tanggal" placeholder="DD-MM-YYYY" required />
+                                    <input type="text" id="receiveAt" name="receiveAt" value="{{ old('receiveAt',$drDate) }}" class="form-control" placeholder="DD-MM-YYYY" disabled />
                                 </div>                               
                             </div>
-                            {{-- <div class="form-row">
+                            <div class="form-row">
                                 <div class="form-group col-md-3">
                                     <label class="form-label" for="submitBy">Submitted by*</label>
                                     <select class="select2 form-control" id="submitBy" name="submitBy" required>
@@ -68,18 +60,18 @@
                                     <label for="submitAt">Submit At*</label>
                                     <input type="text" id="submitAt" name="submitAt" value="{{ old('submitAt') }}" class="form-control tanggal" placeholder="DD-MM-YYYY" required />
                                 </div>                               
-                            </div> --}}
+                            </div>
                             <div class="form-row">
                                 <div class="form-group col-md-5">
                                     <label class="form-label" for="note">Notes</label>
-                                    <textarea type="text" id="note" name="note" class="form-control" rows="1" >{{ old('note') }}</textarea>
+                                    <textarea type="text" id="note" name="note" class="form-control" rows="1" >{{ old('note',$dnReceipt->note) }}</textarea>
                                 </div>
                             </div>
                             <hr>
                             <div class="form-row">
                                 <div class="col-12">
                                     <a href="{{ route('dnReceipt.index') }}" class="btn btn-light">Back</a>
-                                    <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Save</button>
+                                    <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Submit</button>
                                 </div>
                             </div>
                         </form>
@@ -108,51 +100,37 @@
     const deliveryDate = $('#deliveryDate');
     const dnNumber = $('#dnNumber');
     const cmdSave = $('#cmdSave');
-    // const submitAt = $('#submitAt');
-    // const submitBy = $('#submitBy');
+    const submitAt = $('#submitAt');
+    const submitBy = $('#submitBy');
     const receiveBy = $('#receiveBy');
     const receiveAt = $('#receiveAt');
     const tanggal = $('.tanggal');
 
     $(document).ready(function(){
         validateFormToast("frmAdd");
-        let minDate = "{{ $dnDate }}";
-        if (tanggal.length) {
-            
-            tanggal.flatpickr({
-                dateFormat: "d-m-Y",
-                minDate: minDate
-            });
-            receiveAt.val(currentDate);
-            // submitAt.val(currentDate);
-        }
     });
         
-    // dnNumber.change(function(){
-    //     let minDate = $(this).find(":selected").data("tanggal");
-    //     if (tanggal.length) {
-    //         tanggal.flatpickr({
-    //             dateFormat: "d-m-Y",
-    //             minDate: minDate
-    //         });
-    //         receiveAt.val(currentDate);
-    //         submitAt.val(currentDate);
-    //     }
-    // });
+
+    let minDate = "{{ $dnReceipt->dr_date }}";
+    if (tanggal.length) {   
+        tanggal.flatpickr({
+            dateFormat: "d-m-Y",
+            minDate: minDate
+        });
+        submitAt.val(currentDate);
+    }
 
     cmdSave.click(function(){    
         let pesan = "";
+        let submitDate = new Date(submitAt.val().split('-').reverse().join('-'));
         let receiptDate = new Date(receiveAt.val().split('-').reverse().join('-'));
-        // let submitDate = new Date(submitAt.val().split('-').reverse().join('-'));
-
-        // pesan += submitBy.val() === receiveBy.val() ? "Petugas tidak boleh sama" : "";
-        // pesan += receiptDate < submitDate ? "Tanggal terima salah" : "";
         
+        pesan += submitBy.val() === receiveBy.val() ? "Petugas tidak boleh sama" : "";
+        pesan += receiptDate > submitDate ? "Submit Date > Receipt Date" : "";
 
         if (pesan){
             Swal.fire('Warning..',pesan,'warning');
         }else{
-            // deliveryDate.val(dnNumber.find(":selected").data("tanggal"));
             $('.disabled-el').removeAttr('disabled');
             $("#frmAdd").submit(); // Submit the form
         }

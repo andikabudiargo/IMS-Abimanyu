@@ -27,18 +27,35 @@ class DeliveryReceiptController extends Controller
 
     public function getTableColoumn()
     {
+        // $kolom=
+        // [
+        //     ['data'=>'action','name'=>'action','title'=>'action', 'orderable'=> false,'searchable'=>false],
+        //     ['data'=>'dr_number','name'=>'dr_number','title'=>'DR Number'],
+        //     ['data'=>'dr_date','name'=>'dr_date','title'=>'DR Date'],
+        //     ['data'=>'delivery_number','name'=>'delivery_number','title'=>'DN Number'],
+        //     ['data'=>'delivery_date','name'=>'delivery_date','title'=>'DN Date'],
+        //     ['data'=>'submittedBy','name'=>'submittedBy','title'=>'Submitted By'],
+        //     ['data'=>'submitted_at','name'=>'submitted_at','title'=>'Submitted At'],
+        //     ['data'=>'receivedBy','name'=>'receivedBy','title'=>'Received By'],
+        //     ['data'=>'dr_date','name'=>'dr_date','title'=>'Received At'],            
+        //     ['data'=>'status','name'=>'status','title'=>'Status'],
+        //     ['data'=>'note','name'=>'note','title'=>'Note'],
+        //     ['data'=>'created_by','name'=>'created_by','title'=>'Created By'],
+        //     ['data'=>'created_at','name'=>'created_at','title'=>'Created At'],
+        // ];
+
         $kolom=
         [
             ['data'=>'action','name'=>'action','title'=>'action', 'orderable'=> false,'searchable'=>false],
-            ['data'=>'dr_number','name'=>'dr_number','title'=>'DR Number'],
-            ['data'=>'dr_date','name'=>'dr_date','title'=>'DR Date'],
             ['data'=>'delivery_number','name'=>'delivery_number','title'=>'DN Number'],
             ['data'=>'delivery_date','name'=>'delivery_date','title'=>'DN Date'],
-            ['data'=>'submittedBy','name'=>'submittedBy','title'=>'Submitted By'],
-            ['data'=>'submitted_at','name'=>'submitted_at','title'=>'Submitted At'],
+            ['data'=>'statusKu','name'=>'statusKu','title'=>'Status'],
+            ['data'=>'dr_number','name'=>'dr_number','title'=>'DR Number'],
+            ['data'=>'dr_date','name'=>'dr_date','title'=>'DR Date'],
             ['data'=>'receivedBy','name'=>'receivedBy','title'=>'Received By'],
             ['data'=>'dr_date','name'=>'dr_date','title'=>'Received At'],            
-            ['data'=>'status','name'=>'status','title'=>'Status'],
+            ['data'=>'submittedBy','name'=>'submittedBy','title'=>'Submitted By'],
+            ['data'=>'submitted_at','name'=>'submitted_at','title'=>'Submitted At'],
             ['data'=>'note','name'=>'note','title'=>'Note'],
             ['data'=>'created_by','name'=>'created_by','title'=>'Created By'],
             ['data'=>'created_at','name'=>'created_at','title'=>'Created At'],
@@ -51,7 +68,7 @@ class DeliveryReceiptController extends Controller
         $data['title'] = $this->title;
         $data['kolom'] = $this->getTableColoumn();
 
-        $data['status'] = ['1'=>'ACTIVE','2'=>'CANCELED'];
+        $data['status'] = ['0'=>'POSTED','1'=>'RECEIVED','2'=>'SUBMITTED','5'=>'CANCELED'];
             
         return view("dnReceipt.index",$data);
     }
@@ -82,23 +99,30 @@ class DeliveryReceiptController extends Controller
     {
         $data['title'] = "Create $this->title";
         $data['subtitle'] = "Create $this->title";
+
+        $username =  Auth::user()->username;       
+        $id=Crypt::decryptString($request->id);
+        $dn = DB::table('delivery_hdr')->where('id',$id)->first();
         
         $data['users'] = DB::table('users')
         ->where ('status','=','1')
         ->orderBy('name')
         ->get();
 
-        $data['delivery'] = DB::table('delivery_hdr')
-        ->where ('status','=','4')
-        ->whereNotIn('delivery_number', function($query) {
-            $query->select('delivery_number')
-            ->from('dn_receipt') 
-            ->where('status', '=','1');
-        })
-        ->orderBy('delivery_date')
-        ->get();
+        // $data['delivery'] = DB::table('delivery_hdr')
+        // ->where ('status','=','4')
+        // ->whereNotIn('delivery_number', function($query) {
+        //     $query->select('delivery_number')
+        //     ->from('dn_receipt') 
+        //     ->where('status', '=','1');
+        // })
+        // ->orderBy('delivery_date')
+        // ->get();
 
         $data['drNumber'] ="";
+        $data['dnNumber'] =$dn->delivery_number;
+        $data['dnDate'] =$dn->delivery_date;
+        
 
         return view("dnReceipt.create",$data);
     }
@@ -108,14 +132,14 @@ class DeliveryReceiptController extends Controller
         $username =  Auth::user()->username;
         $deliveryDate = $request->deliveryDate;
         $dnNumber = $request->dnNumber;
-        $submitAt = $request->submitAt ? date('Y-m-d', strtotime($request->submitAt)) : '';
-        $submitBy = $request->submitBy;
+        // $submitAt = $request->submitAt ? date('Y-m-d', strtotime($request->submitAt)) : '';
+        // $submitBy = $request->submitBy;
         $receiveBy = $request->receiveBy;
         $receiveAt = $request->receiveAt ? date('Y-m-d', strtotime($request->receiveAt)) : '';
         $note = $request->note;
         $status = '1';
        
-        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED'];
+        // $data['status'] = ['1'=>'RECEIVED','2'=>'SUBMITED','3'=>'','4'=>'','5'=>'CANCELED'];
 
         $messages = [
             'required' => 'The field is required.',
@@ -131,8 +155,8 @@ class DeliveryReceiptController extends Controller
 
         $validation = Validator::make($request->all(),$messages = [
             'dnNumber' => 'required',
-            'submitAt' => 'required',
-            'submitBy' => 'required',
+            // 'submitAt' => 'required',
+            // 'submitBy' => 'required',
             'receiveBy' => 'required',
             'receiveAt' => 'required'
         ]);
@@ -156,8 +180,8 @@ class DeliveryReceiptController extends Controller
                         'dr_date' => $receiveAt,
                         'delivery_number' => $dnNumber,
                         'delivery_date' => $deliveryDate ,
-                        'submitted_at' => $submitAt,
-                        'submitted_by' => $submitBy,
+                        // 'submitted_at' => $submitAt,
+                        // 'submitted_by' => $submitBy,
                         'received_by' => $receiveBy,
                         'status' => $status,
                         'note' => $note,
@@ -185,7 +209,7 @@ class DeliveryReceiptController extends Controller
                     $alert  ="success";
                     $message  = "$title $drNumber is successfully saved";
                     \LogActivity::addToLog($title,"username: $username Status $message");
-                    return redirect()->back()->with(['alert'=>$alert,'message'=> $message,'drNumber'=> $drNumber]);
+                    return redirect()->route('dnReceipt.index')->with(['alert'=>$alert,'message'=> $message,'drNumber'=> $drNumber]);
 
             } catch (Exception $e) {
                 DB::rollBack();
@@ -193,7 +217,121 @@ class DeliveryReceiptController extends Controller
                 $alert  ="warning";
                 $message  = "$title $drNumber is failed to save";
                 \LogActivity::addToLog($title,"username: $username Status $message");
-                return redirect()->back()->with(['alert'=>$alert,'message'=> $message,'drNumber'=> $drNumber]);
+                return redirect()->route('dnReceipt.index')->with(['alert'=>$alert,'message'=> $message,'drNumber'=> $drNumber]);
+            }
+        }
+    }
+
+    public function edit(Request $request)
+    {
+        $data['title'] = "Create $this->title";
+        $data['subtitle'] = "Create $this->title";
+
+        $username =  Auth::user()->username;       
+        $id=Crypt::decryptString($request->id);
+        
+        $data['users'] = DB::table('users')
+        ->where ('status','=','1')
+        ->orderBy('name')
+        ->get();
+
+        $data['dnReceipt'] = DB::table('dn_receipt')
+        ->where ('id','=',$id)
+        ->first();
+
+        $data['drDate'] = date('d-m-Y', strtotime($data['dnReceipt']->dr_date));
+        
+        return view("dnReceipt.edit",$data);
+    }
+
+    public function update(Request $request)
+    {
+        $username =  Auth::user()->username;
+        // $deliveryDate = $request->deliveryDate;
+        // $dnNumber = $request->dnNumber;
+        $drNumber= $request->drNumber;
+        $submitAt = $request->submitAt ? date('Y-m-d', strtotime($request->submitAt)) : '';
+        $submitBy = $request->submitBy;
+        // $receiveBy = $request->receiveBy;
+        // $receiveAt = $request->receiveAt ? date('Y-m-d', strtotime($request->receiveAt)) : '';
+        $note = $request->note;
+        $status = '2';
+       
+        // $data['status'] = ['1'=>'RECEIVED','2'=>'SUBMITED','3'=>'','4'=>'','5'=>'CANCELED'];
+
+        $messages = [
+            'required' => 'The field is required.',
+            'unique' => 'The code has already been taken', 
+            // 'iunique' => "PO Number has already been taken",
+        ];
+        
+        Validator::extend('iunique', function ($attribute, $value, $parameters, $validator) {
+            $query = DB::table($parameters[0]);
+            $column = $query->getGrammar()->wrap($parameters[1]);
+            return !$query->whereRaw("lower({$column}) = lower(?)", [$value])->count();
+        });
+
+        $validation = Validator::make($request->all(),$messages = [
+            // 'dnNumber' => 'required',
+            'submitAt' => 'required',
+            'submitBy' => 'required',
+            // 'receiveBy' => 'required',
+            // 'receiveAt' => 'required'
+        ]);
+        
+        $error_array = array();
+        $success_output = '';
+        if ($validation->fails()){
+            foreach ($validation->messages()->getMessages() as $field_name => $messages){
+                $error_array[] = $messages;
+            }
+            $title="Submit  $this->title";
+            $alert ="error";
+            return response()->json(array('status' => 0,'title' => $title, 'message' => $error_array,'alert' =>$alert));
+        }else{
+            
+            DB::beginTransaction();
+            try {
+                    $rowAffected = DB::table('dn_receipt')
+                    ->where('dr_number',$drNumber)
+                    ->update(
+                        [
+                            'submitted_at' => $submitAt,
+                            'submitted_by' => $submitBy,
+                            'status' => $status,
+                            'note' => $note,
+                            'updated_by' => Auth::user()->username,
+                            'updated_at' => date('Y-m-d H:i:s')
+                        ]
+                    );
+                     
+                    // if ($rowAffected){
+                    //     DB::table('delivery_hdr')
+                    //     ->where('delivery_number',$dnNumber)
+                    //     ->update(
+                    //         [
+                    //             'status'=> '8',
+                    //             'updated_by' => Auth::user()->username,
+                    //             'updated_at' => date('Y-m-d H:i:s')
+                    //         ]
+                    //     );
+                    //     \LogActivity::addToLog('Delivery update',"username: $username Status Delivery update by receipt DN");
+                    // }
+
+                    DB::commit();
+                    $title ="Submit $this->title";
+                    $alert  ="success";
+                    $message  = "$title $drNumber is successfully submitted";
+                    \LogActivity::addToLog($title,"username: $username Status $message");
+                    return redirect()->route('dnReceipt.index')->with(['alert'=>$alert,'message'=> $message,'drNumber'=> $drNumber]);
+
+            } catch (Exception $e) {
+                DB::rollBack();
+                $title ="Submit $this->title";
+                $alert  ="warning";
+                $message  = "$title $drNumber is failed to sybmit";
+                \LogActivity::addToLog($title,"username: $username Status $message");
+                return redirect()->route('dnReceipt.index')->with(['alert'=>$alert,'message'=> $message,'drNumber'=> $drNumber]);
             }
         }
     }
@@ -246,58 +384,127 @@ class DeliveryReceiptController extends Controller
 
     public function list(Request $request)
     {
-        // $searchInv = strtolower($request->searchInv);
-        // $searchSo = strtolower($request->searchSo);
-        // $searchCustomer = $request->searchCustomer; 
-        // $searchStatus = $request->searchStatus;
-        // $recDate = $request->recDate;       
+        $searchDn = strtolower($request->searchDn);
+        $searchStatus = $request->searchStatus;
+        $drDate = $request->drDate;       
+        $searchStatusDn = '';
 
-        $data = DB::table('dn_receipt')
+        if($searchStatus == '0'){
+            $searchStatusDn = '4';
+        } 
+
+        // $data = DB::table('dn_receipt')
+        // ->leftJoin('users as a','dn_receipt.received_by','a.username')
+        // ->leftJoin('users as b','dn_receipt.submitted_by','b.username')
+        // // ->where(function ($query) use ($searchPrd,$searchWos) {
+        // //     $searchPrd ? $query->where('prod_code','ilike','%'.$searchPrd.'%') : '';
+        // //     $searchPrd ? $query->where('wo_code','ilike','%'.$searchWos.'%') : '';
+        // // })
+        // // ->where('production_hdr.status','<>', '7')
+        // ->select('dn_receipt.*','b.name as submittedBy','a.name as receivedBy')
+        // ->get(); 
+
+        $fromDate ="";
+        $toDate = "";
+ 
+        if ($drDate){
+            $date = explode("to",$drDate);
+            if(count($date)>1){
+                $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+                $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
+            }else{
+                $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+                $toDate = $fromDate; 
+            }
+        }
+
+        $data = DB::table('delivery_hdr')
+        ->leftJoin('third_party','third_party.kode','delivery_hdr.customer_id')
+        ->leftJoin('dn_receipt','dn_receipt.delivery_number','delivery_hdr.delivery_number')
         ->leftJoin('users as a','dn_receipt.received_by','a.username')
         ->leftJoin('users as b','dn_receipt.submitted_by','b.username')
-        // ->where(function ($query) use ($searchPrd,$searchWos) {
-        //     $searchPrd ? $query->where('prod_code','ilike','%'.$searchPrd.'%') : '';
-        //     $searchPrd ? $query->where('wo_code','ilike','%'.$searchWos.'%') : '';
-        // })
-        // ->where('production_hdr.status','<>', '7')
-        ->select('dn_receipt.*','b.name as submittedBy','a.name as receivedBy')
-        ->get(); 
+        ->where(function ($query) use ($searchDn,$drDate,$searchStatus,$fromDate,$toDate,$searchStatusDn) {
+            $searchDn ? $query->where('delivery_hdr.delivery_number','ilike','%'.$searchDn.'%') : '';
+            $searchStatus ? $query->where('dn_receipt.status',$searchStatus) : '';
+            $drDate ? $query->whereBetween(DB::raw("to_date(dn_receipt.dr_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
+            $searchStatusDn ? $query->where('delivery_hdr.status',$searchStatusDn) : '';
+            
+        })
+        ->whereIn('delivery_hdr.status',['4','8'])
+        ->select('delivery_hdr.*'
+        ,'dn_receipt.dr_date'
+        ,'dn_receipt.dr_number'
+        ,'dn_receipt.dr_number'
+        ,'b.name as submittedBy'
+        ,'dn_receipt.submitted_at'
+        ,'a.name as receivedBy'
+        ,'dn_receipt.status as statusKu'
+        ,'dn_receipt.id as idku'
+        // ,'delivery_hdr.delivery_number as delivery_number_1'
+        // ,DB::raw("concat(kode,'-',nama) as customer_name")
+        )
+        ->orderBy('id')
+        ->get();
 
         return Datatables::of($data)
         ->addColumn('action', function ($data) {
-            if ( $data->status == '1' ){
+            // if ( $data->status == '1' ){
             $buttons = '<div class="d-inline-flex">
                             <a class="pr-1 dropdown-toggle hide-arrow text-primary" data-toggle="dropdown">
                                 <i data-feather="menu"></i>
                             </a>';
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
-                
-            if (Auth::user()->can('workingOrder-delete')) {
-                $buttons .=         "<a href='javascript:;'
-                                    class='dropdown-item' 
-                                    data-size='sm'
-                                    data-ajax-delete='true'
-                                    data-confirm='Are You Sure want to Cancel?|This action can not be undone. Do you want to continue?' 
-                                    data-confirm-yes='document.getElementById(\""."delete-form-".$data->id."\").submit();'
-                                    data-modal-id='".$data->id."'
-                                    data-url='". route('dnReceipt.destroy', ['id'=>Crypt::encryptString($data->id)]) ."'>
-                                    <i data-feather='trash-2' class='feather-14-red'></i>
-                                    <span>". __('Cancel') ."</span>
-                                </a>";
+
+            if ( $data->status == '4') {
+                if (Auth::user()->can('dnReceipt-create')) {
+                $buttons .=         '<a href="'. route('dnReceipt.create', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+                                        <i data-feather="file-text"></i>
+                                        <span>'. __("Receive") .'</span>
+                                    </a>';
+                }
             }
+
+            if ($data->statusKu == '1'){
+                if (Auth::user()->can('dnReceipt-edit')) {
+                $buttons .=         '<a href="'. route('dnReceipt.edit', ['id'=>Crypt::encryptString($data->idku)]) .'" class="dropdown-item">
+                                        <i data-feather="file-text"></i>
+                                        Submit
+                                    </a>';
+                }
+            }
+                
+            // if (Auth::user()->can('dnReceipt-delete')) {
+            //     $buttons .=         "<a href='javascript:;'
+            //                         class='dropdown-item' 
+            //                         data-size='sm'
+            //                         data-ajax-delete='true'
+            //                         data-confirm='Are You Sure want to Cancel?|This action can not be undone. Do you want to continue?' 
+            //                         data-confirm-yes='document.getElementById(\""."delete-form-".$data->id."\").submit();'
+            //                         data-modal-id='".$data->id."'
+            //                         data-url='". route('dnReceipt.destroy', ['id'=>Crypt::encryptString($data->id)]) ."'>
+            //                         <i data-feather='trash-2' class='feather-14-red'></i>
+            //                         <span>". __('Cancel') ."</span>
+            //                     </a>";
+            // }
 
             $buttons .=     '</div>
                         </div>';
 
             return $buttons;
+            // }
+        })
+        ->addColumn('statusKu', function ($data) {
+            $badges=['badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-danger'];
+            // $data['status'] = ['1'=>'Received','2'=>'Submited','3'=>'','4'=>'','5'=>'CANCELED'];
+            $statusList = ['RECEIVED','SUBMITTED','','','CANCELED'];
+            if ($data->statusKu){
+                return "<div class='badge ".$badges[$data->statusKu - 1]."'>".$statusList[$data->statusKu - 1]."</div>";
+            }else{
+                return "<div class='badge badge-primary'>POSTED</div>";
             }
+            
         })
-        ->addColumn('status', function ($data) {
-            $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-danger'];            
-            $statusDel = ['ACTIVE','DELETED'];
-            return "<div class='badge ".$badges[$data->status - 1]."'>".$statusDel[$data->status - 1]."</div>";
-        })
-        ->rawColumns(['action','status'])
+        ->rawColumns(['action','statusKu'])
         ->make(true);
     }
 

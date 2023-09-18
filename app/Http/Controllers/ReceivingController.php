@@ -470,7 +470,7 @@ class ReceivingController extends Controller
         $todayDate = date('Y-m-d');
         
         if ($recNumber){
-            $data = DB::table('receiving_det')
+            $data = DB::table('receiving_det1')
             ->leftJoin('receiving_hdr','receiving_hdr.rec_number','receiving_det.rec_number')
             ->leftJoin('article','article.article_code','receiving_det.article_code')
             ->where('receiving_det.rec_number',$recNumber)
@@ -485,26 +485,28 @@ class ReceivingController extends Controller
 
             foreach($data as $val){
                 //insert article code kalo belum ada di tabel item_stock
-                DB::table('article_stock')
-                ->updateOrInsert(
-                    [ 'site_code' =>$siteCode,
-                      'article_code' => $val->article_code,
-                      'location_number'=> $location
-                    ],
-                    [
-                      'dept_code'=>$val->article_type,
-                      'uom'=>$val->uom_article,
-                    ]
-                );
-
-                //update qty nya ditambahkan dengan qty baru
-                $rowAffected = DB::table('article_stock')
-                ->where('site_code',$siteCode)
-                ->where('article_code',$val->article_code)
-                ->where('location_number',$location)
-                ->update([
-                    'article_qty' => DB::raw('coalesce(article_qty,0) + '.$val->total_qty)
-                ]);
+                if($val->total_qty > 0){
+                    DB::table('article_stock')
+                    ->updateOrInsert(
+                        [ 'site_code' =>$siteCode,
+                          'article_code' => $val->article_code,
+                          'location_number'=> $location
+                        ],
+                        [
+                          'dept_code'=>$val->article_type,
+                          'uom'=>$val->uom_article,
+                        ]
+                    );
+    
+                    //update qty nya ditambahkan dengan qty baru
+                    $rowAffected = DB::table('article_stock')
+                    ->where('site_code',$siteCode)
+                    ->where('article_code',$val->article_code)
+                    ->where('location_number',$location)
+                    ->update([
+                        'article_qty' => DB::raw('coalesce(article_qty,0) + '.$val->total_qty)
+                    ]);
+                }
 
                 // $rowAffected = DB::table('article_stock')
                 // ->where('site_code',$siteCode)

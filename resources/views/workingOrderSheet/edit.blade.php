@@ -236,21 +236,40 @@
     
     $(document).ready(function(){           
         validateFormToast("frmAdd");
-        let detail = {!!  $details !!};
-        for(let i=0;i< detail.length;i++){
-            soCode = detail[i].so_code;
-            articleCode = detail[i].article_code;
-            articleRm = detail[i].article_rm_code;
-            qtySo = detail[i].so_qty; //belum ada
-            uom = 'PCS';
-            planQtyFresh = detail[i].plan_qty_fresh;
-            planQtyRepaint = detail[i].plan_qty_repaint;
-            planTime = detail[i].plan_time;
-            planTag = detail[i].plan_tag;
-            originTag = detail[i].origin_tag;
-            tone = detail[i].tone;
-            add_new_row_edit(soCode,articleCode,articleRm,qtySo,uom,planQtyFresh,planQtyRepaint,planTime,planTag,originTag,tone);
+        let detail1 = {!!  $details !!};       
+
+        insertData=(detail,callback) => {
+            let jumData = detail.length;
+            for(let i=0;i< jumData;i++){
+                soCode = detail[i].so_code;
+                articleCode = detail[i].article_code;
+                articleRm = detail[i].article_rm_code;
+                qtySo = detail[i].so_qty; //belum ada
+                uom = 'PCS';
+                planQtyFresh = detail[i].plan_qty_fresh;
+                planQtyRepaint = detail[i].plan_qty_repaint;
+                planTime = detail[i].plan_time;
+                planTag = detail[i].plan_tag;
+                originTag = detail[i].origin_tag;
+                tone = detail[i].tone;
+                let beres = add_new_row_edit(soCode,articleCode,articleRm,qtySo,uom,planQtyFresh,planQtyRepaint,planTime,planTag,originTag,tone);
+                if (beres == 'beres'){
+                    if (jumData - (i+1) == 0 ){
+                        callback('selesai');
+                    }
+                }    
+            }
         }
+
+        insertData(detail1,function(result){
+            if (result == 'selesai'){
+                setTimeout(() => {
+                    splitArticle();
+                    isiListArticle();
+                }, 10000);
+            }
+        });
+        
     });   
     
     $.ajaxSetup({

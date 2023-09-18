@@ -17,26 +17,35 @@
         <form class="needs-validation" novalidate>
             <div class="form-row">
               <div class="form-group col-md-3"> 
-                <label for="searchInv">Delivery Number</label>
-                <input type="text" class="form-control text-uppercase" id="searchInv" name="searchInv" placeholder=""  />
+                <label for="searchDn">Delivery Number</label>
+                <input type="text" class="form-control text-uppercase" id="searchDn" name="searchDn" placeholder=""  />
               </div>
-              <div class="form-group col-md-3"> 
+              {{-- <div class="form-group col-md-3"> 
                 <label for="searchSo">SO Number</label>
                 <input type="text" class="form-control text-uppercase" id="searchSo" name="searchSo" placeholder=""  />
-              </div>
+              </div> --}}
               
               <div class="col-md-3 form-group">
-                <label for="recDate">Date</label>
-                <input type="text" id="recDate" name="recDate" class="form-control flatpickr-range" placeholder="YYYY-MM-DD to YYYY-MM-DD" />
+                <label for="drDate">Received Date</label>
+                <input type="text" id="drDate" name="drDate" class="form-control flatpickr-range" placeholder="YYYY-MM-DD to YYYY-MM-DD" />
               </div>
-             
+
+              <div class="form-group col-md-2"> 
+                <label class="form-label" for="searchStatus">Delivery Status</label>
+                <select class="select2 form-control" id="searchStatus" name="searchStatus">
+                    <option value="">All</option>
+                    @foreach($status as $index=>$val)
+                        <option value="{{ $index }}">{{ $val }}</option>
+                    @endforeach
+                </select>
+              </div>
             </div>
             <div class="form-row">
                 <div class="col-12"> 
                     <button type="button" class="btn btn-primary" id ="btnSearch" name="btnSearch">Search</button>
-                    @can('dnReceipt-create')
+                    {{-- @can('dnReceipt-create')
                       <a href="{{ route('dnReceipt.create') }}" class="btn btn-info"><i class="fa fa-plus"></i> Create</a>
-                    @endcan
+                    @endcan --}}
                 </div>
             </div>
         </form>
@@ -95,18 +104,13 @@
   // }
 
   $("#btnSearch").click(function(e){
-    // let searchInv = $("#searchInv").val();
-    // let searchSo = $("#searchSo").val();
-    // let searchCustomer = $("#searchCustomer").val(); 
-    // let searchStatus = $("#searchStatus").val();
-    // let recDate = $("#recDate").val();
-    // showList(searchInv,searchSo,searchCustomer,searchStatus,recDate);
-
-    showList();
-
+    let searchDn = $("#searchDn").val();
+    let drDate = $("#drDate").val();
+    let searchStatus = $("#searchStatus").val();
+    showList(searchDn,drDate,searchStatus);
   });
 
-  const showList = () => {
+  const showList = (searchDn,drDate,searchStatus) => {
     if ($('#detailedTable tr').length >0){
         let table= $('#detailedTable').DataTable();
         table.destroy();
@@ -117,16 +121,17 @@
       tableId:"detailedTable",
       route:"{{ route('dnReceipt.list') }}",
       kolom:{!! $kolom !!},
+      type:'POST',
       arrColPrint:[1,2,3,4,5,6,7,8],
       columnDefs :[
         { width: '5%', targets: 0 },
       ],
       dataSearch:  {
-        // searchWos:searchWos,
-        // wosDate:wosdate,
-        // searchStatus:searchStatus
+        searchDn:searchDn,
+        drDate:drDate,
+        searchStatus:searchStatus
       },
-      orderColumn:[[ 1, 'asc' ]],
+      orderColumn:[[ 3, 'desc' ],[ 1, 'asc' ]],
       excelFileName:'dn_receive'
     });
   }

@@ -1,11 +1,10 @@
-{{-- table row untuk di clone--}}  
 <div id="new_row" name="new_row[]" class="d-none">
     <div id="baru" class="tanda-baris" >
         <div class="form-row d-flex align-items-center">
             <div class="col-md-2 col-12" style="max-width: 10.66667%;padding-right:2px;">
                 <div class="form-group margin-nol">
                     <label for="prNumber" class="d-block d-md-none">PR Number</label>
-                    <input type="text" class="form-control disabled-el" id = "prNumber" name="prNumber[]"  disabled style="font-size:0.8rem;padding-right: 0.4rem;padding-bottom: 0.438rem;padding-left: 0.4rem;" />
+                    <input type="text" class="form-control disabled-el" id = "prNumber" name="prNumber[]"  disabled style="font-size:0.8rem;padding-right: 0.4rem;padding-left: 0.4rem;" />
                 </div>
             </div>
             <div class="col-md-5 col-12" style="max-width: 38.66667%;padding-right:2px;padding-left:2px;">
@@ -36,14 +35,14 @@
             <div class="col-md-1 col-12 d-none">
                 <div class="form-group margin-nol">
                     <label for="price" class="d-block d-md-none">Price</label>
-                    <input type="text" class="form-control numeral-mask text-right" id= "price" name="price[]"  maxlength="11">
+                    <input type="text" class="form-control numeral-mask-digit text-right" id= "price" name="price[]"  maxlength="11">
                 </div>
             </div>
             <div class="col-md-2 col-12" style="max-width: 12.66667%;padding-right:2px;padding-left:2px;">
                 <div class="form-group margin-nol">
                     <label for="price" class="d-block d-md-none">Price</label>
                     <div class="input-group input-group-merge">
-                        <input type="text" class="form-control numeral-mask text-right" id = "newPrice" name="newPrice[]"  maxlength="11">
+                        <input type="text" class="form-control numeral-mask-digit text-right" oninput='input(this)' id = "newPrice" name="newPrice[]"  maxlength="11">
                         <div class="input-group-append">
                             <span class="input-group-text cursor-pointer">
                                 <a onmouseover="this.style.cursor='pointer'" id="listPrice" name="listPrice[]" data-toggle="tooltip" data-placement="right" title="List Price">
@@ -58,7 +57,7 @@
             <div class="col-md-2 col-12" style="max-width: 10.66667%;padding-right:2px;padding-left:2px;">
                 <div class="form-group margin-nol">
                     <label for="totalLine" class="d-block d-md-none">Total</label>
-                    <input type="text" class="form-control numeral-mask text-right" id="totalLine" name="totalLine[]" disabled>
+                    <input type="text" class="form-control numeral-mask-digit text-right" id="totalLine" name="totalLine[]" disabled>
                 </div>
             </div>
             <div class="col-md-1 col-12" style="max-width: 3%;">
@@ -72,7 +71,6 @@
         </div>
     </div>
 </div>
-{{-- \.table row --}} 
 
 <div id="new_row_show" name="new_row_show[]" class="d-none">
     <div id="baru_show">
@@ -189,6 +187,15 @@
     const defaultPpn = "{{ $vatValue }}";
     $("#nilaiPPN").text("{{ $vatValue }}%");
     $("#nilaiPPH").text("{{ $pph23Value }}%");
+
+    let delayTimer;
+    function input(ele) {
+        clearTimeout(delayTimer);
+        delayTimer = setTimeout(function() {
+            let nilai = ele.value.replace(/,/gi, '') || 0;;
+            ele.value = humanizeNumber(parseFloat(nilai).toFixed(2)).toString();
+        }, 1100); 
+    }
    
     if (orderDate.length) {
         orderDate.flatpickr({
@@ -552,9 +559,9 @@
         $("#qtyStock"+cloneCount).val(qtyStock*1);
         $("#uom"+cloneCount).text(uom);
         $("#qtyOrder"+cloneCount).val(qty);
-        $("#price"+cloneCount).val(costPrice);
-        $("#newPrice"+cloneCount).val(lastPrice);
-        $("#totalLine"+cloneCount).val(qty*lastPrice);
+        $("#price"+cloneCount).val(humanizeNumber(parseFloat(costPrice).toFixed(2)));
+        $("#newPrice"+cloneCount).val(humanizeNumber(parseFloat(lastPrice).toFixed(2)));
+        $("#totalLine"+cloneCount).val(humanizeNumber(parseFloat(qty*lastPrice).toFixed(2)));
         $("#pRequest"+cloneCount).val(prNumber);
         $("#prNumber"+cloneCount).val(prNumber);
 
@@ -577,6 +584,7 @@
         hitungTotal();
         hitungGrandTotal();
         mask_thousand();
+        mask_thousand_digit(2);
         $('#remove_button').tooltip();
         $('[data-toggle="tooltip"]').tooltip();
         $('.disabled-el').attr('disabled','disabled');
@@ -652,7 +660,7 @@
                         <td>${data[i].po_number}</td>
                         <td>${data[i].po_date}</td>
                         <td class="text-right">
-                            <a href='javascript:;' type="button" class='btn btn-outline-primary btn-block btn-sm waves-effect text-right' onclick="definePrice('${idNya}','${data[i].price}');">${humanizeNumber(data[i].price)}</a>
+                            <a href='javascript:;' type="button" class='btn btn-outline-primary btn-block btn-sm waves-effect text-right' onclick="definePrice('${idNya}','${data[i].price}');">${humanizeNumber(parseFloat(data[i].price).toFixed(2))}</a>
                         </td>
                         </tr>`;
                     }
@@ -668,7 +676,8 @@
     }
 
     definePrice = (idNya,hargaNya) =>{
-        $('#'+idNya).val(humanizeNumber(hargaNya||0));
+        $('#'+idNya).val(humanizeNumber(parseFloat(hargaNya).toFixed(2)||0));
+        hitungTotal();
         $("#modalListPrice").modal('hide');
     }
   
@@ -682,7 +691,7 @@
             let qty = objQty.eq(indexnya).val().replace(/,/gi, '') || 0; 
             let newPrice = objNewPrice.eq(indexnya).val().replace(/,/gi, '') ||0;
             let total = qty*newPrice;
-            objTotal.eq(indexnya).val(humanizeNumber(total));
+            objTotal.eq(indexnya).val(humanizeNumber(parseFloat(total).toFixed(2)));
             hitungGrandTotal();
         });    
 
@@ -691,7 +700,7 @@
             let qty = objQty.eq(indexnya).val().replace(/,/gi, '') || 0; 
             let newPrice = objNewPrice.eq(indexnya).val().replace(/,/gi, '')||0;
             let total = qty*newPrice;
-            objTotal.eq(indexnya).val(humanizeNumber(total));
+            objTotal.eq(indexnya).val(humanizeNumber(parseFloat(total).toFixed(2)));
             hitungGrandTotal();
         });    
     }

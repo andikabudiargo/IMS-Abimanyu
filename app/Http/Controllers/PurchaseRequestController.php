@@ -1983,10 +1983,10 @@ class PurchaseRequestController extends Controller
             ->where('po_number',$poOrigin)
             ->update(
                 [
-                    'qty' => DB::RAW("(select qty from purchase_request_det a 
+                    'qty' => DB::RAW("coalesce((select qty from purchase_request_det a 
                     where a.pr_number = purchase_order_det.pr_number and 
                           a.article_code = purchase_order_det.article_code and
-                          a.po_number = '$poOrigin')"),
+                          a.po_number = '$poOrigin'),0)"),
                     'updated_by' => Auth::user()->username,
                     'updated_at' => date('Y-m-d H:i:s')
                 ]

@@ -309,19 +309,30 @@
           </ul>
         </li> --}}
 
-        <li class=" {{ in_array(\Request::segment(1), ['delivery']) ? 'active' : '' }} nav-item">
+        <li class=" {{ in_array(\Request::segment(1), ['delivery','dnReceipt']) ? 'active' : '' }} nav-item">
           <a class="d-flex align-items-center" href="javascript:void(0);">
             <i data-feather='truck'></i>
             <span class="menu-title text-truncate" data-i18n="Form Elements">Delivery
             </span>
           </a>
           <ul class="menu-content">
+            
             <li class="{{ \Request::segment(1) == 'delivery' ? 'active' : '' }} " >
               <a class="d-flex align-items-center" href="{{ route('delivery.index') }}">
                 <i data-feather="circle"></i>
                 <span class="menu-item text-truncate" data-i18n="Input">Delivery Note</span>
               </a>
             </li>
+
+            @can('dnReceipt-index')
+            <li class="{{ \Request::is(['dnReceipt','dnReceipt/create']) ? 'active' : '' }}">
+              <a class="d-flex align-items-center" href="{{ route('dnReceipt.index') }}">
+                <i data-feather="circle"></i>
+                <span class="menu-item text-truncate" data-i18n="Input">DN Receipt</span>
+              </a>
+            </li>
+            @endcan
+
 
             {{-- @can('purchaseOrder-index')
             <li class="{{ \Request::segment(1) == 'purchaseOrdersSSS' ? 'active' : '' }} disabled">
@@ -460,21 +471,21 @@
         @can('accounting-menu')
         <li class=" navigation-header"><span data-i18n="Finance Accounting">Finance Accounting</span><i data-feather="more-horizontal"></i>
         </li>
-        <li class=" {{ in_array(\Request::segment(1), ['aps','banks','pettyCash','proforma','bankReceipt','invoice','dnReceipt','kasPenerimaan','kasKeluar','bankPenerimaan','bankKeluar']) ? 'active' : '' }} nav-item">
+        <li class=" {{ in_array(\Request::segment(1), ['aps','banks','pettyCash','proforma','bankReceipt','invoice','kasPenerimaan','kasKeluar','bankPenerimaan','bankKeluar']) ? 'active' : '' }} nav-item">
           <a class="d-flex align-items-center" href="javascript:void(0);">
             <i data-feather="dollar-sign"></i>
             <span class="menu-title text-truncate" data-i18n="Form Elements">Finance & acc
             </span>
           </a>
           <ul class="menu-content">
-            @can('dnReceipt-index')
+            {{-- @can('dnReceipt-index')
             <li class="{{ \Request::is(['dnReceipt','dnReceipt/create']) ? 'active' : '' }}">
               <a class="d-flex align-items-center" href="{{ route('dnReceipt.index') }}">
                 <i data-feather="circle"></i>
                 <span class="menu-item text-truncate" data-i18n="Input">DN Receipt</span>
               </a>
             </li>
-            @endcan
+            @endcan --}}
 
            
             <li><a class="d-flex align-items-center" href="#"><i data-feather="circle"></i><span class="menu-item text-truncate" data-i18n="Invoice">Invoice</span></a>

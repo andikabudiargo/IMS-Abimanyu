@@ -87,8 +87,8 @@
     function goInactive() {    
         // do something
         // console.log("kesini");
-        var pathname = window.location.pathname.split('/')[1];
-        var exceptPaths = [
+        let pathname = window.location.pathname.split('/')[1];
+        let exceptPaths = [
         'login'
         ];
 
@@ -186,15 +186,15 @@
     function angka_dua_decimal(){
         $(".angka-dua-decimal").on("keypress", function(event) {
             //bisa pake tanda . dan hanya bisa inpur dua digit desimal
-            var self = $(this);
+            let self = $(this);
             if ((event.which != 46 || self.val().indexOf('.') != -1) &&
                 ((event.which < 48 || event.which > 57) &&
                 (event.which != 0 && event.which != 8))) {
                     event.preventDefault();
             }
         
-            var text = $(this).val();
-            console.log(event.which);
+            let text = $(this).val();
+            // console.log(event.which);
             if ((event.which == 46) && (text.indexOf('.') == -1)) {
                 setTimeout(function() {
                     if (self.val().substring(self.val().indexOf('.')).length > 3) {
@@ -214,14 +214,14 @@
     
     $(".angka-dua-decimal").on("keypress", function(event) {
         //bisa pake tanda . dan hanya bisa inpur dua digit desimal
-        var self = $(this);
+        let self = $(this);
         if ((event.which != 46 || self.val().indexOf('.') != -1) &&
             ((event.which < 48 || event.which > 57) &&
             (event.which != 0 && event.which != 8))) {
                 event.preventDefault();
         }
     
-        var text = $(this).val();
+        let text = $(this).val();
         console.log(event.which);
         if ((event.which == 46) && (text.indexOf('.') == -1)) {
             setTimeout(function() {
@@ -241,14 +241,14 @@
 
     $(".angka-decimal").on("keypress", function(event) {
         //bisa pake tanda . dan hanya bisa inpur dua digit desimal
-        var self = $(this);
+        let self = $(this);
         if ((event.which != 46 || self.val().indexOf('.') != -1) &&
             ((event.which < 48 || event.which > 57) &&
             (event.which != 0 && event.which != 8))) {
                 event.preventDefault();
         }
     
-        var text = $(this).val();
+        let text = $(this).val();
         console.log(event.which);
         if ((event.which == 46) && (text.indexOf('.') == -1)) {
             setTimeout(function() {
@@ -264,7 +264,7 @@
         element
           .data("oldValue", '')
           .bind("paste", function(e) {
-            var validNumber = /^[-]?\d+(\.\d{1,2})?$/;
+            let validNumber = /^[-]?\d+(\.\d{1,2})?$/;
             element.data('oldValue', element.val())
             setTimeout(function() {
               if (!validNumber.test(element.val()))
@@ -273,7 +273,7 @@
           });
         element
           .keypress(function(event) {
-            var text = $(this).val();
+            let text = $(this).val();
             if ((event.which != 46 || text.indexOf('.') != -1) && //if the keypress is not a . or there is already a decimal point
               ((event.which < 48 || event.which > 57) && //and you try to enter something that isn't a number
                 (event.which != 45 || (element[0].selectionStart != 0 || text.indexOf('-') != -1)) && //and the keypress is not a -, or the cursor is not at the beginning, or there is already a -
@@ -332,7 +332,7 @@
         element
             .data("oldValue", '')
             .bind("paste", function(e) {
-            var validNumber = /^[-]?\d+(\.\d{1,2})?$/;
+            let validNumber = /^[-]?\d+(\.\d{1,2})?$/;
             element.data('oldValue', element.val())
             setTimeout(function() {
                 if (!validNumber.test(element.val()))
@@ -341,7 +341,7 @@
             });
         element
         .keypress(function(event) {
-        var text = $(this).val();
+        let text = $(this).val();
         if ((event.which != 46 || text.indexOf('.') != -1) && //if the keypress is not a . or there is already a decimal point
             ((event.which < 48 || event.which > 57) && //and you try to enter something that isn't a number
             (event.which != 45 || (element[0].selectionStart != 0 || text.indexOf('-') != -1)) && //and the keypress is not a -, or the cursor is not at the beginning, or there is already a -
@@ -362,7 +362,7 @@
     function humanizeNumber(n) {
         n = n.toString()
         while (true) {
-          var n2 = n.replace(/(\d)(\d{3})($|,|\.)/g, '$1,$2$3')
+          let n2 = n.replace(/(\d)(\d{3})($|,|\.)/g, '$1,$2$3')
           if (n == n2) break
           n = n2
         }
@@ -598,7 +598,6 @@
         let indexnya,indexTarget;
         obj.keyup(function(e) {
             indexnya= obj.index(this)||0;
-            console.log(indexnya);
             indexnya=parseInt(indexnya);
             if (e.keyCode == 38) {
                 //panah atas
@@ -609,7 +608,6 @@
             if (e.keyCode == 40) {
                 //panah bawah
                 indexTarget = indexnya+1;
-                console.log(indexTarget);
                 obj.eq(indexTarget).focus().select();
                 return false;
             }

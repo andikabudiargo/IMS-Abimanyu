@@ -921,27 +921,31 @@ class InvoiceController extends Controller
 
         if($edit == 'true'){
             $data= DB::table("delivery_hdr") 
+            ->leftJoin('dn_receipt','dn_receipt.delivery_number','delivery_hdr.delivery_number')
             ->where("so_number",$soNumber)
             // ->where("status","4")
-            ->where("status","8") //sudah di received
+            ->where('dn_receipt.status','2') //sudah di submitt di dn receipt
+            // ->where("status","8") //sudah di received
             // ->whereNotIn(DB::raw("delivery_number"), function($query) {
             //     $query->select('dn_number')
             //     ->from('invoice_det');
             // })
             ->orderBy("so_number")
-            ->select("delivery_number","so_number","po_number","delivery_date")
+            ->select("delivery_hdr.delivery_number","so_number","po_number","delivery_hdr.delivery_date")
             ->get();
         }else{
             $data= DB::table("delivery_hdr") 
+            ->leftJoin('dn_receipt','dn_receipt.delivery_number','delivery_hdr.delivery_number')
             ->where("so_number",$soNumber)
             // ->where("status","4")
-            ->where("status","8") //sudah di received
-            ->whereNotIn(DB::raw("delivery_number"), function($query) {
+            ->where('dn_receipt.status','2') //sudah di submitt di dn receipt
+            // ->where("status","8") //sudah di received
+            ->whereNotIn(DB::raw("delivery_hdr.delivery_number"), function($query) {
                 $query->select('dn_number')
                 ->from('invoice_det');
             })
             ->orderBy("so_number")
-            ->select("delivery_number","so_number","po_number","delivery_date")
+            ->select("delivery_hdr.delivery_number","so_number","po_number","delivery_hdr.delivery_date")
             ->get();
         }
 

@@ -195,17 +195,19 @@
         $("#new_row"+ cloneCountEdit).find('#tag').attr('id', 'tag'+ cloneCountEdit);
         $("#new_row"+ cloneCountEdit).find('#tagAsli').attr('id', 'tagAsli'+ cloneCountEdit);
         $("#new_row"+ cloneCountEdit).find('#tone').attr('id', 'tone'+ cloneCountEdit);
-        changeselect('salesOrder','salesOrder'+ cloneCountEdit,noSo);
-        changeSelectArticleEdit('searchFromSO','articleId'+ cloneCountEdit,noSo,noArticle);
+        changeselectEdit('salesOrder','salesOrder'+ cloneCountEdit,noSo,'articleId'+ cloneCountEdit,noArticle,'tone'+ cloneCountEdit,tone);
+        // changeSelectArticleEdit('searchFromSO','articleId'+ cloneCountEdit,noSo,noArticle);
         $('#urutan'+ cloneCountEdit).val(cloneCountEdit);
         $('#qtyOrder'+ cloneCountEdit).val(qtySo);
         $('#qtyProd'+ cloneCountEdit).val(qtyProd);
         $('#qtyRepaint'+ cloneCountEdit).val(qtyRepaint);
         $('#waktu'+ cloneCountEdit).val(waktuAwal);
-        $('#tone'+ cloneCountEdit).val(tone);
+        // $('#tone'+ cloneCountEdit).val(tone);
+        // console.log(tone);
         $('#tag'+ cloneCountEdit).val(parseFloat(tagAsli)*(parseInt(qtyProd)+parseInt(qtyRepaint)));
         $('#tagAsli'+ cloneCountEdit).val(tagAsli);
         $('#articleRm'+ cloneCountEdit).val(noArticleRm);
+        // changeselectEdit('salesOrder','salesOrder'+ cloneCountEdit,noSo,'articleId'+ cloneCountEdit,noArticle,'tone'+ cloneCountEdit,tone);
         $("#articleId"+cloneCountEdit).select2();
         $("#salesOrder"+cloneCountEdit).select2();
         $("#tone"+cloneCountEdit).select2();
@@ -216,6 +218,7 @@
         updatQty();
         sumData();
         cloneCount=cloneCountEdit;
+        // isiListArticle();
         return 'beres';
     };
 
@@ -232,6 +235,24 @@
                 $('#'+obj).html(result1);
                 $('#'+obj).val(isiData).trigger('change');
                 $('#'+obj).removeAttr('disabled');
+            }
+        })
+    }
+
+    function changeselectEdit(dependent,obj,noSo,objArticle,noArticle,objTone,tone) {
+        $('#'+obj).attr('disabled','disabled');
+        $.ajax({
+            url:"{{route('dynamic.dependent')}}",
+            method:"POST",
+            data:{
+                dependent:dependent
+            },
+            success:function(result){
+                result1 ='<option value="other">Others</option>'+result;
+                $('#'+obj).html(result1);
+                $('#'+obj).val(noSo).trigger('change');
+                $('#'+obj).removeAttr('disabled');
+                changeSelectArticleEdit('searchFromSO',objArticle,noSo,noArticle,objTone,tone);
             }
         })
     }
@@ -264,7 +285,7 @@
         }
     }
 
-    function changeSelectArticleEdit(dependent,obj,value,article) {
+    function changeSelectArticleEdit(dependent,obj,value,article,objTone,tone) {
         $('#'+obj).attr('disabled','disabled');
         if (value ==='other'){
             let result = "";
@@ -274,6 +295,7 @@
             $('#'+obj).html(result);
             $('#'+obj).val(article).trigger('change');
             $('#'+obj).removeAttr('disabled');
+            $('#'+objTone).val(tone).trigger('change');
         }else{
             $.ajax({
                 url:"{{route('dynamic.dependent')}}",
@@ -286,6 +308,7 @@
                     $('#'+obj).html(result);
                     $('#'+obj).val(article).trigger('change');
                     $('#'+obj).removeAttr('disabled');
+                    $('#'+objTone).val(tone).trigger('change');
                 }
             });
         }
@@ -501,6 +524,10 @@
     });
 
     cmdSort.click(function(){
+        sortData();
+    });
+
+    sortData=()=>{
         let articles = []; 
         let flag=0;
         let pesan="";
@@ -517,6 +544,8 @@
         let objTone = $('#article_row select[name="tone[]"]');
         let jumlahUrutan = objUrutan.length;
 
+        // $(".loading-spinner-container").addClass("-show");
+
         objSoCode.map(function(i) {
 		    let $this=$(this);
             
@@ -532,6 +561,8 @@
                 let tagAsli = objTagAsli.eq(i).val()||0;
                 let waktu = objWaktu.eq(i).val()||'';
                 let tone = objTone.eq(i).val();
+
+                // console.log("Index:"+i+" Urutan:"+urutan +" Article:"+article);
 
                 let obj = articles.find(obj => obj.urutan == urutan);
 
@@ -572,20 +603,27 @@
 
         if (flag == 0){
             if (articles.length > 0){
-                articles.sort((a, b) => (a.urutan > b.urutan) ? 1 : -1);
-                $('#article_row').find('div').remove();
-                cloneCountEdit=0;
-                createSort(articles,function(result){
-                    // console.log(result);
-                    if (result == 'selesai'){
-                        // splitArticle();
-                        // console.log(result);  
-                        setTimeout(() => {
-                            splitArticle();
-                            console.log(result);    
-                        }, 5000);
-                    }
-                });
+                articles.sort((a, b) => (parseInt(a.urutan) > parseInt(b.urutan)) ? 1 : -1);
+                console.log(articles);
+                // setImmediate(()=>{
+                //     articles.sort((a, b) => (parseInt(a.urutan) > parseInt(b.urutan)) ? 1 : -1);
+                // },console.log(articles))
+
+                // setTimeout(() => {
+                //     console.log(articles);
+                    $('#article_row').find('div').remove();
+                    cloneCountEdit=0;
+                    createSort(articles,function(result){
+                        if (result == 'selesai'){
+                            setTimeout(() => {
+                                splitArticle();
+                                isiListArticle();
+                            }, 5000);
+                            $(".loading-spinner-container").removeClass("-show");
+                        }
+                    });
+                    
+                // },5000);
 
                 // articles.map(function(i) {
                 //     add_new_row_edit(i.so_code,i.article_code,i.article_rm,i.qty_so,i.uom,i.qty_prod,i.qty_repaint,i.waktu,i.tag,i.tag_asli,i.tone);
@@ -595,10 +633,10 @@
             Swal.fire('Warning..',pesan,'warning');
         }
 
-    });
-
+    }
     
     createSort=(articles,callback) => {
+        console.log(articles);
         let angka = articles.length;
         articles.map(function(i) {
             let beres = add_new_row_edit(i.so_code,i.article_code,i.article_rm,i.qty_so,i.uom,i.qty_prod,i.qty_repaint,i.waktu,i.tag,i.tag_asli,i.tone);
@@ -794,12 +832,12 @@
             });
 
             if (articles.length > 0){
-                articles.sort((a, b) => (a.urutan > b.urutan) ? 1 : -1);
-                $('#article_row').find('div').remove();
-                cloneCountEdit=0;
-                articles.map(function(i) {
-                    add_new_row_edit(i.so_code,i.article_code,i.article_rm,i.qty_so,i.uom,i.qty_prod,i.qty_repaint,i.waktu,i.tag,i.tag_asli,i.tone);
-                })
+                // articles.sort((a, b) => (a.urutan > b.urutan) ? 1 : -1);
+                // $('#article_row').find('div').remove();
+                // cloneCountEdit=0;
+                // articles.map(function(i) {
+                //     add_new_row_edit(i.so_code,i.article_code,i.article_rm,i.qty_so,i.uom,i.qty_prod,i.qty_repaint,i.waktu,i.tag,i.tag_asli,i.tone);
+                // })
             }else{
                 pesan +="Articles must be filled in completely <br>"; 
                 flag=1;
