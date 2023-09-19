@@ -104,6 +104,24 @@ class HomeController extends Controller
         where status not in ('3','4','5','6','7','8')
         ) as Oki
         where current_level+1 = berhak_approve");
+
+        $data['listSoHome'] = DB::select("SELECT * from (
+        select id
+        ,so_code
+        ,so_date
+        ,po_number
+        ,'$username' as username
+        ,note
+        ,status
+        ,coalesce((select max(approval_order) from approval_history where module_code ='SO' and module_number =sales_order_hdr.so_code),0) as current_level
+        ,(select approval_number from approval_master where module_code = 'SO') as max_level
+        ,coalesce((select max(approval_order) from approval_history where module_code = 'SO' and module_number = so_code),0) as sudah_approve,
+        coalesce((select approval_order from approval_level where username = '$username' and module_code = 'SO' limit 1),0) as berhak_approve,
+        (select nama from third_party where kode = customer_id) as customer_name
+        from sales_order_hdr 
+        where status <> '3'
+        ) as Oki
+        where berhak_approve-1 = sudah_approve");
         
         $data['listTsoHome'] = DB::select("SELECT * from (
         select 
@@ -124,8 +142,6 @@ class HomeController extends Controller
         ) as Oki
         where current_level+1 = berhak_approve");
 
-        $data['greeting'] = self::greeting();    
-
         //bom yang status nya approved 2 minggu ke belakang
         $data['listBom']=DB::select("SELECT bom_code, customer
         ,(select nama from third_party where kode = customer) as customer_name
@@ -134,6 +150,7 @@ class HomeController extends Controller
         ,note,created_at,updated_at from bom_hdr where status ='3' and  updated_at >= now() - interval '2 week'");
 
         $data['bomCount'] = count($data['listBom']);
+        $data['greeting'] = self::greeting(); 
         
         return view('home',$data);
     }

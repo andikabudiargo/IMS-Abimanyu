@@ -20,6 +20,15 @@
                 <label for="searchDn">Delivery Number</label>
                 <input type="text" class="form-control text-uppercase" id="searchDn" name="searchDn" placeholder=""  />
               </div>
+              <div class="form-group col-md-3"> 
+                <label for="searchCustomer">Customer</label>
+                <select class="select2 form-control" id="searchCustomer" name="searchCustomer">
+                  <option value="">All</option>
+                  @foreach($custs as $val)
+                    <option value="{{$val->kode}}">{{$val->kode}} - {{$val->nama}}</option>
+                  @endforeach
+              </select>
+              </div>
               {{-- <div class="form-group col-md-3"> 
                 <label for="searchSo">SO Number</label>
                 <input type="text" class="form-control text-uppercase" id="searchSo" name="searchSo" placeholder=""  />
@@ -96,14 +105,15 @@
   let drDate = $("#drDate");
   let dnDate = $("#dnDate");
   let searchStatus = $("#searchStatus");
+  let searchCustomer = $("#searchCustomer");
 
   $(document).ready(function(){
-    showList(searchDn.val(),drDate.val(),searchStatus.val(),dnDate.val());
+    showList(searchDn.val(),drDate.val(),searchStatus.val(),dnDate.val(),searchCustomer.val());
   });
 
   //refresh di cards
   $('a[data-action="reload"]').on('click', function () {
-      showList(searchDn.val(),drDate.val(),searchStatus.val(),dnDate.val());
+    showList(searchDn.val(),drDate.val(),searchStatus.val(),dnDate.val(),searchCustomer.val());
   });
 
   let rangePickr = $('.flatpickr-range');
@@ -115,10 +125,10 @@
   }
 
   $("#btnSearch").click(function(e){
-    showList(searchDn.val(),drDate.val(),searchStatus.val(),dnDate.val());
+    showList(searchDn.val(),drDate.val(),searchStatus.val(),dnDate.val(),searchCustomer.val());
   });
 
-  const showList = (searchDn,drDate,searchStatus,dnDate) => {
+  const showList = (searchDn,drDate,searchStatus,dnDate,customer) => {
     if ($('#detailedTable tr').length >0){
         let table= $('#detailedTable').DataTable();
         table.destroy();
@@ -138,7 +148,8 @@
         searchDn:searchDn,
         drDate:drDate,
         searchStatus:searchStatus,
-        dnDate:dnDate
+        dnDate:dnDate,
+        customer:customer
       },
       orderColumn:[[ 3, 'desc' ],[ 1, 'asc' ]],
       excelFileName:'dn_receive'

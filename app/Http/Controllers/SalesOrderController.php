@@ -635,6 +635,60 @@ class SalesOrderController extends Controller
 
     }
 
+    public function approve(Request $request)
+    {
+        $username =  Auth::user()->username;
+        $soCode = $request->soCode;
+        $statusLevelApproval = Approval::approvalLevelPosition($this->moduleCode,$soCode,$username);        
+        $nextLevel = $statusLevelApproval[0]->next_level;
+        $statusSo = $statusLevelApproval[0]->next_level == $statusLevelApproval[0]->max_level ? '3' :'2';
+
+        // $statusSo = ['NEW','VALIDATED','APPROVED','RECEIVED','CANCELED','CLOSED','PAID'];
+                
+        DB::beginTransaction();
+        try {
+                $row_affected=DB::table('sales_order_hdr')
+                ->where('so_code',$soCode)
+                ->update(
+                    [
+                        'status' => $statusSo,
+                        'updated_by' => Auth::user()->username,
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]
+                );
+
+                if ($row_affected){
+                    DB::table('approval_history')->insert([
+                        'module_code' => $this->moduleCode,
+                        'module_number' => $soCode,
+                        'username' => Auth::user()->username,
+                        'approval_order' => $nextLevel,
+                        'approval_date' => date('Y-m-d'),
+                        'status' => 1,
+                        'created_by' => Auth::user()->username,
+                        'updated_by' => Auth::user()->username,
+                        'created_at' => date('Y-m-d H:i:s'),
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]);
+                }
+                
+                DB::commit();
+                $title ="Approve $this->title";
+                $alert  ="success";
+                $message  = "$title $soCode is successfully Approve-".$nextLevel;
+                \LogActivity::addToLog($title,"username: $username Status $message");
+                return response()->json(array('statusSo' => $statusSo,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'soCode'=>$soCode));
+
+        } catch (Exception $e) {
+            DB::rollBack();
+            $title ="Approve $this->title";
+            $alert  ="warning";
+            $message  = "$title $soCode is failed to Approve-".$nextLevel;
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return response()->json(array('statusSo' => $statusSo,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'soCode'=>$soCode));
+        }
+    }
+
     public function updateClose(Request $request)
     {
         $username =  Auth::user()->username;
@@ -733,7 +787,7 @@ class SalesOrderController extends Controller
             $searchCustomer ? $query->where('customer_id',$searchCustomer) :'';
             $searchSalesman ? $query->where('salesman_code',$searchSalesman) :'';
             $searchType ? $query->where('order_type',$searchType) :'';
-            $searchStatus ? $query->where('status',$searchStatus) :'';
+            $searchStatus ? $query->where('sales_order_hdr.status',$searchStatus) :'';
             $fromDate ? $query->whereBetween(DB::raw("to_date(so_date,'DD-MM-YYYY')"), [$fromDate, $toDate]):'';
         })->get();
 

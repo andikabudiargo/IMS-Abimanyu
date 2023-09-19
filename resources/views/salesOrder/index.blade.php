@@ -21,7 +21,7 @@
                 <label for="searchOrder">Order Number</label>
                 <input type="text" class="form-control text-uppercase" id="searchOrder" name="searchOrder" placeholder="" />
               </div>
-              <div class="form-group col-md-3"> 
+              <div class="form-group col-md-2"> 
                 <label for="seachPo">PO Number</label>
                 <input type="text" class="form-control text-uppercase" id="seachPo" name="seachPo" placeholder=""  />
               </div>
@@ -34,7 +34,7 @@
                     @endforeach
                 </select>
               </div>
-              <div class="form-group col-md-3"> 
+              <div class="form-group col-md-2"> 
                 <label class="form-label" for="searchSalesman">Salesman</label>
                 <select class="select2 form-control" id="searchSalesman" name="searchSalesman">
                     <option value="">All</option>
@@ -58,15 +58,15 @@
                     @endforeach
                 </select>
               </div>
-              {{-- <div class="form-group col-md-2"> 
+              <div class="form-group col-md-2"> 
                 <label class="form-label" for="searchStatus">Order Status</label>
                 <select class="select2 form-control" id="searchStatus" name="searchStatus">
                     <option value="">All</option>
-                    @foreach($status as $val)
-                        <option value="{{$val}}">{{$val}}</option>
+                    @foreach($status as $key=>$val)
+                        <option value="{{$key}}">{{$val}}</option>
                     @endforeach
                 </select>
-              </div> --}}
+              </div>
             </div>
             <div class="form-row">
                 <div class="col-12"> 

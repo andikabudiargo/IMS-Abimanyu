@@ -12,7 +12,7 @@
                 </div>
             </li>   
             <li class="scrollable-container media-list">
-                @foreach($listSo2 as $val)
+                @foreach($listSo2 as $key=>$val)
                     <a class="d-flex" href="{{ route('salesOrder.edit', ['id'=>Crypt::encryptString($val->id)]) }}">
                         <div class="media d-flex align-items-start">
                             <div class="media-left">
@@ -22,21 +22,39 @@
                                 </div>
                             </div>
                             <div class="media-body">
-                                <p class="media-heading">
-                                    <span class="font-weight-bolder">{{ $val->so_code }}</span>
-                                </p>
-                                <p class="media-heading">
-                                    <small class="notification-text">So Date: {{ $val->so_date }}</small>
-                                </p>
-                                <p class="media-heading">
-                                    <small class="notification-text">Supplier: {{ $val->customer_name }}</small>
-                                </p>
-                                <p class="media-heading">
-                                    <small class="notification-text">#Approve: {{ $val->sudah_approve }}</small>
-                                </p>
-                                {{-- <p class="media-heading">
-                                    <small class="notification-text">Amount: Rp.{{ number_format($val->po_amount) }},-</small>
-                                </p> --}}
+                                <div class="col-12">
+                                    <p class="media-heading">
+                                        <span class="font-weight-bolder">{{ $val->so_code }}</span>
+                                    </p>
+                                    <p class="media-heading">
+                                        <small class="notification-text">So Date: {{ $val->so_date }}</small>
+                                    </p>
+                                    <p class="media-heading">
+                                        <small class="notification-text">Supplier: {{ $val->customer_name }}</small>
+                                    </p>
+                                    <p class="media-heading">
+                                        <small class="notification-text">#Approve: {{ $val->current_level }} of {{ $val->max_level }}</small>
+                                    </p>
+                                </div>
+                                <div class="col-12 mt-50">
+                                    <a class="btn btn-outline-info btn-sm" 
+                                        id="cmdDetailSo{{ $key }}" 
+                                        name="cmdDetailSo{{ $key }}" 
+                                        href="{{ route('salesOrder.show', ['id'=>Crypt::encryptString($val->id)]) }}"> 
+                                        <i data-feather='list'></i>
+                                        Detail
+                                    </a>
+                                    <a href='javascript:;'
+                                        onclick="action(this)"
+                                        id = 'buttonSo{{ $key }}'
+                                        class="btn btn-outline-success btn-sm buttonSo-{{ $val->id }}"
+                                        data-id-class = "buttonSo-{{ $val->id }}"
+                                        data-doc-number='{{ $val->so_code }}'
+                                        data-url='{{ route("salesOrder.approve", ["soCode"=>$val->so_code]) }}'>
+                                        <i data-feather='check-circle'></i>
+                                        Approve
+                                    </a>
+                                </div>
                             </div>
                         </div>
                     </a>

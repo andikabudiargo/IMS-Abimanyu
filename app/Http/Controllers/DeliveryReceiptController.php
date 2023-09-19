@@ -73,6 +73,11 @@ class DeliveryReceiptController extends Controller
         $status = $request->statusKu;       
         $data['status'] = ['0'=>'POSTED','1'=>'RECEIVED','2'=>'SUBMITTED','5'=>'CANCELED'];
         $data['statusKu'] = $status ? $status :'0';
+
+        $data['custs'] = DB::table('third_party')
+        ->where ('third_party_type','=','cust')
+        ->orderBy('nama')
+        ->get();
             
         return view("dnReceipt.index",$data);
     }
@@ -367,6 +372,7 @@ class DeliveryReceiptController extends Controller
         $searchStatus = $request->searchStatus;
         $drDate = $request->drDate;
         $dnDate = $request->dnDate;
+        $customer =$request->customer;
         $searchStatusDn = '';
 
         if($searchStatus == '0'){
@@ -406,13 +412,13 @@ class DeliveryReceiptController extends Controller
         ->leftJoin('invoice_hdr','invoice_hdr.dn_number','invoice_hdr.dn_number')
         ->leftJoin('users as a','dn_receipt.received_by','a.username')
         ->leftJoin('users as b','dn_receipt.submitted_by','b.username')
-        ->where(function ($query) use ($searchDn,$drDate,$searchStatus,$fromDate,$toDate,$searchStatusDn,$dnDate,$fromDateDn,$toDateDn) {
+        ->where(function ($query) use ($searchDn,$drDate,$searchStatus,$fromDate,$toDate,$searchStatusDn,$dnDate,$fromDateDn,$toDateDn,$customer) {
             $searchDn ? $query->where('delivery_hdr.delivery_number','ilike','%'.$searchDn.'%') : '';
             $searchStatus ? $query->where('dn_receipt.status',$searchStatus) : '';
             $drDate ? $query->whereBetween(DB::raw("to_date(dn_receipt.dr_date,'YYYY-MM-DD')"), [$fromDate, $toDate]) : '';
             $searchStatusDn ? $query->where('delivery_hdr.status',$searchStatusDn) : '';
             $dnDate ? $query->whereBetween(DB::raw("to_date(delivery_hdr.delivery_date,'DD-MM-YYYY')"), [$fromDateDn, $toDateDn]) : '';
-            
+            $customer ? $query->where('delivery_hdr.customer_id',$customer) : '';
         })
         ->whereIn('delivery_hdr.status',['4','8'])
         ->select('delivery_hdr.*'
