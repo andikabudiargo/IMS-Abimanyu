@@ -606,19 +606,20 @@ class InvoiceController extends Controller
 
             $voucherNumber=$kasDet->voucher_number;
 
-            DB::table('kas_hdr')
-            ->where('voucher_number',$voucherNumber)
-            ->delete();
-
-            DB::table('kas_det')
-            ->where('voucher_number',$voucherNumber)
-            ->delete();
+            if($voucherNumber){
+                DB::table('kas_hdr')
+                ->where('voucher_number',$voucherNumber)
+                ->delete();
+    
+                DB::table('kas_det')
+                ->where('voucher_number',$voucherNumber)
+                ->delete();
+            }
 
             DB::table('approval_history')
             ->where('module_number',$invNumber)
             ->where('module_code',$this->moduleCode)
             ->delete();
-
 
             // DB::table('invoice_det')
             // ->where('invoice_number',$invNumber)
