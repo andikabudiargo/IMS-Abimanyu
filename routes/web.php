@@ -316,7 +316,7 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('dnReceipt/list',['as'=>'dnReceipt.list','uses'=>'DeliveryReceiptController@list']);
 	Route::post('dnReceipt/delete',['as'=>'dnReceipt.destroy','uses'=>'DeliveryReceiptController@destroy']);
 	Route::get('dnReceipt/create',['as'=>'dnReceipt.create','uses'=>'DeliveryReceiptController@create','middleware' => ['permission:dnReceipt-create']]);
-	Route::get('dnReceipt/edit',['as'=>'dnReceipt.edit','uses'=>'DeliveryReceiptController@edit','middleware' => ['permission:dnReceipt-create']]);
+	Route::get('dnReceipt/edit',['as'=>'dnReceipt.edit','uses'=>'DeliveryReceiptController@edit','middleware' => ['permission:dnReceipt-edit']]);
 	Route::post('dnReceipt/update',['as'=>'dnReceipt.update','uses'=>'DeliveryReceiptController@update']);
 
 	Route::get('invoice',['as'=>'invoice.index','uses'=>'InvoiceController@index','middleware' => ['permission:receiving-index']]);
