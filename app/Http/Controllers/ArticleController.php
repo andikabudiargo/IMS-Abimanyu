@@ -38,7 +38,7 @@ class ArticleController extends Controller
             ['data'=>'article_type','name'=>'article_type','title'=>'Type'],
             ['data'=>'safety_stock','name'=>'safety_stock','title'=>'Safety Stock'],
             ['data'=>'min_package','name'=>'min_package','title'=>'Min Package'],
-            ['data'=>'group','name'=>'group_materials.name','title'=>'Group'],
+            ['data'=>'group','name'=>'group_materials.name','title'=>'Group','visible'=>false],
             ['data'=>'status','name'=>'status','title'=>'Status'],
             ['data'=>'note','name'=>'note','title'=>'Note']
         ];
@@ -826,7 +826,7 @@ class ArticleController extends Controller
             ['data'=>'article_type','name'=>'article_type','title'=>'Type'],
             ['data'=>'safety_stock','name'=>'safety_stock','title'=>'Safety Stock'],
             ['data'=>'min_package','name'=>'min_package','title'=>'Min Package'],
-            ['data'=>'group','name'=>'group_materials.name','title'=>'Group'],
+            ['data'=>'group','name'=>'group_materials.name','title'=>'Group','visible'=>false],
             ['data'=>'note','name'=>'note','title'=>'Note'],
             ['data'=>'created_by','name'=>'created_by','title'=>'Requested By'],
             ['data'=>'created_at','name'=>'created_at','title'=>'Requested At'],

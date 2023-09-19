@@ -27,7 +27,7 @@
                                     role="tab" 
                                     aria-selected="false" 
                                     data-ajax-detail="true" 
-                                    data-po-number="{{ $header->pr_number }}">{{ $key == 0 ? 'Main':'Revision '.$key }}</a>
+                                    data-po-number="{{ $header->pr_number }}">{{ $key == 0 ? 'Main':'Revision '.($key-1) }}</a>
                                 </li>
                             @endforeach
                         </ul>
@@ -114,7 +114,7 @@
                                                     @else
                                                         @foreach( $headers as $key1 => $oki )
                                                             @if ($key1 > $key and $key1!= 0 )
-                                                                <th class="text-center">R-{{ $key1 }}</th>
+                                                                <th class="text-center">R-{{ $key1-1 }}</th>
                                                             @endif
                                                         @endforeach
                                                     @endif

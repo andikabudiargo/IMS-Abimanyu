@@ -27,7 +27,7 @@
                                     role="tab" 
                                     aria-selected="false" 
                                     data-ajax-detail="true" 
-                                    data-po-number="{{ $header->tso_code }}">{{ $key == 0 ? 'Main':'Revision '.$key }}</a>
+                                    data-po-number="{{ $header->tso_code }}">{{ $key == 0 ? 'Main':'Revision '.($key-1) }}</a>
                                 </li>
                             @endforeach
                         </ul>

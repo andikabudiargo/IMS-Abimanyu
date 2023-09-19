@@ -27,7 +27,7 @@
                             </div>
                         </div>
                         <div class="form-row">
-                            <div class="form-group col-md-12">
+                            <div class="form-group col-md-12 d-none">
                                 <label class="form-label" for="group">Group of material</label>
                                 <select class="select2 form-control" id="group" name="group">
                                     <option value=""></option>

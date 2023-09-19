@@ -22,7 +22,7 @@
                       <label for="searchName">Name</label>
                       <input type="text" class="form-control text-uppercase" id="searchName" name="searchName" placeholder="" />
                     </div>
-                    <div class="form-group col-md-4"> 
+                    <div class="form-group col-md-4 d-done"> 
                       <label class="form-label" for="searchGroup">Group</label>
                       <select class="select2 form-control" id="searchGroup" name="searchGroup">
                           <option value="">All</option>
