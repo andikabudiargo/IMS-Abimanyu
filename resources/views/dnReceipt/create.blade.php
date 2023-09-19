@@ -27,7 +27,7 @@
                             <div class="form-row">
                                 <div class="form-group col-md-3">
                                     <label class="form-label" for="dnNumber">DN Number*</label>
-                                    <input type="hidden" id="deliveryDate" name="deliveryDate" value="{{ old('deliveryDate',$dnDate) }}"/>
+                                    {{-- <input type="hidden" id="deliveryDate" name="deliveryDate" value="{{ old('deliveryDate',$dnDate) }}"/> --}}
                                     <input type="text" id="dnNumber" name="dnNumber" value= "{{ old('dnNumber',$dnNumber) }}" class="form-control text-hitam disabled-el"  disabled />
                                     {{-- <select class="select2 form-control" id="dnNumber" name="dnNumber" value="{{ old('dnNumber') }}" required>
                                         <option value=""></option>
@@ -37,6 +37,10 @@
                                                 data-tanggal={{ $val->delivery_date }} >{{ $val->delivery_date }} - {{ $val->delivery_number }}</option>
                                         @endforeach
                                     </select> --}}
+                                </div>
+                                <div class="form-group col-md-2">
+                                    <label class="form-label" for="deliveryDate">DN Date*</label>
+                                    <input type="text" id="deliveryDate" name="deliveryDate" value="{{ old('deliveryDate',$dnDate) }}" class="form-control text-hitam disabled-el"  disabled/>
                                 </div>
                             </div>
                             <div class="form-row">
@@ -78,7 +82,7 @@
                             <hr>
                             <div class="form-row">
                                 <div class="col-12">
-                                    <a href="{{ route('dnReceipt.index') }}" class="btn btn-light">Back</a>
+                                    <a href="{{ route('dnReceipt.index',['statusKu'=>$statusKu]) }}" class="btn btn-light">Back</a>
                                     <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Save</button>
                                 </div>
                             </div>

@@ -40,7 +40,7 @@
                 <select class="select2 form-control" id="searchStatus" name="searchStatus">
                     <option value="">All</option>
                     @foreach($status as $index=>$val)
-                        <option value="{{ $index }}">{{ $val }}</option>
+                        <option value="{{ $index }}" {{ $index == $statusKu ? 'selected' : ''  }}>{{ $val }}</option>
                     @endforeach
                 </select>
               </div>
@@ -92,12 +92,18 @@
 @endsection
 @section('scripts')
 <script type="text/javascript">
-  $(document).ready(function(){    
+  let searchDn = $("#searchDn");
+  let drDate = $("#drDate");
+  let dnDate = $("#dnDate");
+  let searchStatus = $("#searchStatus");
+
+  $(document).ready(function(){
+    showList(searchDn.val(),drDate.val(),searchStatus.val(),dnDate.val());
   });
 
   //refresh di cards
   $('a[data-action="reload"]').on('click', function () {
-      showList();
+      showList(searchDn.val(),drDate.val(),searchStatus.val(),dnDate.val());
   });
 
   let rangePickr = $('.flatpickr-range');
@@ -109,11 +115,7 @@
   }
 
   $("#btnSearch").click(function(e){
-    let searchDn = $("#searchDn").val();
-    let drDate = $("#drDate").val();
-    let dnDate = $("#dnDate").val();
-    let searchStatus = $("#searchStatus").val();
-    showList(searchDn,drDate,searchStatus);
+    showList(searchDn.val(),drDate.val(),searchStatus.val(),dnDate.val());
   });
 
   const showList = (searchDn,drDate,searchStatus,dnDate) => {
@@ -128,7 +130,7 @@
       route:"{{ route('dnReceipt.list') }}",
       kolom:{!! $kolom !!},
       type:'POST',
-      arrColPrint:[1,2,3,4,5,6,7,8],
+      arrColPrint:[1,2,3,4,5,6,7,8,9,10,11],
       columnDefs :[
         { width: '5%', targets: 0 },
       ],
@@ -141,6 +143,28 @@
       orderColumn:[[ 3, 'desc' ],[ 1, 'asc' ]],
       excelFileName:'dn_receive'
     });
+  }
+
+  submitDr=(idKu)=>{
+    console.log(idKu);
+    let id = idKu;
+    let status = $("#searchStatus").val();
+    let url = "{{ route('dnReceipt.edit', ['id'=>':id','status'=>':status']) }}";
+    url = url.replace('%3Aid', id);
+    url = url.replace('%3Astatus', status);
+    url = url.replace("&amp;", "&");
+    window.open(url,"_self");
+  }
+
+  receiveDr=(idKu)=>{
+    console.log(idKu);
+    let id = idKu;
+    let status = $("#searchStatus").val();
+    let url = "{{ route('dnReceipt.create', ['id'=>':id','status'=>':status']) }}";
+    url = url.replace('%3Aid', id);
+    url = url.replace('%3Astatus', status);
+    url = url.replace("&amp;", "&");
+    window.open(url,"_self");
   }
 
   $.ajaxSetup({

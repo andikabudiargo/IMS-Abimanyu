@@ -47,11 +47,14 @@ class DeliveryReceiptController extends Controller
         $kolom=
         [
             ['data'=>'action','name'=>'action','title'=>'action', 'orderable'=> false,'searchable'=>false],
+            ['data'=>'so_number','name'=>'so_number','title'=>'SO Number'],
             ['data'=>'delivery_number','name'=>'delivery_number','title'=>'DN Number'],
             ['data'=>'delivery_date','name'=>'delivery_date','title'=>'DN Date'],
+            ['data'=>'nama','name'=>'nama','title'=>'Customer'],
             ['data'=>'statusKu','name'=>'statusKu','title'=>'Status'],
             ['data'=>'dr_number','name'=>'dr_number','title'=>'DR Number'],
             ['data'=>'dr_date','name'=>'dr_date','title'=>'DR Date'],
+            ['data'=>'invoice_number','name'=>'invoice_number','title'=>'Invoice Number'],
             ['data'=>'receivedBy','name'=>'receivedBy','title'=>'Received By'],
             ['data'=>'dr_date','name'=>'dr_date','title'=>'Received At'],            
             ['data'=>'submittedBy','name'=>'submittedBy','title'=>'Submitted By'],
@@ -67,8 +70,9 @@ class DeliveryReceiptController extends Controller
     {
         $data['title'] = $this->title;
         $data['kolom'] = $this->getTableColoumn();
-
+        $status = $request->statusKu;       
         $data['status'] = ['0'=>'POSTED','1'=>'RECEIVED','2'=>'SUBMITTED','5'=>'CANCELED'];
+        $data['statusKu'] = $status ? $status :'0';
             
         return view("dnReceipt.index",$data);
     }
@@ -102,6 +106,8 @@ class DeliveryReceiptController extends Controller
 
         $username =  Auth::user()->username;       
         $id=Crypt::decryptString($request->id);
+        $statusKu = $request->status;
+
         $dn = DB::table('delivery_hdr')->where('id',$id)->first();
         
         $data['users'] = DB::table('users')
@@ -109,20 +115,10 @@ class DeliveryReceiptController extends Controller
         ->orderBy('name')
         ->get();
 
-        // $data['delivery'] = DB::table('delivery_hdr')
-        // ->where ('status','=','4')
-        // ->whereNotIn('delivery_number', function($query) {
-        //     $query->select('delivery_number')
-        //     ->from('dn_receipt') 
-        //     ->where('status', '=','1');
-        // })
-        // ->orderBy('delivery_date')
-        // ->get();
-
         $data['drNumber'] ="";
         $data['dnNumber'] =$dn->delivery_number;
-        $data['dnDate'] =$dn->delivery_date;
-        
+        $data['dnDate'] = $dn->delivery_date;    
+        $data['statusKu'] = $statusKu;   
 
         return view("dnReceipt.create",$data);
     }
@@ -229,6 +225,7 @@ class DeliveryReceiptController extends Controller
 
         $username =  Auth::user()->username;       
         $id=Crypt::decryptString($request->id);
+        $statusKu = $request->status;
         
         $data['users'] = DB::table('users')
         ->where ('status','=','1')
@@ -240,6 +237,7 @@ class DeliveryReceiptController extends Controller
         ->first();
 
         $data['drDate'] = date('d-m-Y', strtotime($data['dnReceipt']->dr_date));
+        $data['statusKu'] = $statusKu;
         
         return view("dnReceipt.edit",$data);
     }
@@ -247,17 +245,14 @@ class DeliveryReceiptController extends Controller
     public function update(Request $request)
     {
         $username =  Auth::user()->username;
-        // $deliveryDate = $request->deliveryDate;
-        // $dnNumber = $request->dnNumber;
         $drNumber= $request->drNumber;
         $submitAt = $request->submitAt ? date('Y-m-d', strtotime($request->submitAt)) : '';
         $submitBy = $request->submitBy;
-        // $receiveBy = $request->receiveBy;
-        // $receiveAt = $request->receiveAt ? date('Y-m-d', strtotime($request->receiveAt)) : '';
         $note = $request->note;
         $status = '2';
-       
-        // $data['status'] = ['1'=>'RECEIVED','2'=>'SUBMITED','3'=>'','4'=>'','5'=>'CANCELED'];
+        $statusKu = $request->statusKu;
+
+        $data['status'] = ['0'=>'POSTED','1'=>'RECEIVED','2'=>'SUBMITTED','5'=>'CANCELED'];
 
         $messages = [
             'required' => 'The field is required.',
@@ -272,11 +267,8 @@ class DeliveryReceiptController extends Controller
         });
 
         $validation = Validator::make($request->all(),$messages = [
-            // 'dnNumber' => 'required',
             'submitAt' => 'required',
             'submitBy' => 'required',
-            // 'receiveBy' => 'required',
-            // 'receiveAt' => 'required'
         ]);
         
         $error_array = array();
@@ -305,25 +297,12 @@ class DeliveryReceiptController extends Controller
                         ]
                     );
                      
-                    // if ($rowAffected){
-                    //     DB::table('delivery_hdr')
-                    //     ->where('delivery_number',$dnNumber)
-                    //     ->update(
-                    //         [
-                    //             'status'=> '8',
-                    //             'updated_by' => Auth::user()->username,
-                    //             'updated_at' => date('Y-m-d H:i:s')
-                    //         ]
-                    //     );
-                    //     \LogActivity::addToLog('Delivery update',"username: $username Status Delivery update by receipt DN");
-                    // }
-
                     DB::commit();
                     $title ="Submit $this->title";
                     $alert  ="success";
                     $message  = "$title $drNumber is successfully submitted";
                     \LogActivity::addToLog($title,"username: $username Status $message");
-                    return redirect()->route('dnReceipt.index')->with(['alert'=>$alert,'message'=> $message,'drNumber'=> $drNumber]);
+                    return redirect()->route('dnReceipt.index',['statusKu'=>$statusKu])->with(['alert'=>$alert,'message'=> $message,'drNumber'=> $drNumber,'statusKu'=>$statusKu]);
 
             } catch (Exception $e) {
                 DB::rollBack();
@@ -331,7 +310,7 @@ class DeliveryReceiptController extends Controller
                 $alert  ="warning";
                 $message  = "$title $drNumber is failed to sybmit";
                 \LogActivity::addToLog($title,"username: $username Status $message");
-                return redirect()->route('dnReceipt.index')->with(['alert'=>$alert,'message'=> $message,'drNumber'=> $drNumber]);
+                return redirect()->route('dnReceipt.index',['statusKu'=>$statusKu])->with(['alert'=>$alert,'message'=> $message,'drNumber'=> $drNumber,'statusKu'=>$statusKu]);
             }
         }
     }
@@ -394,17 +373,6 @@ class DeliveryReceiptController extends Controller
             $searchStatusDn = '4';
         } 
 
-        // $data = DB::table('dn_receipt')
-        // ->leftJoin('users as a','dn_receipt.received_by','a.username')
-        // ->leftJoin('users as b','dn_receipt.submitted_by','b.username')
-        // // ->where(function ($query) use ($searchPrd,$searchWos) {
-        // //     $searchPrd ? $query->where('prod_code','ilike','%'.$searchPrd.'%') : '';
-        // //     $searchPrd ? $query->where('wo_code','ilike','%'.$searchWos.'%') : '';
-        // // })
-        // // ->where('production_hdr.status','<>', '7')
-        // ->select('dn_receipt.*','b.name as submittedBy','a.name as receivedBy')
-        // ->get(); 
-
         $fromDate ="";
         $toDate = "";
         $fromDateDn ="";
@@ -435,6 +403,7 @@ class DeliveryReceiptController extends Controller
         $data = DB::table('delivery_hdr')
         ->leftJoin('third_party','third_party.kode','delivery_hdr.customer_id')
         ->leftJoin('dn_receipt','dn_receipt.delivery_number','delivery_hdr.delivery_number')
+        ->leftJoin('invoice_hdr','invoice_hdr.dn_number','invoice_hdr.dn_number')
         ->leftJoin('users as a','dn_receipt.received_by','a.username')
         ->leftJoin('users as b','dn_receipt.submitted_by','b.username')
         ->where(function ($query) use ($searchDn,$drDate,$searchStatus,$fromDate,$toDate,$searchStatusDn,$dnDate,$fromDateDn,$toDateDn) {
@@ -442,20 +411,22 @@ class DeliveryReceiptController extends Controller
             $searchStatus ? $query->where('dn_receipt.status',$searchStatus) : '';
             $drDate ? $query->whereBetween(DB::raw("to_date(dn_receipt.dr_date,'YYYY-MM-DD')"), [$fromDate, $toDate]) : '';
             $searchStatusDn ? $query->where('delivery_hdr.status',$searchStatusDn) : '';
-            $dnDate ? $query->whereBetween(DB::raw("to_date(delivery_hdr.delivery_date,'YYYY-MM-DD')"), [$fromDateDn, $toDateDn]) : '';
+            $dnDate ? $query->whereBetween(DB::raw("to_date(delivery_hdr.delivery_date,'DD-MM-YYYY')"), [$fromDateDn, $toDateDn]) : '';
             
         })
         ->whereIn('delivery_hdr.status',['4','8'])
         ->select('delivery_hdr.*'
-        ,'dn_receipt.dr_date'
         ,'dn_receipt.dr_number'
         ,'dn_receipt.dr_number'
         ,'b.name as submittedBy'
-        ,'dn_receipt.submitted_at'
         ,'a.name as receivedBy'
         ,'dn_receipt.status as statusKu'
         ,'dn_receipt.id as idku'
         ,'dn_receipt.note as notesku'
+        ,'invoice_hdr.invoice_number'
+        ,'nama'
+        ,db::raw("to_char(dn_receipt.submitted_at, 'DD-MM-YYYY') as submitted_at")
+        ,db::raw("to_char(to_date(dn_receipt.dr_date,'YYYY-MM-DD'), 'DD-MM-YYYY') as dr_date")        
         // ,'delivery_hdr.delivery_number as delivery_number_1'
         // ,DB::raw("concat(kode,'-',nama) as customer_name")
         )
@@ -472,20 +443,31 @@ class DeliveryReceiptController extends Controller
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
 
             if ( $data->status == '4') {
+
                 if (Auth::user()->can('dnReceipt-create')) {
-                $buttons .=         '<a href="'. route('dnReceipt.create', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
-                                        <i data-feather="file-text"></i>
-                                        <span>'. __("Receive") .'</span>
-                                    </a>';
+                    // $buttons .= '<a href="'. route('dnReceipt.create', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+                    //             <i data-feather="file-text"></i>
+                    //             <span>'. __("Receive") .'</span>
+                    //         </a>';
+                    $buttons .= '<a href="javascript:void(0);" onclick="receiveDr(\''.Crypt::encryptString($data->id).'\')" class="dropdown-item">
+                            <i data-feather="file-text"></i>
+                            <span>'. __("Receive") .'</span>
+                    </a>';
+                    
                 }
+                
             }
 
             if ($data->statusKu == '1'){
                 if (Auth::user()->can('dnReceipt-edit')) {
-                $buttons .=         '<a href="'. route('dnReceipt.edit', ['id'=>Crypt::encryptString($data->idku)]) .'" class="dropdown-item">
-                                        <i data-feather="file-text"></i>
-                                        Submit
-                                    </a>';
+                // $buttons .=         '<a href="'. route('dnReceipt.edit', ['id'=>Crypt::encryptString($data->idku)]) .'" class="dropdown-item">
+                //                         <i data-feather="file-text"></i>
+                //                         Submit
+                //                     </a>';
+                    $buttons .= '<a href="javascript:void(0);" onclick="submitDr(\''.Crypt::encryptString($data->idku).'\')" class="dropdown-item">
+                        <i data-feather="check"></i>
+                        <span>'. __("Submit") .'</span>
+                    </a>';
                 }
             }
                 

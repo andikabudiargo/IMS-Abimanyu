@@ -25,10 +25,15 @@
                                 </div>
                             </div>
                             <div class="form-row">
-                                <div class="form-group col-md-5">
+                                <div class="form-group col-md-3">
                                     <label class="form-label" for="dnNumber">DN Number*</label>
-                                    <input type="hidden" id="deliveryDate" name="deliveryDate" value="{{ $dnReceipt->delivery_date }}" />
+                                    {{-- <input type="hidden" id="deliveryDate" name="deliveryDate" value="{{ $dnReceipt->delivery_date }}" /> --}}
+                                    <input type="hidden" id="statusKu" name="statusKu" value="{{ $statusKu }}" />
                                     <input type="text" id="dnNumber" name="dnNumber" value= "{{ $dnReceipt->delivery_number }}" class="form-control text-hitam disabled-el"  disabled />
+                                </div>
+                                <div class="form-group col-md-2">
+                                    <label class="form-label" for="deliveryDate">DN Date*</label>
+                                    <input type="text" id="deliveryDate" name="deliveryDate" value="{{ old('deliveryDate',$dnReceipt->delivery_date) }}" class="form-control text-hitam disabled-el"  disabled/>
                                 </div>
                             </div>
                             <div class="form-row">
@@ -70,7 +75,7 @@
                             <hr>
                             <div class="form-row">
                                 <div class="col-12">
-                                    <a href="{{ route('dnReceipt.index') }}" class="btn btn-light">Back</a>
+                                    <a href="{{ route('dnReceipt.index',['statusKu'=>$statusKu]) }}" class="btn btn-light">Back</a>
                                     <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Submit</button>
                                 </div>
                             </div>
@@ -110,7 +115,6 @@
         validateFormToast("frmAdd");
     });
         
-
     let minDate = "{{ $dnReceipt->dr_date }}";
     if (tanggal.length) {   
         tanggal.flatpickr({
@@ -124,7 +128,7 @@
         let pesan = "";
         let submitDate = new Date(submitAt.val().split('-').reverse().join('-'));
         let receiptDate = new Date(receiveAt.val().split('-').reverse().join('-'));
-        
+
         pesan += submitBy.val() === receiveBy.val() ? "Petugas tidak boleh sama" : "";
         pesan += receiptDate > submitDate ? "Submit Date > Receipt Date" : "";
 
