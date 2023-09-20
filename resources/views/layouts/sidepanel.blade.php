@@ -203,6 +203,17 @@
                 <span class="menu-item text-truncate" data-i18n="Input">Delivery Instruction</span>
               </a>
             </li>
+
+            @can('purchaseOrder-index')
+            {{-- <li class="{{ \Request::segment(1) == 'purchaseOrders' ? 'active' : '' }}"> --}}
+            <li class="{{ \Request::is(['purchaseOrdersReport']) ? 'active' : '' }}">
+              <a class="d-flex align-items-center" href="{{ route('purchaseOrders.report') }}">
+                <i data-feather="circle"></i>
+                <span class="menu-item text-truncate" data-i18n="Input">Report PO</span>
+              </a>
+            </li>
+            @endcan
+
           </ul>
         </li>
         <li class=" navigation-header"><span data-i18n="Logistic">Logistic</span><i data-feather="more-horizontal"></i>

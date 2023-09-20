@@ -564,7 +564,7 @@ class InvoiceController extends Controller
         
         $data= DB::table('invoice_hdr')
         ->where('id',$id)
-        ->get()->first();
+        ->first();
 
         $invNumber = $data->invoice_number;
         

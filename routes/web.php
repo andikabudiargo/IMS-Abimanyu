@@ -258,6 +258,9 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('purchaseOrders/approve',['as'=>'purchaseOrder.approve','uses'=>'PurchaseOrderController@approve']);
 	Route::get('purchaseOrders/listArticle/pr',['as'=>'purchaseOrder.listArticle.pr','uses'=>'PurchaseOrderController@listArticleByPr']);
 
+	Route::get('purchaseOrdersReport',['as'=>'purchaseOrders.report','uses'=>'PurchaseOrderController@report','middleware' => ['permission:purchaseOrder-index']]);
+	Route::get('purchaseOrdersReport/list',['as'=>'purchaseOrders.listReport','uses'=>'PurchaseOrderController@listReport','middleware' => ['permission:purchaseOrder-index']]);
+
 	Route::get('targetSo',['as'=>'targetSo.index','uses'=>'TargetSoController@index','middleware' => ['permission:targetSo-index']]);
 	Route::get('targetSo/create',['as'=>'targetSo.create','uses'=>'TargetSoController@create','middleware' => ['permission:targetSo-create']]);
 	Route::post('targetSo/store',['as'=>'targetSo.store','uses'=>'TargetSoController@store']);
@@ -633,7 +636,7 @@ Route::group( ['middleware' => ['auth']], function() {
 
 	
 	
-	Route::get('deliveryInstruction',['as'=>'deliveryInstruction.index','uses'=>'DeliveryInstructionController@index','middleware' => ['permission:purchaseOrder-index']]);
+	Route::get('deliveryInstruction',['as'=>'deliveryInstruction.index','uses'=>'DeliveryInstructionController@index','middleware' => ['permission:deliveryInstruction-index']]);
 	Route::get('deliveryInstruction/create',['as'=>'deliveryInstruction.create','uses'=>'DeliveryInstructionController@create','middleware' => ['permission:deliveryInstruction-create']]);
 	Route::post('deliveryInstruction/store',['as'=>'deliveryInstruction.store','uses'=>'DeliveryInstructionController@store']);
 	Route::get('deliveryInstruction/list',['as'=>'deliveryInstruction.list','uses'=>'DeliveryInstructionController@list']);

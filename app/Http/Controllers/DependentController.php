@@ -268,6 +268,24 @@ class DependentController extends Controller
                 $default='';
                 $defaulttxt='Choose invoice';
                 break;
+            case 'listPo': 
+                $table='purchase_order_hdr';
+                $field ='supplier_id';
+                $order ='po_number';
+                $value ='po_number';
+                $name  ='po_number';
+                $default='';
+                $defaulttxt='Choose PO';
+                break;
+            case 'pRequest': 
+                $table='purchase_request_det';
+                $field ='supp_code';
+                $order ='pr_number';
+                $value ='pr_number';
+                $name  ='pr_number';
+                $default='';
+                $defaulttxt='Choose PR';
+                break;
             break;
                 default:
                     $table='';

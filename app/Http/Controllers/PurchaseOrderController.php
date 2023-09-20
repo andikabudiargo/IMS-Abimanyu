@@ -1481,4 +1481,113 @@ class PurchaseOrderController extends Controller
 
     }
 
+    public function report(Request $request)
+    {
+        $data['title'] = "$this->title Report";
+        $data['kolom'] = $this->getTableColoumnReport();
+
+        $data['supps'] = DB::table('third_party')
+        ->where ('third_party_type','=','supp')
+        ->orderBy('nama')
+        ->get();
+
+        $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'RECEIVED','5'=>'CANCELED','6'=>'CLOSED','7'=>'REVISED','8'=>'DECLINE'];
+            
+        return view("purchaseOrder.report",$data);
+    }
+
+    public function getTableColoumnReport(){
+        $kolom=
+        [
+            ['data'=>'po_number','name'=>'po_number','title'=>'PO Number'],
+            ['data'=>'pr_number','name'=>'pr_number','title'=>'PR Number'],
+            ['data'=>'supp_kode','name'=>'supp_kode','title'=>'Kode Supp'],
+            ['data'=>'supp_name','name'=>'supp_name','title'=>'Nama Supplier'],
+            ['data'=>'article_alternative_code','name'=>'article_alternative_code','title'=>'Article code'],
+            ['data'=>'article_desc','name'=>'article_desc','title'=>'Article desc'],
+            ['data'=>'qtyku','name'=>'qtyku','title'=>'Qty PO'],
+            ['data'=>'qty_lpb','name'=>'qty_lpb','title'=>'Qty LPB'],
+            ['data'=>'balance','name'=>'balance','title'=>'Balance'],
+            ['data'=>'uom','name'=>'uom','title'=>'STN'],
+            ['data'=>'price','name'=>'price','title'=>'Harga'],
+            ['data'=>'total_dpp','name'=>'total_dpp','title'=>'Total PO'],
+        ];
+        return json_encode($kolom, true);
+    }
+
+    public function listReport(Request $request)
+    {
+        $searchPo = $request->searchPo;
+        $username = Auth::user()->username;
+        $searchSupplier = $request->searchSupplier;
+        $searchStatus = $request->searchStatus;
+        $orderDate = $request->orderDate;
+        $fromDate ="";
+        $toDate = "";
+        
+        if ($orderDate){
+            $date = explode("to",$orderDate);
+            if(count($date)>1){
+                $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+                $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
+            }else{
+                $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+                $toDate = $fromDate; 
+            }
+            // $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+            // $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
+        }
+
+        $data = DB::table('purchase_order_det')
+        ->leftJoin('purchase_order_hdr','purchase_order_hdr.po_number','purchase_order_det.po_number')
+        ->leftJoin('purchase_request_hdr','purchase_request_hdr.pr_number','purchase_order_det.pr_number')
+        ->leftJoin('article','article.article_code','purchase_order_det.article_code')
+        ->leftJoin('article_types','article_types.code','article.article_type')
+        ->leftJoin('third_party','third_party.kode','purchase_order_hdr.supplier_id')
+        ->leftJoin('uom','uom.code','purchase_order_det.uom')
+        ->where(function ($query) use ($searchPo,$searchStatus,$orderDate,$fromDate,$toDate,$searchSupplier) {
+            $searchSupplier ? $query->where('purchase_order_hdr.supplier_id',$searchSupplier) : '';
+            $searchPo ? $query->whereIn('purchase_order_det.po_number',$searchPo) : '';
+            $searchStatus ? $query->where('purchase_order_hdr.status',$searchStatus) : '';
+            $orderDate ? $query->whereBetween(DB::raw("to_date(purchase_order_hdr.po_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
+        })
+        ->select('purchase_order_det.*'
+        ,db::raw("(select sum(qty) from receiving_det where rec_number in (select rec_number from receiving_hdr where po_number = purchase_order_det.po_number and status not in ('5','7')) and article_code = purchase_order_det.article_code group by article_code) as qty_lpb")
+        ,db::raw("purchase_order_det.qty-(select sum(qty) from receiving_det where rec_number in (select rec_number from receiving_hdr where po_number = purchase_order_det.po_number) and article_code = purchase_order_det.article_code group by article_code) as balance")
+        ,'purchase_order_hdr.*'
+        ,'article_alternative_code'
+        ,'article.article_desc'
+        ,'third_party.nama as supp_name'
+        ,'third_party.kode as supp_kode'
+        // ,'uom_group'
+        // ,'purchase_order_hdr.status as statusku'
+        // ,'article_types.name as article_type_name'
+        ,'purchase_order_det.qty as qtyku'
+        // ,DB::raw("case when uom_group = 'PIECE' then TO_CHAR(qty,'999,999,999') when uom_group <> 'PIECE' then TO_CHAR(qty,'999,999,999.99') end as qtyku")
+        // ,DB::raw("TO_CHAR(price*qty*purchase_order_hdr.ppn/100,'999,999,999') as total_ppn")
+        // ,DB::raw("TO_CHAR(price*qty,'999,999,999') as total_dpp")
+        ,DB::raw("price*qty as total_dpp")
+        // ,DB::raw("TO_CHAR(price,'999,999,999') as price")
+        // ,DB::raw("TO_CHAR(price*qty*purchase_order_hdr.pph22/100,'999,999,999') as total_pph22")
+        // ,DB::raw("TO_CHAR((((price*qty)-discount)+(price*qty*purchase_order_hdr.ppn/100)-(price*qty*purchase_order_hdr.pph22)),'999,999,999') as grand_total")
+        // ,DB::raw("(select STRING_AGG((select name from users where username = a.username), ' -> ' ORDER BY approval_order) AS main from approval_history a where module_number = purchase_order_det.po_number) as approval_by")
+        // ,'depts.name as nama_dept'
+        )
+        ->orderBy('purchase_order_det.id')
+        ->get(); 
+
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'RECEIVED','5'=>'CANCELED','6'=>'CLOSED','7'=>'REVISED','8'=>'DECLINE'];
+            
+        return Datatables::of($data)
+        // ->addColumn('statusku', function ($data) {
+        //     if ($data->statusku>0){
+        //         $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-danger'];            
+        //         $statusPo = ['NEW','VALIDATED','APPROVED','RECEIVED','CANCELED','CLOSED','REVISED','DECLINE'];
+        //         return "<div class='badge ".$badges[$data->statusku - 1]."'>".$statusPo[$data->statusku - 1]."</div>";
+        //     }
+        // })
+        // ->rawColumns(['status'])
+        ->make(true);
+    }
+
 }
