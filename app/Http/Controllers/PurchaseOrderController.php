@@ -1554,7 +1554,7 @@ class PurchaseOrderController extends Controller
         ->whereNotIn('purchase_order_hdr.status',['5','6','7','8'])
         ->select('purchase_order_det.*'
         ,db::raw("(select sum(qty) from receiving_det where rec_number in (select rec_number from receiving_hdr where po_number = purchase_order_det.po_number and status not in ('5','7')) and article_code = purchase_order_det.article_code group by article_code) as qty_lpb")
-        ,db::raw("purchase_order_det.qty-(select sum(qty) from receiving_det where rec_number in (select rec_number from receiving_hdr where po_number = purchase_order_det.po_number) and article_code = purchase_order_det.article_code group by article_code) as balance")
+        ,db::raw("purchase_order_det.qty-coalesce((select sum(qty) from receiving_det where rec_number in (select rec_number from receiving_hdr where po_number = purchase_order_det.po_number) and article_code = purchase_order_det.article_code group by article_code),0) as balance")
         ,'purchase_order_hdr.*'
         ,'article_alternative_code'
         ,'article.article_desc'
