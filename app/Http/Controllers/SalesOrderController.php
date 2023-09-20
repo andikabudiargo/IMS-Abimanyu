@@ -1022,4 +1022,92 @@ class SalesOrderController extends Controller
 
     }
 
+    public function getTableColoumnReport(){
+        $kolom=
+        [
+            ['data'=>'customer_code','name'=>'customer_code','title'=>'Customer Code'],
+            ['data'=>'customer','name'=>'customer','title'=>'Customer'],
+            ['data'=>'po_number','name'=>'po_number','title'=>'No PO'],
+            ['data'=>'so_code','name'=>'so_code','title'=>'No SO'],
+            ['data'=>'so_date','name'=>'so_date','title'=>'Tanggal SO'],
+            ['data'=>'article_alternative_code','name'=>'article_alternative_code','title'=>'Article code'],
+            ['data'=>'article_desc','name'=>'article_desc','title'=>'Article desc'],
+            ['data'=>'qty','name'=>'qty','title'=>'Qty SO'],
+            ['data'=>'qty_kirim','name'=>'qty_kirim','title'=>'Pengiriman'],
+            ['data'=>'balance','name'=>'balance','title'=>'Sisa Order']
+        ];
+        return json_encode($kolom, true);
+    }
+
+    public function report(Request $request)
+    {
+        $data['title'] = "$this->title Report";
+        $data['kolom'] = $this->getTableColoumnReport();
+
+        $data['custs'] = DB::table('third_party')
+        ->where ('third_party_type','=','cust')
+        ->orderBy('nama')
+        ->get();
+
+        return view("salesOrder.report",$data);
+    }
+
+    public function listReport(Request $request)
+    {
+        $searchOrder = $request->searchOrder;
+        $seachPo = strtolower($request->seachPo);
+        $searchCustomer = $request->searchCustomer;
+        $orderDate = $request->orderDate;
+        $fromDate = "";
+        $toDate = "";
+
+        if ($orderDate){
+            $date = explode("to",$orderDate);
+            if(count($date)>1){
+                $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+                $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
+            }else{
+                $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+                $toDate = $fromDate; 
+            }
+        }      
+
+        $data = DB::table('sales_order_det')
+        ->leftJoin('sales_order_hdr','sales_order_hdr.so_code','sales_order_det.so_code')
+        ->leftJoin('third_party','third_party.kode','sales_order_hdr.customer_id')
+        ->leftJoin('article','article.article_code','sales_order_det.article_code')
+        ->leftJoin('uom','uom.code','sales_order_det.uom')
+        ->where(function ($query) use ($seachPo,$searchOrder,$searchCustomer,$fromDate,$toDate) {
+            $seachPo ? $query->where('po_number','ilike','%'.$seachPo.'%') :'';
+            $searchOrder ? $query->whereIn('sales_order_hdr.so_code',$searchOrder) : '';
+            $searchCustomer ? $query->where('customer_id',$searchCustomer) :'';
+            $fromDate ? $query->whereBetween(DB::raw("to_date(so_date,'DD-MM-YYYY')"), [$fromDate, $toDate]):'';
+        })
+        ->where('sales_order_hdr.so_code','<>',null)
+        ->select('sales_order_det.*'
+        ,'sales_order_hdr.po_number'
+        ,'sales_order_hdr.so_code'
+        ,'sales_order_hdr.so_date'
+        ,'article_alternative_code'
+        ,'article.article_desc'
+        ,'third_party.kode as customer_code'
+        ,'third_party.nama as customer'
+        ,'sales_order_det.ppn as ppn_price'
+        ,'sales_order_det.id as id_det'
+        ,db::raw("(select sum(qty) from delivery_det where so_number = sales_order_hdr.so_code and article_code = sales_order_det.article_code group by article_code) as qty_kirim")
+        ,db::raw("coalesce((select sum(qty) from delivery_det where so_number = sales_order_hdr.so_code and article_code = sales_order_det.article_code group by article_code),0)-sales_order_det.qty as balance")
+        // ,'sales_order_hdr.status as statusKu'
+        // ,'uom_group'
+        // ,'qty_target'
+        // ,'qty_forcast'
+        // ,DB::raw("case when uom_group = 'PIECE' then TO_CHAR(qty_target,'999,999,999') when uom_group <> 'PIECE' then TO_CHAR(qty_target,'999,999,999.999') end as qty_target")
+        //,DB::raw("case when uom_group = 'PIECE' then TO_CHAR(qty_forcast,'999,999,999') when uom_group <> 'PIECE' then TO_CHAR(qty_forcast,'999,999,999.999') end as qty_forcast")
+        )
+        ->orderBy('sales_order_det.id')
+        ->get(); 
+    
+        return Datatables::of($data)
+        ->make(true);
+    }
+
 }

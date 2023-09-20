@@ -238,6 +238,9 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('salesOrders/print',['as'=>'salesOrder.print','uses'=>'SalesOrderController@print']);
 	Route::get('salesOrder/approve',['as'=>'salesOrder.approve','uses'=>'SalesOrderController@approve']);
 
+	Route::get('salesOrderReport',['as'=>'salesOrder.report','uses'=>'SalesOrderController@report','middleware' => ['permission:salesOrder-index']]);
+	Route::get('salesOrderReport/list',['as'=>'salesOrder.list.report','uses'=>'SalesOrderController@listReport','middleware' => ['permission:salesOrder-index']]);
+
 	Route::get('purchaseOrders',['as'=>'purchaseOrders.index','uses'=>'PurchaseOrderController@index','middleware' => ['permission:purchaseOrder-index']]);
 	Route::get('purchaseOrders/create',['as'=>'purchaseOrder.create','uses'=>'PurchaseOrderController@create','middleware' => ['permission:purchaseOrder-create']]);
 	Route::post('purchaseOrders/store',['as'=>'purchaseOrder.store','uses'=>'PurchaseOrderController@store']);

@@ -20,9 +20,9 @@
                 <label class="form-label" for="searchSupplier">Supplier</label>
                 <select class="select2 form-control" id="searchSupplier" name="searchSupplier">
                   <option value="">All</option>
-                    @foreach($supps as $val)
-                        <option value="{{$val->kode}}">{{$val->kode}} - {{$val->nama}}</option>
-                    @endforeach
+                  @foreach($supps as $val)
+                      <option value="{{$val->kode}}">{{$val->kode}} - {{$val->nama}}</option>
+                  @endforeach
                 </select>
               </div>
               <div class="form-group col-md-3"> 
@@ -156,20 +156,20 @@
   });
 
   function changeselect(dependent,obj,value,type) {
-      $.ajax({
-        url:"{{route('dynamic.dependent')}}",
-        method:"POST",
-        data:{
-            value:value,
-            type:type,
-            dependent:dependent
-        },
-        success:function(result){
-            $('#'+obj).html(result);
-            // $('#'+obj).val('').trigger('change');
-        }
-      })
-    }
+    $.ajax({
+      url:"{{route('dynamic.dependent')}}",
+      method:"POST",
+      data:{
+          value:value,
+          type:type,
+          dependent:dependent
+      },
+      success:function(result){
+          $('#'+obj).html(result);
+          // $('#'+obj).val('').trigger('change');
+      }
+    })
+  }
  
   $.ajaxSetup({
     headers: {

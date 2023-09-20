@@ -106,7 +106,7 @@
         </li>
         <li class=" navigation-header"><span data-i18n="Marketing">Marketing</span><i data-feather="more-horizontal"></i>
         </li>
-        <li class=" {{ in_array(\Request::segment(1), ['salesOrders','customers','targetSo','forecastSales']) ? 'active' : '' }} nav-item">
+        <li class=" {{ in_array(\Request::segment(1), ['salesOrders','customers','targetSo','forecastSales','salesOrderReport']) ? 'active' : '' }} nav-item">
           <a class="d-flex align-items-center" href="javascript:void(0);">
             <i data-feather='layers'></i>
             <span class="menu-title text-truncate" data-i18n="Form Elements">Sales
@@ -142,6 +142,15 @@
               <a class="d-flex align-items-center" href="{{ route('customers.index') }}">
                 <i data-feather="circle"></i>
                 <span class="menu-item text-truncate" data-i18n="Input">Customer</span>
+              </a>
+            </li>
+            @endcan
+
+            @can('salesOrder-index')
+            <li class="{{ \Request::is(['salesOrderReport']) ? 'active' : '' }}">
+              <a class="d-flex align-items-center" href="{{ route('salesOrder.report') }}">
+                <i data-feather="circle"></i>
+                <span class="menu-item text-truncate" data-i18n="Input">Report SO</span>
               </a>
             </li>
             @endcan
