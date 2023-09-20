@@ -109,11 +109,11 @@
   }
 
   $("#btnSearch").click(function(e){
-    if(searchCustomer.val()){
+    // if(searchCustomer.val()){
       showList(searchOrder.val(),seachPo.val(),searchCustomer.val(),orderDate.val());
-    }else{
-      swal.fire('Warning','Customer harus dipilih dulu','warning');
-    }
+    // }else{
+      // swal.fire('Warning','Customer harus dipilih dulu','warning');
+    // }
   });
 
   const showList = (searchOrder,seachPo,searchCustomer,orderDate) => {
