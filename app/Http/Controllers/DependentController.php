@@ -417,7 +417,6 @@ class DependentController extends Controller
             ->orderBy($order)
             ->get();
         }elseif($dependent =='article_wos'){
-
             $data=DB::select("SELECT *,(select article_qty from article_stock where article_code = z.article_code_rm) as qty_rm from (
                 select *,
                 (select (select article_code from article where article_code = c.article_code) as rm from bom_det c where bom_code = (select bom_code from bom_hdr where article_code = a.article_code) and article_type = 'RM') as article_code_rm,
@@ -583,7 +582,6 @@ class DependentController extends Controller
             ->orderBy($order)
             ->get();
         }elseif($dependent =='referenceAr'){
-
             $customerId = DB::table('third_party')->where('account',$code)->value('kode');
             $data= DB::table($table)
             ->where($field,$customerId)
@@ -598,7 +596,12 @@ class DependentController extends Controller
             })
             ->orderBy($order)
             ->get();
-
+        }elseif($dependent =='listPo'){
+            $data= DB::table($table)
+            ->where($field,$code)
+            ->whereNotIn('status',['5','6','7','8'])
+            ->orderBy($order)
+            ->get();
         }else{
             $data= DB::table($table) 
             ->where($field,$code)
