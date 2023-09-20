@@ -123,7 +123,7 @@ class BomController extends Controller
         ->get();
 
         $data['articlesRm'] = DB::table('article')
-        ->whereIn('article_type',['RM','RMP','RMNP'])
+        ->whereIn('article_type',['RMP','RMNP'])
         // ->whereNotIn('article.article_code', function($query){
         //     $query->select(DB::raw("COALESCE(article_code_rm,'blablabla')"))
         //     ->from('bom_hdr')

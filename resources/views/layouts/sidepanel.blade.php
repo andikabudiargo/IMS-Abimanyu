@@ -348,7 +348,7 @@
             <li class="{{ \Request::is(['dnReceipt','dnReceipt/create']) ? 'active' : '' }}">
               <a class="d-flex align-items-center" href="{{ route('dnReceipt.index') }}">
                 <i data-feather="circle"></i>
-                <span class="menu-item text-truncate" data-i18n="Input">DN Receipt</span>
+                <span class="menu-item text-truncate" data-i18n="Input">DN Received</span>
               </a>
             </li>
             @endcan
