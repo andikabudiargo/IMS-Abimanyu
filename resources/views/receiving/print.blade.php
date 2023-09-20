@@ -190,7 +190,7 @@
                         <td width="45%" valign="top" >
                             <table class="tableHeader">
                                 <tr>
-                                    <td width="35%" >Rec. Number </td><td>: {{ $recHdr->rec_number }}</td>
+                                    <td width="30%" >Rec. Number </td><td>: {{ $recHdr->rec_number }}</td>
                                 </tr>
                                 <tr>
                                     <td>PO Number </td><td>: {{ $recHdr->po_number }}</td>
@@ -200,11 +200,11 @@
                                 </tr>
                             </table>
                         </td>
-                        <td width="5%"></td>
-                        <td width="50%">
+                        <td width=""></td>
+                        <td width="55%">
                             <table class="tableHeader">
                                 <tr>
-                                    <td width="25%">Customer </td><td>: {{ $suppliers[0]->nama }}</td>
+                                    <td width="20%">Customer </td><td>: {{ $suppliers[0]->nama }}</td>
                                 </tr>
                                 <tr>
                                     <td>DO Number </td><td>: {{ $recHdr->do_number }}</td>
