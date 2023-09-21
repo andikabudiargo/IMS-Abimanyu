@@ -1158,7 +1158,7 @@ class WarehouseController extends Controller
             $group ? $query->where('group_of_material','ilike','%'.$group.'%') :'';
             $supp ? $query->where('third_party','ilike','%'.$supp.'%') :'';
             $type ? $query->where('article_alternative_code','ilike',$type.'%') :'';
-            $operator ? $query->where('article_stock.article_qty',$operator,$qty) :'';
+            $operator ? $query->where('article_stock.article_qty',$operator,(float)$qty) :'';
         })->orderBy('article_desc')->get();
        
         return Datatables::of($data)
