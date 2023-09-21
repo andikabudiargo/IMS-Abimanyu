@@ -666,10 +666,10 @@ class ArticleController extends Controller
                             </a>';
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
         
-            $buttons .=         '<a href="javascript:;" onclick="movement(\''.$data->art_code.'\',\''.$data->code.'\',\''.$data->desc.'\')" class="dropdown-item">
-                                    <i data-feather="activity"></i>
-                                    Movement
-                                </a>';
+            // $buttons .=         '<a href="javascript:;" onclick="movement(\''.$data->art_code.'\',\''.$data->code.'\',\''.preg_replace("/\"/"," ",$data->desc).'\')" class="dropdown-item">
+            //                         <i data-feather="activity"></i>
+            //                         Movement
+            //                     </a>';
             if (Auth::user()->can('article-edit')) {
             $buttons .=         '<a href="'. route('article.edit',  ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                     <i data-feather="file-text"></i>
