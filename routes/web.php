@@ -298,8 +298,8 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('receiving/approve',['as'=>'receiving.approve','uses'=>'ReceivingController@approve']);
 	Route::post('receiving/cancel',['as'=>'receiving.cancel','uses'=>'ReceivingController@cancel']);
 
-	Route::get('delivery',['as'=>'delivery.index','uses'=>'DeliveryController@index','middleware' => ['permission:receiving-index']]);
-	Route::get('delivery/create',['as'=>'delivery.create','uses'=>'DeliveryController@create','middleware' => ['permission:receiving-create']]);
+	Route::get('delivery',['as'=>'delivery.index','uses'=>'DeliveryController@index','middleware' => ['permission:delivery-index']]);
+	Route::get('delivery/create',['as'=>'delivery.create','uses'=>'DeliveryController@create','middleware' => ['permission:delivery-create']]);
 	Route::get('delivery/search',['as'=>'delivery.search','uses'=>'DeliveryController@search']);
 	Route::get('delivery/list/so',['as'=>'delivery.list.so','uses'=>'DeliveryController@listSo']);
 	Route::get('delivery/list/uom',['as'=>'delivery.list.uom','uses'=>'DeliveryController@listUom']);
@@ -307,7 +307,7 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('delivery/store',['as'=>'delivery.store','uses'=>'DeliveryController@store']);
 	Route::get('delivery/list',['as'=>'delivery.list','uses'=>'DeliveryController@list']);
 	Route::get('delivery/show',['as'=>'delivery.show','uses'=>'DeliveryController@show']);
-	Route::get('delivery/edit',['as'=>'delivery.edit','uses'=>'DeliveryController@edit','middleware' => ['permission:receiving-edit']]);
+	Route::get('delivery/edit',['as'=>'delivery.edit','uses'=>'DeliveryController@edit','middleware' => ['permission:delivery-edit']]);
 	Route::post('delivery/update',['as'=>'delivery.update','uses'=>'DeliveryController@update']);
 	Route::post('delivery/delete',['as'=>'delivery.destroy','uses'=>'DeliveryController@destroy']);
 	Route::get('delivery/code/create',['as'=>'delivery.code.create','uses'=>'DeliveryController@articleCodeCreate']);
@@ -315,6 +315,11 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('delivery/posting',['as'=>'delivery.posting','uses'=>'DeliveryController@posting']);
 	Route::post('delivery/approve',['as'=>'delivery.approve','uses'=>'DeliveryController@approve']);
 	Route::post('delivery/revision',['as'=>'delivery.revision','uses'=>'DeliveryController@revision']);
+
+	Route::get('deliveryReport',['as'=>'delivery.report','uses'=>'DeliveryController@report','middleware' => ['permission:delivery-report']]);
+	Route::post('eliveryReport/list/report',['as'=>'delivery.list.report','uses'=>'DeliveryController@listReport']);
+	Route::get('deliveryReportAcc',['as'=>'delivery.report.acc','uses'=>'DeliveryController@reportAcc','middleware' => ['permission:delivery-report-acc']]);
+	Route::post('eliveryReportAcc/list/report',['as'=>'delivery.list.report.acc','uses'=>'DeliveryController@listReportAcc']);
 
 	Route::get('dnReceipt',['as'=>'dnReceipt.index','uses'=>'DeliveryReceiptController@index','middleware' => ['permission:dnReceipt-index']]);
 	// Route::get('dnReceipt/create',['as'=>'dnReceipt.create','uses'=>'DeliveryReceiptController@create','middleware' => ['permission:dnReceipt-create']]);
@@ -503,6 +508,7 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('workOrderSheet/approve',['as'=>'workingOrderSheet.approve','uses'=>'WorkingOrderSheetController@approve']);
 	Route::get('workOrderSheet/revision',['as'=>'workingOrderSheet.revision','uses'=>'WorkingOrderSheetController@revision','middleware' => ['permission:workingOrder-revision']]);
 	Route::get('workOrderSheet/get/tack',['as'=>'workingOrderSheet.get.tack','uses'=>'WorkingOrderSheetController@getTack']);
+	Route::get('workOrderSheet/get/qty/so',['as'=>'workingOrderSheet.get.qty.so','uses'=>'WorkingOrderSheetController@getQtySo']);
 
 	Route::get('production',['as'=>'production.index','uses'=>'ProductionController@index','middleware' => ['permission:production-index']]);
 	Route::get('production/create',['as'=>'production.create','uses'=>'ProductionController@create','middleware' => ['permission:production-create']]);
@@ -636,8 +642,6 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('wosMixing/article/mix',['as'=>'wosMixing.article.mix','uses'=>'WosMixingController@articleMix']);
 	Route::get('wosMixing/print',['as'=>'wosMixing.print','uses'=>'WosMixingController@print']);
 	Route::post('wosMixing/cancel',['as'=>'wosMixing.cancel','uses'=>'WosMixingController@cancel']);
-
-	
 	
 	Route::get('deliveryInstruction',['as'=>'deliveryInstruction.index','uses'=>'DeliveryInstructionController@index','middleware' => ['permission:deliveryInstruction-index']]);
 	Route::get('deliveryInstruction/create',['as'=>'deliveryInstruction.create','uses'=>'DeliveryInstructionController@create','middleware' => ['permission:deliveryInstruction-create']]);

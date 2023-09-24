@@ -98,7 +98,7 @@ let showDataTables = (opt) => {
                 <"d-flex justify-content-between mx-2 row mb-1"
                   <"col-sm-12 col-md-6"i><"col-sm-12 col-md-6"
                   p>
-                >`,
+                >r`,
           lengthMenu: [
             [ 10, 25, 50, -1 ],
             [ '10', '25', '50', 'all' ]

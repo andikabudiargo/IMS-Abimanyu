@@ -91,6 +91,7 @@ class DeliveryController extends Controller
         ->where ('third_party_type','=','cust')
         ->orderBy('nama')
         ->get();
+
         $data['kolom'] = $this->getTableColoumn();
         $data['kolomDetail'] = $this->getTableColoumnDetail();
 
@@ -1063,4 +1064,191 @@ class DeliveryController extends Controller
         
         return $output;
     }
+
+    public function getTableColoumnReport()
+    {
+        $kolom=
+        [
+            ['data'=>'delivery_number','name'=>'delivery_number','title'=>'DN Number'],
+            ['data'=>'so_number','name'=>'so_number','title'=>'SO Number'],
+            ['data'=>'po_number','name'=>'po_number','title'=>'PO Number'],
+            ['data'=>'delivery_date','name'=>'delivery_date','title'=>'Delivery Date'],
+            ['data'=>'customer_name','name'=>'customer_name','title'=>'Customer'],
+            ['data'=>'article_desc','name'=>'article_desc','title'=>'Article desc'],
+            ['data'=>'qty','name'=>'qty','title'=>'Delivery Qty'],
+        ];
+        return json_encode($kolom, true);
+    }
+
+    public function getTableColoumnReportAcc()
+    {
+        $kolom=
+        [
+            ['data'=>'ppn','name'=>'ppn','title'=>'Sts'],
+            ['data'=>'delivery_number','name'=>'delivery_number','title'=>'DN Number'],
+            ['data'=>'so_number','name'=>'so_number','title'=>'SO Number'],
+            ['data'=>'po_number','name'=>'po_number','title'=>'PO Number'],
+            ['data'=>'delivery_date','name'=>'delivery_date','title'=>'Delivery Date'],
+            ['data'=>'customer_name','name'=>'customer_name','title'=>'Customer'],
+            ['data'=>'article_desc','name'=>'article_desc','title'=>'Article desc'],
+            ['data'=>'qty','name'=>'qty','title'=>'Delivery Qty'],
+            ['data'=>'price','name'=>'price','title'=>'Price'],
+            ['data'=>'price_service','name'=>'price_service','title'=>'Service Price'],
+            ['data'=>'grand_total','name'=>'grand_total','title'=>'Grand Total'],
+            ['data'=>'invoice_number','name'=>'invoice_number','title'=>'Invoice Number'],
+        ];
+        return json_encode($kolom, true);
+    }
+
+    public function report(Request $request)
+    {
+        $data['title'] = "$this->title Report";
+
+        $data['customers'] = DB::table('third_party')
+        ->where ('third_party_type','=','cust')
+        ->orderBy('nama')
+        ->get();
+        $data['kolom'] = $this->getTableColoumnReport();
+        
+        $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED','8'=>'RECEIVED'];
+            
+        return view("delivery.report",$data);
+    }
+
+    public function reportAcc(Request $request)
+    {
+        $data['title'] = "$this->title Report";
+
+        $data['customers'] = DB::table('third_party')
+        ->where ('third_party_type','=','cust')
+        ->select('third_party.kode','third_party.nama')
+        ->orderBy('nama')
+        ->get();
+
+        $data['salesOrders'] = DB::table('sales_order_hdr')
+        ->leftJoin('third_party','third_party.kode','sales_order_hdr.customer_id')
+        ->where ('status','<>','5')
+        ->whereIn('so_code', function($query){
+            $query->select('so_number')
+            ->from('delivery_hdr')
+            ->whereNotIn('status',['5','7']);
+        })
+        ->select('sales_order_hdr.so_code','sales_order_hdr.po_number','third_party.nama')
+        ->orderBy('so_code')
+        ->get();
+
+        $data['kolom'] = $this->getTableColoumnReportAcc();
+        
+        $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED','8'=>'RECEIVED'];
+            
+        return view("delivery.reportAcc",$data);
+    }
+
+    public function listReport(Request $request)
+    {
+        $searchDn = strtolower($request->searchDn);
+        $searchCustomer = $request->searchCustomer; 
+        $searchStatus = $request->searchStatus;
+        $requestDate = $request->dnDate;       
+
+        $fromDate ="";
+        $toDate = "";
+ 
+        if ($requestDate){
+            $date = explode("to",$requestDate);
+            if(count($date)>1){
+                $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+                $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
+            }else{
+                $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+                $toDate = $fromDate; 
+            }
+        }
+
+        $data = DB::table('delivery_det')
+        ->leftJoin('delivery_hdr','delivery_hdr.delivery_number','delivery_det.delivery_number')
+        ->leftJoin('third_party','third_party.kode','delivery_hdr.customer_id')
+        // ->leftJoin('invoice_hdr','invoice_hdr.dn_number','invoice_hdr.dn_number')
+        ->leftJoin('article','article.article_code','delivery_det.article_code')
+        ->where(function ($query) use ($searchDn,$searchCustomer,$searchStatus,$requestDate,$fromDate,$toDate) {
+            $searchDn ? $query->where('delivery_number','ilike','%'.$searchDn.'%') : '';
+            $searchStatus ? $query->where('delivery_hdr.status',$searchStatus) : '';
+            $searchCustomer ? $query->where('delivery_hdr.customer_id',$searchCustomer) : '';
+            $requestDate ? $query->whereBetween(DB::raw("to_date(delivery_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
+        })
+        ->whereNotIn('delivery_hdr.status',['5','7'])
+        ->select(
+        'article.article_desc'    
+        ,'delivery_hdr.delivery_date'
+        ,'delivery_det.delivery_number'
+        ,'delivery_det.qty'
+        ,'delivery_det.so_number'
+        ,'delivery_det.po_number'
+        ,'third_party.nama as customer_name'
+        )
+        ->orderBy('delivery_det.id')
+        ->get();
+
+        return Datatables::of($data)
+        ->make(true);
+
+    }
+
+    public function listReportAcc(Request $request)
+    {
+        $searchDn = strtolower($request->searchDn);
+        $searchSo = $request->searchSo;
+        $searchCustomer = $request->searchCustomer; 
+        $searchStatus = $request->searchStatus;
+        $requestDate = $request->dnDate;       
+
+        $fromDate ="";
+        $toDate = "";
+ 
+        if ($requestDate){
+            $date = explode("to",$requestDate);
+            if(count($date)>1){
+                $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+                $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
+            }else{
+                $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+                $toDate = $fromDate; 
+            }
+        }
+
+        $data = DB::table('delivery_det')
+        ->leftJoin('delivery_hdr','delivery_hdr.delivery_number','delivery_det.delivery_number')
+        ->leftJoin('third_party','third_party.kode','delivery_hdr.customer_id')
+        ->leftJoin('invoice_hdr','invoice_hdr.dn_number','invoice_hdr.dn_number')
+        ->leftJoin('article','article.article_code','delivery_det.article_code')
+        ->where(function ($query) use ($searchDn,$searchCustomer,$searchStatus,$requestDate,$fromDate,$toDate,$searchSo) {
+            $searchDn ? $query->where('delivery_number','ilike','%'.$searchDn.'%') : '';
+            $searchSo ? $query->where('delivery_det.so_number',$searchSo) : '';
+            $searchStatus ? $query->where('delivery_hdr.status',$searchStatus) : '';
+            $searchCustomer ? $query->where('delivery_hdr.customer_id',$searchCustomer) : '';
+            $requestDate ? $query->whereBetween(DB::raw("to_date(delivery_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
+        })
+        ->whereNotIn('delivery_hdr.status',['5','7'])
+        ->select(
+        'article.article_desc'    
+        ,'delivery_hdr.delivery_date'
+        ,'delivery_det.delivery_number'
+        ,'delivery_det.qty'
+        ,'delivery_det.so_number'
+        ,'delivery_det.po_number'
+        ,'third_party.nama as customer_name'
+        ,'invoice_hdr.invoice_number'
+        ,DB::RAW("(Select price from sales_order_det a where a.so_code = delivery_det.so_number and a.article_code = delivery_det.article_code) as price")
+        ,DB::RAW("(Select price_service from sales_order_det a where a.so_code = delivery_det.so_number and a.article_code = delivery_det.article_code) as price_service")
+        ,DB::RAW("(Select coalesce(price,0)+coalesce(price_service,0) from sales_order_det a where a.so_code = delivery_det.so_number and a.article_code = delivery_det.article_code) * delivery_det.qty as grand_total")
+        ,DB::RAW("(Select case when ppn> 0 then 'PPN' else '' end from sales_order_det a where a.so_code = delivery_det.so_number and a.article_code = delivery_det.article_code) as ppn")
+        )
+        ->orderBy('delivery_det.id')
+        ->get();
+
+        return Datatables::of($data)
+        ->make(true);
+
+    }
+
 }

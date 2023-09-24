@@ -329,30 +329,40 @@
           </ul>
         </li> --}}
 
-        <li class=" {{ in_array(\Request::segment(1), ['delivery','dnReceipt']) ? 'active' : '' }} nav-item">
+        <li class=" {{ in_array(\Request::segment(1), ['delivery','dnReceipt','deliveryReport']) ? 'active' : '' }} nav-item">
           <a class="d-flex align-items-center" href="javascript:void(0);">
             <i data-feather='truck'></i>
             <span class="menu-title text-truncate" data-i18n="Form Elements">Delivery
             </span>
           </a>
           <ul class="menu-content">
-            
+
+            @can('delivery-index')
             <li class="{{ \Request::segment(1) == 'delivery' ? 'active' : '' }} " >
               <a class="d-flex align-items-center" href="{{ route('delivery.index') }}">
                 <i data-feather="circle"></i>
-                <span class="menu-item text-truncate" data-i18n="Input">Delivery Note</span>
+                <span class="menu-item text-truncate" data-i18n="Delivery Note">Delivery Note</span>
               </a>
             </li>
+            @endcan
 
             @can('dnReceipt-index')
             <li class="{{ \Request::is(['dnReceipt','dnReceipt/create']) ? 'active' : '' }}">
               <a class="d-flex align-items-center" href="{{ route('dnReceipt.index') }}">
                 <i data-feather="circle"></i>
-                <span class="menu-item text-truncate" data-i18n="Input">DN Received</span>
+                <span class="menu-item text-truncate" data-i18n="Delivery Receipt">DN Received</span>
               </a>
             </li>
             @endcan
 
+            @can('delivery-report')
+            <li class="{{ \Request::segment(1) == 'deliveryReport' ? 'active' : '' }} " >
+              <a class="d-flex align-items-center" href="{{ route('delivery.report') }}">
+                <i data-feather="circle"></i>
+                <span class="menu-item text-truncate" data-i18n="DN Report">DN Report</span>
+              </a>
+            </li>
+            @endcan
 
             {{-- @can('purchaseOrder-index')
             <li class="{{ \Request::segment(1) == 'purchaseOrdersSSS' ? 'active' : '' }} disabled">
@@ -491,7 +501,7 @@
         @can('accounting-menu')
         <li class=" navigation-header"><span data-i18n="Finance Accounting">Finance Accounting</span><i data-feather="more-horizontal"></i>
         </li>
-        <li class=" {{ in_array(\Request::segment(1), ['aps','banks','pettyCash','proforma','bankReceipt','invoice','kasPenerimaan','kasKeluar','bankPenerimaan','bankKeluar']) ? 'active' : '' }} nav-item">
+        <li class=" {{ in_array(\Request::segment(1), ['aps','banks','pettyCash','proforma','bankReceipt','invoice','kasPenerimaan','kasKeluar','bankPenerimaan','bankKeluar','deliveryReportAcc']) ? 'active' : '' }} nav-item">
           <a class="d-flex align-items-center" href="javascript:void(0);">
             <i data-feather="dollar-sign"></i>
             <span class="menu-title text-truncate" data-i18n="Form Elements">Finance & acc
@@ -557,6 +567,18 @@
                   <li class="{{ \Request::is(['bankKeluar','bankKeluar/create','bankKeluar/show','bankKeluar/edit'])  ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('bankKeluar.index') }}"><span class="menu-item text-truncate" data-i18n="Pembayaran">Pembayaran</span></a>
                   </li>
                 {{-- @endcan --}}
+              </ul>
+            </li>
+
+            <li><a class="d-flex align-items-center" href="#"><i data-feather="circle"></i><span class="menu-item text-truncate" data-i18n="Account Report">Report</span></a>
+              <ul class="menu-content">
+                @can('delivery-report-acc')
+                  <li class="{{ \Request::is(['deliveryReportAcc'])  ? 'active' : '' }}">
+                    <a class="d-flex align-items-center" href="{{ route('delivery.report.acc') }}">
+                      <span class="menu-item text-truncate" data-i18n="Dn Report Acc">Dn Report</span>
+                    </a>
+                  </li>
+                @endcan
               </ul>
             </li>
 
