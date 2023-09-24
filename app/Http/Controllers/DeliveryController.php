@@ -1219,7 +1219,7 @@ class DeliveryController extends Controller
         $data = DB::table('delivery_det')
         ->leftJoin('delivery_hdr','delivery_hdr.delivery_number','delivery_det.delivery_number')
         ->leftJoin('third_party','third_party.kode','delivery_hdr.customer_id')
-        ->leftJoin('invoice_hdr','invoice_hdr.dn_number','invoice_hdr.dn_number')
+        // ->leftJoin('invoice_hdr','invoice_hdr.dn_number','invoice_hdr.dn_number')
         ->leftJoin('article','article.article_code','delivery_det.article_code')
         ->where(function ($query) use ($searchDn,$searchCustomer,$searchStatus,$requestDate,$fromDate,$toDate,$searchSo) {
             $searchDn ? $query->where('delivery_number','ilike','%'.$searchDn.'%') : '';
@@ -1237,7 +1237,8 @@ class DeliveryController extends Controller
         ,'delivery_det.so_number'
         ,'delivery_det.po_number'
         ,'third_party.nama as customer_name'
-        ,'invoice_hdr.invoice_number'
+        // ,'invoice_hdr.invoice_number'
+        ,DB::RAW("(Select invoice_number from invoice_det a where a.dn_number = delivery_det.delivery_number and a.article_code = delivery_det.article_code) as invoice_number")
         ,DB::RAW("(Select price from sales_order_det a where a.so_code = delivery_det.so_number and a.article_code = delivery_det.article_code) as price")
         ,DB::RAW("(Select price_service from sales_order_det a where a.so_code = delivery_det.so_number and a.article_code = delivery_det.article_code) as price_service")
         ,DB::RAW("(Select coalesce(price,0)+coalesce(price_service,0) from sales_order_det a where a.so_code = delivery_det.so_number and a.article_code = delivery_det.article_code) * delivery_det.qty as grand_total")
