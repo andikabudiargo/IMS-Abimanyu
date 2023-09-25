@@ -470,7 +470,7 @@ class ReceivingController extends Controller
         $todayDate = date('Y-m-d');
         
         if ($recNumber){
-            $data = DB::table('receiving_det1')
+            $data = DB::table('receiving_det')
             ->leftJoin('receiving_hdr','receiving_hdr.rec_number','receiving_det.rec_number')
             ->leftJoin('article','article.article_code','receiving_det.article_code')
             ->where('receiving_det.rec_number',$recNumber)
