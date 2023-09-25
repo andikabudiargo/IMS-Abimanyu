@@ -468,7 +468,8 @@ class ReceivingController extends Controller
         $status = '4';
         $moduleCode = $this->moduleCode;
         $todayDate = date('Y-m-d');
-        
+        // $rowAffected = 0;
+            
         if ($recNumber){
             $data = DB::table('receiving_det')
             ->leftJoin('receiving_hdr','receiving_hdr.rec_number','receiving_det.rec_number')
@@ -485,7 +486,7 @@ class ReceivingController extends Controller
 
             foreach($data as $val){
                 //insert article code kalo belum ada di tabel item_stock
-                if($val->total_qty > 0){
+                // if( $val->total_qty > 0 ){
                     DB::table('article_stock')
                     ->updateOrInsert(
                         [ 'site_code' =>$siteCode,
@@ -506,38 +507,39 @@ class ReceivingController extends Controller
                     ->update([
                         'article_qty' => DB::raw('coalesce(article_qty,0) + '.$val->total_qty)
                     ]);
-                }
+
+                    if ($rowAffected > 0){
+                        DB::table('article')
+                        ->where('article_code',$val->article_code)
+                        ->update(
+                        [   
+                            'lastcost' => $val->price,
+                            'avgcost' =>  $val->average_cost,
+                            'updated_by' => Auth::user()->username,
+                            'updated_at' => date('Y-m-d H:i:s')
+                        ]
+                        );
+                    }
+                // }
 
                 // $rowAffected = DB::table('article_stock')
                 // ->where('site_code',$siteCode)
                 // ->where('article_code',$val->article_code)
                 // ->increment('article_qty', $val->total_qty);
 
-                if ($rowAffected){
-                    DB::table('article')
-                    ->where('article_code',$val->article_code)
-                    ->update(
-                    [   
-                        'lastcost' => $val->price,
-                        'avgcost' =>  $val->average_cost,
-                        'updated_by' => Auth::user()->username,
-                        'updated_at' => date('Y-m-d H:i:s')
-                    ]
-                    );
-                }
             }
                     
+            $rowAffected = DB::table('receiving_hdr')
+            ->where('rec_number',$recNumber)
+            ->update(
+                [   
+                    'status' => $status,
+                    'updated_by' => Auth::user()->username,
+                    'updated_at' => date('Y-m-d H:i:s')
+                ]
+            );
+            
             if ($rowAffected > 0){
-                DB::table('receiving_hdr')
-                ->where('rec_number',$recNumber)
-                ->update(
-                    [   
-                        'status' => $status,
-                        'updated_by' => Auth::user()->username,
-                        'updated_at' => date('Y-m-d H:i:s')
-                    ]
-                );
-
                 $movements = DB::table('receiving_det')
                 ->leftJoin('receiving_hdr','receiving_hdr.rec_number','receiving_det.rec_number')
                 ->leftJoin('article','article.article_code','receiving_det.article_code')
