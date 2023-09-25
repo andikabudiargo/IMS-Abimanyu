@@ -27,13 +27,16 @@
                                 <div class="form-group col-md-2">
                                     <label for="dnDate">Delivery Date*</label>
                                     <input type="text" id="dnDate" name="dnDate" class="form-control" placeholder="DD-MM-YYYY" value="{{ $header->delivery_date }}" required />
-                                </div>                               
+                                </div>   
+                                <div class="form-group col-md-4">
+                                    <label class="form-label" for="poNumberHdr">PO Number</label>
+                                    <input type="text" id="poNumberHdr" name="poNumberHdr" class="form-control" value="{{ $header->po_number }}" disabled />
+                                </div>                            
                             </div>
                             <div class="form-row">
                                 <div class="form-group col-md-5">
                                     <label class="form-label" for="customer">Customer*</label>
-                                    <select class="select2 form-control" id="customer" name="customer" required>
-                                        {{-- <option value="">All</option> --}}
+                                    <select class="select2 form-control" id="customer" name="customer" required disabled>
                                         @foreach($customers as $val)
                                             <option value="{{$val->kode}}" {{$val->kode == $header->customer_id ? "selected" : ""}} >{{$val->kode}} - {{$val->nama}}</option>
                                         @endforeach
@@ -41,7 +44,7 @@
                                 </div>
                                 <div class="form-group col-md-4">
                                     <label class="form-label" for="soNumber">SO Number*</label>
-                                    <input type="text" id="soNumber" name="soNumber" class="form-control" value="{{ $header->so_number }}" data-po-number="{{ $header->po_number }}" required />
+                                    <input type="text" id="soNumber" name="soNumber" class="form-control" value="{{ $header->so_number }}" data-po-number="{{ $header->po_number }}" required disabled/>
                                 </div>
                             </div>
                             <div class="form-row">
@@ -264,8 +267,24 @@
             uom = detail[i].uom;
             soCode = detail[i].so_number;
             poNumber = detail[i].po_number;
-            add_new_row(article,articleCode,articleDesc,qtyDel,uomGroup,uom,soCode,poNumber);
+            qtySo = detail[i].qty_so;
+            add_new_row(article,articleCode,articleDesc,qtyDel,uomGroup,uom,soCode,poNumber,qtySo);
         }
+
+        let detailSo = {!! $detailSo !!};
+        for(let i=0;i<detailSo.length;i++){
+            article = detailSo[i].article_code;
+            articleCode = detailSo[i].article_alternative_code;
+            articleDesc = detailSo[i].article_desc;
+            qtyDel = 0;
+            uomGroup =  detailSo[i].uom_group;
+            uom = detailSo[i].uom;
+            soCode = detailSo[i].so_number;
+            poNumber = detailSo[i].po_number;
+            qtySo = detailSo[i].qty_so;
+            add_new_row(article,articleCode,articleDesc,qtyDel,uomGroup,uom,soCode,poNumber,qtySo);
+        }
+        
     });
 
     dnDate = $('#dnDate');
@@ -289,6 +308,7 @@
             $("#frmAdd").submit();
         }else{ 
             $('.disabled-el').removeAttr('disabled');
+            let objQtySo= $('#article_row input[name="qtySo[]"]');
             let objQty= $('#article_row input[name="qtyInv[]"]');
             let objUom= $('#article_row span[name="uom[]"]'); 
             let articles = []; 
@@ -304,6 +324,7 @@
                     let articleSoCode = $this.data("so-code");
                     let poNumber = $this.data("po-number");
                     let qty=objQty.eq(i).val().replace(/,/gi, '') || 0;
+                    let qtySo=objQtySo.eq(i).val().replace(/,/gi, '') || 0;
                     
                     if ((articleCode!=='') && (qty> 0)){
                         articles.push({
@@ -311,9 +332,12 @@
                             "qty":qty,
                             "uom":articleUom,
                             "so_number":articleSoCode,
-                            "po_number":poNumber
+                            "po_number":poNumber,
+                            "qty_so":qtySo
                         });
                     }
+
+                    // console.log(articles);
                     // if (qty == 0){
                     //     pesan +="QTY of items "+ articleDesc +" cannot be 0 <br>"; 
                     //     flag=1;
@@ -373,23 +397,30 @@
     });
         
     let cloneCount=0;
-    function add_new_row(article,articleCode,articleDesc,qtyDel,uomGroup,uom,soCode,poNumber) {
+    function add_new_row(article,articleCode,articleDesc,qtyDel,uomGroup,uom,soCode,poNumber,qtySo) {
         // console.log(article,articleCode,articleDesc,qtyDel,uomGroup,uom);
         $("#article_row").append($("#new_row").clone().html());
         cloneCount++;
         $("#article_row").find('#baru').attr('id', 'new_row'+ cloneCount);
+        $("#new_row"+ cloneCount).find('#qtySo').attr('id', 'qtySo'+ cloneCount);
         $("#new_row"+ cloneCount).find('#articleId').attr('id', 'articleId'+ cloneCount);
         $('#articleId'+ cloneCount).attr('data-code', article);
+        $('#articleId'+ cloneCount).attr('data-desc', articleDesc);
         $('#articleId'+ cloneCount).attr('data-uom', uom);
+        // $('#articleId'+ cloneCount).attr('data-price', price);
+        // $('#articleId'+ cloneCount).attr('data-price-service', priceJasa);
         $('#articleId'+ cloneCount).attr('data-so-code', soCode);
         $('#articleId'+ cloneCount).attr('data-po-number', poNumber);
-        $('#articleId'+ cloneCount).val(articleCode +" - " + articleDesc);
+        $('#articleId'+ cloneCount).attr('data-so-qty', qtySo);
+        $('#articleId'+ cloneCount).val(articleCode+'-'+articleDesc);
+
         $("#new_row"+ cloneCount).find('#qtyInv').attr('id', 'qtyInv'+ cloneCount);
         $('#qtyInv'+ cloneCount).val(qtyDel);
         $("#new_row"+ cloneCount).find('#uom').attr('id', 'uom'+ cloneCount);
+        $('#qtySo'+ cloneCount).val(qtySo*1);
         listUom('uom'+ cloneCount,uomGroup,uom,uom);
         tombolPanah('qtyInv');
-        mask_thousand_digit(3);
+        mask_thousand();
         hitungTotal();
         hitungGrandTotalLoad();
     }
@@ -447,8 +478,7 @@
         $("#totalRow").val(objArticle.length);
         $("#totalQTY").val(humanizeNumber(totalQty));
     }
-
-        
+            
     $.ajaxSetup({
         headers: {
             'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')

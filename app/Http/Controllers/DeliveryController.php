@@ -97,6 +97,7 @@ class DeliveryController extends Controller
 
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED','8'=>'RECEIVED'];
         $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED','8'=>'RECEIVED'];
+        $data['statusKu'] = '1';
             
         return view("delivery.index",$data);
     }
@@ -318,10 +319,38 @@ class DeliveryController extends Controller
         ->get()->first();
 
         $dnNumber = $data['header']->delivery_number;
+        $soNumber = $data['header']->so_number;
+
+        $data['detailSo'] = DB::table('sales_order_det as a')
+        ->leftJoin('article','article.article_code','=','a.article_code')
+        ->leftJoin('sales_order_hdr','sales_order_hdr.so_code','=','a.so_code')
+        ->leftJoin('uom','a.uom','uom.code')
+        ->select('a.*'
+        ,'article.*'
+        ,'a.so_code as so_number'
+        ,'sales_order_hdr.po_number'
+        ,DB::RAW("(coalesce((select sum(qty) as qty_delivery from delivery_det where delivery_number in (select delivery_number from delivery_hdr where so_number = a.so_code) and article_code = a.article_code group by article_code),0)) as qty_delivery")
+        ,DB::RAW("(a.qty - coalesce((select sum(qty) as qty_delivery from delivery_det where delivery_number in (select delivery_number from delivery_hdr where so_number = a.so_code) and article_code = a.article_code group by article_code),0)) as qty_so")
+        )
+        ->whereNotIn('a.article_code', function($query) use($dnNumber){
+            $query->select('article_code')
+            ->from('delivery_det')
+            ->where('delivery_number',$dnNumber);
+        })
+        ->where('a.so_code',$soNumber)
+        ->orderBy('a.id')
+        ->get();
 
         $data['detail'] = DB::table('delivery_det')
+        ->leftJoin('delivery_hdr','delivery_hdr.delivery_number','delivery_det.delivery_number')
         ->leftJoin('article','article.article_code','=','delivery_det.article_code')
         ->leftJoin('uom','delivery_det.uom','uom.code')
+        ->select(
+            'delivery_det.*'
+            ,'article.*'
+            ,'uom.*'
+            ,DB::RAW("(select sum(qty) from sales_order_det a where a.so_code = delivery_det.so_number and a.article_code = delivery_det.article_code group by a.article_code) - delivery_det.qty as qty_so")
+        )
         ->where('delivery_det.delivery_number',$dnNumber)
         ->orderBy('delivery_det.id')
         ->get();
@@ -440,7 +469,8 @@ class DeliveryController extends Controller
                                 'qty' => $val->qty,
                                 'uom' => $val->uom,
                                 'updated_by' => Auth::user()->username,
-                                'updated_at' => date('Y-m-d H:i:s')
+                                'updated_at' => date('Y-m-d H:i:s'),
+                                'qty_so'=>$val->qty_so
                             ]
                         );
                     }
@@ -872,7 +902,7 @@ class DeliveryController extends Controller
                             </a>';
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
             
-            if (($data->status != '3') && ($data->status != '4') && ($data->status != '8')){
+            if (($data->status != '3') && ($data->status != '4') && ($data->status != '8') && ($data->status != '5')){
                 if (Auth::user()->can('receiving-edit')) {
                 $buttons .=         '<a href="'. route('delivery.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                         <i data-feather="file-text"></i>
@@ -1040,7 +1070,7 @@ class DeliveryController extends Controller
 
         $output .='<option value=""></option>';            
         foreach ($data as $row){
-            $output .='<option value="'.$row->so_code.'" data-po-number="'.$row->po_number.'">'.$row->so_code. ' - ' .$row->po_number.'</option>';            
+            $output .='<option value="'.$row->so_code.'" data-po-number="'.$row->po_number.'">'.$row->so_code. ' | ' .$row->po_number.'</option>';            
         }        
         
         return $output;

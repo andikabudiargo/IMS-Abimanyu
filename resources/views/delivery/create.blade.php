@@ -27,7 +27,11 @@
                                 <div class="form-group col-md-2">
                                     <label for="dnDate">Delivery Date*</label>
                                     <input type="text" id="dnDate" name="dnDate" class="form-control" placeholder="DD-MM-YYYY" required />
-                                </div>                               
+                                </div>
+                                <div class="form-group col-md-4">
+                                    <label class="form-label" for="poNumberHdr">PO Number</label>
+                                    <input type="text" id="poNumberHdr" name="poNumberHdr" class="form-control" disabled />
+                                </div>                          
                             </div>
                             <div class="form-row">
                                 <div class="form-group col-md-5">
@@ -329,7 +333,7 @@
                 },
                 success:function(result){
                     $('#'+obj).html(result);
-                    $('#'+obj).val('').trigger('change');
+                    // $('#'+obj).val('').trigger('change');
                 },
                 error: function (response) {
                     //Error here
@@ -341,7 +345,10 @@
 
     $('#customer').change(function(){
         let value= $(this).val();
-        searchSo('soNumber',value);
+        $("#poNumberHdr").val('');
+        if(value){
+            searchSo('soNumber',value);
+        }
     });
 
     let cloneCount=1;
@@ -409,8 +416,12 @@
 
     $('#soNumber').change(function(){
         let value= $(this).val();
-        console.log(value);
-        searchSoDet(value);
+        $("#poNumberHdr").val('');
+        if(value){
+            let poNumber = $(this).find(":selected").data("po-number");
+            $("#poNumberHdr").val(poNumber);
+            searchSoDet(value);
+        }
     })
     
     function hitungTotal(){

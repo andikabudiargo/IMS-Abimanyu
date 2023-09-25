@@ -43,7 +43,7 @@
                 <select class="select2 form-control" id="searchStatus" name="searchStatus">
                     <option value="">All</option>
                     @foreach($status as $index=>$val)
-                        <option value="{{ $index }}">{{ $val }}</option>
+                        <option value="{{ $index }}" {{ $statusKu == $index ? 'selected' : '' }}>{{ $val }}</option>
                     @endforeach
                 </select>
               </div>
@@ -51,9 +51,9 @@
             <div class="form-row">
                 <div class="col-12"> 
                     <button type="button" class="btn btn-primary" id ="btnSearch" name="btnSearch">Search</button>
-                    {{-- @can('receiving-create') --}}
+                    @can('delivery-create')
                       <a href="{{ route('delivery.create') }}" class="btn btn-info"><i class="fa fa-plus"></i> Create</a>
-                    {{-- @endcan --}}
+                    @endcan
                 </div>
             </div>
         </form>
@@ -100,6 +100,12 @@
 @endsection
 @section('scripts')
 <script type="text/javascript">
+  let searchDn = $("#searchDn");
+  let searchSo = $("#searchSo");
+  let searchCustomer = $("#searchCustomer"); 
+  let searchStatus = $("#searchStatus");
+  let dnDate = $("#dnDate");
+
   $(document).ready(function(){    
     let href;
     $(document).on('click', '#deleteButton', function(event) {
@@ -108,6 +114,7 @@
         console.log(href);
         $('#modalConfirmationCancel').attr("action", href);
     });
+    showList(searchDn.val(),searchSo.val(),searchCustomer.val(),searchStatus.val(),dnDate.val());
   });
 
   // let showAlert = "{{ Session::get('alert') }}";
@@ -121,7 +128,7 @@
 
   //refresh di cards
   $('a[data-action="reload"]').on('click', function () {
-      showList();
+    showList(searchDn.val(),searchSo.val(),searchCustomer.val(),searchStatus.val(),dnDate.val());
   });
 
   let rangePickr = $('.flatpickr-range');
@@ -133,13 +140,7 @@
   }
 
   $("#btnSearch").click(function(e){
-    let searchDn = $("#searchDn").val();
-    let searchSo = $("#searchSo").val();
-    let searchCustomer = $("#searchCustomer").val(); 
-    let searchStatus = $("#searchStatus").val();
-    let dnDate = $("#dnDate").val();
-    showList(searchDn,searchSo,searchCustomer,searchStatus,dnDate);
-
+    showList(searchDn.val(),searchSo.val(),searchCustomer.val(),searchStatus.val(),dnDate.val());
   });
 
   const showList = (searchDn,searchSo,searchCustomer,searchStatus,dnDate) => {
@@ -164,7 +165,7 @@
         searchStatus:searchStatus,
         dnDate:dnDate
       },
-      orderColumn:[[ 2, 'asc' ],[ 3, 'asc' ]],
+      orderColumn:[[ 11, 'asc' ],[ 1, 'asc' ]],
       excelFileName:'delivery_note'
     });
   }
