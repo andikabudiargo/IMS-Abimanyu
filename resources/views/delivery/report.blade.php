@@ -132,7 +132,7 @@
       tableId:"detailedTable",
       route:"{{ route('delivery.list.report') }}",
       kolom:{!! $kolom !!},
-      arrColPrint:[0,1,2,3,4,5,6,7],
+      arrColPrint:[0,1,2,3,4,5,6],
       columnDefs :[
         { width: '5%', targets: 0 },
         // { className: 'text-right','targets': [ 6 ] },
