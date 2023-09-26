@@ -57,6 +57,7 @@
             <div class="form-row">
                 <div class="col-12"> 
                     <button type="button" class="btn btn-primary" id ="cmdPrint" name="cmdPrint">Print</button>
+                    {{-- <button type="button" class="btn btn-info" id ="cmdExport" name="cmdExport"><i class="fa fa-download"></i> Downlod Excel</button> --}}
                     {{-- <a href="{{ route('stockTake.export') }}" class="btn btn-info"><i class="fa fa-download"></i> Downlod Excel </a> --}}
                 </div>
             </div>
@@ -81,6 +82,16 @@
     let url = "{{ route('delivery.print.so', ['so_code'=>':id']) }}";
     url = url.replace('%3Aid', id);
     window.open(url, '_blank');
+  });
+
+  $("#cmdExport").click(function(){
+    
+    let id = searchSo.val();
+    let url = "{{ route('delivery.export.so', ['so_code'=>':id']) }}";
+    url = url.replace('%3Aid', id);
+    window.location.href = url;
+    // window.open(url, '_blank');
+
   });
 
   $(document).ready(function(){    

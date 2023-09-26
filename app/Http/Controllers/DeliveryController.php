@@ -14,10 +14,11 @@ use DB;
 use PDF;
 use AppHelpers;
 use Approval;
+use App\Exports\ReportDnExport;
+use Maatwebsite\Excel\Facades\Excel;
 
 class DeliveryController extends Controller
 {
-
     private $title;
     private $moduleCode;
     public function __construct()
@@ -1356,12 +1357,13 @@ class DeliveryController extends Controller
             $qtySisa = $qtySo -$qtyDelivery;
 
             $judul = $val->article_alternative_code." - ".$articleDesc;
-            $barisIsiJudul = "<tr><td colspan='4' align='left' style='background-color:white'>".strtoupper($judul)."</td> </tr>";
+            $barisIsiJudul = "<tr><td colspan='3' align='left' style='background-color:white;;border-right-color:white;'>".strtoupper($judul)."</td>
+                                    <td align='right' style='background-color:white;'> QTY SO:".number_format($qtySo,2)."</td> </tr>";
             $barisIsiJudul .= "<tr >
-                    <td class='detail-padding' align='left' scope='row' style='padding-left:3px;padding-right:3px' width='5%'>No</td>
-                    <td class='detail-padding' align='left' style='padding-left:3px;padding-right:3px'>Delivery Number</td>
-                    <td class='detail-padding  align='left' style='padding-left:3px;padding-right:3px'>Delivery Date</td>
-                    <td class='detail-padding' align='right' style='padding-left:3px;padding-right:3px'>QTY</td>
+                    <td class='detail-padding' align='left' scope='row' style='padding-left:5px;padding-right:3px' width='5%'>No</td>
+                    <td class='detail-padding' align='left' style='padding-left:5px;padding-right:3px'>Delivery Number</td>
+                    <td class='detail-padding  align='left' style='padding-left:5px;padding-right:3px'>Delivery Date</td>
+                    <td class='detail-padding' align='left' style='padding-left:5px;padding-right:3px'>QTY Delivery</td>
                 </tr>";
             
             $isiJudul=DB::select("SELECT a.article_code, c.article_alternative_code, c.article_desc,a.delivery_number
@@ -1378,15 +1380,18 @@ class DeliveryController extends Controller
             foreach($isiJudul as $key=>$item){
                 $no = $key+1;
                 $barisIsiJudul .= "<tr >
-                    <td class='detail-padding' align='left' scope='row' style='padding-left:3px;padding-right:3px' width='5%'>$no</td>
-                    <td class='detail-padding' align='left' style='padding-left:3px;padding-right:3px'>$item->delivery_number</td>
-                    <td class='detail-padding  align='left' style='padding-left:3px;padding-right:3px'>$item->delivery_date</td>
-                    <td class='detail-padding' align='right' style='padding-left:3px;padding-right:3px'>".number_format($item->qty)."</td>
+                    <td class='detail-padding' align='left' scope='row' style='padding-left:5px;padding-right:3px' width='5%'>$no</td>
+                    <td class='detail-padding' align='left' style='padding-left:5px;padding-right:3px'>$item->delivery_number</td>
+                    <td class='detail-padding  align='left' style='padding-left:5px;padding-right:3px'>$item->delivery_date</td>
+                    <td class='detail-padding' align='left' style='padding-left:5px;padding-right:3px'>".number_format($item->qty,2)."</td>
                 </tr>";
                 $jumlahBaris++;
             }
-
-            $barisTotal = "<tr><td colspan='4' align='right' style='background-color:white'>QTY SO:".number_format($qtySo)."    |    Qty Delivery:".number_format($qtyDelivery)."     |     Qty Sisa:".number_format($qtySisa)." </td> </tr>";
+            $barisTotal = "<tr><td colspan='3' style='background-color:white;border-right-color:white;'></td><td align='left' style='background-color:white;border-left-color:white;padding-left:5px;padding-right:3px'>
+            <div style='float:left;width:50%;'>".number_format($qtyDelivery,2)."</div>
+            <div style='float:right;width:50%;'>Qty Sisa:".number_format($qtySisa,2)."</div>
+            </td> </tr>";
+            // $barisTotal = "<tr><td colspan='4' align='right' style='background-color:white'>QTY SO:".number_format($qtySo,2)."    |    Qty Delivery:".number_format($qtyDelivery)."     |     Qty Sisa:".number_format($qtySisa)." </td> </tr>";
             $barisTotal .= "<tr><td colspan='4' align='right' style='border-right-color:white;border-left-color:white'></td> </tr>";            
             $barisAll .= $barisIsiJudul.$barisTotal;
         };
@@ -1408,7 +1413,12 @@ class DeliveryController extends Controller
         view()->share($data);
         $pdf = PDF::loadView('delivery.printReportSoAcc')->setPaper([0, 0, 595.28, 841.89], 'portrait');
         return $pdf->stream("Report_$soNumber.pdf");
+    }
 
+    public function exportSo(Request $request) 
+    {
+        $soNumber = 'SO/ASN/22/12/2571';
+        return Excel::download(new ReportDnExport, 'file_export.xlsx',compact('soNumber'));
     }
 
 }
