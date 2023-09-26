@@ -38,7 +38,7 @@
               <div class="form-group col-md-9"> 
                 <label for="searchSo">SO Number</label> <small class="text-muted">Daftar So Yang sudah di buat DN</small>
                 <select class="select2 form-control" id="searchSo" name="searchSo">
-                  <option value="">All</option>
+                  <option value=""></option>
                   @foreach($salesOrders as $val)
                       <option value="{{ $val->so_code }}">{{ $val->so_code }} | {{ $val->nama }}  | {{ $val->po_number }}</option>
                   @endforeach
@@ -57,7 +57,7 @@
             <div class="form-row">
                 <div class="col-12"> 
                     <button type="button" class="btn btn-primary" id ="cmdPrint" name="cmdPrint">Print</button>
-                    {{-- <button type="button" class="btn btn-info" id ="cmdExport" name="cmdExport"><i class="fa fa-download"></i> Downlod Excel</button> --}}
+                    <button type="button" class="btn btn-info" id ="cmdExport" name="cmdExport"><i class="fa fa-download"></i> Downlod Excel</button>
                     {{-- <a href="{{ route('stockTake.export') }}" class="btn btn-info"><i class="fa fa-download"></i> Downlod Excel </a> --}}
                 </div>
             </div>
@@ -79,17 +79,20 @@
 
   $("#cmdPrint").click(function(){
     let id = searchSo.val();
-    let url = "{{ route('delivery.print.so', ['so_code'=>':id']) }}";
-    url = url.replace('%3Aid', id);
-    window.open(url, '_blank');
+    if(id){
+      let url = "{{ route('delivery.print.so', ['so_code'=>':id']) }}";
+      url = url.replace('%3Aid', id);
+      window.open(url, '_blank');
+    }
   });
 
   $("#cmdExport").click(function(){
-    
     let id = searchSo.val();
-    let url = "{{ route('stockTake.export', ['so_code'=>':id']) }}";
-    url = url.replace('%3Aid', id);
-    window.location.href = url;
+    if(id){
+      let url = "{{ route('delivery.export.so', ['so_code'=>':id']) }}";
+      url = url.replace('%3Aid', id);
+      window.location.href = url;
+    }
     // window.open(url, '_blank');
 
   });
