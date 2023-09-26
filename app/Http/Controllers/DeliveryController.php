@@ -1334,6 +1334,8 @@ class DeliveryController extends Controller
     {
         $data['title'] = "Report SO";
         $soNumber=$request->so_code;
+
+        $soNumber = 'SO/ASN/22/12/2571';
         
         $headers=DB::select("SELECT DISTINCT ON (c.article_alternative_code) a.article_code, a.so_number,c.article_alternative_code, c.article_desc,a.delivery_number
         ,ceil((select sum(qty) from sales_order_det where so_code = a.so_number and article_code = a.article_code)) as qty_so 
@@ -1348,7 +1350,7 @@ class DeliveryController extends Controller
         $barisAll='';
         $jumlahBaris=0;
 
-        foreach($headers as $val){
+        foreach($headers as $kunci=>$val){
             $articleCode = $val->article_code;
             $articleDesc = $val->article_desc;
             $articleAlternative = $val->article_alternative_code;
@@ -1357,7 +1359,7 @@ class DeliveryController extends Controller
             $qtySisa = $qtySo -$qtyDelivery;
 
             $judul = $val->article_alternative_code." - ".$articleDesc;
-            $barisIsiJudul = "<tr><td colspan='3' align='left' style='background-color:white;;border-right-color:white;'>".strtoupper($judul)."</td>
+            $barisIsiJudul = "<tr><td colspan='3' align='left' style='background-color:white;border-right-color:white'>".strtoupper($judul)."</td>
                                     <td align='right' style='background-color:white;'> QTY SO:".number_format($qtySo,2)."</td> </tr>";
             $barisIsiJudul .= "<tr >
                     <td class='detail-padding' align='left' scope='row' style='padding-left:5px;padding-right:3px' width='5%'>No</td>
@@ -1387,12 +1389,22 @@ class DeliveryController extends Controller
                 </tr>";
                 $jumlahBaris++;
             }
-            $barisTotal = "<tr><td colspan='3' style='background-color:white;border-right-color:white;'></td><td align='left' style='background-color:white;border-left-color:white;padding-left:5px;padding-right:3px'>
-            <div style='float:left;width:50%;'>".number_format($qtyDelivery,2)."</div>
-            <div style='float:right;width:50%;'>Qty Sisa:".number_format($qtySisa,2)."</div>
-            </td> </tr>";
+            $barisTotal = "<tr><td colspan='3' style='background-color:white;border-right-color:white;'></td>
+                                <td align='left' style='background-color:white;border-left-color:white;padding-left:5px;padding-right:3px'>
+                                <div style='float:left;width:50%;'>".number_format($qtyDelivery,2)."</div>
+                                <div style='float:right;width:50%;'>Qty Sisa:".number_format($qtySisa,2)."</div>
+                                </td> 
+                            </tr>";
+            
+            end($headers);
+            $pemisah = "<tr><td colspan='4' style='border-right-color:white;border-left-color:white;'></td> </tr>";
+            if ($kunci === key($headers)) {
+                $pemisah = "<tr><td colspan='4' style='border-right-color:white;border-left-color:white;border-bottom-color:white'></td> </tr>";
+            }
+
+            $barisTotal = $barisTotal.$pemisah;
             // $barisTotal = "<tr><td colspan='4' align='right' style='background-color:white'>QTY SO:".number_format($qtySo,2)."    |    Qty Delivery:".number_format($qtyDelivery)."     |     Qty Sisa:".number_format($qtySisa)." </td> </tr>";
-            $barisTotal .= "<tr><td colspan='4' align='right' style='border-right-color:white;border-left-color:white'></td> </tr>";            
+            
             $barisAll .= $barisIsiJudul.$barisTotal;
         };
 
@@ -1417,8 +1429,10 @@ class DeliveryController extends Controller
 
     public function exportSo(Request $request) 
     {
-        $soNumber = 'SO/ASN/22/12/2571';
-        return Excel::download(new ReportDnExport($soNumber), 'file_export.xlsx');
+        $soNumber = $request->so_code;
+        $filename = str_replace('/','_', $soNumber);
+        // $soNumber = 'SO/ASN/22/12/2571';
+        return Excel::download(new ReportDnExport($soNumber), $filename.'.xlsx');
     }
 
 }

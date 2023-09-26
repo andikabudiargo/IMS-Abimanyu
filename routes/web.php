@@ -319,10 +319,12 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('deliveryReport',['as'=>'delivery.report','uses'=>'DeliveryController@report','middleware' => ['permission:delivery-report']]);
 	Route::post('eliveryReport/list/report',['as'=>'delivery.list.report','uses'=>'DeliveryController@listReport']);
 	Route::get('deliveryReportAcc',['as'=>'delivery.report.acc','uses'=>'DeliveryController@reportAcc','middleware' => ['permission:delivery-report-acc']]);
-	Route::post('eliveryReportAcc/list/report',['as'=>'delivery.list.report.acc','uses'=>'DeliveryController@listReportAcc']);
+	Route::post('deliveryReportAcc/list/report',['as'=>'delivery.list.report.acc','uses'=>'DeliveryController@listReportAcc']);
+	
 
 	Route::get('deliveryReportSoAcc',['as'=>'delivery.report.so.acc','uses'=>'DeliveryController@reportSoAcc','middleware' => ['permission:delivery-report-acc']]);
 	Route::get('deliveryReportSoAcc/print',['as'=>'delivery.print.so','uses'=>'DeliveryController@printReportSo']);
+	Route::get('deliveryReportSoAcc/export',['as'=>'delivery.export.so','uses'=>'DeliveryController@exportSo']);
 	
 	Route::get('dnReceipt',['as'=>'dnReceipt.index','uses'=>'DeliveryReceiptController@index','middleware' => ['permission:dnReceipt-index']]);
 	// Route::get('dnReceipt/create',['as'=>'dnReceipt.create','uses'=>'DeliveryReceiptController@create','middleware' => ['permission:dnReceipt-create']]);
