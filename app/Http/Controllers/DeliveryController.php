@@ -1310,4 +1310,105 @@ class DeliveryController extends Controller
 
     }
 
+    public function reportSoAcc(Request $request)
+    {
+        $data['title'] = "Report SO";
+
+        $data['salesOrders'] = DB::table('sales_order_hdr')
+        ->leftJoin('third_party','third_party.kode','sales_order_hdr.customer_id')
+        ->where ('status','<>','5')
+        ->whereIn('so_code', function($query){
+            $query->select('so_number')
+            ->from('delivery_hdr')
+            ->whereNotIn('status',['5','7']);
+        })
+        ->select('sales_order_hdr.so_code','sales_order_hdr.po_number','third_party.nama')
+        ->orderBy('so_code')
+        ->get();
+
+        return view("delivery.reportSoAcc",$data);
+    }
+
+    public function printReportSo(Request $request)
+    {
+        $data['title'] = "Report SO";
+        $soNumber=$request->so_code;
+        
+        $headers=DB::select("SELECT DISTINCT ON (c.article_alternative_code) a.article_code, a.so_number,c.article_alternative_code, c.article_desc,a.delivery_number
+        ,ceil((select sum(qty) from sales_order_det where so_code = a.so_number and article_code = a.article_code)) as qty_so 
+        ,ceil((select sum(qty) from delivery_det where so_number = a.so_number and article_code = a.article_code)) as qty_delivery
+        ,ceil((select sum(qty) from sales_order_det where so_code = a.so_number and article_code = a.article_code)) - (select sum(qty) from delivery_det where so_number = a.so_number and article_code = a.article_code) as sisa_so
+        from delivery_det a 
+        left join article c on c.article_code = a.article_code
+        where a.so_number = '$soNumber' 
+        order by c.article_alternative_code");
+        
+        $barisIsiJudul='';
+        $barisAll='';
+        $jumlahBaris=0;
+
+        foreach($headers as $val){
+            $articleCode = $val->article_code;
+            $articleDesc = $val->article_desc;
+            $articleAlternative = $val->article_alternative_code;
+            $qtySo = $val->qty_so;
+            $qtyDelivery = $val->qty_delivery;
+            $qtySisa = $qtySo -$qtyDelivery;
+
+            $judul = $val->article_alternative_code." - ".$articleDesc;
+            $barisIsiJudul = "<tr><td colspan='4' align='left' style='background-color:white'>".strtoupper($judul)."</td> </tr>";
+            $barisIsiJudul .= "<tr >
+                    <td class='detail-padding' align='left' scope='row' style='padding-left:3px;padding-right:3px' width='5%'>No</td>
+                    <td class='detail-padding' align='left' style='padding-left:3px;padding-right:3px'>Delivery Number</td>
+                    <td class='detail-padding  align='left' style='padding-left:3px;padding-right:3px'>Delivery Date</td>
+                    <td class='detail-padding' align='right' style='padding-left:3px;padding-right:3px'>QTY</td>
+                </tr>";
+            
+            $isiJudul=DB::select("SELECT a.article_code, c.article_alternative_code, c.article_desc,a.delivery_number
+            , b.delivery_date,a.qty
+            ,ceil((select sum(qty) from sales_order_det where so_code = a.so_number and article_code = a.article_code)) as qty_so 
+            ,ceil((select sum(qty) from delivery_det where so_number = a.so_number and article_code = a.article_code)) as qty_delivery
+            ,ceil((select sum(qty) from sales_order_det where so_code = a.so_number and article_code = a.article_code)) - (select sum(qty) from delivery_det where so_number = a.so_number and article_code = a.article_code) as sisa_so
+            from delivery_det a 
+            left join delivery_hdr b on b.delivery_number = a.delivery_number
+            left join article c on c.article_code = a.article_code
+            where a.so_number = '$soNumber' and a.article_code = '$articleCode'
+            order by a.article_code,b.delivery_date");
+            $jumlahBaris++;
+            foreach($isiJudul as $key=>$item){
+                $no = $key+1;
+                $barisIsiJudul .= "<tr >
+                    <td class='detail-padding' align='left' scope='row' style='padding-left:3px;padding-right:3px' width='5%'>$no</td>
+                    <td class='detail-padding' align='left' style='padding-left:3px;padding-right:3px'>$item->delivery_number</td>
+                    <td class='detail-padding  align='left' style='padding-left:3px;padding-right:3px'>$item->delivery_date</td>
+                    <td class='detail-padding' align='right' style='padding-left:3px;padding-right:3px'>".number_format($item->qty)."</td>
+                </tr>";
+                $jumlahBaris++;
+            }
+
+            $barisTotal = "<tr><td colspan='4' align='right' style='background-color:white'>QTY SO:".number_format($qtySo)."    |    Qty Delivery:".number_format($qtyDelivery)."     |     Qty Sisa:".number_format($qtySisa)." </td> </tr>";
+            $barisTotal .= "<tr><td colspan='4' align='right' style='border-right-color:white;border-left-color:white'></td> </tr>";            
+            $barisAll .= $barisIsiJudul.$barisTotal;
+        };
+
+        $salesOrders = DB::table('sales_order_hdr')
+        ->leftJoin('third_party','third_party.kode','sales_order_hdr.customer_id')
+        ->where('so_code',$soNumber)
+        ->select('sales_order_hdr.so_code','sales_order_hdr.po_number','third_party.nama')
+        ->orderBy('so_code')
+        ->first();
+              
+        $data['barisDetail']=$barisAll;
+        $data['soNumber'] = $salesOrders->so_code;
+        $data['poNumber'] = $salesOrders->po_number;
+        $data['customer'] = $salesOrders->nama;
+        $data['jumlahBaris'] = $jumlahBaris;
+
+        // dd($barisAll);
+        view()->share($data);
+        $pdf = PDF::loadView('delivery.printReportSoAcc')->setPaper([0, 0, 595.28, 841.89], 'portrait');
+        return $pdf->stream("Report_$soNumber.pdf");
+
+    }
+
 }
