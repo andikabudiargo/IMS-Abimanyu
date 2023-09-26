@@ -96,7 +96,7 @@ class DeliveryController extends Controller
         $data['kolomDetail'] = $this->getTableColoumnDetail();
 
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED','8'=>'RECEIVED'];
-        $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED','8'=>'RECEIVED'];
+        $data['status'] = ['1'=>'NEW','4'=>'POSTED','8'=>'RECEIVED'];
         $data['statusKu'] = '1';
             
         return view("delivery.index",$data);
@@ -206,7 +206,7 @@ class DeliveryController extends Controller
             $dnCode = $this->getLastCode($this->moduleCode);
             DB::beginTransaction();
             try {
-                    DB::table('delivery_hdr')->insert([
+                    $id = DB::table('delivery_hdr')->insertGetId([
                         'delivery_number' => $dnCode,
                         'origin_delivery_number' => $dnCode,
                         'delivery_date' => $dnDate,
@@ -238,12 +238,14 @@ class DeliveryController extends Controller
 
                     DB::table('delivery_det')->insert($dataSet);
 
+                    $id = Crypt::encryptString($id);
+
                     DB::commit();
                     $title ="Save $this->title";
                     $alert  ="success";
                     $message  = "$title $dnCode is successfully saved";
                     \LogActivity::addToLog($title,"username: $username Status $message");
-                    return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'dnNumber'=>$dnCode));
+                    return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'dnNumber'=>$dnCode,'id'=>$id));
 
             } catch (Exception $e) {
                 DB::rollBack();
@@ -251,7 +253,7 @@ class DeliveryController extends Controller
                 $alert  ="warning";
                 $message  = "$title $dnCode is failed to save";
                 \LogActivity::addToLog($title,"username: $username Status $message");
-                return response()->json(array('status' => 0,'title' => $title, 'message' => $message,'alert'=>$alert,'dnNumber'=>$dnCode));
+                return response()->json(array('status' => 0,'title' => $title, 'message' => $message,'alert'=>$alert,'dnNumber'=>$dnCode,'id'=>''));
             }
         }
     }
@@ -547,25 +549,31 @@ class DeliveryController extends Controller
 
     public function posting(Request $request)
     {
-
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','7'=>'REVISED'];
-
+        // $dnNumber = DB::table('delivery_hdr')->where('id',$id)->where('status','=','3')->value('delivery_number');
+        // $id = DB::table('delivery_hdr')->where('delivery_number',$dnNumber)->value('id');
         $username =  Auth::user()->username;
         $id=Crypt::decryptString($request->id);
-        $dnNumber = DB::table('delivery_hdr')->where('id',$id)->where('status','=','3')->value('delivery_number');
+        // dd($request->id);
+        // $id=$request->id;
+        
+        $dnNumber = $request->dnNumber;
+        $dnNumber = DB::table('delivery_hdr')->where('id',$id)->value('delivery_number');
         $recType = "NORMAL";
         $siteCode = 'HO';
         $location ='WH';
         $status = '4';
         $moduleCode = $this->moduleCode;
         $todayDate = date('Y-m-d');
+        $dariNew = $request->dariNew;
         
         if ($dnNumber){
             $data = DB::table('delivery_det')
             ->leftJoin('delivery_hdr','delivery_hdr.delivery_number','delivery_det.delivery_number')
             ->leftJoin('article','article.article_code','delivery_det.article_code')
             ->where('delivery_det.delivery_number',$dnNumber)
-            ->where('delivery_hdr.status','3')
+            // ->where('delivery_hdr.status','3')
+            ->where('delivery_hdr.status','1')
             ->select('delivery_det.*'
             ,'article.article_type'
             ,'article.uom as uom_article'
@@ -587,7 +595,7 @@ class DeliveryController extends Controller
                 );
 
                 //update qty nya ditambahkan dengan qty baru
-                $rowAffected = DB::table('article_stock')
+                DB::table('article_stock')
                 ->where('site_code',$siteCode)
                 ->where('article_code',$val->article_code)
                 ->where('location_number',$location)
@@ -596,17 +604,18 @@ class DeliveryController extends Controller
                 ]);
             }
                     
+            
+            $rowAffected = DB::table('delivery_hdr')
+            ->where('delivery_number',$dnNumber)
+            ->update(
+                [   
+                    'status' => $status,
+                    'updated_by' => Auth::user()->username,
+                    'updated_at' => date('Y-m-d H:i:s')
+                ]
+            );
+            
             if ($rowAffected > 0){
-                DB::table('delivery_hdr')
-                ->where('delivery_number',$dnNumber)
-                ->update(
-                    [   
-                        'status' => $status,
-                        'updated_by' => Auth::user()->username,
-                        'updated_at' => date('Y-m-d H:i:s')
-                    ]
-                );
-
                 $movements = DB::table('delivery_det')
                 ->leftJoin('delivery_hdr','delivery_hdr.delivery_number','delivery_det.delivery_number')
                 ->leftJoin('article','article.article_code','delivery_det.article_code')
@@ -648,18 +657,30 @@ class DeliveryController extends Controller
 
                 DB::table('movement')->insert($dataSetMovement);
 
+                $idKu = Crypt::encryptString($id);
+
                 DB::commit();
                 $title ="Posting $this->title";
                 $alert  ="success";
                 $message  = "$title $dnNumber Successfully Posted";
                 \LogActivity::addToLog($title,"username: $username Status $message");
-                return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);
+                
+                if($dariNew=='true'){
+                    return response()->json(array('statusDel' => $status, 'title' => $title, 'status' => 1, 'message' => $message,'alert'=>$alert,'dnNumber'=>$dnNumber,'idKu'=>$idKu));
+                }else{
+                    return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message,'idKu'=>$idKu]);
+                }
+
             }else{
                 $title ="Posting $this->title";
                 $alert  ="warning";
                 $message  = "$title $dnNumber Failed to Posting";
                 \LogActivity::addToLog($title,"username: $username Status $message");
-                return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);
+                if($dariNew=='true'){
+                    return response()->json(array('statusDel' => $status, 'title' => $title, 'status' => 0, 'message' => $message,'alert'=>$alert,'dnNumber'=>$dnNumber,'idKu'=>$idKu));
+                }else{
+                    return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);
+                }                
             }
         }else{
             $title ="Posting $this->title";
@@ -901,27 +922,34 @@ class DeliveryController extends Controller
                                 <i data-feather="menu"></i>
                             </a>';
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
+            /*
+                dari bu lupi 25/9/2023 3:06 pm
+                pak @oki hartanto terkait pembuatan surat jlan : 
+                1. tolong dalam satu menu create sudah ada tampilan save dan print (jadi pada saat sudah disave bisa langsung print tanpa harus loading ke awal )
+                2. kondisi potong stock saat print (jadi print itu sudah sama dengan post) 
+                3. untuk prosedur approve kita lewatkan dulu pak, kita jalanin pengecekkan surat jalannya pake hard copy, tidak pake sistem dulu
+            */
             
-            if (($data->status != '3') && ($data->status != '4') && ($data->status != '8') && ($data->status != '5')){
-                if (Auth::user()->can('receiving-edit')) {
-                $buttons .=         '<a href="'. route('delivery.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
-                                        <i data-feather="file-text"></i>
-                                        Edit
-                                    </a>';
-                }
-            }
+            // if (($data->status != '3') && ($data->status != '4') && ($data->status != '8') && ($data->status != '5')){
+            //     if (Auth::user()->can('receiving-edit')) {
+            //     $buttons .=         '<a href="'. route('delivery.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+            //                             <i data-feather="file-text"></i>
+            //                             Edit
+            //                         </a>';
+            //     }
+            // }
 
-            if (($data->status != '3') && ($data->status != '4') && ($data->status != '8')){
-                if (Auth::user()->can('receiving-edit')) {
-                $buttons .=         '<a href="'. route('delivery.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
-                                        <i data-feather="check"></i>
-                                        Approve
-                                    </a>';
-                }
-            }
+            // if (($data->status != '3') && ($data->status != '4') && ($data->status != '8')){
+            //     if (Auth::user()->can('receiving-edit')) {
+            //     $buttons .=         '<a href="'. route('delivery.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+            //                             <i data-feather="check"></i>
+            //                             Approve
+            //                         </a>';
+            //     }
+            // }
 
-            if ( $data->status == '3' ) {                
-                if (Auth::user()->can('receiving-posting')) {
+            if ( $data->status == '1' ) {                
+                if (Auth::user()->can('delivery-posting')) {
                     $buttons .="<a href='javascript:;'
                     class='dropdown-item' 
                     data-size='sm'
@@ -936,25 +964,25 @@ class DeliveryController extends Controller
                 }   
             }
 
-            if (($data->status == '2') || ($data->status == '3') ){
-                $buttons .= "<a href='javascript:;'
-                                id='revisionReasonButton'
-                                class='dropdown-item'
-                                data-toggle='modal'
-                                data-target='#reasonModalRevision'
-                                data-href='". route('delivery.revision', ['id'=>Crypt::encryptString($data->id),'nR'=>$data->num_revision]) ."'>
-                                <i data-feather='corner-down-left' class='feather-14-red'></i>
-                                <span>". __('Revision') ."</span>
-                            </a>";            
-            }
+            // if (($data->status == '2') || ($data->status == '3') ){
+            //     $buttons .= "<a href='javascript:;'
+            //                     id='revisionReasonButton'
+            //                     class='dropdown-item'
+            //                     data-toggle='modal'
+            //                     data-target='#reasonModalRevision'
+            //                     data-href='". route('delivery.revision', ['id'=>Crypt::encryptString($data->id),'nR'=>$data->num_revision]) ."'>
+            //                     <i data-feather='corner-down-left' class='feather-14-red'></i>
+            //                     <span>". __('Revision') ."</span>
+            //                 </a>";            
+            // }
 
-            // if ($data->status == '3'){
+            if ($data->status == '4'){
                 $buttons .=         '<a href="'. route('delivery.print', ['id'=>Crypt::encryptString($data->id)]) .'" target="_blank" class="dropdown-item">
                                         <i data-feather="printer"></i>
                                         Print
                                     </a>';
+            }
 
-            // }
             $buttons .=         '<a href="'. route('delivery.show', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                     <i data-feather="list"></i>
                                     Detail

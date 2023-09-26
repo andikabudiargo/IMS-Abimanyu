@@ -12,6 +12,7 @@
                     <div class="heading-elements">
                         <ul class="list-inline mb-0">
                             <li><a data-action="collapse"><i data-feather="chevron-down"></i></a></li>
+                            <input type="hidden" id="idDn" name="idDn" class="form-control" />
                         </ul>
                     </div>    
                 </div>
@@ -93,9 +94,11 @@
                         <div class="col-12">
                             {{-- <button class="btn btn-warning" type="reset" id="cmdCancel" name="cmdCancel">Cancel</button> --}}
                             {{-- <button class="btn btn-success" type="reset" id="cmdNew" name="cmdCancel">New</button> --}}
+                            <a href="{{ route('delivery.index') }}" class="btn btn-light">Back</a>
                             <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Save</button>
+                            <button class="btn btn-dark" type="button" id="cmdPrint" name="cmdPrint">Print</button>
                             {{-- @can('receiving-posting') --}}
-                                <button class="btn btn-primary" type="button" id="cmdPosting" name="cmdPosting">Posting</button>
+                                {{-- <button class="btn btn-primary" type="button" id="cmdPosting" name="cmdPosting">Posting</button> --}}
                             {{-- @endcan --}}
                         </div>
                     </div>
@@ -160,7 +163,6 @@
 @section('scripts')
 <script type="text/javascript">
     let currentDate = todayDate('dd-mm-yyyy');    
-    
     $(document).ready(function(){
         validateFormToast("frmAdd");
         $("#totalRow").val(0);
@@ -168,7 +170,8 @@
         $('#statusText').text('New');
         $('#dnDate').val(currentDate);
         $('#cmdSave').show();
-        $('#cmdPosting').hide();
+        // $('#cmdPosting').hide();
+        $('#cmdPrint').hide();
     });
 
     dnDate = $('#dnDate');
@@ -263,10 +266,13 @@
                         }else{
                             show_msg(data.title, data.message, data.alert);
                             $('#dnNumber').val(data.dnNumber);
+                            $('#statusText').val('NEW');
+                            $('#idDn').val(data.id);
                             $('#dnNumber').attr('disabled','disabled');
                             $('#cmdSave').attr('disabled','disabled');
+                            $('#cmdSave').hide();
+                            $('#cmdPrint').show();
                         }
-                        
                     },
                     error: function(error) {
                         console.log(error);
@@ -279,15 +285,21 @@
         }
     });
 
-    $("#cmdPosting").click(function(){
+    $("#cmdPrint").click(function(){
+        /* Posting langdung print*/
         let objQty= $('input[name="qtyInv[]"]');
         let objUom= $('select[name="uom[]"]');       
-        let dnNumber = $('#dnNumber').val();            
+        let dnNumber = $('#dnNumber').val();   
+        let idDn = $('#idDn').val();  
+        console.log(idDn);  
+        let dariNew = 'true';     
         $.ajax({
             type: "post",
             url: "{{ route('delivery.posting') }}",
             data: {
-                dnNumber:dnNumber
+                dnNumber:dnNumber,
+                id:idDn,
+                dariNew:dariNew
             },
             dataType: "json",
             success: function(data) {
@@ -298,29 +310,31 @@
                     }
                     $('#dnNumber').attr('disabled','disabled');
                     $('#cmdSave').show();
-                    $('#cmdPosting').hide();
+                    $('#cmdPrint').hide();
 
                 }else{
                     show_msg(data.title, data.message, data.alert);
-
-                    // $('#statusText').text(data.statusRec);
                     $('#cmdSave').hide();
-                    $('#deleteButton').hide();
-                    $('#cmdPosting').hide();
+                    // $('#deleteButton').hide();
+                    $('#statusText').text('POSTED');
+                    $('#cmdPrint').hide();
                     $('#dnNumber').attr('disabled','disabled');
                     $('#soNumber').attr('disabled','disabled');
                     $('#customer').attr('disabled','disabled');
                     $('#dnDate').attr('disabled','disabled');
                     objQty.attr('disabled','disabled');
                     objUom.attr('disabled','disabled');
-                    
+
+                    let id = data.idKu;
+                    let url = "{{ route('delivery.print', ['id'=>':id']) }}";
+                    url = url.replace('%3Aid', id);
+                    window.open(url, '_blank');
                 }
             },
             error: function(error) {
                 console.log(error);
             }
         });
-             
     });
 
     function searchSo(obj,value) {
@@ -463,6 +477,50 @@
             hitungGrandTotal();
         });    
     }
+
+    // $("#cmdPosting").click(function(){
+    //     let objQty= $('input[name="qtyInv[]"]');
+    //     let objUom= $('select[name="uom[]"]');       
+    //     let dnNumber = $('#dnNumber').val();            
+    //     $.ajax({
+    //         type: "post",
+    //         url: "{{ route('delivery.posting') }}",
+    //         data: {
+    //             dnNumber:dnNumber
+    //         },
+    //         dataType: "json",
+    //         success: function(data) {
+    //             if (data.status == 0 ){
+    //                 let message="";
+    //                 for(let i = 0; i < data.message.length; i++) {
+    //                     show_msg(data.title, data.message[i], data.alert);
+    //                 }
+    //                 $('#dnNumber').attr('disabled','disabled');
+    //                 $('#cmdSave').show();
+    //                 $('#cmdPosting').hide();
+
+    //             }else{
+    //                 show_msg(data.title, data.message, data.alert);
+
+    //                 // $('#statusText').text(data.statusRec);
+    //                 $('#cmdSave').hide();
+    //                 $('#deleteButton').hide();
+    //                 $('#cmdPosting').hide();
+    //                 $('#dnNumber').attr('disabled','disabled');
+    //                 $('#soNumber').attr('disabled','disabled');
+    //                 $('#customer').attr('disabled','disabled');
+    //                 $('#dnDate').attr('disabled','disabled');
+    //                 objQty.attr('disabled','disabled');
+    //                 objUom.attr('disabled','disabled');
+                    
+    //             }
+    //         },
+    //         error: function(error) {
+    //             console.log(error);
+    //         }
+    //     });
+             
+    // });
 
     $.ajaxSetup({
         headers: {
