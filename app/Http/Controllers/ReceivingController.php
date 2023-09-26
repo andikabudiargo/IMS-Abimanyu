@@ -150,7 +150,7 @@ class ReceivingController extends Controller
         $customMessages = [
             'required' => 'The field is required.',
             'unique' => 'The code has already been taken', 
-            'iunique' => "Invoice : $invNumber has already been taken on PO : $poNumber",
+            'iunique' => "DO Number :  $doNumber has already been taken on PO : $poNumber",
         ];
         
         Validator::extend('iunique', function ($attribute, $value, $parameters, $validator) use ($poNumber) {
