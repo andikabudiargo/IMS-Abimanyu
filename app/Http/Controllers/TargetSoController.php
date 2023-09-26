@@ -925,6 +925,7 @@ class TargetSoController extends Controller
         $data['details']=DB::table('target_order_det')
         ->leftJoin('article','article.article_code','target_order_det.article_code')
         ->where('tso_code',$tSoNumber)
+        ->orderBy('target_order_det.id')
         ->get();
 
         $data['totals']=DB::select("
