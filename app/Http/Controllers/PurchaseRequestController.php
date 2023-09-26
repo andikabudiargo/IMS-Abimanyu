@@ -380,12 +380,16 @@ class PurchaseRequestController extends Controller
 
         $prNumber = $data['header']->pr_number;
         $orderType = $data['header']->order_type;
+
         $data['details'] = DB::table('purchase_request_det')
         ->leftJoin('article','article.article_code','=','purchase_request_det.article_code')
         ->leftJoin('uom','uom.code','=','purchase_request_det.uom')
         ->where('pr_number',$data['header']->pr_number)
+        ->select('purchase_request_det.*','article_alternative_code','article_desc','third_party','uom_group','purchase_request_det.uom')
         ->orderBy('article.article_alternative_code')
         ->get(); 
+
+        // dd($data['details']);
 
         $data['articles']= DB::table('article')
         // ->whereNotIn('article_type',['FG','RM'])
@@ -411,6 +415,7 @@ class PurchaseRequestController extends Controller
         // $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode,$prNumber,$username);
         $moduleCode = $this->moduleCode;
         $moduleNumber = $prNumber;
+
         $data['approvalHistory'] = DB::select("SELECT DISTINCT ON (a.approval_order) a.approval_order 
         ,(select name from users where username = a.username) as name
         ,(select STRING_AGG((select name from users where username = p.username),',' ORDER BY module_code) AS main from approval_level p where module_code = a.module_code and approval_order = a.approval_order and username in (select username from user_dept where dept = '$dept')) as petugas
