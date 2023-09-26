@@ -87,7 +87,7 @@
   $("#cmdExport").click(function(){
     
     let id = searchSo.val();
-    let url = "{{ route('delivery.export.so', ['so_code'=>':id']) }}";
+    let url = "{{ route('stockTake.export', ['so_code'=>':id']) }}";
     url = url.replace('%3Aid', id);
     window.location.href = url;
     // window.open(url, '_blank');
