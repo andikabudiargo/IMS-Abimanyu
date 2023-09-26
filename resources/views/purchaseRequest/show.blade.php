@@ -128,7 +128,7 @@
                                                         <td class="text-right"></td>
                                                         <td >{{ $item->article }}</td>
                                                         <td >{{ $item->supplier_name }}</td>
-                                                        <td class="text-right">{{ number_format($item->qty) }} </td>
+                                                        <td class="text-right">{{ number_format($item->qty,2) }} </td>
                                                         <td>{{ $item->uom }}</td>
                                                         {{-- <td class="text-left">{{ $item->notes }}</td> --}}
                                                         @php
