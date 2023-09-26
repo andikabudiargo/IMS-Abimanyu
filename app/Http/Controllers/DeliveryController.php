@@ -97,7 +97,7 @@ class DeliveryController extends Controller
         $data['kolomDetail'] = $this->getTableColoumnDetail();
 
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED','8'=>'RECEIVED'];
-        $data['status'] = ['1'=>'NEW','4'=>'POSTED','8'=>'RECEIVED'];
+        $data['status'] = ['1'=>'NEW','3'=>'APPROVED','4'=>'POSTED','8'=>'RECEIVED'];
         $data['statusKu'] = '1';
             
         return view("delivery.index",$data);
@@ -949,7 +949,7 @@ class DeliveryController extends Controller
             //     }
             // }
 
-            if ( $data->status == '1' ) {                
+            if ( $data->status == '1' || $data->status == '3' ) {                
                 if (Auth::user()->can('delivery-posting')) {
                     $buttons .="<a href='javascript:;'
                     class='dropdown-item' 
@@ -1418,7 +1418,7 @@ class DeliveryController extends Controller
     public function exportSo(Request $request) 
     {
         $soNumber = 'SO/ASN/22/12/2571';
-        return Excel::download(new ReportDnExport, 'file_export.xlsx',compact('soNumber'));
+        return Excel::download(new ReportDnExport($soNumber), 'file_export.xlsx');
     }
 
 }
