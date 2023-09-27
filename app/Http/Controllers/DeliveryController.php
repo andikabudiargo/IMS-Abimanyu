@@ -1335,7 +1335,7 @@ class DeliveryController extends Controller
         $data['title'] = "Report SO";
         $soNumber=$request->so_code;
 
-        $soNumber = 'SO/ASN/22/12/2571';
+        // $soNumber = 'SO/ASN/22/12/2571';
         
         $headers=DB::select("SELECT DISTINCT ON (c.article_alternative_code) a.article_code, a.so_number,c.article_alternative_code, c.article_desc,a.delivery_number
         ,ceil((select sum(qty) from sales_order_det where so_code = a.so_number and article_code = a.article_code)) as qty_so 
