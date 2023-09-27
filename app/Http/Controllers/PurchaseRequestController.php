@@ -1597,8 +1597,8 @@ class PurchaseRequestController extends Controller
                 ,nilai_konversi
                 ,qty_hasil_konversi as qty_bom
                 ,(select sum(qty_target) from target_order_det where tso_code = '$tsoCode' and target_order_det.article_code = oki.article_code_fg group by target_order_det.article_code) * qty_hasil_konversi  as qty_total_order
-                ,coalesce(min_package,1) as min_package
-                ,coalesce(safety_stock,0) as safety_stock
+                ,coalesce(article.min_package,1) as min_package
+                ,coalesce(article.safety_stock,0) as safety_stock
                 ,get_last_qty(oki.article_bom,'$stockDate','$siteCode','$location') as qty_stock
                 from 
                 (
