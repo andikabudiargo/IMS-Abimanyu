@@ -1360,7 +1360,7 @@ class DeliveryController extends Controller
 
             $judul = $val->article_alternative_code." - ".$articleDesc;
             $barisIsiJudul = "<tr><td colspan='3' align='left' style='background-color:white;border-right-color:white'>".strtoupper($judul)."</td>
-                                    <td align='right' style='background-color:white;'> QTY SO:".number_format($qtySo,2)."</td> </tr>";
+                                    <td align='right' style='background-color:white;'> Qty SO:".number_format($qtySo,2)."</td> </tr>";
             $barisIsiJudul .= "<tr >
                     <td class='detail-padding' align='left' scope='row' style='padding-left:5px;padding-right:3px' width='5%'>No</td>
                     <td class='detail-padding' align='left' style='padding-left:5px;padding-right:3px'>Delivery Number</td>
