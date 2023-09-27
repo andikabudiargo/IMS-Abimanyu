@@ -833,24 +833,34 @@ class InvoiceController extends Controller
         ->leftJoin('article','article.article_code','invoice_det.article_code')
         ->where('invoice_number',$invNumber)
         ->get();
+        
+
+        $header=DB::table('invoice_hdr')
+        ->where('invoice_number',$invNumber)
+        ->first();
+
 
         $listpo=DB::select("SELECT string_agg(distinct po_number,',') as po_list from invoice_det where invoice_number = '$invNumber'");
         $data['listpo'] = $listpo[0]->po_list;
 
-        $data['totals']=DB::select("SELECT *,(total_material+total_service) as sub_total,((total_material+total_service+ppn)-pph23) as grand_total from (
-            select 
-            a.invoice_number,
-            sum(qty) as qty,
-            -- sum(qty*price) + sum(qty*price_service) as gross,
-            sum(qty*price) as total_material,
-            sum(qty*price_service) as total_service,
-            sum(a.ppn) as ppn,
-            sum(a.pph23) as pph23 
-            from invoice_det a
-            left join invoice_hdr b
-            on a.invoice_number = b.invoice_number 
-            where a.invoice_number = '$invNumber'
-            group by a.invoice_number) as oki");
+        $data['totals']=DB::select("SELECT total_ppn as ppn,
+        total_material,
+        total_service,
+        total_pph as pph23 
+        ,(total_material+total_service) as sub_total
+        ,((total_material+total_service+total_ppn)-total_pph) as grand_total 
+        FROM 
+        (SELECT
+        invoice_number,
+        sum(qty) as qty,
+        sum(qty*price) as total_material,
+        sum(qty*price_service) as total_service
+        from invoice_det
+        where invoice_number = '$invNumber'
+        group by invoice_number) a
+        left join invoice_hdr b
+        on a.invoice_number = b.invoice_number
+        ");
 
         $data['terbilang'] =  $this->terbilang($data['totals'][0]->grand_total);
 
@@ -863,6 +873,8 @@ class InvoiceController extends Controller
 
         $data['nilaiPPN'] = $this->nilaiPpn;
         $data['nilaiPPH'] = $this->nilaiPph23;
+        // $data['totalPpn'] = $header->total_ppn;
+        // $data['totalPph'] = $header->total_pph;
 
         $bulan = array(
             '01' => 'Januari',
