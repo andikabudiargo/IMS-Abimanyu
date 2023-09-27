@@ -1622,6 +1622,7 @@ class AccountPayableController extends Controller
     public function print(Request $request)
     {
         $id=Crypt::decryptString($request->id);
+        $data['title'] ='Invoice Supplier';
 
         $apNumber = DB::table('ap_invoice')->where('id',$id)->value('ap_number');
 
@@ -1632,9 +1633,7 @@ class AccountPayableController extends Controller
             ,DB::raw("(select STRING_AGG ( a.rec_number,',' ORDER BY a.id) as list_rec from ap_invoice_detail a where ap_number = ap_invoice.ap_number) as list_rec")
             ,'third_party.nama as supplier_name'
         )
-        ->where('ap_invoice.id',$id)->first();
-
-        $data['title'] ='Invoice Supplier';
+        ->where('ap_invoice.id',$id)->first();       
 
         $data['header']=DB::table('kas_hdr')
         ->select('kas_hdr.*'
@@ -1646,9 +1645,14 @@ class AccountPayableController extends Controller
         $voucherNumber=$data['header']->voucher_number;
        
         $data['details']=DB::table('kas_det')
+        ->leftJoin('kas_hdr','kas_hdr.voucher_number','kas_det.voucher_number')
+        ->leftJoin('ap_invoice','ap_invoice.ap_number','kas_hdr.description')
         ->leftJoin('accounts','accounts.account','kas_det.account')
-        ->select('kas_det.*','accounts.description as account_name')
-        ->where('voucher_number',$voucherNumber)
+        ->select('kas_det.*'
+        ,'ap_invoice.ap_number'
+        ,'ap_invoice.inv_number'
+        ,'accounts.description as account_name')
+        ->where('kas_det.voucher_number',$voucherNumber)
         ->orderBy('id')
         ->get();
 
