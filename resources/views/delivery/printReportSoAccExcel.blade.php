@@ -10,7 +10,17 @@
     <table class="oki">
         <tbody>
             <tr>
-                <td colspan="4" align='center' > <strong>SO REPORT</strong></td>
+                <td colspan="4" align='center' > <strong>PENGIRIMAN PER CO</strong></td>
+            </tr>
+            <tr>
+                <td valign="" ></td>
+                <td valign="" ></td>
+                <td></td>
+            </tr>
+            <tr>
+                <td valign="" ></td>
+                <td valign="" ></td>
+                <td></td>
             </tr>
             <tr>
                 <td valign="" >No Order</td>
