@@ -17,7 +17,7 @@ use Maatwebsite\Excel\Concerns\WithEvents;
 use DB;
 
 
-class ReportDnExport implements FromView,ShouldAutoSize,WithColumnFormatting,WithEvents
+class ReportDnExport implements FromView,ShouldAutoSize,WithColumnFormatting
 {
     protected $soNumber;
 
@@ -47,6 +47,7 @@ class ReportDnExport implements FromView,ShouldAutoSize,WithColumnFormatting,Wit
         foreach($headers as $val){
             $articleCode = $val->article_code;
             $articleDesc = $val->article_desc;
+            $soNumber = $val->so_number;
             $articleAlternative = $val->article_alternative_code;
             $qtySo = $val->qty_so;
             $qtyDelivery = $val->qty_delivery;
@@ -54,14 +55,19 @@ class ReportDnExport implements FromView,ShouldAutoSize,WithColumnFormatting,Wit
 
             $judul = $val->article_alternative_code." - ".$articleDesc;
             
-            $barisIsiJudul = "<tr><td colspan='3'>".strtoupper($judul)."</td>
-                                    <td > QTY SO : ".number_format($qtySo,2)."</td> </tr>";
-            $barisIsiJudul .= "<tr >
-                    <td  >No</td>
-                    <td  >Delivery Number</td>
-                    <td  >Delivery Date</td>
-                    <td  >QTY Delivery</td>
-                </tr>";
+            $barisIsiJudul = "<tr>
+                                    <td>$articleAlternative</td>
+                                    <td>$soNumber</td>
+                                    <td>$articleDesc</td>
+                                    <td > Qty SO : ".number_format($qtySo,2)."</td> </tr>";
+            // $barisIsiJudul = "<tr><td>$articleAlternative</td><td>$soNumber</td><td colspan='3'>".strtoupper($judul)."</td>
+            //                         <td > QTY SO : ".number_format($qtySo,2)."</td> </tr>";
+            // $barisIsiJudul .= "<tr >
+            //         <td>No</td>
+            //         <td>Delivery Number</td>
+            //         <td>Delivery Date</td>
+            //         <td>QTY Delivery</td>
+            //     </tr>";
             
             $isiJudul=DB::select("SELECT a.article_code, c.article_alternative_code, c.article_desc,a.delivery_number
             , b.delivery_date,a.qty
@@ -113,26 +119,28 @@ class ReportDnExport implements FromView,ShouldAutoSize,WithColumnFormatting,Wit
         ];
     }
 
-    public function registerEvents(): array
-        {
-            return [
-                AfterSheet::class => function(AfterSheet $event) {
+    
+    /*supaya ada border nya*/
+    // public function registerEvents(): array
+    // {
+    //     return [
+    //         AfterSheet::class => function(AfterSheet $event) {
 
-                    $alphabet   = $event->sheet->getHighestDataColumn();
-                    $totalRow   = $event->sheet->getHighestDataRow();
-                    $cellRange  = 'A6:'.$alphabet.$totalRow;
+    //             $alphabet   = $event->sheet->getHighestDataColumn();
+    //             $totalRow   = $event->sheet->getHighestDataRow();
+    //             $cellRange  = 'A6:'.$alphabet.$totalRow;
 
-                    $event->sheet->getStyle($cellRange)->applyFromArray([
-                        'borders' => [
-                            'allBorders' => [
-                                'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
-                            ],
-                        ],
-                    ])->getAlignment()->setWrapText(true);
+    //             $event->sheet->getStyle($cellRange)->applyFromArray([
+    //                 'borders' => [
+    //                     'allBorders' => [
+    //                         'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
+    //                     ],
+    //                 ],
+    //             ])->getAlignment()->setWrapText(true);
 
-                },
-            ];
-        }
+    //         },
+    //     ];
+    // }
 
 }
 

@@ -152,6 +152,7 @@
 @section('scripts')
 <script src="{{ asset('assets/js/ui.1.13.0.jquery-ui.js') }}"></script>
 {{-- <script src="{{asset('app-assets/vendors/js/extensions/dropzone.min.js')}}"></script> --}}
+{{-- <link rel="stylesheet" type="text/css" href="{{ asset('app-assets/vendors/css/file-uploaders/dropzone.min.css') }}"> --}}
 <script type="text/javascript">
 
     $(document).ready(function(){    
