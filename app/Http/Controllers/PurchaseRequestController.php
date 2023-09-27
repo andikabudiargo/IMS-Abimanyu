@@ -1120,7 +1120,7 @@ class PurchaseRequestController extends Controller
         ,1 as factor_qty
         ,coalesce(article.min_package,1) as min_package
         ,coalesce(article.safety_stock,0) as safety_stock 
-        ,get_last_qty(production_detail_temp.article_code,'$stockDate','$siteCode','$location') as qty_stock
+        ,get_last_qty(bom_hdr.article_code_rm,'$stockDate','$siteCode','$location') as qty_stock
         ,article_alternative_code as alternative
         ,article_desc
         from production_detail_temp
