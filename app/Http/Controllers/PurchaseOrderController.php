@@ -122,7 +122,7 @@ class PurchaseOrderController extends Controller
         ->orderBy('nama')
         ->get();
 
-        $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'RECEIVED','5'=>'CANCELED','6'=>'CLOSED','7'=>'REVISED','8'=>'DECLINE'];
+        $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'RECEIVED','5'=>'CANCELED','6'=>'CLOSED','8'=>'DECLINE'];
             
         return view("purchaseOrder.index",$data);
     }
@@ -1287,9 +1287,10 @@ class PurchaseOrderController extends Controller
         ->where(function ($query) use ($searchPo,$searchStatus,$orderDate,$fromDate,$toDate,$searchSupplier) {
             $searchSupplier ? $query->where('purchase_order_hdr.supplier_id',$searchSupplier) : '';
             $searchPo ? $query->where('purchase_order_det.po_number','ilike','%'.$searchPo.'%') : '';
-            $searchStatus ? $query->where('purchase_order_hdr.status',$searchStatus) : '';
+            $searchStatus ? $query->where('purchase_order_hdr.status',$searchStatus) : $query->whereNotIn('purchase_order_hdr.status',['5','6','7','8']);
             $orderDate ? $query->whereBetween(DB::raw("to_date(purchase_order_hdr.po_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
         })
+        
         ->select('purchase_order_det.*'
         ,'purchase_order_hdr.*'
         ,'article_alternative_code'
