@@ -172,6 +172,15 @@ class DependentController extends Controller
                 $default='';
                 $defaulttxt='Choose SO';
                 break;
+            case 'getSoList': 
+                $table='sales_order_hdr';
+                $field ='';
+                $order ='';
+                $value ='so_code';
+                $name  ='so_code';
+                $default='';
+                $defaulttxt='Choose SO';
+                break;
             case 'searchFromSO': 
                 $table='sales_order_det';
                 $field ='so_code';
@@ -488,6 +497,8 @@ class DependentController extends Controller
             // // and po_number in (select po_number from purchase_order_hdr where status = '3')
             // ->get();
 
+            /* Ambil data PR kalau qty nya lebih dari qty PO*/
+            
             $data=db::select("SELECT 
             distinct on (pr_number) pr_number,qty,
             --purchase_request_det.*, 
@@ -495,21 +506,24 @@ class DependentController extends Controller
             from purchase_order_det 
             where article_code = purchase_request_det.article_code 
             and  pr_number = purchase_request_det.pr_number
+            and po_number in (select po_number from purchase_order_hdr where status not in ('5','6','7','8'))
             ) as qty_po, 
             purchase_request_det.qty- (select coalesce(sum(qty),0) 
-            from purchase_order_det 
-            where article_code = purchase_request_det.article_code 
-            and  pr_number = purchase_request_det.pr_number
+                                      from purchase_order_det 
+                                      where article_code = purchase_request_det.article_code 
+                                      and  pr_number = purchase_request_det.pr_number
+                                      and po_number in (select po_number from purchase_order_hdr where status not in ('5','6','7','8'))
             )  as sisa_qty 
             from purchase_request_det
             where pr_number in 
             (select pr_number from purchase_request_hdr where order_type in ('std', 'tso', 'rm') and status in ('3','7')) 
             and purchase_request_det.article_code in (select article_code from article_supplier where supplier_code = '$code') 
             and purchase_request_det.qty-(select coalesce(sum(qty),0) 
-            from purchase_order_det 
-            where article_code = purchase_request_det.article_code 
-            and  pr_number = purchase_request_det.pr_number
-            )> 0
+                                          from purchase_order_det 
+                                          where article_code = purchase_request_det.article_code 
+                                          and  pr_number = purchase_request_det.pr_number
+                                          and po_number in (select po_number from purchase_order_hdr where status not in ('5','6','7','8'))
+                )> 0
             order by pr_number asc");
 
         }elseif($dependent =='pRequest_sub'){
@@ -527,6 +541,16 @@ class DependentController extends Controller
             ->where('status','3')
             ->orderBy($order)
             ->distinct($order)
+            ->get();
+        }elseif($dependent =='getSoList'){
+            $data= DB::table('sales_order_hdr') 
+            ->where('status','3')
+            ->whereIn('so_code', function($query) use ($code) {
+                $query->select('so_code')
+                ->from('sales_order_det') 
+                ->where('article_code',$code);
+            })
+            ->orderBy('so_code')
             ->get();
         }elseif($dependent =='account'){
             $data= DB::table($table) 
@@ -665,6 +689,8 @@ class DependentController extends Controller
             }elseif($dependent =='trArticle'){
                 $output .="<option value='$row->article_code' data-uom-member='".$row->uom_member."' data-uom-group ='$row->uom_group' data-uom ='$row->uom'>$row->article_alternative_code - $row->article_desc</option>";
             }elseif($dependent =='salesOrder'){
+                $output .='<option value="'.$row->$value.'">'.$row->$name.'</option>';
+            }elseif($dependent =='getSoList'){
                 $output .='<option value="'.$row->$value.'">'.$row->$name.'</option>';
             }elseif($dependent =='pRequest'){
                 // if(($row->qty-$row->qty_po) > 0){
