@@ -98,7 +98,7 @@
                                     @if( $approveValidate ? $approveValidate[0]->validate : '')
                                         <input type="text" id ="approveLevel" name ="approveLevel" class="d-none" value="{{ $approveValidate[0]->next_level }}">
                                         <input type="text" id ="maxLevel" name ="maxLevel" class="d-none" value="{{ $approveValidate[0]->max_level }}">
-                                        <button class="btn btn-success" type="button" id="cmdApprove" name="cmdApprove">Approve</button>
+                                        {{-- <button class="btn btn-success" type="button" id="cmdApprove" name="cmdApprove">Approve</button> --}}
                                         @if( $statusDel =='NEW')
                                             <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave" >Update</button>
                                         @endif
