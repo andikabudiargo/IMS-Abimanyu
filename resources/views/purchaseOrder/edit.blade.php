@@ -162,7 +162,7 @@
                                                 <div class="form-group margin-nol">
                                                     <label for="price" class="d-block d-md-none">Price</label>
                                                     <div class="input-group input-group-merge">
-                                                        <input type="text" class="form-control numeral-mask text-right" id="newPrice" name="newPrice[]" value="{{ $item->price }}"  maxlength="11">
+                                                        <input type="text" class="form-control numeral-mask-digit text-right" oninput='inputDecimal(this)' id="newPrice" name="newPrice[]" value="{{ number_format((float) $item->price,2) }}"  maxlength="20">
                                                         <div class="input-group-append">
                                                             <span class="input-group-text cursor-pointer">
                                                                 <a onmouseover="this.style.cursor='pointer'" 
@@ -380,7 +380,6 @@
         mask_thousand_digit(2);
         
     });
-
     
     if (updateBtn) {
         updateBtn.addEventListener('click',() =>{

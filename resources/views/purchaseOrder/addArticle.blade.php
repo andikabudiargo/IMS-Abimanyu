@@ -42,7 +42,7 @@
                 <div class="form-group margin-nol">
                     <label for="price" class="d-block d-md-none">Price</label>
                     <div class="input-group input-group-merge">
-                        <input type="text" class="form-control numeral-mask-digit text-right" oninput='input(this)' id = "newPrice" name="newPrice[]"  maxlength="11">
+                        <input type="text" class="form-control numeral-mask-digit text-right" oninput='inputDecimal(this)' id = "newPrice" name="newPrice[]"  maxlength="11">
                         <div class="input-group-append">
                             <span class="input-group-text cursor-pointer">
                                 <a onmouseover="this.style.cursor='pointer'" id="listPrice" name="listPrice[]" data-toggle="tooltip" data-placement="right" title="List Price">
@@ -189,7 +189,7 @@
     $("#nilaiPPH").text("{{ $pph23Value }}%");
 
     let delayTimer;
-    function input(ele) {
+    function inputDecimal(ele) {
         clearTimeout(delayTimer);
         delayTimer = setTimeout(function() {
             let nilai = ele.value.replace(/,/gi, '') || 0;;
