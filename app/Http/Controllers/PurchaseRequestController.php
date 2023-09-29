@@ -877,10 +877,15 @@ class PurchaseRequestController extends Controller
 
         if ($requestDate){
             $date = explode("to",$requestDate);
-            $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
-            $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
-        }
-
+            if(count($date)>1){
+                $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+                $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
+            }else{
+                $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+                $toDate = $fromDate; 
+            }
+        }      
+    
         $data = DB::table('purchase_request_det')
         ->leftJoin('purchase_request_hdr','purchase_request_hdr.pr_number','purchase_request_det.pr_number')
         ->leftJoin('article','article.article_code','purchase_request_det.article_code')

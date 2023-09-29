@@ -155,8 +155,9 @@ class BomController extends Controller
         $passThru = $request->passThru;
         $cycleTime = $request->cycleTime;
         $note = $request->note;
-        $partNo =$request->partNo;
-        $model =$request->model;
+        $partNo = $request->partNo;
+        $model = $request->model;
+        $supplierToto = $request->supplierToto;
 
         $status = '1';
         $print_seq = 0;
@@ -214,49 +215,52 @@ class BomController extends Controller
                     'origin_bom_code' => $bomNumber
                 ]);
 
-                $dataSet = [];
-                foreach ($articles as $val) {
-                    $dataSet[] = [
-                        'bom_code' => $bomNumber,
-                        'article_code' => $val->article_code,
-                        'qty' => $val->qty,
-                        'uom' => $val->uom,
-                        'uom_con' => $val->uom_con,
-                        // 'cost_price' => $val->price,
-                        'article_type' => $val->type,
-                        'customer_code' => $val->customer_code,
-                        // 'note' => $val->note,
-                        'status' => '1',
-                        'created_by' => Auth::user()->username,
-                        'created_at' => date('Y-m-d H:i:s'),
-                        'urutan' => $val->urutan,
-                        'pos'=>$val->pos,
-                        'tone'=>$val->tone
-                    ];
+                if ($supplierToto == 'false'){
+                    $dataSet = [];
+                    foreach ($articles as $val) {
+                        $dataSet[] = [
+                            'bom_code' => $bomNumber,
+                            'article_code' => $val->article_code,
+                            'qty' => $val->qty,
+                            'uom' => $val->uom,
+                            'uom_con' => $val->uom_con,
+                            // 'cost_price' => $val->price,
+                            'article_type' => $val->type,
+                            'customer_code' => $val->customer_code,
+                            // 'note' => $val->note,
+                            'status' => '1',
+                            'created_by' => Auth::user()->username,
+                            'created_at' => date('Y-m-d H:i:s'),
+                            'urutan' => $val->urutan,
+                            'pos'=>$val->pos,
+                            'tone'=>$val->tone
+                        ];
+                    }
+                    DB::table('bom_det')->insert($dataSet);
                 }
 
-                DB::table('bom_det')->insert($dataSet);
 
-                DB::table('bom_spray_booth')->where('bom_code',$bomNumber)->delete();
+                if ($supplierToto == 'false'){
+                    DB::table('bom_spray_booth')->where('bom_code',$bomNumber)->delete();
+                    $dataSetSb = [];
+                    foreach ($sprayBooth as $val) {
+                        $dataSetSb[] = [
+                            'bom_code' => $bomNumber,
+                            'spray_booth' => $val->spray_booth,
+                            'tone' => $val->tone,
+                            'tack' => $val->tack,
+                            'pass_rate' => $val->pass_rate,
+                            'pass_thru' => $val->pass_thru,
+                            'urutan' => $val->urutan,
+                            'cycle_time' => $val->cycle_time,
+                            'created_by' => Auth::user()->username,
+                            'created_at' => date('Y-m-d H:i:s'),
+                            // 'stripping' => $val->stripping,
+                        ];
+                    }
 
-                $dataSetSb = [];
-                foreach ($sprayBooth as $val) {
-                    $dataSetSb[] = [
-                        'bom_code' => $bomNumber,
-                        'spray_booth' => $val->spray_booth,
-                        'tone' => $val->tone,
-                        'tack' => $val->tack,
-                        'pass_rate' => $val->pass_rate,
-                        'pass_thru' => $val->pass_thru,
-                        'urutan' => $val->urutan,
-                        'cycle_time' => $val->cycle_time,
-                        'created_by' => Auth::user()->username,
-                        'created_at' => date('Y-m-d H:i:s'),
-                        // 'stripping' => $val->stripping,
-                    ];
+                    DB::table('bom_spray_booth')->insert($dataSetSb);
                 }
-
-                DB::table('bom_spray_booth')->insert($dataSetSb);
 
                 DB::commit();
                 $title ='Save BOM';
@@ -477,6 +481,7 @@ class BomController extends Controller
         $note = $request->note;
         $partNo =$request->partNo;
         $model =$request->model;
+        $supplierToto = $request->supplierToto;
 
         $status = '1';
         $print_seq = 0;
@@ -534,84 +539,85 @@ class BomController extends Controller
                     ]
                 );
 
-                $dataset=[];
-                foreach ($articles as $val) {
-                    $dataSet[] = [
-                        $bomNumber.$val->article_code
-                    ];                  
+                if ($supplierToto == 'false'){
+                    $dataset=[];
+                    foreach ($articles as $val) {
+                        $dataSet[] = [
+                            $bomNumber.$val->article_code
+                        ];                  
+                    }
+                    /*
+                    Delete kalo article tidak ada di $bomNumber dan article nya $val->article_code
+                    berdasarkan 2 kondisi
+                    */
+                    DB::table('bom_det')
+                        // ->whereNotIn(DB::raw("CONCAT(bom_code,article_code)"),$dataSet)
+                        ->where('bom_code',$bomNumber)
+                        ->delete();
+
+                    // foreach ($articles as $val) {
+                    //     DB::table('bom_det')
+                    //     ->updateOrInsert(
+                    //         ['bom_code' => $bomNumber,'article_code' => $val->article_code],
+                    //         [
+                    //             'bom_code' => $bomNumber,
+                    //             'article_code' => $val->article_code,
+                    //             'qty' => $val->qty,
+                    //             'uom' => $val->uom,
+                    //             'uom_con' => $val->uom_con,
+                    //             // 'cost_price' => $val->price,
+                    //             'article_type' => $val->type,
+                    //             'customer_code' => $val->customer_code,
+                    //             // 'note' => $val->note,
+                    //             'created_by' => Auth::user()->username,
+                    //             'created_at' => date('Y-m-d H:i:s'),
+                    //             'urutan' => $val->urutan,
+                    //             'pos'=>$val->pos
+                    //         ]
+                    //     );
+                    // }
+
+                    foreach ($articles as $val) {
+                        $idKu= DB::table('bom_det')
+                        ->insertGetId([
+                            'bom_code' => $bomNumber,
+                            'article_code' => $val->article_code,
+                            'qty' => $val->qty,
+                            'uom' => $val->uom,
+                            'uom_con' => $val->uom_con,
+                            // 'cost_price' => $val->price,
+                            'article_type' => $val->type,
+                            'customer_code' => $val->customer_code,
+                            // 'note' => $val->note,
+                            'created_by' => Auth::user()->username,
+                            'created_at' => date('Y-m-d H:i:s'),
+                            'urutan' => $val->urutan,
+                            'pos'=>$val->pos,
+                            'tone'=>$val->tone,
+                        ]);
+                    }
+
+                    DB::table('bom_spray_booth')->where('bom_code',$bomNumber)->delete();
+
+                    $dataSetSb = [];
+                    foreach ($sprayBooth as $val) {
+                        $dataSetSb[] = [
+                            'bom_code' => $bomNumber,
+                            'spray_booth' => $val->spray_booth,
+                            'tone' => $val->tone,
+                            'tack' => $val->tack,
+                            'pass_rate' => $val->pass_rate,
+                            'pass_thru' => $val->pass_thru,
+                            'cycle_time' => $val->cycle_time,
+                            'urutan' => $val->urutan,
+                            'created_by' => Auth::user()->username,
+                            'created_at' => date('Y-m-d H:i:s'),
+                            // 'stripping' => $val->stripping,
+                        ];
+                    }
+
+                    DB::table('bom_spray_booth')->insert($dataSetSb);
                 }
-
-                /*
-                Delete kalo article tidak ada di $bomNumber dan article nya $val->article_code
-                berdasarkan 2 kondisi
-                */
-                DB::table('bom_det')
-                    // ->whereNotIn(DB::raw("CONCAT(bom_code,article_code)"),$dataSet)
-                    ->where('bom_code',$bomNumber)
-                    ->delete();
-
-                // foreach ($articles as $val) {
-                //     DB::table('bom_det')
-                //     ->updateOrInsert(
-                //         ['bom_code' => $bomNumber,'article_code' => $val->article_code],
-                //         [
-                //             'bom_code' => $bomNumber,
-                //             'article_code' => $val->article_code,
-                //             'qty' => $val->qty,
-                //             'uom' => $val->uom,
-                //             'uom_con' => $val->uom_con,
-                //             // 'cost_price' => $val->price,
-                //             'article_type' => $val->type,
-                //             'customer_code' => $val->customer_code,
-                //             // 'note' => $val->note,
-                //             'created_by' => Auth::user()->username,
-                //             'created_at' => date('Y-m-d H:i:s'),
-                //             'urutan' => $val->urutan,
-                //             'pos'=>$val->pos
-                //         ]
-                //     );
-                // }
-
-                foreach ($articles as $val) {
-                    $idKu= DB::table('bom_det')
-                    ->insertGetId([
-                        'bom_code' => $bomNumber,
-                        'article_code' => $val->article_code,
-                        'qty' => $val->qty,
-                        'uom' => $val->uom,
-                        'uom_con' => $val->uom_con,
-                        // 'cost_price' => $val->price,
-                        'article_type' => $val->type,
-                        'customer_code' => $val->customer_code,
-                        // 'note' => $val->note,
-                        'created_by' => Auth::user()->username,
-                        'created_at' => date('Y-m-d H:i:s'),
-                        'urutan' => $val->urutan,
-                        'pos'=>$val->pos,
-                        'tone'=>$val->tone,
-                    ]);
-                }
-
-                DB::table('bom_spray_booth')->where('bom_code',$bomNumber)->delete();
-
-                $dataSetSb = [];
-                foreach ($sprayBooth as $val) {
-                    $dataSetSb[] = [
-                        'bom_code' => $bomNumber,
-                        'spray_booth' => $val->spray_booth,
-                        'tone' => $val->tone,
-                        'tack' => $val->tack,
-                        'pass_rate' => $val->pass_rate,
-                        'pass_thru' => $val->pass_thru,
-                        'cycle_time' => $val->cycle_time,
-                        'urutan' => $val->urutan,
-                        'created_by' => Auth::user()->username,
-                        'created_at' => date('Y-m-d H:i:s'),
-                        // 'stripping' => $val->stripping,
-                    ];
-                }
-
-                DB::table('bom_spray_booth')->insert($dataSetSb);
                 
                 DB::commit();
                 $title ="Update $this->title";
