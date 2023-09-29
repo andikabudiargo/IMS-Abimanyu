@@ -11,13 +11,12 @@ use Maatwebsite\Excel\Concerns\FromView;
 use Maatwebsite\Excel\Concerns\WithColumnFormatting;
 use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
 use Maatwebsite\Excel\Events\AfterSheet;
-
 use Maatwebsite\Excel\Concerns\WithEvents;
 
 use DB;
 
 
-class ReportDnExport implements FromView,ShouldAutoSize,WithColumnFormatting
+class ReportDnExport implements FromView,ShouldAutoSize,WithColumnFormatting,WithEvents
 {
     protected $soNumber;
 
@@ -56,10 +55,8 @@ class ReportDnExport implements FromView,ShouldAutoSize,WithColumnFormatting
             $judul = $val->article_alternative_code." - ".$articleDesc;
             
             $barisIsiJudul = "<tr>
-                                    <td>$articleAlternative</td>
-                                    <td>$soNumber</td>
-                                    <td>$articleDesc</td>
-                                    <td > Qty SO : ".number_format($qtySo,2)."</td> </tr>";
+                                <td colspan='5' align='center'>$articleAlternative - $articleDesc</td>
+                            </tr>";
             // $barisIsiJudul = "<tr><td>$articleAlternative</td><td>$soNumber</td><td colspan='3'>".strtoupper($judul)."</td>
             //                         <td > QTY SO : ".number_format($qtySo,2)."</td> </tr>";
             // $barisIsiJudul .= "<tr >
@@ -80,19 +77,31 @@ class ReportDnExport implements FromView,ShouldAutoSize,WithColumnFormatting
             where a.so_number = '$soNumber' and a.article_code = '$articleCode'
             order by a.article_code,b.delivery_date");
             $jumlahBaris++;
+            $barisIsiJudul .= "<tr >
+                    <td>No.</td>
+                    <td>Delivery Number</td>
+                    <td>Delivery Date</td>
+                    <td>Qty delivery</td>
+                    <td > Qty SO : ".number_format($qtySo,2)."</td> 
+                </tr>";
             foreach($isiJudul as $key=>$item){
                 $no = $key+1;
                 $barisIsiJudul .= "<tr >
                     <td>$no</td>
                     <td>$item->delivery_number</td>
                     <td>$item->delivery_date</td>
-                    <td align='right'>".number_format($item->qty,2,'.',',')."</td>
+                    <td align='left'>".number_format($item->qty,2,'.',',')."</td>
+                    <td></td>
                 </tr>";
                 $jumlahBaris++;
             }
-            $barisTotal = "<tr><td></td><td></td><td></td><td align='right'>".number_format($qtyDelivery,2,'.',',')."</td></tr>";
-            $barisTotal .= "<tr><td></td><td></td><td></td><td > Qty Sisa : ".number_format($qtySisa,2)."</td></tr>";
-            $barisTotal .= "<tr><td ></td> </tr>";            
+            $barisTotal = "<tr><td></td><td></td><td></td>
+                            <td align='left'>".number_format($qtyDelivery,2,'.',',')."</td>
+                            <td > Qty Sisa : ".number_format($qtySisa,2)."</td>
+                        </tr>";
+            
+            $barisTotal .= "<tr><td></td><td></td><td></td><td></td><td></td></tr>";
+                      
             $barisAll .= $barisIsiJudul.$barisTotal;
         }; 
 
@@ -116,6 +125,21 @@ class ReportDnExport implements FromView,ShouldAutoSize,WithColumnFormatting
     {
         return [
             'D' => NumberFormat::FORMAT_NUMBER_00,
+        ];
+    }
+
+    public function registerEvents(): array
+    {
+        return [
+            AfterSheet::class    => function(AfterSheet $event) {
+                $alphabet   = $event->sheet->getHighestDataColumn();
+                $totalRow   = $event->sheet->getHighestDataRow();
+                $cellRange  = 'A1:'.$alphabet.$totalRow;
+
+                $event->sheet->getDelegate()->getStyle($cellRange)->getFont()->setSize(10);
+                // $cellRange = 'A1:W1'; // All headers
+                // $event->sheet->getDelegate()->getStyle($cellRange)->getFont()->setSize(14);
+            },
         ];
     }
 

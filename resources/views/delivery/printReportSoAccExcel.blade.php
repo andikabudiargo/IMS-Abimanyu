@@ -10,7 +10,7 @@
     <table class="oki">
         <tbody>
             <tr>
-                <td colspan="4" align='center' > <strong>PENGIRIMAN PER CO</strong></td>
+                <td colspan="5" align='center' > <strong>SO REPORT</strong></td>
             </tr>
             <tr>
                 <td valign="" ></td>

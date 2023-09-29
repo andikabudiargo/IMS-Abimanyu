@@ -990,7 +990,7 @@ class DeliveryController extends Controller
                                 </a>';
                 
             if (($data->status != '3') && ($data->status != '4')&& ($data->status != '8')){
-                if (Auth::user()->can('receiving-delete')) {
+                if (Auth::user()->can('delivery-delete')) {
                 $buttons .=         "<a href='javascript:;'
                                         id='deleteButton'
                                         class='dropdown-item'
