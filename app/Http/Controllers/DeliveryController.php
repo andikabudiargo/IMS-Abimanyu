@@ -574,7 +574,7 @@ class DeliveryController extends Controller
             ->leftJoin('article','article.article_code','delivery_det.article_code')
             ->where('delivery_det.delivery_number',$dnNumber)
             // ->where('delivery_hdr.status','3')
-            ->where('delivery_hdr.status','1')
+            // ->where('delivery_hdr.status','1')
             ->select('delivery_det.*'
             ,'article.article_type'
             ,'article.uom as uom_article'
@@ -692,6 +692,100 @@ class DeliveryController extends Controller
         }
     }
 
+    public function unPosting($dnNumber)
+    {
+        $username =  Auth::user()->username;
+        $dnNumber = $dnNumber;
+        $recType = "NORMAL";
+        $siteCode = 'HO';
+        $location ='WH';
+        
+        $moduleCode = $this->moduleCode;
+        $todayDate = date('Y-m-d');
+                
+        if ($dnNumber){
+            $data = DB::table('delivery_det')
+            ->leftJoin('delivery_hdr','delivery_hdr.delivery_number','delivery_det.delivery_number')
+            ->leftJoin('article','article.article_code','delivery_det.article_code')
+            ->where('delivery_det.delivery_number',$dnNumber)
+            ->where('delivery_hdr.status','1')
+            ->select('delivery_det.*'
+            ,'article.article_type'
+            ,'article.uom as uom_article'
+            ,DB::RAW("(delivery_det.qty*uom_conversion(delivery_det.uom,article.uom)) as total_qty")
+            )->get();
+
+            foreach($data as $val){
+                //insert article code kalo belum ada di tabel item_stock
+                DB::table('article_stock')
+                ->updateOrInsert(
+                    [ 'site_code' =>$siteCode,
+                      'article_code' => $val->article_code,
+                      'location_number'=> $location
+                    ],
+                    [
+                      'dept_code'=>$val->article_type,
+                      'uom'=>$val->uom_article,
+                    ]
+                );
+
+                //update qty nya ditambahkan dengan qty baru
+                DB::table('article_stock')
+                ->where('site_code',$siteCode)
+                ->where('article_code',$val->article_code)
+                ->where('location_number',$location)
+                ->update([
+                    'article_qty' => DB::raw('coalesce(article_qty,0) + '.$val->total_qty)
+                ]);
+            }
+                               
+            $movements = DB::table('delivery_det')
+            ->leftJoin('delivery_hdr','delivery_hdr.delivery_number','delivery_det.delivery_number')
+            ->leftJoin('article','article.article_code','delivery_det.article_code')
+            ->where('delivery_det.delivery_number',$dnNumber)
+            ->where('delivery_hdr.status','1')
+            ->where('qty', '<>', 0)
+            ->select(
+                DB::RAW("now()::timestamp::date as movement_date" )
+                ,'delivery_det.article_code'
+                ,'article.article_desc'
+                ,DB::RAW("(uom_conversion(delivery_det.uom,article.uom)*delivery_det.qty) as movement_plus")
+                ,DB::raw("0 as movement_min")
+                ,DB::raw("0 as movement_price ")
+                ,'delivery_hdr.delivery_number as movement_transnno'
+                ,DB::raw("'$moduleCode' as movement_type")
+                ,'delivery_hdr.delivery_number as movement_desc'
+            )
+            ->get();
+            
+            $dataSetMovement = [];
+            foreach ($movements as $val) {
+                $dataSetMovement[] = [
+                    'movement_date' => $val->movement_date,
+                    'artikel_code' => $val->article_code,
+                    'artikel_desc' => $val->article_desc,
+                    'movement_min' => $val->movement_min,
+                    'movement_plus' => $val->movement_plus,
+                    'movement_price' => $val->movement_price,
+                    'movement_transnno' => $val->movement_transnno,
+                    'movement_type' => $val->movement_type,
+                    'movement_desc' => $val->movement_desc."(Revision)",
+                    'created_by' => Auth::user()->username,
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'site_code' => $siteCode,
+                    'location_number' => $location,
+                    'last_qty' => DB::raw("get_last_qty('$val->article_code','$todayDate','$siteCode','$location') + ($val->movement_min+$val->movement_plus)")
+                ];
+            }
+
+            DB::table('movement')->insert($dataSetMovement);
+            return 'true';
+
+        }else{
+            return 'false';
+        }
+    }
+
     public function destroy(Request $request)
     {
        
@@ -752,12 +846,15 @@ class DeliveryController extends Controller
         $username =  Auth::user()->username;
         $id=Crypt::decryptString($request->id);
         // $dnOrigin=DB::table('delivery_hdr')->where('id',$id)->value('delivery_number');
-        $deliveries=DB::table('delivery_hdr')->where('id',$id)->fist();
+        $deliveries=DB::table('delivery_hdr')->where('id',$id)->first();
         $dnOrigin=$deliveries->delivery_number;
-        
+        $dnStatus=$deliveries->status;
 
+        // $statusDel = ['NEW','VALIDATE','APPROVED','POSTED','CANCELED','','','RECEIVED'];
+        
         $numRevision = $request->nR ? $request->nR +1 : 1 ;
-        $dnNew = $dnOrigin.'-R'.$numRevision;
+        $numRevisionName = '-R'.$numRevision;
+        $dnNew = $dnOrigin.$numRevisionName;
         $checkNewDn=DB::table('delivery_hdr')->where('delivery_number',$dnNew)->count();
         $reason = $request->reason;
 
@@ -815,6 +912,8 @@ class DeliveryController extends Controller
             po_number,
             qty,
             uom,
+            created_by,
+            created_at,
             updated_by,
             updated_at,
             qty_so
@@ -822,10 +921,12 @@ class DeliveryController extends Controller
         select 
             '$dnNew',
             article_code,
-            so_number,
-            po_number,
+            concat(so_number,'$numRevisionName'),
+            concat(po_number,'$numRevisionName'),
             qty,
             uom,
+            '$username',
+            '".date('Y-m-d H:i:s')."',
             '$username',
             '".date('Y-m-d H:i:s')."',
             qty_so
@@ -844,7 +945,7 @@ class DeliveryController extends Controller
             // 6 = closed
             // 7 = Revised
 
-            DB::table('delivery_hdr')
+            $rowAffected = DB::table('delivery_hdr')
             ->where('delivery_number',$dnOrigin)
             ->update(
                 [
@@ -854,6 +955,10 @@ class DeliveryController extends Controller
                     'updated_at' => date('Y-m-d H:i:s')
                 ]
             );
+
+            if($rowAffected){
+                $this->unPosting($dnOrigin);
+            }
 
             DB::table('approval_history')
             ->where('module_number',$dnOrigin)
@@ -916,6 +1021,9 @@ class DeliveryController extends Controller
         ->select('delivery_hdr.*'
         ,'delivery_hdr.delivery_number as delivery_number_1'
         ,DB::raw("concat(kode,'-',nama) as customer_name")
+        ,DB::raw("(select count(*) from invoice_det a where a.dn_number = delivery_hdr.delivery_number
+        and invoice_number in (select invoice_number from invoice_hdr where status NOT IN  ('5','7'))
+        ) as sudah_di_bayar")
         )
         ->orderBy('id')
         ->get();
@@ -969,17 +1077,17 @@ class DeliveryController extends Controller
                 }   
             }
 
-            // if (($data->status == '2') || ($data->status == '3') ){
-            //     $buttons .= "<a href='javascript:;'
-            //                     id='revisionReasonButton'
-            //                     class='dropdown-item'
-            //                     data-toggle='modal'
-            //                     data-target='#reasonModalRevision'
-            //                     data-href='". route('delivery.revision', ['id'=>Crypt::encryptString($data->id),'nR'=>$data->num_revision]) ."'>
-            //                     <i data-feather='corner-down-left' class='feather-14-red'></i>
-            //                     <span>". __('Revision') ."</span>
-            //                 </a>";            
-            // }
+            if ((($data->status == '1') || ($data->status == '2') || ($data->status == '3') || ($data->status == '4')) && ($data->sudah_di_bayar == 0)){
+                $buttons .= "<a href='javascript:;'
+                                id='revisionReasonButton'
+                                class='dropdown-item'
+                                data-toggle='modal'
+                                data-target='#reasonModalRevision'
+                                data-href='". route('delivery.revision', ['id'=>Crypt::encryptString($data->id),'nR'=>$data->num_revision]) ."'>
+                                <i data-feather='corner-down-left' class='feather-14-red'></i>
+                                <span>". __('Revision') ."</span>
+                            </a>";            
+            }
 
             if ($data->status == '4'){
                 $buttons .=         '<a href="'. route('delivery.print', ['id'=>Crypt::encryptString($data->id)]) .'" target="_blank" class="dropdown-item">

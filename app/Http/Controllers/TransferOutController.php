@@ -219,7 +219,7 @@ class TransferOutController extends Controller
             ->leftJoin('transfer_hdr','transfer_hdr.tr_number','transfer_det.tr_number')
             ->leftJoin('article','article.article_code','transfer_det.article_code')
             ->where('transfer_det.tr_number',$trNumber)
-            ->where('transfer_hdr.status','3')
+            // ->where('transfer_hdr.status','3')
             ->select('transfer_det.*','article.article_type','article.uom as uom_article',
                 DB::RAW("transfer_det.qty*coalesce(uom_conversion(transfer_det.uom,article.uom),1) as total_qty")
             )
@@ -351,7 +351,7 @@ class TransferOutController extends Controller
         ->leftJoin('transfer_hdr','transfer_hdr.tr_number','transfer_det.tr_number')
         ->leftJoin('article','article.article_code','transfer_det.article_code')
         ->where('transfer_det.tr_number',$trNumber)
-        ->where('transfer_hdr.status','4')
+        // ->where('transfer_hdr.status','4')
         ->select('transfer_det.*','article.article_type','article.uom as uom_article',
             DB::RAW("transfer_det.qty*coalesce(uom_conversion(transfer_det.uom,article.uom),1) as total_qty")
         )
