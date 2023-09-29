@@ -1986,7 +1986,7 @@ class PurchaseRequestController extends Controller
             //update qty sesuai dengan yang sudah di update di PR 
             DB::table('purchase_order_det')
             ->where('po_number',$poOrigin)
-            ->where('qty','=',0)
+            // ->where('qty','=',0)
             ->update(
             [
                 'qty' => DB::RAW("coalesce((select sum(qty) 
