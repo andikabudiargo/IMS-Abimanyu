@@ -957,7 +957,9 @@ class DeliveryController extends Controller
             );
 
             if($rowAffected){
-                $this->unPosting($dnOrigin);
+                if($dnStatus == '4'){
+                    $this->unPosting($dnOrigin);
+                }
             }
 
             DB::table('approval_history')

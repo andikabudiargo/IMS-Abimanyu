@@ -28,7 +28,7 @@
                                     role="tab" 
                                     aria-selected="false" 
                                     data-ajax-detail="true" 
-                                    data-dn-number="{{ $header->delivery_number }}">{{ $key == 0 ? 'Main':'Revision '.$key }}</a>
+                                    data-dn-number="{{ $header->delivery_number }}">{{ $key == 0 ? 'Main':'Revision '.($key-1) }}</a>
                                 </li>
                             @endforeach
                         </ul>
@@ -74,7 +74,7 @@
                                         </div>
                                         @if($key!=0)
                                         <div class="form-row">
-                                            <div class="form-group col-md-7">
+                                            <div class="form-group col-md-8">
                                                 <label class="form-label" for="note">Revision reason</label>
                                                 <textarea type="text" id="rReason" name="rReason" class="form-control" rows="1" disabled >{{ $header2->reason }}</textarea>
                                             </div>
@@ -100,7 +100,7 @@
                                                     @else
                                                         @foreach( $headers as $key1 => $oki )
                                                             @if ($key1 > $key and $key1!= 0 )
-                                                                <th class="text-center">R-{{ $key1 }}</th>
+                                                                <th class="text-center">R-{{ $key1-1 }}</th>
                                                             @endif
                                                         @endforeach
                                                     @endif
