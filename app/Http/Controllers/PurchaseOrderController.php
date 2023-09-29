@@ -426,6 +426,7 @@ class PurchaseOrderController extends Controller
             ,'purchase_request_det.uom as uom1'
             ,'uom.uom_group'
             ,'group_materials.name as group')
+        // ->orderBy('purchase_request_det.id')
         ->get();
 
         $data['detail'] = DB::table('purchase_order_det')
@@ -445,7 +446,7 @@ class PurchaseOrderController extends Controller
             ,'article_stock.article_qty as qty_stock'
             ,'uom.uom_group'
             , DB::raw('(SELECT name from group_materials where code = group_of_material) as group'))
-        ->orderBy('id')
+        ->orderBy('purchase_order_det.id')
         ->get();       
 
         // dd($data['detail']);
@@ -632,7 +633,6 @@ class PurchaseOrderController extends Controller
             \LogActivity::addToLog($title,"username: $username Status $message");
             return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);
         }
-        
     }
 
     public function update(Request $request)
