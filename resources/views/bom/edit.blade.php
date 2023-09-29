@@ -257,6 +257,13 @@
             // add_new_row_edit_sb(sprayBooth,tone,tack,passRate,passThru,cycleTime,stripping);
             
         }
+
+        if ($('#customer').data("customer-code") == 'STI00001CUST'){
+            $('#articleCodeRm').removeAttr('required');
+        }else{
+            $('#articleCodeRm').attr('required','required');
+        }
+
     });
 
     if (approveBtn) {

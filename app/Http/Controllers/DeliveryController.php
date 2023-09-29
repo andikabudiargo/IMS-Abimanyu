@@ -751,7 +751,11 @@ class DeliveryController extends Controller
     {
         $username =  Auth::user()->username;
         $id=Crypt::decryptString($request->id);
-        $dnOrigin=DB::table('delivery_hdr')->where('id',$id)->value('delivery_number');
+        // $dnOrigin=DB::table('delivery_hdr')->where('id',$id)->value('delivery_number');
+        $deliveries=DB::table('delivery_hdr')->where('id',$id)->fist();
+        $dnOrigin=$deliveries->delivery_number;
+        
+
         $numRevision = $request->nR ? $request->nR +1 : 1 ;
         $dnNew = $dnOrigin.'-R'.$numRevision;
         $checkNewDn=DB::table('delivery_hdr')->where('delivery_number',$dnNew)->count();
@@ -1365,7 +1369,7 @@ class DeliveryController extends Controller
                     <td class='detail-padding' align='left' scope='row' style='padding-left:5px;padding-right:3px' width='5%'>No</td>
                     <td class='detail-padding' align='left' style='padding-left:5px;padding-right:3px'>Delivery Number</td>
                     <td class='detail-padding  align='left' style='padding-left:5px;padding-right:3px'>Delivery Date</td>
-                    <td class='detail-padding' align='left' style='padding-left:5px;padding-right:3px'>QTY Delivery</td>
+                    <td class='detail-padding' align='left' style='padding-left:5px;padding-right:3px'>Qty Delivery</td>
                 </tr>";
             
             $isiJudul=DB::select("SELECT a.article_code, c.article_alternative_code, c.article_desc,a.delivery_number

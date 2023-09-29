@@ -110,7 +110,7 @@
 
     $(document).ready(function(){  
         let bomPos = {!! $posts !!};
-        console.log(bomPos);
+        // console.log(bomPos);
         validateFormToast("frmAdd");
         mask_thousand_digit(numberOfDecimalDigit);
 
@@ -210,6 +210,7 @@
         let objCon = $('#article_row input[name="qtyCon[]"]');
         let objUom = $('#article_row select[name="uom[]"]');
         let objUomCon = $('#article_row select[name="uomCon[]"]');
+        let customerCode = '';
         
         objArticle.change(function(e){        
             let objIndex = objArticle.index(this);
@@ -288,7 +289,7 @@
     }
 
     fillPos = (obj) => {
-        console.log(bomPosOption);
+        // console.log(bomPosOption);
         $('#'+obj).append(bomPosOption);
     }
 
@@ -422,6 +423,11 @@
                 flag=1;
             }
 
+            if (objSprayBooth.length == 0){
+                pesan +="Spray booth must be filled in completely <br>"; 
+                flag=1;
+            }
+
             if (arrArticles.length == 0){
                 pesan +="Articles must be filled in completely <br>"; 
                 flag=1;
@@ -430,7 +436,6 @@
                 summary data by article_code ini menyebabkan urutan jadi berubah
                 tidak jadi di summary karena dalam 1 bom bisa diulang article nya
                 */
-
                 // let obj = {}
                 // arrArticles.forEach((item)=>{
                 //     if(obj[item.article_code]){
@@ -445,6 +450,14 @@
                 articles = arrArticles;
             }
 
+            //bypasss untuk yang toto
+            let supplierToto ='false';
+            
+            if ($('#customer').data("customer-code") == 'STI00001CUST'){
+                supplierToto ='true';
+                flag = 0;
+            }
+            
             if (flag==0){
                 let bomNumber = "";
                 let url ="";
@@ -473,7 +486,8 @@
                         // cycleTime:cycleTime,
                         bomNumber:bomNumber,
                         partNo:partNo,
-                        model:model
+                        model:model,
+                        supplierToto:supplierToto
                     },
                     dataType: "json",
                     success: function(data) {
@@ -542,6 +556,12 @@
         $('#customer').attr('data-customer-code', detail[4]);
         $('#group').val(detail[5]);
         $('#group').attr('data-group', detail[3]);
+
+        if (detail[4] == 'STI00001CUST'){
+            $('#articleCodeRm').removeAttr('required');
+        }else{
+            $('#articleCodeRm').attr('required','required');
+        }
     })
 
     function hitungTotal(){

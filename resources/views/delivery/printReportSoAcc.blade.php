@@ -39,7 +39,8 @@
     }
 
     table{
-        font-size: x-small;
+        /* font-size: x-small; */
+        font-size: 10pt;
     }
     
     tfoot tr td{
@@ -79,7 +80,7 @@
     }
 
     .font-10 {
-        font-size: 10px;
+        font-size: 10pt;
     }
 
     .font-20 {
@@ -126,7 +127,7 @@
         <table width="100%" class="oki">
             <tbody>
                 <tr>
-                    <td colspan="3" align='center' class="font-20"> <strong>SO REPORT</strong></td>
+                    <td colspan="3" align='center' class="font-10"> <strong>SO REPORT</strong></td>
                 </tr>
                 <tr>
                     <td valign="" width="3%" class="font-10 header-padding">No Order</td>
