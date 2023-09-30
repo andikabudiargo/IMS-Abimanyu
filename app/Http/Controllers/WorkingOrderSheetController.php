@@ -110,6 +110,41 @@ class WorkingOrderSheetController extends Controller
         $data['subtitle'] = "Input $this->title";
         $data['oEdit']=false;
         $data['statusWo']='NEW';
+
+        $articles=DB::select("SELECT article_code, article_alternative_code,article_desc 
+        ,(select article_code_rm from bom_hdr where article_code=article.article_code and status = '3') as article_rm
+        ,(select max(tone) from bom_spray_booth where bom_code = (select bom_code from bom_hdr where article_code=article.article_code and status = '3')) as jumlah_tone
+        from article 
+        where article_type = 'FG' 
+        and 
+        article_code in 
+        (select distinct article_code 
+        from sales_order_det 
+        where so_code 
+        in (select so_code from sales_order_hdr where status = '3')
+            and
+            article_code in 
+            (select article_code 
+            from bom_hdr 
+            where status = '3')
+        )
+        ");
+
+        // (select distinct article_code 
+        // from sales_order_det 
+        // where so_code in (select so_code from sales_order_hdr where status = '3'))
+
+        // data-article-rm="'.$row->article_code_rm.'" data-detail="'.$row->article_code.'|'.$row->group.'|'.$row->tag.'|'.$row->qty.'|'.$row->uom1.'|'.$row->costprice.'"
+
+        $output ='<option value="" data-article-rm="none" data-detail=""></option>';
+        $output .='<option value="gantiwarna" data-article-rm="none" data-detail="gantiwarna|none|1|||">Ganti Warna</option>';
+        $output .='<option value="istirahat"  data-article-rm="none" data-detail="istirahat|none|1|||">Istirahat</option>';
+
+        foreach ($articles as $row){
+            $output .='<option value="'.$row->article_code.'" data-article-rm="'.$row->article_rm.'" data-jumlah-tone="'.$row->jumlah_tone.'" >'.$row->article_alternative_code.'-'. $row->article_desc.'</option>';
+        };
+
+        $data['articles']=$output;
                
         return view("workingOrderSheet.create",$data);
     }
@@ -883,4 +918,22 @@ class WorkingOrderSheetController extends Controller
         return $tack;                
         
     }
+
+    public function getQtySo(Request $request)
+    {
+        $username =  Auth::user()->username;
+        $soCode = $request->soCode;
+        $articleCode = $request->articleCode;
+        
+        $data = DB::table('sales_order_det')
+        ->where('so_code',$soCode)
+        ->where('article_code',$articleCode)
+        ->select(db::raw("coalesce(sum(sales_order_det.qty),0)-coalesce((select sum(qty) from delivery_det where so_number = sales_order_det.so_code and article_code = sales_order_det.article_code group by article_code),0) as sisa_qty"))
+        ->groupBy('article_code')
+        ->groupBy('so_code')
+        ->value('sisa_qty');
+        return $data;                        
+    }
+
+
 }

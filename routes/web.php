@@ -750,6 +750,9 @@ Route::group( ['middleware' => ['auth']], function() {
 
 	Route::post('dynamic/dependent',['as'=>'dynamic.dependent','uses'=>'DependentController@dependentFetch']);
 
+	Route::get('monitoring/qtyNotBalance',['as'=>'monitoring.qtyNotBalance','uses'=>'MonitoringController@qtyNotBalance']);
+	Route::post('monitoring/qtyNotBalance/list',['as'=>'monitoring.qtyNotBalance.list','uses'=>'MonitoringController@qtyNotBalanceList']);
+
 	Route::get('add-to-log', ['as'=>'add.to.log','uses'=>'LogActivityController@myTestAddToLog']);
 	Route::get('showLogLists', ['as'=>'show.log.lists','uses'=>'LogActivityController@showLogLists']);
 	Route::get('logActivity',['as'=>'log.activity','uses'=>'LogActivityController@index']);
