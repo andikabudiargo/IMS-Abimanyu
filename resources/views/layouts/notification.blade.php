@@ -4,7 +4,7 @@
         <span class="badge badge-pill badge-danger badge-up">{!! $jumlahSo + $jumlahPo + $jumlahBom + $jumlahPr + $jumlahTso !!}</span>
     </a>
     <ul class="dropdown-menu dropdown-menu-media dropdown-menu-right">
-        @if( count($listSo2)>0 )
+        @if( $jumlahSo > 0 )
             <li class="dropdown-menu-header">
                 <div class="dropdown-header d-flex">
                     <h4 class="notification-title mb-0 mr-auto">SO needs to be approved </h4>
@@ -60,7 +60,7 @@
                 @endforeach
             </li>
         @endif
-        @if( count($listPoNotif)>0 )
+        @if( $jumlahPo > 0 )
             <li class="dropdown-menu-header">
                 <div class="dropdown-header d-flex">
                     <h4 class="notification-title mb-0 mr-auto">PO needs to be approved </h4>
@@ -129,7 +129,7 @@
                 @endforeach
             </li>
         @endif
-        @if( count($listBomNotif)>0 )
+        @if( $jumlahBom > 0 )
             <li class="dropdown-menu-header">
                 <div class="dropdown-header d-flex">
                     <h4 class="notification-title mb-0 mr-auto">BOM needs to be approved </h4>
@@ -187,7 +187,7 @@
                 @endforeach
             </li>
         @endif
-        @if( count($listTsoNotif)>0 )
+        @if( $jumlahTso > 0 )
             <li class="scrollable-container media-list">
                 <li class="dropdown-menu-header">
                     <div class="dropdown-header d-flex">
@@ -246,7 +246,7 @@
                 </li>
             </li>
         @endif
-        @if( count($listPrNotif) > 0 )
+        @if( $jumlahPr > 0 )
             <li class="dropdown-menu-header">
                 <div class="dropdown-header d-flex">
                     <h4 class="notification-title mb-0 mr-auto">PR needs to be approved </h4>
