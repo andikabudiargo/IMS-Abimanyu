@@ -35,7 +35,7 @@ class NotificationComposer
                 coalesce((select max(approval_order) from approval_history where module_code ='SO' and module_number =a.so_code),0) as current_level
                 ,coalesce((select min(approval_order) from approval_level where username = '$username' and module_code = 'SO'),0) as berhak_approve
                 from sales_order_hdr a
-                where status not in ('3','4','5','6','7','8')
+                where status in ('1','2')
                 ) as Oki
             where current_level+1 = berhak_approve");
     
@@ -52,7 +52,7 @@ class NotificationComposer
                     ,coalesce((select min(approval_order) from approval_level where username = '$username' and module_code = 'SO'),0) as berhak_approve
                     ,(select nama from third_party where kode = customer_id) as customer_name
                     from sales_order_hdr a
-                    where status not in ('3','4','5','6','7','8')
+                    where status in ('1','2')
                     ) as Oki
                 where current_level+1 = berhak_approve");
                 $lists['jumlahSo'] = count($lists['listSo2']);
@@ -69,7 +69,7 @@ class NotificationComposer
                 ,coalesce((select min(approval_order) from approval_level where username = 'oki' and module_code = 'PO' and approval_order not in(
                 select approval_order from approval_history where username = 'oki' and module_code = 'PO' and module_number = a.po_number)),0) as berhak_approve
                 from purchase_order_hdr a
-                where status not in ('3','4','5','6','7','8')
+                where status in ('1','2')
                 ) as Oki
             where current_level+1 = berhak_approve");
 
@@ -88,7 +88,7 @@ class NotificationComposer
                     ,(SELECT sum(qty*price) from purchase_order_det where po_number = a.po_number) as po_amount
                     ,(select nama from third_party where kode = supplier_id) as supplier_name
                 from purchase_order_hdr a
-                where status not in ('3','4','5','6','7','8')
+                where status in ('1','2')
                 ) as Oki
                 where current_level+1 = berhak_approve");
                 $lists['jumlahPo'] = count($lists['listPoNotif']);    
@@ -105,7 +105,7 @@ class NotificationComposer
                 select approval_order from approval_history where username = '$username' and module_code = 'BOM' and module_number = a.bom_code)),0) as berhak_approve
                 ,(select nama from third_party where kode = customer) as customer_name
                 from bom_hdr a
-                where status not in ('3','4','5','6','7','8')
+                where status in ('1','2')
                 ) as Oki
             where current_level+1 = berhak_approve");
 
@@ -124,7 +124,7 @@ class NotificationComposer
                     select approval_order from approval_history where username = '$username' and module_code = 'BOM' and module_number = a.bom_code)),0) as berhak_approve
                     ,(select nama from third_party where kode = customer) as customer_name
                 from bom_hdr a
-                where status not in ('3','4','5','6','7','8')
+                where status in ('1','2')
                 ) as Oki
                 where current_level+1 = berhak_approve");
                 $lists['jumlahBom'] = count($lists['listBomNotif']);
@@ -139,7 +139,7 @@ class NotificationComposer
                     ,coalesce((select min(approval_order) from approval_level where username = '$username' and module_code = 'PR' and username in (select username from user_dept where dept = a.dept and username = '$username')
                     and approval_order not in( select approval_order from approval_history where username = '$username' and module_code = 'PR' and module_number = a.pr_number)),0) as berhak_approve
                 from purchase_request_hdr a
-                where status not in ('3','4','5','6','7','8')
+                where status in ('1','2')
                 ) as Oki
             where current_level+1 = berhak_approve");
         
@@ -162,14 +162,13 @@ class NotificationComposer
                     -- ,coalesce((select min(approval_order) from approval_level where username = '$username' and module_code = 'PR' and approval_order not in(
                     -- select approval_order from approval_history where username = '$username' and module_code = 'PR' and module_number = a.pr_number)),0) as berhak_approve1
                 from purchase_request_hdr a
-                where status not in ('3','4','5','6','7','8')
+                where status in ('1','2')
                 ) as Oki
                 where current_level+1 = berhak_approve");
                 $lists['jumlahPr'] = count($lists['listPrNotif']);
             }
         }
-        
-        
+                
         $lists['jumlahTso'] = 0;
         if (in_array("TSO", $adaModule)){
             $bisaApproveTso =DB::select("SELECT  count(*) as jumlah from (
@@ -178,7 +177,7 @@ class NotificationComposer
                     ,coalesce((select min(approval_order) from approval_level where username = '$username' and module_code = 'TSO' and approval_order not in(
                     select approval_order from approval_history where username = '$username' and module_code = 'TSO' and module_number = a.tso_code)),0) as berhak_approve
                 from target_order_hdr a
-                where status not in ('3','4','5','6','7','8')
+                where status in ('1','2')
                 ) as Oki
             where current_level+1 = berhak_approve");
     
@@ -198,7 +197,7 @@ class NotificationComposer
                     ,coalesce((select min(approval_order) from approval_level where username = '$username' and module_code = 'TSO' and approval_order not in(
                     select approval_order from approval_history where username = '$username' and module_code = 'TSO' and module_number = a.tso_code)),0) as berhak_approve
                 from target_order_hdr a
-                where status not in ('3','4','5','6','7','8')
+                where status in ('1','2')
                 ) as Oki
                 where current_level+1 = berhak_approve");
                 $lists['jumlahTso'] = count($lists['listTsoNotif']);
