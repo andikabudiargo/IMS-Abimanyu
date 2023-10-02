@@ -1,7 +1,7 @@
 <li class="nav-item dropdown dropdown-notification mr-25">
     <a class="nav-link" href="javascript:void(0);" data-toggle="dropdown">
         <i class="ficon" data-feather="bell"></i>
-        <span class="badge badge-pill badge-danger badge-up">{!! count($listSo2) + count($listPoNotif) + count($listBomNotif) + count($listPrNotif) + count($listTsoNotif) !!}</span>
+        <span class="badge badge-pill badge-danger badge-up">{!! $jumlahSo + $jumlahPo + $jumlahBom + $jumlahPr + $jumlahTso !!}</span>
     </a>
     <ul class="dropdown-menu dropdown-menu-media dropdown-menu-right">
         @if( count($listSo2)>0 )
@@ -18,7 +18,6 @@
                             <div class="media-left">
                                 <div class="avatar">
                                     <div class="avatar-content">SO</div>
-                                    {{--  <img src="{{ asset('app-assets/images/icons/file-icons/document.png') }}" alt="avatar" width="32" height="32"> --}}
                                 </div>
                             </div>
                             <div class="media-body">
@@ -59,23 +58,6 @@
                         </div>
                     </a>
                 @endforeach
-                
-                {{-- <a class="d-flex" href="javascript:void(0)">
-                    <div class="media d-flex align-items-start">
-                        <div class="media-left">
-                            <div class="avatar bg-light-danger">
-                                <div class="avatar-content">MD</div>
-                            </div>
-                        </div>
-                        <div class="media-body">
-                            <p class="media-heading"><span class="font-weight-bolder">Revised Order 👋</span>&nbsp;checkout</p><small class="notification-text"> MD Inc. order updated</small>
-                        </div>
-                    </div>
-                </a>
-                <div class="dropdown-header d-flex">
-                    <h4 class="notification-title mb-0 mr-auto">Invoice needs to be approved </h4>
-                    <div class="badge badge-pill badge-light-primary">6 New</div>
-                </div> --}}
             </li>
         @endif
         @if( count($listPoNotif)>0 )
@@ -87,12 +69,10 @@
             </li>   
             <li class="scrollable-container media-list">
                 @foreach($listPoNotif as $key=>$val)
-                    {{-- <a class="d-flex" href="{{ route('purchaseOrder.edit', ['id'=>Crypt::encryptString($val->id)]) }}"> --}}
                         <div class="media d-flex align-items-start">
                             <div class="media-left">
                                 <div class="avatar">
                                     <div class="avatar-content">PO</div>
-                                    {{--  <img src="{{ asset('app-assets/images/icons/file-icons/document.png') }}" alt="avatar" width="32" height="32"> --}}
                                 </div>
                             </div>
                             <div class="media-body">
@@ -146,13 +126,8 @@
                                 </div>
                             </div>
                         </div>
-                        
-                    {{-- </a> --}}
                 @endforeach
             </li>
-            {{-- <li class="dropdown-menu-footer">
-                <a class="btn btn-primary btn-block" data-toggle="dropdown" href="javascript:void(0)">Close</a>
-            </li> --}}
         @endif
         @if( count($listBomNotif)>0 )
             <li class="dropdown-menu-header">
@@ -163,12 +138,10 @@
             </li>   
             <li class="scrollable-container media-list">
                 @foreach($listBomNotif as $key=>$val)
-                    {{-- <a class="d-flex" href="{{ route('purchaseOrder.edit', ['id'=>Crypt::encryptString($val->id)]) }}"> --}}
                         <div class="media d-flex align-items-start">
                             <div class="media-left">
                                 <div class="avatar">
                                     <div class="avatar-content">BOM</div>
-                                    {{--  <img src="{{ asset('app-assets/images/icons/file-icons/document.png') }}" alt="avatar" width="32" height="32"> --}}
                                 </div>
                             </div>
                             <div class="media-body">
@@ -197,17 +170,6 @@
                                         <i data-feather='list'></i>
                                         Detail
                                     </a>
-                                    {{-- <a href='javascript:;'
-                                        onclick="action(this)"
-                                        id = 'btnDeclineBom{{ $key }}'
-                                        class="btn btn-outline-danger btn-sm  buttonBomDecline-{{ $val->id }}"
-                                        data-id-class-decline = "buttonBomDecline-{{ $val->id }}"
-                                        data-id-class = "buttonBom-{{ $val->id }}"
-                                        data-doc-number='{{ $val->bom_code }}'
-                                        data-url='{{ route("bom.approve", ["bomNumber"=>$val->bom_code]) }}'>
-                                        <i data-feather='x-circle'></i>
-                                        Decline
-                                    </a> --}}
                                     <a href='javascript:;'
                                         onclick="action(this)"
                                         id = 'buttonBom{{ $key }}'
@@ -222,13 +184,8 @@
                                 </div>
                             </div>
                         </div>
-                        
-                    {{-- </a> --}}
                 @endforeach
             </li>
-            {{-- <li class="dropdown-menu-footer">
-                <a class="btn btn-primary btn-block" data-toggle="dropdown" href="javascript:void(0)">Close</a>
-            </li> --}}
         @endif
         @if( count($listTsoNotif)>0 )
             <li class="scrollable-container media-list">
@@ -298,12 +255,10 @@
             </li>   
             <li class="scrollable-container media-list">
                 @foreach($listPrNotif as $key=>$val)
-                    {{-- <a class="d-flex" href="{{ route('purchaseOrder.edit', ['id'=>Crypt::encryptString($val->id)]) }}"> --}}
                         <div class="media d-flex align-items-start">
                             <div class="media-left">
                                 <div class="avatar">
                                     <div class="avatar-content">PR</div>
-                                    {{--  <img src="{{ asset('app-assets/images/icons/file-icons/document.png') }}" alt="avatar" width="32" height="32"> --}}
                                 </div>
                             </div>
                             <div class="media-body">
@@ -345,7 +300,6 @@
                                 </div>
                             </div>
                         </div>
-                    {{-- </a> --}}
                 @endforeach
             </li>
         @endif
