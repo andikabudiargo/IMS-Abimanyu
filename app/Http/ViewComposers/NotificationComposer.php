@@ -12,8 +12,8 @@ class NotificationComposer
     public function compose(View $view)
     {
         $username =  Auth::user() ? Auth::user()->username : '';
-        $adaModule = db::table('approval_level')->where('username',$username)->pluck('module_code')->toarray();
-
+        $adaModule = db::table('approval_level')->where('username',$username)->distinct()->pluck('module_code')->toarray();
+        
         // dd($adaModule);
 
         // dd(in_array("OKI", $adaModule));
@@ -38,7 +38,7 @@ class NotificationComposer
                 where status in ('1','2')
                 ) as Oki
             where current_level+1 = berhak_approve");
-    
+
             if($bisaApproveSo[0]->jumlah >0 ){
                 $lists['listSo2'] = DB::select("SELECT * from (
                     select 
@@ -59,19 +59,25 @@ class NotificationComposer
             }
         }
 
-
-
         $lists['jumlahPo'] = 0;
         if (in_array("PO", $adaModule)){
             $bisaApprovePo = DB::select("SELECT count(*) as jumlah from (
                 select 
                 coalesce((select max(approval_order) from approval_history where module_code ='PO' and module_number =a.po_number),0) as current_level
-                ,coalesce((select min(approval_order) from approval_level where username = 'oki' and module_code = 'PO' and approval_order not in(
-                select approval_order from approval_history where username = 'oki' and module_code = 'PO' and module_number = a.po_number)),0) as berhak_approve
+                -- ,coalesce((select min(approval_order) from approval_level where username = 'oki' and module_code = 'PO' and approval_order not in(
+                -- select approval_order from approval_history where username = 'oki' and module_code = 'PO' and module_number = a.po_number)),0) as berhak_approve
+                ,(select count(*) from approval_level 
+                    where username = 'oki' 
+                    and module_code = 'PO' 
+                    and approval_order = (coalesce((select max(approval_order) 
+                                                     from approval_history 
+                                                     where module_code ='PO' 
+                                                     and module_number =a.po_number 
+                                                     and status = '1' ),0)+1)) as berhak_approve
                 from purchase_order_hdr a
                 where status in ('1','2')
                 ) as Oki
-            where current_level+1 = berhak_approve");
+            where berhak_approve=1");
 
             if($bisaApprovePo[0]->jumlah >0 ){
                 $lists['listPoNotif'] = DB::select("SELECT * from (
@@ -83,14 +89,24 @@ class NotificationComposer
                     ,'$username' as username
                     ,coalesce((select max(approval_order) from approval_history where module_code ='PO' and module_number =a.po_number),0) as current_level
                     ,(select approval_number from approval_master where module_code = 'PO') as max_level
-                    ,coalesce((select min(approval_order) from approval_level where username = '$username' and module_code = 'PO' and approval_order not in(
-                    select approval_order from approval_history where username = '$username' and module_code = 'PO' and module_number = a.po_number)),0) as berhak_approve
+                    -- ,coalesce((select min(approval_order) from approval_level where username = '$username' and module_code = 'PO' and approval_order not in(
+                    -- select approval_order from approval_history where username = '$username' and module_code = 'PO' and module_number = a.po_number)),0) as berhak_approve
+                    ,(select count(*) from approval_level 
+                    where username = 'oki' 
+                    and module_code = 'PO' 
+                    and approval_order = (coalesce((select max(approval_order) 
+                                                     from approval_history 
+                                                     where module_code ='PO' 
+                                                     and module_number =a.po_number 
+                                                     and status = '1' ),0)+1)) as berhak_approve
                     ,(SELECT sum(qty*price) from purchase_order_det where po_number = a.po_number) as po_amount
                     ,(select nama from third_party where kode = supplier_id) as supplier_name
                 from purchase_order_hdr a
                 where status in ('1','2')
                 ) as Oki
-                where current_level+1 = berhak_approve");
+                where berhak_approve=1
+                order by po_number");
+
                 $lists['jumlahPo'] = count($lists['listPoNotif']);    
             }
         }
@@ -143,7 +159,7 @@ class NotificationComposer
                 ) as Oki
             where current_level+1 = berhak_approve");
         
-            if($bisaApprovePr[0]->jumlah >0 ){
+            if($bisaApprovePr[0]->jumlah > 0 ){
                 $lists['listPrNotif'] = DB::select("SELECT * from (
                 select 
                     id
@@ -159,12 +175,15 @@ class NotificationComposer
                     ,(select approval_number from approval_master where module_code = 'PR') as max_level
                     ,coalesce((select min(approval_order) from approval_level where username = '$username' and module_code = 'PR' and username in (select username from user_dept where dept = a.dept and username = '$username')
                     and approval_order not in( select approval_order from approval_history where username = '$username' and module_code = 'PR' and module_number = a.pr_number)),0) as berhak_approve
-                    -- ,coalesce((select min(approval_order) from approval_level where username = '$username' and module_code = 'PR' and approval_order not in(
-                    -- select approval_order from approval_history where username = '$username' and module_code = 'PR' and module_number = a.pr_number)),0) as berhak_approve1
+                    ,coalesce((select min(approval_order) from approval_level where username = '$username' and module_code = 'PR' and approval_order not in(
+                    select approval_order from approval_history where username = '$username' and module_code = 'PR' and module_number = a.pr_number)),0) as berhak_approve1
                 from purchase_request_hdr a
                 where status in ('1','2')
                 ) as Oki
                 where current_level+1 = berhak_approve");
+
+                // dd($lists['listPrNotif']);
+
                 $lists['jumlahPr'] = count($lists['listPrNotif']);
             }
         }
@@ -203,7 +222,9 @@ class NotificationComposer
                 $lists['jumlahTso'] = count($lists['listTsoNotif']);
             }
         }
-       
+
+        // dd($bisaApproveSo[0]->jumlah);
+               
         $view->with($lists);
     }
 }

@@ -97,7 +97,7 @@ class DeliveryController extends Controller
         $data['kolomDetail'] = $this->getTableColoumnDetail();
 
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED','8'=>'RECEIVED'];
-        $data['status'] = ['1'=>'NEW','3'=>'APPROVED','4'=>'POSTED','8'=>'RECEIVED'];
+        $data['status'] = ['1'=>'NEW','3'=>'APPROVED','4'=>'POSTED','8'=>'RECEIVED','10'=>'REVISI'];
         $data['statusKu'] = '1';
             
         return view("delivery.index",$data);
@@ -148,8 +148,8 @@ class DeliveryController extends Controller
         ->select('a.*'
         ,'article.*'
         ,'sales_order_hdr.po_number'
-        ,DB::RAW("(coalesce((select sum(qty) as qty_delivery from delivery_det where delivery_number in (select delivery_number from delivery_hdr where so_number = a.so_code) and article_code = a.article_code group by article_code),0)) as qty_delivery")
-        ,DB::RAW("(a.qty - coalesce((select sum(qty) as qty_delivery from delivery_det where delivery_number in (select delivery_number from delivery_hdr where so_number = a.so_code) and article_code = a.article_code group by article_code),0)) as qty_so")
+        ,DB::RAW("(coalesce((select sum(qty) as qty_delivery from delivery_det where delivery_number in (select delivery_number from delivery_hdr where so_number = a.so_code and status not in ('5','7','10')) and article_code = a.article_code group by article_code),0)) as qty_delivery")
+        ,DB::RAW("(a.qty - coalesce((select sum(qty) as qty_delivery from delivery_det where delivery_number in (select delivery_number from delivery_hdr where so_number = a.so_code and status not in ('5','7','10')) and article_code = a.article_code group by article_code),0)) as qty_so")
         )
         ->where('a.so_code',$so)
         ->orderBy('a.id')
@@ -171,7 +171,7 @@ class DeliveryController extends Controller
         $gudang = 'false';
         $kurs = 1;
 
-        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED','8'=>'RECEIVED'];
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED','8'=>'RECEIVED','10'=>'REVISI'];
 
         $messages = [
             'required' => 'The field is required.',
@@ -274,6 +274,7 @@ class DeliveryController extends Controller
         ->where('origin_delivery_number', function($query) use ($id){
             $query->select('delivery_number')->from('delivery_hdr')->where('id',$id);
         })
+        ->where('status','<>','5')
         ->orderBy('id')
         ->get();
 
@@ -371,7 +372,7 @@ class DeliveryController extends Controller
         $data['approveValidate'] = Approval::approveValidate($this->moduleCode,$dnNumber,$username);
 
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED','8'=>'RECEIVED'];
-        $statusDel = ['NEW','VALIDATE','APPROVED','POSTED','CANCELED','','REVISED','RECEIVED'];
+        $statusDel = ['NEW','VALIDATE','APPROVED','POSTED','CANCELED','','REVISED','RECEIVED','','REVISI'];
         $data['statusDel'] = $statusDel[$data['header']->status-1];
 
         return view("delivery.edit",$data);        
@@ -808,6 +809,7 @@ class DeliveryController extends Controller
         ->update(
             [   
                 'delivery_number' => $dnNumber."(C)",
+                'origin_delivery_number' => $dnNumber."(C)",
                 'so_number' => $soNumber."(C)",
                 'status' => $status,
                 'note' => $note." (Cancel)",
@@ -850,7 +852,7 @@ class DeliveryController extends Controller
         $dnOrigin=$deliveries->delivery_number;
         $dnStatus=$deliveries->status;
 
-        // $statusDel = ['NEW','VALIDATE','APPROVED','POSTED','CANCELED','','','RECEIVED'];
+        // $statusDel = ['NEW','VALIDATE','APPROVED','POSTED','CANCELED','','','RECEIVED','','REVISI'];
         
         $numRevision = $request->nR ? $request->nR +1 : 1 ;
         $numRevisionName = '-R'.$numRevision;
@@ -950,7 +952,7 @@ class DeliveryController extends Controller
             ->update(
                 [
                     'num_revision' => $numRevision,
-                    'status' => '1',
+                    'status' => '10', //Revisi
                     'updated_by' => Auth::user()->username,
                     'updated_at' => date('Y-m-d H:i:s')
                 ]
@@ -1024,7 +1026,7 @@ class DeliveryController extends Controller
         ,'delivery_hdr.delivery_number as delivery_number_1'
         ,DB::raw("concat(kode,'-',nama) as customer_name")
         ,DB::raw("(select count(*) from invoice_det a where a.dn_number = delivery_hdr.delivery_number
-        and invoice_number in (select invoice_number from invoice_hdr where status NOT IN  ('5','7'))
+        and invoice_number in (select invoice_number from invoice_hdr where status not in  ('5','7','10'))
         ) as sudah_di_bayar")
         )
         ->orderBy('id')
@@ -1045,23 +1047,23 @@ class DeliveryController extends Controller
                 3. untuk prosedur approve kita lewatkan dulu pak, kita jalanin pengecekkan surat jalannya pake hard copy, tidak pake sistem dulu
             */
             
-            // if (($data->status != '3') && ($data->status != '4') && ($data->status != '8') && ($data->status != '5')){
-            //     if (Auth::user()->can('receiving-edit')) {
-            //     $buttons .=         '<a href="'. route('delivery.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
-            //                             <i data-feather="file-text"></i>
-            //                             Edit
-            //                         </a>';
-            //     }
-            // }
+            if (($data->status == '10')){
+                if (Auth::user()->can('delivery-edit')) {
+                $buttons .=         '<a href="'. route('delivery.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+                                        <i data-feather="file-text"></i>
+                                        Edit
+                                    </a>';
+                }
+            }
 
-            // if (($data->status != '3') && ($data->status != '4') && ($data->status != '8')){
-            //     if (Auth::user()->can('receiving-edit')) {
-            //     $buttons .=         '<a href="'. route('delivery.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
-            //                             <i data-feather="check"></i>
-            //                             Approve
-            //                         </a>';
-            //     }
-            // }
+            if (($data->status == '10')){
+                if (Auth::user()->can('delivery-edit')) {
+                $buttons .=         '<a href="'. route('delivery.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+                                        <i data-feather="check"></i>
+                                        Approve
+                                    </a>';
+                }
+            }
 
             if ( $data->status == '1' || $data->status == '3' ) {                
                 if (Auth::user()->can('delivery-posting')) {
@@ -1122,16 +1124,16 @@ class DeliveryController extends Controller
             return $buttons;
             })
 
-        ->addColumn('delivery_number', function ($data) {
-            $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-success'];            
-            $statusDel = ['NEW','VALIDATE','APPROVED','POSTED','CANCELED','','','RECEIVED'];
-             // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED','8'=>'RECEIVED'];
-            return '<span style="display: none;">'.$data->delivery_number.'</span><a class="text-left badge d-block '.$badges[$data->status - 1].'" name="'.$data->delivery_number.'" href="'. route('delivery.show', ['id'=>Crypt::encryptString($data->id)]) .'" ><span>'.$data->delivery_number.'</span></a>';
-        })
+        // ->addColumn('delivery_number', function ($data) {
+        //     $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-success','badge-success','badge-success'];            
+        //     $statusDel = ['NEW','VALIDATE','APPROVED','POSTED','CANCELED','','','RECEIVED','','REVISI'];
+        //      // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED','8'=>'RECEIVED','10'=>'REVISI'];
+        //     return '<span style="display: none;">'.$data->delivery_number.'</span><a class="text-left badge d-block '.$badges[$data->status - 1].'" name="'.$data->delivery_number.'" href="'. route('delivery.show', ['id'=>Crypt::encryptString($data->id)]) .'" ><span>'.$data->delivery_number.'</span></a>';
+        // })
 
         ->addColumn('status', function ($data) {
-            $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-success'];            
-            $statusDel = ['NEW','VALIDATE','APPROVED','POSTED','CANCELED','','','RECEIVED'];
+            $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-success','badge-success','badge-success'];            
+            $statusDel = ['NEW','VALIDATE','APPROVED','POSTED','CANCELED','','','RECEIVED','','REVISI'];
             return "<div class='badge ".$badges[$data->status - 1]."'>".$statusDel[$data->status - 1]."</div>";
         })
 
@@ -1435,7 +1437,7 @@ class DeliveryController extends Controller
         ->whereIn('so_code', function($query){
             $query->select('so_number')
             ->from('delivery_hdr')
-            ->whereNotIn('status',['5','7']);
+            ->whereNotIn('status',['5','7','10']);
         })
         ->select('sales_order_hdr.so_code','sales_order_hdr.po_number','third_party.nama')
         ->orderBy('so_code')
@@ -1456,8 +1458,10 @@ class DeliveryController extends Controller
         ,ceil((select sum(qty) from delivery_det where so_number = a.so_number and article_code = a.article_code)) as qty_delivery
         ,ceil((select sum(qty) from sales_order_det where so_code = a.so_number and article_code = a.article_code)) - (select sum(qty) from delivery_det where so_number = a.so_number and article_code = a.article_code) as sisa_so
         from delivery_det a 
+        left join delivery_hdr b on b.delivery_number = a.delivery_number
         left join article c on c.article_code = a.article_code
         where a.so_number = '$soNumber' 
+        and b.status not in ('5','7','10')
         order by c.article_alternative_code");
         
         $barisIsiJudul='';
@@ -1491,6 +1495,7 @@ class DeliveryController extends Controller
             left join delivery_hdr b on b.delivery_number = a.delivery_number
             left join article c on c.article_code = a.article_code
             where a.so_number = '$soNumber' and a.article_code = '$articleCode'
+            and b.status not in ('5','7','10')
             order by a.article_code,b.delivery_date");
             $jumlahBaris++;
             foreach($isiJudul as $key=>$item){

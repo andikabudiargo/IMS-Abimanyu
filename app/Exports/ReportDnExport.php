@@ -35,8 +35,10 @@ class ReportDnExport implements FromView,ShouldAutoSize,WithColumnFormatting,Wit
         ,ceil((select sum(qty) from delivery_det where so_number = a.so_number and article_code = a.article_code)) as qty_delivery
         ,ceil((select sum(qty) from sales_order_det where so_code = a.so_number and article_code = a.article_code)) - (select sum(qty) from delivery_det where so_number = a.so_number and article_code = a.article_code) as sisa_so
         from delivery_det a 
+        left join delivery_hdr b on b.delivery_number = a.delivery_number
         left join article c on c.article_code = a.article_code
         where a.so_number = '$soNumber' 
+        and b.status not in ('5','7','10')
         order by c.article_alternative_code");
         
         $barisIsiJudul='';
@@ -75,6 +77,7 @@ class ReportDnExport implements FromView,ShouldAutoSize,WithColumnFormatting,Wit
             left join delivery_hdr b on b.delivery_number = a.delivery_number
             left join article c on c.article_code = a.article_code
             where a.so_number = '$soNumber' and a.article_code = '$articleCode'
+            and b.status not in ('5','7','10')
             order by a.article_code,b.delivery_date");
             $jumlahBaris++;
             $barisIsiJudul .= "<tr >
