@@ -192,7 +192,7 @@
                 <li class="dropdown-menu-header">
                     <div class="dropdown-header d-flex">
                         <h4 class="notification-title mb-0 mr-auto">TSO needs to be approved </h4>
-                        <div class="badge badge-pill badge-light-primary">{!! count($listPrNotif) !!} New</div>
+                        <div class="badge badge-pill badge-light-primary">{!! count($listTsoNotif) !!} New</div>
                     </div>
                 </li>   
                 <li class="scrollable-container media-list">
