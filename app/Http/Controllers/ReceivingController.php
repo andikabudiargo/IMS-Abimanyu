@@ -547,7 +547,8 @@ class ReceivingController extends Controller
                 ->where('receiving_hdr.status','4')
                 ->where('qty', '<>', 0)
                 ->select(
-                    DB::RAW("now()::timestamp::date as movement_date" )
+                    // DB::RAW("now()::timestamp::date as movement_date" )
+                    'receiving_hdr.rec_date as movement_date'
                     ,'receiving_det.article_code'
                     ,'article.article_desc'
                     ,DB::raw("0 as movement_min")

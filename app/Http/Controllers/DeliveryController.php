@@ -625,7 +625,8 @@ class DeliveryController extends Controller
                 ->where('delivery_hdr.status','4')
                 ->where('qty', '<>', 0)
                 ->select(
-                    DB::RAW("now()::timestamp::date as movement_date" )
+                    // DB::RAW("now()::timestamp::date as movement_date" )
+                    'delivery_hdr.delivery_date as movement_date'
                     ,'delivery_det.article_code'
                     ,'article.article_desc'
                     ,DB::raw("0 as movement_plus")
