@@ -83,6 +83,7 @@
                     <hr>
                     <div class="form-row mt-75">
                         <div class="col-md-12">
+                            <a href="{{ route('transferIn.index') }}" class="btn btn-light">Back</a>
                             <button class="btn btn-success" type="reset" id="cmdNew" name="cmdCancel" data-trType="TRIN">New</button>
                             <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave" data-trType="TRIN">Save</button>
                         </div>

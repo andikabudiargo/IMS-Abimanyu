@@ -241,7 +241,7 @@ class TransferInController extends Controller
                 );
 
                 //update qty nya ditambahkan dengan qty baru
-                $rowAffected = DB::table('article_stock')
+                DB::table('article_stock')
                 ->where('site_code',$siteCode)
                 ->where('article_code',$val->article_code)
                 ->where('location_number',$location)
@@ -255,17 +255,18 @@ class TransferInController extends Controller
                 // ->increment('article_qty', $val->total_qty);
             }
                     
-            if ($rowAffected > 0){
-                DB::table('transfer_hdr')
-                ->where('tr_number',$trNumber)
-                ->update(
-                    [   
-                        'status' => $status,
-                        'updated_by' => Auth::user()->username,
-                        'updated_at' => date('Y-m-d H:i:s')
-                    ]
-                );
+            
+            $rowAffected= DB::table('transfer_hdr')
+            ->where('tr_number',$trNumber)
+            ->update(
+                [   
+                    'status' => $status,
+                    'updated_by' => Auth::user()->username,
+                    'updated_at' => date('Y-m-d H:i:s')
+                ]
+            );
 
+            if ($rowAffected > 0){
                 $movements = DB::table('transfer_det')
                 ->leftJoin('transfer_hdr','transfer_hdr.tr_number','transfer_det.tr_number')
                 ->leftJoin('article','article.article_code','transfer_det.article_code')

@@ -70,7 +70,8 @@ let showDataTables = (opt) => {
       buttons:true,
       columnDefs:"",
       excelFileName:"data",
-      type:'get'
+      type:'get',
+      scrollY:440
     }, opt);
     let button = opt.buttons == true ? 'B' : '';
     $(function(){
@@ -170,7 +171,7 @@ let showDataTables = (opt) => {
           bDestroy: true, //pakai ini supaya bisa di load berulang2
           scrollX: true, //pakai ini supaya waktu responsive  bisa di scroll horizontal
           columns: opt.kolom,
-          scrollY: 440,
+          scrollY: opt.scrollY,
       });
     });
     //$('div.head-label').html('<h6 class="mb-0">Data Users</h6>');   

@@ -221,6 +221,7 @@
         articleCode:artCode
       },
       orderColumn:[[0,'asc'],[1,'asc']],
+      scrollY:300,
       excelFileName:'movement'+artDesc
     });
   }

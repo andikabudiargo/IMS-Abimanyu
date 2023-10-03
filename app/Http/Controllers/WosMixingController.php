@@ -244,7 +244,7 @@ class WosMixingController extends Controller
                 );
 
                 //update qty nya ditambahkan dengan qty baru
-                $rowAffected = DB::table('article_stock')
+                DB::table('article_stock')
                 ->where('site_code',$siteCode)
                 ->where('article_code',$val->article_code)
                 ->where('location_number',$location)
@@ -253,17 +253,18 @@ class WosMixingController extends Controller
                 ]);
             }
                     
+            
+            $rowAffected=DB::table('wos_mixing_hdr')
+            ->where('mix_number',$mixNumber)
+            ->update(
+                [   
+                    'status' => $status,
+                    'updated_by' => Auth::user()->username,
+                    'updated_at' => date('Y-m-d H:i:s')
+                ]
+            );
+            
             if ($rowAffected > 0){
-                DB::table('wos_mixing_hdr')
-                ->where('mix_number',$mixNumber)
-                ->update(
-                    [   
-                        'status' => $status,
-                        'updated_by' => Auth::user()->username,
-                        'updated_at' => date('Y-m-d H:i:s')
-                    ]
-                );
-
                 $movements = DB::table('wos_mixing_det')
                 ->leftJoin('wos_mixing_hdr','wos_mixing_hdr.mix_number','wos_mixing_det.mix_number')
                 ->leftJoin('article','article.article_code','wos_mixing_det.article_code')
