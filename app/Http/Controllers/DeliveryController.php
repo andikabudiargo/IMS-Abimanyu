@@ -1250,6 +1250,7 @@ class DeliveryController extends Controller
             ['data'=>'po_number','name'=>'po_number','title'=>'PO Number'],
             ['data'=>'delivery_date','name'=>'delivery_date','title'=>'Delivery Date'],
             ['data'=>'customer_name','name'=>'customer_name','title'=>'Customer'],
+            ['data'=>'article_alternative_code','name'=>'article_alternative_code','title'=>'Article code'],
             ['data'=>'article_desc','name'=>'article_desc','title'=>'Article desc'],
             ['data'=>'qty','name'=>'qty','title'=>'Delivery Qty'],
         ];
@@ -1266,6 +1267,7 @@ class DeliveryController extends Controller
             ['data'=>'po_number','name'=>'po_number','title'=>'PO Number'],
             ['data'=>'delivery_date','name'=>'delivery_date','title'=>'Delivery Date'],
             ['data'=>'customer_name','name'=>'customer_name','title'=>'Customer'],
+            ['data'=>'article_alternative_code','name'=>'article_alternative_code','title'=>'Article code'],
             ['data'=>'article_desc','name'=>'article_desc','title'=>'Article desc'],
             ['data'=>'qty','name'=>'qty','title'=>'Delivery Qty'],
             ['data'=>'price','name'=>'price','title'=>'Price'],
@@ -1354,7 +1356,8 @@ class DeliveryController extends Controller
         })
         ->whereNotIn('delivery_hdr.status',['5','7'])
         ->select(
-        'article.article_desc'    
+        'article.article_desc'
+        ,'article.article_alternative_code'    
         ,'delivery_hdr.delivery_date'
         ,'delivery_det.delivery_number'
         ,'delivery_det.qty'
@@ -1407,6 +1410,7 @@ class DeliveryController extends Controller
         ->whereNotIn('delivery_hdr.status',['5','7'])
         ->select(
         'article.article_desc'    
+        ,'article.article_alternative_code'  
         ,'delivery_hdr.delivery_date'
         ,'delivery_det.delivery_number'
         ,'delivery_det.qty'

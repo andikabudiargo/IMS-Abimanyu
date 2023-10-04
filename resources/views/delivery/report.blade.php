@@ -132,12 +132,12 @@
       tableId:"detailedTable",
       route:"{{ route('delivery.list.report') }}",
       kolom:{!! $kolom !!},
-      arrColPrint:[0,1,2,3,4,5,6],
+      arrColPrint:[0,1,2,3,4,5,6,7],
       columnDefs :[
         { width: '5%', targets: 0 },
         // { className: 'text-right','targets': [ 6 ] },
         {
-          targets: [ 6 ],
+          targets: [ 7 ],
           render: $.fn.dataTable.render.number(',','.',2,''),
           className: "text-right"
         },

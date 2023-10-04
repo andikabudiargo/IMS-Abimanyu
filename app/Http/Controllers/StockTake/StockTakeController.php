@@ -229,7 +229,6 @@ class StockTakeController extends Controller
             )
             ->get();
 
-
             foreach($data as $val){
                 //insert article code kalo belum ada di tabel item_stock
                 DB::table('article_stock')
