@@ -129,12 +129,12 @@
       tableId:"detailedTable",
       route:"{{ route('purchaseOrders.listReport') }}",
       kolom:{!! $kolom !!},
-      arrColPrint:[0,1,2,3,4,5,6,7,8,9,10,11],
+      arrColPrint:[0,1,2,3,4,5,6,7,8,9,10,11,12,13],
       columnDefs :[
         { width: '5%', targets: 0 },
-        { className: 'text-right','targets': [ 6,7,8,10,11 ] },
+        // { className: 'text-right','targets': [ 8,9,10,12 ] },
         {
-            targets: [ 6,7,8,10,11 ],
+            targets: [ 8,9,10,12 ],
             render: $.fn.dataTable.render.number(',','.',2,''),
             className: "text-right"
         },
