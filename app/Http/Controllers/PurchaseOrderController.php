@@ -1576,7 +1576,7 @@ class PurchaseOrderController extends Controller
         // ,DB::raw("TO_CHAR((((price*qty)-discount)+(price*qty*purchase_order_hdr.ppn/100)-(price*qty*purchase_order_hdr.pph22)),'999,999,999') as grand_total")
         // ,DB::raw("(select STRING_AGG((select name from users where username = a.username), ' -> ' ORDER BY approval_order) AS main from approval_history a where module_number = purchase_order_det.po_number) as approval_by")
         // ,'depts.name as nama_dept'
-        ,DB::raw("(select name from depts where code = purchase_request_hdr.dept) as dept_name")
+        ,DB::raw("(select name from depts where code = purchase_request_hdr.dept limit 1) as dept_name")
         )
         ->orderBy('purchase_order_det.id')
         ->get(); 
