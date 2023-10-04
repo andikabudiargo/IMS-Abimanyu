@@ -18,10 +18,13 @@
         body.A3           .sheet { width: 297mm; height: 419mm }
         body.A3.landscape .sheet { width: 420mm; height: 296mm }
         body.A4           .sheet { width: 210mm; height: 296mm }
-        body.A4A5           .sheet { width: 210mm; height: 148mm }
+        body.A4A5         .sheet { width: 210mm; height: 148mm }
         body.A4.landscape .sheet { width: 297mm; height: 209mm }
         body.A5           .sheet { width: 148mm; height: 209mm }
         body.A5.landscape .sheet { width: 210mm; height: 147mm }
+
+        body.letter        .sheet { width: 215mm; height: 279mm }
+        body.letter2       .sheet { width: 215mm; height: 148mm }
 
         /** Padding area **/
         .sheet.padding-10mm { padding: 10mm }
@@ -182,7 +185,8 @@
 
     </style>
 </head>
-<body class="{{ (count($details)) < 5 ? "A4A5" : "A4" }}">
+{{-- <body class="{{ (count($details)) < 5 ? "A4A5" : "A4" }}"> --}}
+<body class="{{ (count($details)) < 5 ? "A4A5" : "letter" }}">    
 {{-- <body class="A4"> --}}
 <div class="row hide-print" style="margin-left:20px;margin-top:20px">
     <div class="col-md-12">
@@ -276,7 +280,7 @@
                                 @endforeach      
                                                     
                                 @if((count($details))>5)
-                                    <?php $totalBaris = 23 ?>
+                                    <?php $totalBaris = 20 ?>
                                 @else
                                     <?php $totalBaris = 4 ?>
                                 @endif
