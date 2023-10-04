@@ -64,10 +64,10 @@ class NotificationComposer
             $bisaApprovePo = DB::select("SELECT count(*) as jumlah from (
                 select 
                 coalesce((select max(approval_order) from approval_history where module_code ='PO' and module_number =a.po_number),0) as current_level
-                -- ,coalesce((select min(approval_order) from approval_level where username = 'oki' and module_code = 'PO' and approval_order not in(
-                -- select approval_order from approval_history where username = 'oki' and module_code = 'PO' and module_number = a.po_number)),0) as berhak_approve
+                -- ,coalesce((select min(approval_order) from approval_level where username = '$username' and module_code = 'PO' and approval_order not in(
+                -- select approval_order from approval_history where username = '$username' and module_code = 'PO' and module_number = a.po_number)),0) as berhak_approve
                 ,(select count(*) from approval_level 
-                    where username = 'oki' 
+                    where username = '$username' 
                     and module_code = 'PO' 
                     and approval_order = (coalesce((select max(approval_order) 
                                                      from approval_history 
@@ -92,7 +92,7 @@ class NotificationComposer
                     -- ,coalesce((select min(approval_order) from approval_level where username = '$username' and module_code = 'PO' and approval_order not in(
                     -- select approval_order from approval_history where username = '$username' and module_code = 'PO' and module_number = a.po_number)),0) as berhak_approve
                     ,(select count(*) from approval_level 
-                    where username = 'oki' 
+                    where username = '$username' 
                     and module_code = 'PO' 
                     and approval_order = (coalesce((select max(approval_order) 
                                                      from approval_history 
