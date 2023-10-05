@@ -1514,6 +1514,7 @@ class PurchaseOrderController extends Controller
             ['data'=>'uom','name'=>'uom','title'=>'STN'],
             ['data'=>'price','name'=>'price','title'=>'Harga'],
             ['data'=>'note','name'=>'note','title'=>'Keterangan'],
+            ['data'=>'date_period','name'=>'date_period','title'=>'date_period','visible'=>false],
         ];
         return json_encode($kolom, true);
     }
@@ -1577,6 +1578,7 @@ class PurchaseOrderController extends Controller
         // ,DB::raw("(select STRING_AGG((select name from users where username = a.username), ' -> ' ORDER BY approval_order) AS main from approval_history a where module_number = purchase_order_det.po_number) as approval_by")
         // ,'depts.name as nama_dept'
         ,DB::raw("(select name from depts where code = purchase_request_hdr.dept limit 1) as dept_name")
+        ,DB::RAW("to_date(po_date,'dd-mm-yyyy') as date_period")
         )
         ->orderBy('purchase_order_det.id')
         ->get(); 

@@ -1034,7 +1034,8 @@ class SalesOrderController extends Controller
             ['data'=>'article_desc','name'=>'article_desc','title'=>'Article desc'],
             ['data'=>'qty','name'=>'qty','title'=>'Qty SO'],
             ['data'=>'qty_kirim','name'=>'qty_kirim','title'=>'Pengiriman'],
-            ['data'=>'balance','name'=>'balance','title'=>'Sisa Order']
+            ['data'=>'balance','name'=>'balance','title'=>'Sisa Order'],
+            ['data'=>'date_period','name'=>'date_period','title'=>'date_period','visible'=>false],
         ];
         return json_encode($kolom, true);
     }
@@ -1102,6 +1103,7 @@ class SalesOrderController extends Controller
         // ,'qty_forcast'
         // ,DB::raw("case when uom_group = 'PIECE' then TO_CHAR(qty_target,'999,999,999') when uom_group <> 'PIECE' then TO_CHAR(qty_target,'999,999,999.999') end as qty_target")
         //,DB::raw("case when uom_group = 'PIECE' then TO_CHAR(qty_forcast,'999,999,999') when uom_group <> 'PIECE' then TO_CHAR(qty_forcast,'999,999,999.999') end as qty_forcast")
+        ,DB::RAW("to_date(so_date,'dd-mm-yyyy') as date_period")
         )
         ->orderBy('sales_order_det.id')
         ->get(); 

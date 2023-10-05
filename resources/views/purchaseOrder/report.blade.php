@@ -145,7 +145,7 @@
         searchStatus:searchStatus,
         orderDate:orderDate
       },
-      orderColumn:[[ 0, 'asc' ],[ 1, 'asc' ]],
+      orderColumn:[[ 14, 'asc' ],[ 2, 'asc' ]],
       excelFileName:'os_purchase_order'
     });
   }

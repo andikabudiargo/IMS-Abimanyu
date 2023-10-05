@@ -141,7 +141,7 @@
         searchCustomer:searchCustomer,
         orderDate:orderDate
       },
-      orderColumn:[[ 2, 'asc' ]],
+      orderColumn:[[ 10, 'asc' ],[ 4, 'asc' ]],
       excelFileName:'os_sales_order'
     });
   }
