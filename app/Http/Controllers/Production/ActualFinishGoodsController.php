@@ -143,6 +143,7 @@ class ActualFinishGoodsController extends Controller
         $status = '9';
         $moduleCode = $this->moduleCode;
         $todayDate = date('Y-m-d');
+        $movementDate = date("d-m-Y");
         
         if ($prdNumber){
             $data = DB::table('production_det')
@@ -215,7 +216,7 @@ class ActualFinishGoodsController extends Controller
                 ->where('act_finish_goods', '<>', 0)
                 ->where('production_det.so_code','<>','other')
                 ->select(
-                    DB::RAW("now()::timestamp::date as movement_date" )
+                    DB::RAW("'$movementDate' as movement_date" )
                     ,'production_det.article_code'
                     ,'article.article_desc'
                     ,DB::raw("0 as movement_min")

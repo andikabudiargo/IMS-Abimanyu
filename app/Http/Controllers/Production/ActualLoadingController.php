@@ -336,6 +336,7 @@ class ActualLoadingController extends Controller
         $status = '4';
         $moduleCode = $this->moduleCode;
         $todayDate = date('Y-m-d');
+        $movementDate = date("d-m-Y");
 
         // $status = ['NEW','VALIDATED','APPROVED','POSTED','CANCELED','CLOSED','REVISED','INPUT FG','POSTED FG'];
         
@@ -465,7 +466,7 @@ class ActualLoadingController extends Controller
                 ->where('act_qty_repaint', '<>', 0)
                 ->where('production_det.so_code','<>','other')
                 ->select(
-                    DB::RAW("now()::timestamp::date as movement_date" )
+                    DB::RAW("'$movementDate' as movement_date" )
                     ,'production_det.article_rm_code'
                     ,'article.article_desc'
                     // ,DB::raw("(production_det.act_qty_fresh) as movement_min")

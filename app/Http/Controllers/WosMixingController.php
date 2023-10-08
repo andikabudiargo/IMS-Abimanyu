@@ -217,6 +217,7 @@ class WosMixingController extends Controller
         $location ='WH';
         $status = '4';
         $todayDate = date('Y-m-d');
+        $movementDate = date("d-m-Y");
 
         if ($mixNumber){
             $data = DB::table('wos_mixing_det')
@@ -272,7 +273,7 @@ class WosMixingController extends Controller
                 ->where('wos_mixing_hdr.status','4')
                 ->where('qty', '<>', 0)
                 ->select(
-                    DB::RAW("now()::timestamp::date as movement_date" )
+                    DB::RAW("'$movementDate' as movement_date" )
                     ,'wos_mixing_det.article_code'
                     ,'article.article_desc'
                     ,DB::raw("0 as movement_plus")
@@ -342,6 +343,7 @@ class WosMixingController extends Controller
         $rowAffected = 0;
         $location = 'WH';
         $todayDate = date('Y-m-d');
+        $movementDate = date("d-m-Y");
 
         $data = DB::table('wos_mixing_det')
         ->leftJoin('wos_mixing_hdr','wos_mixing_hdr.mix_number','wos_mixing_det.mix_number')
@@ -402,7 +404,7 @@ class WosMixingController extends Controller
             ->where('wos_mixing_hdr.status','5')
             ->where('qty', '<>', 0)
             ->select(
-                DB::RAW("now()::timestamp::date as movement_date" )
+                DB::RAW("'$movementDate' as movement_date" )
                 ,'wos_mixing_det.article_code'
                 ,'article.article_desc'
                 ,DB::raw("0 as movement_min")

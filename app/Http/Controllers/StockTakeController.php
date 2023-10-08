@@ -210,6 +210,7 @@ class StockTakeController extends Controller
         $siteCode = 'HO';
         $status = '4';
         $authorizedBy = Auth::user()->username;
+        $movementDate = date("d-m-Y");
 
         if ($trNumber){
             // Update stock kalo article nya udah ada
@@ -240,7 +241,7 @@ class StockTakeController extends Controller
             $sqlMovement = "INSERT into movement
             (movement_date,artikel_code,artikel_desc,movement_min,movement_plus,movement_price,movement_transnno,movement_type,movement_desc)
             select 
-            now()::timestamp::date,
+            '$movementDate',
             article_code,
             (select concat(article_alternative_code,'-',article_desc) from article where article_code = a.article_code) as article_desc,
             0,
@@ -305,6 +306,7 @@ class StockTakeController extends Controller
         $siteCode = 'HO';
         $status = '5';
         $authorizedBy = Auth::user()->username;
+        $movementDate = date("d-m-Y");
 
         // Update stock kalo article nya udah ada
         $sqlUpdate = "UPDATE article_stock a set article_qty = COALESCE(a.article_qty,0) - COALESCE(b.qty,0)
@@ -342,7 +344,7 @@ class StockTakeController extends Controller
         $sqlMovement = "INSERT into movement
         (movement_date,artikel_code,artikel_desc,movement_min,movement_plus,movement_price,movement_transnno,movement_type,movement_desc)
         select 
-        now()::timestamp::date,
+        '$movementDate',
         article_code,
         (select concat(article_alternative_code,'-',article_desc) from article where article_code = a.article_code) as article_desc,
         qty,

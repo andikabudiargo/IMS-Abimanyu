@@ -485,6 +485,7 @@ class InvoiceController extends Controller
         $statusRec ="Posting";
         $status = '3';
         $authorizedBy = Auth::user()->username;
+        $todayDate = date("d-m-Y");
 
         // Update stock kalo article nya udah ada
         $sqlUpdate = "UPDATE article_stock a set article_qty = COALESCE(a.article_qty,0)  + COALESCE(b.qty,0)
@@ -514,7 +515,7 @@ class InvoiceController extends Controller
         $sqlMovement = "INSERT into movement
         (movement_date,artikel_code,artikel_desc,movement_min,movement_plus,movement_price,movement_transnno,movement_type,movement_desc)
         select 
-        now()::timestamp::date,
+        '$todayDate',
         article_code,
         (select concat(article_alternative_code,'-',article_desc) from article where article_code = a.article_code) as article_desc,
         0,

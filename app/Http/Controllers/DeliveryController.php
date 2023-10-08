@@ -710,7 +710,7 @@ class DeliveryController extends Controller
             ->leftJoin('delivery_hdr','delivery_hdr.delivery_number','delivery_det.delivery_number')
             ->leftJoin('article','article.article_code','delivery_det.article_code')
             ->where('delivery_det.delivery_number',$dnNumber)
-            ->where('delivery_hdr.status','1')
+            // ->where('delivery_hdr.status','1')
             ->select('delivery_det.*'
             ,'article.article_type'
             ,'article.uom as uom_article'
@@ -745,10 +745,11 @@ class DeliveryController extends Controller
             ->leftJoin('delivery_hdr','delivery_hdr.delivery_number','delivery_det.delivery_number')
             ->leftJoin('article','article.article_code','delivery_det.article_code')
             ->where('delivery_det.delivery_number',$dnNumber)
-            ->where('delivery_hdr.status','1')
+            // ->where('delivery_hdr.status','1')
             ->where('qty', '<>', 0)
             ->select(
-                DB::RAW("now()::timestamp::date as movement_date" )
+                // DB::RAW("now()::timestamp::date as movement_date" )
+                'delivery_hdr.delivery_date as movement_date'
                 ,'delivery_det.article_code'
                 ,'article.article_desc'
                 ,DB::RAW("(uom_conversion(delivery_det.uom,article.uom)*delivery_det.qty) as movement_plus")
@@ -1048,14 +1049,14 @@ class DeliveryController extends Controller
                 3. untuk prosedur approve kita lewatkan dulu pak, kita jalanin pengecekkan surat jalannya pake hard copy, tidak pake sistem dulu
             */
             
-            if (($data->status == '10')){
-                if (Auth::user()->can('delivery-edit')) {
-                $buttons .=         '<a href="'. route('delivery.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
-                                        <i data-feather="file-text"></i>
-                                        Edit
-                                    </a>';
-                }
-            }
+            // if (($data->status == '10')){
+            //     if (Auth::user()->can('delivery-edit')) {
+            //     $buttons .=         '<a href="'. route('delivery.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+            //                             <i data-feather="file-text"></i>
+            //                             Edit
+            //                         </a>';
+            //     }
+            // }
 
             if (($data->status == '10')){
                 if (Auth::user()->can('delivery-edit')) {

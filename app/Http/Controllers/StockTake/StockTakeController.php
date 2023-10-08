@@ -217,6 +217,7 @@ class StockTakeController extends Controller
         $siteCode = 'HO';
         $location ='WH';
         $status = '4';
+        $movementDate = date("d-m-Y");
 
         if ($trNumber){
             $data = DB::table('transfer_det')
@@ -276,7 +277,7 @@ class StockTakeController extends Controller
                 ->where('transfer_hdr.status','4')
                 ->where('qty', '<>', 0)
                 ->select(
-                    DB::RAW("now()::timestamp::date as movement_date" )
+                    DB::RAW("'$movementDate' as movement_date" )
                     ,'transfer_det.article_code'
                     ,'article.article_desc'
                     ,DB::raw("0 as movement_min")
@@ -346,6 +347,7 @@ class StockTakeController extends Controller
         $rowAffected = 0;
         $location = 'WH';
         $todayDate = date('Y-m-d');
+        $movementDate = date("d-m-Y");
 
         $data = DB::table('transfer_det')
         ->leftJoin('transfer_hdr','transfer_hdr.tr_number','transfer_det.tr_number')
@@ -405,7 +407,7 @@ class StockTakeController extends Controller
             ->where('transfer_hdr.status','5')
             ->where('qty', '<>', 0)
             ->select(
-                DB::RAW("now()::timestamp::date as movement_date" )
+                DB::RAW("'$movementDate' as movement_date" )
                 ,'transfer_det.article_code'
                 ,'article.article_desc'
                 ,DB::raw("0 as movement_plus")

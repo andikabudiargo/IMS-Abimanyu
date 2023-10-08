@@ -193,6 +193,7 @@ class ProductionController extends Controller
         $statusRec ="Posted";
         $status = '3';
         $authorizedBy = Auth::user()->username;
+        $movementDate = date("d-m-Y");
 
         // Update stock kalo article nya udah ada
         $sqlUpdate = "UPDATE article_stock a set article_qty = COALESCE(a.article_qty,0)  + COALESCE(b.qty_prod,0)
@@ -282,7 +283,7 @@ class ProductionController extends Controller
         movement_type,
         movement_desc)
         select 
-            now()::timestamp::date,
+            '$movementDate',
             article_code,
             (select concat(article_alternative_code,'-',article_desc) from article where article_code = a.article_code) as article_desc,
             0,
@@ -309,7 +310,7 @@ class ProductionController extends Controller
         movement_type,
         movement_desc)
         select 
-            now()::timestamp::date,
+            '$movementDate',
             article_code,
             (select concat(article_alternative_code,'-',article_desc) from article where article_code = a.article_code) as article_desc,
             qty_total,

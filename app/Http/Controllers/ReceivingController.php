@@ -621,6 +621,7 @@ class ReceivingController extends Controller
         $moduleCode = $this->moduleCode;
         $reason = "(Cancel by $username, Reason: $request->reason)";
         $todayDate = date('Y-m-d');
+        $movementDate = date("d-m-Y");
 
         $data = DB::table('receiving_det')
         ->leftJoin('receiving_hdr','receiving_hdr.rec_number','receiving_det.rec_number')
@@ -698,7 +699,7 @@ class ReceivingController extends Controller
             ->where('receiving_hdr.status','5')
             ->where('qty', '<>', 0)
             ->select(
-                DB::RAW("now()::timestamp::date as movement_date" )
+                DB::RAW("'$movementDate' as movement_date" )
                 ,'receiving_det.article_code'
                 ,'article.article_desc'
                 ,DB::raw("0 as movement_plus")

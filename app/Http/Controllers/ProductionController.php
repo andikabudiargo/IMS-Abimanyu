@@ -333,6 +333,7 @@ class ProductionController extends Controller
         $status = '4';
         $moduleCode = $this->moduleCode;
         $todayDate = date('Y-m-d');
+        $movementDate = date("d-m-Y");
         
         if ($prdNumber){
             $data = DB::table('production_det')
@@ -413,7 +414,7 @@ class ProductionController extends Controller
                 ->where('act_qty_fresh', '<>', 0)
                 ->where('production_det.so_code','<>','other')
                 ->select(
-                    DB::RAW("now()::timestamp::date as movement_date" )
+                    DB::RAW("'$movementDate' as movement_date" )
                     ,'production_det.article_code'
                     ,'article.article_desc'
                     ,DB::raw("0 as movement_min")
@@ -455,7 +456,7 @@ class ProductionController extends Controller
                 ->where('act_qty_fresh', '<>', 0)
                 ->where('production_det.so_code','<>','other')
                 ->select(
-                    DB::RAW("now()::timestamp::date as movement_date" )
+                    DB::RAW("'$movementDate' as movement_date" )
                     ,'production_det.article_code'
                     ,'article.article_desc'
                     ,DB::raw("(production_det.act_qty_fresh) as movement_min")

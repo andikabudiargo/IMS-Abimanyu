@@ -99,11 +99,11 @@
                                         <input type="text" id ="approveLevel" name ="approveLevel" class="d-none" value="{{ $approveValidate[0]->next_level }}">
                                         <input type="text" id ="maxLevel" name ="maxLevel" class="d-none" value="{{ $approveValidate[0]->max_level }}">
                                         <button class="btn btn-success" type="button" id="cmdApprove" name="cmdApprove">Approve</button>
-                                        {{-- @if( $statusDel =='NEW') --}}
+                                        @if( $statusDel =='REVISI')
                                             <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave" >Update</button>
-                                        {{-- @endif --}}
+                                        @endif
                                     @else
-                                        @if( !$approveValidate && $statusDel =='NEW')
+                                        @if( !$approveValidate && $statusDel =='REVISI')
                                             <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave" >Update</button>
                                         @endif
                                     @endif
@@ -382,7 +382,7 @@
                             show_msg(data.title, data.message, data.alert);
                             $('#dnNumber').val(data.dnNumber);
                             $('#dnNumber').attr('disabled','disabled');
-                            $('#cmdSave').attr('disabled','disabled');
+                            // $('#cmdSave').attr('disabled','disabled');
                         }
                     },
                     error: function(error) {
