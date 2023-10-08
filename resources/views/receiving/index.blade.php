@@ -38,8 +38,12 @@
                 </select>
               </div>
               <div class="col-md-3 form-group">
-                <label for="recDate">Date</label>
+                <label for="recDate">Receiving Date</label>
                 <input type="text" id="recDate" name="recDate" class="form-control flatpickr-range" placeholder="YYYY-MM-DD to YYYY-MM-DD" />
+              </div>
+              <div class="col-md-3 form-group">
+                <label for="doDate">DO Date</label>
+                <input type="text" id="doDate" name="doDate" class="form-control flatpickr-range" placeholder="YYYY-MM-DD to YYYY-MM-DD" />
               </div>
               <div class="form-group col-md-2"> 
                 <label class="form-label" for="searchStatus">Rec Status</label>
@@ -176,7 +180,7 @@
       tableId:"detailedTable",
       route:"{{ route('receiving.list') }}",
       kolom:{!! $kolom !!},
-      arrColPrint:[1,2,3,4,5,6,7,8,9,10],
+      arrColPrint:[1,2,3,4,5,6,7,8,9,10,11],
       columnDefs :[
         { width: '5%', targets: 0 }
       ],
@@ -188,7 +192,7 @@
         searchStatus:searchStatus,
         recDate:recDate
       },
-      orderColumn:[[ 1, 'desc' ]],
+      orderColumn:[[ 3, 'asc' ]],
       excelFileName:'receiving'
     });
   }
@@ -205,7 +209,7 @@
       tableId:"detailedTable",
       route:"{{ route('receiving.list.detail') }}",
       kolom:{!! $kolomDetail !!},
-      arrColPrint:[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17],
+      arrColPrint:[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18],
       columnDefs :[
         { width: '5%', targets: 0 },
         { className: 'text-right','targets': [4,5,7,8] },
@@ -218,7 +222,7 @@
         searchStatus:searchStatus,
         recDate:recDate
       },
-      orderColumn:[[ 1, 'desc' ]],
+      orderColumn:[[ 10, 'asc' ]],
       excelFileName:'receiving_detail'
     });
   }

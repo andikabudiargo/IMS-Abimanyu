@@ -33,6 +33,7 @@ class ReceivingController extends Controller
             ['data'=>'action','name'=>'action','title'=>'action', 'orderable'=> false,'searchable'=>false],
             ['data'=>'rec_number','name'=>'rec_number','title'=>'Rec Number'],
             ['data'=>'rec_date','name'=>'rec_date','title'=>'Rec Date'],
+            ['data'=>'do_date','name'=>'do_date','title'=>'DO Date'],
             ['data'=>'inv_number','name'=>'inv_number','title'=>'Invoice Number'],
             ['data'=>'inv_date','name'=>'inv_date','title'=>'Inv Date'],
             ['data'=>'po_number','name'=>'po_number','title'=>'PO Number'],
@@ -60,6 +61,7 @@ class ReceivingController extends Controller
             ['data'=>'price','name'=>'price','title'=>'Price'],
             ['data'=>'total_dpp','name'=>'total_dpp','title'=>'Total Tanpa PPN'],
             ['data'=>'rec_date','name'=>'rec_date','title'=>'Rec Date'],
+            ['data'=>'do_date','name'=>'do_date','title'=>'DO Date'],
             // ['data'=>'inv_number','name'=>'inv_number','title'=>'Invoice Number'],
             // ['data'=>'inv_date','name'=>'inv_date','title'=>'Invoice Date'],
             ['data'=>'do_number','name'=>'do_number','title'=>'DO Number'],
@@ -783,8 +785,12 @@ class ReceivingController extends Controller
         $searchSupplier = $request->searchSupplier;
         $searchStatus = $request->searchStatus;
         $recDate = $request->recDate;
+        $doDate = $request->doDate;
         $fromDate ="";
         $toDate = "";
+        $fromDateDo ="";
+        $toDateDo = "";
+
         if ($recDate){
             $date = explode("to",$recDate);
             if(count($date)>1){
@@ -794,18 +800,28 @@ class ReceivingController extends Controller
                 $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
                 $toDate = $fromDate; 
             }
-            // $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
-            // $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
+        }
+
+        if ($doDate){
+            $doDate = explode("to",$doDate);
+            if(count($doDate)>1){
+                $fromDateDo = implode("/", array_reverse(explode("-", trim($doDate[0]))));
+                $toDateDo = implode("/", array_reverse(explode("-", trim($doDate[1]))));
+            }else{
+                $fromDateDo = implode("/", array_reverse(explode("-", trim($doDate[0]))));
+                $toDateDo = $fromDateDo; 
+            }
         }
 
         $data = DB::table('receiving_hdr')
-        ->where(function ($query) use ($searchRec,$searchPo,$searchInv,$searchSupplier,$searchStatus,$recDate,$fromDate,$toDate) {
+        ->where(function ($query) use ($searchRec,$searchPo,$searchInv,$searchSupplier,$searchStatus,$recDate,$fromDate,$toDate,$doDate,$fromDateDo,$toDateDo) {
             $searchPo ? $query->where('po_number','ilike','%'.$searchPo.'%') : '';
             $searchInv ? $query->where('inv_number','ilike','%'.$searchInv.'%') : '';
             $searchSupplier ? $query->where('supplier_id','ilike','%'.$searchSupplier.'%') : '';
             $searchRec ? $query->where('rec_number','ilike','%'.$searchRec.'%') : '';
             $searchStatus ? $query->where('status',$searchStatus) : '';
             $recDate ? $query->whereBetween(DB::raw("to_date(rec_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
+            $doDate ? $query->whereBetween(DB::raw("to_date(do_date,'DD-MM-YYYY')"), [$fromDateDo, $toDateDo]) : '';
         })
         ->select('receiving_hdr.*'
         ,DB::raw("(select STRING_AGG((select name from users where username = a.username), ' -> ' ORDER BY approval_order) AS main from approval_history a where module_number = receiving_hdr.rec_number) as approval_by")
@@ -929,12 +945,32 @@ class ReceivingController extends Controller
         $searchSupplier = $request->searchSupplier;
         $searchStatus = $request->searchStatus;
         $recDate = $request->recDate;
+        $doDate = $request->doDate;
         $fromDate ="";
         $toDate = "";
+        $fromDateDo ="";
+        $toDateDo = "";
+
         if ($recDate){
             $date = explode("to",$recDate);
-            $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
-            $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
+            if(count($date)>1){
+                $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+                $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
+            }else{
+                $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+                $toDate = $fromDate; 
+            }
+        }
+
+        if ($doDate){
+            $doDate = explode("to",$doDate);
+            if(count($doDate)>1){
+                $fromDateDo = implode("/", array_reverse(explode("-", trim($doDate[0]))));
+                $toDateDo = implode("/", array_reverse(explode("-", trim($doDate[1]))));
+            }else{
+                $fromDateDo = implode("/", array_reverse(explode("-", trim($doDate[0]))));
+                $toDateDo = $fromDateDo; 
+            }
         }
 
         $data = DB::table('receiving_det')
@@ -942,13 +978,14 @@ class ReceivingController extends Controller
         ->leftJoin('article','article.article_code','receiving_det.article_code')
         ->leftJoin('article_types','article_types.code','article.article_type')
         ->leftJoin('uom','uom.code','receiving_det.uom_rec')
-        ->where(function ($query) use ($searchRec,$searchPo,$searchInv,$searchSupplier,$searchStatus,$recDate,$fromDate,$toDate) {
+        ->where(function ($query) use ($searchRec,$searchPo,$searchInv,$searchSupplier,$searchStatus,$recDate,$fromDate,$toDate,$doDate,$fromDateDo,$toDateDo) {
             $searchPo ? $query->where('po_number','ilike','%'.$searchPo.'%') : '';
             $searchInv ? $query->where('inv_number','ilike','%'.$searchInv.'%') : '';
             $searchSupplier ? $query->where('supplier_id','ilike','%'.$searchSupplier.'%') : '';
             $searchRec ? $query->where('rec_number','ilike','%'.$searchRec.'%') : '';
             $searchStatus ? $query->where('status',$searchStatus) : '';
             $recDate ? $query->whereBetween(DB::raw("to_date(rec_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
+            $doDate ? $query->whereBetween(DB::raw("to_date(do_date,'DD-MM-YYYY')"), [$fromDateDo, $toDateDo]) : '';
         })
         ->where('receiving_det.qty','>',0)
         ->select('receiving_det.*'
