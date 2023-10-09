@@ -1672,7 +1672,6 @@ class PurchaseRequestController extends Controller
                 having (ceil(((sum(qty_target * qty_bom)-qty_stock)+safety_stock)/min_package) * min_package) > 0)
             ";
 
-
             /*
                 - Dilengkapi dengan dengan RMP
                 - Hitung ulang tso, lalu bandingkan dengan data sebelum nya
@@ -2048,7 +2047,7 @@ class PurchaseRequestController extends Controller
                 // if ($oki){
                 // Update isi dari PR detail dengan data yang baru hitung ulang
                     /*Delete dulu yang tidak ada di hasil hitung*/
-                    DB::select($sqlDetDelete);
+                    //DB::select($sqlDetDelete);
                     /*Insert hanya yang berubah saja*/
                     DB::select($sqlDetInsert);
                 // }
