@@ -26,7 +26,7 @@
               </div>
               <div class="form-group col-md-2">
                 <label class="form-label" for="orderType">PO Type*</label>
-                <select class="select2 form-control" id="orderType" name="orderType" required>
+                <select class="select2 form-control" id="orderType" name="orderType">
                       <option value="">All</option>
                       <option value="std">Standard</option>
                       {{-- <option value="sub">Subcontracting</option> --}}
@@ -39,7 +39,7 @@
                 <select class="select2 form-control" id="searchStatus" name="searchStatus">
                     <option value="">All</option>
                     @foreach($status as $index=>$val)
-                        <option value="{{ $index }}">{{ $index }} - {{ $val }}</option>
+                        <option value="{{ $index }}">{{ $val }}</option>
                     @endforeach
                 </select>
               </div>

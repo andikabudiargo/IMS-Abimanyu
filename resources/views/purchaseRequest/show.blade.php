@@ -94,7 +94,7 @@
                                         </div>
                                         @endif
                                     </form>
-                                    <hr>               
+                                    <hr>
                                     <div class="table-responsive main-table">
                                         <table class="table table-bordered w-100" id="tableDetail" >
                                             <thead class="thead-dark">
@@ -232,6 +232,9 @@
 
     .main-table table {
         counter-reset: rowNumber;
+        display: block;
+        height: 500px;
+        overflow-y: scroll;
     }
 
     .main-table table tr > td:first-child{
@@ -252,6 +255,7 @@
         padding: 0.4rem 0.6rem;
         vertical-align: middle;
     }
+
 
 </style>
 @endsection
