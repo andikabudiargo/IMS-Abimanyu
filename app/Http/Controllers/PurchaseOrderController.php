@@ -1513,6 +1513,7 @@ class PurchaseOrderController extends Controller
             ['data'=>'balance','name'=>'balance','title'=>'Balance'],
             ['data'=>'uom','name'=>'uom','title'=>'STN'],
             ['data'=>'price','name'=>'price','title'=>'Harga'],
+            ['data'=>'total_dpp','name'=>'total_dpp','title'=>'Total Harga'],
             ['data'=>'note','name'=>'note','title'=>'Keterangan'],
             ['data'=>'date_period','name'=>'date_period','title'=>'date_period','visible'=>false],
         ];
@@ -1571,7 +1572,7 @@ class PurchaseOrderController extends Controller
         // ,DB::raw("case when uom_group = 'PIECE' then TO_CHAR(qty,'999,999,999') when uom_group <> 'PIECE' then TO_CHAR(qty,'999,999,999.99') end as qtyku")
         // ,DB::raw("TO_CHAR(price*qty*purchase_order_hdr.ppn/100,'999,999,999') as total_ppn")
         // ,DB::raw("TO_CHAR(price*qty,'999,999,999') as total_dpp")
-        ,DB::raw("price*qty as total_dpp")
+        ,DB::raw("purchase_order_det.price*purchase_order_det.qty as total_dpp")
         // ,DB::raw("TO_CHAR(price,'999,999,999') as price")
         // ,DB::raw("TO_CHAR(price*qty*purchase_order_hdr.pph22/100,'999,999,999') as total_pph22")
         // ,DB::raw("TO_CHAR((((price*qty)-discount)+(price*qty*purchase_order_hdr.ppn/100)-(price*qty*purchase_order_hdr.pph22)),'999,999,999') as grand_total")

@@ -129,12 +129,12 @@
       tableId:"detailedTable",
       route:"{{ route('purchaseOrders.listReport') }}",
       kolom:{!! $kolom !!},
-      arrColPrint:[0,1,2,3,4,5,6,7,8,9,10,11,12,13],
+      arrColPrint:[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14],
       columnDefs :[
         { width: '5%', targets: 0 },
         // { className: 'text-right','targets': [ 8,9,10,12 ] },
         {
-            targets: [ 8,9,10,12 ],
+            targets: [ 8,9,10,12,13 ],
             render: $.fn.dataTable.render.number(',','.',2,''),
             className: "text-right"
         },
@@ -145,7 +145,7 @@
         searchStatus:searchStatus,
         orderDate:orderDate
       },
-      orderColumn:[[ 14, 'asc' ],[ 2, 'asc' ]],
+      orderColumn:[[ 15, 'asc' ],[ 2, 'asc' ]],
       excelFileName:'os_purchase_order'
     });
   }
