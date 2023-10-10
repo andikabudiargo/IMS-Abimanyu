@@ -2,7 +2,6 @@
 @section('title', $title)
 @section('content')
 @include('layouts.breadcrumb')
-@include('partials.alert')
 <section id="add-index">
     <div class="row">
         <div class="col-6">
@@ -16,7 +15,7 @@
                         <div class="row">
                             <div class="col-4">
                                 <div class="form-group">
-                                    <label for="kode">Kode</label>
+                                    <label for="kode">Kode*</label>
                                     <input type="text" id="kode" name="kode" class="form-control"  value="{{ old('kode') }}" required maxlength="10" autofocus />
                                 </div>
                             </div>
@@ -24,7 +23,7 @@
                         <div class="row">
                             <div class="col-12">
                                 <div class="form-group">
-                                    <label for="nama">Nama</label>
+                                    <label for="nama">Nama*</label>
                                     <input type="text" id="nama" name="nama" class="form-control text-uppercase" value="{{ old('nama') }}"  required  maxlength="100"/>
                                 </div>
                             </div>
@@ -39,7 +38,7 @@
                         </div>
                         <div class="row">
                             <div class="col-12">
-                                <button class="btn btn-success" type="reset" id="cmdCancel" name="cmdCancel">New</button>
+                                <a href="{{ route('accTypes.index') }}" class="btn btn-outline-secondary">Back</a>
                                 <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Save</button>
                             </div>
                         </div>

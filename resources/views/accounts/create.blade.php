@@ -15,13 +15,13 @@
                         @csrf
                         <div class="row">
                             <div class="form-group col-md-4">
-                                <label for="account">Account</label>
+                                <label for="account">Account*</label>
                                 <input type="text" id="account" name="account" class="form-control text-uppercase" value="{{ old('account') }}"  required maxlength="50" autofocus />
                             </div>
                         </div>
                         <div class="row">
                             <div class="form-group col-md-12">
-                                <label for="desc">Description</label>
+                                <label for="desc">Description*</label>
                                 <input type="text" id="desc" name="desc" class="form-control" value="{{ old('desc') }}" required  maxlength="100"/>
                             </div>
                         </div>
@@ -31,7 +31,7 @@
                                 <input type="text" id="openingBalance" name="openingBalance" value="{{ old('openingBalance') }}" class="form-control numeral-mask angka" maxlength="15"/>
                             </div>
                         </div>
-                        <div class="row">
+                        {{-- <div class="row">
                             <div class="form-group col-md-6">
                                 <label class="form-label" for="group">Group</label>
                                 <select class="select2 w-100" id="group" name="group">
@@ -41,12 +41,12 @@
                                     @endforeach
                                 </select>
                             </div>
-                        </div>
+                        </div> --}}
                         <div class="row">
-                            <div class="form-group col-md-6">
-                                <label class="form-label" for="type">Account Type</label>
-                                <select class="select2 w-100" id="type" name="type">
-                                    <option value="">All</option>
+                            <div class="form-group col-md-12">
+                                <label class="form-label" for="type">Account Type*</label>
+                                <select class="select2 w-100" id="type" name="type" required>
+                                    <option value=""></option>
                                     @foreach($types as $val)
                                         <option value="{{$val->code}}">{{$val->code}} - {{$val->name}}</option>
                                     @endforeach
@@ -54,6 +54,17 @@
                             </div>
                         </div>
                         <div class="row">
+                            <div class="form-group col-md-12">
+                                <label class="form-label" for="subAccount">Sub account*</label>
+                                <select class="select2 w-100" id="subAccount" name="subAccount" required>
+                                    <option value=""></option>
+                                    @foreach($subAcc as $val)
+                                        <option value="{{$val->sub_code}}">{{$val->description}}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+                        {{-- <div class="row">
                             <div class="form-group col-md-6">
                                 <label class="form-label" for="dept">Dept</label>
                                 <select class="select2 w-100" id="dept" name="dept">
@@ -63,12 +74,12 @@
                                     @endforeach
                                 </select>
                             </div>
-                        </div>
+                        </div> --}}
                         <div class="row">
                             <div class="form-group col-md-6">
                                 <label class="form-label" for="cashBank">Cash/Bank</label>
                                 <select class="select2 w-100" id="cashBank" name="cashBank">
-                                    <option value="">All</option>
+                                    <option value=""></option>
                                     <option label="cash">Cash</option>
                                     <option label="bank">Bank</option>
                                 </select>
@@ -77,7 +88,7 @@
                         
                         <div class="row">
                             <div class="col-12">
-                                <button class="btn btn-outline-secondary" type="reset" id="cmdCancel" name="cmdCancel">Cancel</button>
+                                <a href="{{ route('accounts.index') }}" class="btn btn-outline-secondary">Back</a>
                                 <button class="btn btn-success" type="button" id="cmdSave" name="cmdSave">Save</button>
                             </div>
                         </div>
@@ -98,29 +109,11 @@
 @section('scripts')
 <script type="text/javascript">
     $(document).ready(function(){           
-        $("#frmAdd").validate({
-            invalidHandler: function(event, validator) {
-            let errors = validator.numberOfInvalids();
-            if (errors) {
-                var message = errors == 1
-                    ? 'You missed 1 field. It has been highlighted'
-                    : 'You missed ' + errors + ' fields. They have been highlighted';
-                $("#alert-message .alert-body").html(message);
-                $("#alert-message").show();
-                $("#alert-message").fadeTo(5000, 500).slideUp(500, function(){
-                    $("#alert-message").slideUp(500);
-                });
-            } else {
-                $("#alert-message").hide();
-            }
-        }
-        }).settings.ignore = "";
-        
-        $('#group').val('{{ Request::old('group') }}').trigger('change');
-        $('#dept').val('{{ Request::old('dept') }}').trigger('change');
-        $('#type').val('{{ Request::old('type') }}').trigger('change');
-        $('#cashBank').val('{{ Request::old('cashBank') }}').trigger('change');
-        
+        validateFormToast("frmAdd");
+        // $('#group').val('{{ Request::old('group') }}').trigger('change');
+        // $('#dept').val('{{ Request::old('dept') }}').trigger('change');
+        // $('#type').val('{{ Request::old('type') }}').trigger('change');
+        // $('#cashBank').val('{{ Request::old('cashBank') }}').trigger('change');
     });
 
     $("#cmdSave").click(function(){       

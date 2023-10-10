@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Crypt;
 use Response;
 use App\Permission;
 use DataTables;
@@ -89,39 +90,37 @@ class AccTypeController extends Controller
                 ]);
 
                 DB::commit();
-                $alert  ="alert-success";
-                $message  = "$kode is successfully saved";
-                \LogActivity::addToLog('Account type save ',"username: $username Status $message");
-                return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);  
-
+                $title ="Save $this->title";
+                $alert  ="success";
+                $message  = "$kode successfully saved";
+                \LogActivity::addToLog($title,"username: $username Status $message");
+                return redirect()->back()->with(['status' => 1,'alert'=>$alert,'message'=> $message]); 
         } catch (Exception $e) {
             DB::rollBack();
-            $alert  ="alert-warning";
+            $title ="Save $this->title";
+            $alert  ="warning";
             $message  = "$kode is failed to save";
-            \LogActivity::addToLog('Account type save ',"username: $username Status $message");
-            return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);   
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return redirect()->back()->with(['status' => 1,'alert'=>$alert,'message'=> $message]);
         }
         
     }
 
     public function edit(Request $request)
     {
-
-        $id=$request->id;
+        $id=Crypt::decryptString($request->id);
         $data['title'] = "Edit $this->title";
         $data['subtitle'] = "Edit $this->title";
         $data['types'] = DB::table('acc_types')
         ->where('id',$id)
         ->get()->first();
-
-        return view('accTypes.edit',$data);
-        
+        return view('accTypes.edit',$data);       
     }
 
     public function update(Request $request)
     {
         $username =  Auth::user()->username;
-        $id = $request->id;
+        $id=Crypt::decryptString($request->id);
         $kode = $request->input('kode');
         $nama = strtoupper($request->input('nama'));
         $desc = $request->input('desc');
@@ -159,31 +158,33 @@ class AccTypeController extends Controller
                 DB::commit();
 
                 if($row_affected>0){
-                    $alert  ="alert-success";
-                    $message  = "Successfully updated";
-                    \LogActivity::addToLog('Account Type update ',"username: $username Status $message");
-                    return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);  
+                    $title ="Update $this->title";
+                    $alert  ="success";
+                    $message  = "$kode successfully updated";
+                    \LogActivity::addToLog($title,"username: $username Status $message");
+                    return redirect()->back()->with(['status' => 1,'alert'=>$alert,'message'=> $message]);  
                 }else{
-                    $alert  ="alert-warning";
-                    $message  = "Failed to update";
-                    \LogActivity::addToLog('Account Type update ',"username: $username Status $message");
-                    return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);
+                    $title ="Update $this->title";
+                    $alert  ="warning";
+                    $message  = "$kode failed to update";
+                    \LogActivity::addToLog($title,"username: $username Status $message");
+                    return redirect()->back()->with(['status' => 1,'alert'=>$alert,'message'=> $message]);
                 }
 
         } catch (Exception $e) {
             DB::rollBack();
-            $alert  ="alert-warning";
-            $message  = "Failed to update";
-            \LogActivity::addToLog('Account Type update ',"username: $username Status $message");
-            return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);
+            $title ="Update $this->title";
+            $alert  ="warning";
+            $message  = "$kode failed to update";
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return redirect()->back()->with(['status' => 1,'alert'=>$alert,'message'=> $message]);
         }
     }
 
     public function destroy(Request $request)
     {
-
         $username =  Auth::user()->username;
-        $id = $request->id;
+        $id=Crypt::decryptString($request->id);
 
         $row_affected = DB::table('acc_types')
         ->where('id',$id)
@@ -221,7 +222,7 @@ class AccTypeController extends Controller
                             </a>';
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
             if (Auth::user()->can('accType-edit')) {
-            $buttons .=         '<a href="'. route('accType.edit', ['id'=>$data->id]) .'" class="dropdown-item">
+            $buttons .=         '<a href="'. route('accType.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                     <i data-feather="file-text"></i>
                                     Edit
                                 </a>';
@@ -232,7 +233,7 @@ class AccTypeController extends Controller
                                     class='dropdown-item'
                                     data-toggle='modal'
                                     data-target='#smallModal'
-                                    data-href='". route("accType.destroy", ["id"=>$data->id]) ."'>
+                                    data-href='". route("accType.destroy", ['id'=>Crypt::encryptString($data->id)]) ."'>
                                     <i data-feather='trash-2' class='feather-14-red'></i>
                                     Delete
                                 </a>";

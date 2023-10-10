@@ -10,12 +10,12 @@
                     <h4 class="card-title">accounts</h4>
                 </div> --}}
                 <div class="card-body">
-                    <form id="frmAdd" name="frmAdd" action="{{ route('accType.update',['id'=> $types->id]) }}" method="post" autocomplete="off">
+                    <form id="frmAdd" name="frmAdd" action="{{ route('accType.update',['id'=>Crypt::encryptString($types->id)]) }}" method="post" autocomplete="off">
                         @csrf
                         <div class="row">
                             <div class="col-4">
                                 <div class="form-group">
-                                    <label for="kode">Kode</label>
+                                    <label for="kode">Kode*</label>
                                     <input type="text" id="kode" name="kode" class="form-control .disabled-el"  value="{{old('kode',$types->code)}}" required disabled  />
                                 </div>
                             </div>
@@ -23,7 +23,7 @@
                         <div class="row">
                             <div class="col-12">
                                 <div class="form-group">
-                                    <label for="nama">Nama</label>
+                                    <label for="nama">Nama*</label>
                                     <input type="text" id="nama" name="nama" class="form-control text-uppercase" value="{{old('nama',$types->name)}}"  required  maxlength="100"  autofocus />
                                 </div>
                             </div>
@@ -38,7 +38,7 @@
                         </div>
                         <div class="row">
                             <div class="col-12">
-                                <a href="{{ route('accTypes.index') }}" class="btn btn-light">Back</a>
+                                <a href="{{ route('accTypes.index') }}" class="btn btn-outline-secondary">Back</a>
                                 <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Save</button>
                             </div>
                         </div>

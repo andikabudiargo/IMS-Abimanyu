@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Crypt;
 use Response;
 use App\Permission;
 use DataTables;
@@ -60,6 +61,10 @@ class AccountController extends Controller
         ->where ('status','=',1)
         ->orderBy('name')
         ->get();
+
+        $data['subAcc'] = DB::table('acc_sub')
+        ->orderBy('description')
+        ->get();
         
         return view("accounts.create",$data);
     }
@@ -67,15 +72,16 @@ class AccountController extends Controller
     public function store(Request $request)
     {
         $username =  Auth::user()->username;
-        $account = strtoupper($request->input('account'));
-        $desc = $request->input('desc');
-        $openingBalance = is_null($request->openingBalance) ? 0 : preg_replace('/[^0-9.]+/', '', $request->input('openingBalance'));
-        $group = $request->input('group');
-        $type = $request->input('type');
-        $dept = $request->input('dept');
-        $cashBank = $request->input('cashBank');
+        $account = strtoupper($request->account);
+        $desc = $request->desc;
+        $openingBalance = is_null($request->openingBalance) ? 0 : preg_replace('/[^0-9.]+/', '', $request->openingBalance);
+        $group = $request->group;
+        $type = $request->type;
+        $dept = $request->dept;
+        $cashBank = $request->cashBank;
         $status = '1';
         $other = '';
+        $subAccount = $request->subAccount;
         
         $messages = [
             'required' => 'The field is required.',
@@ -112,26 +118,30 @@ class AccountController extends Controller
                     'created_by' => Auth::user()->username,
                     'updated_by' => Auth::user()->username,
                     'created_at' => date('Y-m-d H:i:s'),
-                    'updated_at' => date('Y-m-d H:i:s')
+                    'updated_at' => date('Y-m-d H:i:s'),
+                    'parent_id' => $subAccount
                 ]);
 
                 DB::commit();
-                $message  = "Account $account is successfully saved";
-                \LogActivity::addToLog('Account save ',"username: $username Status $message");
-                return redirect()->back()->with('success',$message);  
+                $title ="Save $this->title";
+                $alert  ="success";
+                $message  = "$account successfully saved";
+                \LogActivity::addToLog($title,"username: $username Status $message");
+                return redirect()->back()->with(['status' => 1,'alert'=>$alert,'message'=> $message]); 
 
         } catch (Exception $e) {
             DB::rollBack();
+            $title ="Save $this->title";
+            $alert  ="warning";
             $message  = "$account is failed to save";
-            \LogActivity::addToLog('Account save ',"username: $username Status $message");
-            return redirect()->back()->with('warning',$message);   
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return redirect()->back()->with(['status' => 1,'alert'=>$alert,'message'=> $message]); 
         }
     }
 
     public function edit(Request $request)
     {
-
-        $id=$request->id;
+        $id=Crypt::decryptString($request->id);
         $data['title'] = "Edit Account";
         $data['subtitle'] = "Edit Account";
         $data['groups'] = DB::table('groups')
@@ -153,6 +163,10 @@ class AccountController extends Controller
         ->where('id',$id)
         ->get()->first();
 
+        $data['subAcc'] = DB::table('acc_sub')
+        ->orderBy('description')
+        ->get();
+
         return view('accounts.edit',$data);
 
     }
@@ -160,15 +174,17 @@ class AccountController extends Controller
     public function update(Request $request)
     {
         $username =  Auth::user()->username;
-        $id = $request->id;
-        $account = strtoupper($request->input('account'));
-        $desc = $request->input('desc');
+        $id=Crypt::decryptString($request->id);
+        $account = strtoupper($request->account);
+        $desc = $request->desc;
         // $openingBalance = $request->openingBalance ? preg_replace('/[^0-9.]+/', '', $request->openingBalance):0;
-        $openingBalance = is_null($request->openingBalance) ? 0 : preg_replace('/[^0-9.]+/', '', $request->input('openingBalance'));
-        $group = $request->input('group');
-        $type = $request->input('type');
-        $dept = $request->input('dept');
-        $cashBank = $request->input('cashBank');
+        $openingBalance = is_null($request->openingBalance) ? 0 : preg_replace('/[^0-9.]+/', '', $request->openingBalance);
+        $group = $request->group;
+        $type = $request->type;
+        $dept = $request->dept;
+        $cashBank = $request->cashBank;
+        $subAccount = $request->subAccount;
+
         $status = '1';
         $other = '';
         
@@ -200,30 +216,34 @@ class AccountController extends Controller
                         'status' => $status,
                         'other' => $other,
                         'updated_by' => Auth::user()->username,
-                        'updated_at' => date('Y-m-d H:i:s')
+                        'updated_at' => date('Y-m-d H:i:s'),
+                        'parent_id' => $subAccount
                     ]
                 );
 
                 DB::commit();
 
                 if($row_affected>0){
-                    $alert  ="alert-success";
+                    $title ="Update $this->title";
+                    $alert  ="success";
                     $message  = "Successfully updated";
-                    \LogActivity::addToLog('Account Type update ',"username: $username Status $message");
-                    return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);  
+                    \LogActivity::addToLog($title,"username: $username Status $message");
+                    return redirect()->back()->with(['status' => 1,'alert'=>$alert,'message'=> $message]);  
                 }else{
-                    $alert  ="alert-warning";
+                    $title ="Update $this->title";
+                    $alert  ="warning";
                     $message  = "Failed to update";
-                    \LogActivity::addToLog('Account Type update ',"username: $username Status $message");
-                    return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);
+                    \LogActivity::addToLog($title,"username: $username Status $message");
+                    return redirect()->back()->with(['status' => 1,'alert'=>$alert,'message'=> $message]);
                 }
 
         } catch (Exception $e) {
             DB::rollBack();
-            $alert  ="alert-warning";
+            $title ="Update $this->title";
+            $alert  ="warning";
             $message  = "Failed to update";
-            \LogActivity::addToLog('Account Type update ',"username: $username Status $message");
-            return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return redirect()->back()->with(['status' => 1,'alert'=>$alert,'message'=> $message]);
         }
         
     }
@@ -231,7 +251,7 @@ class AccountController extends Controller
     public function destroy(Request $request)
     {
         $username =  Auth::user()->username;
-        $id = $request->id;
+        $id=Crypt::decryptString($request->id);
 
         $row_affected = DB::table('accounts')
         ->where('id',$id)
@@ -275,22 +295,24 @@ class AccountController extends Controller
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
 
             if (Auth::user()->can('account-edit')) {
-                $buttons .=         '<a href="'. route('account.edit', ['id'=>$data->id]) .'" class="dropdown-item">
+                $buttons .=         '<a href="'. route('account.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                         <i data-feather="file-text"></i>
                                         Edit
                                     </a>';
-                }
+            }
+
             if (Auth::user()->can('account-delete')) {
-            $buttons .=         "<a href='javascript:;'
+                $buttons .=         "<a href='javascript:;'
                                     id='deleteButton'
                                     class='dropdown-item'
                                     data-toggle='modal'
                                     data-target='#smallModal'
-                                    data-href='". route("account.destroy", ["id"=>$data->id]) ."'>
+                                    data-href='". route("account.destroy", ['id'=>Crypt::encryptString($data->id)]) ."'>
                                     <i data-feather='trash-2' class='feather-14-red'></i>
                                     Delete
                                 </a>";
             }
+
             $buttons .=     '</div>
                         </div>';
 

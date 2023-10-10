@@ -131,7 +131,6 @@
         </div>
     </div>
 </section>
-
 @include('accounting.kas.addArticle')
 @endsection
 @section('styles')
