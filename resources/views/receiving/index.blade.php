@@ -111,6 +111,7 @@
   let searchSupplier = $("#searchSupplier"); 
   let searchStatus = $("#searchStatus");
   let recDate = $("#recDate");
+  let doDate = $("#doDate");
   let btnSummary = $('#btnSummary');
   let btnDetail = $('#btnDetail');
 
@@ -139,7 +140,7 @@
   $('a[data-action="reload"]').on('click', function () {
     btnSummary.hide();
     btnDetail.show();
-    showList(searchRec.val(),searchPo.val(),searchInv.val(),searchSupplier.val(),searchStatus.val(),recDate.val());
+    showList(searchRec.val(),searchPo.val(),searchInv.val(),searchSupplier.val(),searchStatus.val(),recDate.val(),doDate.val());
   });
 
   rangePickr = $('.flatpickr-range');
@@ -153,22 +154,22 @@
   $("#btnSearch").click(function(e){
     btnSummary.hide();
     btnDetail.show();
-    showList(searchRec.val(),searchPo.val(),searchInv.val(),searchSupplier.val(),searchStatus.val(),recDate.val());
+    showList(searchRec.val(),searchPo.val(),searchInv.val(),searchSupplier.val(),searchStatus.val(),recDate.val(),doDate.val());
   });
 
   btnSummary.click(function(e){
     btnSummary.hide();
     btnDetail.show();
-    showList(searchRec.val(),searchPo.val(),searchInv.val(),searchSupplier.val(),searchStatus.val(),recDate.val());
+    showList(searchRec.val(),searchPo.val(),searchInv.val(),searchSupplier.val(),searchStatus.val(),recDate.val(),doDate.val());
   });
 
   btnDetail.click(function(e){
     btnSummary.show();
     btnDetail.hide();
-    showListDetail(searchRec.val(),searchPo.val(),searchInv.val(),searchSupplier.val(),searchStatus.val(),recDate.val());
+    showListDetail(searchRec.val(),searchPo.val(),searchInv.val(),searchSupplier.val(),searchStatus.val(),recDate.val(),doDate.val());
   });
 
-  const showList = (searchRec,searchPo,searchInv,searchSupplier,searchStatus,recDate) => {
+  const showList = (searchRec,searchPo,searchInv,searchSupplier,searchStatus,recDate,doDate) => {
     if ($('#detailedTable tr').length >0){
         let table= $('#detailedTable').DataTable();
         table.destroy();
@@ -198,7 +199,7 @@
     });
   }
 
-  const showListDetail = (searchRec,searchPo,searchInv,searchSupplier,searchStatus,recDate) => {
+  const showListDetail = (searchRec,searchPo,searchInv,searchSupplier,searchStatus,recDate,doDate) => {
     if ($('#detailedTable tr').length >0){
         let table= $('#detailedTable').DataTable();
         table.destroy();
@@ -221,7 +222,8 @@
         searchInv:searchInv,
         searchSupplier:searchSupplier,
         searchStatus:searchStatus,
-        recDate:recDate
+        recDate:recDate,
+        doDate:doDate
       },
       orderColumn:[[ 10, 'asc' ]],
       excelFileName:'receiving_detail'
