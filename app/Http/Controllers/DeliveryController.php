@@ -503,7 +503,7 @@ class DeliveryController extends Controller
         $dnNumber = $request->dnNumber;
         $statusLevelApproval = Approval::approvalLevelPosition($this->moduleCode,$dnNumber,$username);        
         $nextLevel = $statusLevelApproval[0]->next_level;
-        $statusDel = $statusLevelApproval[0]->next_level == $statusLevelApproval[0]->max_level ? '3' :'2';
+        $statusDel = $statusLevelApproval[0]->next_level == $statusLevelApproval[0]->max_level ? '3' :'10';
                 
         DB::beginTransaction();
         try {
