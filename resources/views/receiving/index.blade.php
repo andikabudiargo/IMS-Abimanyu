@@ -190,7 +190,8 @@
         searchInv:searchInv,
         searchSupplier:searchSupplier,
         searchStatus:searchStatus,
-        recDate:recDate
+        recDate:recDate,
+        doDate:doDate
       },
       orderColumn:[[ 3, 'asc' ]],
       excelFileName:'receiving'
