@@ -149,7 +149,7 @@
         dnDate:dnDate
       },
       type:'POST',
-      orderColumn:[[ 0, 'asc' ]],
+      orderColumn:[[ 8, 'asc' ],[ 0, 'asc' ]],
       excelFileName:'delivery_report'
     });
   }

@@ -1254,6 +1254,7 @@ class DeliveryController extends Controller
             ['data'=>'article_alternative_code','name'=>'article_alternative_code','title'=>'Article code'],
             ['data'=>'article_desc','name'=>'article_desc','title'=>'Article desc'],
             ['data'=>'qty','name'=>'qty','title'=>'Delivery Qty'],
+            ['data'=>'date_period','name'=>'date_period','title'=>'date_period','visible'=>false],
         ];
         return json_encode($kolom, true);
     }
@@ -1365,6 +1366,7 @@ class DeliveryController extends Controller
         ,'delivery_det.so_number'
         ,'delivery_det.po_number'
         ,'third_party.nama as customer_name'
+        ,DB::RAW("to_date(delivery_date,'dd-mm-yyyy') as date_period")
         )
         ->orderBy('delivery_det.id')
         ->get();
