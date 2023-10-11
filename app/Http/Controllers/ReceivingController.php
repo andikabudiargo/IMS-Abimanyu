@@ -777,6 +777,162 @@ class ReceivingController extends Controller
         }
     }
 
+    public function revision(Request $request)
+    {
+        $username =  Auth::user()->username;
+        $id=Crypt::decryptString($request->id);
+        // $recOrigin=DB::table('delivery_hdr')->where('id',$id)->value('delivery_number');
+        $deliveries=DB::table('receiving_hdr')->where('id',$id)->first();
+        $recOrigin=$deliveries->delivery_number;
+        $dnStatus=$deliveries->status;
+
+        // $statusDel = ['NEW','VALIDATE','APPROVED','POSTED','CANCELED','','','RECEIVED','','REVISI'];
+        
+        $numRevision = $request->nR ? $request->nR +1 : 1 ;
+        $numRevisionName = '-R'.$numRevision;
+        $recNew = $recOrigin.$numRevisionName;
+        $checkNewDn=DB::table('receiving_hdr')->where('rec_number',$recNew)->count();
+        $reason = $request->reason;
+
+        if ($checkNewDn > 0){
+            $recNew = $recOrigin.'-R'.$numRevision+1;
+        } 
+                
+        $sqlHdr = "INSERT into receiving_hdr 
+        (
+            rec_number,
+            inv_number,
+            inv_date,
+            do_number,
+            do_date,
+            po_number,
+            supplier_id,
+            rec_date,
+            authorized_by,
+            authorized_at,
+            prepared_by,
+            rec_type,
+            status,
+            note,
+            created_by,
+            updated_by,
+            created_at,
+            updated_at,
+            num_revision,
+            revised_by,
+            revised_at,
+            reason
+        )
+        select 
+
+            '$recNew',
+            inv_number,
+            inv_date,
+            do_number,
+            do_date,
+            po_number,
+            supplier_id,
+            rec_date,
+            authorized_by,
+            authorized_at,
+            prepared_by,
+            rec_type,
+            status,
+            note,
+            created_by,
+            '$username',
+            created_at,
+            '".date('Y-m-d H:i:s')."',
+            $numRevision,
+            '$username',
+            '".date('Y-m-d H:i:s')."',
+            '$reason'
+        from receiving_hdr where receiving_number = '$recOrigin'";
+
+        $sqlDet="INSERT into receiving_det
+        (
+            rec_number,
+            article_code,
+            qty,
+            uom_rec,
+            qty_free,
+            uom_free,
+            price,
+            created_by,
+            updated_by,
+            created_at,
+            updated_at
+        )
+        select 
+            '$recNew',
+            article_code,
+            qty,
+            uom_rec,
+            qty_free,
+            uom_free,
+            price,
+            created_by,
+            '$username',
+            created_at,
+            '".date('Y-m-d H:i:s')."'
+        from delivery_det where delivery_number = '$recOrigin'";
+
+        $rowAffected =  DB::select($sqlHdr);
+        if ($rowAffected){
+            DB::select($sqlDet);
+
+            // status:
+            // 1 = New
+            // 2 = Validated
+            // 3 = Approved
+            // 4 = 
+            // 5 = Canceled
+            // 6 = 
+            // 7 = Revised
+
+            $rowAffected = DB::table('delivery_hdr')
+            ->where('delivery_number',$recOrigin)
+            ->update(
+                [
+                    'num_revision' => $numRevision,
+                    'status' => '10', //Revisi
+                    'updated_by' => Auth::user()->username,
+                    'updated_at' => date('Y-m-d H:i:s')
+                ]
+            );
+
+            if($rowAffected){
+                if($dnStatus == '4'){
+                    $this->unPosting($recOrigin);
+                }
+            }
+
+            DB::table('approval_history')
+            ->where('module_number',$recOrigin)
+            ->update(
+                [
+                    'module_number' => $recNew,
+                    'status' => '0',
+                    'updated_by' => Auth::user()->username,
+                    'updated_at' => date('Y-m-d H:i:s')
+                ]
+            );
+            
+            $title ="Save $this->title";
+            $alert  ="success";
+            $message  = "$title Revision DN: $recOrigin to $recNew is successfully saved";
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return redirect()->route('delivery.edit', ['id'=>Crypt::encryptString($id)]);
+        }else{
+            $title ="Save $this->title";
+            $alert  ="warning";
+            $message  = "$title Revision DN: $recOrigin to $recNew is failed to save";
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);
+        }
+        
+    }
+
     public function list(Request $request)
     {
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED'];
@@ -843,7 +999,7 @@ class ReceivingController extends Controller
                             </a>';
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
 
-            if ( $data->status == '1' or $data->status == '2') {
+            if ( ($data->status == '1') or ($data->status == '2') or ($data->status == '10')) {
                 if (Auth::user()->can('receiving-approve')) {
                 $buttons .=         '<a href="'. route('receiving.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                         <i data-feather="file-text"></i>
@@ -867,6 +1023,20 @@ class ReceivingController extends Controller
                     </a>";
                 }   
             }
+
+            // if (($data->status == '3')){
+            //     if (Auth::user()->can('receiving-revision')) {
+            //         $buttons .= "<a href='javascript:;'
+            //                         id='revisionReasonButton'
+            //                         class='dropdown-item'
+            //                         data-toggle='modal'
+            //                         data-target='#reasonModalRevision'
+            //                         data-href='". route('receiving.revision', ['id'=>Crypt::encryptString($data->id),'nR'=>$data->num_revision]) ."'>
+            //                         <i data-feather='corner-down-left' class='feather-14-red'></i>
+            //                         <span>". __('Revision') ."</span>
+            //                     </a>";
+            //     }            
+            // }
 
             if (($data->status == '1') OR ($data->status == '2')){
                 if (Auth::user()->can('receiving-edit')) {
@@ -930,7 +1100,8 @@ class ReceivingController extends Controller
         })
         ->addColumn('status', function ($data) {
             $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary'];
-            $statusRec = ['NEW','VALIDATE','APPROVE','POSTED','CANCELED'];
+            $statusRec = ['NEW','VALIDATE','APPROVE','POSTED','CANCELED',];
+                        //  ['NEW','VALIDATE','APPROVED','POSTED','CANCELED','','','','','REVISI']; 
             return "<div class='badge ".$badges[$data->status - 1]."'>".$statusRec[$data->status - 1]."</div>";
         })
         ->rawColumns(['action','status','rec_number'])

@@ -223,6 +223,42 @@ class NotificationComposer
             }
         }
 
+
+        $lists['jumlahDn'] = 0;
+        if (in_array("DN", $adaModule)){
+            $bisaApproveDn =DB::select("SELECT  count(*) as jumlah from (
+                select 
+                    coalesce((select max(approval_order) from approval_history where module_code ='DN' and module_number =a.delivery_number),0) as current_level
+                    ,coalesce((select min(approval_order) from approval_level where username = '$username' and module_code = 'DN' and approval_order not in(
+                    select approval_order from approval_history where username = '$username' and module_code = 'DN' and module_number = a.delivery_number)),0) as berhak_approve
+                from delivery_hdr a
+                where status in ('10')
+                ) as Oki
+            where current_level+1 = berhak_approve");
+    
+            if($bisaApproveDn[0]->jumlah >0 ){
+                $lists['listDnNotif'] = DB::select("SELECT * from (
+                select 
+                    id
+                    ,delivery_number
+                    ,delivery_date
+                    ,po_number
+                    ,note
+                    ,created_by
+                    ,status
+                    ,'$username' as username
+                    ,coalesce((select max(approval_order) from approval_history where module_code ='DN' and module_number =a.delivery_number),0) as current_level
+                    ,(select approval_number from approval_master where module_code = 'DN') as max_level
+                    ,coalesce((select min(approval_order) from approval_level where username = '$username' and module_code = 'DN' and approval_order not in(
+                    select approval_order from approval_history where username = '$username' and module_code = 'DN' and module_number = a.delivery_number)),0) as berhak_approve
+                from delivery_hdr a
+                where status in ('10')
+                ) as Oki
+                where current_level+1 = berhak_approve");
+                $lists['jumlahDn'] = count($lists['listDnNotif']);
+            }
+        }
+
         // dd($bisaApproveSo[0]->jumlah);
                
         $view->with($lists);

@@ -297,6 +297,7 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('receivings/posting',['as'=>'receiving.posting','uses'=>'ReceivingController@posting']);
 	Route::post('receiving/approve',['as'=>'receiving.approve','uses'=>'ReceivingController@approve']);
 	Route::post('receiving/cancel',['as'=>'receiving.cancel','uses'=>'ReceivingController@cancel']);
+	Route::post('receiving/revision',['as'=>'receiving.revision','uses'=>'ReceivingController@revision']);
 
 	Route::get('delivery',['as'=>'delivery.index','uses'=>'DeliveryController@index','middleware' => ['permission:delivery-index']]);
 	Route::get('delivery/create',['as'=>'delivery.create','uses'=>'DeliveryController@create','middleware' => ['permission:delivery-create']]);
@@ -315,13 +316,13 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('delivery/posting',['as'=>'delivery.posting','uses'=>'DeliveryController@posting']);
 	Route::post('delivery/approve',['as'=>'delivery.approve','uses'=>'DeliveryController@approve']);
 	Route::post('delivery/revision',['as'=>'delivery.revision','uses'=>'DeliveryController@revision']);
+	Route::get('delivery/notif/approve',['as'=>'delivery.notif.approve','uses'=>'DeliveryController@approve']);
 
 	Route::get('deliveryReport',['as'=>'delivery.report','uses'=>'DeliveryController@report','middleware' => ['permission:delivery-report']]);
 	Route::post('eliveryReport/list/report',['as'=>'delivery.list.report','uses'=>'DeliveryController@listReport']);
 	Route::get('deliveryReportAcc',['as'=>'delivery.report.acc','uses'=>'DeliveryController@reportAcc','middleware' => ['permission:delivery-report-acc']]);
 	Route::post('deliveryReportAcc/list/report',['as'=>'delivery.list.report.acc','uses'=>'DeliveryController@listReportAcc']);
 	
-
 	Route::get('deliveryReportSoAcc',['as'=>'delivery.report.so.acc','uses'=>'DeliveryController@reportSoAcc','middleware' => ['permission:delivery-report-acc']]);
 	Route::get('deliveryReportSoAcc/print',['as'=>'delivery.print.so','uses'=>'DeliveryController@printReportSo']);
 	Route::get('deliveryReportSoAcc/export',['as'=>'delivery.export.so','uses'=>'DeliveryController@exportSo']);
@@ -718,6 +719,18 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('bankKeluar/print',['as'=>'bankKeluar.print','uses'=>'Accounting\BankKeluarController@print']);
 	Route::get('bankKeluar/approve',['as'=>'bankKeluar.approve','uses'=>'Accounting\BankKeluarController@approve']);
 	Route::get('bankKeluar/get/invoice/ammount',['as'=>'bankKeluar.get.invoice.amount','uses'=>'Accounting\BankKeluarController@getInvoiceAmount']);
+
+	// Route::get('generalJournal',['as'=>'generalJournal.index','uses'=>'Accounting\GeneralJournalController@index','middleware' => ['permission:pettyCash-index']]);
+	// Route::get('generalJournal/create',['as'=>'generalJournal.create','uses'=>'Accounting\GeneralJournalController@create']);
+	// Route::post('generalJournal/store',['as'=>'generalJournal.store','uses'=>'Accounting\GeneralJournalController@store']);
+	// Route::get('generalJournal/list',['as'=>'generalJournal.list','uses'=>'Accounting\GeneralJournalController@list']);
+	// Route::get('generalJournal/show',['as'=>'generalJournal.show','uses'=>'Accounting\GeneralJournalController@show']);
+	// Route::get('generalJournal/edit',['as'=>'generalJournal.edit','uses'=>'Accounting\GeneralJournalController@edit']);
+	// Route::post('generalJournal/update',['as'=>'generalJournal.update','uses'=>'Accounting\GeneralJournalController@update']);
+	// Route::post('generalJournal/delete',['as'=>'generalJournal.destroy','uses'=>'Accounting\GeneralJournalController@destroy']);
+	// Route::get('generalJournal/print',['as'=>'generalJournal.print','uses'=>'Accounting\GeneralJournalController@print']);
+	// Route::get('generalJournal/approve',['as'=>'generalJournal.approve','uses'=>'Accounting\GeneralJournalController@approve']);
+	// Route::get('generalJournal/get/invoice/ammount',['as'=>'generalJournal.get.invoice.amount','uses'=>'Accounting\GeneralJournalController@getInvoiceAmount']);
 
 	Route::get('forecastSales',['as'=>'forecastSales.index','uses'=>'Forecasting\ForcastingSalesController@index']);
 	Route::get('forecastSales/create',['as'=>'forecastSales.create','uses'=>'Forecasting\ForcastingSalesController@create']);

@@ -111,7 +111,7 @@
             <!-- Company Table Card -->
             <div class="col-lg-12 col-12">
                 <div class="card">
-                    <div class="card-header">PO that must be approve </div>
+                    <div class="card-header">PO needs to be approved </div>
                     <div class="card-body p-0">
                         <div class="table-responsive">
                             <table class="table">
@@ -212,7 +212,7 @@
             <!-- Company Table Card -->
             <div class="col-lg-12 col-12">
                 <div class="card">
-                    <div class="card-header">BOM that must be approve </div>
+                    <div class="card-header">BOM needs to be approved </div>
                     <div class="card-body p-0">
                         <div class="table-responsive">
                             <table class="table">
@@ -323,7 +323,7 @@
             <!-- Company Table Card -->
             <div class="col-lg-12 col-12">
                 <div class="card">
-                    <div class="card-header">PR that must be approve </div>
+                    <div class="card-header">PR needs to be approved </div>
                     <div class="card-body p-0">
                         <div class="tableFixHead">
                             <table class="table">
@@ -442,7 +442,7 @@
             <!-- Company Table Card -->
             <div class="col-lg-12 col-12">
                 <div class="card">
-                    <div class="card-header">SO that must be approve </div>
+                    <div class="card-header">SO needs to be approved </div>
                     <div class="card-body p-0">
                         <div class="table-responsive">
                             <table class="table">
@@ -542,7 +542,7 @@
             <!-- Company Table Card -->
             <div class="col-lg-12 col-12">
                 <div class="card">
-                    <div class="card-header">TSO that must be approve </div>
+                    <div class="card-header">TSO needs to be approved </div>
                     <div class="card-body p-0">
                         <div class="table-responsive">
                             <table class="table">
@@ -644,6 +644,114 @@
             <!--/ Company Table Card -->
         </div>
     @endif
+    @if( count($listDnHome)>0 )
+        <div class="form-row">
+            <!-- Company Table Card -->
+            <div class="col-lg-12 col-12">
+                <div class="card">
+                    <div class="card-header">DN needs to be approved </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>No</th>
+                                        <th>DN Number</th>
+                                        <th>PO Number</th>
+                                        <th>Date</th>
+                                        <th>Approved</th>
+                                        <th>Created_by</th>
+                                        <th>Status</th>
+                                        <th>Note</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($listDnHome as $key=>$val)
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div>
+                                                    <div class="font-weight-bolder">{{ $key+1 }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div>
+                                                    <div class="font-weight-bolder">{{ $val->delivery_number }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div>
+                                                    <div class="font-weight-bolder">{{ $val->po_number }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div>
+                                                    <div class="font-weight-bolder">{{ $val->delivery_date }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="text-right">
+                                            #Approved: {{ $val->current_level }} of {{ $val->max_level }}
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div>
+                                                    <div class="font-weight-bolder">{{ $val->created_by }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div>
+                                                    <div class="font-weight-bolder">{{ $val->status }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div>
+                                                    <div class="font-weight-bolder">{{ $val->note }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <a class="btn btn-outline-info btn-sm" 
+                                                id="cmdDetailDnHome{{ $key }}" 
+                                                name="cmdDetailDnHome{{ $key }}" 
+                                                href="{{ route('delivery.show', ['id'=>Crypt::encryptString($val->id)]) }}"> 
+                                                <i data-feather='list'></i>
+                                                Detail
+                                            </a>
+                                            <a href='javascript:;'
+                                                onclick="action(this)"
+                                                id = 'buttonDnHome{{ $key }}'
+                                                class="btn btn-outline-success btn-sm buttonDn-{{ $val->id }}"
+                                                data-id-class = "buttonDn-{{ $val->id }}"
+                                                data-doc-number='{{ $val->delivery_number }}'
+                                                data-url='{{ route("delivery.notif.approve", ["dnNumber"=>$val->delivery_number]) }}'>
+                                                <i data-feather='check-circle'></i>
+                                                Approve
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!--/ Company Table Card -->
+        </div>
+    @endif
+    
     
 </section>
 @endsection

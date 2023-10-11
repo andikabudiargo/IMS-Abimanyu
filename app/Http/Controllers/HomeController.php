@@ -149,6 +149,25 @@ class HomeController extends Controller
         ,(select article_desc from article where article_code = bom_hdr.article_code) as article_name
         ,note,created_at,updated_at from bom_hdr where status ='3' and  updated_at >= now() - interval '2 week'");
 
+        $data['listDnHome'] = DB::select("SELECT * from (
+         select 
+            id
+            ,delivery_number
+            ,delivery_date
+            ,po_number
+            ,note
+            ,created_by
+            ,status
+            ,'$username' as username
+            ,coalesce((select max(approval_order) from approval_history where module_code ='DN' and module_number =a.delivery_number),0) as current_level
+            ,(select approval_number from approval_master where module_code = 'DN') as max_level
+            ,coalesce((select min(approval_order) from approval_level where username = '$username' and module_code = 'DN' and approval_order not in(
+            select approval_order from approval_history where username = '$username' and module_code = 'DN' and module_number = a.delivery_number)),0) as berhak_approve
+        from delivery_hdr a
+        where status in ('10')
+        ) as Oki
+        where current_level+1 = berhak_approve");
+
         $data['bomCount'] = count($data['listBom']);
         $data['greeting'] = self::greeting(); 
         
