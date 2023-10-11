@@ -21,7 +21,7 @@ class DeliveryReceiptController extends Controller
     private $moduleCode;
     public function __construct()
     {
-        $this->title = "Delivery Receipt";
+        $this->title = "Delivery Received";
         $this->moduleCode = "DR";
     }
 
