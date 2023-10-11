@@ -303,7 +303,7 @@ class DeliveryController extends Controller
         $data['approveValidate'] = Approval::approveValidate($this->moduleCode,$dnNumber,$username);
 
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED','8'=>'RECEIVED'];
-        $statusDel = ['NEW','VALIDATE','APPROVED','POSTED','CANCELED','','REVISED','RECEIVED'];
+        $statusDel = ['NEW','VALIDATE','APPROVED','POSTED','CANCELED','','REVISED','RECEIVED','','REVISI'];
         $data['statusDel'] = $statusDel[$data['headers'][0]->status-1];
 
         return view("delivery.show",$data);
@@ -1168,7 +1168,7 @@ class DeliveryController extends Controller
              
         $data['title'] =$dnNumber;
 
-        $statusDel = ['NEW','VALIDATE','APPROVED','','','PAID','REVISED','RECEIVED'];
+        $statusDel = ['NEW','VALIDATE','APPROVED','','','PAID','REVISED','RECEIVED','','REVISI'];
         $data['statusDel'] = $statusDel[$data['dnHdr']->status-1];
        
         $data['details']=DB::table('delivery_det')
