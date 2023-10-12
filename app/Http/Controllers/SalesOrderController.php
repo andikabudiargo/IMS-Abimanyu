@@ -807,7 +807,9 @@ class SalesOrderController extends Controller
             }
 
             // if (Auth::user()->can('salesOrder-edit') and ($data->status == 1 or $data->status == 2)) {
-            if (Auth::user()->can('salesOrder-edit') and ($data->status == 1)) {
+            // if (Auth::user()->can('salesOrder-edit') and ($data->status == 1)) {
+            //dibukain dulu agar bisa di edit walaupun belum apporoved
+            if (Auth::user()->can('salesOrder-edit') and ($data->status == 1 or $data->status== 2)) {
             $buttons .=         '<a href="'. route('salesOrder.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                     <i data-feather="file-text"></i>
                                     <span>'. __("Edit") .'</span>
