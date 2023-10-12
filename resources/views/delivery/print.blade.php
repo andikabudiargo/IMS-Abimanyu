@@ -28,7 +28,7 @@
 
         /** Padding area **/
         .sheet.padding-10mm { padding: 10mm }
-        .sheet.padding-5mm { padding: 5mm }
+        .sheet.padding-5mm { padding: 0mm 5mm 5mm 5mm }
         .sheet.padding-15mm { padding: 15mm }
         .sheet.padding-20mm { padding: 20mm }
         .sheet.padding-25mm { padding: 25mm }

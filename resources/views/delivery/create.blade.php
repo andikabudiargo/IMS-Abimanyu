@@ -190,10 +190,12 @@
         reloadPage();
     });
 
-    $("#cmdSave").click(function(){    
+    $("#cmdSave").click(function(){
+
         if (!$("#frmAdd")[0].checkValidity()){
             $("#frmAdd").submit();
         }else{ 
+            $("#cmdSave").attr('disabled','disabled');
             $('.disabled-el').removeAttr('disabled');
             let objQtySo= $('#article_row input[name="qtySo[]"]');
             let objQty= $('#article_row input[name="qtyInv[]"]');
@@ -263,13 +265,14 @@
                                 show_msg(data.title, data.message[i], data.alert);
                             }
                             $('#dnNumber').attr('disabled','disabled');
+                            $('#cmdSave').removeAttr('disabled');
                         }else{
                             show_msg(data.title, data.message, data.alert);
                             $('#dnNumber').val(data.dnNumber);
                             $('#statusText').val('NEW');
                             $('#idDn').val(data.id);
                             $('#dnNumber').attr('disabled','disabled');
-                            $('#cmdSave').attr('disabled','disabled');
+                            // $('#cmdSave').attr('disabled','disabled');
                             $('#cmdSave').hide();
                             $('#cmdPrint').show();
                         }
