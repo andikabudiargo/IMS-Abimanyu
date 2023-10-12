@@ -79,10 +79,11 @@ class PurchaseOrderController extends Controller
         $kolom=
         [
             ['data'=>'nama_dept','name'=>'nama_dept','title'=>'Departemen'],
-            ['data'=>'po_number','name'=>'po_number','title'=>'PO Number'],
-            ['data'=>'pr_number','name'=>'pr_number','title'=>'PR Number'],
             ['data'=>'po_date','name'=>'po_date','title'=>'PO Date'],
             ['data'=>'delivery_date','name'=>'delivery_date','title'=>'Delivery Date'],
+            ['data'=>'po_number','name'=>'po_number','title'=>'PO Number'],
+            ['data'=>'pr_number','name'=>'pr_number','title'=>'PR Number'],
+            ['data'=>'supp_name','name'=>'supp_name','title'=>'Supplier'],
             ['data'=>'article_alternative_code','name'=>'article_alternative_code','title'=>'Article code'],
             ['data'=>'article_desc','name'=>'article_desc','title'=>'Article desc'],
             ['data'=>'qtyku','name'=>'qtyku','title'=>'Qty'],
@@ -99,7 +100,6 @@ class PurchaseOrderController extends Controller
             ['data'=>'pph22','name'=>'pph22','title'=>'PPH22'],
             ['data'=>'pkp','name'=>'pkp','title'=>'PKP'],
             ['data'=>'termin','name'=>'termin','title'=>'Termin'],
-            ['data'=>'supp_name','name'=>'supp_name','title'=>'Supplier'],
             ['data'=>'article_type_name','name'=>'article_type_name','title'=>'Keterangan'],
             ['data'=>'note','name'=>'note','title'=>'Note'],
             // ['data'=>'supplier_id','name'=>'supplier_id','title'=>'Supplier code'],

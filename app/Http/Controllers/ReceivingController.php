@@ -52,21 +52,21 @@ class ReceivingController extends Controller
         $kolom=
         [
             ['data'=>'nama_dept','name'=>'nama_dept','title'=>'Departemen'],
+            ['data'=>'rec_date','name'=>'rec_date','title'=>'Rec Date'],
+            ['data'=>'do_date','name'=>'do_date','title'=>'DO Date'],
+            ['data'=>'do_number','name'=>'do_number','title'=>'DO Number'],
             ['data'=>'rec_number','name'=>'rec_number','title'=>'Rec Number'],
-            ['data'=>'article_alternative_code','name'=>'article_alternative_code','title'=>'Code'],
-            ['data'=>'article_desc','name'=>'article_desc','title'=>'Desc'],
+            ['data'=>'po_number','name'=>'po_number','title'=>'PO Number'],
+            ['data'=>'supp_name','name'=>'supp_name','title'=>'Supplier'],
+            ['data'=>'article_alternative_code','name'=>'article_alternative_code','title'=>'Article Code'],
+            ['data'=>'article_desc','name'=>'article_desc','title'=>'Article Desc'],
             ['data'=>'qty','name'=>'qty','title'=>'qty'],
             ['data'=>'qty_free','name'=>'qty_free','title'=>'qty Free'],
             ['data'=>'uom_rec','name'=>'uom_rec','title'=>'uom'],
             ['data'=>'price','name'=>'price','title'=>'Price'],
             ['data'=>'total_dpp','name'=>'total_dpp','title'=>'Total Tanpa PPN'],
-            ['data'=>'rec_date','name'=>'rec_date','title'=>'Rec Date'],
-            ['data'=>'do_date','name'=>'do_date','title'=>'DO Date'],
             // ['data'=>'inv_number','name'=>'inv_number','title'=>'Invoice Number'],
             // ['data'=>'inv_date','name'=>'inv_date','title'=>'Invoice Date'],
-            ['data'=>'do_number','name'=>'do_number','title'=>'DO Number'],
-            ['data'=>'po_number','name'=>'po_number','title'=>'PO Number'],
-            ['data'=>'supp_name','name'=>'supp_name','title'=>'Supplier'],
             // ['data'=>'prepared_by','name'=>'prepared_by','title'=>'Prepared By'],
             // ['data'=>'authorized_by','name'=>'authorized_by','title'=>'Authorized By'],
             ['data'=>'status','name'=>'status','title'=>'Status'],
@@ -86,7 +86,7 @@ class ReceivingController extends Controller
         ->orderBy('nama')
         ->get();
 
-        $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED'];
+        $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED'];
         $data['kolom'] = $this->getTableColoumn();
         $data['kolomDetail'] = $this->getTableColoumnDetail();
             
@@ -980,6 +980,7 @@ class ReceivingController extends Controller
             $recDate ? $query->whereBetween(DB::raw("to_date(rec_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
             $doDate ? $query->whereBetween(DB::raw("to_date(do_date,'DD-MM-YYYY')"), [$fromDateDo, $toDateDo]) : '';
         })
+        ->where('status',"<>",'5')
         ->select('receiving_hdr.*'
         ,DB::raw("(select STRING_AGG((select name from users where username = a.username), ' -> ' ORDER BY approval_order) AS main from approval_history a where module_number = receiving_hdr.rec_number) as approval_by")
         ,DB::raw("(select concat(kode,'-',nama) from third_party where kode = receiving_hdr.supplier_id limit 1) as supp_name")
@@ -1110,7 +1111,7 @@ class ReceivingController extends Controller
 
     public function listDetail(Request $request)
     {
-        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED'];
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','10'=>'REVISI'];
         $searchRec = strtolower($request->searchRec);
         $searchPo = strtolower($request->searchPo);
         $searchInv = strtolower($request->searchInv);
@@ -1160,6 +1161,7 @@ class ReceivingController extends Controller
             $doDate ? $query->whereBetween(DB::raw("to_date(do_date,'DD-MM-YYYY')"), [$fromDateDo, $toDateDo]) : '';
         })
         ->where('receiving_det.qty','>',0)
+        ->where('receiving_hdr.status',"<>",'5')
         ->select('receiving_det.*'
         ,'receiving_hdr.*'
         ,'article_alternative_code'
@@ -1170,7 +1172,7 @@ class ReceivingController extends Controller
         ,DB::raw("TO_CHAR(price*qty,'999,999,999') as total_dpp")
         ,DB::raw("(select STRING_AGG((select name from users where username = a.username), ' -> ' ORDER BY approval_order) AS main from approval_history a where module_number = receiving_hdr.rec_number) as approval_by")
         ,DB::raw("(select concat(kode,'-',nama) from third_party where kode = receiving_hdr.supplier_id limit 1) as supp_name")
-        ,DB::raw("(select (select name from depts where code = dept) as nama_dept from purchase_request_hdr where pr_number in (select pr_number from purchase_request_det where po_number = receiving_hdr.po_number) limit 1)")
+        ,DB::raw("(select (select name from depts where code = dept) as nama_dept from purchase_request_hdr where pr_number in (select pr_number from purchase_order_det where po_number = receiving_hdr.po_number) order by dept desc limit 1)")
         )
         ->orderBy('receiving_det.id')
         ->get(); 
@@ -1179,7 +1181,8 @@ class ReceivingController extends Controller
         ->addColumn('status', function ($data) {
             $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary'];
             $statusRec = ['NEW','UPDATED','APPROVED','POSTED','CANCELED'];
-            return "<div class='badge ".$badges[$data->status - 1]."'>".$statusRec[$data->status - 1]."</div>";
+            // return "<div class='badge ".$badges[$data->status - 1]."'>".$statusRec[$data->status - 1]."</div>";
+            return $statusRec[$data->status - 1];
         })
         ->rawColumns(['status'])
         ->make(true);

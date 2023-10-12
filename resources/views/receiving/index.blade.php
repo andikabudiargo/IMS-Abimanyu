@@ -50,7 +50,7 @@
                 <select class="select2 form-control" id="searchStatus" name="searchStatus">
                     <option value="">All</option>
                     @foreach($status as $index=>$val)
-                        <option value="{{ $index }}">{{ $index }} - {{ $val }}</option>
+                        <option value="{{ $index }}">{{ $val }}</option>
                     @endforeach
                 </select>
               </div>
@@ -214,7 +214,7 @@
       arrColPrint:[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18],
       columnDefs :[
         { width: '5%', targets: 0 },
-        { className: 'text-right','targets': [4,5,7,8] },
+        { className: 'text-right','targets': [9,10,12,13] },
       ],
       dataSearch:  {
         searchRec:searchRec,
