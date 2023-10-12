@@ -134,7 +134,7 @@
         }
 
         #tblContent  td {
-            padding : 3px 10px 3px 10px;
+            padding : 0px 10px 0px 10px;
             border-bottom: none;
             border-left: thin solid var(--line-color);
             border-right: thin solid var(--line-color);
@@ -270,7 +270,9 @@
                             <tbody>
                                 @foreach ($details as $val )
                                     <tr >
-                                        <td align="center">{{ ++$no }}</td>
+                                        <td align="center"><div style="height:35px;display: table-cell;
+                                            vertical-align: middle;
+                                            text-align: center;">{{ ++$no }}</div></td>
                                         <td align="left">{{ $val->article_alternative_code }}</td>
                                         <td align="left">{{ $val->article_desc }}</td>
                                         <td align="right">{{ number_format($val->qty) }}</td>
@@ -287,7 +289,7 @@
 
                                 {{-- <?php //$totalBaris = 16 ?> --}}
 
-                                @for ($i=1;$i< $totalBaris-(count($details));$i++)
+                                @for ($i=1;$i<= $totalBaris-(count($details));$i++)
                                     <tr >
                                         <td align="right" class="putih"><div style="height:35px;"></div></td>
                                         <td align="left"></td>
