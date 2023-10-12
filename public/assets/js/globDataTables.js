@@ -71,7 +71,11 @@ let showDataTables = (opt) => {
       columnDefs:"",
       excelFileName:"data",
       type:'get',
-      scrollY:440
+      scrollY:440,
+      lengthMenu: [
+        [ 10, 25, 50, -1 ],
+        [ '10', '25', '50', 'all' ]
+      ],
     }, opt);
     let button = opt.buttons == true ? 'B' : '';
     $(function(){
@@ -100,10 +104,7 @@ let showDataTables = (opt) => {
                   <"col-sm-12 col-md-6"i><"col-sm-12 col-md-6"
                   p>
                 >r`,
-          lengthMenu: [
-            [ 10, 25, 50, -1 ],
-            [ '10', '25', '50', 'all' ]
-          ],
+          lengthMenu: opt.lengthMenu,
           buttons: [
             {
               extend: 'collection',

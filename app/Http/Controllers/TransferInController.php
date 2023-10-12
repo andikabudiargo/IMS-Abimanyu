@@ -240,13 +240,22 @@ class TransferInController extends Controller
                     ]
                 );
 
+                $qtyBefore = DB::table('article_stock')
+                ->where('site_code',$siteCode)
+                ->where('article_code',$val->article_code)
+                ->where('location_number',$location)
+                ->value(DB::raw('coalesce(article_qty,0)'));
+
+                $totalQty = (float) $qtyBefore + (float) $val->total_qty;
+
                 //update qty nya ditambahkan dengan qty baru
                 DB::table('article_stock')
                 ->where('site_code',$siteCode)
                 ->where('article_code',$val->article_code)
                 ->where('location_number',$location)
                 ->update([
-                    'article_qty' => DB::raw('coalesce(article_qty,0) + '.$val->total_qty)
+                    // 'article_qty' => DB::raw('coalesce(article_qty,0) + '.$val->total_qty)
+                    'article_qty' => $totalQty
                 ]);
 
                 // $rowAffected = DB::table('article_stock')
