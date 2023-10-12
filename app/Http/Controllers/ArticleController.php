@@ -58,7 +58,8 @@ class ArticleController extends Controller
             ['data'=>'qty','name'=>'qty','title'=>'QTY'],
             ['data'=>'balanceqty','name'=>'balanceqty','title'=>'QTY Total'],
             ['data'=>'last_qty','name'=>'last_qty','title'=>'Last QTY'],
-            ['data'=>'movement_desc','name'=> 'movement_desc','title'=>'Description']
+            ['data'=>'movement_desc','name'=> 'movement_desc','title'=>'Description'],
+            ['data'=>'created_at','name'=> 'created_at','title'=>'Created At']
         ];
         return json_encode($kolom, true);
     }
@@ -605,13 +606,13 @@ class ArticleController extends Controller
         if($row_affected>0){
             $title ="$statusDelete $this->title";
             $alert  ="success";
-            $message  = "$this->title $articleAltCode is successfully $statusDelete";
+            $message  = "$this->title $articleAltCode $artCode is successfully $statusDelete";
             \LogActivity::addToLog($title,"username: $username Status $message");
             return redirect()->back()->with(['status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'articleCode'=>$articleAltCode]);
         }else{
             $title ="$statusDelete $this->title";
             $alert  ="warning";
-            $message  = "$this->title $articleAltCode is failed to $statusDelete";
+            $message  = "$this->title $articleAltCode $artCode is failed to $statusDelete";
             \LogActivity::addToLog($title,"username: $username Status $message");
             return redirect()->back()->with(['status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'articleCode'=>$articleAltCode]);
         }
@@ -761,6 +762,7 @@ class ArticleController extends Controller
                     ,site_code
                     ,location_number
                     ,last_qty
+                    ,created_at
                 from (
                 select movement_code
                 ,artikel_code
@@ -778,6 +780,7 @@ class ArticleController extends Controller
                 ,site_code
                 ,location_number
                 ,last_qty
+                ,created_at
                 from movement
                 where artikel_code='$articleCode'
                 and site_code = '$siteCode'
@@ -992,7 +995,7 @@ class ArticleController extends Controller
                 DB::commit();
                 $title ="Save Request $this->title";
                 $alert  ="success";
-                $message  = "$this->title $artCode is successfully saved";
+                $message  = "$this->title $artCode $nama is successfully saved";
                 \LogActivity::addToLog($title,"username: $username Status $message");
                 return redirect()->back()->with(['status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'articleCode'=>$artCode]);  
 
@@ -1000,7 +1003,7 @@ class ArticleController extends Controller
             DB::rollBack();
             $title ="Save Request $this->title";
             $alert  ="warning";
-            $message  = "$this->title $artCode is failed to save";
+            $message  = "$this->title $artCode $nama is failed to save";
             \LogActivity::addToLog($title,"username: $username Status $message");
             return redirect()->back()->with(['status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'articleCode'=>$artCode]);
         }        
