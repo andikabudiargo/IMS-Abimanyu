@@ -222,7 +222,11 @@
       },
       orderColumn:[[0,'asc'],[1,'asc']],
       scrollY:300,
-      excelFileName:'movement'+artDesc
+      excelFileName:'movement'+artDesc,
+      lengthMenu: [
+        [ -1, 10, 25, 50 ],
+        [ 'all', '10', '25', '50']
+      ],
     });
   }
 
