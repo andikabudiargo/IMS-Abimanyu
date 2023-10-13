@@ -282,7 +282,7 @@
                                 @endforeach      
                                                     
                                 @if((count($details))>5)
-                                    <?php $totalBaris = 20 ?>
+                                    <?php $totalBaris = 19 ?>
                                 @else
                                     <?php $totalBaris = 4 ?>
                                 @endif
