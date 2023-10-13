@@ -1032,6 +1032,35 @@ class SalesOrderController extends Controller
         
         $statusSo = ['New','Validated','Approved','Received','Canceled','Closed','Paid'];
 
+        $data['approval1']=DB::table('approval_history')
+        ->leftJoin('users','users.username','approval_history.username')
+        ->where('module_code',$this->moduleCode)
+        ->where('module_number',$soNumber)
+        ->where('approval_order',1)
+        ->first();
+
+        $data['approval2']=DB::table('approval_history')
+        ->leftJoin('users','users.username','approval_history.username')
+        ->where('module_code',$this->moduleCode)
+        ->where('module_number',$soNumber)
+        ->where('approval_order',2)
+        ->first();
+
+        $data['approval3']=DB::table('approval_history')
+        ->leftJoin('users','users.username','approval_history.username')
+        ->where('module_code',$this->moduleCode)
+        ->where('module_number',$soNumber)
+        ->where('approval_order',3)
+        ->first();
+
+        $data['approval4']=DB::table('approval_history')
+        ->leftJoin('users','users.username','approval_history.username')
+        ->where('module_code',$this->moduleCode)
+        ->where('module_number',$soNumber)
+        ->where('approval_order',4)
+        ->first();
+
+
         $data['status'] = $statusSo[$soHdr->status - 1];
         $data['no'] = 0;
 
