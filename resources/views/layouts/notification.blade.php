@@ -1,7 +1,7 @@
 <li class="nav-item dropdown dropdown-notification mr-25">
     <a class="nav-link" href="javascript:void(0);" data-toggle="dropdown">
         <i class="ficon" data-feather="bell"></i>
-        <span class="badge badge-pill badge-danger badge-up">{!! $jumlahSo + $jumlahPo + $jumlahBom + $jumlahPr + $jumlahTso + $jumlahDn !!}</span>
+        <span class="badge badge-pill badge-danger badge-up">{!! $jumlahSo + $jumlahPo + $jumlahBom + $jumlahPr + $jumlahTso+ $jumlahDn + $jumlahAp!!}</span>
     </a>
     <ul class="dropdown-menu dropdown-menu-media dropdown-menu-right">
         @if( $jumlahSo > 0 )
@@ -360,9 +360,65 @@
                 @endforeach
             </li>
         @endif
+        @if( $jumlahAp > 0 )
+            <li class="dropdown-menu-header">
+                <div class="dropdown-header d-flex">
+                    <h4 class="notification-title mb-0 mr-auto">AP needs to be approved </h4>
+                    <div class="badge badge-pill badge-light-primary">{!! count($listApNotif) !!} New</div>
+                </div>
+            </li>   
+            <li class="scrollable-container media-list">
+                @foreach($listApNotif as $key=>$val)
+                        <div class="media d-flex align-items-start">
+                            <div class="media-left">
+                                <div class="avatar">
+                                    <div class="avatar-content">AP</div>
+                                </div>
+                            </div>
+                            <div class="media-body">
+                                <div class="col-12">
+                                    <p class="media-heading">
+                                        <span class="font-weight-bolder">{{ $val->ap_number }}</span>
+                                    </p>
+                                    <p class="media-heading">
+                                        <small class="notification-text">PO Number: {{ $val->po_number }}</small>
+                                    </p>
+                                    <p class="media-heading">
+                                        <small class="notification-text">Date: {{ $val->inv_date }}</small>
+                                    </p>
+                                    <p class="media-heading">
+                                        <small class="notification-text">Note: {{ $val->note }}</small>
+                                    </p>
+                                    <p class="media-heading">
+                                        <small class="notification-text">#Approved: {{ $val->current_level }} of {{ $val->max_level }}</small>
+                                    </p>
+                                </div>
+                                <div class="col-12 mt-50">
+                                    <a class="btn btn-outline-info btn-sm" 
+                                        id="cmdDetailAp{{ $key }}" 
+                                        name="cmdDetailAp{{ $key }}" 
+                                        href="{{ route('ap.show', ['id'=>Crypt::encryptString($val->id)]) }}"> 
+                                        <i data-feather='list'></i>
+                                        Detail
+                                    </a>
+                                    <a href='javascript:;'
+                                        onclick="action(this)"
+                                        id = 'buttonDn{{ $key }}'
+                                        class="btn btn-outline-success btn-sm buttonDn-{{ $val->id }}"
+                                        data-id-class = "buttonDn-{{ $val->id }}"
+                                        data-doc-number='{{ $val->ap_number }}'
+                                        data-url='{{ route("ap.notif.approve", ["apNumber"=>$val->ap_number]) }}'>
+                                        <i data-feather='check-circle'></i>
+                                        Approve
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                @endforeach
+            </li>
+        @endif
     </ul>
 </li>
-
 
 <script type="text/javascript">
     action=(me)=>{

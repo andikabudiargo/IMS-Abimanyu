@@ -223,7 +223,6 @@ class NotificationComposer
             }
         }
 
-
         $lists['jumlahDn'] = 0;
         if (in_array("DN", $adaModule)){
             $bisaApproveDn =DB::select("SELECT  count(*) as jumlah from (
@@ -256,6 +255,41 @@ class NotificationComposer
                 ) as Oki
                 where current_level+1 = berhak_approve");
                 $lists['jumlahDn'] = count($lists['listDnNotif']);
+            }
+        }
+
+        $lists['jumlahAp'] = 0;
+        if (in_array("AP", $adaModule)){
+            $bisaApproveDn =DB::select("SELECT  count(*) as jumlah from (
+                select 
+                    coalesce((select max(approval_order) from approval_history where module_code ='AP' and module_number =a.ap_number),0) as current_level
+                    ,coalesce((select min(approval_order) from approval_level where username = '$username' and module_code = 'AP' and approval_order not in(
+                    select approval_order from approval_history where username = '$username' and module_code = 'AP' and module_number = a.ap_number)),0) as berhak_approve
+                from ap_invoice a
+                where status in ('1','2')
+                ) as Oki
+            where current_level+1 = berhak_approve");
+    
+            if($bisaApproveDn[0]->jumlah >0 ){
+                $lists['listApNotif'] = DB::select("SELECT * from (
+                select 
+                    id
+                    ,ap_number
+                    ,inv_date
+                    ,po_number
+                    ,note
+                    ,created_by
+                    ,status
+                    ,'$username' as username
+                    ,coalesce((select max(approval_order) from approval_history where module_code ='AP' and module_number =a.ap_number),0) as current_level
+                    ,(select approval_number from approval_master where module_code = 'AP') as max_level
+                    ,coalesce((select min(approval_order) from approval_level where username = '$username' and module_code = 'AP' and approval_order not in(
+                    select approval_order from approval_history where username = '$username' and module_code = 'AP' and module_number = a.ap_number)),0) as berhak_approve
+                from ap_invoice a
+                where status in ('1','2')
+                ) as Oki
+                where current_level+1 = berhak_approve");
+                $lists['jumlahAp'] = count($lists['listApNotif']);
             }
         }
 
