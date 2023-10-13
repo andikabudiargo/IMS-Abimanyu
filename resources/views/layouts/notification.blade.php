@@ -1,7 +1,7 @@
 <li class="nav-item dropdown dropdown-notification mr-25">
     <a class="nav-link" href="javascript:void(0);" data-toggle="dropdown">
         <i class="ficon" data-feather="bell"></i>
-        <span class="badge badge-pill badge-danger badge-up">{!! $jumlahSo + $jumlahPo + $jumlahBom + $jumlahPr + $jumlahTso !!}</span>
+        <span class="badge badge-pill badge-danger badge-up">{!! $jumlahSo + $jumlahPo + $jumlahBom + $jumlahPr + $jumlahTso + $jumlahDn !!}</span>
     </a>
     <ul class="dropdown-menu dropdown-menu-media dropdown-menu-right">
         @if( $jumlahSo > 0 )
