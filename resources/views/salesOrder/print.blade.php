@@ -151,7 +151,7 @@
             <td></td>
             <td></td>
             <td>PPH23</td>
-            <td align="right">-{{ number_format($val->pph23,2) }}</td>
+            <td align="right">{{ $val->pph23?'-':'' }}{{ number_format($val->pph23,2) }}</td>
         </tr>
         <tr>
             <td></td>
