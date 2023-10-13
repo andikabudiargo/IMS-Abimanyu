@@ -163,28 +163,30 @@
             {{-- <td colspan="7">Keterangan:<br> {{ $keterangan }}</td> --}}
         </tr>
     </table>
-    <table width="100%" border="0">
-        <tr><td colspan="2" height="100"></td></tr>
-        <tr><td colspan="2" height="100"></td></tr>
+    <table width="100%" border="0" cellspacing="20">
+        <tr><td colspan="2" height="80"></td></tr>
+        <tr><td colspan="2" height="80"></td></tr>
         <tr>
             <td align="center">Dibuat</td>
             <td align="center">Diperiksa</td>
             <td align="center">Disetujui</td>
+            <td align="center">Mengetahui</td>
         </tr>
         <tr>
-            <td align="center"></td>
-            <td align="center"></td>
-            <td align="center"></td>
+            <td align="center" height="15">{{ $approval1 ? 'Approval 1':'' }}</td>
+            <td align="center">{{ $approval2 ? 'Approval 2':'' }}</td>
+            <td align="center">{{ $approval3 ? 'Approval 3':'' }}</td>
+            <td align="center">{{ $approval4 ? 'Approval 4':'' }}</td>
         </tr>
         <tr>
-            <td align="center"></td>
-            <td align="center"></td>
-            <td align="center"></td>
-        </tr>
-        <tr>
-            <td align="center">( _____________ )</td>
+            <td align="center"  style="border-bottom: 1px solid black;">{{ $approval1 ? $approval1->name:'' }}</td>
+            <td align="center" style="border-bottom: 1px solid black;">{{ $approval2 ? $approval2->name:'' }}  </td>
+            <td align="center" style="border-bottom: 1px solid black;">{{ $approval3 ? $approval3->name:'' }}  </td>
+            <td align="center" style="border-bottom: 1px solid black;">{{ $approval4 ? $approval4->name:'' }}  </td>
+            {{-- <td align="center">( _____________ )</td>
             <td align="center">( _____________  )</td>
             <td align="center">( _____________  )</td>
+            <td align="center">( _____________  )</td> --}}
         </tr>
     </table>
 {{-- @if($poNumber == "oki")
