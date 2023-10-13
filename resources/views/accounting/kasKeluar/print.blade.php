@@ -289,18 +289,18 @@
                         <table width="100%">
                             {{-- <tr><td colspan="5" height="3"></td></tr> --}}
                             <tr> 
-                                <td align="center" width="10%"></td>
+                                {{-- <td align="center" width="10%"></td> --}}
                                 <td align="center" width="20%">Dibuat oleh</td>
-                                <td align="center" width="10%"></td>
+                                <td align="center" width="5%"></td>
                                 <td align="center" width="20%">Dperiksa</td>
-                                <td align="center" width="10%"></td>
+                                <td align="center" width="5%"></td>
                                 <td align="center" width="20%">Mengetahui</td>
-                                <td align="center" width="10%"></td>
+                                <td align="center" width="5%"></td>
                                 <td align="center" width="20%">Menyetujui</td>
-                                <td align="center" width="10%"></td>
+                                <td align="center" width="5%"></td>
                             </tr>
                             <tr>
-                                <td align="center"></td>
+                                {{-- <td align="center"></td> --}}
                                 <td align="center" height="25">{{ $approval1 ? 'Approval 1':'' }}</td>
                                 <td align="center"></td>
                                 <td align="center">{{ $approval2 ? 'Approval 2':'' }}</td>
@@ -311,7 +311,7 @@
                                 <td align="center"></td>
                             </tr>
                             <tr>
-                                <td align="center"></td>
+                                {{-- <td align="center"></td> --}}
                                 <td align="center"  style="border-bottom: 1px solid black;">{{ $approval1 ? $approval1->name:'' }}</td>
                                 <td align="center"></td>
                                 <td align="center" style="border-bottom: 1px solid black;">  {{ $approval2 ? $approval2->name:'' }}  </td>
