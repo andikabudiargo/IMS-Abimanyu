@@ -77,7 +77,7 @@
 
         :root {
             /*half black*/
-            --line-color: rgba(0, 0, 0, 0.8);
+            --line-color: rgba(0, 0, 0);
         }
 
         @media print {
