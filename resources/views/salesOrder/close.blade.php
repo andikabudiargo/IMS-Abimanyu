@@ -353,6 +353,7 @@
         splitArticle();
         hitungTotal();
         hitungGrandTotal();
+        mask_thousand_digit(2);
         lockUnlock();
     });
     

@@ -120,16 +120,16 @@
                                                     <label for="article_id" class="d-block d-md-none">Article Code</label>
                                                     <select class="form-control dynamicSelect sku-select-system" id="article_id{{ $key }}" name="article_id[]" data-dependent="article_id">
                                                         @foreach($articles as $val)
-                                                            <option value="{{$val->article_code}}|{{$val->group}}|{{$val->qty}}|{{$val->uom1}}" {{$val->article_code ==$item->article_code ? "selected" : ""}}>{{$val->article_alternative_code}} | {{$val->article_desc}}</option>
+                                                            <option value="{{$val->article_code}}|{{$val->group}}|{{$val->qty}}|{{$val->uom1}}" {{$val->article_code ==$item->article_code ? "selected" : ""}}>{{$val->article_alternative_code}}-{{$val->article_desc}}</option>
                                                         @endforeach
                                                     </select>
-                                                    <small class="text-muted" ><span id = "group" name="group[]">{{ $item->group }}</span></small>
+                                                    {{-- <small class="text-muted" ><span id = "group" name="group[]">{{ $item->group }}</span></small> --}}
                                                 </div>
                                             </div>
                                             <div class="col-md-1 col-12">
                                                 <div class="form-group margin-nol">
                                                     <label for="qty_stock" class="d-block d-md-none">QTY Stock</label>
-                                                    <input type="text" class="form-control text-right" id = "qty_stock" name="qty_stock[]" value="{{ $item->qty_stock ==0 ? 0 :$item->qty_stock }}" disabled>
+                                                    <input type="text" class="form-control text-right" id = "qty_stock" name="qty_stock[]" value="{{ $item->qty_stock ==0 ? 0 :$item->qty_stock*1 }}" disabled>
                                                 </div>
                                             </div>
                                             <div class="col-md-1 col-12">
@@ -138,40 +138,39 @@
                                                     <div class="input-group">
                                                         <input type="text" class="form-control numeral-mask text-right" id = "qty_order" name="qty_order[]" value="{{ $item->qty }}" maxlength="9" />
                                                         <div class="input-group-append">
-                                                            <span class="input-group-text" id ="uom" name="uom[]">{{ $item->uom }}</span>
+                                                            <span class="input-group-text padding-nol" id ="uom" name="uom[]">{{ $item->uom }}</span>
                                                         </div>
                                                     </div>
                                                 </div>
                                             </div>
                                             <div class="col-md-1 col-12">
                                                 <div class="form-group margin-nol">
-                                                    <label for="price" class="d-block d-md-none">Price</label>
-                                                    <input type="text" class="form-control numeral-mask text-right" id = "price" name="price[]" value="{{ $item->price }}"  maxlength="11">
+                                                    <label for="price" class="d-block d-md-none">Material Price</label>
+                                                    <input type="text" class="form-control numeral-mask-digit text-right" id = "price" name="price[]" oninput='inputDecimal(this)' value="{{ $item->price }}"  maxlength="11">
                                                 </div>
                                             </div>
                                             <div class="col-md-1 col-12">
                                                 <div class="form-group margin-nol">
-                                                    <label for="priceJasa" class="d-block d-md-none">Price Jasa</label>
-                                                    <input type="text" class="form-control numeral-mask text-right" id = "priceJasa" name="priceJasa[]" value="{{ $item->price_service }}" maxlength="11">
+                                                    <label for="priceJasa" class="d-block d-md-none">Service Prices</label>
+                                                    <input type="text" class="form-control numeral-mask-digit text-right" id = "priceJasa" name="priceJasa[]" oninput='inputDecimal(this)' value="{{ $item->price_service }}" maxlength="11">
                                                 </div>
                                             </div>
                                             <div class="col-md-1 col-12">
                                                 <div class="form-group margin-nol">
                                                     <label for="totalLine" class="d-block d-md-none">T.Material</label>
-                                                    <input type="text" class="form-control numeral-mask text-right" value="{{ number_format($item->qty * $item->price) }}" id="totalLine" name="totalLine[]" disabled >
+                                                    <input type="text" class="form-control numeral-mask-digit text-right" value="{{ number_format(($item->qty * $item->price),2) }}" id="totalLine" name="totalLine[]" disabled >
                                                 </div>
                                             </div>
                                             <div class="col-md-1 col-12">
                                                 <div class="form-group margin-nol">
                                                     <label for="totalJasa" class="d-block d-md-none">T.Service</label>
-                                                    <input type="text" class="form-control numeral-mask text-right" value="{{ number_format($item->qty * $item->price_service) }}" id="totalJasa" name="totalJasa[]" disabled>
-                                                    
+                                                    <input type="text" class="form-control numeral-mask-digit text-right" value="{{ number_format(($item->qty * $item->price_service),2) }}" id="totalJasa" name="totalJasa[]" disabled>
                                                 </div>
                                             </div>
                                             <div class="col-md-1 col-12">
                                                 <div class="form-group margin-nol">
                                                     <label for="totalAll" class="d-block d-md-none">Total</label>
-                                                    <input type="text" class="form-control numeral-mask text-right" value="{{ number_format(($item->qty * $item->price)+($item->qty * $item->price_service)) }}" id="totalAll" name="totalAll[]" disabled >
+                                                    <input type="text" class="form-control numeral-mask-digit text-right" value="{{ number_format((($item->qty * $item->price)+($item->qty * $item->price_service)),2) }}" id="totalAll" name="totalAll[]" disabled >
                                                 </div>
                                             </div>
                                             <div class="col-md-1 col-12">
@@ -373,17 +372,20 @@
         validateFormToast("frmAdd");
         tombolPanah('qty_order');
         tombolPanah('price');
-        activate_angka();
+        // activate_angka();
         mask_thousand();
         splitArticle();
         hitungTotal();
         hitungGrandTotal();
+        mask_thousand_digit(2);
         $('.sku-select-system').select2();
     });
 
     simpanData = (statusSimpan) =>{
+        $('#cmdSave').attr('disabled','disabled');
         if (!$("#frmAdd")[0].checkValidity()){
             $("#frmAdd").submit();
+            $('#cmdSave').removeAttr('disabled');
         }else{ 
             $('.disabled-el').removeAttr('disabled');
             // ambil semua data article
@@ -492,16 +494,14 @@
                             for(let i = 0; i < data.message.length; i++) {
                                 show_msg(data.title, data.message[i], data.alert);
                             }
-                            
                             $('#poNumber').focus().select();
                             $('#orderNum').attr('disabled','disabled');
-
+                            $('#cmdSave').removeAttr('disabled');
                         }else{
                             show_msg(data.title, data.message, data.alert);
                             $('#orderNum').attr('disabled','disabled');
                             reloadPage();
                         }
-                        
                     },
                     error: function(error) {
                         console.log(error);
@@ -510,6 +510,7 @@
 
             }else{
                 Swal.fire('Warning..',pesan,'warning');
+                $('#cmdSave').removeAttr('disabled');
             }
         }
     }

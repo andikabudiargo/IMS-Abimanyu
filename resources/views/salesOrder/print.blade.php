@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>SO</title>
+    <title>SO - {{ $soNumber }}</title>
     <style type="text/css">
 
         html { 
@@ -106,10 +106,10 @@
                     {{-- <td class="border-bottom" align="left">{{ $val->article_alternative_code }}</td> --}}
                     <td class="border-bottom" align="left">{{ $val->article_desc }}</td>
                     <td class="border-bottom" align="right">{{ number_format($val->qty) }}</td>
-                    <td class="border-bottom" align="right">{{ number_format($val->price) }}</td>
-                    <td class="border-bottom" align="right">{{ number_format($val->price_service) }}</td>
-                    <td class="border-bottom" align="right">{{ number_format(($val->qty*$val->price)) }}</td>
-                    <td class="border-bottom" align="right">{{ number_format(($val->qty*$val->price_service)) }}</td>
+                    <td class="border-bottom" align="right">{{ number_format($val->price,2) }}</td>
+                    <td class="border-bottom" align="right">{{ number_format($val->price_service,2) }}</td>
+                    <td class="border-bottom" align="right">{{ number_format(($val->qty*$val->price),2) }}</td>
+                    <td class="border-bottom" align="right">{{ number_format(($val->qty*$val->price_service),2) }}</td>
                 </tr>
             @endforeach
         </tbody>
@@ -120,8 +120,8 @@
                     <td class="border-bottom" align="right" >{{ number_format($val->qty) }}</td>
                     <td class="border-bottom" align="right" ></td>
                     <td class="border-bottom" align="right" ></td>
-                    <td class="border-bottom" align="right" >{{ number_format($val->total_material)}}</td>
-                    <td class="border-bottom" align="right" >{{ number_format($val->total_service)}}</td>
+                    <td class="border-bottom" align="right" >{{ number_format($val->total_material,2) }}</td>
+                    <td class="border-bottom" align="right" >{{ number_format($val->total_service,2) }}</td>
                 </tr>
             @endforeach
         </tfoot>
@@ -139,25 +139,25 @@
             <td></td>
             <td></td>
             <td>Sub Total</td>
-            <td align="right">{{ number_format($val->sub_total) }}</td>
+            <td align="right">{{ number_format($val->sub_total,2) }}</td>
         </tr>
         <tr>
             <td></td>
             <td></td>
             <td>PPN</td>
-            <td align="right">{{ number_format($val->ppn) }}</td>
+            <td align="right">{{ number_format($val->ppn,2) }}</td>
         </tr>
         <tr>
             <td></td>
             <td></td>
             <td>PPH23</td>
-            <td align="right">-{{ number_format($val->pph23) }}</td>
+            <td align="right">-{{ number_format($val->pph23,2) }}</td>
         </tr>
         <tr>
             <td></td>
             <td></td>
             <td>Grand total</td>
-            <td align="right">{{ number_format($val->grand_total) }}</td>
+            <td align="right">{{ number_format($val->grand_total,2) }}</td>
         </tr>
         <tr>
             {{-- <td colspan="7">Keterangan:<br> {{ $keterangan }}</td> --}}

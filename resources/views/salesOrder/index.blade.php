@@ -247,7 +247,7 @@
         { width: '5%', targets: 0 },
         {
             targets: [ 9,11,12,13 ],
-            render: $.fn.dataTable.render.number('.', ',', 0, ''),
+            render: $.fn.dataTable.render.number(',', '.', 2, ''),
             className: "text-right"
         },
       ],

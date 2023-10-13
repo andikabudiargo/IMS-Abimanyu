@@ -128,11 +128,11 @@
                                     <td >{{ $val->article }} | {{ $val->article }}</td>
                                     <td class="text-right">{{ $val->uom_group =='PIECE' ? number_format($val->qty_stock ==0 ? 0 :$val->qty_stock) : number_format($val->qty_stock ==0 ? 0 :$val->qty_stock,$decimalPlaces) }}</td>
                                     <td class="text-right">{{ $val->uom_group =='PIECE' ? number_format($val->qty) : number_format($val->qty,$decimalPlaces) }} {{ $val->uom }}</td>
-                                    <td class="text-right">{{ number_format($val->price) }}</td>
-                                    <td class="text-right">{{ number_format($val->price_service) }}</td>
-                                    <td class="text-right">{{ number_format($val->qty * $val->price) }}</td>
-                                    <td class="text-right">{{ number_format($val->qty * $val->price_service) }}</td>
-                                    <td class="text-right">{{ number_format(($val->qty * $val->price)+($val->qty * $val->price_service)) }}</td>
+                                    <td class="text-right">{{ number_format($val->price,2) }}</td>
+                                    <td class="text-right">{{ number_format($val->price_service,2) }}</td>
+                                    <td class="text-right">{{ number_format(($val->qty * $val->price),2) }}</td>
+                                    <td class="text-right">{{ number_format(($val->qty * $val->price_service),2) }}</td>
+                                    <td class="text-right">{{ number_format((($val->qty * $val->price)+($val->qty * $val->price_service)),2) }}</td>
                                 </tr>
                             @endforeach
                             </tbody>
@@ -149,19 +149,19 @@
                                     <tbody>
                                         <tr>
                                             <td>Subtotal</td>
-                                            <td class="text-right">{{ number_format($header->sum_amount) }}</td>
+                                            <td class="text-right">{{ number_format($header->sum_amount,2) }}</td>
                                         </tr>
                                         <tr>
                                             <td>PPN {{ $header->ppn }}%</td>
-                                            <td class="text-right">{{ number_format($header->sum_ppn) }}</td>
+                                            <td class="text-right">{{ number_format($header->sum_ppn,2) }}</td>
                                         </tr>
                                         <tr>
                                             <td>PPH23</td>
-                                            <td class="text-right">{{ number_format($header->sum_pph23) }}</td>
+                                            <td class="text-right">{{ number_format($header->sum_pph23,2) }}</td>
                                         </tr>
                                         <tr>
                                             <td>NETTO</td>
-                                            <td class="text-right">{{ number_format(($header->sum_amount+$header->sum_ppn)-$header->sum_pph23) }}</td>
+                                            <td class="text-right">{{ number_format((($header->sum_amount+$header->sum_ppn)-$header->sum_pph23),2) }}</td>
                                         </tr>
                                     </tbody>
                                 </table>

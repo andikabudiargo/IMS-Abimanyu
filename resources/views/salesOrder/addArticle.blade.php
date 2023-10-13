@@ -1,15 +1,14 @@
 <style>
 </style>
-{{-- table row untuk di clone--}}  
 <div id="new_row" name="new_row[]" class="d-none">
     <div id="baru" class="tanda-baris">
         <div class="form-row">
             <div class="col-md-4 col-12">
                 <div class="form-group margin-nol">
                     <label for="article_id" class="d-block d-md-none">Article Code</label>
-                    <select class="dynamicSelect form-control sku-select-system" id="article_id" name="article_id[]" data-dependent="article_id">
+                    <select class="dynamicSelect form-control " id="article_id" name="article_id[]" data-dependent="article_id">
                     </select>
-                    <small class="text-muted" ><span id = "group" name="group[]"></span></small></p>
+                    {{-- <small class="text-muted" ><span id = "group" name="group[]"></span></small></p> --}}
                 </div>
             </div>
             <div class="col-md-1 col-12">
@@ -24,7 +23,7 @@
                     <div class="input-group">
                         <input type="text" class="form-control numeral-mask text-right" id = "qty_order" name="qty_order[]" maxlength="9" />
                         <div class="input-group-append">
-                            <span class="input-group-text" id ="uom" name="uom[]"></span>
+                            <span class="input-group-text padding-nol" id ="uom" name="uom[]"></span>
                         </div>
                     </div>
                 </div>
@@ -32,31 +31,31 @@
             <div class="col-md-1 col-12">
                 <div class="form-group margin-nol">
                     <label for="price" class="d-block d-md-none">Price</label>
-                    <input type="text" class="form-control numeral-mask text-right" id= "price" name="price[]"  maxlength="11">
+                    <input type="text" class="form-control numeral-mask-digit text-right" id= "price" name="price[]"  oninput='inputDecimal(this)' maxlength="14">
                 </div>
             </div>
             <div class="col-md-1 col-12">
                 <div class="form-group margin-nol">
                     <label for="priceJasa" class="d-block d-md-none">Price Jasa</label>
-                    <input type="text" class="form-control numeral-mask text-right" id = "priceJasa" name="priceJasa[]"  maxlength="11">
+                    <input type="text" class="form-control numeral-mask-digit text-right" id = "priceJasa" name="priceJasa[]"  oninput='inputDecimal(this)' maxlength="14">
                 </div>
             </div>
             <div class="col-md-1 col-12">
                 <div class="form-group margin-nol">
                     <label for="totalLine" class="d-block d-md-none">T.Material</label>
-                    <input type="text" class="form-control numeral-mask text-right" id="totalLine" name="totalLine[]" disabled>
+                    <input type="text" class="form-control numeral-mask-digit text-right" id="totalLine" name="totalLine[]" disabled>
                 </div>
             </div>
             <div class="col-md-1 col-12">
                 <div class="form-group margin-nol">
                     <label for="totalJasa" class="d-block d-md-none">T.Service</label>
-                    <input type="text" class="form-control numeral-mask text-right" id="totalJasa" name="totalJasa[]" disabled>
+                    <input type="text" class="form-control numeral-mask-digit text-right" id="totalJasa" name="totalJasa[]" disabled>
                 </div>
             </div>
             <div class="col-md-1 col-12">
                 <div class="form-group margin-nol">
                     <label for="totalAll" class="d-block d-md-none">Total</label>
-                    <input type="text" class="form-control numeral-mask text-right" id="totalAll" name="totalAll[]" disabled>
+                    <input type="text" class="form-control numeral-mask-digit text-right" id="totalAll" name="totalAll[]" disabled>
                 </div>
             </div>
             <div class="col-md-1 col-12">
@@ -71,16 +70,27 @@
         <hr class="d-block d-md-none" />
     </div>
 </div>
-{{-- \.table row --}} 
 <style>
     .margin-nol{
         margin-bottom:0.5rem;
+    }
+    .padding-nol{
+        padding:0px 4px 0px 4px; 
     }
 </style>
 
 <script type="text/javascript">
        
     let cloneCount = {{ isset($detail) ? count($detail) :1 }};
+
+    let delayTimer;
+    function inputDecimal(ele) {
+        clearTimeout(delayTimer);
+        delayTimer = setTimeout(function() {
+            let nilai = ele.value.replace(/,/gi, '') || 0;;
+            ele.value = humanizeNumber(parseFloat(nilai).toFixed(2)).toString();
+        }, 1100); 
+    }
     
     $('#cust').on('change', function() {
         let cust = $(this).val().split("|");
@@ -114,6 +124,7 @@
             tombolPanah('priceJasa');
             activate_angka();
             mask_thousand();
+            mask_thousand_digit(2);
             splitArticle();
             hitungTotal();
             hitungGrandTotal();
@@ -139,12 +150,13 @@
         let objStock= $('#article_row input[name="qty_stock[]"]');
         let objUom= $('#article_row span[name="uom[]"]'); 
         let objQty= $('#article_row input[name="qty_order[]"]');
+
         objArticle.change(function(e){        
             let objIndex = objArticle.index(this);
             let detail = objArticle.eq(objIndex).val();
             let arrDetail = detail.split("|");
             objGroup.eq(objIndex).text(arrDetail[1]);
-            objStock.eq(objIndex).val(arrDetail[2]||0);
+            objStock.eq(objIndex).val(arrDetail[2]*1||0);
             objUom.eq(objIndex).text(arrDetail[3]);
             objArticle.eq(objIndex).select2('open'); //belum bisa jalan
             if (detail){
@@ -165,42 +177,64 @@
         
         objQty.keyup(function() {
             let indexnya= objQty.index(this);
-            let qty = objQty.eq(indexnya).val().replace(/,/gi, '') || 0; 
-            let price = objPrice.eq(indexnya).val().replace(/,/gi, '') ||0;
-            let priceJasa = objPriceJasa.eq(indexnya).val().replace(/,/gi, '') ||0;
-            let total = qty*price;
-            let totalJasa = qty*priceJasa;
-            objTotal.eq(indexnya).val(humanizeNumber(total));
-            objTotalJasa.eq(indexnya).val(humanizeNumber(totalJasa));
-            objTotalAll.eq(indexnya).val(humanizeNumber(totalJasa+total));
-            hitungGrandTotal();
+            hitungTotalPerBaris(indexnya);
+            // let qty = objQty.eq(indexnya).val().replace(/,/gi, '') || 0; 
+            // let price = objPrice.eq(indexnya).val().replace(/,/gi, '') ||0;
+            // let priceJasa = objPriceJasa.eq(indexnya).val().replace(/,/gi, '') ||0;
+            // let total = qty*price;
+            // let totalJasa = qty*priceJasa;
+            // objTotal.eq(indexnya).val(humanizeNumber(parseFloat(total).toFixed(2)));
+            // objTotalJasa.eq(indexnya).val(humanizeNumber(parseFloat(totalJasa).toFixed(2)));
+            // objTotalAll.eq(indexnya).val(humanizeNumber(parseFloat((totalJasa+total)).toFixed(2)));
+            // hitungGrandTotal();
         });    
 
         objPrice.keyup(function() {
             let indexnya= objPrice.index(this);
-            let qty = objQty.eq(indexnya).val().replace(/,/gi, '') || 0; 
-            let price = objPrice.eq(indexnya).val().replace(/,/gi, '')||0;
-            let total = qty*price;
-            let priceJasa = objPriceJasa.eq(indexnya).val().replace(/,/gi, '')||0;
-            let totalJasa = qty*priceJasa;
-            objTotal.eq(indexnya).val(humanizeNumber(total));
-            objTotalJasa.eq(indexnya).val(humanizeNumber(totalJasa));
-            objTotalAll.eq(indexnya).val(humanizeNumber(totalJasa+total));
-            hitungGrandTotal();
+            hitungTotalPerBaris(indexnya);
+            // let qty = objQty.eq(indexnya).val().replace(/,/gi, '') || 0; 
+            // let price = objPrice.eq(indexnya).val().replace(/,/gi, '')||0;
+            // let total = qty*price;
+            // let priceJasa = objPriceJasa.eq(indexnya).val().replace(/,/gi, '')||0;
+            // let totalJasa = qty*priceJasa;
+            // objTotal.eq(indexnya).val(humanizeNumber(parseFloat(total).toFixed(2)));
+            // objTotalJasa.eq(indexnya).val(humanizeNumber(parseFloat(totalJasa).toFixed(2)));
+            // objTotalAll.eq(indexnya).val(humanizeNumber(parseFloat((totalJasa+total)).toFixed(2)));
+            // hitungGrandTotal();
         });    
 
         objPriceJasa.keyup(function() {
             let indexnya= objPrice.index(this);
-            let qty = objQty.eq(indexnya).val().replace(/,/gi, '') || 0; 
-            let price = objPrice.eq(indexnya).val().replace(/,/gi, '')||0;
-            let total = qty*price;
-            let priceJasa = objPriceJasa.eq(indexnya).val().replace(/,/gi, '')||0;
-            let totalJasa = qty*priceJasa;
-            objTotal.eq(indexnya).val(humanizeNumber(total));
-            objTotalJasa.eq(indexnya).val(humanizeNumber(totalJasa));
-            objTotalAll.eq(indexnya).val(humanizeNumber(totalJasa+total));
-            hitungGrandTotal();
+            hitungTotalPerBaris(indexnya);
+            // let qty = objQty.eq(indexnya).val().replace(/,/gi, '') || 0; 
+            // let price = objPrice.eq(indexnya).val().replace(/,/gi, '')||0;
+            // let total = qty*price;
+            // let priceJasa = objPriceJasa.eq(indexnya).val().replace(/,/gi, '')||0;
+            // let totalJasa = qty*priceJasa;
+            // objTotal.eq(indexnya).val(humanizeNumber(parseFloat(total).toFixed(2)));
+            // objTotalJasa.eq(indexnya).val(humanizeNumber(parseFloat(totalJasa).toFixed(2)));
+            // objTotalAll.eq(indexnya).val(humanizeNumber(parseFloat((totalJasa+total)).toFixed(2)));
+            // hitungGrandTotal();
         });    
+    }
+
+    hitungTotalPerBaris=(indexnya)=>{
+        let objQty= $('#article_row input[name="qty_order[]"]');
+        let objPrice= $('#article_row input[name="price[]"]');
+        let objTotal= $('#article_row input[name="totalLine[]"]');
+        let objPriceJasa= $('#article_row input[name="priceJasa[]"]');
+        let objTotalJasa= $('#article_row input[name="totalJasa[]"]');
+        let objTotalAll= $('#article_row input[name="totalAll[]"]');
+        
+        let qty = objQty.eq(indexnya).val().replace(/,/gi, '') || 0; 
+        let price = objPrice.eq(indexnya).val().replace(/,/gi, '')||0;
+        let total = qty*price;
+        let priceJasa = objPriceJasa.eq(indexnya).val().replace(/,/gi, '')||0;
+        let totalJasa = qty*priceJasa;
+        objTotal.eq(indexnya).val(humanizeNumber(parseFloat(total).toFixed(2)));
+        objTotalJasa.eq(indexnya).val(humanizeNumber(parseFloat(totalJasa).toFixed(2)));
+        objTotalAll.eq(indexnya).val(humanizeNumber(parseFloat((totalJasa+total)).toFixed(2)));
+        hitungGrandTotal();
     }
 
     function hitungGrandTotal(){
@@ -216,25 +250,27 @@
         let totalAmountJasa=0
         let totalAmountMaterial=0
 
-        var arr = objQtyTiw.map(function (i) {
+        let arr = objQtyTiw.map(function (i) {
             let qty = parseInt(objQTY.eq(i).val().replace(/,/gi, '')) || 0;
-            let price = parseInt(objPrice.eq(i).val().replace(/,/gi, '')) || 0;
-            let priceJasa = parseInt(objPriceJasa.eq(i).val().replace(/,/gi, '')) || 0;
+            let price = parseFloat(objPrice.eq(i).val().replace(/,/gi, '')) || 0;
+            let priceJasa = parseFloat(objPriceJasa.eq(i).val().replace(/,/gi, '')) || 0;
             totalQty+= qty;
             totalAmount+= (qty*price)+(qty*priceJasa);
             totalAmountMaterial+= (qty*price)+(qty*priceJasa);
             totalAmountJasa+= (qty*priceJasa);
         }).get();
         
+        
         $("#totalRow").val(objArticle.length);
         $("#nilaiPPN").text(ppn+"%");
         $("#nilaiPPH23").text(pph23+"%");
         $("#totalQTY").val(humanizeNumber(totalQty));
-        $("#totalAmount").val(humanizeNumber(totalAmount));
-        $("#totalPPN").val(humanizeNumber((parseInt(ppn)*totalAmountMaterial)/100));
-        $("#totalPPH").val(humanizeNumber((pph23*totalAmountJasa)/100));
-        $("#totalNetto").val(humanizeNumber(totalAmount+((parseInt(ppn)*totalAmount)/100)-((pph23*totalAmountJasa)/100)));
-    
+        $("#totalAmount").val(humanizeNumber(parseFloat(totalAmount).toFixed(2)));
+        $("#totalPPN").val(humanizeNumber(parseFloat(((parseInt(ppn)*totalAmountMaterial)/100)).toFixed(2)));
+        $("#totalPPH").val(humanizeNumber(parseFloat(((pph23*totalAmountJasa)/100)).toFixed(2)));
+        $("#totalNetto").val(humanizeNumber(parseFloat((totalAmount+((parseInt(ppn)*totalAmount)/100)-((pph23*totalAmountJasa)/100))).toFixed(2)));
+        mask_thousand_digit(2);
+
     }
 
     function changeselect(dependent,obj,value,type) {
@@ -252,26 +288,6 @@
         }
       })
     }
-
-    // function tombolPanah(objname){
-    //     let obj = $('#article_row input[name="'+objname+'[]"]');
-    //     obj.keyup(function(e) {
-    //         indexnya = obj.index(this);
-    //         indexnya = parseInt(indexnya);
-    //         if (e.keyCode == 38) {
-    //             //panah atas
-    //             indexTarget = indexnya-1;
-    //             obj.eq(indexTarget).focus().select();
-    //             return false;
-    //         }
-    //         if (e.keyCode == 40) {
-    //             //panah bawah
-    //             indexTarget = indexnya+1;
-    //             obj.eq(indexTarget).focus().select();
-    //             return false;
-    //         }
-    //     });
-    // }
     
     $.ajaxSetup({
         headers: {

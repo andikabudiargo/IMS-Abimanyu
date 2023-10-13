@@ -166,6 +166,13 @@ class SalesOrderController extends Controller
 
     public function store(Request $request)
     {
+
+        /*
+            12/10/2023
+            Ibu Natasya
+            Permintaan update untuk price pakai 2 digit koma
+
+        */
         $username =  Auth::user()->username;
         $articles = json_decode($request -> articles);
         $orderDate = $request->orderDate;
@@ -174,10 +181,15 @@ class SalesOrderController extends Controller
         $poNumber = $request->poNumber;
         $customer = $request->customer;
         $salesman = $request->salesman;
-        $ppn = $request->ppn;
-        $pph23 = $request->pph23;
-        $totalPpn = $request->totalPpn;
-        $totalPph = $request->totalPph;
+        // $ppn = $request->ppn;
+        // $pph23 = $request->pph23;
+        // $totalPpn = $request->totalPpn;
+        // $totalPph = $request->totalPph;
+        $ppn = is_null($request->ppn) ? 0 : preg_replace('/[^0-9.]+/', '', $request->ppn);
+        $pph23 = is_null($request->pph23) ? 0 : preg_replace('/[^0-9.]+/', '', $request->pph23);
+        $totalPpn = is_null($request->totalPpn) ? 0 : preg_replace('/[^0-9.]+/', '', $request->totalPpn);
+        $totalPph = is_null($request->totalPph) ? 0 : preg_replace('/[^0-9.]+/', '', $request->totalPph);
+
         $note = $request->note;
         $status = '1';
         $gudang = 'false';
@@ -256,7 +268,7 @@ class SalesOrderController extends Controller
                             'uom' => $val->uom,
                             'price' => $val->price,
                             'price_service' => $val->price_service,
-                            'ppn' => ($val->price*$val->qty) * $ppn/100,
+                            'ppn' => (($val->price*$val->qty)+($val->price_service*$val->qty)) * $ppn/100,
                             'pph23' => ($val->price_service*$val->qty) * $pph23/100,
                             'status' => $status,
                             'created_by' => Auth::user()->username,
@@ -297,9 +309,9 @@ class SalesOrderController extends Controller
         ,DB::raw("(select concat(kode,' - ',nama) from third_party where kode = sales_order_hdr.customer_id) as supp_name") 
         ,DB::raw('(select sum(qty) from sales_order_det where so_code = sales_order_hdr.so_code) as sum_qty') 
         ,DB::raw('(select count(*) from sales_order_det where so_code = sales_order_hdr.so_code) as sum_row')
-        ,DB::raw('(select round(sum((qty*price) + (qty*price_service))) from sales_order_det where so_code = sales_order_hdr.so_code) as sum_amount')
-        ,DB::raw('(select round(sum(((qty*price) + (qty*price_service))*sales_order_hdr.ppn/100)) from sales_order_det where so_code = sales_order_hdr.so_code) as sum_ppn')
-        ,DB::raw('(select round(sum(((qty*price) + (qty*price_service))*sales_order_hdr.pph23/100)) from sales_order_det where so_code = sales_order_hdr.so_code) as sum_pph23')
+        ,DB::raw('(select (sum((qty*price) + (qty*price_service))) from sales_order_det where so_code = sales_order_hdr.so_code) as sum_amount')
+        ,DB::raw('(select (sum(((qty*price) + (qty*price_service))*sales_order_hdr.ppn/100)) from sales_order_det where so_code = sales_order_hdr.so_code) as sum_ppn')
+        ,DB::raw('(select (sum(((qty*price_service))*sales_order_hdr.pph23/100)) from sales_order_det where so_code = sales_order_hdr.so_code) as sum_pph23')
         )
         ->where('id',$id)
         ->get()->first();
@@ -484,10 +496,16 @@ class SalesOrderController extends Controller
         $poNumber = $request->poNumber;
         $customer = $request->customer;
         $salesman = $request->salesman;
-        $ppn = $request->ppn;
-        $pph23 = $request->pph23;
-        $totalPpn = $request->totalPpn;
-        $totalPph = $request->totalPph;
+        // $ppn = $request->ppn;
+        // $pph23 = $request->pph23;
+        // $totalPpn = $request->totalPpn;
+        // $totalPph = $request->totalPph;
+
+        $ppn = is_null($request->ppn) ? 0 : preg_replace('/[^0-9.]+/', '', $request->ppn);
+        $pph23 = is_null($request->pph23) ? 0 : preg_replace('/[^0-9.]+/', '', $request->pph23);
+        $totalPpn = is_null($request->totalPpn) ? 0 : preg_replace('/[^0-9.]+/', '', $request->totalPpn);
+        $totalPph = is_null($request->totalPph) ? 0 : preg_replace('/[^0-9.]+/', '', $request->totalPph);
+
         $note = $request->note;
         $gudang = 'false';
         $kurs = 1;
@@ -594,7 +612,7 @@ class SalesOrderController extends Controller
                         'uom' => $val->uom,
                         'price' => $val->price,
                         'price_service' => $val->price_service,
-                        'ppn' => ($val->price*$val->qty) * $ppn/100,
+                        'ppn' => (($val->price*$val->qty)+($val->price_service*$val->qty)) * $ppn/100,
                         'pph23' => ($val->price_service*$val->qty) * $pph23/100,
                         'updated_by' => Auth::user()->username,
                         'updated_at' => date('Y-m-d H:i:s')

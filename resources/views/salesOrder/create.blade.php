@@ -168,7 +168,7 @@
                     <br/>
                     <div class="form-row">
                         <div class="col-12">
-                            {{-- <button class="btn btn-warning" type="reset" id="cmdCancel" name="cmdCancel">Cancel</button> --}}
+                            <a href="{{ route('salesOrders.index') }}" class="btn btn-light">Back</a>
                             <button class="btn btn-success" type="reset" id="cmdNew" name="cmdCancel">New</button>
                             <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Save</button>
                         </div>
@@ -247,8 +247,10 @@
     });
     
     $("#cmdSave").click(function(){    
+        $('#cmdSave').attr('disabled','disabled');
         if (!$("#frmAdd")[0].checkValidity()){
             $("#frmAdd").submit();
+            $('#cmdSave').removeAttr('disabled');
         }else{ 
             $('.disabled-el').removeAttr('disabled');
             // ambil semua data article
@@ -355,17 +357,14 @@
                     dataType: "json",
                     success: function(data) {
                         if (data.status == 0 ){
-                            
                             for(let i = 0; i < data.message.length; i++) {
                                 show_msg(data.title, data.message[i], data.alert);
                             }
-
                             $('#poNumber').focus().select();
                             $('#orderNum').attr('disabled','disabled');
-
+                            $('#cmdSave').removeAttr('disabled');
                         }else{
                             show_msg(data.title, data.message, data.alert);
-
                             $('#orderNum').val(data.soNumber);
                             $('#orderNum').attr('disabled','disabled');
                             $('#cmdSave').attr('disabled','disabled');
@@ -382,6 +381,7 @@
             }
         }
     });
+
     $.ajaxSetup({
         headers: {
             'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
