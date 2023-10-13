@@ -163,30 +163,41 @@
             {{-- <td colspan="7">Keterangan:<br> {{ $keterangan }}</td> --}}
         </tr>
     </table>
-    <table width="100%" border="0" cellspacing="20">
-        <tr><td colspan="2" height="80"></td></tr>
-        <tr><td colspan="2" height="80"></td></tr>
-        <tr>
-            <td align="center">Dibuat</td>
-            <td align="center">Diperiksa</td>
-            <td align="center">Disetujui</td>
-            <td align="center">Mengetahui</td>
+    <br><br>
+    <table width="100%">
+        {{-- <tr><td colspan="5" height="3"></td></tr> --}}
+        <tr> 
+            <td align="center" width="10%"></td>
+            <td align="center" width="20%">Dibuat oleh</td>
+            <td align="center" width="10%"></td>
+            <td align="center" width="20%">Dperiksa</td>
+            <td align="center" width="10%"></td>
+            <td align="center" width="20%">Mengetahui</td>
+            <td align="center" width="10%"></td>
+            <td align="center" width="20%">Menyetujui</td>
+            <td align="center" width="10%"></td>
         </tr>
         <tr>
-            <td align="center" height="15">{{ $approval1 ? 'Approval 1':'' }}</td>
+            <td align="center"></td>
+            <td align="center" height="25">{{ $approval1 ? 'Approval 1':'' }}</td>
+            <td align="center"></td>
             <td align="center">{{ $approval2 ? 'Approval 2':'' }}</td>
+            <td align="center"></td>
             <td align="center">{{ $approval3 ? 'Approval 3':'' }}</td>
+            <td align="center"></td>
             <td align="center">{{ $approval4 ? 'Approval 4':'' }}</td>
+            <td align="center"></td>
         </tr>
         <tr>
+            <td align="center"></td>
             <td align="center"  style="border-bottom: 1px solid black;">{{ $approval1 ? $approval1->name:'' }}</td>
-            <td align="center" style="border-bottom: 1px solid black;">{{ $approval2 ? $approval2->name:'' }}  </td>
-            <td align="center" style="border-bottom: 1px solid black;">{{ $approval3 ? $approval3->name:'' }}  </td>
-            <td align="center" style="border-bottom: 1px solid black;">{{ $approval4 ? $approval4->name:'' }}  </td>
-            {{-- <td align="center">( _____________ )</td>
-            <td align="center">( _____________  )</td>
-            <td align="center">( _____________  )</td>
-            <td align="center">( _____________  )</td> --}}
+            <td align="center"></td>
+            <td align="center" style="border-bottom: 1px solid black;">  {{ $approval2 ? $approval2->name:'' }}  </td>
+            <td align="center"></td>
+            <td align="center" style="border-bottom: 1px solid black;">  {{ $approval3 ? $approval3->name:'' }}  </td>
+            <td align="center"></td>
+            <td align="center" style="border-bottom: 1px solid black;">  {{ $approval4 ? $approval4->name:'' }}  </td>
+            <td align="center"></td>
         </tr>
     </table>
 {{-- @if($poNumber == "oki")

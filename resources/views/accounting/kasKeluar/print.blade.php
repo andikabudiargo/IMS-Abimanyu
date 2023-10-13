@@ -292,6 +292,8 @@
                                 <td align="center" width="10%"></td>
                                 <td align="center" width="20%">Dibuat oleh</td>
                                 <td align="center" width="10%"></td>
+                                <td align="center" width="20%">Dperiksa</td>
+                                <td align="center" width="10%"></td>
                                 <td align="center" width="20%">Mengetahui</td>
                                 <td align="center" width="10%"></td>
                                 <td align="center" width="20%">Menyetujui</td>
@@ -301,9 +303,11 @@
                                 <td align="center"></td>
                                 <td align="center" height="25">{{ $approval1 ? 'Approval 1':'' }}</td>
                                 <td align="center"></td>
-                                <td align="center">{{ $approval1 ? 'Approval 2':'' }}</td>
+                                <td align="center">{{ $approval2 ? 'Approval 2':'' }}</td>
                                 <td align="center"></td>
-                                <td align="center">{{ $approval1 ? 'Approval 3':'' }}</td>
+                                <td align="center">{{ $approval3 ? 'Approval 3':'' }}</td>
+                                <td align="center"></td>
+                                <td align="center">{{ $approval4 ? 'Approval 4':'' }}</td>
                                 <td align="center"></td>
                             </tr>
                             <tr>
@@ -313,6 +317,8 @@
                                 <td align="center" style="border-bottom: 1px solid black;">  {{ $approval2 ? $approval2->name:'' }}  </td>
                                 <td align="center"></td>
                                 <td align="center" style="border-bottom: 1px solid black;">  {{ $approval3 ? $approval3->name:'' }}  </td>
+                                <td align="center"></td>
+                                <td align="center" style="border-bottom: 1px solid black;">  {{ $approval4 ? $approval4->name:'' }}  </td>
                                 <td align="center"></td>
                             </tr>
                         </table>
