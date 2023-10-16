@@ -77,7 +77,8 @@
 
         :root {
             /*half black*/
-            --line-color: rgba(0, 0, 0, 0.8);
+            /* --line-color: rgba(0, 0, 0, 0.8); */
+            --line-color: rgba(0, 0, 0);
         }
 
         @media print {
@@ -219,8 +220,8 @@
                     <div class="header-space">
                         <table width="100%">
                             <tr>
-                                <td width="30%" >
-                                    <img src="{{ asset('app-assets/images/logo/logo_po.png') }}" alt="logo" style="width: 20%;"> 
+                                <td width="30%" style="padding-top:10px;padding-left:5px" >
+                                    <img src="{{ asset('app-assets/images/logo/logo_po.png') }}" alt="logo" style="width: 18%;"> 
                                 </td>
                             </tr>
                             <tr>
@@ -256,7 +257,7 @@
                             <td width="38%" valign="top" style="border: 1px solid #0c0c0c;padding-left:5px;padding-right:5px">
                                 <br>
                                 <strong>PO Number : </strong>{{ $listpo }}<br>
-                                <strong>No FP : </strong>{{ $recHdr->faktur_pajak }}
+                                {{-- <strong>No FP : </strong>{{ $recHdr->faktur_pajak }} --}}
                                 <br><p></p>
                             </td>
                         </tr>
