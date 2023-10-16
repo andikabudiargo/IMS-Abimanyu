@@ -267,8 +267,8 @@
                         <thead>
                             <tr>
                                 <th width="5%">No</th>
-                                <th width="50%" >Description</th>
-                                <th width="10%" align="center">Qty</th>
+                                <th width="51.5%" >Description</th>
+                                <th width="8.5%" align="center">Qty</th>
                                 @if($printType=='1')
                                 <th width="12%">Price</th>
                                 <th width="15%">Total</th>
