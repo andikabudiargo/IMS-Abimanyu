@@ -120,10 +120,17 @@
         
         * {
             font-family: Calibri,Arial, Helvetica, sans-serif;
+            /* font-family: Arial, Helvetica, sans-serif; */
         }
 
         table{
             font-family: Calibri,Arial, Helvetica, sans-serif;
+            /* font-family: Arial, Helvetica, sans-serif; */
+        }
+
+        .arial{
+            font-family: Arial, Helvetica, sans-serif;
+            /* font-family: Arial, Helvetica, sans-serif; */
         }
         
         table {
@@ -320,7 +327,7 @@
                                         <table style="table-layout:fixed;">
                                             <tr>
                                                 <td style="border-right: none;border-left: none;padding-right:0px" width="15%" valign="top"><b>Terbilang : </b></td>
-                                                <td style="border-right: none;border-left: none;padding-left:0px"><i>{{ ucwords(strtolower($terbilang)) }}</i></td>
+                                                <td style="border-right: none;border-left: none;padding-left:0px"><i class="arial" style="font-size: 10pt;">{{ ucwords(strtolower($terbilang)) }}</i></td>
                                             </tr>
                                         </table>
                                     </td>
@@ -341,7 +348,7 @@
                                 </tr>
                             @endforeach
                             <tr>
-                                <td valign="top" width="60%" colspan="3" style="border-right: 1px solid white;font-size: 11pt;">
+                                <td class = "arial" valign="top" width="60%" colspan="3" style="border-right: 1px solid white;font-size: 11pt;">
                                     Note:<br>
                                     Please transfer to our account <br>	
                                     Mohon transfer ke rekening kami	<br>
@@ -352,7 +359,7 @@
                                     - Faktur ini berlaku sebagai Kwitansi.<br>
                                     - Pembayaran dengan Cheque / Bilyet atau Wesel dianggap lunas setelah melalui Clearing
                                 </td>
-                                <td valign="top" colspan="2" align="center" >
+                                <td class="arial" valign="top" colspan="2" align="center" style="font-size: 11pt;">
                                     <br>
                                     Purwakarta, {{ $tanggalHariIni }} <br>
                                     <br><br><br><br><br><br>
@@ -362,8 +369,8 @@
                         </tfoot>
                     </table>
                     </div>
-                    <span style="font-size: 11pt;"><i>Lembar Asli untuk Penagihan kepada Customer</i></span><br>
-                    <span style="font-size: 11pt;;"><i>Lembar Copy untuk Arsip</i></span>
+                    <span class = "arial" style="font-size: 10pt;"><i>Lembar Asli untuk Penagihan kepada Customer</i></span><br>
+                    <span class = "arial" style="font-size: 10pt;"><i>Lembar Copy untuk Arsip</i></span>
                 </td>
             </tr>
         </tbody>
