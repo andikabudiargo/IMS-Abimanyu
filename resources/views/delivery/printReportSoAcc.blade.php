@@ -88,11 +88,11 @@
     }
 
     .font-9 {
-        font-size: 9px;
+        font-size: 9pt;
     }
 
     .font-8 {
-        font-size: 8px;
+        font-size: 8pt;
     }
 
     .header-padding{
@@ -148,7 +148,7 @@
         </table>
     </header>
     <main>
-        <table width="100%">
+        <table width="100%" class="font-8">
             <tbody>
                 {!! $barisDetail !!}                
             </tbody>
