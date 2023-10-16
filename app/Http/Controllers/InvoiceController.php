@@ -479,82 +479,82 @@ class InvoiceController extends Controller
         // 3. Posting
         // 4. Cancel
 
-        $username =  Auth::user()->username;
-        $recNumber = $request->recNumber;
-        $recType = "NORMAL";
-        $statusRec ="Posting";
-        $status = '3';
-        $authorizedBy = Auth::user()->username;
-        $todayDate = date("d-m-Y");
+        // $username =  Auth::user()->username;
+        // $recNumber = $request->recNumber;
+        // $recType = "NORMAL";
+        // $statusRec ="Posting";
+        // $status = '3';
+        // $authorizedBy = Auth::user()->username;
+        // $todayDate = date("d-m-Y");
 
-        // Update stock kalo article nya udah ada
-        $sqlUpdate = "UPDATE article_stock a set article_qty = COALESCE(a.article_qty,0)  + COALESCE(b.qty,0)
-        from (
-        select art_code, (qty*factor_qty)+(qty_free*factor_free) as qty from 
-        (
-            select *,article.article_code as art_code,(select unit_factor from uom_con where unit_from = o.uom_rec and unit_to = article.uom) as factor_qty,(select unit_factor from uom_con where unit_from = o.uom_free and unit_to = article.uom) as factor_free  from (
-            select * from receiving_det where rec_number in (
-            select rec_number from receiving_hdr where rec_number = '$recNumber' and (status != '3' and status != '4'))) o
-            left join article on article.article_code = o.article_code
-        ) c
-        ) b
-        where a.article_code=b.art_code";
+        // // Update stock kalo article nya udah ada
+        // $sqlUpdate = "UPDATE article_stock a set article_qty = COALESCE(a.article_qty,0)  + COALESCE(b.qty,0)
+        // from (
+        // select art_code, (qty*factor_qty)+(qty_free*factor_free) as qty from 
+        // (
+        //     select *,article.article_code as art_code,(select unit_factor from uom_con where unit_from = o.uom_rec and unit_to = article.uom) as factor_qty,(select unit_factor from uom_con where unit_from = o.uom_free and unit_to = article.uom) as factor_free  from (
+        //     select * from receiving_det where rec_number in (
+        //     select rec_number from receiving_hdr where rec_number = '$recNumber' and (status != '3' and status != '4'))) o
+        //     left join article on article.article_code = o.article_code
+        // ) c
+        // ) b
+        // where a.article_code=b.art_code";
 
-        //Insert ke stock kalo article nya belum ada
-        $sqlInsert = "INSERT into article_stock (site_code,article_code,dept_code,location_number,article_qty,uom)
-        select 'HO',art_code,article_type,'00',(qty*factor_qty)+(qty_free*factor_free) as qty,uom from 
-        (
-            select *,article.article_code as art_code,(select unit_factor from uom_con where unit_from = z.uom_rec and unit_to = article.uom) as factor_qty,(select unit_factor from uom_con where unit_from = z.uom_free and unit_to = article.uom) as factor_free  from (
-            select * from receiving_det where rec_number in (
-            select rec_number from receiving_hdr where rec_number = '$recNumber' and (status != '3' and status != '4'))) z
-            left join article on article.article_code = z.article_code
-            where article.article_code not in (select article_code from article_stock)
-        ) y";
+        // //Insert ke stock kalo article nya belum ada
+        // $sqlInsert = "INSERT into article_stock (site_code,article_code,dept_code,location_number,article_qty,uom)
+        // select 'HO',art_code,article_type,'00',(qty*factor_qty)+(qty_free*factor_free) as qty,uom from 
+        // (
+        //     select *,article.article_code as art_code,(select unit_factor from uom_con where unit_from = z.uom_rec and unit_to = article.uom) as factor_qty,(select unit_factor from uom_con where unit_from = z.uom_free and unit_to = article.uom) as factor_free  from (
+        //     select * from receiving_det where rec_number in (
+        //     select rec_number from receiving_hdr where rec_number = '$recNumber' and (status != '3' and status != '4'))) z
+        //     left join article on article.article_code = z.article_code
+        //     where article.article_code not in (select article_code from article_stock)
+        // ) y";
 
-        //Insert into table movement
-        $sqlMovement = "INSERT into movement
-        (movement_date,artikel_code,artikel_desc,movement_min,movement_plus,movement_price,movement_transnno,movement_type,movement_desc)
-        select 
-        '$todayDate',
-        article_code,
-        (select concat(article_alternative_code,'-',article_desc) from article where article_code = a.article_code) as article_desc,
-        0,
-        qty,
-        price,
-        rec_number,
-        'REC',
-        (select po_number from receiving_hdr where rec_number=a.rec_number) as po from receiving_det a where rec_number in (
-        select rec_number from receiving_hdr where rec_number = '$recNumber' and status = '3' and qty <> 0)";
+        // //Insert into table movement
+        // $sqlMovement = "INSERT into movement
+        // (movement_date,artikel_code,artikel_desc,movement_min,movement_plus,movement_price,movement_transnno,movement_type,movement_desc)
+        // select 
+        // '$todayDate',
+        // article_code,
+        // (select concat(article_alternative_code,'-',article_desc) from article where article_code = a.article_code) as article_desc,
+        // 0,
+        // qty,
+        // price,
+        // rec_number,
+        // 'REC',
+        // (select po_number from receiving_hdr where rec_number=a.rec_number) as po from receiving_det a where rec_number in (
+        // select rec_number from receiving_hdr where rec_number = '$recNumber' and status = '3' and qty <> 0)";
     
-        DB::select($sqlUpdate);
-        $rowAffected = DB::select($sqlInsert);
+        // DB::select($sqlUpdate);
+        // $rowAffected = DB::select($sqlInsert);
         
-        if ($rowAffected > 0){
-            DB::table('receiving_hdr')
-            ->where('rec_number',$recNumber)
-            ->update(
-                [   
-                    'status' => $status,
-                    'authorized_by' => $authorizedBy,
-                    'authorized_at' => date('Y-m-d H:i:s'),
-                    'updated_by' => Auth::user()->username,
-                    'updated_at' => date('Y-m-d H:i:s')
-                ]
-            );
+        // if ($rowAffected > 0){
+        //     DB::table('receiving_hdr')
+        //     ->where('rec_number',$recNumber)
+        //     ->update(
+        //         [   
+        //             'status' => $status,
+        //             'authorized_by' => $authorizedBy,
+        //             'authorized_at' => date('Y-m-d H:i:s'),
+        //             'updated_by' => Auth::user()->username,
+        //             'updated_at' => date('Y-m-d H:i:s')
+        //         ]
+        //     );
 
-            DB::select($sqlMovement);
+        //     DB::select($sqlMovement);
 
-            DB::commit();
-            $alert  ="alert-success";
-            $message  = "Posting Rec $recNumber Successfully Posting";
-            \LogActivity::addToLog('Posting Rec ',"username: $username Status $message");
-            return response()->json(array('statusRec' => $statusRec,'status' => 1, 'message' => $message,'alert'=>$alert,'recNumber'=>$recNumber));
-        }else{
-            $alert  ="alert-warning";
-            $message  = "Posting Rec $recNumber Failed to Posting";
-            \LogActivity::addToLog('Posting Rec ',"username: $username Status $message");
-            return response()->json(array('statusRec' => $statusRec,'status' => 1, 'message' => $message,'alert'=>$alert,'recNumber'=>$recNumber));
-        }
+        //     DB::commit();
+        //     $alert  ="alert-success";
+        //     $message  = "Posting Rec $recNumber Successfully Posting";
+        //     \LogActivity::addToLog('Posting Rec ',"username: $username Status $message");
+        //     return response()->json(array('statusRec' => $statusRec,'status' => 1, 'message' => $message,'alert'=>$alert,'recNumber'=>$recNumber));
+        // }else{
+        //     $alert  ="alert-warning";
+        //     $message  = "Posting Rec $recNumber Failed to Posting";
+        //     \LogActivity::addToLog('Posting Rec ',"username: $username Status $message");
+        //     return response()->json(array('statusRec' => $statusRec,'status' => 1, 'message' => $message,'alert'=>$alert,'recNumber'=>$recNumber));
+        // }
     }
 
     public function destroy(Request $request)
@@ -891,7 +891,18 @@ class InvoiceController extends Controller
             '11' => 'November',
             '12' => 'Desember',
         );
-        $data['tanggalHariIni']= date('d').' '.($bulan[date('m')]).' '.date('Y');
+
+        /* Invoice date tadinya tanggal hari ini , sekarang pakai tanggal invoice date */
+        $invoiceDate = $header->invoice_date;
+        
+        if ($invoiceDate){
+            $invoiceDate= explode("-",$invoiceDate);
+            $data['tanggalHariIni']= $invoiceDate[0].' '.($bulan[$invoiceDate[1]]).' '.$invoiceDate[2];
+        }else{
+            $data['tanggalHariIni']= date('d').' '.($bulan[date('m')]).' '.date('Y');    
+        }
+
+        // $data['tanggalHariIni']= date('d').' '.($bulan[date('m')]).' '.date('Y');
 
         // $data['tanggalHariIni']=date("d F Y");
 
