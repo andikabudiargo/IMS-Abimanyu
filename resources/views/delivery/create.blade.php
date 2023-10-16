@@ -69,8 +69,10 @@
                 <div class="card-body" >
                     @include('delivery.headerColumn')
                     <input type="text" id ="last_row_number" class="d-none" value="0">
+                    <form id="articleRowFrm" name="articleRowFrm" autocomplete="off">
                     <div class="" id="article_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px">
                     </div>
+                    </form>
                     <div class="d-flex justify-content-between align-items-end mt-75">
                         <div class="col-md-4">
                         </div>

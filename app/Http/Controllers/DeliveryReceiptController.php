@@ -71,7 +71,8 @@ class DeliveryReceiptController extends Controller
         $data['title'] = $this->title;
         $data['kolom'] = $this->getTableColoumn();
         $status = $request->statusKu;       
-        $data['status'] = ['0'=>'POSTED','1'=>'RECEIVED','2'=>'SUBMITTED','5'=>'CANCELED'];
+        // $data['status'] = ['0'=>'POSTED','1'=>'RECEIVED','2'=>'SUBMITTED','5'=>'CANCELED'];
+        $data['status'] = ['0'=>'POSTED','1'=>'RECEIVED','2'=>'SUBMITTED'];
         $data['statusKu'] = $status ? $status :'0';
 
         $data['custs'] = DB::table('third_party')
@@ -123,7 +124,8 @@ class DeliveryReceiptController extends Controller
         $data['drNumber'] ="";
         $data['dnNumber'] =$dn->delivery_number;
         $data['dnDate'] = $dn->delivery_date;    
-        $data['statusKu'] = $statusKu;   
+        $data['statusKu'] = $statusKu; 
+        $data['username'] = $username;  
 
         return view("dnReceipt.create",$data);
     }
@@ -168,6 +170,7 @@ class DeliveryReceiptController extends Controller
             foreach ($validation->messages()->getMessages() as $field_name => $messages){
                 $error_array[] = $messages;
             }
+
             $title="Save  $this->title";
             $alert ="error";
             return response()->json(array('status' => 0,'title' => $title, 'message' => $error_array,'alert' =>$alert));
@@ -243,6 +246,7 @@ class DeliveryReceiptController extends Controller
 
         $data['drDate'] = date('d-m-Y', strtotime($data['dnReceipt']->dr_date));
         $data['statusKu'] = $statusKu;
+        $data['username'] = $username;  
         
         return view("dnReceipt.edit",$data);
     }
@@ -324,19 +328,23 @@ class DeliveryReceiptController extends Controller
     {
         $username =  Auth::user()->username;       
         $id=Crypt::decryptString($request->id);
-        $drNumber = DB::table('dn_receipt')->where('id',$id)->where('status','1')->first();
+        $drNumber = DB::table('dn_receipt')->where('id',$id)->first();
+
+        // $rowAffected = DB::table('dn_receipt')
+        // ->where('dr_number',$drNumber->dr_number)
+        // ->update(
+        //     [
+        //         'status'=> '5',
+        //         'delivery_number' => $drNumber->delivery_number.'(C)',
+        //         'note'  => $drNumber->note.'(C)',
+        //         'updated_by' => Auth::user()->username,
+        //         'updated_at' => date('Y-m-d H:i:s')
+        //     ]
+        // );
 
         $rowAffected = DB::table('dn_receipt')
         ->where('dr_number',$drNumber->dr_number)
-        ->update(
-            [
-                'status'=> '2',
-                'delivery_number' => $drNumber->delivery_number.'(C)',
-                'note'  => $drNumber->note.'(C)',
-                'updated_by' => Auth::user()->username,
-                'updated_at' => date('Y-m-d H:i:s')
-            ]
-        );
+        ->delete();
 
         if($rowAffected>0){
 
@@ -350,7 +358,7 @@ class DeliveryReceiptController extends Controller
                 ]
             );
 
-            \LogActivity::addToLog('Delivery update',"username: $username Status Delivery Canceled receipt DN");
+            // \LogActivity::addToLog('Delivery update',"username: $username Status Delivery Canceled receipt DN");
 
             $title ="Cancel $this->title";
             $alert  ="success";
@@ -477,19 +485,21 @@ class DeliveryReceiptController extends Controller
                 }
             }
                 
-            // if (Auth::user()->can('dnReceipt-delete')) {
-            //     $buttons .=         "<a href='javascript:;'
-            //                         class='dropdown-item' 
-            //                         data-size='sm'
-            //                         data-ajax-delete='true'
-            //                         data-confirm='Are You Sure want to Cancel?|This action can not be undone. Do you want to continue?' 
-            //                         data-confirm-yes='document.getElementById(\""."delete-form-".$data->id."\").submit();'
-            //                         data-modal-id='".$data->id."'
-            //                         data-url='". route('dnReceipt.destroy', ['id'=>Crypt::encryptString($data->id)]) ."'>
-            //                         <i data-feather='trash-2' class='feather-14-red'></i>
-            //                         <span>". __('Cancel') ."</span>
-            //                     </a>";
-            // }
+            if (Auth::user()->can('dnReceipt-delete')) {
+                if ($data->status != '4'){
+                    $buttons .=         "<a href='javascript:;'
+                                        class='dropdown-item' 
+                                        data-size='sm'
+                                        data-ajax-delete='true'
+                                        data-confirm='Are You Sure want to Cancel?|This action can not be undone. Do you want to continue?' 
+                                        data-confirm-yes='document.getElementById(\""."delete-form-".$data->idku."\").submit();'
+                                        data-modal-id='".$data->idku."'
+                                        data-url='". route('dnReceipt.destroy', ['id'=>Crypt::encryptString($data->idku)]) ."'>
+                                        <i data-feather='trash-2' class='feather-14-red'></i>
+                                        <span>". __('Delete') ."</span>
+                                    </a>";
+                }
+            }
 
             $buttons .=     '</div>
                         </div>';

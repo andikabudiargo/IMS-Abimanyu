@@ -46,10 +46,10 @@
                             <div class="form-row">
                                 <div class="form-group col-md-3">
                                     <label class="form-label" for="receiveBy">Received by*</label>
-                                    <select class="select2 form-control" id="receiveBy" name="receiveBy" required>
-                                        <option value=""></option>
+                                    <select class="select2 form-control disabled-el" id="receiveBy" name="receiveBy" disabled required>
+                                        {{-- <option value=""></option> --}}
                                         @foreach($users as $val)
-                                            <option value="{{ $val->username }}" {{ $val->username == old('receiveBy') ? "selected":"" }} >{{ $val->name }}</option>
+                                            <option value="{{ $val->username }}" {{ $val->username == old('receiveBy',$username) ? "selected":"" }} >{{ $val->name }}</option>
                                         @endforeach
                                     </select>
                                 </div>

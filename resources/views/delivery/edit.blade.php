@@ -66,9 +66,11 @@
                 </div>
                 <div class="card-body">
                     @include('delivery.headerColumn')
-                    <div class="" id="article_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px">
-                        <input type="text" id ="last_row_number" class="d-none" value="{{ count($detail) }}">
-                    </div>
+                    <form id="articleRowFrm" name="articleRowFrm" autocomplete="off">
+                        <div class="" id="article_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px">
+                            <input type="text" id ="last_row_number" class="d-none" value="{{ count($detail) }}">
+                        </div>
+                    </form>
                     <div class="d-flex justify-content-between align-items-end mt-75 ml-75">
                     </div>
                     <div class="d-flex justify-content-between align-items-end mt-75">

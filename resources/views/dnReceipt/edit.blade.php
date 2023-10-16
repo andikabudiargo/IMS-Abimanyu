@@ -54,10 +54,10 @@
                             <div class="form-row">
                                 <div class="form-group col-md-3">
                                     <label class="form-label" for="submitBy">Submitted by*</label>
-                                    <select class="select2 form-control" id="submitBy" name="submitBy" required>
+                                    <select class="select2 form-control disabled-el" id="submitBy" name="submitBy" disabled required>
                                         <option value=""></option>
                                         @foreach($users as $val)
-                                            <option value="{{ $val->username }}" {{ $val->username == old("submitBy") ? "selected":"" }} >{{$val->name}}</option>
+                                            <option value="{{ $val->username }}" {{ $val->username == old("submitBy",$username) ? "selected":"" }} >{{$val->name}}</option>
                                         @endforeach
                                     </select>
                                 </div>
@@ -129,7 +129,7 @@
         let submitDate = new Date(submitAt.val().split('-').reverse().join('-'));
         let receiptDate = new Date(receiveAt.val().split('-').reverse().join('-'));
 
-        pesan += submitBy.val() === receiveBy.val() ? "Petugas tidak boleh sama" : "";
+        pesan += submitBy.val() === receiveBy.val() ? "Petugas Penyerah dan penerima tidak boleh sama" : "";
         pesan += receiptDate > submitDate ? "Submit Date > Receipt Date" : "";
 
         if (pesan){
