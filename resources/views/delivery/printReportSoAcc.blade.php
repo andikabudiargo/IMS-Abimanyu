@@ -141,8 +141,7 @@
                 </tr>
                 <tr>
                     <td valign="" width="3%" class="font-10 header-padding">Customer</td>
-                    <td valign="" width="30%" class="font-10 header-padding">: {{ $customer }}</td>
-                    <td></td>
+                    <td valign="" colspan ="2" width="30%" class="font-10 header-padding">: {{ $customer }}</td>
                 </tr>
             </tbody>
         </table>
