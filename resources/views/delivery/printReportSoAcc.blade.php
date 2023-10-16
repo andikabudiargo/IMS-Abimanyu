@@ -54,10 +54,10 @@
 
    
     th {
-        height: 30px;
+        height: 20px;
     }
     td {
-        height: 20px;
+        height: 12px;
     }
 
     th, td {

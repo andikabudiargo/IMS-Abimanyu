@@ -1519,7 +1519,7 @@ class DeliveryController extends Controller
             $barisTotal = "<tr><td colspan='3' style='background-color:white;border-right-color:white;'></td>
                                 <td align='left' style='background-color:white;border-left-color:white;padding-left:5px;padding-right:3px'>
                                 <div style='float:left;width:50%;'>".number_format($qtyDelivery,2)."</div>
-                                <div style='float:right;width:50%;'>Qty Sisa:".number_format($qtySisa,2)."</div>
+                                <div style='float:right;width:50%;padding-right:10px' align='right'>Qty Sisa:".number_format($qtySisa,2)."</div>
                                 </td> 
                             </tr>";
             
