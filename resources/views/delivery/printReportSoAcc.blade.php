@@ -10,7 +10,7 @@
 
     header { 
         position: fixed; 
-        top: -93px; 
+        top: -70px; 
         left: 10px; 
         right: 10px; 
         height: 50px; 
