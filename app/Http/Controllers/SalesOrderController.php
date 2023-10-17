@@ -1144,8 +1144,14 @@ class SalesOrderController extends Controller
         ,'third_party.nama as customer'
         ,'sales_order_det.ppn as ppn_price'
         ,'sales_order_det.id as id_det'
-        ,db::raw("(select sum(qty) from delivery_det where so_number = sales_order_hdr.so_code and article_code = sales_order_det.article_code group by article_code) as qty_kirim")
-        ,db::raw("coalesce((select sum(qty) from delivery_det where so_number = sales_order_hdr.so_code and article_code = sales_order_det.article_code group by article_code),0)-sales_order_det.qty as balance")
+        ,db::raw("(select sum(qty) from delivery_det a
+        left join delivery_hdr b on a.delivery_number=b.delivery_number 
+        where a.so_number = sales_order_hdr.so_code and a.article_code = sales_order_det.article_code 
+        and status <> '5' group by article_code) as qty_kirim")
+        ,db::raw("coalesce((select sum(qty) from delivery_det a
+        left join delivery_hdr b on a.delivery_number=b.delivery_number 
+        where a.so_number = sales_order_hdr.so_code and a.article_code = sales_order_det.article_code 
+        and status <> '5' group by article_code),0)-sales_order_det.qty as balance")
         // ,'sales_order_hdr.status as statusKu'
         // ,'uom_group'
         // ,'qty_target'
