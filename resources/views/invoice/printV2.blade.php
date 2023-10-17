@@ -147,7 +147,7 @@
         }
 
         #tblContent  td {
-            padding : 3px 10px 3px 10px;
+            padding : 0px 10px 0px 10px;
             border-bottom: none;
             border-left: thin solid var(--line-color);
             border-right: thin solid var(--line-color);
@@ -273,7 +273,7 @@
                     <table id="tblContent" class="font-14" style="table-layout:fixed;">
                         <thead>
                             <tr>
-                                <th width="5%">No</th>
+                                <th width="5%"><div style="height:35px;">No</div></th>
                                 <th width="51.5%" >Description</th>
                                 <th width="8.5%" align="center">Qty</th>
                                 @if($printType=='1')
@@ -298,10 +298,10 @@
                                 <td  style="border-right: 1px solid black;padding:0 3px 0 3px" align="right">{{ number_format($val->price_service,2) }}</td>
                                 <td  style="border-right: 1px solid black;padding:0 3px 0 3px" align="right">{{ number_format(($val->qty*$val->price_service),2) }}</td>
                                 @endif
-                            </tr>                                                       
+                            </tr>
                         @endforeach
                         
-                        <?php $totalBaris = 11 ?>
+                        <?php $totalBaris = 14 ?>
 
                         @for ($i=1;$i< $totalBaris-(count($details));$i++)
                             <tr>
@@ -356,13 +356,15 @@
                                     Cabang KC Purwakarta<br>
                                     a.n PT. Abimanyu Sekar Nusantara<br><br>
                                     Attention/ perhatian<br>
+                                    <span style="font-size: 11pt;">
                                     - Faktur ini berlaku sebagai Kwitansi.<br>
                                     - Pembayaran dengan Cheque / Bilyet atau Wesel dianggap lunas setelah melalui Clearing
+                                    </span>
                                 </td>
                                 <td class="arial" valign="top" colspan="2" align="center" style="font-size: 11pt;">
                                     <br>
                                     Purwakarta, {{ $tanggalHariIni }} <br>
-                                    <br><br><br><br><br><br>
+                                    <br><br><br><br><br>
                                     ( Budi Mulyadi )
                                 </td>
                             </tr>
