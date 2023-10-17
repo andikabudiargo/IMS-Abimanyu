@@ -170,7 +170,7 @@
             <td align="center" width="10%"></td>
             <td align="center" width="20%">Dibuat oleh</td>
             <td align="center" width="10%"></td>
-            <td align="center" width="20%">Dperiksa</td>
+            <td align="center" width="20%">Diperiksa</td>
             <td align="center" width="10%"></td>
             <td align="center" width="20%">Mengetahui</td>
             <td align="center" width="10%"></td>
