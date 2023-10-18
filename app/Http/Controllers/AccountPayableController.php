@@ -179,7 +179,6 @@ class AccountPayableController extends Controller
             $data= DB::table("purchase_order_hdr") 
             ->where("supplier_id",$supp)
             ->whereIn('po_number', function($query) use ($supp) {
-
                 $listRec = DB::table('ap_invoice_detail')
                 ->whereIn('ap_number',DB::table('ap_invoice')
                 // ->where('ap_invoice.po_number','purchase_order_hdr.po_number')
@@ -1526,14 +1525,14 @@ class AccountPayableController extends Controller
                 // }
             }
 
-            // if (($data->status != '3') && ($data->status != '4') && ($data->status != '5')){
+            if (($data->status != '3') && ($data->status != '4') && ($data->status != '5')){
                 if (Auth::user()->can('ap-edit')) {
                 $buttons .=         '<a href="'. route('ap.edit',['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                         <i data-feather="file-text"></i>
                                         <span>'. __("Edit") .'</span>
                                     </a>';
                 }
-            // }
+            }
 
             $buttons .=         '<a href="'. route('ap.show', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                             <i data-feather="list"></i>
