@@ -104,6 +104,13 @@
         columnDefs :[
           { width: '5%', targets: 0 }
         ],
+        columnDefs :[
+          {
+              targets: [ 5 ],
+              render: $.fn.dataTable.render.number(',','.',2,''),
+              className: "text-right"
+          },
+        ],
         dataSearch:  {
           name:nama,
           code:code
