@@ -555,7 +555,8 @@ class ArticleController extends Controller
                     $alert  ="success";
                     $message  = "$this->title $articleAltCode is successfully updated";
                     \LogActivity::addToLog($title,"username: $username Status $message");
-                    return redirect()->back()->with(['status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'articleCode'=>$articleAltCode]);
+                    // return redirect()->back()->with(['status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'articleCode'=>$articleAltCode]);
+                    return redirect()->route('articles.index')->with(array('title' => $title, 'message' => $message,'alert'=>$alert,'articleCode'=>$articleAltCode));
                 }else{
                     $title ="Update $this->title";
                     $alert  ="warning";
@@ -572,6 +573,7 @@ class ArticleController extends Controller
             \LogActivity::addToLog($title,"username: $username Status $message");
             return redirect()->back()->with(['status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'articleCode'=>$articleAltCode]);
         }
+
     }
 
     public function destroy(Request $request)

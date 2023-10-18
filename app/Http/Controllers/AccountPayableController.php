@@ -1427,12 +1427,12 @@ class AccountPayableController extends Controller
             ->where('ap_number',$apNumber)
             ->delete();
 
-            $kasDet = DB::table('kas_det')
-            ->where('reference',$apNumber)
-            // ->whereIn('voucher_type',['KK','BK'])
-            ->first();
+            // $kasDet = DB::table('kas_det')
+            // ->where('reference',$apNumber)
+            // // ->whereIn('voucher_type',['KK','BK'])
+            // ->first();
             
-            $voucherNumber=$kasDet->voucher_number;
+            // $voucherNumber=$kasDet->voucher_number;
 
             DB::table('kas_hdr')
             ->where('voucher_number',$apNumber)
