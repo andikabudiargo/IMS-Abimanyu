@@ -23,7 +23,7 @@
         body.A5           .sheet { width: 148mm; height: 209mm }
         body.A5.landscape .sheet { width: 210mm; height: 147mm }
         /* body.Letter           .sheet { width: 215mm; height: 296mm } */
-        body.Letter           .sheet { width: 241mm; height: 300mm }
+        body.Letter           .sheet { width: 230mm; height: 310mm }
         body.Letter.landscape .sheet { width: 297mm; height: 215mm }
 
         /** Padding area **/
@@ -315,7 +315,7 @@
                                 </tr>
                             @endfor
                             <tr>
-                                <td  align="left"  style="border-bottom: 1px solid black;border-right: 1px solid black;"></td>
+                                <td  align="left"  style="border-bottom: 1px solid black;border-right: 1px solid black;"><div style="height:35px;"></td>
                                 <td  align="left"  style="border-bottom: 1px solid black;border-right: 1px solid black;"></td>
                                 <td  align="right" style="border-bottom: 1px solid black;border-right: 1px solid black;"></td>
                                 <td  align="right" style="border-bottom: 1px solid black;border-right: 1px solid black;"></td>
