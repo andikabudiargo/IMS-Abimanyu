@@ -94,8 +94,6 @@
                                     </div>
                                 </div>
                             </div>
-
-                            
                         </form>
                     </div>
                 </div>
@@ -133,11 +131,11 @@
                                             <td>{{ $item->desc }}</td>
                                             <td class="text-right">{{ number_format($item->qty) }}</td>
                                             <td>{{ $item->uom }}</td>
-                                            <td class="text-right">{{ number_format($item->price) }}</td>
-                                            <td class="text-right">{{ number_format($item->price_service) }}</td>
-                                            <td class="text-right">{{ number_format($item->qty*$item->price) }}</td>
-                                            <td class="text-right">{{ number_format($item->qty*$item->price_service) }}</td>
-                                            <td class="text-right">{{ number_format(($item->qty*$item->price)+($item->qty*$item->price_service)) }}</td>
+                                            <td class="text-right">{{ number_format($item->price,2) }}</td>
+                                            <td class="text-right">{{ number_format($item->price_service,2) }}</td>
+                                            <td class="text-right">{{ number_format(($item->qty*$item->price),2) }}</td>
+                                            <td class="text-right">{{ number_format(($item->qty*$item->price_service),2) }}</td>
+                                            <td class="text-right">{{ number_format((($item->qty*$item->price)+($item->qty*$item->price_service)),2) }}</td>
                                         </tr>
                                         @endforeach
                                     </tbody>
@@ -169,25 +167,25 @@
                             <div class="form-group row mb-03">
                                 <label for="totalAmount" class="col-sm-4 col-form-label titik-dua tanpa-padding">Bruto</label>
                                 <div class="col-sm-6">
-                                    <input type="text" class="form-control text-right font-weight-bold" id="totalAmount" value="{{ number_format($header->grand_total-$header->total_ppn) }}" disabled />
+                                    <input type="text" class="form-control text-right font-weight-bold" id="totalAmount" value="{{ number_format(($header->grand_total-$header->total_ppn),2) }}" disabled />
                                 </div>
                             </div>
                             <div class="form-group row mb-03">
                                 <label for="totalPPN" class="col-sm-4 col-form-label titik-dua tanpa-padding">PPN <span id="nilaiPPN"></span> </label>
                                 <div class="col-sm-6">
-                                    <input type="text" class="form-control text-right font-weight-bold" id="totalPPN" value="{{ number_format($header->total_ppn) }}"  disabled/>
+                                    <input type="text" class="form-control text-right font-weight-bold" id="totalPPN" value="{{ number_format($header->total_ppn,2) }}"  disabled/>
                                 </div>
                             </div>
                             <div class="form-group row mb-03">
                                 <label for="totalPPH" class="col-sm-4 col-form-label titik-dua tanpa-padding">PPH23 <span id="nilaiPPH23"></span> </label>
                                 <div class="col-sm-6">
-                                    <input type="text" class="form-control text-right font-weight-bold" id="totalPPH" value="{{ number_format($header->total_pph) }}" disabled/>
+                                    <input type="text" class="form-control text-right font-weight-bold" id="totalPPH" value="{{ number_format($header->total_pph,2) }}" disabled/>
                                 </div>
                             </div>
                             <div class="form-group row mb-03">
                                 <label for="totalNetto" class="col-sm-4 col-form-label titik-dua tanpa-padding">Netto</label>
                                 <div class="col-sm-6">
-                                    <input type="text" class="form-control text-right font-weight-bold" id="totalNetto" value="{{ number_format($header->grand_total) }}" disabled/>
+                                    <input type="text" class="form-control text-right font-weight-bold" id="totalNetto" value="{{ number_format($header->grand_total,2) }}" disabled/>
                                 </div>
                             </div>
                         </div>

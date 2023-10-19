@@ -68,10 +68,6 @@
                                             <input type="text" id="fakturPajak" name="fakturPajak" value="{{ $header->faktur_pajak }}" class="form-control" required />
                                         </div> --}}
                                     {{-- </div> --}}
-                                    
-                                    
-                                    
-
                                 </div>
                                 <div class="col-md-6 col-12">
                                     <div class="form-row">
@@ -137,7 +133,7 @@
                             <div class="form-group row mb-03">
                                 <label for="totalAmount" class="col-sm-4 col-form-label titik-dua tanpa-padding">DPP</label>
                                 <div class="col-sm-6">
-                                    <input type="text" class="form-control text-right font-weight-bold numeral-mask disabled-el" id="totalAmount" value="{{ $header->grand_total>0 ? $header->grand_total : 0 }}"disabled />
+                                    <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el" id="totalAmount" value="{{ $header->grand_total>0 ?  number_format($header->grand_total,2) : 0 }}"disabled />
                                     <input type="hidden" class="form-control text-right font-weight-bold" id="totalAmountJasa" disabled />
                                 </div>
                             </div>
@@ -150,7 +146,7 @@
                                     </div>
                                 </div>    
                                 <div class="col-sm-5">
-                                    <input type="text" class="form-control text-right font-weight-bold numeral-mask disabled-el" id="totalPPN"  name="totalPPN" value="{{ $header->total_ppn>0 ? $header->total_ppn : 0 }}"  {{ $header->total_ppn > 0 ? '' : 'disabled' }} {{ $header->total_ppn > 0 ? 'required' : '' }}/>
+                                    <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el" id="totalPPN"  name="totalPPN" value="{{ $header->total_ppn>0 ? number_format($header->total_ppn,2) : 0 }}"  {{ $header->total_ppn > 0 ? '' : 'disabled' }} {{ $header->total_ppn > 0 ? 'required' : '' }}/>
                                 </div>
                             </div>
                             <div class="form-group row mb-03">
@@ -162,13 +158,13 @@
                                     </div>
                                 </div> 
                                 <div class="col-sm-5">
-                                    <input type="text" class="form-control text-right font-weight-bold numeral-mask disabled-el" id="totalPPH" name="totalPPH" value="{{ $header->total_pph>0 ? $header->total_pph : 0 }}"  {{ $header->total_pph > 0 ? '' : 'disabled' }} {{ $header->total_pph > 0 ? 'required' : '' }}/>
+                                    <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el" id="totalPPH" name="totalPPH" value="{{ $header->total_pph>0 ? number_format($header->total_pph,2) : 0 }}"  {{ $header->total_pph > 0 ? '' : 'disabled' }} {{ $header->total_pph > 0 ? 'required' : '' }}/>
                                 </div>
                             </div>
                             <div class="form-group row mb-03">
                                 <label for="totalNetto" class="col-sm-4 col-form-label titik-dua tanpa-padding">Netto</label>
                                 <div class="col-sm-6">
-                                    <input type="text" class="form-control text-right font-weight-bold" id="totalNetto" value="{{ $header->grand_total>0 ? $header->grand_total : 0 }}" disabled/>
+                                    <input type="text" class="form-control text-right numeral-mask-digit font-weight-bold" id="totalNetto" value="{{ $header->grand_total>0 ? $header->grand_total : 0 }}" disabled/>
                                 </div>
                             </div>
                         </div>
@@ -560,43 +556,7 @@
             }
         }
     });
-        
-    // let cloneCount=0;
-    // function add_new_row(article,articleCode,articleDesc,qty,uomGroup,uom,price,priceJasa,soCode,dnNumber,poNumber) {
-    //     $("#article_row").append($("#new_row").clone().html());
-    //     cloneCount++;
-    //     $("#article_row").find('#baru').attr('id', 'new_row'+ cloneCount);
-    //     $("#new_row"+ cloneCount).find('#uom').attr('id', 'uom'+ cloneCount);
-    //     $("#new_row"+ cloneCount).find('#qtyInv').attr('id', 'qtyInv'+ cloneCount);
-    //     $("#new_row"+ cloneCount).find('#totalLine').attr('id', 'totalLine'+ cloneCount);
-    //     $("#new_row"+ cloneCount).find('#totalJasa').attr('id', 'totalJasa'+ cloneCount);
-    //     $("#new_row"+ cloneCount).find('#subTotal').attr('id', 'subTotal'+ cloneCount);
-    //     $("#new_row"+ cloneCount).find('#articleId').attr('id', 'articleId'+ cloneCount);
-    //     $("#new_row"+ cloneCount).find('#price').attr('id', 'price'+ cloneCount);
-    //     $("#new_row"+ cloneCount).find('#priceJasa').attr('id', 'priceJasa'+cloneCount);
-    //     $('#articleId'+ cloneCount).attr('data-code', article);
-    //     $('#articleId'+ cloneCount).attr('data-desc', articleDesc);
-    //     $('#articleId'+ cloneCount).attr('data-uom', uom);
-    //     $('#articleId'+ cloneCount).attr('data-price', price);
-    //     $('#articleId'+ cloneCount).attr('data-price-service', priceJasa);
-    //     $('#articleId'+ cloneCount).attr('data-so-code', soCode);
-    //     $('#articleId'+ cloneCount).attr('data-dn-number', dnNumber);
-    //     $('#articleId'+ cloneCount).attr('data-po-number', poNumber);
-    //     // $('#articleId'+ cloneCount).val(articleCode +" - " + articleDesc);
-    //     $('#articleId'+ cloneCount).val(articleDesc);
-    //     $('#price'+ cloneCount).val(price);
-    //     $('#priceJasa'+ cloneCount).val(priceJasa);
-    //     $('#qtyInv'+ cloneCount).val(qty);
-    //     $('#uom'+ cloneCount).val(uom);
-    //     $('#totalLine'+ cloneCount).val(qty*price).trigger('change');
-    //     $('#totalJasa'+ cloneCount).val(qty*priceJasa).trigger('change');
-    //     $('#subTotal'+ cloneCount).val((qty*price)+(qty*priceJasa)).trigger('change');
-    //     tombolPanah('qtyInv');
-    //     hitungTotal();
-    //     hitungGrandTotal();
-    //     mask_thousand();
-    // }
-   
+           
     $.ajaxSetup({
         headers: {
             'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')

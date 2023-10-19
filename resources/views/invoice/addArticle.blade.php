@@ -50,25 +50,25 @@
                         <input type="text" class="form-control-plaintext" id = "uom" name="uom[]" disabled>
                     </td>
                     <td class="isian" style="width: 8%">
-                        <input type="text" class="form-control-plaintext numeral-mask text-right" id = "price" name="price[]"  maxlength="11">
+                        <input type="text" class="form-control-plaintext numeral-mask-digit text-right" id = "price" name="price[]"  oninput='inputDecimal(this)' maxlength="15">
                     </td>
                     <td class="isian" style="width: 8%">
-                        <input type="text" class="form-control-plaintext numeral-mask text-right" id = "priceJasa" name="priceJasa[]"  maxlength="11">
+                        <input type="text" class="form-control-plaintext numeral-mask-digit text-right" id = "priceJasa" name="priceJasa[]"  oninput='inputDecimal(this)' maxlength="15">
                     </td>
                     <td class="isian disabled text-right" style="width: 10%">
                         {{-- <input type="text" class="form-control-plaintext numeral-mask text-right" id="totalLine" name="totalLine[]" > --}}
                         {{-- <span id="totalLine" name="totalLine[]"></span> --}}
-                        <input type="text" class="form-control-plaintext numeral-mask text-right" id = "totalLine" name="totalLine[]" disabled>
+                        <input type="text" class="form-control-plaintext numeral-mask-digit text-right" id = "totalLine" name="totalLine[]" disabled>
                         {{-- <span class="text-hitam text-hitam" id="totalLine" name="totalLine[]"></span> --}}
                     </td>
                     <td class="isian disabled text-right" style="width: 10%">
                         {{-- <input type="text" class="form-control-plaintext numeral-mask text-right" id="totalJasa" name="totalJasa[]" > --}}
                         {{-- <span id="totalJasa" name="totalJasa[]"></span> --}}
-                        <input type="text" class="form-control-plaintext numeral-mask text-right" id = "totalJasa" name="totalJasa[]" disabled>
+                        <input type="text" class="form-control-plaintext numeral-mask-digit text-right" id = "totalJasa" name="totalJasa[]" disabled>
                         {{-- <span class="text-hitam text-hitam" id="totalJasa" name="totalJasa[]""></span> --}}
                     </td>
                     <td class="isian disabled text-right" style="width: 10%">
-                        <input type="text" class="form-control-plaintext numeral-mask text-right" id = "subTotal" name="subTotal[]" disabled>
+                        <input type="text" class="form-control-plaintext numeral-mask-digit text-right" id = "subTotal" name="subTotal[]" disabled>
                         {{-- <span class="text-hitam text-hitam" id="subTotal" name="subTotal[]"></span> --}}
                     </td>
                     {{-- <td class="isian text-center" style="width: 5%">
@@ -93,6 +93,15 @@
     let sNilaiPPH= "{{ $nilaiPPH }}";
     let showDetail="";
     let edit="";
+
+    let delayTimer;
+    function inputDecimal(ele) {
+        clearTimeout(delayTimer);
+        delayTimer = setTimeout(function() {
+            let nilai = ele.value.replace(/,/gi, '') || 0;;
+            ele.value = humanizeNumber(parseFloat(nilai).toFixed(2)).toString();
+        }, 1100); 
+    }
 
     customer.change(function(){
         searchSo('soNumber',$(this).val());
@@ -120,7 +129,6 @@
 
     function searchDn(soNumber) {
         let invNumber = $('#invNumber').val();
-        console.log('kesini');
         $("#listOfDn > tbody").empty();
         if(soNumber){
             $.ajax({
@@ -179,11 +187,12 @@
             let priceJasa = objPriceJasa.eq(indexnya).val().replace(/,/gi, '') ||0;
             let total = qty*price;
             let totalJasa = qty*priceJasa;
-            objTotal.eq(indexnya).val(total).trigger('input');
-            objTotalJasa.eq(indexnya).val(totalJasa).trigger('input');
-            objSubTotal.eq(indexnya).val(total+totalJasa).trigger('input');
+            objTotal.eq(indexnya).val(total.toFixed(2)).trigger('input');
+            objTotalJasa.eq(indexnya).val(totalJasa.toFixed(2)).trigger('input');
+            objSubTotal.eq(indexnya).val((total+totalJasa).toFixed(2)).trigger('input');
             hitungGrandTotal();
-            mask_thousand();
+            // mask_thousand();
+            // mask_thousand_digit(2);
         });
 
         objPrice.keyup(function() {
@@ -193,11 +202,12 @@
             let total = qty*price;
             let priceJasa = objPriceJasa.eq(indexnya).val().replace(/,/gi, '')||0;
             let totalJasa = qty*priceJasa;
-            objTotal.eq(indexnya).val(total).trigger('input');
-            objTotalJasa.eq(indexnya).val(totalJasa).trigger('input');
-            objSubTotal.eq(indexnya).val(total+totalJasa).trigger('input');
+            objTotal.eq(indexnya).val(total.toFixed(2)).trigger('input');
+            objTotalJasa.eq(indexnya).val(totalJasa.toFixed(2)).trigger('input');
+            objSubTotal.eq(indexnya).val((total+totalJasa).toFixed(2)).trigger('input');
             hitungGrandTotal();
-            mask_thousand();
+            // mask_thousand();
+            // mask_thousand_digit(2);
         });    
 
         objPriceJasa.keyup(function() {
@@ -207,11 +217,12 @@
             let total = qty*price;
             let priceJasa = objPriceJasa.eq(indexnya).val().replace(/,/gi, '')||0;
             let totalJasa = qty*priceJasa;
-            objTotal.eq(indexnya).val(total).trigger('input');
-            objTotalJasa.eq(indexnya).val(totalJasa).trigger('input');
-            objSubTotal.eq(indexnya).val(total+totalJasa).trigger('input');
+            objTotal.eq(indexnya).val(total.toFixed(2)).trigger('input');
+            objTotalJasa.eq(indexnya).val(totalJasa.toFixed(2)).trigger('input');
+            objSubTotal.eq(indexnya).val((total+totalJasa).toFixed(2)).trigger('input');
             hitungGrandTotal();
-            mask_thousand();
+            // mask_thousand();
+            // mask_thousand_digit(2);
         });
         
     }
@@ -234,7 +245,6 @@
             let price = parseInt(objPrice.eq(i).val().replace(/,/gi, '')) || 0;
             let priceJasa = parseInt(objPriceJasa.eq(i).val().replace(/,/gi, '')) || 0;
             totalQty+= qty;
-            
             totalAmount+= (qty*price)+(qty*priceJasa);
             totalAmountMaterial+= (qty*price)+(qty*priceJasa);
             totalAmountJasa+= (qty*priceJasa);
@@ -249,22 +259,27 @@
         //     $("#pph23Check").prop("checked",false);
         // }
 
-        $("#totalAmountJasa").val(humanizeNumber(totalAmountJasa));
+        $("#totalAmountJasa").val(humanizeNumber(totalAmountJasa.toFixed(2)));
         $("#totalRow").val(objArticle.length);
         $("#totalQTY").val(humanizeNumber(totalQty));
-        $("#totalAmount").val(humanizeNumber(totalAmount));
+        $("#totalAmount").val(humanizeNumber(totalAmount.toFixed(2)));
         
         if(edit == 'false'){
             $("#nilaiPPN").text(ppn+"%");
             $("#nilaiPPH23").text(pph23+"%");
-            $("#totalAmountJasa").val(humanizeNumber(totalAmountJasa));
-            $("#totalPPN").val(humanizeNumber((parseInt(ppn)*totalAmountMaterial)/100));
+            $("#totalAmountJasa").val(humanizeNumber(totalAmountJasa.toFixed(2)));
+
+            if ($('#vatCheck').is(':checked')){
+                $("#totalPPN").val(humanizeNumber(((parseFloat(ppn)*totalAmountMaterial)/100).toFixed(2)));
+            }else{
+                $("#totalPPN").val(0);
+            }
     
             if ($('#pph23Check').is(':checked')){
                 if(totalAmountJasa > 0){
-                    $("#totalPPH").val(humanizeNumber(totalAmountJasa * (sNilaiPPH/100)));
+                    $("#totalPPH").val(humanizeNumber((totalAmountJasa * (sNilaiPPH/100)).toFixed(2)));
                 }else{
-                    $("#totalPPH").val(humanizeNumber(totalAmount * (sNilaiPPH/100)));
+                    $("#totalPPH").val(humanizeNumber((totalAmount * (sNilaiPPH/100)).toFixed(2)));
                 }
             }
         }
@@ -273,9 +288,13 @@
         let tPpn = $("#totalPPN").val().replace(/,/gi, '') || 0;
         let tPph = $("#totalPPH").val().replace(/,/gi, '') || 0;
 
-        $("#totalNetto").val(humanizeNumber((tDpp+parseFloat(tPpn))-parseFloat(tPph)));
+        let totalNetto1 = (tDpp+parseFloat(tPpn))-parseFloat(tPph);
+
+        $("#totalNetto").val(humanizeNumber(totalNetto1.toFixed(2)));
 
         jumlahDetail();
+
+        mask_thousand_digit(2);
     }
 
     $('#totalPPH').keyup(function() {
@@ -287,14 +306,15 @@
             let totalAmountJasa = parseInt($('#totalAmountJasa').val().replace(/,/gi, '')) || 0;
             let totalAmount = parseInt($('#totalAmount').val().replace(/,/gi, '')) || 0;
             if (totalAmountJasa){
-                $("#totalPPH").val(totalAmountJasa * (sNilaiPPH/100));
+                $("#totalPPH").val((totalAmountJasa * (sNilaiPPH/100)).toFixed(2));
             }else{
-                $("#totalPPH").val(totalAmount * (sNilaiPPH/100));
+                $("#totalPPH").val((totalAmount * (sNilaiPPH/100)).toFixed(2));
             }
             $("#nilaiPPH").text(sNilaiPPH+'%');
             $('#totalPPH').removeAttr('disabled');
             $('#totalPPH').focus().select();
             mask_thousand();
+            mask_thousand_digit(2);
             totalSummary();
         }else{
             $("#totalPPH").val(0);
@@ -307,12 +327,13 @@
     $("#vatCheck").change(function() {
         if(this.checked) {
             let totalAmount = parseInt($('#totalAmount').val().replace(/,/gi, '')) || 0;
-            $("#totalPPN").val(totalAmount * (sNilaiPPN/100)).trigger("input");
+            $("#totalPPN").val((totalAmount * (sNilaiPPN/100)).toFixed(2)).trigger("input");
             $("#nilaiPPN").text(sNilaiPPN+'%');
             $("#totalPPN").removeAttr('disabled');
             $("#totalPPN").prop('required',true);
             $("#totalPPN").focus().select();
             mask_thousand();
+            mask_thousand_digit(2);
             totalSummary();
         }else{
             $("#totalPPN").val(0);
@@ -327,7 +348,8 @@
         let totalAmount1 = $("#totalAmount").val().replace(/,/gi, '') || 0;
         let jumlahPpn = $("#totalPPN").val().replace(/,/gi, '') || 0;
         let jumlahJasa = $('#totalPPH').val().replace(/,/gi, '') || 0;
-        $("#totalNetto").val(humanizeNumber((parseInt(totalAmount1)+parseInt(jumlahPpn))-parseInt(jumlahJasa)));
+        let totalSumamry1 = (parseInt(totalAmount1)+parseInt(jumlahPpn))-parseInt(jumlahJasa);
+        $("#totalNetto").val(humanizeNumber(totalSumamry1.toFixed(2)));
     }
 
     jumlahDetail = () =>{
@@ -430,19 +452,20 @@
         $('#articleId'+ cloneCount).attr('data-po-number', poNumber);
         // $('#articleId'+ cloneCount).val(articleCode +" - " + articleDesc);
         $('#articleId'+ cloneCount).val(articleDesc);
-        $('#price'+ cloneCount).val(price);
-        $('#priceJasa'+ cloneCount).val(priceJasa);
+        $('#price'+ cloneCount).val(parseFloat(price).toFixed(2));
+        $('#priceJasa'+ cloneCount).val(parseFloat(priceJasa).toFixed(2));
         $('#qtyInv'+ cloneCount).val(qty);
         $('#uom'+ cloneCount).val(uom);
         $('#dnNumber'+ cloneCount).val(dnNumber);
-        $('#totalLine'+ cloneCount).val(qty*price).trigger('input');
-        $('#totalJasa'+ cloneCount).val(qty*priceJasa).trigger('input');
-        $('#subTotal'+ cloneCount).val((qty*price)+(qty*priceJasa)).trigger('input');
+        $('#totalLine'+ cloneCount).val((qty*price).toFixed(2)).trigger('input');
+        $('#totalJasa'+ cloneCount).val((qty*priceJasa).toFixed(2)).trigger('input');
+        $('#subTotal'+ cloneCount).val(((qty*price)+(qty*priceJasa)).toFixed(2)).trigger('input');
 
         tombolPanah('qtyInv');
         hitungTotal();
         hitungGrandTotal();
         mask_thousand();
+        mask_thousand_digit(2);
         
     }
 

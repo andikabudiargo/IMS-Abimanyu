@@ -147,7 +147,7 @@
                                     </div>
                                 </div>    
                                 <div class="col-sm-5">
-                                    <input type="text" class="form-control text-right font-weight-bold numeral-mask disabled-el" id="totalPPN"  name="totalPPN" disabled/>
+                                    <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el" id="totalPPN"  name="totalPPN" disabled/>
                                 </div>
                             </div>
                             <div class="form-group row mb-03">
@@ -159,13 +159,13 @@
                                     </div>
                                 </div> 
                                 <div class="col-sm-5">
-                                    <input type="text" class="form-control text-right font-weight-bold numeral-mask disabled-el" id="totalPPH" name="totalPPH" disabled/>
+                                    <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el" id="totalPPH" name="totalPPH" disabled/>
                                 </div>
                             </div>
                             <div class="form-group row mb-03">
                                 <label for="totalNetto" class="col-sm-4 col-form-label titik-dua tanpa-padding">Netto</label>
                                 <div class="col-sm-6">
-                                    <input type="text" class="form-control text-right font-weight-bold numeral-mask disabled-el" id="totalNetto" disabled/>
+                                    <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el" id="totalNetto" disabled/>
                                 </div>
                             </div>
                         </div>
