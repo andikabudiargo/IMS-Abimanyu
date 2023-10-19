@@ -100,7 +100,7 @@
         tableId:"detailedTable",
         route:"{{ route('account.list') }}",
         kolom:{!! $kolom !!},
-        arrColPrint:[1,2,3,4],
+        arrColPrint:[1,2,3,4,5],
         columnDefs :[
           { width: '5%', targets: 0 }
         ],
