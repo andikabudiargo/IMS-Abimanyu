@@ -219,7 +219,7 @@
             <button class="btn btn-primary" type="button" id="cmdPrint" name="cmdPrint">Print</button>
         </div>
     </div>
-<div class="sheet padding-3mm">
+<div class="sheet padding-3mm" style="padding-top:5mm">
     <table>
         <thead>
             <tr>
