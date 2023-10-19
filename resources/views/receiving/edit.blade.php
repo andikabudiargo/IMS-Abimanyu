@@ -221,7 +221,7 @@
             article = detail[i].article_code;
             articleCode = detail[i].article_alternative_code;
             articleDesc = detail[i].article_desc;
-            qtyPo =  detail[i].qty;
+            qtyPo =  detail[i].qty_po*1;
             uomGroup =  detail[i].uom_group;
             uom =  detail[i].uomQty;
             qty =  detail[i].qty*1;
@@ -437,7 +437,7 @@
         $('#article_id'+ cloneCount).attr('data-price', price);
         $('#article_id'+ cloneCount).val(articleCode +" - " + articleDesc);
         $("#new_row"+ cloneCount).find('#qty_po').attr('id', 'qty_po'+ cloneCount);
-        $('#qty_po'+ cloneCount).val("");
+        $('#qty_po'+ cloneCount).val(qtyPo);
         $("#new_row"+ cloneCount).find('#qty_rec').attr('id', 'qty_rec'+ cloneCount);
         $('#qty_rec'+ cloneCount).val(qty);
         $("#new_row"+ cloneCount).find('#uom').attr('id', 'uom'+ cloneCount);

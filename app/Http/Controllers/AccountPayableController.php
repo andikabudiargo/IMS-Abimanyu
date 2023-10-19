@@ -1056,7 +1056,7 @@ class AccountPayableController extends Controller
     }
 
     public function prosesPosting($apNumber){
-        
+        /* Proses posting ke kas*/
         $apData = db::table('ap_invoice')
         ->leftJoin('third_party', 'third_party.kode', '=', 'ap_invoice.supplier_id')
         ->select('ap_invoice.*','third_party.nama as supplier_name')

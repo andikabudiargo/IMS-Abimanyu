@@ -302,13 +302,18 @@ class ReceivingController extends Controller
         ->get()->first();
 
         $recNumber = $data['header']->rec_number;
+        
 
         $data['detail'] = DB::table('receiving_det')
+        ->leftJoin('receiving_hdr','receiving_hdr.rec_number','receiving_det.rec_number')
         ->leftJoin('article','article.article_code','=','receiving_det.article_code')
         ->leftJoin('uom','receiving_det.uom_rec','uom.code')
         ->where('receiving_det.rec_number',$recNumber)
         ->orderBy('receiving_det.id')
-        // ->select('receiving_det.article_code')
+        ->select('receiving_det.*','uom.*','article.*',
+            DB::RAW("coalesce((select ((select sum(qty) from purchase_order_det where po_number = receiving_hdr.po_number and article_code = receiving_det.article_code) + receiving_det.qty) - sum(qty) as qty_po from receiving_det a where rec_number in (
+            select rec_number from receiving_hdr z where z.status <> '5' and z.po_number = receiving_hdr.po_number) and article_code = receiving_det.article_code),0) as qty_po")
+        )
         ->get();       
 
         $data['supps'] = DB::table('third_party')
