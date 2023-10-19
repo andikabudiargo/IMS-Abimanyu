@@ -611,14 +611,22 @@ class PurchaseRequestController extends Controller
                     ]);
                 }
 
-                if($statusPr == '3'){
+                // if($statusPr == '3'){
                     //kalau status nya sudah approved makan akan update PO kalo PR ini sudah jadi PO
                     //cek apakah ada po yang pake PR ini atau tidak, kalo ada maka PO nya harus di edit juga
 
+                    /*
+                        16/10/2023
+                        dari bu Ifah 
+                        Kalau PR di revisi PO tidak ikutan di revisi
+                    */
 
                     //Ambil nomor PR terakhir
+                    /*
+                    1.
                     $prTerakhir = DB::select("select max(pr_number) as pr_number from purchase_request_hdr where origin_pr_number = '$prNumber'");
                     $prTerakhir = $prTerakhir[0]->pr_number;
+                    */
 
                     // $poList = DB::table('purchase_order_det')
                     // ->leftJoin('purchase_order_hdr','purchase_order_hdr.po_number','purchase_order_det.po_number')
@@ -633,6 +641,9 @@ class PurchaseRequestController extends Controller
                         Query dibawah untuk dapat list no PO untuk article yang berubah QTY nya dari PR yang sama
 
                      */
+
+                    /*
+                    2.
                     $poList = DB::select("SELECT distinct(purchase_order_det.po_number) from purchase_order_det 
                     left join purchase_order_hdr on purchase_order_det.po_number = purchase_order_hdr.po_number
                     where pr_number = '$prNumber' 
@@ -649,7 +660,8 @@ class PurchaseRequestController extends Controller
                             $this->revisionPoFromPr($val->po_number,$prNumber,'Revisi');
                         }
                     }
-                }
+                    */
+                // }
                 
                 DB::commit();
                 $title ="Approve $this->title";
@@ -986,10 +998,14 @@ class PurchaseRequestController extends Controller
         ->first();
 
         $prNumber=$prHdr -> pr_number;
+
+        /*
+            untuk kode supplier diambil dari main supplier di article, karena pada saat pembuatan PR tidak masukin kode supplier
+        */
        
         $data['details']=DB::table('purchase_request_det')
         ->leftJoin('article','article.article_code','purchase_request_det.article_code')
-        ->leftJoin('third_party','third_party.kode','purchase_request_det.supp_code')
+        ->leftJoin('third_party','third_party.kode','article.third_party')
         ->select('article_alternative_code'
         ,'article_desc'
         ,'qty'
