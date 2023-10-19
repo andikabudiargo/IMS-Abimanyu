@@ -146,7 +146,7 @@
                                     </div>
                                 </div>    
                                 <div class="col-sm-5">
-                                    <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el" id="totalPPN"  name="totalPPN" value="{{ $header->total_ppn>0 ? number_format($header->total_ppn,2) : 0 }}"  {{ $header->total_ppn > 0 ? '' : 'disabled' }} {{ $header->total_ppn > 0 ? 'required' : '' }}/>
+                                    <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el" oninput='inputDecimal(this)' id="totalPPN"  name="totalPPN" value="{{ $header->total_ppn>0 ? number_format($header->total_ppn,2) : 0 }}"  {{ $header->total_ppn > 0 ? '' : 'disabled' }} {{ $header->total_ppn > 0 ? 'required' : '' }}/>
                                 </div>
                             </div>
                             <div class="form-group row mb-03">
@@ -158,7 +158,7 @@
                                     </div>
                                 </div> 
                                 <div class="col-sm-5">
-                                    <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el" id="totalPPH" name="totalPPH" value="{{ $header->total_pph>0 ? number_format($header->total_pph,2) : 0 }}"  {{ $header->total_pph > 0 ? '' : 'disabled' }} {{ $header->total_pph > 0 ? 'required' : '' }}/>
+                                    <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el" oninput='inputDecimal(this)' id="totalPPH" name="totalPPH" value="{{ $header->total_pph>0 ? number_format($header->total_pph,2) : 0 }}"  {{ $header->total_pph > 0 ? '' : 'disabled' }} {{ $header->total_pph > 0 ? 'required' : '' }}/>
                                 </div>
                             </div>
                             <div class="form-group row mb-03">

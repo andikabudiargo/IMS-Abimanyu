@@ -241,9 +241,9 @@
         let totalAmountMaterial=0
 
         var arr = objQtyTiw.map(function (i) {
-            let qty = parseInt(objQTY.eq(i).val().replace(/,/gi, '')) || 0;
-            let price = parseInt(objPrice.eq(i).val().replace(/,/gi, '')) || 0;
-            let priceJasa = parseInt(objPriceJasa.eq(i).val().replace(/,/gi, '')) || 0;
+            let qty = parseFloat(objQTY.eq(i).val().replace(/,/gi, '')) || 0;
+            let price = parseFloat(objPrice.eq(i).val().replace(/,/gi, '')) || 0;
+            let priceJasa = parseFloat(objPriceJasa.eq(i).val().replace(/,/gi, '')) || 0;
             totalQty+= qty;
             totalAmount+= (qty*price)+(qty*priceJasa);
             totalAmountMaterial+= (qty*price)+(qty*priceJasa);
@@ -297,14 +297,14 @@
         mask_thousand_digit(2);
     }
 
-    $('#totalPPH').keyup(function() {
+    $('#totalPPH,#totalPPN').keyup(function() {
         totalSummary();
     })
 
     $("#pph23Check").change(function() {
         if(this.checked) {
-            let totalAmountJasa = parseInt($('#totalAmountJasa').val().replace(/,/gi, '')) || 0;
-            let totalAmount = parseInt($('#totalAmount').val().replace(/,/gi, '')) || 0;
+            let totalAmountJasa = parseFloat($('#totalAmountJasa').val().replace(/,/gi, '')) || 0;
+            let totalAmount = parseFloat($('#totalAmount').val().replace(/,/gi, '')) || 0;
             if (totalAmountJasa){
                 $("#totalPPH").val((totalAmountJasa * (sNilaiPPH/100)).toFixed(2));
             }else{
@@ -326,7 +326,7 @@
 
     $("#vatCheck").change(function() {
         if(this.checked) {
-            let totalAmount = parseInt($('#totalAmount').val().replace(/,/gi, '')) || 0;
+            let totalAmount = parseFloat($('#totalAmount').val().replace(/,/gi, '')) || 0;
             $("#totalPPN").val((totalAmount * (sNilaiPPN/100)).toFixed(2)).trigger("input");
             $("#nilaiPPN").text(sNilaiPPN+'%');
             $("#totalPPN").removeAttr('disabled');
@@ -348,7 +348,7 @@
         let totalAmount1 = $("#totalAmount").val().replace(/,/gi, '') || 0;
         let jumlahPpn = $("#totalPPN").val().replace(/,/gi, '') || 0;
         let jumlahJasa = $('#totalPPH').val().replace(/,/gi, '') || 0;
-        let totalSumamry1 = (parseInt(totalAmount1)+parseInt(jumlahPpn))-parseInt(jumlahJasa);
+        let totalSumamry1 = (parseFloat(totalAmount1)+parseFloat(jumlahPpn))-parseFloat(jumlahJasa);
         $("#totalNetto").val(humanizeNumber(totalSumamry1.toFixed(2)));
     }
 
