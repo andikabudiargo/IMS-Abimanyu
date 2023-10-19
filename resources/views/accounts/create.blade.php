@@ -28,7 +28,7 @@
                         <div class="row">
                             <div class="form-group col-md-5">
                                 <label for="openingBalance">Opening balance</label>
-                                <input type="text" id="openingBalance" name="openingBalance" value="{{ old('openingBalance') }}" class="form-control numeral-mask angka" maxlength="15"/>
+                                <input type="text" id="openingBalance" name="openingBalance" oninput='inputDecimal(this)' value="{{ old('openingBalance') }}" class="form-control numeral-mask-digit" maxlength="20"/>
                             </div>
                         </div>
                         {{-- <div class="row">
@@ -114,7 +114,18 @@
         // $('#dept').val('{{ Request::old('dept') }}').trigger('change');
         // $('#type').val('{{ Request::old('type') }}').trigger('change');
         // $('#cashBank').val('{{ Request::old('cashBank') }}').trigger('change');
+        mask_thousand();
+        mask_thousand_digit(2);
     });
+
+    let delayTimer;
+    function inputDecimal(ele) {
+        clearTimeout(delayTimer);
+        delayTimer = setTimeout(function() {
+            let nilai = ele.value.replace(/,/gi, '') || 0;;
+            ele.value = humanizeNumber(parseFloat(nilai).toFixed(2)).toString();
+        }, 1100); 
+    }
 
     $("#cmdSave").click(function(){       
         $('.disabled-el').removeAttr('disabled');
@@ -127,12 +138,5 @@
         $("#account").focus();
     });
 
-    numeralMask = $('.numeral-mask');
-    if (numeralMask.length) {
-        new Cleave(numeralMask, {
-        numeral: true,
-        numeralThousandsGroupStyle: 'thousand'
-        });
-    }
 </script>
 @endsection
