@@ -28,7 +28,7 @@
                         <div class="row">
                             <div class="form-group col-md-5">
                                 <label for="openingBalance">Opening balance</label>
-                                <input type="text" id="openingBalance" name="openingBalance" oninput='inputDecimal(this)' value="{{ old('openingBalance',$accounts->opening_balance) }}" class="form-control numeral-mask-digit" maxlength="20"/>
+                                <input type="text" id="openingBalance" name="openingBalance" oninput='inputDecimal(this)' value="{{ old('openingBalance',$accounts->opening_balance ? number_format($accounts->opening_balance,2) : 0) }}" class="form-control numeral-mask-digit" maxlength="20"/>
                             </div>
                         </div>
                         {{-- <div class="row">
