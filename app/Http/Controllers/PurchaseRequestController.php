@@ -309,7 +309,7 @@ class PurchaseRequestController extends Controller
         })
         ->leftJoin('uom','uom.code','=','purchase_request_det.uom')
         ->leftJoin('article','article.article_code','=','purchase_request_det.article_code')
-        ->leftJoin('third_party','third_party.kode','purchase_request_det.supp_code')
+        ->leftJoin('third_party','third_party.kode','article.third_party')
         ->select('purchase_request_det'.'.*'
             ,'uom.uom_group'
             ,'third_party.nama as supplier_name'
