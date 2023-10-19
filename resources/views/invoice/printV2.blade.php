@@ -364,8 +364,8 @@
                                 <td class="arial" valign="top" colspan="2" align="center" style="font-size: 11pt;">
                                     <br>
                                     Purwakarta, {{ $tanggalHariIni }} <br>
-                                    <br><br><br><br><br><br>
-                                    (   Budi Mulyadi    )
+                                    <br><br><br><br><br><br><br>
+                                    (&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp Budi Mulyadi &nbsp&nbsp&nbsp&nbsp&nbsp&nbsp)
                                 </td>
                             </tr>
                         </tfoot>
