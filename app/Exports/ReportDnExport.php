@@ -69,7 +69,9 @@ class ReportDnExport implements FromView,ShouldAutoSize,WithColumnFormatting,Wit
             //     </tr>";
             
             $isiJudul=DB::select("SELECT a.article_code, c.article_alternative_code, c.article_desc,a.delivery_number
-            , b.delivery_date,a.qty
+            ,b.delivery_date
+            ,TO_DATE(b.delivery_date,'dd-mm-yyyy') as date_delivery
+            ,a.qty
             ,ceil((select sum(qty) from sales_order_det where so_code = a.so_number and article_code = a.article_code)) as qty_so 
             ,ceil((select sum(qty) from delivery_det where so_number = a.so_number and article_code = a.article_code and delivery_det.delivery_number in (select delivery_number from delivery_hdr where status not in ('5','7','10')))) as qty_delivery
             ,ceil((select sum(qty) from sales_order_det where so_code = a.so_number and article_code = a.article_code)) - (select sum(qty) from delivery_det where so_number = a.so_number and article_code = a.article_code and delivery_det.delivery_number in (select delivery_number from delivery_hdr where status not in ('5','7','10'))) as sisa_so
@@ -78,7 +80,7 @@ class ReportDnExport implements FromView,ShouldAutoSize,WithColumnFormatting,Wit
             left join article c on c.article_code = a.article_code
             where a.so_number = '$soNumber' and a.article_code = '$articleCode'
             and b.status not in ('5','7','10')
-            order by a.article_code,b.delivery_date");
+            order by date_delivery,b.delivery_number");
             $jumlahBaris++;
             $barisIsiJudul .= "<tr >
                     <td>No.</td>
