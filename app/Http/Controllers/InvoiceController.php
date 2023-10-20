@@ -249,6 +249,8 @@ class InvoiceController extends Controller
 
         $invoiceNumber = $data['header']->invoice_number;
 
+        /*
+        detail 
         $data['detail'] = DB::table('invoice_det')
         ->leftJoin('article','article.article_code','=','invoice_det.article_code')
         ->leftJoin('uom','uom.code','invoice_det.uom')
@@ -256,7 +258,28 @@ class InvoiceController extends Controller
         ->where('invoice_det.invoice_number',$invoiceNumber)
         ->orderBy('invoice_det.id')
         ->get();
+        */
 
+        /*summary*/
+
+        $data['detail']=DB::table('invoice_det')
+        ->leftJoin('article','article.article_code','invoice_det.article_code')
+        ->select('article.article_alternative_code as article'
+        ,'article.article_desc as desc'
+        ,'invoice_det.uom as uom'
+        ,db::raw('sum(qty) as qty')
+        ,'price'
+        ,'price_service')
+        ->where('invoice_number',$invoiceNumber)
+        ->groupBy(['article.article_desc'
+        ,'article.article_alternative_code'
+        ,'invoice_det.uom'
+        ,'qty'
+        ,'price'
+        ,'price_service'])
+        ->get();
+
+        
 
         $data['delivery'] = DB::table('delivery_hdr')
         ->whereIn('delivery_hdr.delivery_number', function($query) use ($invoiceNumber) {
@@ -306,6 +329,23 @@ class InvoiceController extends Controller
         ->leftJoin('uom','uom.code','invoice_det.uom')
         ->where('invoice_det.invoice_number',$invoiceNumber)
         ->orderBy('invoice_det.id')
+        ->get();
+
+        $data['summary']=DB::table('invoice_det')
+        ->leftJoin('article','article.article_code','invoice_det.article_code')
+        ->select('article.article_alternative_code'
+        ,'article.article_desc'
+        ,'invoice_det.uom as uom'
+        ,db::raw('sum(qty) as qty')
+        ,'price'
+        ,'price_service')
+        ->where('invoice_number',$invoiceNumber)
+        ->groupBy(['article.article_desc'
+        ,'article.article_alternative_code'
+        ,'invoice_det.uom'
+        ,'qty'
+        ,'price'
+        ,'price_service'])
         ->get();
 
         $data['customers'] = DB::table('third_party')
@@ -654,17 +694,71 @@ class InvoiceController extends Controller
         $arrayDnNumber = explode(",",$dn);
         $result = "'" . implode ( "', '", $arrayDnNumber ) . "'";
 
-        $data = DB::table('delivery_det')
+        $data['detail'] = DB::table('delivery_det')
         ->join('sales_order_det', function ($join) {
             $join->on('sales_order_det.so_code', '=', 'delivery_det.so_number')
                  ->on('sales_order_det.article_code', '=', 'delivery_det.article_code');
         })
         ->leftJoin('article','article.article_code','=','delivery_det.article_code')
         ->leftJoin('uom','delivery_det.uom','uom.code')
-        ->select('delivery_det.*','article.*','uom.uom_group','sales_order_det.*','delivery_det.qty as qty_dn')
+        // ->select('delivery_det.*','article.*','uom.uom_group','sales_order_det.*','delivery_det.qty as qty_dn')
+        ->select('article.article_code'
+        ,'article.article_alternative_code'
+        ,'article.article_desc'
+        ,'delivery_det.qty as qty_dn'
+        ,'uom.uom_group'
+        ,'delivery_det.uom'
+        ,'sales_order_det.price'
+        ,'sales_order_det.price_service'
+        ,'delivery_det.so_number'
+        ,'delivery_det.delivery_number'
+        ,'delivery_det.po_number'
+        )
         ->whereIn('delivery_det.delivery_number',$arrayDnNumber)
         ->where('delivery_det.so_number',$so)
-        ->orderBy('delivery_det.id')
+        ->orderBy('article.article_code')
+        ->get();
+
+
+        
+
+        /* summary */
+
+        $data['summary'] = DB::table('delivery_det')
+        ->join('sales_order_det', function ($join) {
+            $join->on('sales_order_det.so_code', '=', 'delivery_det.so_number')
+                 ->on('sales_order_det.article_code', '=', 'delivery_det.article_code');
+        })
+        ->leftJoin('article','article.article_code','=','delivery_det.article_code')
+        ->leftJoin('uom','delivery_det.uom','uom.code')
+        // ->select('delivery_det.*','article.*','uom.uom_group','sales_order_det.*','delivery_det.qty as qty_dn')
+        ->select('article.article_code'
+        ,'article.article_alternative_code'
+        ,'article.article_desc'
+        ,db::raw('sum(delivery_det.qty) as qty_dn')
+        ,'uom.uom_group'
+        ,'delivery_det.uom'
+        ,'sales_order_det.price'
+        ,'sales_order_det.price_service'
+        ,'delivery_det.so_number'
+        // ,'delivery_det.delivery_number'
+        // ,'delivery_det.po_number'
+        )
+        ->whereIn('delivery_det.delivery_number',$arrayDnNumber)
+        ->where('delivery_det.so_number',$so)
+        ->groupBy(['article.article_code'
+        ,'article.article_alternative_code'
+        ,'article.article_desc'
+        ,'uom.uom_group'
+        ,'delivery_det.uom'
+        ,'sales_order_det.price'
+        ,'sales_order_det.price_service'
+        ,'delivery_det.so_number'
+        // ,'delivery_det.delivery_number'
+        // ,'delivery_det.po_number'
+        ]
+        )
+        ->orderBy('article.article_code')
         ->get();
 
         // $data = DB::select("SELECT 
@@ -832,10 +926,17 @@ class InvoiceController extends Controller
        
         $data['details']=DB::table('invoice_det')
         ->leftJoin('article','article.article_code','invoice_det.article_code')
+        ->select('article.article_desc'
+        ,db::raw('sum(qty) as qty')
+        ,'price'
+        ,'price_service')
         ->where('invoice_number',$invNumber)
+        ->groupBy(['article.article_desc'
+        ,'qty'
+        ,'price'
+        ,'price_service'])
         ->get();
         
-
         $header=DB::table('invoice_hdr')
         ->where('invoice_number',$invNumber)
         ->first();

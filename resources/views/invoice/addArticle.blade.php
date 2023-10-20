@@ -348,8 +348,8 @@
         let totalAmount1 = $("#totalAmount").val().replace(/,/gi, '') || 0;
         let jumlahPpn = $("#totalPPN").val().replace(/,/gi, '') || 0;
         let jumlahJasa = $('#totalPPH').val().replace(/,/gi, '') || 0;
-        let totalSumamry1 = (parseFloat(totalAmount1)+parseFloat(jumlahPpn))-parseFloat(jumlahJasa);
-        $("#totalNetto").val(humanizeNumber(totalSumamry1.toFixed(2)));
+        let totalSummary1 = (parseFloat(totalAmount1)+parseFloat(jumlahPpn))-parseFloat(jumlahJasa);
+        $("#totalNetto").val(humanizeNumber(totalSummary1.toFixed(2)));
     }
 
     jumlahDetail = () =>{
@@ -378,6 +378,7 @@
         dnNumber=dnNumber.slice(0,-1);
         let soNumber= $('#soNumber').val();
         $("#article_row").empty();
+        $("#articleRow").empty();
         
         if(jumlahCheck > 0 && soNumber){
             $.ajax({
@@ -388,22 +389,38 @@
                     dnNumber:dnNumber
                 },
                 success:function(result){
-                    if(result.length > 0 ){
-                        for (let i = 0; i < result.length; i++) {
-                            article=result[i].article_code;
-                            articleCode=result[i].article_alternative_code;
-                            articleDesc=result[i].article_desc;
-                            qtyDn=result[i].qty_dn;
-                            uomGroup=result[i].uom_group;
-                            uom=result[i].uom;
-                            price=result[i].price;
-                            priceService=result[i].price_service;
-                            soCode=result[i].so_number;
-                            dnNumber=result[i].delivery_number;
-                            poNumber=result[i].po_number;
+                    if(result.detail.length > 0 ){
+                        for (let i = 0; i < result.detail.length; i++) {
+                            article=result.detail[i].article_code;
+                            articleCode=result.detail[i].article_alternative_code;
+                            articleDesc=result.detail[i].article_desc;
+                            qtyDn=result.detail[i].qty_dn;
+                            uomGroup=result.detail[i].uom_group;
+                            uom=result.detail[i].uom;
+                            price=result.detail[i].price;
+                            priceService=result.detail[i].price_service;
+                            soCode=result.detail[i].so_number;
+                            dnNumber=result.detail[i].delivery_number;
+                            poNumber=result.detail[i].po_number;
                             add_new_row(article,articleCode,articleDesc,qtyDn,uomGroup,uom,price,priceService,soCode,dnNumber,poNumber);
                         }
                     }
+
+                    if(result.summary.length > 0 ){
+                        for (let i = 0; i < result.summary.length; i++) {
+                            article=result.summary[i].article_code;
+                            articleCode=result.summary[i].article_alternative_code;
+                            articleDesc=result.summary[i].article_desc;
+                            qtyDn=result.summary[i].qty_dn;
+                            uomGroup=result.summary[i].uom_group;
+                            uom=result.summary[i].uom;
+                            price=result.summary[i].price;
+                            priceService=result.summary[i].price_service;
+                            soCode=result.summary[i].so_number;
+                            add_new_row_summary(article,articleCode,articleDesc,qtyDn,uomGroup,uom,price,priceService,soCode);
+                        }
+                    }
+
                     jumlahDetail();
                 },
                 error: function (response) {
@@ -462,6 +479,36 @@
         $('#subTotal'+ cloneCount).val(((qty*price)+(qty*priceJasa)).toFixed(2)).trigger('input');
 
         tombolPanah('qtyInv');
+        hitungTotal();
+        hitungGrandTotal();
+        mask_thousand();
+        mask_thousand_digit(2);
+        
+    }
+
+    let cloneCountSum=0;
+    function add_new_row_summary(article,articleCode,articleDesc,qty,uomGroup,uom,price,priceJasa,soCode) {
+        // $('#poNumberi').val(poNumber);
+        $("#articleRow").append($("#new_row").clone().html());
+        cloneCountSum++;
+        $("#articleRow").find('#baru').attr('id', 'newRow'+ cloneCountSum);
+        $("#newRow"+ cloneCountSum).find('#uom').attr('id', 'uomSum'+ cloneCountSum);
+        $("#newRow"+ cloneCountSum).find('#qtyInv').attr('id', 'qtyInvSum'+ cloneCountSum);
+        $("#newRow"+ cloneCountSum).find('#totalLine').attr('id', 'totalLineSum'+ cloneCountSum);
+        $("#newRow"+ cloneCountSum).find('#totalJasa').attr('id', 'totalJasaSum'+ cloneCountSum);
+        $("#newRow"+ cloneCountSum).find('#subTotal').attr('id', 'subTotalSum'+ cloneCountSum);
+        $("#newRow"+ cloneCountSum).find('#articleId').attr('id', 'articleIdSum'+ cloneCountSum);
+        $("#newRow"+ cloneCountSum).find('#price').attr('id', 'priceSum'+ cloneCountSum);
+        $("#newRow"+ cloneCountSum).find('#priceJasa').attr('id', 'priceJasaSum'+cloneCountSum);
+        $('#articleIdSum'+ cloneCountSum).val(articleDesc);
+        $('#priceSum'+ cloneCountSum).val(parseFloat(price).toFixed(2));
+        $('#priceJasaSum'+ cloneCountSum).val(parseFloat(priceJasa).toFixed(2));
+        $('#qtyInvSum'+ cloneCountSum).val(qty);
+        $('#uomSum'+ cloneCountSum).val(uom);
+        $('#totalLineSum'+ cloneCountSum).val((qty*price).toFixed(2)).trigger('input');
+        $('#totalJasaSum'+ cloneCountSum).val((qty*priceJasa).toFixed(2)).trigger('input');
+        $('#subTotalSum'+ cloneCountSum).val(((qty*price)+(qty*priceJasa)).toFixed(2)).trigger('input');
+
         hitungTotal();
         hitungGrandTotal();
         mask_thousand();

@@ -109,7 +109,11 @@
                 </div>
                 <div class="card-body">
                     @include('invoice.headerColumn')
-                    <div class="" id="article_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px">
+
+                    <div class="" id="articleRow" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px">
+                    </div>
+
+                    <div class="" id="article_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px" hidden>
                         <input type="text" id ="last_row_number" class="d-none" value="{{ count($detail) }}">
                     </div>
                     <div class="d-flex justify-content-between align-items-end mt-75 ml-75">
@@ -134,7 +138,7 @@
                                 <label for="totalAmount" class="col-sm-4 col-form-label titik-dua tanpa-padding">DPP</label>
                                 <div class="col-sm-6">
                                     <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el" id="totalAmount" value="{{ $header->grand_total>0 ?  number_format($header->grand_total,2) : 0 }}"disabled />
-                                    <input type="hidden" class="form-control text-right font-weight-bold" id="totalAmountJasa" disabled />
+                                    <input type="hidden" class="form-control text-right font-weight-bold" id="totalAmountJasa"/>
                                 </div>
                             </div>
                             <div class="form-group row mb-03">
@@ -352,7 +356,8 @@
     $(document).ready(function(){
         validateFormToast('frmAdd');
         let detail = {!!  $detail !!};
-        console.log()
+        let summary = {!!  $summary !!};
+        
         for (let i = 0; i < detail.length; i++) {
             article=detail[i].article_code;
             articleCode=detail[i].article_alternative_code;
@@ -367,6 +372,22 @@
             poNumber=detail[i].po_number;
             add_new_row(article,articleCode,articleDesc,qtySo,uomGroup,uom,price,priceService,soCode,dnNumberData,poNumber);
         }
+
+        if(summary.length > 0 ){
+            for (let a = 0; a < summary.length; a++) {
+                article=summary[a].article_code;
+                articleCode=summary[a].article_alternative_code;
+                articleDesc=summary[a].article_desc;
+                qtyDn=summary[a].qty;
+                uomGroup=summary[a].uom_group;
+                uom=summary[a].uom;
+                price=summary[a].price;
+                priceService=summary[a].price_service;
+                soCode=summary[a].so_number;
+                add_new_row_summary(article,articleCode,articleDesc,qtyDn,uomGroup,uom,price,priceService,soCode);
+            }
+        }
+
         // $('#totalPPH').attr('disabled','disabled');
         hitungTotal();
         edit='true';
@@ -536,9 +557,12 @@
                                 show_msg(data.title, data.message[i], data.alert);
                             }
                             $('#invNumber').attr('disabled','disabled');
+                            $('#totalAmount').attr('disabled','disabled');
+                            $('#customer').attr('disabled','disabled');
                         }else{
                             show_msg(data.title, data.message, data.alert);
                             $('#invNumber').val(data.invNumber);
+                            $('#totalAmount').attr('disabled','disabled');
                             $('#invNumber').attr('disabled','disabled');
                             $('#customer').attr('disabled','disabled');
                             $('#totalPPN').attr('disabled','disabled');

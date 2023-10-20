@@ -165,9 +165,9 @@
                         </div>
                         <div class="col-md-4">
                             <div class="form-group row mb-03">
-                                <label for="totalAmount" class="col-sm-4 col-form-label titik-dua tanpa-padding">Bruto</label>
+                                <label for="totalAmount" class="col-sm-4 col-form-label titik-dua tanpa-padding">DPP</label>
                                 <div class="col-sm-6">
-                                    <input type="text" class="form-control text-right font-weight-bold" id="totalAmount" value="{{ number_format(($header->grand_total-$header->total_ppn),2) }}" disabled />
+                                    <input type="text" class="form-control text-right font-weight-bold" id="totalAmount" value="{{ number_format((($header->grand_total-$header->total_ppn)+$header->total_pph),2) }}" disabled />
                                 </div>
                             </div>
                             <div class="form-group row mb-03">

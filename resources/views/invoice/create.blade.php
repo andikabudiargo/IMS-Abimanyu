@@ -113,7 +113,11 @@
                 <div class="card-body" >
                     @include('invoice.headerColumn')
                     <input type="text" id ="last_row_number" class="d-none" value="0">
-                    <div class="" id="article_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px">
+                    
+                    <div class="" id="articleRow" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px">
+                    </div>
+
+                    <div class="" id="article_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px" hidden>
                     </div>
                     <div class="d-flex justify-content-between align-items-end mt-75">
                         <div class="col-md-4">
