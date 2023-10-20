@@ -1504,7 +1504,7 @@ class DeliveryController extends Controller
             left join article c on c.article_code = a.article_code
             where a.so_number = '$soNumber' and a.article_code = '$articleCode'
             and b.status not in ('5','7','10')
-            order by a.article_code,b.delivery_date");
+            order by b.delivery_date,b.delivery_number");
             $jumlahBaris++;
             foreach($isiJudul as $key=>$item){
                 $no = $key+1;
