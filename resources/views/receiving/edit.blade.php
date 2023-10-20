@@ -270,6 +270,7 @@
             $('.disabled-el').removeAttr('disabled');
             // ambil semua data article
             let objQty= $('input[name="qty_rec[]"]');
+            let objQtyPo= $('input[name="qty_po[]"]');           
             let objUom= $('select[name="uom[]"]');
             let objQtyFree= $('input[name="qty_free[]"]');
             let objUomFree= $('select[name="uomFree[]"]');
@@ -288,6 +289,7 @@
                     let plu=article[0];
                     let articleName=article[1];
                     // let qty=objQty.eq(i).val().replace(/,/gi, '') || 0;
+                    let qtyPo=objQtyPo.eq(i).val().replace(/,/gi, '') || 0;
                     let qty=objQty.eq(i).val().replace(/,/gi, '') || 0;
                     let qtyUom=objUom.eq(i).val() || articleUom;
                     let qtyFree=objQtyFree.eq(i).val().replace(/,/gi, '') || 0;
