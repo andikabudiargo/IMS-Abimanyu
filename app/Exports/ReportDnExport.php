@@ -57,7 +57,7 @@ class ReportDnExport implements FromView,ShouldAutoSize,WithColumnFormatting,Wit
             $judul = $val->article_alternative_code." - ".$articleDesc;
             
             $barisIsiJudul = "<tr>
-                                <td align='center'>$articleAlternative - $articleDesc</td><td></td><td></td><td></td><td></td>
+                                <td></td><td align='center'>$articleAlternative - $articleDesc</td><td></td><td></td><td></td>
                             </tr>";
             // $barisIsiJudul = "<tr><td>$articleAlternative</td><td>$soNumber</td><td colspan='3'>".strtoupper($judul)."</td>
             //                         <td > QTY SO : ".number_format($qtySo,2)."</td> </tr>";
