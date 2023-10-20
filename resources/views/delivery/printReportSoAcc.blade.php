@@ -10,7 +10,7 @@
 
     header { 
         position: fixed; 
-        top: -70px; 
+        top: -80px; 
         left: 10px; 
         right: 10px; 
         height: 50px; 
@@ -31,6 +31,11 @@
 
     .pagenum:before {
         content: counter(page);
+    }
+
+    #page-number:after {
+        counter-increment: page_number;
+        content: "Page " counter(page_number);
     }
 
 
@@ -119,13 +124,19 @@
         opacity: 0.1;
     }
 
+    
+
    
 </style>
 </head>
 <body>
     <header>
+        {{-- <p class='pagenum'></p> --}}
         <table width="100%" class="oki">
             <tbody>
+                <tr>
+                    <td colspan="3" align='right' class="font-10">Halaman: <span class="pagenum"></span></td>
+                </tr>
                 <tr>
                     <td colspan="3" align='center' class="font-10"> <strong>SO REPORT</strong></td>
                 </tr>
