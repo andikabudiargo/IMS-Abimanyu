@@ -11,7 +11,7 @@
                     <div class="heading-elements">
                         <ul class="list-inline mb-0">
                             <li><a data-action="collapse"><i data-feather="chevron-down"></i></a></li>
-                            <input type="text" id="idRec" name="idRec" class="form-control" />
+                            <input type="hidden" id="idRec" name="idRec" class="form-control" />
                         </ul>
                     </div>    
                 </div>
@@ -234,6 +234,7 @@
                         pesan +=`Articles : ${article} QTY Rec > QTY PO <br>`; 
                         flag=1;
                     }
+
                     articles.push({
                         "article_code":articleCode,
                         "qty":qty,
