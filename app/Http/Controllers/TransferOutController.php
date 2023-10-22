@@ -213,6 +213,7 @@ class TransferOutController extends Controller
         $location ='WH';
         $status = '4';
         $todayDate = date('Y-m-d');
+        $movementDate = date("d-m-Y");
 
         if ($trNumber){
             $data = DB::table('transfer_det')
@@ -275,7 +276,8 @@ class TransferOutController extends Controller
                 ->where('qty', '<>', 0)
                 ->select(
                     // DB::RAW("now()::timestamp::date as movement_date" )
-                    'tr_date as movement_date'
+                    // 'tr_date as movement_date'
+                    DB::RAW("'$movementDate' as movement_date")
                     ,'transfer_det.article_code'
                     ,'article.article_desc'
                     ,DB::raw("0 as movement_plus")
@@ -347,6 +349,7 @@ class TransferOutController extends Controller
         $rowAffected = 0;
         $location = 'WH';
         $todayDate = date('Y-m-d');
+        $movementDate = date("d-m-Y");
 
         $data = DB::table('transfer_det')
         ->leftJoin('transfer_hdr','transfer_hdr.tr_number','transfer_det.tr_number')
@@ -408,7 +411,8 @@ class TransferOutController extends Controller
             ->where('qty', '<>', 0)
             ->select(
                 // DB::RAW("now()::timestamp::date as movement_date" )
-                'tr_date as movement_date'
+                // 'tr_date as movement_date'
+                DB::RAW("'$movementDate' as movement_date")
                 ,'transfer_det.article_code'
                 ,'article.article_desc'
                 ,DB::raw("0 as movement_min")
