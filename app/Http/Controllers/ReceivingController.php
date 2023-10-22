@@ -33,6 +33,7 @@ class ReceivingController extends Controller
             ['data'=>'action','name'=>'action','title'=>'action', 'orderable'=> false,'searchable'=>false],
             ['data'=>'rec_number','name'=>'rec_number','title'=>'Rec Number'],
             ['data'=>'rec_date','name'=>'rec_date','title'=>'Rec Date'],
+            ['data'=>'status','name'=>'status','title'=>'Status'],
             ['data'=>'do_date','name'=>'do_date','title'=>'DO Date'],
             ['data'=>'inv_number','name'=>'inv_number','title'=>'Invoice Number'],
             ['data'=>'inv_date','name'=>'inv_date','title'=>'Inv Date'],
@@ -40,7 +41,6 @@ class ReceivingController extends Controller
             ['data'=>'supp_name','name'=>'supp_name','title'=>'Supplier'],
             // ['data'=>'prepared_by','name'=>'prepared_by','title'=>'Prepared By'],
             // ['data'=>'authorized_by','name'=>'authorized_by','title'=>'Authorized By'],
-            ['data'=>'status','name'=>'status','title'=>'Status'],
             ['data'=>'note','name'=>'note','title'=>'Note'],
             ['data'=>'created_by','name'=>'created_by','title'=>'Created By'],
             ['data'=>'approval_by','name'=>'approval_by','title'=>'Approved By']
@@ -86,7 +86,10 @@ class ReceivingController extends Controller
         ->orderBy('nama')
         ->get();
 
-        $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED'];
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED','10'=>'REVISI'];
+        //  ['NEW','VALIDATE','APPROVED','POSTED','CANCELED','','','','','REVISI']; 
+
+        $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','10'=>'REVISI'];
         $data['kolom'] = $this->getTableColoumn();
         $data['kolomDetail'] = $this->getTableColoumnDetail();
             
@@ -147,7 +150,8 @@ class ReceivingController extends Controller
         $authorizedBy = "";
         $leadCode = $this->moduleCode;
 
-        // $data['status'] = ['1'=>'NEW','2'=>'UPDATED','3'=>'POSTED','4'=>'CANCELED'];
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED','10'=>'REVISI'];
+        //  ['NEW','VALIDATE','APPROVED','POSTED','CANCELED','','','','','REVISI']; 
         
         $customMessages = [
             'required' => 'The field is required.',
@@ -203,7 +207,8 @@ class ReceivingController extends Controller
                         'created_by' => Auth::user()->username,
                         'updated_by' => Auth::user()->username,
                         'created_at' => date('Y-m-d H:i:s'),
-                        'updated_at' => date('Y-m-d H:i:s')
+                        'updated_at' => date('Y-m-d H:i:s'),
+                        'origin_rec_number' => $recNumber,
                     ]);
 
                     $idKu = Crypt::encryptString($idKu);
@@ -242,7 +247,7 @@ class ReceivingController extends Controller
                 $message  = "$title $recNumber is failed to save";
                 $statusRec = 'FAILED';
                 \LogActivity::addToLog($title,"username: $username Status $message");
-                return response()->json(array('statusRec' => $statusRec, 'title' => $title, 'status' => 1, 'message' => $message,'alert'=>$alert,'recNumber'=>$recNumber));
+                return response()->json(array('statusRec' => $statusRec, 'title' => $title, 'status' => 1, 'message' => $message,'alert'=>$alert,'recNumber'=>$recNumber,'idKu'=>''));
             }
         }
     }
@@ -254,20 +259,51 @@ class ReceivingController extends Controller
         $data['title'] = "Details $this->title";
         $data['subtitle'] = "Details $this->title";
 
-        $data['header'] = DB::table('receiving_hdr')
-        ->where('id',$id)
-        ->get()->first();
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED','10'=>'REVISI'];
+        //  ['NEW','VALIDATE','APPROVED','POSTED','CANCELED','','','','','REVISI']; 
 
-        $recNumber = $data['header']->rec_number;
+        $data['headers'] = DB::table('receiving_hdr')
+        ->select('receiving_hdr.*'
+        ,DB::raw('(select sum(qty+qty_free) from receiving_det where rec_number = receiving_hdr.rec_number) as sum_qty') 
+        ,DB::raw('(select count(*) from receiving_det where rec_number = receiving_hdr.rec_number) as sum_row')
+        )
+        ->where('origin_rec_number', function($query) use ($id){
+            $query->select('rec_number')->from('receiving_hdr')->where('id',$id);
+        })
+        ->where('status','<>','5')
+        ->orderBy('id')
+        ->get();
 
-        $data['detail'] = DB::table('receiving_det')
+        // $data['header'] = DB::table('receiving_hdr')
+        // ->where('id',$id)
+        // ->get()->first();
+
+        $recNumber = $data['headers'][0]->rec_number;
+
+        $data['details'] = DB::table('receiving_det') 
+        ->leftJoin('receiving_hdr','receiving_hdr.rec_number','receiving_det.rec_number')
+        ->whereIn('receiving_det.rec_number', function($query) use ($recNumber){
+            $query->select('rec_number')->from('receiving_hdr')->where('origin_rec_number',$recNumber);
+        })
+        ->leftJoin('uom','uom.code','=','receiving_det.uom_rec')
         ->leftJoin('article','article.article_code','=','receiving_det.article_code')
-        ->leftJoin('uom','receiving_det.uom_rec','uom.code')
-        ->where('receiving_det.rec_number',$recNumber)
-        ->where('receiving_det.qty','>',0)
+        ->select('receiving_det'.'.*'
+            ,'uom.uom_group'
+            ,DB::raw("concat(article_alternative_code,'-',article_desc) as article")
+            ,DB::raw("(select STRING_AGG( (qty::real)::text,' -> ' ORDER BY rec_number) AS main from receiving_det p where article_code = receiving_det.article_code and rec_number like '$recNumber%' ) as notes")
+        )
+        ->where('receiving_hdr.status','<>','5')
         ->orderBy('receiving_det.id')
-        // ->select('receiving_det.article_code')
-        ->get();       
+        ->get();
+
+        // $data['detail'] = DB::table('receiving_det')
+        // ->leftJoin('article','article.article_code','=','receiving_det.article_code')
+        // ->leftJoin('uom','receiving_det.uom_rec','uom.code')
+        // ->where('receiving_det.rec_number',$recNumber)
+        // ->where('receiving_det.qty','>',0)
+        // ->orderBy('receiving_det.id')
+        // // ->select('receiving_det.article_code')
+        // ->get();       
 
         $data['supps'] = DB::table('third_party')
         ->where ('third_party_type','=','supp')
@@ -281,10 +317,12 @@ class ReceivingController extends Controller
         $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode,$recNumber,$username);
         $data['approveValidate'] = Approval::approveValidate($this->moduleCode,$recNumber,$username);
 
-        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED'];
-        $statusRec = ['NEW','VALIDATE','APPROVED','POSTED','CANCELED'];
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED','10'=>'REVISI'];
+        //  ['NEW','VALIDATE','APPROVED','POSTED','CANCELED','','','','','REVISI']; 
 
-        $data['statusRec'] = $statusRec[$data['header']->status-1];
+        $statusRec = ['NEW','VALIDATE','APPROVED','POSTED','CANCELED','REVISED','','','','REVISI']; 
+
+        $data['statusRec'] = $statusRec[$data['headers'][0]->status-1];
 
         return view("receiving.show",$data);
         
@@ -297,13 +335,15 @@ class ReceivingController extends Controller
         $data['title'] = "Edit $this->title";
         $data['subtitle'] = "Edit $this->title";
 
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED','10'=>'REVISI'];
+        //  ['NEW','VALIDATE','APPROVED','POSTED','CANCELED','','','','','REVISI'];
+
         $data['header'] = DB::table('receiving_hdr')
         ->where('id',$id)
         ->get()->first();
 
         $recNumber = $data['header']->rec_number;
         
-
         $data['detail'] = DB::table('receiving_det')
         ->leftJoin('receiving_hdr','receiving_hdr.rec_number','receiving_det.rec_number')
         ->leftJoin('article','article.article_code','=','receiving_det.article_code')
@@ -311,8 +351,10 @@ class ReceivingController extends Controller
         ->where('receiving_det.rec_number',$recNumber)
         ->orderBy('receiving_det.id')
         ->select('receiving_det.*','uom.*','article.*',
-            DB::RAW("coalesce((select ((select sum(qty) from purchase_order_det where po_number = receiving_hdr.po_number and article_code = receiving_det.article_code) + receiving_det.qty) - sum(qty) as qty_po from receiving_det a where rec_number in (
-            select rec_number from receiving_hdr z where z.status <> '5' and z.po_number = receiving_hdr.po_number) and article_code = receiving_det.article_code),0) as qty_po")
+            DB::RAW("coalesce(
+                (select ((select sum(qty) from purchase_order_det where po_number = receiving_hdr.po_number and article_code = receiving_det.article_code) + receiving_det.qty) - sum(qty) as qty_po from receiving_det a where rec_number in (
+            select rec_number from receiving_hdr z where z.status not in ('5','7') and z.po_number = receiving_hdr.po_number) 
+            and article_code = receiving_det.article_code),0) as qty_po")
         )
         ->get();       
 
@@ -328,8 +370,8 @@ class ReceivingController extends Controller
         $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode,$recNumber,$username);
         $data['approveValidate'] = Approval::approveValidate($this->moduleCode,$recNumber,$username);
 
-        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED'];
-        $statusRec = ['NEW','VALIDATE','APPROVED','POSTED','CANCELED'];
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED','10'=>'REVISI'];
+        $statusRec = ['NEW','VALIDATE','APPROVED','POSTED','CANCELED','','','','','REVISI'];
         $data['statusRec'] = $statusRec[$data['header']->status-1];
 
         $data['oEdit']=true;
@@ -353,7 +395,7 @@ class ReceivingController extends Controller
         $articles = json_decode($request->articles);
         $recType = "NORMAL";
         $statusRec ="Update";
-        $status = '2';
+        // $status = '2';
         $authorizedBy = "";
 
         // $data['status'] = ['1'=>'NEW','2'=>'UPDATED','3'=>'POSTED','4'=>'CANCELED'];
@@ -406,7 +448,7 @@ class ReceivingController extends Controller
                             'authorized_by' => $authorizedBy,
                             'prepared_by' => Auth::user()->username,
                             'rec_type' => $recType,
-                            'status' => $status,
+                            // 'status' => $status,
                             'note' => $note,
                             'updated_by' => Auth::user()->username,
                             'updated_at' => date('Y-m-d H:i:s')
@@ -468,21 +510,28 @@ class ReceivingController extends Controller
     {
         $username =  Auth::user()->username;
         $id=Crypt::decryptString($request->id);
-        $recNumber = DB::table('receiving_hdr')->where('id',$id)->where('status','=','3')->value('rec_number');
+        $recNumber = $request->recNumber;
+        $recNumber = DB::table('receiving_hdr')->where('id',$id)->value('rec_number');
         $recType = "NORMAL";
         $siteCode = 'HO';
         $location ='WH';
         $status = '4';
         $moduleCode = $this->moduleCode;
         $todayDate = date('Y-m-d');
+        $movementDate = date("d-m-Y");
+        $dariNew = $request->dariNew;
+
         // $rowAffected = 0;
+
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED','10'=>'REVISI'];
+        //  ['NEW','VALIDATE','APPROVED','POSTED','CANCELED','','','','','REVISI']; 
             
         if ($recNumber){
             $data = DB::table('receiving_det')
             ->leftJoin('receiving_hdr','receiving_hdr.rec_number','receiving_det.rec_number')
             ->leftJoin('article','article.article_code','receiving_det.article_code')
             ->where('receiving_det.rec_number',$recNumber)
-            ->where('receiving_hdr.status','3')
+            // ->where('receiving_hdr.status','3')
             ->select('receiving_det.*'
             ,'article.article_type'
             ,'article.uom as uom_article'
@@ -490,6 +539,7 @@ class ReceivingController extends Controller
             ,DB::RAW("(receiving_det.qty*uom_conversion(receiving_det.uom_rec,article.uom))+(receiving_det.qty_free*uom_conversion(receiving_det.uom_rec,article.uom)) as total_qty")
             )
             ->get();
+
 
             foreach($data as $val){
                 //insert article code kalo belum ada di tabel item_stock
@@ -554,8 +604,8 @@ class ReceivingController extends Controller
                 ->where('receiving_hdr.status','4')
                 ->where('qty', '<>', 0)
                 ->select(
-                    // DB::RAW("now()::timestamp::date as movement_date" )
-                    'receiving_hdr.rec_date as movement_date'
+                    DB::RAW("'$movementDate' as movement_date")
+                    // 'receiving_hdr.rec_date as movement_date'
                     ,'receiving_det.article_code'
                     ,'article.article_desc'
                     ,DB::raw("0 as movement_min")
@@ -589,19 +639,32 @@ class ReceivingController extends Controller
 
                 DB::table('movement')->insert($dataSetMovement);
 
+                $idKu = Crypt::encryptString($id);
+
                 DB::commit();
                 $title ="Posting $this->title";
                 $alert  ="success";
                 $message  = "$title $recNumber Successfully Posted";
                 \LogActivity::addToLog($title,"username: $username Status $message");
-                return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);
+
+                if($dariNew=='true'){
+                    return response()->json(array('statusRec' => $status, 'title' => $title, 'status' => 1, 'message' => $message,'alert'=>$alert,'recNumber'=>$recNumber,'idKu'=>$idKu));
+                }else{
+                    return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);
+                }      
                 // return response()->json(array('statusRec' => $statusRec,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'recNumber'=>$recNumber));
             }else{
+
                 $title ="Posting $this->title";
                 $alert  ="warning";
                 $message  = "$title $recNumber Failed to Posting";
                 \LogActivity::addToLog($title,"username: $username Status $message");
-                return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);
+
+                if($dariNew=='true'){
+                    return response()->json(array('statusRec' => $status, 'title' => $title, 'status' => 0, 'message' => $message,'alert'=>$alert,'recNumber'=>$recNumber,'idKu'=>$idKu));
+                }else{
+                    return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);
+                }     
                 // return response()->json(array('statusRec' => $statusRec,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'recNumber'=>$recNumber));
             }
         }else{
@@ -615,7 +678,13 @@ class ReceivingController extends Controller
 
     public function cancel(Request $request)
     {
-        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED'];
+        /*
+            Kalau status 4 bisa di cancel, nanti stock nya kembali ke stock asal, dikembalikan lagi stock nya
+        */
+
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED','10'=>'REVISI'];
+        //  ['NEW','VALIDATE','APPROVED','POSTED','CANCELED','','','','','REVISI']; 
+
         $username =  Auth::user()->username;
         $id=Crypt::decryptString($request->id);
         $recNumber = DB::table('receiving_hdr')->where('id',$id)->where('status','4')->value('rec_number');
@@ -704,7 +773,7 @@ class ReceivingController extends Controller
             ->where('receiving_hdr.status','5')
             ->where('qty', '<>', 0)
             ->select(
-                DB::RAW("'$movementDate' as movement_date" )
+                DB::RAW("'$movementDate' as movement_date")
                 ,'receiving_det.article_code'
                 ,'article.article_desc'
                 ,DB::raw("0 as movement_plus")
@@ -755,13 +824,16 @@ class ReceivingController extends Controller
   
     public function destroy(Request $request)
     {
-        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED'];
+        /* Hapus permanen kalau status nya bukan Canceled, Revised, Canceled */
+
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED','10'=>'REVISI'];
+        //  ['NEW','VALIDATE','APPROVED','POSTED','CANCELED','','','','','REVISI']; 
+
         $username =  Auth::user()->username;       
         $id=Crypt::decryptString($request->id);
-        $status = "5";
+        
         $recNumber = DB::table('receiving_hdr')->where('id',$id)
-        ->where('status','<>','4')
-        ->where('status','<>','5')
+        ->whereNotIn('status',['4','5','7'])
         ->value('rec_number');
 
         $rowAffected = DB::table('receiving_hdr')->where('rec_number',$recNumber)->delete();
@@ -786,20 +858,20 @@ class ReceivingController extends Controller
     {
         $username =  Auth::user()->username;
         $id=Crypt::decryptString($request->id);
-        // $recOrigin=DB::table('delivery_hdr')->where('id',$id)->value('delivery_number');
-        $deliveries=DB::table('receiving_hdr')->where('id',$id)->first();
-        $recOrigin=$deliveries->delivery_number;
-        $dnStatus=$deliveries->status;
-
-        // $statusDel = ['NEW','VALIDATE','APPROVED','POSTED','CANCELED','','','RECEIVED','','REVISI'];
+        $receiving=DB::table('receiving_hdr')->where('id',$id)->first();
+        $recOrigin=$receiving->rec_number;
+        $recStatus=$receiving->status;
         
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED','10'=>'REVISI'];
+        //  ['NEW','VALIDATE','APPROVED','POSTED','CANCELED','','','','','REVISI']; 
+              
         $numRevision = $request->nR ? $request->nR +1 : 1 ;
         $numRevisionName = '-R'.$numRevision;
         $recNew = $recOrigin.$numRevisionName;
-        $checkNewDn=DB::table('receiving_hdr')->where('rec_number',$recNew)->count();
+        $checkNewRec=DB::table('receiving_hdr')->where('rec_number',$recNew)->count();
         $reason = $request->reason;
 
-        if ($checkNewDn > 0){
+        if ($checkNewRec > 0){
             $recNew = $recOrigin.'-R'.$numRevision+1;
         } 
                 
@@ -823,13 +895,13 @@ class ReceivingController extends Controller
             updated_by,
             created_at,
             updated_at,
+            origin_rec_number,
             num_revision,
             revised_by,
             revised_at,
             reason
         )
         select 
-
             '$recNew',
             inv_number,
             inv_date,
@@ -842,17 +914,18 @@ class ReceivingController extends Controller
             authorized_at,
             prepared_by,
             rec_type,
-            status,
+            '7',
             note,
             created_by,
             '$username',
             created_at,
             '".date('Y-m-d H:i:s')."',
+            '$recOrigin',
             $numRevision,
             '$username',
             '".date('Y-m-d H:i:s')."',
             '$reason'
-        from receiving_hdr where receiving_number = '$recOrigin'";
+        from receiving_hdr where rec_number = '$recOrigin'";
 
         $sqlDet="INSERT into receiving_det
         (
@@ -880,23 +953,17 @@ class ReceivingController extends Controller
             '$username',
             created_at,
             '".date('Y-m-d H:i:s')."'
-        from delivery_det where delivery_number = '$recOrigin'";
+        from receiving_det where rec_number = '$recOrigin'";
 
         $rowAffected =  DB::select($sqlHdr);
         if ($rowAffected){
             DB::select($sqlDet);
 
-            // status:
-            // 1 = New
-            // 2 = Validated
-            // 3 = Approved
-            // 4 = 
-            // 5 = Canceled
-            // 6 = 
-            // 7 = Revised
-
-            $rowAffected = DB::table('delivery_hdr')
-            ->where('delivery_number',$recOrigin)
+            // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED','10'=>'REVISI'];
+            // ['NEW','VALIDATE','APPROVED','POSTED','CANCELED','','','','','REVISI']; 
+        
+            $rowAffected = DB::table('receiving_hdr')
+            ->where('rec_number',$recOrigin)
             ->update(
                 [
                     'num_revision' => $numRevision,
@@ -907,7 +974,7 @@ class ReceivingController extends Controller
             );
 
             if($rowAffected){
-                if($dnStatus == '4'){
+                if($recStatus == '4'){
                     $this->unPosting($recOrigin);
                 }
             }
@@ -925,22 +992,123 @@ class ReceivingController extends Controller
             
             $title ="Save $this->title";
             $alert  ="success";
-            $message  = "$title Revision DN: $recOrigin to $recNew is successfully saved";
+            $message  = "$title Revision Rec: $recOrigin to $recNew is successfully saved";
             \LogActivity::addToLog($title,"username: $username Status $message");
-            return redirect()->route('delivery.edit', ['id'=>Crypt::encryptString($id)]);
+            return redirect()->route('receiving.edit', ['id'=>Crypt::encryptString($id)]);
         }else{
             $title ="Save $this->title";
             $alert  ="warning";
-            $message  = "$title Revision DN: $recOrigin to $recNew is failed to save";
+            $message  = "$title Revision Rec: $recOrigin to $recNew is failed to save";
             \LogActivity::addToLog($title,"username: $username Status $message");
             return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);
         }
         
     }
 
+    public function unPosting($recNumber)
+    {
+        $username =  Auth::user()->username;
+        $recType = "NORMAL";
+        $siteCode = 'HO';
+        $location ='WH';
+        $moduleCode = $this->moduleCode;
+        $todayDate = date('Y-m-d');
+        $movementDate = date("d-m-Y");
+        
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED','10'=>'REVISI'];
+        //  ['NEW','VALIDATE','APPROVED','POSTED','CANCELED','','','','','REVISI']; 
+            
+        if ($recNumber){
+            $data = DB::table('receiving_det')
+            ->leftJoin('receiving_hdr','receiving_hdr.rec_number','receiving_det.rec_number')
+            ->leftJoin('article','article.article_code','receiving_det.article_code')
+            ->where('receiving_det.rec_number',$recNumber)
+            // ->where('receiving_hdr.status','3')
+            ->select('receiving_det.*'
+            ,'article.article_type'
+            ,'article.uom as uom_article'
+            ,DB::RAW("average_cost(receiving_det.article_code,'$siteCode','$location','$moduleCode') as average_cost")
+            ,DB::RAW("(receiving_det.qty*uom_conversion(receiving_det.uom_rec,article.uom))+(receiving_det.qty_free*uom_conversion(receiving_det.uom_rec,article.uom)) as total_qty")
+            )
+            ->get();
+
+            foreach($data as $val){
+                //insert article code kalo belum ada di tabel item_stock
+                DB::table('article_stock')
+                ->updateOrInsert(
+                    [   'site_code' =>$siteCode,
+                        'article_code' => $val->article_code,
+                        'location_number'=> $location
+                    ],
+                    [
+                        'dept_code'=>$val->article_type,
+                        'uom'=>$val->uom_article,
+                    ]
+                );
+
+                //update qty nya dikurang qty lama karena di unpost
+                $rowAffected = DB::table('article_stock')
+                ->where('site_code',$siteCode)
+                ->where('article_code',$val->article_code)
+                ->where('location_number',$location)
+                ->update([
+                    'article_qty' => DB::raw('coalesce(article_qty,0) - '.$val->total_qty)
+                ]);
+
+            }
+                                            
+            $movements = DB::table('receiving_det')
+            ->leftJoin('receiving_hdr','receiving_hdr.rec_number','receiving_det.rec_number')
+            ->leftJoin('article','article.article_code','receiving_det.article_code')
+            ->where('receiving_det.rec_number',$recNumber)
+            // ->where('receiving_hdr.status','4')
+            ->where('qty', '<>', 0)
+            ->select(
+                DB::RAW("'$movementDate' as movement_date")
+                // 'receiving_hdr.rec_date as movement_date'
+                ,'receiving_det.article_code'
+                ,'article.article_desc'
+                ,DB::RAW("(uom_conversion(receiving_det.uom_rec,article.uom)*receiving_det.qty) as movement_min")
+                ,DB::raw("0 as movement_plus")
+                ,DB::raw("receiving_det.price as movement_price ")
+                ,'receiving_hdr.rec_number as movement_transnno'
+                ,DB::raw("'$moduleCode' as movement_type")
+                ,'receiving_hdr.po_number as movement_desc'
+            )
+            ->get();
+            
+            $dataSetMovement = [];
+            foreach ($movements as $val) {
+                $dataSetMovement[] = [
+                    'movement_date' => $val->movement_date,
+                    'artikel_code' => $val->article_code,
+                    'artikel_desc' => $val->article_desc,
+                    'movement_min' => $val->movement_min,
+                    'movement_plus' => $val->movement_plus,
+                    'movement_price' => $val->movement_price,
+                    'movement_transnno' => $val->movement_transnno,
+                    'movement_type' => $val->movement_type,
+                    'movement_desc' => $val->movement_desc."(Revision)",
+                    'created_by' => Auth::user()->username,
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'site_code' => $siteCode,
+                    'location_number' => $location,
+                    'last_qty' => DB::raw("get_last_qty('$val->article_code','$todayDate','$siteCode','$location') - ($val->movement_min+$val->movement_plus)")
+                ];
+            }
+
+            DB::table('movement')->insert($dataSetMovement);
+            return 'true';
+        }else{
+            return 'false';
+        }
+    }
+
     public function list(Request $request)
     {
-        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED'];
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED','10'=>'REVISI'];
+        //  ['NEW','VALIDATE','APPROVED','POSTED','CANCELED','','','','','REVISI']; 
+
         $searchRec = strtolower($request->searchRec);
         $searchPo = strtolower($request->searchPo);
         $searchInv = strtolower($request->searchInv);
@@ -985,7 +1153,7 @@ class ReceivingController extends Controller
             $recDate ? $query->whereBetween(DB::raw("to_date(rec_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
             $doDate ? $query->whereBetween(DB::raw("to_date(do_date,'DD-MM-YYYY')"), [$fromDateDo, $toDateDo]) : '';
         })
-        ->where('status',"<>",'5')
+        ->whereNotIn('status',['5','7'])
         ->select('receiving_hdr.*'
         ,DB::raw("(select STRING_AGG((select name from users where username = a.username), ' -> ' ORDER BY approval_order) AS main from approval_history a where module_number = receiving_hdr.rec_number) as approval_by")
         ,DB::raw("(select concat(kode,'-',nama) from third_party where kode = receiving_hdr.supplier_id limit 1) as supp_name")
@@ -1005,7 +1173,7 @@ class ReceivingController extends Controller
                             </a>';
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
 
-            if ( ($data->status == '1') or ($data->status == '2') or ($data->status == '10')) {
+            if ($data->status == '10') {
                 if (Auth::user()->can('receiving-approve')) {
                 $buttons .=         '<a href="'. route('receiving.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                         <i data-feather="file-text"></i>
@@ -1014,7 +1182,7 @@ class ReceivingController extends Controller
                 }
             }
 
-            if ( $data->status == '3' ) {                
+            if ( $data->status == '1' || $data->status == '3' ) {                
                 if (Auth::user()->can('receiving-posting')) {
                     $buttons .="<a href='javascript:;'
                     class='dropdown-item' 
@@ -1030,28 +1198,41 @@ class ReceivingController extends Controller
                 }   
             }
 
-            // if (($data->status == '3')){
-            //     if (Auth::user()->can('receiving-revision')) {
-            //         $buttons .= "<a href='javascript:;'
-            //                         id='revisionReasonButton'
-            //                         class='dropdown-item'
-            //                         data-toggle='modal'
-            //                         data-target='#reasonModalRevision'
-            //                         data-href='". route('receiving.revision', ['id'=>Crypt::encryptString($data->id),'nR'=>$data->num_revision]) ."'>
-            //                         <i data-feather='corner-down-left' class='feather-14-red'></i>
-            //                         <span>". __('Revision') ."</span>
-            //                     </a>";
-            //     }            
+            if ( in_array($data->status,['1','2','3','4']) ) {
+                // if (Auth::user()->can('receiving-revision')) {
+                    $buttons .= "<a href='javascript:;'
+                                    id='revisionReasonButton'
+                                    class='dropdown-item'
+                                    data-toggle='modal'
+                                    data-target='#reasonModalRevision'
+                                    data-href='". route('receiving.revision', ['id'=>Crypt::encryptString($data->id),'nR'=>$data->num_revision]) ."'>
+                                    <i data-feather='corner-down-left' class='feather-14-red'></i>
+                                    <span>". __('Revision') ."</span>
+                                </a>";
+                // }            
+            }
+
+            // if (($data->status == '1') OR ($data->status == '2')){
+            //     if (Auth::user()->can('receiving-edit')) {
+            //     $buttons .=         '<a href="'. route('receiving.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+            //                             <i data-feather="file-text"></i>
+            //                             <span>'. __("Edit") .'</span>
+            //                         </a>';
+            //     }
             // }
 
-            if (($data->status == '1') OR ($data->status == '2')){
-                if (Auth::user()->can('receiving-edit')) {
-                $buttons .=         '<a href="'. route('receiving.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
-                                        <i data-feather="file-text"></i>
-                                        <span>'. __("Edit") .'</span>
-                                    </a>';
-                }
-            }
+            // if ($data->status == '4'){
+                $buttons .=         "<a href='". route('receiving.print', ['id'=>Crypt::encryptString($data->id)]) ."' target='_blank' class='dropdown-item'>
+                                        <i data-feather='printer'></i>
+                                        <span>". __('Print') ."</span>
+                                    </a>";
+
+            // }
+
+            $buttons .=         '<a href="'. route('receiving.show', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+                                    <i data-feather="list"></i>
+                                    Detail
+                                </a>';
 
             if ( $data->status == '4' ){
                 if (Auth::user()->can('receiving-delete')) {
@@ -1067,7 +1248,7 @@ class ReceivingController extends Controller
                 }
             }
             
-            if ( $data->status != '4' and $data->status != '5' ){
+            if ( $data->status != '4' and $data->status != '5' and $data->status != '7'){
                 if (Auth::user()->can('receiving-delete')) {
                     $buttons .=         "<a href='javascript:;'
                                         class='dropdown-item' 
@@ -1082,32 +1263,20 @@ class ReceivingController extends Controller
                                     </a>";
                 }
             }
-
-            // if ($data->status == '4'){
-                $buttons .=         "<a href='". route('receiving.print', ['id'=>Crypt::encryptString($data->id)]) ."' target='_blank' class='dropdown-item'>
-                                        <i data-feather='printer'></i>
-                                        <span>". __('Print') ."</span>
-                                    </a>";
-
-            // }
-
-            $buttons .=         '<a href="'. route('receiving.show', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
-                                    <i data-feather="list"></i>
-                                    Detail
-                                </a>';
             $buttons .=     '</div>
                         </div>';
 
             return $buttons;
         })
-        ->addColumn('rec_number', function ($data) {
-            $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary'];
-            return '<span class="d-none">'.$data->id.'</span><a class="badge d-block '.$badges[$data->status - 1].'" href="'. route('receiving.show', ['id'=>Crypt::encryptString($data->id)]) .'" >'.$data->rec_number.'</a>';
-        })
+        // ->addColumn('rec_number', function ($data) {
+        //     $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary'];
+        //     return '<span class="d-none">'.$data->id.'</span><a class="badge d-block '.$badges[$data->status - 1].'" href="'. route('receiving.show', ['id'=>Crypt::encryptString($data->id)]) .'" >'.$data->rec_number.'</a>';
+        // })
         ->addColumn('status', function ($data) {
-            $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary'];
-            $statusRec = ['NEW','VALIDATE','APPROVE','POSTED','CANCELED',];
-                        //  ['NEW','VALIDATE','APPROVED','POSTED','CANCELED','','','','','REVISI']; 
+            $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-success','badge-success','badge-success'];            
+            $statusRec = ['NEW','VALIDATE','APPROVE','POSTED','CANCELED','','','','','REVISI'];
+                      // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED','10'=>'REVISI'];
+                      //  ['NEW','VALIDATE','APPROVED','POSTED','CANCELED','','','','','REVISI']; 
             return "<div class='badge ".$badges[$data->status - 1]."'>".$statusRec[$data->status - 1]."</div>";
         })
         ->rawColumns(['action','status','rec_number'])
@@ -1235,7 +1404,8 @@ class ReceivingController extends Controller
         ->orderBy('approval_order','desc')
         ->value('users.name');
         
-        $statusRec = ['NEW','VALIDATED','APPROVED','POSTED','CANCELED'];
+        // $statusRec = ['NEW','VALIDATED','APPROVED','POSTED','CANCELED'];
+        $statusRec = ['NEW','VALIDATE','APPROVED','POSTED','CANCELED','','','','','REVISI'];
         $data['status'] = $statusRec[$recHdr ->status-1];
 
         $data['no'] =0;
@@ -1274,6 +1444,10 @@ class ReceivingController extends Controller
 
     public function poDetail(Request $request)
     {
+
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED','10'=>'REVISI'];
+        //  ['NEW','VALIDATE','APPROVED','POSTED','CANCELED','','','','','REVISI']; 
+
         $po = $request->value;
         $data = DB::select("SELECT 
                 a.*,
@@ -1285,12 +1459,15 @@ class ReceivingController extends Controller
                 left join uom on uom.code=a.uom
                 left join article on article.article_code = a.article_code
                 left join 
-                    (select po, article_code,sum(qty) as qty,price from (
-                        select *,(select po_number from receiving_hdr 
-                                   where rec_number = a.rec_number) as po from receiving_det a where rec_number in (
-                                   select rec_number from receiving_hdr where status <> '5' and po_number = '$po')
+                    (select po, article_code,sum(qty) as qty,max(price) as price from (
+                        select *,(select po_number from receiving_hdr where rec_number = a.rec_number) as po 
+                        from receiving_det a 
+                        where rec_number in (
+                            select rec_number from receiving_hdr where status not in ('5','7') and po_number = '$po'
+                        )
+                        and qty > 0
                     ) z
-                group by po, article_code,price) b
+                group by po, article_code) b
                 on a.po_number = b.po and a.article_code = b.article_code
                 where po_number = '$po'
                 order by a.id");
@@ -1324,7 +1501,7 @@ class ReceivingController extends Controller
         $recNumber = $request->recNumber;
         $statusLevelApproval = Approval::approvalLevelPosition($this->moduleCode,$recNumber,$username);        
         $nextLevel = $statusLevelApproval[0]->next_level;
-        $statusRec = $statusLevelApproval[0]->next_level == $statusLevelApproval[0]->max_level ? '3' :'2';
+        $statusRec = $statusLevelApproval[0]->next_level == $statusLevelApproval[0]->max_level ? '3' :'10';
                 
         DB::beginTransaction();
         try {
@@ -1371,7 +1548,7 @@ class ReceivingController extends Controller
     }
 
 
-      // public function posting(Request $request)
+    // public function posting(Request $request)
     // {
     //     // $data['status'] = ['1'=>'NEW','2'=>'UPDATED','3'=>'POSTED','4'=>'CANCELED'];
     //     // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED'];

@@ -180,7 +180,7 @@
         })
     }
 
-    function listUom(obj,value,uom) {
+    function listUom(obj,obj2,value,uom) {
       $.ajax({
         url:"{{ route('receiving.list.uom') }}",
         method:"GET",
@@ -189,8 +189,11 @@
         },
         success:function(result){
             $('#'+obj).html(result);
+            $('#'+obj2).html(result);
             $('#'+obj).select2();
-            $('#'+obj).val(uom).trigger('change');            
+            $('#'+obj2).select2();
+            $('#'+obj).val(uom).trigger('change');
+            $('#'+obj2).val(uom).trigger('change');
         },
         error: function (response) {
             Swal.fire("Warning","Get list UOM failed","warning");

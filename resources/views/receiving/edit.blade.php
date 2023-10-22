@@ -128,11 +128,11 @@
                                         <input type="text" id ="approveLevel" name ="approveLevel" class="d-none" value="{{ $approveValidate[0]->next_level }}">
                                         <input type="text" id ="maxLevel" name ="maxLevel" class="d-none" value="{{ $approveValidate[0]->max_level }}">
                                         <button class="btn btn-success" type="button" id="cmdApprove" name="cmdApprove">Approve</button>
-                                        @if( $statusRec =='NEW')
+                                        @if( $statusRec =='REVISI')
                                             <button class="btn btn-primary" type="button" id="cmdUpdate" name="cmdUpdate">Update</button>
                                         @endif
                                     @else
-                                        @if( !$approveValidate && $statusRec =='NEW')
+                                        @if( !$approveValidate && $statusRec =='REVISI')
                                             <button class="btn btn-primary" type="button" id="cmdUpdate" name="cmdUpdate">Update</button>
                                         @endif
                                     @endif
@@ -294,8 +294,8 @@
                     let qtyUom=objUom.eq(i).val() || articleUom;
                     let qtyFree=objQtyFree.eq(i).val().replace(/,/gi, '') || 0;
                     let qtyFreeUom=objUom.eq(i).val() || articleUom;
-                    
-                    if ( (qty > qtyPo) && (qty != 0)  ){
+                                        
+                    if ( (parseFloat(qty) > parseFloat(qtyPo)) && (parseFloat(qty) != 0)  ){
                         pesan +=`Articles : ${article} QTY Rec > QTY PO <br>`; 
                         flag=1;
                     }
@@ -378,55 +378,6 @@
             }
         }
     });
-
-    // $("#cmdPosting").click(function(){
-    //     let objQty= $('input[name="qty_rec[]"]');
-    //     let objUom= $('select[name="uom[]"]');
-    //     let objQtyFree= $('input[name="qty_free[]"]');
-    //     let objUomFree= $('select[name="uomFree[]"]');
-        
-    //     let recNumber = $('#recNumber').val();            
-    //     $.ajax({
-    //         type: "post",
-    //         url: "{{ route('receiving.posting') }}",
-    //         data: {
-    //             recNumber:recNumber
-    //         },
-    //         dataType: "json",
-    //         success: function(data) {
-    //             if (data.status == 0 ){
-    //                 for(let i = 0; i < data.message.length; i++) {
-    //                     show_msg(data.title, data.message[i], data.alert);
-    //                 }
-    //                 $('#recNumber').attr('disabled','disabled');
-    //                 $('#cmdSave').show();
-    //                 $('#cmdPosting').hide();
-
-    //             }else{
-    //                 show_msg(data.title, data.message, data.alert);
-    //                 $('#statusText').text(data.statusRec);
-    //                 $('#cmdSave').hide();
-    //                 $('#deleteButton').hide();
-    //                 $('#cmdPosting').hide();
-    //                 $('#recNumber').attr('disabled','disabled');
-    //                 $('#poNumber').attr('disabled','disabled');
-    //                 $('#supplier').attr('disabled','disabled');
-    //                 $('#invDate').attr('disabled','disabled');
-    //                 $('#recDate').attr('disabled','disabled');
-    //                 $('#invNumber').attr('disabled','disabled');
-    //                 objQty.attr('disabled','disabled');
-    //                 objUom.attr('disabled','disabled');
-    //                 objQtyFree.attr('disabled','disabled');
-    //                 objUomFree.attr('disabled','disabled');                    
-    //             }
-    //         },
-    //         error: function(error) {
-    //             console.log(error);
-    //         }
-    //     });
-            
-        
-    // });
     
     let cloneCount=0;
     function add_new_row(article,articleCode,articleDesc,qtyPo,uomGroup,uom,qty,uomQty,qtyFree,uomFree,price) {

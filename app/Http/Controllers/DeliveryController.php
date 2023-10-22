@@ -568,6 +568,7 @@ class DeliveryController extends Controller
         $moduleCode = $this->moduleCode;
         $todayDate = date('Y-m-d');
         $dariNew = $request->dariNew;
+        $movementDate = date("d-m-Y");
         
         if ($dnNumber){
             $data = DB::table('delivery_det')
@@ -625,8 +626,8 @@ class DeliveryController extends Controller
                 ->where('delivery_hdr.status','4')
                 ->where('qty', '<>', 0)
                 ->select(
-                    // DB::RAW("now()::timestamp::date as movement_date" )
-                    'delivery_hdr.delivery_date as movement_date'
+                    DB::RAW("'$movementDate' as movement_date")
+                    // 'delivery_hdr.delivery_date as movement_date'
                     ,'delivery_det.article_code'
                     ,'article.article_desc'
                     ,DB::raw("0 as movement_plus")
@@ -704,6 +705,7 @@ class DeliveryController extends Controller
         
         $moduleCode = $this->moduleCode;
         $todayDate = date('Y-m-d');
+        $movementDate = date("d-m-Y");
                 
         if ($dnNumber){
             $data = DB::table('delivery_det')
@@ -748,8 +750,8 @@ class DeliveryController extends Controller
             // ->where('delivery_hdr.status','1')
             ->where('qty', '<>', 0)
             ->select(
-                // DB::RAW("now()::timestamp::date as movement_date" )
-                'delivery_hdr.delivery_date as movement_date'
+                // 'delivery_hdr.delivery_date as movement_date'
+                DB::RAW("'$movementDate' as movement_date" )
                 ,'delivery_det.article_code'
                 ,'article.article_desc'
                 ,DB::RAW("(uom_conversion(delivery_det.uom,article.uom)*delivery_det.qty) as movement_plus")
@@ -791,7 +793,6 @@ class DeliveryController extends Controller
 
     public function destroy(Request $request)
     {
-       
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED','8'=>'RECEIVED'];
 
         $username =  Auth::user()->username;       
@@ -1495,8 +1496,8 @@ class DeliveryController extends Controller
                 </tr>";
             
             $isiJudul=DB::select("SELECT a.article_code, c.article_alternative_code, c.article_desc,a.delivery_number
-            , b.delivery_date
-            , TO_DATE(b.delivery_date,'dd-mm-yyyy') as date_delivery
+            ,b.delivery_date
+            ,TO_DATE(b.delivery_date,'dd-mm-yyyy') as date_delivery
             ,a.qty
             ,ceil((select sum(qty) from sales_order_det where so_code = a.so_number and article_code = a.article_code)) as qty_so 
             ,ceil((select sum(qty) from delivery_det where so_number = a.so_number and article_code = a.article_code and delivery_det.delivery_number in (select delivery_number from delivery_hdr where status not in ('5','7','10')))) as qty_delivery

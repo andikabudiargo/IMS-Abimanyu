@@ -7,10 +7,11 @@
         <div class="col-md-12">
             <div class="card">
                 <div class="card-header">
-                    <h4 class="card-title">Status: New</h4>
+                    <h4 class="card-title">Status: <span id="statusText"></span></h4>
                     <div class="heading-elements">
                         <ul class="list-inline mb-0">
                             <li><a data-action="collapse"><i data-feather="chevron-down"></i></a></li>
+                            <input type="text" id="idRec" name="idRec" class="form-control" />
                         </ul>
                     </div>    
                 </div>
@@ -130,12 +131,15 @@
                     <hr>
                     <div class="form-row">
                         <div class="col-12">
-                            <button class="btn btn-success" type="reset" id="cmdNew" name="cmdNew">New</button>
+                            {{-- <button class="btn btn-success" type="reset" id="cmdNew" name="cmdNew">New</button> --}}
                             {{-- <button class="btn btn-dark" type="reset" id="cmdPrint" name="cmdPrint">Print</button> --}}
-                            <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Save</button>
+                            {{-- <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Save</button> --}}
                             {{-- @can('receiving-posting')
                                 <button class="btn btn-dark" type="button" id="cmdPosting" name="cmdPosting">Posting</button>
                             @endcan --}}
+                            <a href="{{ route('receivings.index') }}" class="btn btn-light">Back</a>
+                            <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Save</button>
+                            <button class="btn btn-dark" type="button" id="cmdPrint" name="cmdPrint">Print</button>
                         </div>
                     </div>
                 </div>
@@ -159,7 +163,7 @@
         $('#recDate').val(currentDate);
         $('#cmdSave').show();
         // $('#cmdPosting').hide();
-        // $('#cmdPrint').hide();
+        $('#cmdPrint').hide();
     });
 
     invDate = $('#invDate');
@@ -198,6 +202,7 @@
         if (!$("#frmAdd")[0].checkValidity()){
             $("#frmAdd").submit();
         }else{
+            $("#cmdSave").attr('disabled','disabled');
             $('.disabled-el').removeAttr('disabled');
             // ambil semua data article
             let objQty= $('input[name="qty_rec[]"]');
@@ -225,7 +230,7 @@
                     let qtyFreeUom=objUom.eq(i).val() || articleUom;
                     let qtyPo=objQtyPo.eq(i).val().replace(/,/gi, '') || 0;
 
-                    if ( (parseFloat(qty) > parseFloat(qtyPo)) && (qty != 0)  ){
+                    if ( (parseFloat(qty) > parseFloat(qtyPo)) && (parseFloat(qty) != 0)  ){
                         pesan +=`Articles : ${article} QTY Rec > QTY PO <br>`; 
                         flag=1;
                     }
@@ -281,7 +286,7 @@
                                 show_msg(data.title, data.message[i], data.alert);
                             }
                             $('#recNumber').attr('disabled','disabled');
-                            $('#cmdSave').show();
+                            $('#cmdSave').removeAttr('disabled');
                             // $('#cmdPosting').hide();
                             // $('#cmdPrint').hide();
 
@@ -301,16 +306,22 @@
                             $('#recDate').attr('disabled','disabled');
                             $('#invNumber').attr('disabled','disabled');
 
-                            objQty.attr('disabled','disabled');
-                            objUom.attr('disabled','disabled');
-                            objQtyFree.attr('disabled','disabled');
-                            objUomFree.attr('disabled','disabled');
+                            $('#statusText').val('NEW');
+                            $('#idRec').val(data.idKu);
 
-                            let id = data.idKu;
-                            let url = "{{ route('receiving.print', ['id'=>':id']) }}";
-                            url = url.replace('%3Aid', id);
-                            window.open(url, '_blank');
-                            reloadPage();
+                            $('#cmdSave').hide();
+                            $('#cmdPrint').show();
+
+                            // objQty.attr('disabled','disabled');
+                            // objUom.attr('disabled','disabled');
+                            // objQtyFree.attr('disabled','disabled');
+                            // objUomFree.attr('disabled','disabled');
+
+                            // let id = data.idKu;
+                            // let url = "{{ route('receiving.print', ['id'=>':id']) }}";
+                            // url = url.replace('%3Aid', id);
+                            // window.open(url, '_blank');
+                            // reloadPage();
                             
                         }
                     },
@@ -319,6 +330,9 @@
                     }
                 });
             }else{
+                $('#cmdSave').removeAttr('disabled');
+                // $('#cmdPosting').hide();
+                $('#cmdPrint').hide();
                 Swal.fire('Warning..',pesan,'warning');
             }
         }
@@ -348,33 +362,15 @@
         $('#qty_free'+ cloneCount).val(qtyRec);
         $('#qty_free'+ cloneCount).attr('data-uom-group', uomGroup);
         $("#new_row"+ cloneCount).find('#uom').attr('id', 'uom'+ cloneCount);
-        listUom('uom'+ cloneCount,uomGroup,uom);
+        listUom('uom'+ cloneCount,'uomFree'+ cloneCount,uomGroup,uom);
         $("#new_row"+ cloneCount).find('#uomFree').attr('id', 'uomFree'+ cloneCount);
         qtyRec === 0 ? $('#qty_rec'+ cloneCount).attr('disabled','disabled') : '';
         qtyRec === 0 ? $('#qty_free'+ cloneCount).attr('disabled','disabled') : '';
-        listUom('uomFree'+ cloneCount,uomGroup,uom);
+        // listUom('uomFree'+ cloneCount,uomGroup,uom);
         tombolPanah('qty_rec');
         tombolPanah('qty_free');
         mask_thousand_digit(2);
         hitungTotal();
-
-        // if ( uomGroup === 'PIECE' ){
-        //     $('#qty_rec'+ cloneCount).removeClass("numeral-mask-digit");
-        //     $('#qty_rec'+ cloneCount).addClass("numeral-mask-satuan");
-        //     $('#qty_free'+ cloneCount).removeClass("numeral-mask-digit");
-        //     $('#qty_free'+ cloneCount).addClass("numeral-mask-satuan");
-        //     $('#qty_po'+ cloneCount).removeClass("numeral-mask-digit");
-        //     $('#qty_po'+ cloneCount).addClass("numeral-mask-satuan");
-        //     mask_thousand_satuan();
-        // }else{
-        //     $('#qty_rec'+ cloneCount).removeClass("numeral-mask-satuan");
-        //     $('#qty_rec'+ cloneCount).addClass("numeral-mask-digit");
-        //     $('#qty_free'+ cloneCount).removeClass("numeral-mask-satuan");
-        //     $('#qty_free'+ cloneCount).addClass("numeral-mask-digit");
-        //     $('#qty_po'+ cloneCount).removeClass("numeral-mask-satuan");
-        //     $('#qty_po'+ cloneCount).addClass("numeral-mask-digit");
-        //     mask_thousand_digit(numberOfDecimalDigit);
-        // }
     }
 
     $('#poNumber').change(function(){
@@ -433,6 +429,66 @@
         $("#totalQtyFree").val(totalQtyFree.toLocaleString(undefined, {maximumFractionDigits:numberOfDecimalDigit}));
         $("#grandTotalQty").val(grandTotalQty.toLocaleString(undefined, {maximumFractionDigits:numberOfDecimalDigit}));
     }
+
+    $("#cmdPrint").click(function(){
+        /* Posting langsung print*/
+        let objQty= $('input[name="qty_rec[]"]');
+        let objUom= $('select[name="uom[]"]');
+        let objQtyFree= $('input[name="qty_free[]"]');
+        let objUomFree= $('select[name="uomFree[]"]');
+        let objQtyPo= $('input[name="qty_po[]"]');    
+        let recNumber = $('#recNumber').val();   
+        let idRec = $('#idRec').val();  
+        let dariNew = 'true';     
+        $.ajax({
+            type: "post",
+            url: "{{ route('receiving.posting') }}",
+            data: {
+                recNumber:recNumber,
+                id:idRec,
+                dariNew:dariNew
+            },
+            dataType: "json",
+            success: function(data) {
+                if (data.status == 0 ){
+                    let message="";
+                    for(let i = 0; i < data.message.length; i++) {
+                        show_msg(data.title, data.message[i], data.alert);
+                    }
+                    $('#recNumber').attr('disabled','disabled');
+                    $('#cmdSave').show();
+                    $('#cmdPrint').hide();
+                }else{
+                    show_msg(data.title, data.message, data.alert);
+                    $('#cmdSave').hide();
+                    // $('#deleteButton').hide();
+                    $('#statusText').text('POSTED');
+                    $('#cmdPrint').hide();
+                    $('#recNumber').attr('disabled','disabled');
+                    $('#soNumber').attr('disabled','disabled');
+                    $('#customer').attr('disabled','disabled');
+                    $('#dnDate').attr('disabled','disabled');
+
+                    $('#cmdSave').hide();
+                    $('#cmdPrint').hide();
+
+                    objQty.attr('disabled','disabled');
+                    objUom.attr('disabled','disabled');
+                    objQtyFree.attr('disabled','disabled');
+                    objUomFree.attr('disabled','disabled');
+
+                    let id = data.idKu;
+                    let url = "{{ route('receiving.print', ['id'=>':id']) }}";
+                    url = url.replace('%3Aid', id);
+                    window.open(url, '_blank');
+                    reloadPage();
+                }
+            },
+            error: function(error) {
+                console.log(error);
+            }
+        });
+    });
 
     $.ajaxSetup({
         headers: {

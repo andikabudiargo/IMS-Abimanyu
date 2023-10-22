@@ -285,6 +285,8 @@
                 });
 
             }else{
+                $('#cmdSave').removeAttr('disabled');
+                $('#cmdPrint').hide();
                 Swal.fire('Warning..',pesan,'warning');
             }
         }

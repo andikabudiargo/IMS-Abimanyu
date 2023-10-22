@@ -123,18 +123,19 @@
     //     console.log(href);
     //     $('#modalConfirmationCancel').attr("action", href);
     // });
+    let href;
+    $(document).on('click', '#cancelReasonButton', function(event) {
+        event.preventDefault();
+        href = $(this).data('href');
+        $('#modalReasonCancel').attr("action", href);
+    });
 
     btnSummary.hide();
     btnDetail.hide();
 
   });
 
-  let href;
-  $(document).on('click', '#cancelReasonButton', function(event) {
-      event.preventDefault();
-      href = $(this).data('href');
-      $('#modalReasonCancel').attr("action", href);
-  });
+  
 
   //refresh di cards
   $('a[data-action="reload"]').on('click', function () {
@@ -229,6 +230,13 @@
       excelFileName:'receiving_detail'
     });
   }
+
+  let href;
+  $(document).on('click', '#revisionReasonButton', function(event) {
+      event.preventDefault();
+      href = $(this).data('href');
+      $('#modalReasonRevision').attr("action", href);
+  });
 
   $.ajaxSetup({
     headers: {
