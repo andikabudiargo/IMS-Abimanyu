@@ -14,20 +14,22 @@
         }
 
         table{
-            font-size: x-small;
+            /* font-size: x-small; */
+            font-size:10pt;
         }
         
         tfoot tr td{
             /*font-weight: bold;*/
             /* font-size: medium; */
         }
+        
         .gray {
             background-color: lightgray;
             font-weight: bold;
         }
 
         table {
-        width: 100%;
+            width: 100%;
         }
 
         th {
@@ -46,12 +48,18 @@
             border-bottom: 1px solid #ddd;
         }
 
-        #watermark {
+        .font-9{
+            font-size:9pt;
+            /* font-size: medium; */
+        }
+
+
+        /* #watermark {
             background: url('{{ asset('assets/img/lunas-stamp.png') }}') center;
             background-size: 10px 10px;
             background-repeat: no-repeat;
             opacity: 0.1;
-        }
+        } */
 
         /* td {
             white-space: nowrap;
@@ -73,12 +81,12 @@
     </table>
     <table width="100%" border="0" >
         <tr>
-            <td width="45%" valign="top" >
+            <td width="70%" valign="top" >
                 Order Number : {{ $soNumber }}<br>
                 PO Number    : {{ $soPoNumber }}<br>
                 Customer     : {{ $customers->nama }}
             </td>
-            <td width="25%"></td>
+            {{-- <td width="25%"></td> --}}
             <td width="30%">
                 Tanggal  : {{ $soDate }}<br>
                 Salesman : {{ $soSalesman }}<br>
@@ -86,17 +94,18 @@
             </td>
         </tr>
     </table>
-    <table style="table-layout:fixed;">
+    <table style="table-layout:fixed;" class="font-9">
         <thead style="background-color: lightgray;">
         <tr>
             <th width="5%">No</th>
             {{-- <th width="10%">Code</th> --}}
-            <th width="45%">Description</th>
+            <th width="40%">Description</th>
             <th width="10%">Qty</th>
             <th width="10%">Material Price</th>
             <th width="10%">Service Price</th>
-            <th width="10%">Total Material</th>
-            <th width="10%">Total Service</th>
+            <th width="13%">Total Material</th>
+            <th width="13%">Total Service</th>
+            <th width="13%">Grand Total</th>
         </tr>
         </thead>
         <tbody>
@@ -110,6 +119,7 @@
                     <td class="border-bottom" align="right">{{ number_format($val->price_service,2) }}</td>
                     <td class="border-bottom" align="right">{{ number_format(($val->qty*$val->price),2) }}</td>
                     <td class="border-bottom" align="right">{{ number_format(($val->qty*$val->price_service),2) }}</td>
+                    <td class="border-bottom" align="right">{{ number_format(($val->qty*$val->price)+($val->qty*$val->price_service),2) }}</td>
                 </tr>
             @endforeach
         </tbody>
@@ -122,6 +132,7 @@
                     <td class="border-bottom" align="right" ></td>
                     <td class="border-bottom" align="right" >{{ number_format($val->total_material,2) }}</td>
                     <td class="border-bottom" align="right" >{{ number_format($val->total_service,2) }}</td>
+                    <td class="border-bottom" align="right" >{{ number_format(($val->total_service+$val->total_material),2) }}</td>
                 </tr>
             @endforeach
         </tfoot>
@@ -138,10 +149,12 @@
             </td>
             <td></td>
             <td></td>
+            <td></td>
             <td>Sub Total</td>
             <td align="right">{{ number_format($val->sub_total,2) }}</td>
         </tr>
         <tr>
+            <td></td>
             <td></td>
             <td></td>
             <td>PPN</td>
@@ -150,10 +163,12 @@
         <tr>
             <td></td>
             <td></td>
+            <td></td>
             <td>PPH23</td>
             <td align="right">{{ $val->pph23?'-':'' }}{{ number_format($val->pph23,2) }}</td>
         </tr>
         <tr>
+            <td></td>
             <td></td>
             <td></td>
             <td>Grand total</td>
