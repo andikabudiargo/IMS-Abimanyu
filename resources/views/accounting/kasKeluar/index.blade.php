@@ -164,7 +164,7 @@
         { width: '5%', targets: 0 },
         {
           targets: [ 4 ],
-          render: $.fn.dataTable.render.number(',', '.', 0, ''),
+          render: $.fn.dataTable.render.number(',', '.', 2, ''),
           className: "text-right"
         },
       ],
@@ -175,7 +175,7 @@
         year:year,
         searchStatus:searchStatus
       },
-      orderColumn:[[ 7, 'desc' ]],
+      orderColumn:[[ 9, 'asc' ]],
       excelFileName:'kas_pembayaran'
     });
   }

@@ -552,23 +552,22 @@ class KasKeluarController extends Controller
 
         if ($vcDate){
             $date = explode("to",$vcDate);
-            $fromDate = trim($date[0]);
-            $toDate = trim($date[1]);
-
-            // if(count($date)>1){
-            //     $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
-            //     $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
-            // }else{
-            //     $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
-            //     $toDate = $fromDate; 
-            // }
+            // $fromDate = trim($date[0]);
+            // $toDate = trim($date[1]);
+            if(count($date)>1){
+                $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+                $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
+            }else{
+                $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+                $toDate = $fromDate; 
+            }
         }
 
         $data = DB::table('kas_hdr')
         ->leftJoin('third_party','third_party.kode','kas_hdr.paid_to')
         ->where(function ($query) use ($seachVc,$vcDate,$fromDate,$toDate,$period,$year,$searchStatus) {
             $seachVc ? $query->where('voucher_number','ilike','%'.$seachVc.'%') : '';
-            $vcDate ? $query->whereBetween('voucher_date', [$fromDate, $toDate]) : '';
+            $vcDate ? $query->whereBetween(DB::raw("to_date(voucher_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
             $period ? $query->where('period', $period) : '';
             $year ? $query->where('year', $year) : '';
             $searchStatus ? $query->where('kas_hdr.status', $searchStatus) : '';

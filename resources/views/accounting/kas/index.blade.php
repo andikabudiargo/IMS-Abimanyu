@@ -3,7 +3,6 @@
 @section('content')
 @include('layouts.breadcrumb')
 @include('partials.alert')
-
 <section id="article-index">
   <div class="card">
     <div class="card-header">  
@@ -69,7 +68,6 @@
     </div>
   </div>
 </section>
-
 <section id="table-article">
   <div class="card">
     <div class="card-header">
@@ -97,16 +95,13 @@
     </div>
   </div>
 </section>
-
 @include('partials.delete-modal')
-
 @endsection
 @section('styles')
 <style>
-
-td.wrapok {
-    white-space:normal
-}
+  td.wrapok {
+      white-space:normal
+  }
 </style>
 @endsection
 @section('scripts')
@@ -168,10 +163,10 @@ td.wrapok {
         { width: '5%', targets: 0 },
         {
           targets: [ 4 ],
-          render: $.fn.dataTable.render.number(',', '.', 0, ''),
+          render: $.fn.dataTable.render.number(',', '.', 2, ''),
           className: "text-right"
         },
-        {targets:[3], class:"wrapok"}
+        // {targets:[3], class:"wrapok"}
       ],
       dataSearch:  {
         seachVc:seachVc,
@@ -180,7 +175,7 @@ td.wrapok {
         year:year,
         searchStatus:searchStatus
       },
-      orderColumn:[[ 1, 'desc' ]],
+      orderColumn:[[ 9, 'asc' ]],
       excelFileName:'kas_penerimaan'
     });
   }
