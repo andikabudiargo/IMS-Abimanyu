@@ -1,7 +1,7 @@
 <li class="nav-item dropdown dropdown-notification mr-25">
     <a class="nav-link" href="javascript:void(0);" data-toggle="dropdown">
         <i class="ficon" data-feather="bell"></i>
-        <span class="badge badge-pill badge-danger badge-up">{!! $jumlahSo + $jumlahPo + $jumlahBom + $jumlahPr + $jumlahTso+ $jumlahDn + $jumlahAp + $jumlahAr !!}</span>
+        <span class="badge badge-pill badge-danger badge-up">{!! $jumlahSo + $jumlahPo + $jumlahBom + $jumlahPr + $jumlahTso+ $jumlahDn + $jumlahAp + $jumlahAr + $jumlahRec !!}</span>
     </a>
     <ul class="dropdown-menu dropdown-menu-media dropdown-menu-right">
         @if( $jumlahSo > 0 )
@@ -351,6 +351,63 @@
                                         data-id-class = "buttonDn-{{ $val->id }}"
                                         data-doc-number='{{ $val->delivery_number }}'
                                         data-url='{{ route("delivery.notif.approve", ["dnNumber"=>$val->delivery_number]) }}'>
+                                        <i data-feather='check-circle'></i>
+                                        Approve
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                @endforeach
+            </li>
+        @endif
+        @if( $jumlahRec > 0 )
+            <li class="dropdown-menu-header">
+                <div class="dropdown-header d-flex">
+                    <h4 class="notification-title mb-0 mr-auto">Receiving needs to be approved </h4>
+                    <div class="badge badge-pill badge-light-primary">{!! count($listRecNotif) !!} New</div>
+                </div>
+            </li>   
+            <li class="scrollable-container media-list">
+                @foreach($listRecNotif as $key=>$val)
+                        <div class="media d-flex align-items-start">
+                            <div class="media-left">
+                                <div class="avatar">
+                                    <div class="avatar-content">REC</div>
+                                </div>
+                            </div>
+                            <div class="media-body">
+                                <div class="col-12">
+                                    <p class="media-heading">
+                                        <span class="font-weight-bolder">{{ $val->rec_number }}</span>
+                                    </p>
+                                    <p class="media-heading">
+                                        <small class="notification-text">DO Number: {{ $val->do_number }}</small>
+                                    </p>
+                                    <p class="media-heading">
+                                        <small class="notification-text">Date: {{ $val->rec_date }}</small>
+                                    </p>
+                                    <p class="media-heading">
+                                        <small class="notification-text">Note: {{ $val->note }}</small>
+                                    </p>
+                                    <p class="media-heading">
+                                        <small class="notification-text">#Approved: {{ $val->current_level }} of {{ $val->max_level }}</small>
+                                    </p>
+                                </div>
+                                <div class="col-12 mt-50">
+                                    <a class="btn btn-outline-info btn-sm" 
+                                        id="cmdDetailRec{{ $key }}" 
+                                        name="cmdDetailRec{{ $key }}" 
+                                        href="{{ route('receiving.show', ['id'=>Crypt::encryptString($val->id)]) }}"> 
+                                        <i data-feather='list'></i>
+                                        Detail
+                                    </a>
+                                    <a href='javascript:;'
+                                        onclick="action(this)"
+                                        id = 'buttonRec{{ $key }}'
+                                        class="btn btn-outline-success btn-sm buttonRec-{{ $val->id }}"
+                                        data-id-class = "buttonRec-{{ $val->id }}"
+                                        data-doc-number='{{ $val->rec_number }}'
+                                        data-url='{{ route("receiving.notif.approve", ["recNumber"=>$val->rec_number]) }}'>
                                         <i data-feather='check-circle'></i>
                                         Approve
                                     </a>

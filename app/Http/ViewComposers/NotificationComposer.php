@@ -329,6 +329,42 @@ class NotificationComposer
         }
 
 
+        $lists['jumlahRec'] = 0;
+        if (in_array("REC", $adaModule)){
+            $bisaApproveRec =DB::select("SELECT  count(*) as jumlah from (
+                select 
+                    coalesce((select max(approval_order) from approval_history where module_code ='REC' and module_number =a.rec_number),0) as current_level
+                    ,coalesce((select min(approval_order) from approval_level where username = '$username' and module_code = 'REC' and approval_order not in(
+                    select approval_order from approval_history where username = '$username' and module_code = 'REC' and module_number = a.rec_number)),0) as berhak_approve
+                from receiving_hdr a
+                where status in ('10')
+                ) as Oki
+            where current_level+1 = berhak_approve");
+    
+            if($bisaApproveRec[0]->jumlah >0 ){
+                $lists['listRecNotif'] = DB::select("SELECT * from (
+                select 
+                    id
+                    ,rec_number
+                    ,rec_date
+                    ,do_number
+                    ,note
+                    ,created_by
+                    ,status
+                    ,'$username' as username
+                    ,coalesce((select max(approval_order) from approval_history where module_code ='REC' and module_number =a.rec_number),0) as current_level
+                    ,(select approval_number from approval_master where module_code = 'REC') as max_level
+                    ,coalesce((select min(approval_order) from approval_level where username = '$username' and module_code = 'REC' and approval_order not in(
+                    select approval_order from approval_history where username = '$username' and module_code = 'REC' and module_number = a.rec_number)),0) as berhak_approve
+                from receiving_hdr a
+                where status in ('10')
+                ) as Oki
+                where current_level+1 = berhak_approve");
+                $lists['jumlahRec'] = count($lists['listRecNotif']);
+            }
+        }
+
+
         // dd($bisaApproveSo[0]->jumlah);
                
         $view->with($lists);

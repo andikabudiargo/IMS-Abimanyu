@@ -299,6 +299,7 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('receiving/approve',['as'=>'receiving.approve','uses'=>'ReceivingController@approve']);
 	Route::post('receiving/cancel',['as'=>'receiving.cancel','uses'=>'ReceivingController@cancel']);
 	Route::post('receiving/revision',['as'=>'receiving.revision','uses'=>'ReceivingController@revision']);
+	Route::get('receiving/notif/approve',['as'=>'receiving.notif.approve','uses'=>'ReceivingController@approve']);
 
 	Route::get('delivery',['as'=>'delivery.index','uses'=>'DeliveryController@index','middleware' => ['permission:delivery-index']]);
 	Route::get('delivery/create',['as'=>'delivery.create','uses'=>'DeliveryController@create','middleware' => ['permission:delivery-create']]);
@@ -337,8 +338,8 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('dnReceipt/edit',['as'=>'dnReceipt.edit','uses'=>'DeliveryReceiptController@edit','middleware' => ['permission:dnReceipt-edit']]);
 	Route::post('dnReceipt/update',['as'=>'dnReceipt.update','uses'=>'DeliveryReceiptController@update']);
 
-	Route::get('invoice',['as'=>'invoice.index','uses'=>'InvoiceController@index','middleware' => ['permission:receiving-index']]);
-	Route::get('invoice/create',['as'=>'invoice.create','uses'=>'InvoiceController@create','middleware' => ['permission:receiving-create']]);
+	Route::get('invoice',['as'=>'invoice.index','uses'=>'InvoiceController@index']);
+	Route::get('invoice/create',['as'=>'invoice.create','uses'=>'InvoiceController@create']);
 	Route::get('invoice/search',['as'=>'invoice.search','uses'=>'InvoiceController@search']);
 	Route::get('invoice/list/so',['as'=>'invoice.list.so','uses'=>'InvoiceController@listSo']);
 	Route::get('invoice/list/dn',['as'=>'invoice.list.dn','uses'=>'InvoiceController@listDn']);
@@ -347,7 +348,7 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('invoice/store',['as'=>'invoice.store','uses'=>'InvoiceController@store']);
 	Route::get('invoice/list',['as'=>'invoice.list','uses'=>'InvoiceController@list']);
 	Route::get('invoice/show',['as'=>'invoice.show','uses'=>'InvoiceController@show']);
-	Route::get('invoice/edit',['as'=>'invoice.edit','uses'=>'InvoiceController@edit','middleware' => ['permission:receiving-edit']]);
+	Route::get('invoice/edit',['as'=>'invoice.edit','uses'=>'InvoiceController@edit']);
 	Route::post('invoice/update',['as'=>'invoice.update','uses'=>'InvoiceController@update']);
 	Route::post('invoice/delete',['as'=>'invoice.destroy','uses'=>'InvoiceController@destroy']);
 	Route::get('invoice/code/create',['as'=>'invoice.code.create','uses'=>'InvoiceController@articleCodeCreate']);
