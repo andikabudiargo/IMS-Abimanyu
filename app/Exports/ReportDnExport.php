@@ -83,7 +83,7 @@ class ReportDnExport implements FromView,ShouldAutoSize,WithColumnFormatting,Wit
             order by date_delivery,b.delivery_number");
             $jumlahBaris++;
             $barisIsiJudul .= "<tr >
-                    <td>No.</td>
+                    <td align='left'>No.</td>
                     <td>Delivery Number</td>
                     <td>Delivery Date</td>
                     <td>Qty delivery</td>
@@ -92,7 +92,7 @@ class ReportDnExport implements FromView,ShouldAutoSize,WithColumnFormatting,Wit
             foreach($isiJudul as $key=>$item){
                 $no = $key+1;
                 $barisIsiJudul .= "<tr >
-                    <td>$no</td>
+                    <td align='left'>$no</td>
                     <td>$item->delivery_number</td>
                     <td>$item->delivery_date</td>
                     <td align='left'>".number_format($item->qty,2,'.',',')."</td>
@@ -105,7 +105,7 @@ class ReportDnExport implements FromView,ShouldAutoSize,WithColumnFormatting,Wit
                             <td > Qty Sisa : ".number_format($qtySisa,2)."</td>
                         </tr>";
             
-            $barisTotal .= "<tr><td></td><td></td><td></td><td></td><td></td></tr>";
+            // $barisTotal .= "<tr><td></td><td></td><td></td><td></td><td></td></tr>";
                       
             $barisAll .= $barisIsiJudul.$barisTotal;
         }; 
