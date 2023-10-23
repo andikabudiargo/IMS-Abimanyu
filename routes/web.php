@@ -237,6 +237,7 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('salesOrders/code/create',['as'=>'salesOrder.code.create','uses'=>'SalesOrderController@articleCodeCreate']);
 	Route::get('salesOrders/print',['as'=>'salesOrder.print','uses'=>'SalesOrderController@print']);
 	Route::get('salesOrder/approve',['as'=>'salesOrder.approve','uses'=>'SalesOrderController@approve']);
+	// Route::post('salesOrder/revision',['as'=>'salesOrder.revision','uses'=>'SalesOrderController@revision']);
 
 	Route::get('salesOrderReport',['as'=>'salesOrder.report','uses'=>'SalesOrderController@report','middleware' => ['permission:salesOrder-index']]);
 	Route::get('salesOrderReport/list',['as'=>'salesOrder.list.report','uses'=>'SalesOrderController@listReport','middleware' => ['permission:salesOrder-index']]);
@@ -353,6 +354,7 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('invoice/print',['as'=>'invoice.print','uses'=>'InvoiceController@print']);
 	Route::post('invoice/posting',['as'=>'invoice.posting','uses'=>'InvoiceController@posting']);
 	Route::post('invoice/approve',['as'=>'invoice.approve','uses'=>'InvoiceController@approve']);
+	Route::get('invoice/notif/approve',['as'=>'invoice.notif.approve','uses'=>'InvoiceController@approve']);
 
 	Route::get('aps',['as'=>'aps.index','uses'=>'AccountPayableController@index','middleware' => ['permission:ap-index']]);
 	Route::get('aps/create',['as'=>'ap.create','uses'=>'AccountPayableController@create','middleware' => ['permission:ap-create']]);

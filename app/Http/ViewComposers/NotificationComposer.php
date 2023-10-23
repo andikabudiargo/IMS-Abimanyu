@@ -260,7 +260,7 @@ class NotificationComposer
 
         $lists['jumlahAp'] = 0;
         if (in_array("AP", $adaModule)){
-            $bisaApproveDn =DB::select("SELECT  count(*) as jumlah from (
+            $bisaApproveAp =DB::select("SELECT  count(*) as jumlah from (
                 select 
                     coalesce((select max(approval_order) from approval_history where module_code ='AP' and module_number =a.ap_number),0) as current_level
                     ,coalesce((select min(approval_order) from approval_level where username = '$username' and module_code = 'AP' and approval_order not in(
@@ -270,7 +270,7 @@ class NotificationComposer
                 ) as Oki
             where current_level+1 = berhak_approve");
     
-            if($bisaApproveDn[0]->jumlah >0 ){
+            if($bisaApproveAp[0]->jumlah >0 ){
                 $lists['listApNotif'] = DB::select("SELECT * from (
                 select 
                     id
@@ -292,6 +292,42 @@ class NotificationComposer
                 $lists['jumlahAp'] = count($lists['listApNotif']);
             }
         }
+
+        $lists['jumlahAr'] = 0;
+        if (in_array("INV", $adaModule)){
+            $bisaApproveAr =DB::select("SELECT  count(*) as jumlah from (
+                select 
+                    coalesce((select max(approval_order) from approval_history where module_code ='INV' and module_number =a.invoice_number),0) as current_level
+                    ,coalesce((select min(approval_order) from approval_level where username = '$username' and module_code = 'INV' and approval_order not in(
+                    select approval_order from approval_history where username = '$username' and module_code = 'INV' and module_number = a.invoice_number)),0) as berhak_approve
+                from invoice_hdr a
+                where status in ('1','2')
+                ) as Oki
+            where current_level+1 = berhak_approve");
+   
+            if($bisaApproveAr[0]->jumlah >0 ){
+                $lists['listArNotif'] = DB::select("SELECT * from (
+                select 
+                    id
+                    ,invoice_number
+                    ,invoice_date
+                    ,po_number
+                    ,note
+                    ,created_by
+                    ,status
+                    ,'$username' as username
+                    ,coalesce((select max(approval_order) from approval_history where module_code ='INV' and module_number =a.invoice_number),0) as current_level
+                    ,(select approval_number from approval_master where module_code = 'INV') as max_level
+                    ,coalesce((select min(approval_order) from approval_level where username = '$username' and module_code = 'INV' and approval_order not in(
+                    select approval_order from approval_history where username = '$username' and module_code = 'INV' and module_number = a.invoice_number)),0) as berhak_approve
+                from invoice_hdr a
+                where status in ('1','2')
+                ) as Oki
+                where current_level+1 = berhak_approve");
+                $lists['jumlahAr'] = count($lists['listArNotif']);
+            }
+        }
+
 
         // dd($bisaApproveSo[0]->jumlah);
                

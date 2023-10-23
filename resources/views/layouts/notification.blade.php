@@ -1,7 +1,7 @@
 <li class="nav-item dropdown dropdown-notification mr-25">
     <a class="nav-link" href="javascript:void(0);" data-toggle="dropdown">
         <i class="ficon" data-feather="bell"></i>
-        <span class="badge badge-pill badge-danger badge-up">{!! $jumlahSo + $jumlahPo + $jumlahBom + $jumlahPr + $jumlahTso+ $jumlahDn + $jumlahAp!!}</span>
+        <span class="badge badge-pill badge-danger badge-up">{!! $jumlahSo + $jumlahPo + $jumlahBom + $jumlahPr + $jumlahTso+ $jumlahDn + $jumlahAp + $jumlahAr !!}</span>
     </a>
     <ul class="dropdown-menu dropdown-menu-media dropdown-menu-right">
         @if( $jumlahSo > 0 )
@@ -403,11 +403,68 @@
                                     </a>
                                     <a href='javascript:;'
                                         onclick="action(this)"
-                                        id = 'buttonDn{{ $key }}'
-                                        class="btn btn-outline-success btn-sm buttonDn-{{ $val->id }}"
-                                        data-id-class = "buttonDn-{{ $val->id }}"
+                                        id = 'buttonAp{{ $key }}'
+                                        class="btn btn-outline-success btn-sm buttonAp-{{ $val->id }}"
+                                        data-id-class = "buttonAp-{{ $val->id }}"
                                         data-doc-number='{{ $val->ap_number }}'
                                         data-url='{{ route("ap.notif.approve", ["apNumber"=>$val->ap_number]) }}'>
+                                        <i data-feather='check-circle'></i>
+                                        Approve
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                @endforeach
+            </li>
+        @endif
+        @if( $jumlahAr > 0 )
+            <li class="dropdown-menu-header">
+                <div class="dropdown-header d-flex">
+                    <h4 class="notification-title mb-0 mr-auto">Invoice needs to be approved </h4>
+                    <div class="badge badge-pill badge-light-primary">{!! count($listArNotif) !!} New</div>
+                </div>
+            </li>   
+            <li class="scrollable-container media-list">
+                @foreach($listArNotif as $key=>$val)
+                        <div class="media d-flex align-items-start">
+                            <div class="media-left">
+                                <div class="avatar">
+                                    <div class="avatar-content">INV</div>
+                                </div>
+                            </div>
+                            <div class="media-body">
+                                <div class="col-12">
+                                    <p class="media-heading">
+                                        <span class="font-weight-bolder">{{ $val->invoice_number }}</span>
+                                    </p>
+                                    <p class="media-heading">
+                                        <small class="notification-text">PO Number: {{ $val->po_number }}</small>
+                                    </p>
+                                    <p class="media-heading">
+                                        <small class="notification-text">Date: {{ $val->invoice_date }}</small>
+                                    </p>
+                                    <p class="media-heading">
+                                        <small class="notification-text">Note: {{ $val->note }}</small>
+                                    </p>
+                                    <p class="media-heading">
+                                        <small class="notification-text">#Approved: {{ $val->current_level }} of {{ $val->max_level }}</small>
+                                    </p>
+                                </div>
+                                <div class="col-12 mt-50">
+                                    <a class="btn btn-outline-info btn-sm" 
+                                        id="cmdDetailAr{{ $key }}" 
+                                        name="cmdDetailAr{{ $key }}" 
+                                        href="{{ route('invoice.show', ['id'=>Crypt::encryptString($val->id)]) }}"> 
+                                        <i data-feather='list'></i>
+                                        Detail
+                                    </a>
+                                    <a href='javascript:;'
+                                        onclick="action(this)"
+                                        id = 'buttonAr{{ $key }}'
+                                        class="btn btn-outline-success btn-sm buttonAr-{{ $val->id }}"
+                                        data-id-class = "buttonAr-{{ $val->id }}"
+                                        data-doc-number='{{ $val->invoice_number }}'
+                                        data-url='{{ route("invoice.notif.approve", ["invNumber"=>$val->invoice_number]) }}'>
                                         <i data-feather='check-circle'></i>
                                         Approve
                                     </a>
