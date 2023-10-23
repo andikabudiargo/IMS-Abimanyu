@@ -47,9 +47,10 @@ class InvoiceController extends Controller
             ['data'=> 'invoice_date', 'name'=> 'invoice_date','title'=>'Date' ],
             ['data'=> 'customer_name', 'name'=> 'customer_name','title'=>'Customer' ],
             ['data'=> 'approval_by', 'name'=> 'approval_by','title'=>'Approved By' ],
-            ['data'=> 'created_by', 'name'=> 'created_by','title'=>'Prepared By' ],
-            ['data'=> 'created_by', 'name'=> 'created_by','title'=>'Created By'],
-            ['data'=> 'created_at', 'name'=> 'created_at','title'=>'Created At']
+            ['data'=> 'created_by', 'name'=> 'created_by','title'=>'Created By' ],
+            ['data'=> 'created_at', 'name'=> 'created_at','title'=>'Created At' ],
+            ['data'=> 'updated_by', 'name'=> 'updated_by','title'=>'Updated By'],
+            ['data'=> 'updated_at', 'name'=> 'updated_at','title'=>'Updated At']
         ];
         return json_encode($kolom, true);
     }
