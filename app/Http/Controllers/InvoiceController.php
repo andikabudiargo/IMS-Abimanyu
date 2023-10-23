@@ -274,7 +274,7 @@ class InvoiceController extends Controller
         ->groupBy(['article.article_desc'
         ,'article.article_alternative_code'
         ,'invoice_det.uom'
-        ,'qty'
+        // ,'qty'
         ,'price'
         ,'price_service'])
         ->get();
@@ -343,7 +343,7 @@ class InvoiceController extends Controller
         ->groupBy(['article.article_desc'
         ,'article.article_alternative_code'
         ,'invoice_det.uom'
-        ,'qty'
+        // ,'qty'
         ,'price'
         ,'price_service'])
         ->get();
@@ -931,10 +931,12 @@ class InvoiceController extends Controller
         ,'price'
         ,'price_service')
         ->where('invoice_number',$invNumber)
-        ->groupBy(['article.article_desc'
-        ,'qty'
-        ,'price'
-        ,'price_service'])
+        ->groupBy([
+            'article.article_desc'
+            // ,'qty'
+            ,'price'
+            ,'price_service'
+        ])
         ->get();
         
         $header=DB::table('invoice_hdr')
