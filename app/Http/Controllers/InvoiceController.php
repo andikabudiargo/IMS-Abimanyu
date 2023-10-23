@@ -47,7 +47,7 @@ class InvoiceController extends Controller
             ['data'=> 'invoice_date', 'name'=> 'invoice_date','title'=>'Date' ],
             ['data'=> 'customer_name', 'name'=> 'customer_name','title'=>'Customer' ],
             ['data'=> 'approved_by', 'name'=> 'approved_by','title'=>'Approved By' ],
-            ['data'=> 'created_by', 'name'=> 'created_by','title'=>'Preapred By' ],
+            ['data'=> 'created_by', 'name'=> 'created_by','title'=>'Prepared By' ],
             ['data'=> 'created_by', 'name'=> 'created_by','title'=>'Created By'],
             ['data'=> 'created_at', 'name'=> 'created_at','title'=>'Created At']
         ];
@@ -819,6 +819,7 @@ class InvoiceController extends Controller
             'invoice_hdr.*'
             // ,DB::raw("(select STRING_AGG ( a.rec_number,',' ORDER BY a.id) as list_rec from invoice_hdr_detail a where ap_number = invoice_hdr.ap_number) as list_rec")
             ,db::raw("concat(third_party.kode,'-',third_party.nama) as customer_name")
+            ,db::raw("(select STRING_AGG((select name from users where username = z.username), ' -> ' ORDER BY approval_order) AS main from approval_history z where module_number = invoice_hdr.invoice_number) as approval_by")
         )
         ->orderBy('invoice_hdr.id')
         ->get(); 
