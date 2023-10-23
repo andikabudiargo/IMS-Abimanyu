@@ -43,7 +43,9 @@ class ReceivingController extends Controller
             // ['data'=>'authorized_by','name'=>'authorized_by','title'=>'Authorized By'],
             ['data'=>'note','name'=>'note','title'=>'Note'],
             ['data'=>'created_by','name'=>'created_by','title'=>'Created By'],
-            ['data'=>'approval_by','name'=>'approval_by','title'=>'Approved By']
+            ['data'=>'approval_by','name'=>'approval_by','title'=>'Approved By'],
+            ['data'=>'created_at','name'=>'created_at','title'=>'Created At', 'visible'=>false]
+            
         ];
         return json_encode($kolom, true);
     }
@@ -74,6 +76,7 @@ class ReceivingController extends Controller
             ['data'=>'approval_by','name'=>'approval_by','title'=>'Approved By'],
             ['data'=>'article_type_name','name'=>'article_type_name','title'=>'Keterangan'],
             ['data'=>'note','name'=>'note','title'=>'Note'],
+            ['data'=>'created_at','name'=>'created_at','title'=>'Created At', 'visible'=>false]
         ];
         return json_encode($kolom, true);
     }
@@ -1335,7 +1338,7 @@ class ReceivingController extends Controller
             $doDate ? $query->whereBetween(DB::raw("to_date(do_date,'DD-MM-YYYY')"), [$fromDateDo, $toDateDo]) : '';
         })
         ->where('receiving_det.qty','>',0)
-        ->where('receiving_hdr.status',"<>",'5')
+        ->whereNotIn('receiving_hdr.status',['5','7'])
         ->select('receiving_det.*'
         ,'receiving_hdr.*'
         ,'article_alternative_code'
@@ -1353,8 +1356,8 @@ class ReceivingController extends Controller
         
         return Datatables::of($data)
         ->addColumn('status', function ($data) {
-            $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary'];
-            $statusRec = ['NEW','UPDATED','APPROVED','POSTED','CANCELED'];
+            $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-success','badge-success','badge-success'];
+            $statusRec = ['NEW','VALIDATE','APPROVE','POSTED','CANCELED','','','','','REVISI'];
             // return "<div class='badge ".$badges[$data->status - 1]."'>".$statusRec[$data->status - 1]."</div>";
             return $statusRec[$data->status - 1];
         })

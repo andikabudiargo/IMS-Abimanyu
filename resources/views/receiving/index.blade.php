@@ -226,7 +226,7 @@
         recDate:recDate,
         doDate:doDate
       },
-      orderColumn:[[ 10, 'asc' ]],
+      orderColumn:[[ 19, 'asc' ],[ 5, 'asc' ]],
       excelFileName:'receiving_detail'
     });
   }
