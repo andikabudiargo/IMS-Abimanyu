@@ -41,11 +41,11 @@
                         </select>
                     </td>
                     <td class="isian" style="width: 25%">
-                        <input type="text" class="form-control-plaintext tombol-panah" 
-                        data-type-el-kiri="select" 
+                        <input type="text" class="form-control-plaintext" 
+                        {{-- data-type-el-kiri="select" 
                         data-nama-el-kiri='account'
                         data-type-el-kanan='select'
-                        data-nama-el-kanan='vcRef'
+                        data-nama-el-kanan='vcRef' --}}
                         id="vcDesc" name="vcDesc[]"  maxlength="100" />
                     </td>
                     <td class="isian" style="">
