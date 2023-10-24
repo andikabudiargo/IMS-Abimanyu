@@ -283,12 +283,12 @@
                         <div style="padding: 0 2px 0 2px">
                         <table id="tblContent" class="font-14" style="table-layout:fixed;">
                             <thead>
-                                <tr style="height: 25px;">
+                                <tr style="height: 50px;">
                                     <th width="5%" >No</th>
                                     <th width="51.5%" >Description</th>
                                     <th width="8.5%" align="center">Qty</th>
                                     @if($printType=='1')
-                                    <th width="12%">Price</th>
+                                    <th width="12%">Price blablablabla</th>
                                     <th width="15%">Total</th>
                                     @else
                                     <th width="12%">Service Price</th>
