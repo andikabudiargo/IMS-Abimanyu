@@ -213,7 +213,7 @@
       tableId:"detailedTable",
       route:"{{ route('salesOrder.list') }}",
       kolom:{!! $kolom !!},
-      arrColPrint:[2,3,4,5,6,7,8,9,10],
+      arrColPrint:[2,3,4,5,6,7,8,9,10,11],
       columnDefs :[
         { width: '5%', targets: 0 },
       ],

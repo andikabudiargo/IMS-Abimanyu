@@ -124,6 +124,11 @@
         table{
             font-family: Calibri,Arial, Helvetica, sans-serif;
         }
+
+        .arial{
+            font-family: Arial, Helvetica, sans-serif;
+            /* font-family: Arial, Helvetica, sans-serif; */
+        }
         
         table {
             width: 100%;
@@ -211,13 +216,13 @@
             <button class="btn btn-primary" type="button" id="cmdPrint" name="cmdPrint">Print</button>
         </div>
     </div>
-<div class="sheet padding-3mm">
+<div class="sheet" style="padding:5mm 8mm 5mm 8mm">
     <table>
         <thead>
             <tr>
                 <td>
                     <div class="header-space">
-                        <table width="100%">
+                        <table width="100%" class="font-13">
                             <tr>
                                 <td width="30%" >
                                     <img src="{{ asset('app-assets/images/logo/logo_po.png') }}" alt="logo" style="width: 20%;"> 
@@ -253,10 +258,10 @@
                                 {{ $customers->alamat_kirim_1 }} <br>
                                 <strong>No. NPWP : </strong> {{ $customers->npwp }}
                             </td>
-                            <td width="38%" valign="top" style="border: 1px solid #0c0c0c;padding-left:5px;padding-right:5px">
+                            <td width="38%" valign="center" style="border: 1px solid #0c0c0c;padding-left:5px;padding-right:5px">
                                 <br>
                                 <strong>PO Number : </strong>{{ $listpo }}<br>
-                                <strong>No FP : </strong>{{ $recHdr->faktur_pajak }}
+                                {{-- <strong>No FP : </strong>{{ $recHdr->faktur_pajak }} --}}
                                 <br><p></p>
                             </td>
                         </tr>
@@ -264,7 +269,7 @@
                     <div style="padding: 0 2px 0 2px">
                     <table id="tblContent" class="font-14" style="table-layout:fixed;">
                         <thead>
-                            <tr>
+                            <tr style="line-height: 25px;">
                                 <th width="5%">No</th>
                                 <th width="50%" >Description</th>
                                 <th width="10%" align="center">Qty</th>
@@ -276,10 +281,10 @@
                         </thead>
                         <tbody>
                         @foreach ($details as $val )
-                            <tr>
+                            <tr style="font-size: 11pt">
                                 <td style="border-right: 1px solid black;border-bottom: none;" align="center" scope="row" >{{ ++$no }}</td>
                                 {{-- <td  align="left">{{ $val->article_alternative_code }}</td> --}}
-                                <td  style="border-right: 1px solid black;font-size: 11pt;" align="left">{{ $val->article_desc }}</td>
+                                <td  style="border-right: 1px solid black;" align="left">{{ $val->article_desc }}</td>
                                 <td  style="border-right: 1px solid black;" align="center">{{ number_format($val->qty) }}</td>
                                 <td  style="border-right: 1px solid black;padding:0 3px 0 3px" align="right">{{ number_format($val->price,2) }}</td>
                                 <td  style="border-right: 1px solid black;padding:0 3px 0 3px" align="right">{{ number_format($val->price_service,2) }}</td>
@@ -289,7 +294,7 @@
                                                        
                         @endforeach
                         
-                        <?php $totalBaris = 11 ?>
+                        <?php $totalBaris = 14 ?>
 
                         @for ($i=1;$i< $totalBaris-(count($details));$i++)
                             <tr >
@@ -322,7 +327,7 @@
                                         <table style="table-layout:fixed;">
                                             <tr>
                                                 <td style="border-right: none;border-left: none;padding-right:0px" width="15%" valign="top"><b>Terbilang : </b></td>
-                                                <td style="border-right: none;border-left: none;padding-left:0px"><i>{{ ucwords(strtolower($terbilang)) }}</i></td>
+                                                <td style="border-right: none;border-left: none;padding-left:0px"><i class="arial" style="font-size: 10pt;">{{ ucwords(strtolower($terbilang)) }}</i></td>
                                             </tr>
                                         </table>
                                     </td>
@@ -343,29 +348,32 @@
                                 </tr>
                             @endforeach
                             <tr>
-                                <td valign="top" width="60%" colspan="5" style="border-right: 1px solid white;font-size: 11pt;">
+                                <td class = "arial" valign="top" width="60%" colspan="5" style="border-right: 1px solid white;font-size: 11pt;">
                                     Note:<br>
+                                    <span style="font-size: 11pt;">
                                     Please transfer to our account <br>	
                                     Mohon transfer ke rekening kami	<br>
                                     Bank BCA No. Rek : <b>6785577888</b><br>
-                                    Cabang KC Purwakarta<br>
+                                    Cabang KC Purwakarta<br></span>
+                                    <span style="font-size: 11pt;">
                                     a.n PT. Abimanyu Sekar Nusantara<br><br>
                                     Attention/ perhatian<br>
                                     - Faktur ini berlaku sebagai Kwitansi.<br>
                                     - Pembayaran dengan Cheque / Bilyet atau Wesel dianggap lunas setelah melalui Clearing
+                                    </span>
                                 </td>
-                                <td valign="top" colspan="2" align="center" >
+                                <td class = "arial" valign="top" colspan="2" align="center" style="font-size: 11pt;">
                                     <br>
-                                    Purwakarta, {{ $tanggalHariIni }} <br>
-                                    <br><br><br><br><br><br>
-                                    ( Budi Mulyadi )
+                                        Purwakarta, {{ $tanggalHariIni }} <br>
+                                        <br><br><br><br><br><br><br>
+                                        (&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp Budi Mulyadi &nbsp&nbsp&nbsp&nbsp&nbsp&nbsp)
                                 </td>
                             </tr>
                         </tfoot>
                     </table>
                     </div>
-                    <span style="font-size: 11pt;"><i>Lembar Asli untuk Penagihan kepada Customer</i></span><br>
-                    <span style="font-size: 11pt;;"><i>Lembar Copy untuk Arsip</i></span>
+                    <span class = "arial" style="font-size: 10pt;"><i>Lembar Asli untuk Penagihan kepada Customer</i></span><br>
+                    <span class = "arial" style="font-size: 10pt;;"><i>Lembar Copy untuk Arsip</i></span>
                 </td>
             </tr>
         </tbody>

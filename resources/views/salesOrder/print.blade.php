@@ -53,6 +53,10 @@
             /* font-size: medium; */
         }
 
+        .font-8{
+            font-size:7pt;
+        }
+
         .breakNow {
             page-break-inside:avoid;  
             page-break-after:always;    

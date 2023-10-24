@@ -33,6 +33,7 @@
         .sheet.padding-15mm { padding: 15mm }
         .sheet.padding-20mm { padding: 20mm }
         .sheet.padding-25mm { padding: 25mm }
+        .sheet.padding-8mm { padding: 8mm }
 
         /** For screen preview **/
         @media screen {
@@ -220,13 +221,13 @@
             <button class="btn btn-primary" type="button" id="cmdPrint" name="cmdPrint">Print</button>
         </div>
     </div>
-    <div class="sheet padding-3mm" style="padding-top:5mm">
+    <div class="sheet" style="padding:5mm 8mm 5mm 8mm">
         <table>
             <thead>
                 <tr>
                     <td>
                         <div class="header-space">
-                            <table width="100%">
+                            <table width="100%" class="font-13">
                                 <tr>
                                     <td width="30%" style="padding-top:10px;padding-left:5px" >
                                         <img src="{{ asset('app-assets/images/logo/logo_po.png') }}" alt="logo" style="width: 18%;"> 
@@ -238,7 +239,7 @@
                                     </td>
                                 </tr>
                             </table>
-                            <p style="margin-top:0px;margin-bottom:5px;padding:0 2px 0 2px">NPWP : 31.284.174.5-416.000</p>                     
+                            <p style="margin-top:0px;margin-bottom:5px;padding:0 2px 0 2px" class="font-13">NPWP : 31.284.174.5-416.000</p>                     
                         </div>
                     </td>
                 </tr>
@@ -263,7 +264,6 @@
                                     <strong>No. NPWP : </strong> {{ $customers->npwp }}
                                 </td>
                                 <td width="38%" valign="center" style="border: 1px solid #0c0c0c;padding-left:5px;padding-right:5px">
-                                    
                                     <strong>PO Number : </strong>{{ $listpo }}<br>
                                     {{-- <strong>No FP : </strong>{{ $recHdr->faktur_pajak }} --}}
                                     {{-- <br><p></p> --}}
@@ -273,8 +273,8 @@
                         <div style="padding: 0 2px 0 2px">
                         <table id="tblContent" class="font-14" style="table-layout:fixed;">
                             <thead>
-                                <tr>
-                                    <th width="5%"><div style="height:35px;">No</div></th>
+                                <tr style="line-height: 25px;">
+                                    <th width="5%" >No</th>
                                     <th width="51.5%" >Description</th>
                                     <th width="8.5%" align="center">Qty</th>
                                     @if($printType=='1')
@@ -288,9 +288,9 @@
                             </thead>
                             <tbody>
                             @foreach ($details as $val )
-                                <tr>
-                                    <td style="border-right: 1px solid black;border-bottom: none;" align="center" scope="row" >{{ ++$no }}</td>
-                                    <td  style="border-right: 1px solid black;font-size: 11pt;" align="left">{{ $val->article_desc }}</td>
+                                <tr style="font-size: 11pt">
+                                    <td  style="border-right: 1px solid black;border-bottom: none;" align="center" scope="row" >{{ ++$no }}</td>
+                                    <td  style="border-right: 1px solid black;" align="left">{{ $val->article_desc }}</td>
                                     <td  style="border-right: 1px solid black;" align="center">{{ number_format($val->qty) }}</td>
                                     @if($printType=='1')
                                     <td  style="border-right: 1px solid black;padding:0 3px 0 3px" align="right">{{ number_format($val->price,2) }}</td>
@@ -306,7 +306,7 @@
                             <?php //$totalBaris = 15 ?>
 
                             @for ($i=1;$i< $totalBaris-(count($details));$i++)
-                                <tr>
+                                <tr >
                                     <td style="border-right: 1px solid black;" ><div style="height:35px;"></div></td>
                                     <td style="border-right: 1px solid black;" ></td>
                                     <td style="border-right: 1px solid black;" ></td>
@@ -353,12 +353,13 @@
                                 <tr>
                                     <td class = "arial" valign="top" width="60%" colspan="3" style="border-right: 1px solid white;font-size: 11pt;">
                                         Note:<br>
+                                        <span style="font-size: 11pt;">
                                         Please transfer to our account <br>	
                                         Mohon transfer ke rekening kami	<br>
                                         Bank BCA No. Rek : <b>6785577888</b><br>
                                         Cabang KC Purwakarta<br>
                                         a.n PT. Abimanyu Sekar Nusantara<br><br>
-                                        Attention/ perhatian<br>
+                                        Attention/ perhatian<br></span>
                                         <span style="font-size: 11pt;">
                                         - Faktur ini berlaku sebagai Kwitansi.<br>
                                         - Pembayaran dengan Cheque / Bilyet atau Wesel dianggap lunas setelah melalui Clearing

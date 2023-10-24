@@ -38,7 +38,8 @@ class SalesOrderController extends Controller
             ['data'=>'so_date','name'=>'so_date','title'=>'Date'],
             ['data'=>'order_type','name'=>'order_type','title'=>'Type'],
             ['data'=>'status','name'=>'status','title'=>'Status'],
-            ['data'=>'note','name'=>'note','title'=>'Note']
+            ['data'=>'note','name'=>'note','title'=>'Note'],
+            ['data'=>'num_revision','name'=>'num_revision','title'=>'Num Revision']
 
         ];
         return json_encode($kolom, true);
