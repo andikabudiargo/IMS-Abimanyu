@@ -294,7 +294,7 @@
                                                        
                         @endforeach
                         
-                        <?php $totalBaris = 13 ?>
+                        <?php $totalBaris = 14 ?>
 
                         @for ($i=1;$i< $totalBaris-(count($details));$i++)
                             <tr >
