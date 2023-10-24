@@ -229,17 +229,17 @@
                         <div class="header-space">
                             <table width="100%" class="font-13">
                                 <tr>
-                                    <td width="30%" style="padding-top:10px;padding-left:5px" >
-                                        <img src="{{ asset('app-assets/images/logo/logo_po.png') }}" alt="logo" style="width: 18%;"> 
+                                    <td width="50%" style="padding-top:10px;padding-left:5px" >
+                                        <img src="{{ asset('app-assets/images/logo/logo_po.png') }}" alt="logo" style="width: 20%;"> 
                                     </td>
                                 </tr>
-                                <tr>
+                                {{-- <tr>
                                     <td colspan="2">
                                         Kp. Karang Mulya RT 014 RW 005 Cikopo Bungursari Kab. Purwakarta
                                     </td>
-                                </tr>
+                                </tr> --}}
                             </table>
-                            <p style="margin-top:0px;margin-bottom:5px;padding:0 2px 0 2px" class="font-13">NPWP : 31.284.174.5-416.000</p>
+                            <p style="margin-top:0px;margin-bottom:5px;padding:0 2px 0 2px" class="font-13">Kp. Karang Mulya RT 014 RW 005 Cikopo Bungursari Kab. Purwakarta<br>NPWP : 31.284.174.5-416.000</p>
                         </div>
                     </td>
                 </tr>
@@ -283,7 +283,7 @@
                         <div style="padding: 0 2px 0 2px">
                         <table id="tblContent" class="font-14" style="table-layout:fixed;">
                             <thead>
-                                <tr style="line-height: 25px;">
+                                <tr style="line-height: 25px;line-height: 25px;">
                                     <th width="5%" >No</th>
                                     <th width="51.5%" >Description</th>
                                     <th width="8.5%" align="center">Qty</th>
@@ -298,7 +298,7 @@
                             </thead>
                             <tbody>
                             @foreach ($details as $val )
-                                <tr style="font-size: 11pt">
+                                <tr style="font-size: 11pt;height:25px">
                                     <td  style="border-right: 1px solid black;border-bottom: none;" align="center" scope="row" >{{ ++$no }}</td>
                                     <td  style="border-right: 1px solid black;" align="left">{{ $val->article_desc }}</td>
                                     <td  style="border-right: 1px solid black;" align="center">{{ number_format($val->qty) }}</td>
@@ -312,12 +312,12 @@
                                 </tr>
                             @endforeach
                             
-                            <?php $totalBaris = 14 ?>
+                            <?php $totalBaris = 17 ?>
                             <?php //$totalBaris = 15 ?>
 
                             @for ($i=1;$i< $totalBaris-(count($details));$i++)
-                                <tr >
-                                    <td style="border-right: 1px solid black;" ><div style="height:35px;"></div></td>
+                                <tr style="height:25px">
+                                    <td style="border-right: 1px solid black;" ></div></td>
                                     <td style="border-right: 1px solid black;" ></td>
                                     <td style="border-right: 1px solid black;" ></td>
                                     <td style="border-right: 1px solid black;" ></td>
