@@ -272,7 +272,7 @@
                     <div style="padding: 0 2px 0 2px">
                     <table id="tblContent" class="font-14" style="table-layout:fixed;">
                         <thead>
-                            <tr style="line-height: 25px;">
+                            <tr style="height: 25px;">
                                 <th width="5%">No</th>
                                 <th width="50%" >Description</th>
                                 <th width="10%" align="center">Qty</th>
@@ -297,7 +297,7 @@
                                                        
                         @endforeach
                         
-                        <?php $totalBaris = 17 ?>
+                        <?php $totalBaris = 16   ?>
 
                         @for ($i=1;$i< $totalBaris-(count($details));$i++)
                             <tr style="height:25px">
