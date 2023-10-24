@@ -313,8 +313,7 @@
                             @endforeach
                             
                             <?php $totalBaris = 16 ?>
-                            <?php //$totalBaris = 15 ?>
-
+                            
                             @for ($i=1;$i< $totalBaris-(count($details));$i++)
                                 <tr style="height:25px">
                                     <td style="border-right: 1px solid black;" ></div></td>
