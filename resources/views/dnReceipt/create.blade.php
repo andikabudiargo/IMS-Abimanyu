@@ -132,35 +132,17 @@
         }
     });
         
-    // dnNumber.change(function(){
-    //     let minDate = $(this).find(":selected").data("tanggal");
-    //     if (tanggal.length) {
-    //         tanggal.flatpickr({
-    //             dateFormat: "d-m-Y",
-    //             minDate: minDate
-    //         });
-    //         receiveAt.val(currentDate);
-    //         submitAt.val(currentDate);
-    //     }
-    // });
-
     cmdSave.click(function(){    
         let pesan = "";
         let receiptDate = new Date(receiveAt.val().split('-').reverse().join('-'));
-        // let submitDate = new Date(submitAt.val().split('-').reverse().join('-'));
-
-        // pesan += submitBy.val() === receiveBy.val() ? "Petugas tidak boleh sama" : "";
-        // pesan += receiptDate < submitDate ? "Tanggal terima salah" : "";
-        
-
+        cmdSave.attr('disabled','disabled');
         if (pesan){
             Swal.fire('Warning..',pesan,'warning');
+            cmdSave.removeAttr('disabled');
         }else{
-            // deliveryDate.val(dnNumber.find(":selected").data("tanggal"));
             $('.disabled-el').removeAttr('disabled');
             $("#frmAdd").submit(); // Submit the form
         }
-
     });
     
     $.ajaxSetup({

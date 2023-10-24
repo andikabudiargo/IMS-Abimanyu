@@ -12,7 +12,7 @@
     
     $("#pph23Check").change(function() {
         if(this.checked) {
-            let basisAmount = parseInt($('#basisAmount').val().replace(/,/gi, '')) || 0;
+            let basisAmount = parseFloat($('#basisAmount').val().replace(/,/gi, '')) || 0;
             $("#totalPPH23").val(basisAmount * (sNilaiPPH23/100));
             $("#nilaiPPH23").text(sNilaiPPH23+'%');
             $('#pph21Check').prop('checked',false);
@@ -40,7 +40,7 @@
 
     $("#pph21Check").change(function() {
         if(this.checked) {
-            let basisAmount = parseInt($('#basisAmount').val().replace(/,/gi, '')) || 0;
+            let basisAmount = parseFloat($('#basisAmount').val().replace(/,/gi, '')) || 0;
             $("#totalPPH21").val(basisAmount * (sNilaiPPH21/100));
             $("#nilaiPPH21").text(sNilaiPPH21+'%');
             $("#nilaiPPH23").text('');
@@ -68,7 +68,7 @@
 
     $("#pph42Check").change(function() {
         if(this.checked) {
-            let basisAmount = parseInt($('#basisAmount').val().replace(/,/gi, '')) || 0;
+            let basisAmount = parseFloat($('#basisAmount').val().replace(/,/gi, '')) || 0;
             $("#totalPPH42").val(basisAmount * (sNilaiPPH42/100));
             $("#nilaiPPH42").text(sNilaiPPH42+'%');
             $('#pph23Check').prop('checked',false);
@@ -96,7 +96,7 @@
 
     $("#vatCheck").change(function() {
         if(this.checked) {
-            let basisAmount = parseInt($('#basisAmount').val().replace(/,/gi, '')) || 0;
+            let basisAmount = parseFloat($('#basisAmount').val().replace(/,/gi, '')) || 0;
             $("#totalPPN").val(basisAmount * (sNilaiPPN/100));
             $("#nilaiPPN").text(sNilaiPPN+'%');
             $("#totalPPN").removeAttr('disabled');
@@ -240,11 +240,11 @@
         let sumQty=0;
         $('input:checkbox[name=customCheck]:checked').each(function(){
             recNumber += $(this).data('rec-number')+",";
-            sumQty += parseInt($(this).data('sum-qty'));
+            sumQty += parseFloat($(this).data('sum-qty'));
         });
         recNumber=recNumber.slice(0,-1);
         let tableIsi = $('#listOfRec > tbody  tr').length;
-        if(parseInt($("#grandTotalQty").val())!=sumQty){
+        if(parseFloat($("#grandTotalQty").val())!=sumQty){
             Swal.fire("Warning","Data belum sesuai harus di submit ulang","warning"); 
         }else{
             if (recNumber && (tableIsi != 0)){
@@ -320,7 +320,7 @@
                                     <td class="text-right">${humanizeNumber(result.detailRec[i].price)}</td>
                                     <td class="text-right">${humanizeNumber(result.detailRec[i].total)}</td>
                                 </tr>`;
-                            grandTotalQty+=parseInt(result.detailRec[i].qty);
+                            grandTotalQty+=parseFloat(result.detailRec[i].qty);
                         }
 
                         $("#listOfRec tbody").append(isiTabel);

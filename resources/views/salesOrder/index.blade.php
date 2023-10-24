@@ -265,6 +265,13 @@
     });
   }
 
+  let href;
+  $(document).on('click', '#revisionReasonButton', function(event) {
+      event.preventDefault();
+      href = $(this).data('href');
+      $('#modalReasonRevision').attr("action", href);
+  });
+
   $.ajaxSetup({
     headers: {
         'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')

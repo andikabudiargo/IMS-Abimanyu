@@ -128,17 +128,18 @@
         let pesan = "";
         let submitDate = new Date(submitAt.val().split('-').reverse().join('-'));
         let receiptDate = new Date(receiveAt.val().split('-').reverse().join('-'));
+        cmdSave.attr('disabled','disabled');
 
         pesan += submitBy.val() === receiveBy.val() ? "Petugas Penyerah dan penerima tidak boleh sama" : "";
         pesan += receiptDate > submitDate ? "Submit Date > Receipt Date" : "";
 
         if (pesan){
             Swal.fire('Warning..',pesan,'warning');
+            cmdSave.removeAttr('disabled');
         }else{
             $('.disabled-el').removeAttr('disabled');
             $("#frmAdd").submit(); // Submit the form
         }
-
     });
     
     $.ajaxSetup({

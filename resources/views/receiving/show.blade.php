@@ -86,7 +86,7 @@
                                         @if($key!=0)
                                         <div class="form-row">
                                             <div class="form-group col-md-8">
-                                                <label class="form-label" for="note">Revision reason | by: {{ $header2->revised_by }} | at: {{ date('d-m-Y h:m:s',strtotime($header2->revised_at))   }} </label>
+                                                <label class="form-label" for="rReason">Revision reason | by: {{ $header2->revised_by }} | at: {{ date('d-m-Y h:m:s',strtotime($header2->revised_at))   }} </label>
                                                 <textarea type="text" id="rReason" name="rReason" class="form-control" rows="1" disabled >{{ $header2->reason }}</textarea>
                                             </div>
                                         </div>

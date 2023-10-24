@@ -53,23 +53,23 @@
             /* font-size: medium; */
         }
 
+        .breakNow {
+            page-break-inside:avoid;  
+            page-break-after:always;    
+        }
 
-        /* #watermark {
-            background: url('{{ asset('assets/img/lunas-stamp.png') }}') center;
-            background-size: 10px 10px;
-            background-repeat: no-repeat;
-            opacity: 0.1;
-        } */
+        .pagenum:before {
+            content: counter(page);
+        }
 
-        /* td {
-            white-space: nowrap;
-        } */
+        #page-number:after {
+            counter-increment: page_number;
+            content: "Page " counter(page_number);
+        }
+
     </style>
 </head>
 <body>
-    {{-- @if($status == "B")
-        <div id ="watermark">
-    @endif --}}
     <table width="100%" border="0">
         <tr>
             <td width="30%" >
@@ -215,8 +215,10 @@
             <td align="center"></td>
         </tr>
     </table>
-{{-- @if($poNumber == "oki")
-</div>
-@endif --}}
+
+    @if(count($details) > 32 )
+        <div class="breakNow"></div>
+    @endif
+
 </body>
 </html>

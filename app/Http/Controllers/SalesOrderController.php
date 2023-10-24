@@ -86,7 +86,7 @@ class SalesOrderController extends Controller
         ->get();
 
         $data['types'] = ['NEW','REPEAT'];
-        $data['status'] = ['1'=>'NEW','2'=>'VALIDATED','3'=>'APPROVED','4'=>'RECEIVED','5'=>'CANCELED','6'=>"CLOSED",'7'=>'PAID'];
+        $data['status'] = ['1'=>'NEW','2'=>'VALIDATED','3'=>'APPROVED','4'=>'RECEIVED','6'=>"CLOSED",'7'=>'PAID'];
 
         return view("salesOrder.index",$data);
     }
@@ -239,51 +239,52 @@ class SalesOrderController extends Controller
             $soCode = $this->getLastCode('SO');
             DB::beginTransaction();
             try {
-                    DB::table('sales_order_hdr')->insert([
+                DB::table('sales_order_hdr')->insert([
+                    'so_code' => $soCode,
+                    'po_number' => $poNumber,
+                    'customer_id' => $customer,
+                    'salesman_code' => $salesman ,
+                    'so_date' => $orderDate,
+                    'currency' => $currency,
+                    'kurs' => $kurs,
+                    'ppn' => $ppn,
+                    'pph23' => $pph23,
+                    'order_type' => $type,
+                    'status' => $status,
+                    'gudang' => $gudang ,
+                    'note' =>  $note,
+                    'created_by' => Auth::user()->username,
+                    'updated_by' => Auth::user()->username,
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s'),
+                    'origin_so_code' => $soCode
+                ]);
+
+                $dataSet = [];
+                foreach ($articles as $val) {
+                    $dataSet[] = [
                         'so_code' => $soCode,
-                        'po_number' => $poNumber,
-                        'customer_id' => $customer,
-                        'salesman_code' => $salesman ,
-                        'so_date' => $orderDate,
-                        'currency' => $currency,
-                        'kurs' => $kurs,
-                        'ppn' => $ppn,
-                        'pph23' => $pph23,
-                        'order_type' => $type,
+                        'article_code' => $val->article_code,
+                        'qty' => $val->qty,
+                        'uom' => $val->uom,
+                        'price' => $val->price,
+                        'price_service' => $val->price_service,
+                        'ppn' => (($val->price*$val->qty)+($val->price_service*$val->qty)) * $ppn/100,
+                        'pph23' => ($val->price_service*$val->qty) * $pph23/100,
                         'status' => $status,
-                        'gudang' => $gudang ,
-                        'note' =>  $note,
                         'created_by' => Auth::user()->username,
-                        'updated_by' => Auth::user()->username,
                         'created_at' => date('Y-m-d H:i:s'),
-                        'updated_at' => date('Y-m-d H:i:s')
-                    ]);
+                    ];
+                }
 
-                    $dataSet = [];
-                    foreach ($articles as $val) {
-                        $dataSet[] = [
-                            'so_code' => $soCode,
-                            'article_code' => $val->article_code,
-                            'qty' => $val->qty,
-                            'uom' => $val->uom,
-                            'price' => $val->price,
-                            'price_service' => $val->price_service,
-                            'ppn' => (($val->price*$val->qty)+($val->price_service*$val->qty)) * $ppn/100,
-                            'pph23' => ($val->price_service*$val->qty) * $pph23/100,
-                            'status' => $status,
-                            'created_by' => Auth::user()->username,
-                            'created_at' => date('Y-m-d H:i:s'),
-                        ];
-                    }
+                DB::table('sales_order_det')->insert($dataSet);
 
-                    DB::table('sales_order_det')->insert($dataSet);
-
-                    DB::commit();
-                    $title ="Save $this->title";
-                    $alert  ="success";
-                    $message  = "$title $soCode is successfully saved";
-                    \LogActivity::addToLog($title,"username: $username Status $message");
-                    return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'soNumber'=>$soCode));
+                DB::commit();
+                $title ="Save $this->title";
+                $alert  ="success";
+                $message  = "$title $soCode is successfully saved";
+                \LogActivity::addToLog($title,"username: $username Status $message");
+                return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'soNumber'=>$soCode));
 
             } catch (Exception $e) {
                 DB::rollBack();
@@ -304,7 +305,8 @@ class SalesOrderController extends Controller
         $data['title'] = "Detail $this->title";
         $data['subtitle'] = "Detail $this->title";
 
-        $data['header'] = DB::table('sales_order_hdr')
+
+        $data['headers'] = DB::table('sales_order_hdr')
         ->select('sales_order_hdr.*'
         ,DB::raw("(select concat(kode,' - ',nama) from third_party where kode = sales_order_hdr.customer_id) as supp_name") 
         ,DB::raw('(select sum(qty) from sales_order_det where so_code = sales_order_hdr.so_code) as sum_qty') 
@@ -313,35 +315,71 @@ class SalesOrderController extends Controller
         ,DB::raw('(select (sum(((qty*price) + (qty*price_service))*sales_order_hdr.ppn/100)) from sales_order_det where so_code = sales_order_hdr.so_code) as sum_ppn')
         ,DB::raw('(select (sum(((qty*price_service))*sales_order_hdr.pph23/100)) from sales_order_det where so_code = sales_order_hdr.so_code) as sum_pph23')
         )
-        ->where('id',$id)
-        ->get()->first();
+        ->where('origin_so_code', function($query) use ($id){
+            $query->select('so_code')->from('sales_order_hdr')->where('id',$id);
+        })
+        ->where('status','<>','5')
+        ->orderBy('id')
+        ->get();
 
-        $soCode = $data['header']->so_code;
+        $soCode = $data['headers'][0]->so_code;
 
-        $data['detail'] = DB::table('sales_order_det')
+        $data['details'] = DB::table('sales_order_det')
         ->leftJoin('article','article.article_code','=','sales_order_det.article_code')
         ->leftJoin('article_stock','article_stock.article_code','=','sales_order_det.article_code')
         ->leftJoin('uom','uom.code','=','sales_order_det.uom')
-        ->where('so_code',$soCode)
+        ->whereIn('sales_order_det.so_code', function($query) use ($soCode){
+            $query->select('so_code')->from('sales_order_hdr')->where('origin_so_code',$soCode);
+        })
         ->select('sales_order_det'.'.*'
         ,DB::raw('round(sales_order_det.qty) as qty')
         ,'article_stock.article_qty as qty_stock'
         ,'uom.uom_group'
         , DB::raw('(SELECT name from group_materials where code = group_of_material) as group')
         , DB::raw("concat(article_alternative_code,'-',article_desc) as article")
+        , DB::raw("(select STRING_AGG( (qty::real)::text,' -> ' ORDER BY so_code) AS main from sales_order_det p where article_code = sales_order_det.article_code and so_code like '$soCode%' ) as notes")
         )
         ->orderBy('id')
         ->get();
 
+        // $data['header'] = DB::table('sales_order_hdr')
+        // ->select('sales_order_hdr.*'
+        // ,DB::raw("(select concat(kode,' - ',nama) from third_party where kode = sales_order_hdr.customer_id) as supp_name") 
+        // ,DB::raw('(select sum(qty) from sales_order_det where so_code = sales_order_hdr.so_code) as sum_qty') 
+        // ,DB::raw('(select count(*) from sales_order_det where so_code = sales_order_hdr.so_code) as sum_row')
+        // ,DB::raw('(select (sum((qty*price) + (qty*price_service))) from sales_order_det where so_code = sales_order_hdr.so_code) as sum_amount')
+        // ,DB::raw('(select (sum(((qty*price) + (qty*price_service))*sales_order_hdr.ppn/100)) from sales_order_det where so_code = sales_order_hdr.so_code) as sum_ppn')
+        // ,DB::raw('(select (sum(((qty*price_service))*sales_order_hdr.pph23/100)) from sales_order_det where so_code = sales_order_hdr.so_code) as sum_pph23')
+        // )
+        // ->where('id',$id)
+        // ->get()->first();
+
+        // $soCode = $data['header']->so_code;
+
+        // $data['detail'] = DB::table('sales_order_det')
+        // ->leftJoin('article','article.article_code','=','sales_order_det.article_code')
+        // ->leftJoin('article_stock','article_stock.article_code','=','sales_order_det.article_code')
+        // ->leftJoin('uom','uom.code','=','sales_order_det.uom')
+        // ->where('so_code',$soCode)
+        // ->select('sales_order_det'.'.*'
+        // ,DB::raw('round(sales_order_det.qty) as qty')
+        // ,'article_stock.article_qty as qty_stock'
+        // ,'uom.uom_group'
+        // , DB::raw('(SELECT name from group_materials where code = group_of_material) as group')
+        // , DB::raw("concat(article_alternative_code,'-',article_desc) as article")
+        // )
+        // ->orderBy('id')
+        // ->get();
+
         // dd($data['detail']);
 
-        $data['articles']= DB::table('article') 
-        ->leftJoin('article_stock','article_stock.article_code','=','article.article_code')
-        ->leftJoin('group_materials','group_materials.code','=','article.group_of_material')
-        ->where('third_party',$data['header']->customer_id)
-        ->orderBy('article_desc')
-        ->select('article'.'.*', 'article_stock.article_qty as qty','article.uom as uom1','group_materials.name as group')
-        ->get();   
+        // $data['articles']= DB::table('article') 
+        // ->leftJoin('article_stock','article_stock.article_code','=','article.article_code')
+        // ->leftJoin('group_materials','group_materials.code','=','article.group_of_material')
+        // ->where('third_party',$data['header']->customer_id)
+        // ->orderBy('article_desc')
+        // ->select('article'.'.*', 'article_stock.article_qty as qty','article.uom as uom1','group_materials.name as group')
+        // ->get();   
 
         $data['custs'] = DB::table('third_party')
         ->where ('third_party_type','=','cust')
@@ -362,9 +400,9 @@ class SalesOrderController extends Controller
         $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode,$soCode,$username);
         $data['approveValidate'] = Approval::approveValidate($this->moduleCode,$soCode,$username);
 
-        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATED','3'=>'APPROVED','4'=>'RECEIVED','5'=>'CANCELED','6'=>"CLOSED",'7'=>'PAID'];
-        $statusSo = ['NEW','VALIDATED','APPROVED','RECEIVED','CANCELED','CLOSED','PAID'];
-        $data['statusSo'] = $statusSo[$data['header']->status-1];
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATED','3'=>'APPROVED','4'=>'RECEIVED','5'=>'CANCELED','6'=>"CLOSED",'7'=>'PAID','7'=>'REVISED'];
+        $statusSo = ['NEW','VALIDATED','APPROVED','RECEIVED','CANCELED','CLOSED','PAID','REVISED'];
+        $data['statusSo'] = $statusSo[$data['headers'][0]->status-1];
 
         return view("salesOrder.show",$data);
         
@@ -419,8 +457,8 @@ class SalesOrderController extends Controller
         $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode,$soCode,$username);
         $data['approveValidate'] = Approval::approveValidate($this->moduleCode,$soCode,$username);
 
-        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATED','3'=>'APPROVED','4'=>'RECEIVED','5'=>'CANCELED','6'=>"CLOSED",'7'=>'PAID'];
-        $statusSo = ['NEW','VALIDATED','APPROVED','RECEIVED','CANCELED','CLOSED','PAID'];
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATED','3'=>'APPROVED','4'=>'RECEIVED','5'=>'CANCELED','6'=>"CLOSED",'7'=>'PAID','8'=>'REVISED'];
+        $statusSo = ['NEW','VALIDATED','APPROVED','RECEIVED','CANCELED','CLOSED','PAID','REVISED'];
         $data['statusSo'] = $statusSo[$data['header']->status-1];
 
         return view("salesOrder.edit",$data);
@@ -477,8 +515,8 @@ class SalesOrderController extends Controller
         $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode,$soCode,$username);
         $data['approveValidate'] = Approval::approveValidate($this->moduleCode,$soCode,$username);
 
-        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATED','3'=>'APPROVED','4'=>'RECEIVED','5'=>'CANCELED','6'=>"CLOSED",'7'=>'PAID'];
-        $statusSo = ['NEW','VALIDATED','APPROVED','RECEIVED','CANCELED','CLOSED','PAID'];
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATED','3'=>'APPROVED','4'=>'RECEIVED','5'=>'CANCELED','6'=>"CLOSED",'7'=>'PAID','8'=>'REVISED'];
+        $statusSo = ['NEW','VALIDATED','APPROVED','RECEIVED','CANCELED','CLOSED','PAID','REVISED'];
         $data['statusSo'] = $statusSo[$data['header']->status-1];
 
         return view("salesOrder.close",$data);
@@ -799,6 +837,7 @@ class SalesOrderController extends Controller
 
          )
         ->leftJoin('third_party', 'third_party.kode', '=', 'sales_order_hdr.customer_id')
+        ->whereNotIn('sales_order_hdr.status',['5','8'])
         ->where(function ($query) use ($seachPo,$searchOrder,$searchCustomer,$searchSalesman,$searchType,$searchStatus,$fromDate,$toDate) {
             $seachPo ? $query->where('po_number','ilike','%'.$seachPo.'%') :'';
             $searchOrder ? $query->where('so_code','ilike','%'.$searchOrder.'%') :'';
@@ -834,19 +873,19 @@ class SalesOrderController extends Controller
                                 </a>';
             }
 
-            // if (($data->status == '2') || ($data->status == '3') ){
-            //     if (Auth::user()->can('salesOrder-revision')) {
-            //         $buttons .=     "<a href='javascript:;'
-            //                             id='revisionReasonButton'
-            //                             class='dropdown-item'
-            //                             data-toggle='modal'
-            //                             data-target='#reasonModalRevision'
-            //                             data-href='". route("salesOrder.revision", ["id"=>Crypt::encryptString($data->id),"nR"=>$data->num_revision]) ."'>
-            //                             <i data-feather='corner-down-left' class='feather-14-red'></i>
-            //                             <span>". __('Revision') ."</span>
-            //                         </a>";
-            //     }
-            // }
+            if (($data->status == '2') || ($data->status == '3') ){
+                // if (Auth::user()->can('salesOrder-revision')) {
+                    $buttons .=     "<a href='javascript:;'
+                                        id='revisionReasonButton'
+                                        class='dropdown-item'
+                                        data-toggle='modal'
+                                        data-target='#reasonModalRevision'
+                                        data-href='". route("salesOrder.revision", ["id"=>Crypt::encryptString($data->id),"nR"=>$data->num_revision]) ."'>
+                                        <i data-feather='corner-down-left' class='feather-14-red'></i>
+                                        <span>". __('Revision') ."</span>
+                                    </a>";
+                // }
+            }
             
             $buttons .=         '<a href="'. route('salesOrder.show', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                     <i data-feather="list"></i>
@@ -882,13 +921,13 @@ class SalesOrderController extends Controller
 
             return $buttons;
         })
-        ->addColumn('so_code', function ($data) {
-            $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary'];
-            return '<span style="display: none;">'.$data->so_code.'</span><a class="badge d-block '.$badges[$data->status - 1].'" href="'. route('salesOrder.show', ['id'=>Crypt::encryptString($data->id)]) .'" ><span>'.$data->so_code.'</span></a>';
-        })
+        // ->addColumn('so_code', function ($data) {
+        //     $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-secondary'];
+        //     return '<span style="display: none;">'.$data->so_code.'</span><a class="badge d-block '.$badges[$data->status - 1].'" href="'. route('salesOrder.show', ['id'=>Crypt::encryptString($data->id)]) .'" ><span>'.$data->so_code.'</span></a>';
+        // })
         ->addColumn('status', function ($data) {
-            $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary'];
-            $statusSo = ['NEW','VALIDATED','APPROVED','RECEIVED','CANCELED','CLOSED','PAID'];
+            $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-secondary'];
+            $statusSo = ['NEW','VALIDATED','APPROVED','RECEIVED','CANCELED','CLOSED','PAID','REVISED'];
             return "<div class='badge ".$badges[$data->status - 1]."'>".$statusSo[$data->status - 1]."</div>";
         })
         ->rawColumns(['action','status','so_code'])
@@ -934,6 +973,7 @@ class SalesOrderController extends Controller
             $fromDate ? $query->whereBetween(DB::raw("to_date(so_date,'DD-MM-YYYY')"), [$fromDate, $toDate]):'';
         })
         ->where('sales_order_hdr.so_code','<>',null)
+        ->whereNotIn('sales_order_hdr.status',['5','8'])
         ->select('sales_order_det.*'
         ,'sales_order_hdr.*'
         ,'sales_order_hdr.so_code as so_code_1'
@@ -956,7 +996,7 @@ class SalesOrderController extends Controller
         return Datatables::of($data)
         ->addColumn('statusKu', function ($data) {
             if($data->statusKu){
-                $statusSo = ['NEW','VALIDATED','APPROVED','RECEIVED','CANCELED','CLOSED','PAID'];
+                $statusSo = ['NEW','VALIDATED','APPROVED','RECEIVED','CANCELED','CLOSED','PAID','REVISED'];
                 return $statusSo[$data->statusKu - 1];
             }else{
                 return "No Status";
@@ -1002,6 +1042,7 @@ class SalesOrderController extends Controller
         $data['details']=DB::table('sales_order_det')
         ->leftJoin('article','article.article_code','sales_order_det.article_code')
         ->where('so_code',$soNumber)
+        ->orderBy('sales_order_det.id')
         ->get();
 
         $data['totals']=DB::select("SELECT *,(total_material+total_service) as sub_total,((total_material+total_service+ppn)-pph23) as grand_total from (
@@ -1030,7 +1071,8 @@ class SalesOrderController extends Controller
         $data['soCurrency'] = $soHdr -> currency; 
         $data['soPoNumber'] = $soHdr -> po_number; 
         
-        $statusSo = ['New','Validated','Approved','Received','Canceled','Closed','Paid'];
+        // $statusSo = ['New','Validated','Approved','Received','Canceled','Closed','Paid'];
+        $statusSo = ['NEW','VALIDATED','APPROVED','RECEIVED','CANCELED','CLOSED','PAID','REVISED'];
 
         $data['approval1']=DB::table('approval_history')
         ->leftJoin('users','users.username','approval_history.username')
@@ -1059,7 +1101,6 @@ class SalesOrderController extends Controller
         ->where('module_number',$soNumber)
         ->where('approval_order',4)
         ->first();
-
 
         $data['status'] = $statusSo[$soHdr->status - 1];
         $data['no'] = 0;
@@ -1134,6 +1175,7 @@ class SalesOrderController extends Controller
             $fromDate ? $query->whereBetween(DB::raw("to_date(so_date,'DD-MM-YYYY')"), [$fromDate, $toDate]):'';
         })
         ->where('sales_order_hdr.so_code','<>',null)
+        ->whereNotIn('sales_order_hdr.status',['5','8'])
         ->select('sales_order_det.*'
         ,'sales_order_hdr.po_number'
         ,'sales_order_hdr.so_code'
@@ -1167,4 +1209,144 @@ class SalesOrderController extends Controller
         ->make(true);
     }
 
+    public function revision(Request $request){
+        $username =  Auth::user()->username;
+        $id=Crypt::decryptString($request->id);
+        $soOrigin=DB::table('sales_order_hdr')->where('id',$id)->value('so_code');
+        $numRevision = $request->nR ? $request->nR +1 : 1 ;
+        $soNew = $soOrigin.'-R'.$numRevision;
+        $checkNewSo=DB::table('sales_order_hdr')->where('so_code',$soNew)->count();
+        $reasonRequest = $request->reason;
+        $reason = $reasonRequest;
+
+        if ($checkNewSo > 0){
+            $soNew = $soOrigin.'-R'.$numRevision+1;
+        }        
+                
+        $sqlHdr = "INSERT into sales_order_hdr 
+        (
+            so_code,
+            origin_so_code,
+            po_number,
+            customer_id,
+            salesman_code,
+            so_date,
+            currency,
+            kurs,
+            ppn,
+            pph23,
+            order_type,
+            status,
+            gudang,
+            note,
+            created_by,
+            updated_by,
+            created_at,
+            updated_at,
+            num_revision,
+            revised_by,
+            revised_at,
+            reason
+        )
+        select 
+            '$soNew',
+            '$soOrigin',
+            po_number,
+            customer_id,
+            salesman_code,
+            so_date,
+            currency,
+            kurs,
+            ppn,
+            pph23,
+            order_type,
+            '8',
+            gudang,
+            note,
+            created_by,
+            '$username',
+            created_at,
+            '".date('Y-m-d H:i:s')."',
+            $numRevision,
+            '$username',
+            '".date('Y-m-d H:i:s')."',
+            '$reasonRequest'
+        from sales_order_hdr where so_code = '$soOrigin'";
+
+        $sqlDet="INSERT into sales_order_det
+        (
+            so_code,
+            article_code,
+            qty,
+            uom,
+            price,
+            ppn,
+            pph23,
+            created_by,
+            updated_by,
+            created_at,
+            updated_at,
+            price_service,
+            status
+        )
+        select '$soNew',
+            article_code,
+            qty,
+            uom,
+            price,
+            ppn,
+            pph23,
+            created_by,
+            '$username',
+            created_at,
+            '".date('Y-m-d H:i:s')."',
+            price_service,
+            status
+        from sales_order_det where so_code = '$soOrigin'";
+
+        $rowAffected =  DB::select($sqlHdr);
+        if ($rowAffected){
+            DB::select($sqlDet);
+                           
+            // $statusSo = ['NEW','VALIDATED','APPROVED','RECEIVED','CANCELED','CLOSED','PAID','REVISED'];
+            // $statusSo = ['1'=>'NEW','2'=>'VALIDATED','3'=>'APPROVED','4'=>'RECEIVED','5'=>'CANCELED','6'=>'CLOSED','7'=>'PAID','8'=>'REVISED'];
+
+            DB::table('sales_order_hdr')
+            ->where('so_code',$soOrigin)
+            ->update(
+                [
+                    'num_revision' => $numRevision,
+                    'status' => '1',
+                    'revised_by'=>Auth::user()->username,
+                    'revised_at'=> date('Y-m-d H:i:s'),
+                    'updated_by' => Auth::user()->username,
+                    'updated_at' => date('Y-m-d H:i:s'),
+                ]
+            );
+
+            DB::table('approval_history')
+            ->where('module_number',$soOrigin)
+            ->update(
+                [
+                    'module_number' => $soNew,
+                    'status' => '0',
+                    'updated_by' => Auth::user()->username,
+                    'updated_at' => date('Y-m-d H:i:s')
+                ]
+            );
+            
+            $title ="Save $this->title";
+            $alert  ="success";
+            $message  = "$title Revision SO: $soOrigin to $soNew is successfully saved";
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return redirect()->route('salesOrder.edit', ['id'=>Crypt::encryptString($id)]);
+            // return $this->showEdit(Crypt::encryptString($id));
+        }else{
+            $title ="Save $this->title";
+            $alert  ="warning";
+            $message  = "$title Revision SO: $soOrigin to $soNew is failed to save";
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);
+        }
+    }
 }

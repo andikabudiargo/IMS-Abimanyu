@@ -14,213 +14,272 @@
                         </ul>
                     </div>    
                 </div>
-                <div class="card-content collapse show">
+                <div class="card-content collapse show"> 
                     <div class="card-body">
-                        <form id="frmAdd" name="frmAdd" autocomplete="off">
-                            @csrf
-                            <input type="text" id="article" name="article" hidden>
-                            <div class="form-row">
-                                <div class="form-group col-md-3">
-                                    <label for="orderNum">Order Number</label><small class="text-muted">  automatic</small>
-                                    <input type="text" id="orderNum" name="orderNum" class="form-control disabled-el" value="{{ $header->so_code }}" disabled />
-                                </div>
-                                <div class="form-group col-md-2">
-                                    <label for="orderDate">Order Date</label>
-                                    <input type="text" id="orderDate" name="orderDate" class="form-control flatpickr-basic" value="{{ $header->so_date }}" placeholder="DD-MM-YYYY" disabled/>
-                                </div>
-                                <div class="form-group col-md-3">
-                                    <label for="salesman">Salesman*</label>
-                                    <select class="select2 form-control" id="salesman" name="salesman" required disabled >
-                                        <option value="">Choose salesman</option>
-                                        @foreach($employees as $val)
-                                        <option value="{{$val->employee_id}}" {{ $val->employee_id == $header->salesman_code ? "selected" : ""}}>{{$val->employee_id}} - {{$val->name}}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="form-row">
-                                <div class="form-group col-md-2">
-                                    <label for="type">Type</label>
-                                    <select class="select2 form-control" id="type" name="type" required disabled >
-                                        @foreach($types as $val)
-                                        <option value="{{$val}}" {{ $val == $header->order_type ? "selected" : ""}}>{{$val}}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                                <div class="form-group col-md-2">
-                                    <label for="currency">Currency</label>
-                                    <select class="select2 form-control" id="currency" name="currency" required disabled >
-                                        @foreach($currency as $val)
-                                        <option value="{{$val}}" {{ $val == $header->currency ? "selected" : ""}}>{{$val}}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                                <div class="col-md-2">
-                                    <label class="form-label" for="ppn">PPN</label>
-                                    <div class="input-group">
-                                        <input type="text" class="form-control angka text-right" id = "ppn" name="ppn" value="{{ $header->ppn }}" maxlength="2" disabled />
-                                        <div class="input-group-append">
-                                            <span class="input-group-text">%</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-md-2">
-                                    <label class="form-label" for="pph23">PPH23</label>
-                                    <div class="input-group">
-                                        <input type="text" class="form-control angka text-right" id = "pph23" name="pph23" value="{{ $header->pph23 }}" maxlength="2" disabled />
-                                        <div class="input-group-append">
-                                            <span class="input-group-text">%</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="form-row">
-                                <div class="form-group col-md-3">
-                                    <label for="poNumber">PO Number</label>
-                                    <input type="text" id="poNumber" name="poNumber" class="form-control text-uppercase" value="{{ $header->po_number }}" maxlength="40" autofocus required disabled />
-                                </div>
-                                <div class="form-group col-md-5">
-                                    <label class="form-label" for="cust">Customer</label>
-                                    <select class="select2 form-control" id="cust" name="cust" disabled>
-                                        <option value="">Choose customer</option>
-                                        @foreach($custs as $val)
-                                            <option value="{{$val->kode}}|{{$val->inisial}}" {{$val->kode == $header->customer_id ? "selected" : ""}}>{{$val->kode}} - {{$val->nama}}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="form-row">
-                                <div class="form-group col-md-8">
-                                    <label class="form-label" for="note">Notes</label>
-                                    <textarea type="text" id="note" name="note" class="form-control" rows="1" disabled >{{ $header->note }}</textarea>
-                                </div>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-12">
-            <div class="card">
-                <div class="card-header">
-                    <h4 class="card-title">Article</h4>
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive main-table">
-                        <table class="table table-bordered w-100" >
-                            <thead class="thead-dark">
-                                <tr>
-                                    <th>No</th>
-                                    <th>Article Code</th>
-                                    <th class="text-right">QTY Stock</th>
-                                    <th class="text-right">QTY Order</th>
-                                    <th class="text-right">Price</th>
-                                    <th class="text-right">Price Jasa</th>
-                                    <th class="text-right">T.Material</th>
-                                    <th class="text-right">T.Service</th>
-                                    <th class="text-right">Total</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                            @foreach( $detail as $key =>$val )
-                                <tr>
-                                    <td ></td>
-                                    <td >{{ $val->article }} | {{ $val->article }}</td>
-                                    <td class="text-right">{{ $val->uom_group =='PIECE' ? number_format($val->qty_stock ==0 ? 0 :$val->qty_stock) : number_format($val->qty_stock ==0 ? 0 :$val->qty_stock,$decimalPlaces) }}</td>
-                                    <td class="text-right">{{ $val->uom_group =='PIECE' ? number_format($val->qty) : number_format($val->qty,$decimalPlaces) }} {{ $val->uom }}</td>
-                                    <td class="text-right">{{ number_format($val->price,2) }}</td>
-                                    <td class="text-right">{{ number_format($val->price_service,2) }}</td>
-                                    <td class="text-right">{{ number_format(($val->qty * $val->price),2) }}</td>
-                                    <td class="text-right">{{ number_format(($val->qty * $val->price_service),2) }}</td>
-                                    <td class="text-right">{{ number_format((($val->qty * $val->price)+($val->qty * $val->price_service)),2) }}</td>
-                                </tr>
+                        <ul class="nav nav-tabs" role="tablist">
+                            @foreach( $headers as $key =>$header )
+                                <li class="nav-item">
+                                    <a class="nav-link {{ $key == 0 ? 'active':'' }}" 
+                                    id="po-tab" 
+                                    data-toggle="tab" 
+                                    href="#rev{{ $key }}" 
+                                    aria-controls="revisi{{ $key }}" 
+                                    role="tab" 
+                                    aria-selected="false" 
+                                    data-ajax-detail="true" 
+                                    data-po-number="{{ $header->so_code }}">{{ $key == 0 ? 'Main':'Revision '.($key-1) }}</a>
+                                </li>
                             @endforeach
-                            </tbody>
-                        </table>
-                    </div>
-                    <div class="d-flex justify-content-between align-items-end mt-75">
-                        <div class="col-md-4">
-                            <span>ROW : {{ number_format($header->sum_row) }}</span> <br>
-                            <span>QTY(s) : {{ number_format($header->sum_qty) }}</span>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="table">
-                                <table class="table table-bordered w-100">
-                                    <tbody>
-                                        <tr>
-                                            <td>Subtotal</td>
-                                            <td class="text-right">{{ number_format($header->sum_amount,2) }}</td>
-                                        </tr>
-                                        <tr>
-                                            <td>PPN {{ $header->ppn }}%</td>
-                                            <td class="text-right">{{ number_format($header->sum_ppn,2) }}</td>
-                                        </tr>
-                                        <tr>
-                                            <td>PPH23</td>
-                                            <td class="text-right">{{ number_format($header->sum_pph23,2) }}</td>
-                                        </tr>
-                                        <tr>
-                                            <td>NETTO</td>
-                                            <td class="text-right">{{ number_format((($header->sum_amount+$header->sum_ppn)-$header->sum_pph23),2) }}</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                    <hr>
-                    <div class="form-row">
-                        <div class="col-md-12">
-                            <a href="{{ route('salesOrders.index') }}" class="btn btn-light">Back</a>
-                            <a href="{{ route('salesOrder.print', ['id'=>Crypt::encryptString($header->id)]) }}" target="_blank" type="button" class="btn btn-primary">
-                                <i data-feather="printer"></i>
-                                <span>{{ __("Print") }}</span>
-                            </a>
-                        </div>
-                    </div>
-                    <br>
-                    <hr>
-                    <div class="form-row card-statistics">
-                        @foreach($approvalHistory as $val)
-                            @if($val->status == true)
-                                <div class="statistics-body">
-                                    <div class="col-xl-3 col-sm-6 col-12 mb-2 mb-xl-0">
-                                        <div class="media">
-                                            <div class="avatar bg-light-success mr-2">
-                                                <div class="avatar-content">
-                                                    <i data-feather="check" class="avatar-icon"></i>
+                        </ul>
+                        <div class="tab-content">
+                            @foreach( $headers as $key =>$header2 )
+                                <div class="tab-pane {{ $key == 0 ? 'active':'' }}" id="rev{{ $key }}" aria-labelledby="revison{{ $key }}-tab" role="tabpanel">
+                                    <form id="frmAdd{{ $key }}" name="frmAdd{{ $key }}" autocomplete="off">
+                                        <div class="form-row">
+                                            <div class="form-group col-md-3">
+                                                <label for="orderNum">Order Number</label>
+                                                <input type="text" id="orderNum" name="orderNum" class="form-control disabled-el" value="{{ $header2->so_code }}" disabled />
+                                            </div>
+                                            <div class="form-group col-md-2">
+                                                <label for="orderDate">Order Date</label>
+                                                <input type="text" id="orderDate" name="orderDate" class="form-control flatpickr-basic" value="{{ $header2->so_date }}" placeholder="DD-MM-YYYY" disabled/>
+                                            </div>
+                                            <div class="form-group col-md-3">
+                                                <label for="salesman">Salesman*</label>
+                                                <select class="select2 form-control" id="salesman" name="salesman" required disabled >
+                                                    <option value="">Choose salesman</option>
+                                                    @foreach($employees as $val)
+                                                    <option value="{{$val->employee_id}}" {{ $val->employee_id == $header2->salesman_code ? "selected" : ""}}>{{$val->employee_id}} - {{$val->name}}</option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="form-row">
+                                            <div class="form-group col-md-2">
+                                                <label for="type">Type</label>
+                                                <select class="select2 form-control" id="type" name="type" required disabled >
+                                                    @foreach($types as $val)
+                                                    <option value="{{$val}}" {{ $val == $header2->order_type ? "selected" : ""}}>{{$val}}</option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
+                                            <div class="form-group col-md-2">
+                                                <label for="currency">Currency</label>
+                                                <select class="select2 form-control" id="currency" name="currency" required disabled >
+                                                    @foreach($currency as $val)
+                                                    <option value="{{$val}}" {{ $val == $header2->currency ? "selected" : ""}}>{{$val}}</option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
+                                            <div class="col-md-2">
+                                                <label class="form-label" for="ppn">PPN</label>
+                                                <div class="input-group">
+                                                    <input type="text" class="form-control angka text-right" id = "ppn" name="ppn" value="{{ $header2->ppn }}" maxlength="2" disabled />
+                                                    <div class="input-group-append">
+                                                        <span class="input-group-text">%</span>
+                                                    </div>
                                                 </div>
                                             </div>
-                                            <div class="media-body my-auto">
-                                                <h4 class="font-weight-bolder mb-0">Approve-{{ $val->approval_order }}</h4>
-                                                <p class="card-text mb-0">{{ $val->name }}</p>
+                                            <div class="col-md-2">
+                                                <label class="form-label" for="pph23">PPH23</label>
+                                                <div class="input-group">
+                                                    <input type="text" class="form-control angka text-right" id = "pph23" name="pph23" value="{{ $header2->pph23 }}" maxlength="2" disabled />
+                                                    <div class="input-group-append">
+                                                        <span class="input-group-text">%</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="form-row">
+                                            <div class="form-group col-md-4">
+                                                <label for="poNumber">PO Number</label>
+                                                <input type="text" id="poNumber" name="poNumber" class="form-control text-uppercase" value="{{ $header2->po_number }}" maxlength="40" autofocus required disabled />
+                                            </div>
+                                        </div>
+                                        <div class="form-row">
+                                            <div class="form-group col-md-8">
+                                                <label class="form-label" for="cust">Customer</label>
+                                                <select class="select2 form-control" id="cust" name="cust" disabled>
+                                                    <option value="">Choose customer</option>
+                                                    @foreach($custs as $val)
+                                                        <option value="{{$val->kode}}|{{$val->inisial}}" {{$val->kode == $header2->customer_id ? "selected" : ""}}>{{$val->kode}} - {{$val->nama}}</option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="form-row">
+                                            <div class="form-group col-md-8">
+                                                <label class="form-label" for="note">Notes</label>
+                                                <textarea type="text" id="note" name="note" class="form-control" rows="1" disabled >{{ $header2->note }}</textarea>
+                                            </div>
+                                        </div>
+                                        @if($key!=0)
+                                        <div class="form-row">
+                                            <div class="form-group col-md-7">
+                                                <label class="form-label" for="rReason">Revision reason | by: {{ $header2->revised_by }} | at: {{ date('d-m-Y h:m:s',strtotime($header2->revised_at))}} </label>
+                                                <textarea type="text" id="rReason" name="rReason" class="form-control" rows="1" disabled >{{ $header2->reason }}</textarea>
+                                            </div>
+                                        </div>
+                                        @endif
+                                    </form>
+                                    <hr>
+                                    <div class="table-responsive main-table">
+                                        <table class="table table-bordered w-100" >
+                                            <thead class="thead-dark">
+                                                <tr>
+                                                    <th>No</th>
+                                                    <th>Article Code</th>
+                                                    <th class="text-right">QTY Stock</th>
+                                                    <th class="text-right">QTY Order</th>
+                                                    <th class="text-right">Price</th>
+                                                    <th class="text-right">Price Jasa</th>
+                                                    <th class="text-right">T.Material</th>
+                                                    <th class="text-right">T.Service</th>
+                                                    <th class="text-right">Total</th>
+                                                    @if ($key !=0)
+                                                        @foreach( $headers as $key1 => $oki )
+                                                            @if ($key1 < $key and $key1!= 0 )
+                                                                <th class="text-center">R-{{ $key1 }}</th>
+                                                            @endif
+                                                        @endforeach
+                                                    @else
+                                                        @foreach( $headers as $key1 => $oki )
+                                                            @if ($key1 > $key and $key1!= 0 )
+                                                                <th class="text-center">R-{{ $key1-1 }}</th>
+                                                            @endif
+                                                        @endforeach
+                                                    @endif
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach( $details as $item )
+                                                    @if($item->so_code === $header2->so_code )
+                                                    <tr>
+                                                        <td ></td>
+                                                        <td >{{ $item->article }}</td>
+                                                        <td class="text-right">{{ $item->uom_group =='PIECE' ? number_format($item->qty_stock ==0 ? 0 :$item->qty_stock) : number_format($item->qty_stock ==0 ? 0 :$item->qty_stock,$decimalPlaces) }}</td>
+                                                        <td class="text-right">{{ $item->uom_group =='PIECE' ? number_format($item->qty) : number_format($item->qty,$decimalPlaces) }} {{ $item->uom }}</td>
+                                                        <td class="text-right">{{ number_format($item->price,2) }}</td>
+                                                        <td class="text-right">{{ number_format($item->price_service,2) }}</td>
+                                                        <td class="text-right">{{ number_format(($item->qty * $item->price),2) }}</td>
+                                                        <td class="text-right">{{ number_format(($item->qty * $item->price_service),2) }}</td>
+                                                        <td class="text-right">{{ number_format((($item->qty * $item->price)+($item->qty * $item->price_service)),2) }}</td>
+                                                        @php
+                                                            {{ $histori = explode("->",$item->notes);}}
+                                                        @endphp 
+                                                        @if ($key !=0)
+                                                            @foreach( $headers as $key1 => $oki )
+                                                                @if ($key1 < $key and $key1!= 0)
+                                                                    @if( $key1 < count($histori) )
+                                                                        <td class="text-right">{{ number_format(intval($histori[$key1])) }}</td>
+                                                                    @else
+                                                                        <td class="text-right"></td>
+                                                                    @endif
+                                                                @endif
+                                                            @endforeach
+                                                        @else
+                                                            @foreach( $headers as $key1 => $oki )
+                                                                @if ($key1 > $key and $key1!= 0)
+                                                                    @if( $key1 < count($histori) )
+                                                                        <td class="text-right">{{ number_format(intval($histori[$key1])) }}</td>
+                                                                    @else
+                                                                        <td class="text-right"></td>
+                                                                    @endif
+                                                                @endif
+                                                            @endforeach
+                                                        @endif
+                                                    </tr>
+                                                    @endif
+                                                @endforeach
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-end mt-75">
+                                        <div class="col-md-4">
+                                            <span>ROW : {{ number_format($header2->sum_row) }}</span> <br>
+                                            <span>QTY(s) : {{ number_format($header2->sum_qty) }}</span>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="table">
+                                                <table class="table table-bordered w-100">
+                                                    <tbody>
+                                                        <tr>
+                                                            <td>Subtotal</td>
+                                                            <td class="text-right">{{ number_format($header2->sum_amount,2) }}</td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td>PPN {{ $header->ppn }}%</td>
+                                                            <td class="text-right">{{ number_format($header2->sum_ppn,2) }}</td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td>PPH23</td>
+                                                            <td class="text-right">{{ number_format($header2->sum_pph23,2) }}</td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td>NETTO</td>
+                                                            <td class="text-right">{{ number_format((($header2->sum_amount+$header->sum_ppn)-$header->sum_pph23),2) }}</td>
+                                                        </tr>
+                                                    </tbody>
+                                                </table>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
-                            @else
-                                <div class="statistics-body">
-                                    <div class="col-xl-3 col-sm-6 col-12 mb-2 mb-xl-0">
-                                        <div class="media">
-                                            <div class="avatar bg-light-danger mr-2">
-                                                <div class="avatar-content">
-                                                    <i data-feather="x" class="avatar-icon"></i>
-                                                </div>
-                                            </div>
-                                            <div class="media-body my-auto">
-                                                <h4 class="font-weight-bolder mb-0">Approve-{{ $val->approval_order }}</h4>
-                                                <p class="card-text mb-0">{{ $val->petugas }}</p>
-                                            </div>
+                                    <hr>
+                                    <div class="form-row">
+                                        <div class="col-md-12">
+                                            <a href="{{ route('salesOrders.index') }}" class="btn btn-light">Back</a>
+                                            <a href="{{ route('salesOrder.print', ['id'=>Crypt::encryptString($header2->id)]) }}" target="_blank" type="button" class="btn btn-primary">
+                                                <i data-feather="printer"></i>
+                                                <span>{{ __("Print") }}</span>
+                                            </a>
                                         </div>
                                     </div>
                                 </div>
-                            @endif
-                        @endforeach
+                            @endforeach
+                        </div>
+                        <hr>
+                        <div class="form-row card-statistics">
+                            @foreach($approvalHistory as $val)
+                                @if($val->status == true)
+                                    <div class="statistics-body">
+                                        <div class="col-xl-3 col-sm-6 col-12 mb-2 mb-xl-0">
+                                            <div class="media">
+                                                <div class="avatar bg-light-success mr-2">
+                                                    <div class="avatar-content">
+                                                        <i data-feather="check" class="avatar-icon"></i>
+                                                    </div>
+                                                </div>
+                                                <div class="media-body my-auto">
+                                                    <h4 class="font-weight-bolder mb-0">Approve-{{ $val->approval_order }}</h4>
+                                                    <p class="card-text mb-0">{{ $val->name }}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                @else
+                                    <div class="statistics-body">
+                                        <div class="col-xl-3 col-sm-6 col-12 mb-2 mb-xl-0">
+                                            <div class="media">
+                                                <div class="avatar bg-light-danger mr-2">
+                                                    <div class="avatar-content">
+                                                        <i data-feather="x" class="avatar-icon"></i>
+                                                    </div>
+                                                </div>
+                                                <div class="media-body my-auto">
+                                                    <h4 class="font-weight-bolder mb-0">Approve-{{ $val->approval_order }}</h4>
+                                                    <p class="card-text mb-0">{{ $val->petugas }}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                @endif
+                            @endforeach
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
+    </div>                       
 </section>
 @endsection
 @section('styles')

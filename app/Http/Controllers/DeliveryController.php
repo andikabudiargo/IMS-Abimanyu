@@ -1291,7 +1291,9 @@ class DeliveryController extends Controller
         ->get();
         $data['kolom'] = $this->getTableColoumnReport();
         
-        $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED','8'=>'RECEIVED'];
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED','8'=>'RECEIVED'];
+
+        $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','8'=>'RECEIVED'];
             
         return view("delivery.report",$data);
     }
@@ -1308,7 +1310,7 @@ class DeliveryController extends Controller
 
         $data['salesOrders'] = DB::table('sales_order_hdr')
         ->leftJoin('third_party','third_party.kode','sales_order_hdr.customer_id')
-        ->where ('status','<>','5')
+        ->whereNotIn('sales_order_hdr.status',['5','8'])
         ->whereIn('so_code', function($query){
             $query->select('so_number')
             ->from('delivery_hdr')
@@ -1442,7 +1444,7 @@ class DeliveryController extends Controller
 
         $data['salesOrders'] = DB::table('sales_order_hdr')
         ->leftJoin('third_party','third_party.kode','sales_order_hdr.customer_id')
-        ->where ('status','<>','5')
+        ->whereNotIn('sales_order_hdr.status',['5','8'])
         ->whereIn('so_code', function($query){
             $query->select('so_number')
             ->from('delivery_hdr')
