@@ -224,8 +224,8 @@
                     <div class="header-space">
                         <table width="100%" class="font-13">
                             <tr>
-                                <td width="30%" >
-                                    <img src="{{ asset('app-assets/images/logo/logo_po.png') }}" alt="logo" style="width: 20%;"> 
+                                <td width="30%" style="padding-top:10px;padding-left:5px" >
+                                    <img src="{{ asset('app-assets/images/logo/logo_po.png') }}" alt="logo" style="width: 18%;"> 
                                 </td>
                             </tr>
                             <tr>
@@ -234,7 +234,7 @@
                                 </td>
                             </tr>
                         </table>
-                        <p style="margin-top:0px;margin-bottom:5px;padding:0 2px 0 2px">NPWP : 31.284.174.5-416.000</p>                     
+                        <p style="margin-top:0px;margin-bottom:5px;padding:0 2px 0 2px" class="font-13">NPWP : 31.284.174.5-416.000</p>
                     </div>
                 </td>
             </tr>
@@ -294,12 +294,10 @@
                                                        
                         @endforeach
                         
-                        <?php $totalBaris = 13 ?>
+                        <?php $totalBaris = 14 ?>
 
                         @for ($i=1;$i< $totalBaris-(count($details));$i++)
                             <tr >
-                                {{-- <td style="border-right: 1px solid black;" class="putih" height="25"></td>
-                                <td style="border-right: 1px solid black;"  style="color:white !important"></td> --}}
                                 <td style="border-right: 1px solid black;" ><div style="height:35px;"></div></td>
                                 <td style="border-right: 1px solid black;" ></td>
                                 <td style="border-right: 1px solid black;" ></td>
@@ -362,11 +360,11 @@
                                     - Pembayaran dengan Cheque / Bilyet atau Wesel dianggap lunas setelah melalui Clearing
                                     </span>
                                 </td>
-                                <td class = "arial" valign="top" colspan="2" align="center" style="font-size: 11pt;">
+                                <td class="arial" valign="top" colspan="2" align="center" style="font-size: 11pt;">
                                     <br>
-                                        Purwakarta, {{ $tanggalHariIni }} <br>
-                                        <br><br><br><br><br><br><br>
-                                        (&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp Budi Mulyadi &nbsp&nbsp&nbsp&nbsp&nbsp&nbsp)
+                                    Purwakarta, {{ $tanggalHariIni }} <br>
+                                    <br><br><br><br><br><br><br>
+                                    (&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp Budi Mulyadi &nbsp&nbsp&nbsp&nbsp&nbsp&nbsp)
                                 </td>
                             </tr>
                         </tfoot>
