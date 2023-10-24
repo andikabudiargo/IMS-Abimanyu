@@ -239,7 +239,7 @@
                                     </td>
                                 </tr>
                             </table>
-                            <p style="margin-top:0px;margin-bottom:5px;padding:0 2px 0 2px" class="font-13">NPWP : 31.284.174.5-416.000</p>                     
+                            <p style="margin-top:0px;margin-bottom:5px;padding:0 2px 0 2px" class="font-13">NPWP : 31.284.174.5-416.000</p>
                         </div>
                     </td>
                 </tr>
@@ -248,7 +248,7 @@
                 <tr>
                     <td>
                         <table width="100%">
-                            <tr >
+                            <tr>
                                     <td width="60%" align="center" style="border: 1px solid #0c0c0c;padding-left:5px;padding-right:5px" >
                                     <h2 style="margin:0px">INVOICE</h2>
                                 </td>
@@ -258,10 +258,20 @@
                             </tr>
                             <tr>
                                 <td width="60%" valign="top" style="border: 1px solid #0c0c0c;padding-left:5px;padding-right:5px">
+                                    {{-- <table>
+                                        <tr><td> Customer: </td></tr>
+                                        <tr><td> {{ $customers->nama }} </td></tr>
+                                        <tr><td> {{ $customers->alamat_kirim_1 }} </td></tr>
+                                        <tr><td> No. NPWP : </strong> {{ $customers->npwp }} </td></tr>
+
+                                    </table> --}}
                                     <strong> Customer: </strong><br>
                                     {{ $customers->nama }} <br>
                                     {{ $customers->alamat_kirim_1 }} <br>
-                                    <strong>No. NPWP : </strong> {{ $customers->npwp }}
+                                    @if(strlen($customers->alamat_kirim_1)<60)
+                                    <br>
+                                    @endif
+                                    <strong>No. NPWP : </strong> {{ $customers->npwp }}</strong>
                                 </td>
                                 <td width="38%" valign="center" style="border: 1px solid #0c0c0c;padding-left:5px;padding-right:5px">
                                     <strong>PO Number : </strong>{{ $listpo }}<br>

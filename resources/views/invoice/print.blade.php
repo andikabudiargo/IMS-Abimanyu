@@ -256,6 +256,9 @@
                                 <strong> Customer: </strong><br>
                                 {{ $customers->nama }} <br>
                                 {{ $customers->alamat_kirim_1 }} <br>
+                                @if(strlen($customers->alamat_kirim_1)<60)
+                                    <br>
+                                @endif
                                 <strong>No. NPWP : </strong> {{ $customers->npwp }}
                             </td>
                             <td width="35.5%" valign="center" style="border: 1px solid #0c0c0c;padding-left:5px;padding-right:5px">
