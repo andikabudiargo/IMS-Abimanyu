@@ -243,8 +243,8 @@
             <tr>
                 <td>
                     <table width="100%">
-                        <tr >
-                                <td width="60%" align="center" style="border: 1px solid #0c0c0c;padding-left:5px;padding-right:5px" >
+                        <tr>
+                            <td width="60%" align="center" style="border: 1px solid #0c0c0c;padding-left:5px;padding-right:5px" >
                                 <h2 style="margin:0px">INVOICE</h2>
                             </td>
                             <td style="border: 1px solid #0c0c0c;padding-left:5px;padding-right:5px">
@@ -252,13 +252,13 @@
                             </td>
                         </tr>
                         <tr>
-                            <td width="60%" valign="top" style="border: 1px solid #0c0c0c;padding-left:5px;padding-right:5px">
+                            <td width="70%" valign="top" style="border: 1px solid #0c0c0c;padding-left:5px;padding-right:5px">
                                 <strong> Customer: </strong><br>
                                 {{ $customers->nama }} <br>
                                 {{ $customers->alamat_kirim_1 }} <br>
                                 <strong>No. NPWP : </strong> {{ $customers->npwp }}
                             </td>
-                            <td width="38%" valign="center" style="border: 1px solid #0c0c0c;padding-left:5px;padding-right:5px">
+                            <td width="30%" valign="center" style="border: 1px solid #0c0c0c;padding-left:5px;padding-right:5px">
                                 
                                 <strong>PO Number : </strong>{{ $listpo }}<br>
                                 {{-- <strong>No FP : </strong>{{ $recHdr->faktur_pajak }} --}}
