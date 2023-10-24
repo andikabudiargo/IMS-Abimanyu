@@ -252,13 +252,13 @@
                             </td>
                         </tr>
                         <tr>
-                            <td width="65%" valign="top" style="border: 1px solid #0c0c0c;padding-left:5px;padding-right:5px">
+                            <td width="66%" valign="top" style="border: 1px solid #0c0c0c;padding-left:5px;padding-right:5px">
                                 <strong> Customer: </strong><br>
                                 {{ $customers->nama }} <br>
                                 {{ $customers->alamat_kirim_1 }} <br>
                                 <strong>No. NPWP : </strong> {{ $customers->npwp }}
                             </td>
-                            <td width="35%" valign="center" style="border: 1px solid #0c0c0c;padding-left:5px;padding-right:5px">
+                            <td width="34%" valign="center" style="border: 1px solid #0c0c0c;padding-left:5px;padding-right:5px">
                                 
                                 <strong>PO Number : </strong>{{ $listpo }}<br>
                                 {{-- <strong>No FP : </strong>{{ $recHdr->faktur_pajak }} --}}
