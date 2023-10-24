@@ -288,7 +288,7 @@
                                     <th width="51.5%" >Description</th>
                                     <th width="8.5%" align="center">Qty</th>
                                     @if($printType=='1')
-                                    <th width="12%">Price blablablabla</th>
+                                    <th width="12%">Price</th>
                                     <th width="15%">Total</th>
                                     @else
                                     <th width="12%">Service Price</th>
