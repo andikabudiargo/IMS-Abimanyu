@@ -46,7 +46,7 @@
                         data-nama-el-kiri='account'
                         data-type-el-kanan='select'
                         data-nama-el-kanan='vcRef' --}}
-                        id="vcDesc" name="vcDesc[]"  maxlength="100" />
+                        id="vcDesc" name="vcDesc[]" />
                     </td>
                     <td class="isian" style="">
                         <select class="form-control tombol-panah" id="vcRef" name="vcRef[]">                            
