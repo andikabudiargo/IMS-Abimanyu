@@ -144,7 +144,7 @@
         }
 
         #tblContent  td {
-            padding : 3px 10px 3px 10px;
+            padding : 0px 10px 0px 10px;
             border-bottom: none;
             border-left: thin solid var(--line-color);
             border-right: thin solid var(--line-color);
