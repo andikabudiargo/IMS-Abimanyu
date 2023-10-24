@@ -346,7 +346,7 @@
                                 </tr>
                             @endforeach
                             <tr>
-                                <td class = "arial" valign="top" width="60%" colspan="5" style="border-right: 1px solid white;font-size: 11pt;">
+                                <td class = "arial" valign="top" width="55%" colspan="5" style="border-right: 1px solid white;font-size: 11pt;">
                                     Note:<br>
                                     <span style="font-size: 11pt;">
                                     Please transfer to our account <br>	
