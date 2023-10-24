@@ -501,7 +501,7 @@
         @can('accounting-menu')
           <li class=" navigation-header"><span data-i18n="Finance Accounting">Finance Accounting</span><i data-feather="more-horizontal"></i>
           </li>
-          <li class=" {{ in_array(\Request::segment(1), ['aps','banks','pettyCash','bankReceipt','invoice','kasPenerimaan','kasKeluar','bankPenerimaan','bankKeluar','deliveryReportAcc','deliveryReportSoAcc']) ? 'active' : '' }} nav-item">
+          <li class=" {{ in_array(\Request::segment(1), ['aps','banks','pettyCash','bankReceipt','invoice','kasPenerimaan','kasKeluar','bankPenerimaan','bankKeluar','deliveryReportAcc','deliveryReportSoAcc','jurnalUmum']) ? 'active' : '' }} nav-item">
             <a class="d-flex align-items-center" href="javascript:void(0);">
               <i data-feather="dollar-sign"></i>
               <span class="menu-title text-truncate" data-i18n="Form Elements">Finance & acc
@@ -570,13 +570,22 @@
               </li>
 
               @can('bank-index')
+                <li class="{{ \Request::segment(1) == 'jurnalUmum'  ? 'active' : '' }}">
+                  <a class="d-flex align-items-center" href="{{ route('jurnalUmum.index') }}">
+                    <i data-feather="circle"></i>
+                    <span class="menu-item text-truncate" data-i18n="Input">General Journal</span>
+                  </a>
+                </li>
+              @endcan
+
+              {{-- @can('bank-index')
                 <li class="{{ \Request::segment(1) == 'banks'  ? 'active' : '' }}">
                   <a class="d-flex align-items-center" href="{{ route('banks.index') }}">
                     <i data-feather="circle"></i>
                     <span class="menu-item text-truncate" data-i18n="Input">Bank Master</span>
                   </a>
                 </li>
-              @endcan
+              @endcan --}}
 
             </ul>
           </li>

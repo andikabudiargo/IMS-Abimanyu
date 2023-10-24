@@ -37,6 +37,8 @@ class BankPenerimaanController extends Controller
             ['data'=>'amount','name'=>'amount','title'=>'Amount'],
             ['data'=>'period','name'=>'period','title'=>'Period'],
             ['data'=>'statusku','name'=>'statusku','title'=>'Status'],
+            ['data'=> 'approval_by', 'name'=> 'approval_by','title'=>'Approved By' ],
+            ['data'=> 'approval_at', 'name'=> 'approval_at','title'=>'Approved At' ],
             ['data'=>'created_by','name'=>'created_by','title'=>'Created By'],
             ['data'=>'created_at','name'=>'created_at','title'=>'Created At']
         ];
@@ -577,6 +579,8 @@ class BankPenerimaanController extends Controller
             ,'kas_hdr.status as statusku'
             // ,db::raw("concat(accounts.account,'-',description) as receive_name")
             ,'description as receive_name'
+            ,db::raw("(select (select name from users where username = z.username) from approval_history z where module_number = kas_hdr.voucher_number order by approval_order desc limit 1) as approval_by")
+            ,db::raw("(select to_char(approval_date::date, 'DD-MM-YYYY') from approval_history z where module_number = kas_hdr.voucher_number order by approval_order desc limit 1) as approval_at")
         )
         ->orderBy('id')
         ->get(); 

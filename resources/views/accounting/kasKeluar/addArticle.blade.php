@@ -42,10 +42,6 @@
                     </td>
                     <td class="isian" style="width: 25%">
                         <input type="text" class="form-control-plaintext" 
-                        {{-- data-type-el-kiri="select" 
-                        data-nama-el-kiri='account'
-                        data-type-el-kanan='select'
-                        data-nama-el-kanan='vcRef' --}}
                         id="vcDesc" name="vcDesc[]" />
                     </td>
                     <td class="isian" style="">

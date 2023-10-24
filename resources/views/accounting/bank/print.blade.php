@@ -249,8 +249,8 @@
                                         <td align="left">{{ $val->account_name }}</td>
                                         <td align="left">{{ $val->reference }}</td>
                                         <td align="left">{{ $val->description }}</td>
-                                        <td align="right">{{ number_format($val->debit) }}</td>
-                                        <td align="right">{{ number_format($val->credit) }}</td>
+                                        <td align="right">{{ number_format($val->debit,2) }}</td>
+                                        <td align="right">{{ number_format($val->credit,2) }}</td>
                                     </tr>
                                 @endforeach      
                                                     
@@ -277,8 +277,8 @@
                                     <td  align="left" class="border-atas" ></td>
                                     <td  align="left" class="border-atas" ></td>
                                     <td  align="left" class="border-atas" >Total</td>
-                                    <td  align="right" class="border-atas" >{{ number_format($total->total_debit) }}</td>
-                                    <td  align="right" class="border-atas" >{{ number_format($total->total_credit)}}</td>
+                                    <td  align="right" class="border-atas" >{{ number_format($total->total_debit,2) }}</td>
+                                    <td  align="right" class="border-atas" >{{ number_format($total->total_credit,2)}}</td>
                                 </tr>
                                 <tr class="border-atas">
                                     <td  align="left" class="border-atas" colspan="6">Note: {{ $header->note }}</td>

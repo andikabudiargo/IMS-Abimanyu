@@ -58,7 +58,7 @@
                                 <div class="form-group col-md-3">
                                     <div class="form-group">
                                         <label for="totalAmount">Amount*</label>
-                                        <input type="text" id="totalAmount" name="totalAmount" value="{{ $header->amount }}" class="form-control text-right numeral-mask" maxlength="12" required/>
+                                        <input type="text" id="totalAmount" name="totalAmount" value="{{ $header->amount }}" class="form-control text-right numeral-mask-digit" oninput='inputDecimal(this)' maxlength="20" required/>
                                     </div>
                                 </div>
                             </div>
@@ -92,10 +92,10 @@
                                     <label style="font-size: 12pt;">Total</label>
                                 </td>
                                 <td class="isian" style="width: 10%">
-                                    <input type="text" class="form-control-plaintext numeral-mask text-right" id="vcTotalDebit" disabled />
+                                    <input type="text" class="form-control-plaintext numeral-mask-digit text-right" id="vcTotalDebit" disabled />
                                 </td>
                                 <td class="isian" style="width: 10%">
-                                    <input type="text" class="form-control-plaintext numeral-mask text-right" id= "vcTotalCredit" disabled />
+                                    <input type="text" class="form-control-plaintext numeral-mask-digit text-right" id= "vcTotalCredit" disabled />
                                 </td>
                                 <td class="isian text-center" style="width: 5%;border-right: 1px solid white;border-bottom: 1px solid white;">
                                 </td>
@@ -107,7 +107,7 @@
                                 <td class="isian" style="width: 10%">
                                 </td>
                                 <td class="isian" style="width: 10%">
-                                    <input type="text" class="form-control-plaintext numeral-mask text-right" id="selisih" disabled />
+                                    <input type="text" class="form-control-plaintext numeral-mask-digit text-right" id="selisih" disabled />
                                 </td>
                                 <td class="isian text-center" style="width: 5%;border-right: 1px solid white;border-bottom: 1px solid white;">
                                 </td>
@@ -181,7 +181,6 @@
         </div>
     </div>
 </section>
-
 @include('accounting.kas.addArticle')
 @endsection
 @section('styles')
@@ -286,7 +285,7 @@
         let vcNumber = $('#voucherNumber').val();
         let recFromDesc = $('#recFromDesc').val();
     
-        if (((parseInt(objTotalVcDebit)-parseInt(objTotalVcCredit)) == 0) && (parseInt(objTotalVcCredit)==parseInt(totalAmount))){
+        if (((parseFloat(objTotalVcDebit)-parseFloat(objTotalVcCredit)) == 0) && (parseFloat(objTotalVcCredit)==parseFloat(totalAmount))){
             if (!$("#frmAdd")[0].checkValidity()){
                 $("#frmAdd").submit();
             }else{   
@@ -405,12 +404,13 @@
         // $("#account"+cloneCount).val(account).trigger('change');;
         $("#vcCc"+cloneCount).val(cc).trigger('change');;
         $("#vcDesc"+cloneCount).val(desc);
-        $("#vcDebit"+cloneCount).val(debit != 0 ? debit : '');
-        $("#vcCredit"+cloneCount).val(credit != 0 ? credit : '');
+        $("#vcDebit"+cloneCount).val(debit != 0 ? parseFloat(debit).toFixed(2) : '');
+        $("#vcCredit"+cloneCount).val(credit != 0 ? parseFloat(credit).toFixed(2) : '');
 
         $('#remove_button').tooltip();
         activate_angka();
         mask_thousand();
+        mask_thousand_digit(2);
         hitungTotal();
         hitungGrandTotal();
 

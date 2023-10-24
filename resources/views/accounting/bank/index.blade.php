@@ -47,7 +47,7 @@
             </div>
             <div class="form-row">
               <div class="form-group col-md-2"> 
-                <label class="form-label" for="searchStatus">Invoice Status</label>
+                <label class="form-label" for="searchStatus">Status</label>
                 <select class="select2 form-control" id="searchStatus" name="searchStatus">
                     <option value="">All</option>
                     @foreach($status as $index=>$val)
@@ -163,12 +163,12 @@ td.wrapok {
       tableId:"detailedTable",
       route:"{{ route('bankPenerimaan.list') }}",
       kolom:{!! $kolom !!},
-      arrColPrint:[1,2,3,4,5,6,7],
+      arrColPrint:[1,2,3,4,5,6,7,8,9,10],
       columnDefs :[
         { width: '5%', targets: 0 },
         {
           targets: [ 4 ],
-          render: $.fn.dataTable.render.number(',', '.', 0, ''),
+          render: $.fn.dataTable.render.number(',', '.',2, ''),
           className: "text-right"
         },
         {targets:[3], class:"wrapok"}

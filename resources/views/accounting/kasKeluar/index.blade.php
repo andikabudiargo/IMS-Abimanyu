@@ -47,7 +47,7 @@
             </div>
             <div class="form-row">
               <div class="form-group col-md-2"> 
-                <label class="form-label" for="searchStatus">Invoice Status</label>
+                <label class="form-label" for="searchStatus">Status</label>
                 <select class="select2 form-control" id="searchStatus" name="searchStatus">
                     <option value="">All</option>
                     @foreach($status as $index=>$val)

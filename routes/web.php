@@ -565,7 +565,7 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('actualFinishGoods/approve',['as'=>'production.actualFinishGoods.approve','uses'=>'Production\ActualFinishGoodsController@approve']);
 	Route::get('actualFinishGoods/revision',['as'=>'production.actualFinishGoods.revision','uses'=>'Production\ActualFinishGoodsController@revision','middleware' => ['permission:actualFinishGoods-revision']]);
 
-	Route::get('pettyCashs',['as'=>'pettyCashs.index','uses'=>'PettyCashController@index','middleware' => ['permission:pettyCash-index']]);
+	Route::get('pettyCashs',['as'=>'pettyCashs.index','uses'=>'PettyCashController@index']);
 	Route::get('pettyCashs/create',['as'=>'pettyCash.create','uses'=>'PettyCashController@create','middleware' => ['permission:pettyCash-create']]);
 	Route::post('pettyCashs/store',['as'=>'pettyCash.store','uses'=>'PettyCashController@store']);
 	Route::get('pettyCashs/list',['as'=>'pettyCash.list','uses'=>'PettyCashController@list']);
@@ -670,7 +670,7 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('deliveryInstruction/article/list',['as'=>'deliveryInstruction.article.list','uses'=>'DeliveryInstructionController@articleList']);
 	Route::get('deliveryInstruction/qty/po',['as'=>'deliveryInstruction.qty.po','uses'=>'DeliveryInstructionController@qtyPo']);
 
-	Route::get('kasPenerimaan',['as'=>'kasPenerimaan.index','uses'=>'Accounting\KasPenerimaanController@index','middleware' => ['permission:pettyCash-index']]);
+	Route::get('kasPenerimaan',['as'=>'kasPenerimaan.index','uses'=>'Accounting\KasPenerimaanController@index']);
 	// Route::get('kasPenerimaan/create',['as'=>'kasPenerimaan.create','uses'=>'Accounting\KasPenerimaanController@create','middleware' => ['permission:kasPenerimaan-create']]);
 	Route::get('kasPenerimaan/create',['as'=>'kasPenerimaan.create','uses'=>'Accounting\KasPenerimaanController@create']);
 	Route::post('kasPenerimaan/store',['as'=>'kasPenerimaan.store','uses'=>'Accounting\KasPenerimaanController@store']);
@@ -688,7 +688,7 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('kasPenerimaan/approve',['as'=>'kasPenerimaan.approve','uses'=>'Accounting\KasPenerimaanController@approve']);
 	Route::get('kasPenerimaan/get/invoice/ammount',['as'=>'kasPenerimaan.get.invoice.amount','uses'=>'Accounting\KasPenerimaanController@getInvoiceAmount']);
 
-	Route::get('kasKeluar',['as'=>'kasKeluar.index','uses'=>'Accounting\KasKeluarController@index','middleware' => ['permission:pettyCash-index']]);
+	Route::get('kasKeluar',['as'=>'kasKeluar.index','uses'=>'Accounting\KasKeluarController@index']);
 	Route::get('kasKeluar/create',['as'=>'kasKeluar.create','uses'=>'Accounting\KasKeluarController@create']);
 	Route::post('kasKeluar/store',['as'=>'kasKeluar.store','uses'=>'Accounting\KasKeluarController@store']);
 	Route::get('kasKeluar/list',['as'=>'kasKeluar.list','uses'=>'Accounting\KasKeluarController@list']);
@@ -700,7 +700,7 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('kasKeluar/approve',['as'=>'kasKeluar.approve','uses'=>'Accounting\KasKeluarController@approve']);
 	Route::get('kasKeluar/get/invoice/ammount',['as'=>'kasKeluar.get.invoice.amount','uses'=>'Accounting\KasKeluarController@getInvoiceAmount']);
 
-	Route::get('bankPenerimaan',['as'=>'bankPenerimaan.index','uses'=>'Accounting\BankPenerimaanController@index','middleware' => ['permission:pettyCash-index']]);
+	Route::get('bankPenerimaan',['as'=>'bankPenerimaan.index','uses'=>'Accounting\BankPenerimaanController@index']);
 	Route::get('bankPenerimaan/create',['as'=>'bankPenerimaan.create','uses'=>'Accounting\BankPenerimaanController@create']);
 	Route::post('bankPenerimaan/store',['as'=>'bankPenerimaan.store','uses'=>'Accounting\BankPenerimaanController@store']);
 	Route::get('bankPenerimaan/list',['as'=>'bankPenerimaan.list','uses'=>'Accounting\BankPenerimaanController@list']);
@@ -712,7 +712,7 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('bankPenerimaan/approve',['as'=>'bankPenerimaan.approve','uses'=>'Accounting\BankPenerimaanController@approve']);
 	Route::get('bankPenerimaan/get/invoice/ammount',['as'=>'bankPenerimaan.get.invoice.amount','uses'=>'Accounting\BankPenerimaanController@getInvoiceAmount']);
 
-	Route::get('bankKeluar',['as'=>'bankKeluar.index','uses'=>'Accounting\BankKeluarController@index','middleware' => ['permission:pettyCash-index']]);
+	Route::get('bankKeluar',['as'=>'bankKeluar.index','uses'=>'Accounting\BankKeluarController@index']);
 	Route::get('bankKeluar/create',['as'=>'bankKeluar.create','uses'=>'Accounting\BankKeluarController@create']);
 	Route::post('bankKeluar/store',['as'=>'bankKeluar.store','uses'=>'Accounting\BankKeluarController@store']);
 	Route::get('bankKeluar/list',['as'=>'bankKeluar.list','uses'=>'Accounting\BankKeluarController@list']);
@@ -724,17 +724,17 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('bankKeluar/approve',['as'=>'bankKeluar.approve','uses'=>'Accounting\BankKeluarController@approve']);
 	Route::get('bankKeluar/get/invoice/ammount',['as'=>'bankKeluar.get.invoice.amount','uses'=>'Accounting\BankKeluarController@getInvoiceAmount']);
 
-	// Route::get('generalJournal',['as'=>'generalJournal.index','uses'=>'Accounting\GeneralJournalController@index','middleware' => ['permission:pettyCash-index']]);
-	// Route::get('generalJournal/create',['as'=>'generalJournal.create','uses'=>'Accounting\GeneralJournalController@create']);
-	// Route::post('generalJournal/store',['as'=>'generalJournal.store','uses'=>'Accounting\GeneralJournalController@store']);
-	// Route::get('generalJournal/list',['as'=>'generalJournal.list','uses'=>'Accounting\GeneralJournalController@list']);
-	// Route::get('generalJournal/show',['as'=>'generalJournal.show','uses'=>'Accounting\GeneralJournalController@show']);
-	// Route::get('generalJournal/edit',['as'=>'generalJournal.edit','uses'=>'Accounting\GeneralJournalController@edit']);
-	// Route::post('generalJournal/update',['as'=>'generalJournal.update','uses'=>'Accounting\GeneralJournalController@update']);
-	// Route::post('generalJournal/delete',['as'=>'generalJournal.destroy','uses'=>'Accounting\GeneralJournalController@destroy']);
-	// Route::get('generalJournal/print',['as'=>'generalJournal.print','uses'=>'Accounting\GeneralJournalController@print']);
-	// Route::get('generalJournal/approve',['as'=>'generalJournal.approve','uses'=>'Accounting\GeneralJournalController@approve']);
-	// Route::get('generalJournal/get/invoice/ammount',['as'=>'generalJournal.get.invoice.amount','uses'=>'Accounting\GeneralJournalController@getInvoiceAmount']);
+	Route::get('jurnalUmum',['as'=>'jurnalUmum.index','uses'=>'Accounting\GeneralJournalController@index']);
+	Route::get('jurnalUmum/create',['as'=>'jurnalUmum.create','uses'=>'Accounting\GeneralJournalController@create']);
+	Route::post('jurnalUmum/store',['as'=>'jurnalUmum.store','uses'=>'Accounting\GeneralJournalController@store']);
+	Route::get('jurnalUmum/list',['as'=>'jurnalUmum.list','uses'=>'Accounting\GeneralJournalController@list']);
+	Route::get('jurnalUmum/show',['as'=>'jurnalUmum.show','uses'=>'Accounting\GeneralJournalController@show']);
+	Route::get('jurnalUmum/edit',['as'=>'jurnalUmum.edit','uses'=>'Accounting\GeneralJournalController@edit']);
+	Route::post('jurnalUmum/update',['as'=>'jurnalUmum.update','uses'=>'Accounting\GeneralJournalController@update']);
+	Route::post('jurnalUmum/delete',['as'=>'jurnalUmum.destroy','uses'=>'Accounting\GeneralJournalController@destroy']);
+	Route::get('jurnalUmum/print',['as'=>'jurnalUmum.print','uses'=>'Accounting\GeneralJournalController@print']);
+	Route::get('jurnalUmum/approve',['as'=>'jurnalUmum.approve','uses'=>'Accounting\GeneralJournalController@approve']);
+	Route::get('jurnalUmum/get/invoice/ammount',['as'=>'jurnalUmum.get.invoice.amount','uses'=>'Accounting\GeneralJournalController@getInvoiceAmount']);
 
 	Route::get('forecastSales',['as'=>'forecastSales.index','uses'=>'Forecasting\ForcastingSalesController@index']);
 	Route::get('forecastSales/create',['as'=>'forecastSales.create','uses'=>'Forecasting\ForcastingSalesController@create']);
