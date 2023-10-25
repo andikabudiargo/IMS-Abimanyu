@@ -554,20 +554,21 @@ class BankPenerimaanController extends Controller
             $fromDate = trim($date[0]);
             $toDate = trim($date[1]);
 
-            // if(count($date)>1){
-            //     $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
-            //     $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
-            // }else{
-            //     $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
-            //     $toDate = $fromDate; 
-            // }
+            if(count($date)>1){
+                $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+                $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
+            }else{
+                $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+                $toDate = $fromDate; 
+            }
+
         }
 
         $data = DB::table('kas_hdr')
         // ->leftJoin('accounts','accounts.account','kas_hdr.receive_from')
         ->where(function ($query) use ($seachVc,$vcDate,$fromDate,$toDate,$period,$year,$searchStatus) {
             $seachVc ? $query->where('voucher_number','ilike','%'.$seachVc.'%') : '';
-            $vcDate ? $query->whereBetween('voucher_date', [$fromDate, $toDate]) : '';
+            $vcDate ? $query->whereBetween(DB::raw("to_date(voucher_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
             $period ? $query->where('period', $period) : '';
             $year ? $query->where('year', $year) : '';
             $searchStatus ? $query->where('kas_hdr.status', $searchStatus) : '';

@@ -38,6 +38,8 @@ class BankKeluarController extends Controller
             ['data'=>'period','name'=>'period','title'=>'Period'],
             ['data'=>'note','name'=>'note','title'=>'Note'],
             ['data'=>'statusku','name'=>'statusku','title'=>'Status'],
+            ['data'=> 'approval_by','name'=> 'approval_by','title'=>'Approved By'],
+            ['data'=> 'approval_at','name'=> 'approval_at','title'=>'Approved At'],
             ['data'=>'created_by','name'=>'created_by','title'=>'Created By'],
             ['data'=>'created_at','name'=>'created_at','title'=>'Created At']
         ];
@@ -552,20 +554,20 @@ class BankKeluarController extends Controller
             $fromDate = trim($date[0]);
             $toDate = trim($date[1]);
 
-            // if(count($date)>1){
-            //     $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
-            //     $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
-            // }else{
-            //     $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
-            //     $toDate = $fromDate; 
-            // }
+            if(count($date)>1){
+                $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+                $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
+            }else{
+                $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+                $toDate = $fromDate; 
+            }
         }
 
         $data = DB::table('kas_hdr')
         ->leftJoin('third_party','third_party.kode','kas_hdr.paid_to')
         ->where(function ($query) use ($seachVc,$vcDate,$fromDate,$toDate,$period,$year,$searchStatus) {
             $seachVc ? $query->where('voucher_number','ilike','%'.$seachVc.'%') : '';
-            $vcDate ? $query->whereBetween('voucher_date', [$fromDate, $toDate]) : '';
+            $vcDate ? $query->whereBetween(DB::raw("to_date(voucher_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
             $period ? $query->where('period', $period) : '';
             $year ? $query->where('year', $year) : '';
             $searchStatus ? $query->where('kas_hdr.status', $searchStatus) : '';
@@ -576,6 +578,8 @@ class BankKeluarController extends Controller
             'kas_hdr.*'
             ,'kas_hdr.status as statusku'
             ,db::raw("concat(third_party.kode,'-',third_party.nama) as supplier_name")
+            ,db::raw("(select (select name from users where username = z.username) from approval_history z where module_number = kas_hdr.voucher_number order by approval_order desc limit 1) as approval_by")
+            ,db::raw("(select to_char(approval_date::date, 'DD-MM-YYYY') from approval_history z where module_number = kas_hdr.voucher_number order by approval_order desc limit 1) as approval_at")
         )
         ->orderBy('id')
         ->get(); 

@@ -158,7 +158,7 @@
       tableId:"detailedTable",
       route:"{{ route('kasPenerimaan.list') }}",
       kolom:{!! $kolom !!},
-      arrColPrint:[1,2,3,4,5,6,7],
+      arrColPrint:[1,2,3,4,5,6,7,8,9,10],
       columnDefs :[
         { width: '5%', targets: 0 },
         {
