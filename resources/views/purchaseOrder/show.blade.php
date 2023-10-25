@@ -128,8 +128,10 @@
                                                         <td ></td>
                                                         <td >{{ $item->pr_number }}</td>
                                                         <td >{{ $item->article }}</td>
-                                                        <td class="text-right">{{ $item->uom_group =='PIECE' ? number_format($item->qty_stock) : number_format($item->qty_stock,2) }} {{ $item->uom }}</td>
-                                                        <td class="text-right">{{ $item->uom_group =='PIECE' ? number_format($item->qty) : number_format($item->qty,2) }} {{ $item->uom }}</td>
+                                                        {{-- <td class="text-right">{{ $item->uom_group =='PIECE' ? number_format($item->qty_stock) : number_format($item->qty_stock,2) }} {{ $item->uom }}</td>
+                                                        <td class="text-right">{{ $item->uom_group =='PIECE' ? number_format($item->qty) : number_format($item->qty,2) }} {{ $item->uom }}</td> --}}
+                                                        <td class="text-right">{{ $item->uom_group =='PIECE' ? number_format($item->qty_stock) : number_format($item->qty_stock,2) }} {{ $item->article_uom }}</td>
+                                                        <td class="text-right">{{ $item->uom_group =='PIECE' ? number_format($item->qty) : number_format($item->qty,2) }} {{ $item->article_uom }}</td>
                                                         <td class="text-right">{{ number_format($item->price,2) }}</td>
                                                         <td class="text-right">{{ number_format(($item->qty * $item->price),2) }}</td>
                                                     </tr>

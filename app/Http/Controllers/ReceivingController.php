@@ -1451,16 +1451,25 @@ class ReceivingController extends Controller
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED','10'=>'REVISI'];
         //  ['NEW','VALIDATE','APPROVED','POSTED','CANCELED','','','','','REVISI']; 
 
+        /*
+            ada masalah perubahan UOM di article setelah PO dibuat
+            jadi UOM ngikutin UOM nya article bukan UOM PO
+
+        */
+
         $po = $request->value;
         $data = DB::select("SELECT 
                 a.*,
                 a.article_code,
                 article_alternative_code,
-                article_desc,uom_group, 
+                article_desc
+                ,uom_group, 
                 (COALESCE(a.qty,0)-COALESCE(b.qty,0)) as qty_order
+                ,article.uom as uom
                 from purchase_order_det a
-                left join uom on uom.code=a.uom
                 left join article on article.article_code = a.article_code
+                -- left join uom on uom.code=a.uom
+                left join uom on uom.code=article.uom
                 left join 
                     (select po, article_code,sum(qty) as qty,max(price) as price from (
                         select *,(select po_number from receiving_hdr where rec_number = a.rec_number) as po 

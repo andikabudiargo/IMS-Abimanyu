@@ -87,7 +87,7 @@ class PurchaseOrderController extends Controller
             ['data'=>'article_alternative_code','name'=>'article_alternative_code','title'=>'Article code'],
             ['data'=>'article_desc','name'=>'article_desc','title'=>'Article desc'],
             ['data'=>'qtyku','name'=>'qtyku','title'=>'Qty'],
-            ['data'=>'uom','name'=>'uom','title'=>'UOM'],
+            ['data'=>'article_uom','name'=>'article_uom','title'=>'UOM'],
             ['data'=>'price','name'=>'price','title'=>'Price'],
             ['data'=>'total_dpp','name'=>'total_dpp','title'=>'Total Tanpa PPN'],
             ['data'=>'discount','name'=>'discount','title'=>'Discount'],
@@ -346,9 +346,10 @@ class PurchaseOrderController extends Controller
         ->select('purchase_order_det'.'.*'
             ,'purchase_order_det.pr_number'
             ,'article_stock.article_qty as qty_stock'
+            ,'article.uom as article_uom'
             ,'uom.uom_group'
             , DB::raw('(SELECT name from group_materials where code = group_of_material) as group')
-            ,DB::raw('concat(article_alternative_code,article_desc) as article')
+            ,DB::raw("concat(article_alternative_code,'-',article_desc) as article")
         )
         ->orderBy('id')
         ->get();
@@ -1290,7 +1291,6 @@ class PurchaseOrderController extends Controller
             $searchStatus ? $query->where('purchase_order_hdr.status',$searchStatus) : $query->whereNotIn('purchase_order_hdr.status',['5','6','7','8']);
             $orderDate ? $query->whereBetween(DB::raw("to_date(purchase_order_hdr.po_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
         })
-        
         ->select('purchase_order_det.*'
         ,'purchase_order_hdr.*'
         ,'article_alternative_code'
@@ -1306,6 +1306,8 @@ class PurchaseOrderController extends Controller
         ,DB::raw("TO_CHAR((((price*qty)-discount)+(price*qty*purchase_order_hdr.ppn/100)-(price*qty*purchase_order_hdr.pph22)),'999,999,999') as grand_total")
         ,DB::raw("(select STRING_AGG((select name from users where username = a.username), ' -> ' ORDER BY approval_order) AS main from approval_history a where module_number = purchase_order_det.po_number) as approval_by")
         ,'depts.name as nama_dept'
+        ,'article.uom as article_uom'
+
         )
         ->orderBy('purchase_order_det.id')
         ->get(); 
