@@ -125,11 +125,11 @@
                                                     <tr>
                                                         <td class="text-right"></td>
                                                         <td >{{ $item->article }}</td>
-                                                        <td class="text-right">{{ number_format($item->qty) }} </td>
+                                                        <td class="text-right">{{ number_format($item->qty,2) }} </td>
                                                         <td>{{ $item->uom_rec }}</td>
-                                                        <td class="text-right">{{ number_format($item->qty_free) }} </td>
+                                                        <td class="text-right">{{ number_format($item->qty_free,2) }} </td>
                                                         <td>{{ $item->uom_free }}</td>
-                                                        <td class="text-right">{{ number_format($item->qty+$item->qty_free) }} </td>
+                                                        <td class="text-right">{{ number_format(($item->qty+$item->qty_free),2) }} </td>
                                                         @php
                                                             {{ $histori = explode("->",$item->notes);}}
                                                         @endphp 
