@@ -273,12 +273,14 @@ class InvoiceController extends Controller
         ,'price'
         ,'price_service')
         ->where('invoice_number',$invoiceNumber)
-        ->groupBy(['article.article_desc'
+        ->groupBy(['article.article_code'
+        ,'article.article_desc'
         ,'article.article_alternative_code'
         ,'invoice_det.uom'
         // ,'qty'
         ,'price'
         ,'price_service'])
+        ->orderBy('article.article_code')
         ->get();
 
         
