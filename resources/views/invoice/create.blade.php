@@ -129,7 +129,7 @@
                             </div>
                             <div class="form-group row mb-03">
                                 <label for="totalQTY" class="col-sm-4 col-form-label titik-dua tanpa-padding">Total QTY</label>
-                                <div class="col-sm-3">
+                                <div class="col-sm-5">
                                     <input type="text" class="form-control text-right font-weight-bold" id="totalQTY" disabled/>
                                 </div>
                             </div>
