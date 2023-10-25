@@ -937,12 +937,13 @@ class InvoiceController extends Controller
         ,'price_service')
         ->where('invoice_number',$invNumber)
         ->groupBy([
-            'article.article_desc'
+            'article.article_code'
+            ,'article.article_desc'
             // ,'qty'
             ,'price'
             ,'price_service'
         ])
-        ->orderBy('article.article_desc','asc')
+        ->orderBy('article.article_code')
         ->get();
         
         $header=DB::table('invoice_hdr')
