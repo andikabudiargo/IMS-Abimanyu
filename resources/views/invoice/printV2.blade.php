@@ -298,7 +298,11 @@
                             </thead>
                             <tbody>
                             @foreach ($details as $val )
-                                <tr style="font-size: 11pt;height:25px">
+                                @if(count($details)> 19)
+                                    <tr style="font-size: 11pt;height:20px">
+                                @else
+                                    <tr style="font-size: 11pt;height:25px">
+                                @endif
                                     <td  style="border-right: 1px solid black;border-bottom: none;" align="center" scope="row" >{{ ++$no }}</td>
                                     <td  style="border-right: 1px solid black;" align="left">{{ $val->article_desc }}</td>
                                     <td  style="border-right: 1px solid black;" align="center">{{ number_format($val->qty) }}</td>
@@ -315,7 +319,11 @@
                             <?php $totalBaris = 16 ?>
                             
                             @for ($i=1;$i< $totalBaris-(count($details));$i++)
-                                <tr style="height:25px">
+                                @if(count($details)> 19)
+                                    <tr style="height:20px">
+                                @else
+                                    <tr style="height:25px">
+                                @endif
                                     <td style="border-right: 1px solid black;" ></div></td>
                                     <td style="border-right: 1px solid black;" ></td>
                                     <td style="border-right: 1px solid black;" ></td>
