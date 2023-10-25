@@ -301,7 +301,7 @@
                                 </tr>
                                 <tr>
                                     <td  align="left" class="border-atas" >Total</td>
-                                    <td  align="right" class="border-atas" >{{ number_format($grandTotal) }}</td>
+                                    <td  align="right" class="border-atas" >{{ number_format($basisAmount+$vat) }}</td>
                                 </tr>
                                 <tr class="border-atas">
                                     

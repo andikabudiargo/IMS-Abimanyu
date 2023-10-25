@@ -246,16 +246,18 @@
                                 </tr>
                             </thead>
                             <tbody>
+                                  <?php $jumlahBaris = 2 ?>
                                     <tr >
                                         <td align="left">{{ $apInvoice->account_ba }}</td>
                                         <td align="left">{{ $apInvoice->account_ba_name }}</td>
                                         <td align="left">{{ $apInvoice->ap_number }}</td>
                                         <td align="left">{{ $apInvoice->inv_number }}</td>
-                                        <td align="right">{{ number_format($apInvoice->grand_total-$apInvoice->vat,2) }}</td>
+                                        <td align="right">{{ number_format($apInvoice->basis_amount,2) }}</td>
                                         <td align="right">{{ number_format(0,2) }}</td>
                                     </tr>
 
                                     @if($apInvoice->vat>0)
+                                    <?php $jumlahBaris += 1 ?>
                                     <tr >
                                         <td align="left">{{ $apInvoice->account_vat }}</td>
                                         <td align="left">{{ $apInvoice->account_vat_name }}</td>
@@ -265,17 +267,9 @@
                                         <td align="right">{{ number_format(0,2) }}</td>
                                     </tr>
                                     @endif
-
-                                    <tr >
-                                        <td align="left">{{ $apInvoice->account_total }}</td>
-                                        <td align="left">{{ $apInvoice->account_total_name }}</td>
-                                        <td align="left">{{ $apInvoice->ap_number }}</td>
-                                        <td align="left">{{ $apInvoice->inv_number }}</td>
-                                        <td align="right">{{ number_format(0,2) }}</td>
-                                        <td align="right">{{ number_format($apInvoice->grand_total-$apInvoice->pph23,2) }}</td>
-                                    </tr>
                                     
                                     @if($apInvoice->pph23>0)
+                                    <?php $jumlahBaris += 1 ?>
                                     <tr >
                                         <td align="left">{{ $apInvoice->account_pph }}</td>
                                         <td align="left">{{ $apInvoice->account_pph_name }}</td>
@@ -285,13 +279,19 @@
                                         <td align="right">{{ number_format($apInvoice->pph23,2) }}</td>
                                     </tr>
                                     @endif
-                                    
-                                                    
-                              
-                                    <?php $totalBaris = 5 ?>
-                              
 
-                                @for ($i=1;$i< $totalBaris;$i++)
+                                    <tr >
+                                        <td align="left">{{ $apInvoice->account_total }}</td>
+                                        <td align="left">{{ $apInvoice->account_total_name }}</td>
+                                        <td align="left">{{ $apInvoice->ap_number }}</td>
+                                        <td align="left">{{ $apInvoice->inv_number }}</td>
+                                        <td align="right">{{ number_format(0,2) }}</td>
+                                        <td align="right">{{ number_format($apInvoice->grand_total,2) }}</td>
+                                    </tr>
+                                    
+                                    <?php $totalBaris = 7 ?>
+
+                                @for ($i=1;$i< $totalBaris-$jumlahBaris;$i++)
                                     <tr >
                                         <td align="right" class="putih" height="16"></td>
                                         <td align="left"></td>
@@ -305,8 +305,8 @@
                                     <td  align="left" class="border-atas" ></td>
                                     <td  align="left" class="border-atas" ></td>
                                     <td  align="left" class="border-atas" >Total</td>
-                                    <td  align="right" class="border-atas" >{{ number_format((($apInvoice->basis_amount+$apInvoice->vat)-$apInvoice->pph23),2) }}</td>
-                                    <td  align="right" class="border-atas" >{{ number_format((($apInvoice->basis_amount+$apInvoice->vat)-$apInvoice->pph23),2)}}</td>
+                                    <td  align="right" class="border-atas" >{{ number_format((($apInvoice->basis_amount+$apInvoice->vat)),2) }}</td>
+                                    <td  align="right" class="border-atas" >{{ number_format((($apInvoice->grand_total+$apInvoice->pph23)),2)}}</td>
                                 </tr>
                                 <tr class="border-atas">
                                     <td  align="left" class="border-atas" colspan="5">Note: {{ $apInvoice->note }}</td>
@@ -327,7 +327,7 @@
                             </tr>
                             <tr>
                                 <td align="center"></td>
-                                <td align="center" height="25">{{ $approval1 ? 'Approval 1':'' }}</td>
+                                <td align="center" height="40">{{ $approval1 ? 'Approval 1':'' }}</td>
                                 <td align="center"></td>
                                 <td align="center">{{ $approval2 ? 'Approval 2':'' }}</td>
                                 <td align="center"></td>

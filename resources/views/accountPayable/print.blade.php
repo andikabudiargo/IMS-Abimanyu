@@ -212,7 +212,7 @@
                                     <table width="100%">
                                         <tr class="tanpa-padding">
                                             <td class="tanpa-padding font-14" width="15%">Tanggal</td>
-                                            <td class="tanpa-padding font-14" width="50%">: {{ $invDate }}</td>
+                                            <td class="tanpa-padding font-14" width="40%">: {{ $invDate }}</td>
                                             <td class="tanpa-padding font-14" >Supplier</td>
                                             <td class="tanpa-padding font-14">: {{ $supplierName }}</td>
                                         </tr>
@@ -299,7 +299,7 @@
                             </tr>
                             <tr>
                                 <td align="center"></td>
-                                <td align="center" height="25">{{ $approval1 ? 'Approval 1':'' }}</td>
+                                <td align="center" height="40">{{ $approval1 ? 'Approval 1':'' }}</td>
                                 <td align="center"></td>
                                 <td align="center">{{ $approval2 ? 'Approval 2':'' }}</td>
                                 <td align="center"></td>
