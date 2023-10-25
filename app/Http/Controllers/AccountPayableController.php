@@ -1723,40 +1723,10 @@ class AccountPayableController extends Controller
             ,'third_party.nama as supplier_name'
             ,DB::raw("(select description from accounts where account=ap_invoice.account_ba) as account_ba_name")
             ,DB::raw("(select description from accounts where account=ap_invoice.account_total) as account_total_name")
+            ,DB::raw("(select description from accounts where account=ap_invoice.account_vat) as account_vat_name")
+            ,DB::raw("(select description from accounts where account=ap_invoice.account_pph) as account_pph_name")
         )
         ->where('ap_invoice.id',$id)->first();       
-
-        // $data['header']=DB::table('kas_hdr')
-        // ->select('kas_hdr.*'
-        // ,'description as receive_name'
-        // )
-        // ->where('kas_hdr.description',$apNumber)
-        // ->first();
-
-        // $voucherNumber=$data['header']->voucher_number;
-       
-        // $data['details']=DB::table('kas_det')
-        // ->leftJoin('kas_hdr','kas_hdr.voucher_number','kas_det.voucher_number')
-        // ->leftJoin('ap_invoice','ap_invoice.ap_number','kas_hdr.description')
-        // ->leftJoin('accounts','accounts.account','kas_det.account')
-        // ->select('kas_det.*'
-        // ,'ap_invoice.ap_number'
-        // ,'ap_invoice.inv_number'
-        // ,'accounts.description as account_name')
-        // ->where('kas_det.voucher_number',$voucherNumber)
-        // ->orderBy('id')
-        // ->get();
-
-        // $data['total']=DB::table('kas_det')
-        // ->select(DB::raw("sum(credit) as total_credit"),DB::raw("sum(debit) as total_debit"))
-        // ->where('voucher_number',$voucherNumber)
-        // ->first();
-
-        // $data['costCenter']=DB::table('kas_det')
-        // ->leftJoin('depts','depts.code','kas_det.cost_center')
-        // ->where('voucher_number',$voucherNumber)
-        // ->distinct('depts.name')
-        // ->pluck('depts.name')->implode(',');
 
         $data['approval1']=DB::table('approval_history')
         ->leftJoin('users','users.username','approval_history.username')

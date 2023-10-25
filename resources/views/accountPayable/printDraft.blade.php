@@ -251,9 +251,31 @@
                                         <td align="left">{{ $apInvoice->account_ba_name }}</td>
                                         <td align="left">{{ $apInvoice->ap_number }}</td>
                                         <td align="left">{{ $apInvoice->inv_number }}</td>
-                                        <td align="right">{{ number_format($apInvoice->grand_total,2) }}</td>
+                                        <td align="right">{{ number_format($apInvoice->basis_amount,2) }}</td>
                                         <td align="right">{{ number_format(0,2) }}</td>
                                     </tr>
+
+                                    @if($apInvoice->vat>0)
+                                    <tr >
+                                        <td align="left">{{ $apInvoice->account_vat }}</td>
+                                        <td align="left">{{ $apInvoice->account_vat_name }}</td>
+                                        <td align="left">{{ $apInvoice->ap_number }}</td>
+                                        <td align="left">{{ $apInvoice->inv_number }}</td>
+                                        <td align="right">{{ number_format($apInvoice->vat,2) }}</td>
+                                        <td align="right">{{ number_format(0,2) }}</td>
+                                    </tr>
+                                    @endif
+                                    
+                                    @if($apInvoice->pph23>0)
+                                    <tr >
+                                        <td align="left">{{ $apInvoice->account_pph }}</td>
+                                        <td align="left">{{ $apInvoice->account_pph_name }}</td>
+                                        <td align="left">{{ $apInvoice->ap_number }}</td>
+                                        <td align="left">{{ $apInvoice->inv_number }}</td>
+                                        <td align="right">{{ number_format(0,2) }}</td>
+                                        <td align="right">{{ number_format($apInvoice->pph23,2) }}</td>
+                                    </tr>
+                                    @endif
                                     <tr >
                                         <td align="left">{{ $apInvoice->account_total }}</td>
                                         <td align="left">{{ $apInvoice->account_total_name }}</td>
