@@ -148,7 +148,7 @@
             border-bottom: none;
             border-left: thin solid var(--line-color);
             border-right: thin solid var(--line-color);
-            height: 25px;
+            /* height: 25px; */
         }
 
         #tblContent tr:last-child{
@@ -284,8 +284,7 @@
                         </thead>
                         <tbody>
                         @foreach ($details as $val )
-                            
-                            @if(count($details)> 19)
+                            @if(count($details) > 19)
                                 <tr style="font-size: 11pt;height:20px">
                             @else
                                 <tr style="font-size: 11pt;height:25px">
@@ -332,7 +331,7 @@
                         </tbody>
                         <tfoot>
                             @foreach ($totals as $val )            
-                                <tr>
+                                <tr style="height:25px">
                                     {{-- <td colspan="4" rowspan="4" style="border-bottom: 1px solid black;"><b>Terbilang : </b><i>{{ ucwords(strtolower($terbilang)) }}</i> </td> --}}
                                     <td colspan="4" rowspan="4" style="border-bottom: 1px solid black;">
                                         <table style="table-layout:fixed;">
@@ -345,15 +344,15 @@
                                     <td colspan="" style="border: 1px solid #0c0c0c;padding-left:10px">DPP</td>
                                     <td colspan="2" align="right" style="border: 1px solid #0c0c0c;padding-left:10px">{{ number_format($val->sub_total,2) }}</td>
                                 </tr>
-                                <tr>
+                                <tr style="height:25px">
                                     <td colspan="" style="border: 1px solid #0c0c0c;padding-left:10px">PPN {{ $nilaiPPN }}% </td>
                                     <td colspan="2" align="right" style="border: 1px solid #0c0c0c;padding-left:10px">{{ number_format($val->ppn,2) }}</td>
                                 </tr>
-                                <tr>
+                                <tr style="height:25px">
                                     <td colspan="" style="border: 1px solid #0c0c0c;padding-left:10px">PPH 23</td>
                                     <td colspan="2" align="right" style="border: 1px solid #0c0c0c;padding-left:10px">{{ $val->pph23 ? '-'.number_format($val->pph23,2):'-' }}</td>
                                 </tr>
-                                <tr>
+                                <tr style="height:25px">
                                     <td colspan="" style="border: 1px solid #0c0c0c;padding-left:10px">Total</td>
                                     <td colspan="2" align="right" style="border: 1px solid #0c0c0c;padding-left:10px">{{ number_format($val->grand_total,2) }}</td>
                                 </tr>

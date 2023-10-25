@@ -153,7 +153,7 @@
             border-bottom: none;
             border-left: thin solid var(--line-color);
             border-right: thin solid var(--line-color);
-            height: 25px;
+            /* height: 25px; */
         }
 
         #tblContent tr:last-child{
@@ -342,7 +342,7 @@
                             </tbody>
                             <tfoot>
                                 @foreach ($totals as $val )            
-                                    <tr>
+                                    <tr style="height:25px">
                                         <td colspan="3" rowspan="4" style="border-bottom: 1px solid black;">
                                             <table style="table-layout:fixed;">
                                                 <tr>
@@ -354,15 +354,15 @@
                                         <td colspan="" style="border: 1px solid #0c0c0c;padding-left:10px">DPP</td>
                                         <td colspan="" align="right" style="border: 1px solid #0c0c0c;padding-left:10px">{{ number_format($val->sub_total,2) }}</td>
                                     </tr>
-                                    <tr>
+                                    <tr style="height:25px">
                                         <td colspan="" style="border: 1px solid #0c0c0c;padding-left:10px">PPN {{ $nilaiPPN }}% </td>
                                         <td colspan="" align="right" style="border: 1px solid #0c0c0c;padding-left:10px">{{ number_format($val->ppn,2) }}</td>
                                     </tr>
-                                    <tr>
+                                    <tr style="height:25px">
                                         <td colspan="" style="border: 1px solid #0c0c0c;padding-left:10px">PPH 23</td>
                                         <td colspan="" align="right" style="border: 1px solid #0c0c0c;padding-left:10px">{{ $val->pph23 ? '-'.number_format($val->pph23,2):'-' }}</td>
                                     </tr>
-                                    <tr>
+                                    <tr style="height:25px">
                                         <td colspan="" style="border: 1px solid #0c0c0c;padding-left:10px">Total</td>
                                         <td colspan="" align="right" style="border: 1px solid #0c0c0c;padding-left:10px">{{ number_format($val->grand_total,2) }}</td>
                                     </tr>
