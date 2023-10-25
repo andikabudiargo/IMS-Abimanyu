@@ -207,7 +207,8 @@
 
     </style>
 </head>
-<body class="{{ (count($details)) < 7 ? "A4A5" : "A4" }}">
+{{-- <body class="{{ (count($details)) < 7 ? "A4A5" : "A4" }}"> --}}
+<body class="A4A5">
 <div class="row hide-print" style="margin-left:20px;margin-top:20px">
     <div class="col-md-12">
         <button class="btn btn-primary" type="button" id="cmdPrint" name="cmdPrint">Print</button>
@@ -272,7 +273,6 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                {{-- @foreach ($details as $key=>$val ) --}}
                                     <tr >
                                         <td align="center">1</td>
                                         <td align="left">{{ $invNumber }}</td>
@@ -280,15 +280,11 @@
                                         <td align="left">{{ $accountBa }}</td>
                                         <td align="right">{{ number_format($basisAmount) }}</td>
                                     </tr>
-                                {{-- @endforeach       --}}
-                                                    
-                                {{-- @if(count($details)>7) --}}
-                                    <?php //$totalBaris = 16 ?>
-                                {{-- @else --}}
-                                    <?php $totalBaris = 7 ?>
-                                {{-- @endif --}}
+                                
+                                <?php $totalBaris = 6 ?>
+                               
 
-                                @for ($i=1;$i< $totalBaris-(count($details));$i++)
+                                @for ($i=1;$i< $totalBaris;$i++)
                                     <tr >
                                         <td align="right" class="putih" height="16"></td>
                                         <td align="left"></td>

@@ -1574,12 +1574,20 @@ class AccountPayableController extends Controller
                                 </a>';
             }
 
-            if (($data->status == '4')){
+            if (($data->status != '4')){
+                $buttons .=         '<a href="'. route('ap.print.draft', ['id'=>Crypt::encryptString($data->id)]) .'" target="_blank" class="dropdown-item">
+                                    <i data-feather="printer"></i>
+                                    <span>'. __("Print") .'</span>
+                                </a>';
+            }
+
+
+            // if (($data->status == '4')){
                 $buttons .=         '<a href="'. route('ap.print.slip.pembayaran', ['id'=>Crypt::encryptString($data->id)]) .'" target="_blank" class="dropdown-item">
                                     <i data-feather="printer"></i>
                                     <span>'. __("Print Slip") .'</span>
                                 </a>';
-            }
+            // }
 
             if (($data->status != '7')){
                 if (Auth::user()->can('ap-delete')) {
@@ -1700,6 +1708,90 @@ class AccountPayableController extends Controller
 
     }
 
+    public function printDraft(Request $request)
+    {
+        $id=Crypt::decryptString($request->id);
+        $data['title'] ='Invoice Supplier';
+
+        $apNumber = DB::table('ap_invoice')->where('id',$id)->value('ap_number');
+
+        $data['apInvoice'] = DB::table('ap_invoice')
+        ->leftJoin('third_party','third_party.kode','ap_invoice.supplier_id')
+        ->select(
+            'ap_invoice.*'
+            ,DB::raw("(select STRING_AGG ( a.rec_number,',' ORDER BY a.id) as list_rec from ap_invoice_detail a where ap_number = ap_invoice.ap_number) as list_rec")
+            ,'third_party.nama as supplier_name'
+            ,DB::raw("(select description from accounts where account=ap_invoice.account_ba) as account_ba_name")
+            ,DB::raw("(select description from accounts where account=ap_invoice.account_total) as account_total_name")
+        )
+        ->where('ap_invoice.id',$id)->first();       
+
+        // $data['header']=DB::table('kas_hdr')
+        // ->select('kas_hdr.*'
+        // ,'description as receive_name'
+        // )
+        // ->where('kas_hdr.description',$apNumber)
+        // ->first();
+
+        // $voucherNumber=$data['header']->voucher_number;
+       
+        // $data['details']=DB::table('kas_det')
+        // ->leftJoin('kas_hdr','kas_hdr.voucher_number','kas_det.voucher_number')
+        // ->leftJoin('ap_invoice','ap_invoice.ap_number','kas_hdr.description')
+        // ->leftJoin('accounts','accounts.account','kas_det.account')
+        // ->select('kas_det.*'
+        // ,'ap_invoice.ap_number'
+        // ,'ap_invoice.inv_number'
+        // ,'accounts.description as account_name')
+        // ->where('kas_det.voucher_number',$voucherNumber)
+        // ->orderBy('id')
+        // ->get();
+
+        // $data['total']=DB::table('kas_det')
+        // ->select(DB::raw("sum(credit) as total_credit"),DB::raw("sum(debit) as total_debit"))
+        // ->where('voucher_number',$voucherNumber)
+        // ->first();
+
+        // $data['costCenter']=DB::table('kas_det')
+        // ->leftJoin('depts','depts.code','kas_det.cost_center')
+        // ->where('voucher_number',$voucherNumber)
+        // ->distinct('depts.name')
+        // ->pluck('depts.name')->implode(',');
+
+        $data['approval1']=DB::table('approval_history')
+        ->leftJoin('users','users.username','approval_history.username')
+        ->where('module_code',$this->moduleCode)
+        ->where('module_number',$apNumber)
+        ->where('approval_order',1)
+        ->first();
+
+        $data['approval2']=DB::table('approval_history')
+        ->leftJoin('users','users.username','approval_history.username')
+        ->where('module_code',$this->moduleCode)
+        ->where('module_number',$apNumber)
+        ->where('approval_order',2)
+        ->first();
+
+        $data['approval3']=DB::table('approval_history')
+        ->leftJoin('users','users.username','approval_history.username')
+        ->where('module_code',$this->moduleCode)
+        ->where('module_number',$apNumber)
+        ->where('approval_order',3)
+        ->first();
+
+        $data['apNumber'] =  $data['apInvoice']->ap_number;
+        $data['invoiceNumber'] = $data['apInvoice']->inv_number;
+        $data['supplierName'] = $data['apInvoice']->supplier_name;
+        $data['nomorLpb'] = $data['apInvoice']->list_rec;
+        // $data['apDate'] = $data['apInvoice']->ap_date ? $data['apInvoice']->inv_date : '';
+        // $data['apDate'] = $data['apInvoice']->ap_date;
+        $data['invDate'] = $data['apInvoice']->inv_date;
+        $data['noPo'] = $data['apInvoice']->po_number;
+
+        return view('accountPayable.printDraft',$data);
+
+    }
+
     public function printSlipPembayaran(Request $request)
     {
         $id=Crypt::decryptString($request->id);
@@ -1719,32 +1811,32 @@ class AccountPayableController extends Controller
 
         $data['title'] ='Invoice Supplier';
 
-        $data['header']=DB::table('kas_hdr')
-        ->select('kas_hdr.*'
-        ,'description as receive_name'
-        )
-        ->where('kas_hdr.description',$apNumber)
-        ->first();
+        // $data['header']=DB::table('kas_hdr')
+        // ->select('kas_hdr.*'
+        // ,'description as receive_name'
+        // )
+        // ->where('kas_hdr.description',$apNumber)
+        // ->first();
 
-        $voucherNumber=$data['header']->voucher_number;
+        // $voucherNumber=$data['header']->voucher_number;
        
-        $data['details']=DB::table('kas_det')
-        ->leftJoin('accounts','accounts.account','kas_det.account')
-        ->select('kas_det.*','accounts.description as account_name')
-        ->where('voucher_number',$voucherNumber)
-        ->orderBy('id')
-        ->get();
+        // $data['details']=DB::table('kas_det')
+        // ->leftJoin('accounts','accounts.account','kas_det.account')
+        // ->select('kas_det.*','accounts.description as account_name')
+        // ->where('voucher_number',$voucherNumber)
+        // ->orderBy('id')
+        // ->get();
 
-        $data['total']=DB::table('kas_det')
-        ->select(DB::raw("sum(credit) as total_credit"),DB::raw("sum(debit) as total_debit"))
-        ->where('voucher_number',$voucherNumber)
-        ->first();
+        // $data['total']=DB::table('kas_det')
+        // ->select(DB::raw("sum(credit) as total_credit"),DB::raw("sum(debit) as total_debit"))
+        // ->where('voucher_number',$voucherNumber)
+        // ->first();
 
-        $data['costCenter']=DB::table('kas_det')
-        ->leftJoin('depts','depts.code','kas_det.cost_center')
-        ->where('voucher_number',$voucherNumber)
-        ->distinct('depts.name')
-        ->pluck('depts.name')->implode(',');
+        // $data['costCenter']=DB::table('kas_det')
+        // ->leftJoin('depts','depts.code','kas_det.cost_center')
+        // ->where('voucher_number',$voucherNumber)
+        // ->distinct('depts.name')
+        // ->pluck('depts.name')->implode(',');
 
         $data['approval1']=DB::table('approval_history')
         ->leftJoin('users','users.username','approval_history.username')
