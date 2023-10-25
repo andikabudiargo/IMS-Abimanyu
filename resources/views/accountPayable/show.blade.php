@@ -142,8 +142,8 @@
                                                     <td>{{ $item->desc }}</td>
                                                     <td>{{ $item->uom }}</td>
                                                     <td class="text-right">{{ number_format($item->qty) }}</td>
-                                                    <td class="text-right">{{ number_format($item->price) }}</td>
-                                                    <td class="text-right">{{ number_format($item->total) }}</td>
+                                                    <td class="text-right">{{ number_format($item->price,2) }}</td>
+                                                    <td class="text-right">{{ number_format($item->total,2) }}</td>
                                                 </tr>
                                                 @endforeach
                                             </tbody>
@@ -158,13 +158,13 @@
                                     <div class="form-group row mb-03">
                                         <label for="basisAmount" class="col-sm-4 col-form-label titik-dua">DPP</label>
                                         <div class="col-sm-6">
-                                            <input type="text" class="form-control text-right font-weight-bold disabled-el" id="basisAmount" name="basisAmount" value="{{ $header->basis_amount }}" disabled />
+                                            <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el" id="basisAmount" name="basisAmount" value="{{ number_format($header->basis_amount,2) }}" disabled />
                                         </div>
                                     </div>
                                     <div class="form-group row mb-03 d-none">
                                         <label for="totalPPN" class="col-sm-4 col-form-label titik-dua">Discount </label>
                                         <div class="col-sm-6">
-                                            <input type="text" class="form-control text-right font-weight-bold numeral-mask disabled-el" id="totalDiscount" name="totalDiscount" value="{{ $header->total_discount }}" disabled/>
+                                            <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el" id="totalDiscount" name="totalDiscount" value="{{ number_format($header->total_discount,2) }}" disabled/>
                                         </div>
                                     </div>
                                     <div class="form-group row mb-03">
@@ -176,7 +176,7 @@
                                             </div>
                                         </div>    
                                         <div class="col-sm-5">
-                                            <input type="text" class="form-control text-right font-weight-bold numeral-mask disabled-el" id="totalPPN"  name="totalPPN" value="{{ $header->vat }}" disabled/>
+                                            <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el" id="totalPPN"  name="totalPPN" value="{{ number_format($header->vat,2) }}" disabled/>
                                         </div>
                                     </div>
                                     <div class="form-group row mb-03">
@@ -188,7 +188,7 @@
                                             </div>
                                         </div> 
                                         <div class="col-sm-5">
-                                            <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el" id="totalPPH23" name="totalPPH23" value="{{ $header->pph23_type == 'PPH23' ? $header->pph23 : 0 }}" disabled />
+                                            <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el" id="totalPPH23" name="totalPPH23" value="{{ $header->pph23_type == 'PPH23' ? number_format($header->pph23,2) : 0 }}" disabled />
                                         </div>
                                     </div>
                                     <div class="form-group row mb-03">
@@ -200,7 +200,7 @@
                                             </div>
                                         </div> 
                                         <div class="col-sm-5">
-                                            <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el" id="totalPPH21" name="totalPPH21" value="{{ $header->pph23_type == 'PPH21' ? $header->pph23 : 0 }}" disabled/>
+                                            <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el" id="totalPPH21" name="totalPPH21" value="{{ $header->pph23_type == 'PPH21' ? number_format($header->pph23,2) : 0 }}" disabled/>
                                         </div>
                                     </div>
                                     <div class="form-group row mb-03">
@@ -212,13 +212,13 @@
                                             </div>
                                         </div> 
                                         <div class="col-sm-5">
-                                            <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el" id="totalPPH42" name="totalPPH42" value="{{ $header->pph23_type == 'PPH42' ? $header->pph23 : 0 }}" disabled/>
+                                            <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el" id="totalPPH42" name="totalPPH42" value="{{ $header->pph23_type == 'PPH42' ? number_format($header->pph23,2) : 0 }}" disabled/>
                                         </div>
                                     </div>
                                     <div class="form-group row mb-03">
                                         <label for="grandTotal" class="col-sm-4 col-form-label titik-dua">Total</label>
                                         <div class="col-sm-6">
-                                            <input type="text" class="form-control text-right font-weight-bold numeral-mask disabled-el" id="grandTotal" name="grandTotal" value="{{ $header->grand_total }}" disabled/>
+                                            <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el" id="grandTotal" name="grandTotal" value="{{ number_format($header->grand_total,2) }}" disabled/>
                                         </div>
                                     </div>
                                 </div>
