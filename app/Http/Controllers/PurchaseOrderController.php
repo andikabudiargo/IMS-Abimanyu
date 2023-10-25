@@ -1513,7 +1513,8 @@ class PurchaseOrderController extends Controller
             ['data'=>'qtyku','name'=>'qtyku','title'=>'Qty PO'],
             ['data'=>'qty_lpb','name'=>'qty_lpb','title'=>'Qty LPB'],
             ['data'=>'balance','name'=>'balance','title'=>'Balance'],
-            ['data'=>'uom','name'=>'uom','title'=>'STN'],
+            ['data'=>'article_uom','name'=>'article_uom','title'=>'STN'],
+            // ['data'=>'uom','name'=>'uom','title'=>'STN'],
             ['data'=>'price','name'=>'price','title'=>'Harga'],
             ['data'=>'total_dpp','name'=>'total_dpp','title'=>'Total Harga'],
             ['data'=>'note','name'=>'note','title'=>'Keterangan'],
@@ -1582,6 +1583,7 @@ class PurchaseOrderController extends Controller
         // ,'depts.name as nama_dept'
         ,DB::raw("(select name from depts where code = purchase_request_hdr.dept limit 1) as dept_name")
         ,DB::RAW("to_date(po_date,'dd-mm-yyyy') as date_period")
+        ,'article.uom as article_uom'
         )
         ->orderBy('purchase_order_det.id')
         ->get(); 
