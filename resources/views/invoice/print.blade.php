@@ -285,7 +285,7 @@
                         <tbody>
                         @foreach ($details as $val )
                             @if(count($details) > 19)
-                                <tr style="font-size: 11pt;height:23px">
+                                <tr style="font-size: 11pt;height:24px">
                             @else
                                 <tr style="font-size: 11pt;height:25px">
                             @endif
@@ -306,7 +306,7 @@
                         @for ($i=1;$i< $totalBaris-(count($details));$i++)
                             
                             @if(count($details)> 19)
-                                <tr style="height:23px">
+                                <tr style="height:24px">
                             @else
                                 <tr style="height:25px">
                             @endif
