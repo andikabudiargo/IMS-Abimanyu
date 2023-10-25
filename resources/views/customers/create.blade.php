@@ -73,6 +73,15 @@
                                 @endforeach
                             </select>
                         </div>
+                        <div class="form-group col-md-6">
+                            <label class="form-label" for="coaPenjualan">COA Penjualan</label>
+                            <select class="select2 w-100" id="coaPenjualan" name="coaPenjualan">
+                                <option value=""></option>
+                                @foreach($coaPenjualans as $val)
+                                    <option value="{{$val->account}}" {{ $val->account == old("coaPenjualan") ? "selected" : ""}} >{{$val->account}} | {{$val->description}} </option>
+                                @endforeach
+                            </select>
+                        </div>
                     </div>
                     <div class="form-row">
                         <div class="form-group col-md-6">

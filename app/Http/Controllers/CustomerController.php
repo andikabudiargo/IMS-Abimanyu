@@ -39,6 +39,8 @@ class CustomerController extends Controller
             ['data'=>'alamat_npwp','name'=>'alamat_npwp','title'=>'Alamat NPWP'],
             ['data'=>'blacklist','name'=>'blacklist','title'=>'Blacklist'],
             ['data'=>'epte','name'=>'epte','title'=>'EPTE'],
+            ['data'=>'account','name'=>'account','title'=>'COA Piutang'],
+            ['data'=>'coa_penjualan','name'=>'coa_penjualan','title'=>'COA Penjualan'],
         ];
         return json_encode($kolom, true);
     }
@@ -70,6 +72,11 @@ class CustomerController extends Controller
 
         $data['accounts'] = DB::table('accounts')
         ->where('parent_id','1100.40')
+        ->orderBy('description')
+        ->get();
+
+        $data['coaPenjualans'] = DB::table('accounts')
+        ->where('parent_id','4000.10')
         ->orderBy('description')
         ->get();
 
@@ -148,6 +155,7 @@ class CustomerController extends Controller
         $aktif = '1';
         $blacklist = '0';
         $pkp = 'N';
+        $coaPenjualan = $request->coaPenjualan;
     
         $messages = [
             'required' => 'The field is required.',
@@ -222,7 +230,8 @@ class CustomerController extends Controller
                     'created_by' => Auth::user()->username,
                     'updated_by' => Auth::user()->username,
                     'created_at' => date('Y-m-d H:i:s'),
-                    'updated_at' => date('Y-m-d H:i:s')
+                    'updated_at' => date('Y-m-d H:i:s'),
+                    'coa_penjualan' => $coaPenjualan
                 ]);
 
                 DB::commit();
@@ -264,6 +273,11 @@ class CustomerController extends Controller
 
         $data['accounts'] = DB::table('accounts')
         ->where('parent_id','1100.40')
+        ->orderBy('description')
+        ->get();
+
+        $data['coaPenjualans'] = DB::table('accounts')
+        ->where('parent_id','4000.10')
         ->orderBy('description')
         ->get();
 
@@ -320,6 +334,7 @@ class CustomerController extends Controller
         $aktif = '1';
         $blacklist = '0';
         $pkp = 'N';
+        $coaPenjualan = $request->coaPenjualan;
     
         $messages = [
             'required' => 'The field is required.',
@@ -394,7 +409,8 @@ class CustomerController extends Controller
                     'epte'=>$epte,
                     'third_party_type'=> $third_party_type,
                     'updated_by' => Auth::user()->username,
-                    'updated_at' => date('Y-m-d H:i:s')
+                    'updated_at' => date('Y-m-d H:i:s'),
+                    'coa_penjualan' => $coaPenjualan
                     ]
                 );
 
