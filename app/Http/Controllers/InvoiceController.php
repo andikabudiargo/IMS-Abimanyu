@@ -942,6 +942,7 @@ class InvoiceController extends Controller
             ,'price'
             ,'price_service'
         ])
+        ->orderBy('article.article_desc','asc')
         ->get();
         
         $header=DB::table('invoice_hdr')
