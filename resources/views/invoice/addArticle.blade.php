@@ -228,7 +228,8 @@
     }
 
     function hitungGrandTotal(){
-        let objArticle = $('#article_row select[name="articleId[]"]');
+        let objArticle = $('#article_row input[name="articleId[]"]');
+        let objArticleSum = $('#articleRow input[name="articleId[]"]');
         let objQtyTiw= $('#article_row input[name="qtyInv[]"]');
         let objQTY= $('#article_row input[name="qtyInv[]"]');
         let objPrice= $('#article_row input[name="price[]"]');
@@ -260,7 +261,7 @@
         // }
 
         $("#totalAmountJasa").val(humanizeNumber(totalAmountJasa.toFixed(2)));
-        $("#totalRow").val(objArticle.length);
+        $("#totalRow").val(objArticleSum.length);
         $("#totalQTY").val(humanizeNumber(totalQty));
         $("#totalAmount").val(humanizeNumber(totalAmount.toFixed(2)));
         
