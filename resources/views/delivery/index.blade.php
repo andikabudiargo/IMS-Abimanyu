@@ -15,7 +15,7 @@
     </div>
     <div class="card-content collapse show">
       <div class="card-body">
-        <form class="needs-validation" novalidate>
+        <form class="needs-validation" novalidate autocomplete="off"> 
             <div class="form-row">
               <div class="form-group col-md-3"> 
                 <label for="searchDn">Delivery Number</label>
