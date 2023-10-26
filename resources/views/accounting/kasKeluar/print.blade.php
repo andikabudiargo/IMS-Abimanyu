@@ -206,7 +206,7 @@
                                 <td style="vertical-align: bottom;">
                                     <div class="huruf-tebal font-16" style="text-align:center">BUKTI KAS KELUAR</div>
                                     <div class="huruf-tebal font-14" style="text-align:center">{{ $header->voucher_number }}</div>
-                                    <br>
+                                    
                                     <table width="100%">
                                         <tr class="tanpa-padding">
                                             <td class="tanpa-padding font-14" width="10%">Tanggal</td>
@@ -233,7 +233,6 @@
                         <table id="tblContent" class="font-small">
                             <thead>
                                 <tr>
-
                                     <th width="10%">No Account</th>
                                     <th width="15%">Account Name</th>
                                     <th width="15%">Referensi</th>
@@ -282,7 +281,7 @@
                                 </tr>
                             </tbody>
                         </table>
-                        <br>
+                        
                         <table width="100%">
                             {{-- <tr><td colspan="5" height="3"></td></tr> --}}
                             <tr> 

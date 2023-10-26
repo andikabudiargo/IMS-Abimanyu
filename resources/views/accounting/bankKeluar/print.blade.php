@@ -56,7 +56,7 @@
         }
 
         .header, .header-space{
-                height: 140px;
+                height: 110px;
         }
 
         .footer, .footer-space {
@@ -201,7 +201,6 @@
             <tr>
                 <td>
                     <div class="header-space">
-                        <br>
                         <table width="100%">
                             <tr>
                                 <td style="vertical-align: bottom;">
@@ -260,7 +259,7 @@
                                     <?php //$totalBaris = 7 ?>
                                 @endif --}}
 
-                                <?php $totalBaris = 25 ?>
+                                <?php $totalBaris = 23 ?>
 
                                 @for ($i=1;$i< $totalBaris-(count($details));$i++)
                                     <tr >
