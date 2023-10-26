@@ -191,7 +191,7 @@ class AccountPayableController extends Controller
                 ->whereNotIn('rec_number',$listRec);
 
             })
-            ->where("status","3")
+            ->whereIn("status",['3','6'])
             ->orderBy("po_number")
             ->select("po_number","po_date","currency","kurs")
             ->get();
@@ -211,7 +211,7 @@ class AccountPayableController extends Controller
                 ->where('supplier_id',$supp)
                 ->whereNotIn('rec_number',$listRec);
             })
-            ->where("status","3")
+            ->whereIn("status",['3','6'])
             ->orderBy("po_number")
             ->select("po_number","po_date","currency","kurs")
             ->get();
