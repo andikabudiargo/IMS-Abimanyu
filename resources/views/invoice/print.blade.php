@@ -341,7 +341,7 @@
             <table id="tblContent" class="font-14" style="table-layout:fixed;">
                 <thead>
                     <tr style="height: 50px;">
-                        <th width="6.5%">No</th>
+                        <th width="6%">No</th>
                         <th width="50%" >Description</th>
                         <th width="10%" align="center">Qty</th>
                         <th width="12%">Material Price</th>
@@ -402,8 +402,8 @@
                                     </tr>
                                 </table>
                             </td>
-                            <td width="7.4%" colspan="" style="border: 1px solid #0c0c0c;padding-left:10px">DPP</td>
-                            <td width="22.4%" colspan="2" align="right" style="border: 1px solid #0c0c0c;padding-left:10px">{{ number_format($val->sub_total,2) }}</td>
+                            <td width="7.5%" colspan="" style="border: 1px solid #0c0c0c;padding-left:10px">DPP</td>
+                            <td width="22.5%" colspan="2" align="right" style="border: 1px solid #0c0c0c;padding-left:10px">{{ number_format($val->sub_total,2) }}</td>
                         </tr>
                         <tr style="height:25px">
                             <td colspan="" style="border: 1px solid #0c0c0c;padding-left:10px">PPN {{ $nilaiPPN }}% </td>

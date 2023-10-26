@@ -331,7 +331,7 @@
             <table id="tblContent" class="font-14" style="table-layout:fixed;">
                 <thead>
                     <tr style="height: 50px;">
-                        <th width="5%">No</th>
+                        <th width="4.5%">No</th>
                         <th width="51.5%" >Description</th>
                         <th width="8.5%" align="center">Qty</th>
                         @if($printType=='1')
@@ -395,7 +395,7 @@
                                 </table>
                             </td>
                             <td width="10.6%" colspan="" style="border: 1px solid #0c0c0c;padding-left:10px">DPP</td>
-                            <td width="13.8%" colspan="" align="right" style="border: 1px solid #0c0c0c;padding-left:10px">{{ number_format($val->sub_total,2) }}</td>
+                            <td width="13.9%" colspan="" align="right" style="border: 1px solid #0c0c0c;padding-left:10px">{{ number_format($val->sub_total,2) }}</td>
                         </tr>
                         <tr style="height:25px">
                             <td colspan="" style="border: 1px solid #0c0c0c;padding-left:10px">PPN {{ $nilaiPPN }}% </td>
