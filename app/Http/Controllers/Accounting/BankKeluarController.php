@@ -706,6 +706,13 @@ class BankKeluarController extends Controller
         ->where('approval_order',3)
         ->first();
 
+        $data['approval4']=DB::table('approval_history')
+        ->leftJoin('users','users.username','approval_history.username')
+        ->where('module_code',$this->moduleCode)
+        ->where('module_number',$vcNumber)
+        ->where('approval_order',4)
+        ->first();
+
         return view('accounting.bankKeluar.print',$data);
 
         // view()->share($data);
