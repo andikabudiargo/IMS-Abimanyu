@@ -345,11 +345,13 @@ class InvoiceController extends Controller
         ,'price_service')
         ->where('invoice_number',$invoiceNumber)
         ->groupBy(['article.article_desc'
+        ,'article.article_code'
         ,'article.article_alternative_code'
         ,'invoice_det.uom'
         // ,'qty'
         ,'price'
         ,'price_service'])
+        ->orderBy('article.article_code')
         ->get();
 
         $data['customers'] = DB::table('third_party')
