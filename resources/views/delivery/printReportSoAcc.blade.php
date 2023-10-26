@@ -164,8 +164,8 @@
             </tbody>
         </table>
     </main>
-    @if( $jumlahBaris > 32 )
+    {{-- @if( $jumlahBaris > 32 )
         <div class="breakNow"></div>
-    @endif
+    @endif --}}
 </body>
 </html>
