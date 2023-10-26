@@ -56,7 +56,7 @@
         }
 
         .header, .header-space{
-                height: 140px;
+                height: 110px;
         }
 
         .footer, .footer-space {
@@ -201,7 +201,6 @@
             <tr>
                 <td>
                     <div class="header-space">
-                        <br>
                         <table width="100%">
                             <tr>
                                 <td style="vertical-align: bottom;">
@@ -281,11 +280,9 @@
                                 <tr class="border-atas">
                                     <td  align="left" class="border-atas" colspan="5">Note: {{ $header->note }}</td>
                                 </tr>
-
-                                
                             </tbody>
                         </table>
-                        <br><br>
+                        <br>
                         <table width="100%">
                             {{-- <tr><td colspan="5" height="3"></td></tr> --}}
                             <tr> 

@@ -1069,7 +1069,7 @@ class InvoiceController extends Controller
             //     $query->select('dn_number')
             //     ->from('invoice_det');
             // })
-            ->orderBy("so_number")
+            ->orderBy("delivery_date")
             ->select("delivery_hdr.delivery_number","so_number","po_number","delivery_hdr.delivery_date")
             ->get();
         }else{
@@ -1083,7 +1083,7 @@ class InvoiceController extends Controller
                 $query->select('dn_number')
                 ->from('invoice_det');
             })
-            ->orderBy("so_number")
+            ->orderBy("delivery_date")
             ->select("delivery_hdr.delivery_number","so_number","po_number","delivery_hdr.delivery_date")
             ->get();
         }
