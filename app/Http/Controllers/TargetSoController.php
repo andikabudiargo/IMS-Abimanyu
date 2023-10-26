@@ -968,7 +968,7 @@ class TargetSoController extends Controller
         ->whereIn('article.article_code', function($query) {
             $query->select('article_code')->from('bom_hdr')->where('status','3');
         })
-        ->orderBy('article_desc')
+        ->orderBy('article_alternative_code')
         ->get();
 
         return response()->json(array('data' => $data));
