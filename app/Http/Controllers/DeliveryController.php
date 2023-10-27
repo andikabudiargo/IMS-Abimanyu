@@ -302,7 +302,7 @@ class DeliveryController extends Controller
         $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode,$dnNumber,$username);
         $data['approveValidate'] = Approval::approveValidate($this->moduleCode,$dnNumber,$username);
 
-        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED','8'=>'RECEIVED'];
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED','8'=>'RECEIVED','10'=>'REVISI'];
         $statusDel = ['NEW','VALIDATE','APPROVED','POSTED','CANCELED','','REVISED','RECEIVED','','REVISI'];
         $data['statusDel'] = $statusDel[$data['headers'][0]->status-1];
 
@@ -325,6 +325,8 @@ class DeliveryController extends Controller
         $dnNumber = $data['header']->delivery_number;
         $soNumber = $data['header']->so_number;
 
+
+        //ambil data dari SO semua barang SO kecuali yang sudah di delivery dengan nomor yang sama
         $data['detailSo'] = DB::table('sales_order_det as a')
         ->leftJoin('article','article.article_code','=','a.article_code')
         ->leftJoin('sales_order_hdr','sales_order_hdr.so_code','=','a.so_code')
@@ -333,8 +335,8 @@ class DeliveryController extends Controller
         ,'article.*'
         ,'a.so_code as so_number'
         ,'sales_order_hdr.po_number'
-        ,DB::RAW("(coalesce((select sum(qty) as qty_delivery from delivery_det where delivery_number in (select delivery_number from delivery_hdr where so_number = a.so_code) and article_code = a.article_code group by article_code),0)) as qty_delivery")
-        ,DB::RAW("(a.qty - coalesce((select sum(qty) as qty_delivery from delivery_det where delivery_number in (select delivery_number from delivery_hdr where so_number = a.so_code) and article_code = a.article_code group by article_code),0)) as qty_so")
+        ,DB::RAW("(coalesce((select sum(qty) as qty_delivery from delivery_det where delivery_number in (select delivery_number from delivery_hdr where so_number = a.so_code and status not in ('5','7')) and article_code = a.article_code group by article_code),0)) as qty_delivery")
+        ,DB::RAW("(a.qty - coalesce((select sum(qty) as qty_delivery from delivery_det where delivery_number in (select delivery_number from delivery_hdr where so_number = a.so_code and status not in ('5','7')) and article_code = a.article_code group by article_code),0)) as qty_so")
         )
         ->whereNotIn('a.article_code', function($query) use($dnNumber){
             $query->select('article_code')
@@ -345,6 +347,7 @@ class DeliveryController extends Controller
         ->orderBy('a.id')
         ->get();
 
+        //ambil data detail yang sudah di delivery
         $data['detail'] = DB::table('delivery_det')
         ->leftJoin('delivery_hdr','delivery_hdr.delivery_number','delivery_det.delivery_number')
         ->leftJoin('article','article.article_code','=','delivery_det.article_code')
@@ -353,7 +356,8 @@ class DeliveryController extends Controller
             'delivery_det.*'
             ,'article.*'
             ,'uom.*'
-            ,DB::RAW("(select sum(qty) from sales_order_det a where a.so_code = delivery_det.so_number and a.article_code = delivery_det.article_code group by a.article_code) - delivery_det.qty as qty_so")
+            // ,DB::RAW("(select sum(qty) from sales_order_det a where a.so_code = delivery_det.so_number and a.article_code = delivery_det.article_code group by a.article_code) - delivery_det.qty as qty_so")
+            ,DB::RAW("(select sum(qty) from sales_order_det a where a.so_code = delivery_det.so_number and a.article_code = delivery_det.article_code group by a.article_code) as qty_so")
         )
         ->where('delivery_det.delivery_number',$dnNumber)
         ->orderBy('delivery_det.id')
@@ -371,7 +375,8 @@ class DeliveryController extends Controller
         $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode,$dnNumber,$username);
         $data['approveValidate'] = Approval::approveValidate($this->moduleCode,$dnNumber,$username);
 
-        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED','8'=>'RECEIVED'];
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED','8'=>'RECEIVED','10'=>'REVISI'];
+
         $statusDel = ['NEW','VALIDATE','APPROVED','POSTED','CANCELED','','REVISED','RECEIVED','','REVISI'];
         $data['statusDel'] = $statusDel[$data['header']->status-1];
 
@@ -390,7 +395,6 @@ class DeliveryController extends Controller
         $dnNumber=$request->dnNumber;
         $note=$request->note;
         // $status = '2';
-        
         // status
         // 1. Draft
         // 2. Update
@@ -449,15 +453,15 @@ class DeliveryController extends Controller
                     $dataset=[];
                     foreach ($articles as $val) {
                         $dataSet[] = [
-                            $dnNumber.$val->article_code
+                            $dnNumber.$val->article_code.$val->po_number.$val->so_number
                         ];
-                        
+
                     }
 
-                    //Delete kalo article tidak ada di po $poNumber dan article nya $val->article_code
+                    //Delete kalo article tidak ada di DN $dnNumber dan article nya $val->article_code
                     //berdasarkan 2 kondisi
                     DB::table('delivery_det')
-                        ->whereNotIn(DB::raw("CONCAT(delivery_number,article_code)"),$dataSet)
+                        ->whereNotIn(DB::raw("CONCAT(delivery_number,article_code,po_number,so_number)"),$dataSet)
                         ->where('delivery_number',$dnNumber)
                         ->delete();
                                   
@@ -551,7 +555,7 @@ class DeliveryController extends Controller
 
     public function posting(Request $request)
     {
-        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','7'=>'REVISED'];
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED','8'=>'RECEIVED','10'=>'REVISI'];
         // $dnNumber = DB::table('delivery_hdr')->where('id',$id)->where('status','=','3')->value('delivery_number');
         // $id = DB::table('delivery_hdr')->where('delivery_number',$dnNumber)->value('id');
         $username =  Auth::user()->username;
@@ -793,7 +797,7 @@ class DeliveryController extends Controller
 
     public function destroy(Request $request)
     {
-        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED','8'=>'RECEIVED'];
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED','8'=>'RECEIVED','10'=>'REVISI'];
 
         $username =  Auth::user()->username;       
         $id=Crypt::decryptString($request->id);
@@ -1001,6 +1005,8 @@ class DeliveryController extends Controller
         $searchStatus = $request->searchStatus;
         $requestDate = $request->dnDate;       
 
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED','8'=>'RECEIVED','10'=>'REVISI'];
+
         $fromDate ="";
         $toDate = "";
  
@@ -1024,7 +1030,7 @@ class DeliveryController extends Controller
             $searchCustomer ? $query->where('delivery_hdr.customer_id',$searchCustomer) : '';
             $requestDate ? $query->whereBetween(DB::raw("to_date(delivery_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
         })
-        ->where('delivery_hdr.status','!=','7')
+        ->whereNotIn('delivery_hdr.status',['5','7'])
         ->select('delivery_hdr.*'
         ,'delivery_hdr.delivery_number as delivery_number_1'
         ,DB::raw("concat(kode,'-',nama) as customer_name")
@@ -1032,6 +1038,7 @@ class DeliveryController extends Controller
         and invoice_number in (select invoice_number from invoice_hdr where status not in  ('5','7','10'))
         ) as sudah_di_bayar")
         )
+        ->where(db::raw("(select sum(qty) from delivery_det where delivery_number = delivery_hdr.delivery_number)"),">",0)
         ->orderBy('id')
         ->get();
 
@@ -1051,12 +1058,12 @@ class DeliveryController extends Controller
             */
             
             // if (($data->status == '10')){
-            //     if (Auth::user()->can('delivery-edit')) {
-            //     $buttons .=         '<a href="'. route('delivery.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
-            //                             <i data-feather="file-text"></i>
-            //                             Edit
-            //                         </a>';
-            //     }
+                // if (Auth::user()->can('delivery-edit')) {
+                // $buttons .=         '<a href="'. route('delivery.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+                //                         <i data-feather="file-text"></i>
+                //                         Edit
+                //                     </a>';
+                // }
             // }
 
             if (($data->status == '10')){
@@ -1108,7 +1115,7 @@ class DeliveryController extends Controller
                                     Detail
                                 </a>';
                 
-            if (($data->status != '3') && ($data->status != '4')&& ($data->status != '8')){
+            if (($data->status != '3') && ($data->status != '4') && ($data->status != '8') && ($data->status != '7')){
                 if (Auth::user()->can('delivery-delete')) {
                 $buttons .=         "<a href='javascript:;'
                                         id='deleteButton'

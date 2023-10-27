@@ -18,7 +18,6 @@
                     <div class="card-body">
                         <form id="frmAdd" name="frmAdd" autocomplete="off">
                             @csrf
-
                             <div class="form-row">
                                 <div class="form-group col-md-3">
                                     <label for="dnNumber">Delivery Note Number</label> <small class="text-muted"> automatic</small>
@@ -26,17 +25,17 @@
                                 </div>
                                 <div class="form-group col-md-2">
                                     <label for="dnDate">Delivery Date*</label>
-                                    <input type="text" id="dnDate" name="dnDate" class="form-control" placeholder="DD-MM-YYYY" value="{{ $header->delivery_date }}" required />
+                                    <input type="text" id="dnDate" name="dnDate" class="form-control disabled-el" placeholder="DD-MM-YYYY" value="{{ $header->delivery_date }}" required />
                                 </div>   
                                 <div class="form-group col-md-4">
                                     <label class="form-label" for="poNumberHdr">PO Number</label>
-                                    <input type="text" id="poNumberHdr" name="poNumberHdr" class="form-control" value="{{ $header->po_number }}" disabled />
+                                    <input type="text" id="poNumberHdr" name="poNumberHdr" class="form-control disabled-el" value="{{ $header->po_number }}" disabled />
                                 </div>                            
                             </div>
                             <div class="form-row">
                                 <div class="form-group col-md-5">
                                     <label class="form-label" for="customer">Customer*</label>
-                                    <select class="select2 form-control" id="customer" name="customer" required disabled>
+                                    <select class="select2 form-control" id="customer" name="customer" required>
                                         @foreach($customers as $val)
                                             <option value="{{$val->kode}}" {{$val->kode == $header->customer_id ? "selected" : ""}} >{{$val->kode}} - {{$val->nama}}</option>
                                         @endforeach
@@ -44,7 +43,9 @@
                                 </div>
                                 <div class="form-group col-md-4">
                                     <label class="form-label" for="soNumber">SO Number*</label>
-                                    <input type="text" id="soNumber" name="soNumber" class="form-control" value="{{ $header->so_number }}" data-po-number="{{ $header->po_number }}" required disabled/>
+                                    <select class="select2 form-control" id="soNumber" name="soNumber" required>
+                                    </select>
+                                    {{-- <input type="text" id="soNumber" name="soNumber" class="form-control" value="{{ $header->so_number }}" data-po-number="{{ $header->po_number }}" required disabled/> --}}
                                 </div>
                             </div>
                             <div class="form-row">
@@ -53,7 +54,6 @@
                                     <textarea type="text" id="note" name="note" class="form-control" rows="1" >{{ $header->note }}</textarea>
                                 </div>
                             </div>
-                            
                         </form>
                     </div>
                 </div>
@@ -156,8 +156,6 @@
         </div>
     </div>
 </section>
-
-@include('delivery.addArticle')
 @include('partials.delete-modal')
 @endsection
 @section('styles')
@@ -209,9 +207,18 @@
 </style>
 @endsection
 @section('scripts')
+@include('delivery.addArticle')
 <script type="text/javascript">
     let currentDate = todayDate('dd-mm-yyyy');
+    let fromEdit = true;
     const approveBtn = document.querySelector('#cmdApprove');
+
+    $(document).ready(function(){
+        searchSo('soNumber',"{!! $header->customer_id !!}","{!! $header->so_number !!}");
+        setTimeout(() => {
+            fromEdit = false;    
+        }, 1000);
+    });
 
     if (approveBtn) {
         approveBtn.addEventListener('click',() =>{
@@ -270,9 +277,10 @@
             soCode = detail[i].so_number;
             poNumber = detail[i].po_number;
             qtySo = detail[i].qty_so;
-            add_new_row(article,articleCode,articleDesc,qtyDel,uomGroup,uom,soCode,poNumber,qtySo);
+            add_new_row_edit(article,articleCode,articleDesc,qtyDel,uomGroup,uom,soCode,poNumber,qtySo);
         }
 
+        //supaya yang sisa SO nya juga keluar datanya bukan hanya yang di delivery saja
         let detailSo = {!! $detailSo !!};
         for(let i=0;i<detailSo.length;i++){
             article = detailSo[i].article_code;
@@ -284,7 +292,7 @@
             soCode = detailSo[i].so_number;
             poNumber = detailSo[i].po_number;
             qtySo = detailSo[i].qty_so;
-            add_new_row(article,articleCode,articleDesc,qtyDel,uomGroup,uom,soCode,poNumber,qtySo);
+            add_new_row_edit(article,articleCode,articleDesc,qtyDel,uomGroup,uom,soCode,poNumber,qtySo);
         }
         
     });
@@ -357,7 +365,8 @@
                 let dnDate = $('#dnDate').val();
                 let customer = $('#customer').val();
                 let soNumber = $('#soNumber').val();
-                let poNumber = $('#soNumber').data("po-number");
+                let poNumber = $('#soNumber').find(":selected").data("po-number");
+                // let poNumber = $('#poNumberHdr').val();
                 let note = $('#note').val();
                 let dnNumber = $('#dnNumber').val();
 
@@ -384,7 +393,6 @@
                             show_msg(data.title, data.message, data.alert);
                             $('#dnNumber').val(data.dnNumber);
                             $('#dnNumber').attr('disabled','disabled');
-                            // $('#cmdSave').attr('disabled','disabled');
                         }
                     },
                     error: function(error) {
@@ -398,88 +406,88 @@
         }
     });
         
-    let cloneCount=0;
-    function add_new_row(article,articleCode,articleDesc,qtyDel,uomGroup,uom,soCode,poNumber,qtySo) {
-        // console.log(article,articleCode,articleDesc,qtyDel,uomGroup,uom);
-        $("#article_row").append($("#new_row").clone().html());
-        cloneCount++;
-        $("#article_row").find('#baru').attr('id', 'new_row'+ cloneCount);
-        $("#new_row"+ cloneCount).find('#qtySo').attr('id', 'qtySo'+ cloneCount);
-        $("#new_row"+ cloneCount).find('#articleId').attr('id', 'articleId'+ cloneCount);
-        $('#articleId'+ cloneCount).attr('data-code', article);
-        $('#articleId'+ cloneCount).attr('data-desc', articleDesc);
-        $('#articleId'+ cloneCount).attr('data-uom', uom);
-        // $('#articleId'+ cloneCount).attr('data-price', price);
-        // $('#articleId'+ cloneCount).attr('data-price-service', priceJasa);
-        $('#articleId'+ cloneCount).attr('data-so-code', soCode);
-        $('#articleId'+ cloneCount).attr('data-po-number', poNumber);
-        $('#articleId'+ cloneCount).attr('data-so-qty', qtySo);
-        $('#articleId'+ cloneCount).val(articleCode+'-'+articleDesc);
+    // function listUom(obj,value,uom,uomSelect) {
+    //   $.ajax({
+    //     url:"{{ route('receiving.list.uom') }}",
+    //     method:"GET",
+    //     data:{
+    //         value:value,
+    //     },
+    //     success:function(result){
+    //         $('#'+obj).html(result);
+    //         $('#'+obj).val(uomSelect).trigger('change');            
+    //     },
+    //     error: function (response) {
+    //         Swal.fire("Warning","Get list UOM failed","warning");
+    //     }
+    //   })
+    // }
 
-        $("#new_row"+ cloneCount).find('#qtyInv').attr('id', 'qtyInv'+ cloneCount);
-        $('#qtyInv'+ cloneCount).val(qtyDel);
-        $("#new_row"+ cloneCount).find('#uom').attr('id', 'uom'+ cloneCount);
-        $('#qtySo'+ cloneCount).val(qtySo*1);
-        listUom('uom'+ cloneCount,uomGroup,uom,uom);
-        tombolPanah('qtyInv');
-        mask_thousand();
-        hitungTotal();
-        hitungGrandTotalLoad();
-    }
+    // function hitungTotal(){
+    //     let objQtyInv= $('#article_row input[name="qtyInv[]"]');
+    //     objQtyInv.keyup(function() {
+    //         let indexnya= objQtyInv.index(this);
+    //         let qty = objQtyInv.eq(indexnya).val().replace(/,/gi, '') || 0; 
+    //         hitungGrandTotal();
+    //     });
+    // }
 
-    function listUom(obj,value,uom,uomSelect) {
-      $.ajax({
-        url:"{{ route('receiving.list.uom') }}",
-        method:"GET",
-        data:{
-            value:value,
-        },
-        success:function(result){
-            $('#'+obj).html(result);
-            $('#'+obj).val(uomSelect).trigger('change');            
-        },
-        error: function (response) {
-            Swal.fire("Warning","Get list UOM failed","warning");
-        }
-      })
-    }
-
-    function hitungTotal(){
-        let objQtyInv= $('#article_row input[name="qtyInv[]"]');
-        objQtyInv.keyup(function() {
-            let indexnya= objQtyInv.index(this);
-            let qty = objQtyInv.eq(indexnya).val().replace(/,/gi, '') || 0; 
-            hitungGrandTotal();
-        });
-    }
-
-    function hitungGrandTotal(){
-        let objArticle = $('#article_row input[name="articleId[]"]');
-        let objQtyTiw= $('#article_row input[name="qtyInv[]"]');
-        let objQTY= $('#article_row input[name="qtyInv[]"]');
-        let totalQty=0;
-        var arr = objQtyTiw.map(function (i) {
-            let qty = parseInt(objQTY.eq(i).val().replace(/,/gi, '')) || 0;
-            totalQty+= qty;
-        }).get();
+    // function hitungGrandTotal(){
+    //     let objArticle = $('#article_row input[name="articleId[]"]');
+    //     let objQtyTiw= $('#article_row input[name="qtyInv[]"]');
+    //     let objQTY= $('#article_row input[name="qtyInv[]"]');
+    //     let totalQty=0;
+    //     var arr = objQtyTiw.map(function (i) {
+    //         let qty = parseInt(objQTY.eq(i).val().replace(/,/gi, '')) || 0;
+    //         totalQty+= qty;
+    //     }).get();
         
-        $("#totalRow").val(objArticle.length);
-        $("#totalQTY").val(humanizeNumber(totalQty));
-    }
+    //     $("#totalRow").val(objArticle.length);
+    //     $("#totalQTY").val(humanizeNumber(totalQty));
+    // }
 
-    function hitungGrandTotalLoad(){
-        let objArticle = $('#article_row input[name="articleId[]"]');
-        let objQtyTiw= $('#article_row input[name="qtyInv[]"]');
-        let objQTY= $('#article_row input[name="qtyInv[]"]');
-        let totalQty=0;
-        var arr = objQtyTiw.map(function (i) {
-            let qty = parseInt(objQTY.eq(i).val().replace(/,/gi, '')) || 0;
-            totalQty+= qty;
-        }).get();
+    // function hitungGrandTotalLoad(){
+    //     let objArticle = $('#article_row input[name="articleId[]"]');
+    //     let objQtyTiw= $('#article_row input[name="qtyInv[]"]');
+    //     let objQTY= $('#article_row input[name="qtyInv[]"]');
+    //     let totalQty=0;
+    //     var arr = objQtyTiw.map(function (i) {
+    //         let qty = parseInt(objQTY.eq(i).val().replace(/,/gi, '')) || 0;
+    //         totalQty+= qty;
+    //     }).get();
         
-        $("#totalRow").val(objArticle.length);
-        $("#totalQTY").val(humanizeNumber(totalQty));
-    }
+    //     $("#totalRow").val(objArticle.length);
+    //     $("#totalQTY").val(humanizeNumber(totalQty));
+    // }
+
+    // let cloneCountEdit=0;
+    // function add_new_row_edit(article,articleCode,articleDesc,qtyDel,uomGroup,uom,soCode,poNumber,qtySo) {
+    //     // console.log(article,articleCode,articleDesc,qtyDel,uomGroup,uom);
+    //     $("#article_row").append($("#new_row").clone().html());
+    //     cloneCountEdit++;
+    //     $("#article_row").find('#baru').attr('id', 'new_row'+ cloneCountEdit);
+    //     $("#new_row"+ cloneCountEdit).find('#qtySo').attr('id', 'qtySo'+ cloneCountEdit);
+    //     $("#new_row"+ cloneCountEdit).find('#articleId').attr('id', 'articleId'+ cloneCountEdit);
+    //     $('#articleId'+ cloneCountEdit).attr('data-code', article);
+    //     $('#articleId'+ cloneCountEdit).attr('data-desc', articleDesc);
+    //     $('#articleId'+ cloneCountEdit).attr('data-uom', uom);
+    //     // $('#articleId'+ cloneCountEdit).attr('data-price', price);
+    //     // $('#articleId'+ cloneCountEdit).attr('data-price-service', priceJasa);
+    //     $('#articleId'+ cloneCountEdit).attr('data-so-code', soCode);
+    //     $('#articleId'+ cloneCountEdit).attr('data-po-number', poNumber);
+    //     $('#articleId'+ cloneCountEdit).attr('data-so-qty', qtySo);
+    //     $('#articleId'+ cloneCountEdit).val(articleCode+'-'+articleDesc);
+
+    //     $("#new_row"+ cloneCountEdit).find('#qtyInv').attr('id', 'qtyInv'+ cloneCountEdit);
+    //     $('#qtyInv'+ cloneCountEdit).val(qtyDel);
+    //     $("#new_row"+ cloneCountEdit).find('#uom').attr('id', 'uom'+ cloneCountEdit);
+    //     $('#qtySo'+ cloneCountEdit).val(qtySo*1);
+    //     listUom('uom'+ cloneCountEdit,uomGroup,uom,uom);
+    //     tombolPanah('qtyInv');
+    //     mask_thousand();
+    //     hitungTotal();
+    //     hitungGrandTotalLoad();
+    // }
             
     $.ajaxSetup({
         headers: {
