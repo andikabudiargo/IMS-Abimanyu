@@ -45,11 +45,18 @@ class InvoiceController extends Controller
             ['data'=> 'invoice_number', 'name'=> 'invoice_number','title'=>'Inv. Number' ],
             ['data'=> 'status', 'name'=> 'status','title'=>'Status' ],
             ['data'=> 'invoice_date', 'name'=> 'invoice_date','title'=>'Date' ],
+            ['data'=> 'so_number', 'name'=> 'so_number','title'=>'SO Number' ],
+            ['data'=> 'po_number', 'name'=> 'po_number','title'=>'PO Number' ],
             ['data'=> 'customer_name', 'name'=> 'customer_name','title'=>'Customer' ],
+            ['data'=> 'dpp', 'name'=> 'dpp','title'=>'DPP' ],
+            ['data'=> 'total_ppn', 'name'=> 'total_ppn','title'=>'PPN' ],
+            ['data'=> 'total_pph', 'name'=> 'total_pph','title'=>'PPH' ],
+            ['data'=> 'grand_total', 'name'=> 'grand_total','title'=>'Total' ],
             ['data'=> 'approval_by', 'name'=> 'approval_by','title'=>'Approved By' ],
             ['data'=> 'approval_at', 'name'=> 'approval_at','title'=>'Approved At' ],
             ['data'=> 'created_by', 'name'=> 'created_by','title'=>'Created By' ],
             ['data'=> 'created_at', 'name'=> 'created_at','title'=>'Created At' ],
+            ['data'=> 'dn_number', 'name'=> 'dn_number','title'=>'DN Number' ],
             // ['data'=> 'updated_by', 'name'=> 'updated_by','title'=>'Updated By'],
             // ['data'=> 'updated_at', 'name'=> 'updated_at','title'=>'Updated At']
         ];
@@ -824,10 +831,13 @@ class InvoiceController extends Controller
         ->select(
             'invoice_hdr.*'
             // ,DB::raw("(select STRING_AGG ( a.rec_number,',' ORDER BY a.id) as list_rec from invoice_hdr_detail a where ap_number = invoice_hdr.ap_number) as list_rec")
-            ,db::raw("concat(third_party.kode,'-',third_party.nama) as customer_name")
+            //,db::raw("concat(third_party.kode,'-',third_party.nama) as customer_name")
             // ,db::raw("(select STRING_AGG((select name from users where username = z.username), ' -> ' ORDER BY approval_order) AS main from approval_history z where module_number = invoice_hdr.invoice_number) as approval_by")
+            ,'third_party.nama as customer_name'
             ,db::raw("(select (select name from users where username = z.username) from approval_history z where module_number = invoice_hdr.invoice_number order by approval_order desc limit 1) as approval_by")
             ,db::raw("(select to_char(approval_date::date, 'DD-MM-YYYY') from approval_history z where module_number = invoice_hdr.invoice_number order by approval_order desc limit 1) as approval_at")
+            ,DB::raw("(select STRING_AGG ( distinct a.po_number,', ' ORDER BY a.po_number) as po_number from invoice_det a where invoice_number = invoice_hdr.invoice_number) as po_number")
+            ,DB::raw("(select STRING_AGG ( distinct a.dn_number,', ' ORDER BY a.dn_number) as dn_number from invoice_det a where invoice_number = invoice_hdr.invoice_number) as dn_number")
         )
         ->orderBy('invoice_hdr.id')
         ->get(); 
@@ -888,11 +898,11 @@ class InvoiceController extends Controller
             return $buttons;
         })
 
-        ->addColumn('invoice_number', function ($data) {
-            $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-danger'];            
+        // ->addColumn('invoice_number', function ($data) {
+        //     $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-danger'];            
             
-            return '<span style="display: none;">'.$data->invoice_number.'</span><a class="text-left badge d-block '.$badges[$data->status - 1].'" name="'.$data->invoice_number.'" href="'. route('invoice.show', ['id'=>Crypt::encryptString($data->id)]) .'" ><span>'.$data->invoice_number.'</span></a>';
-        })
+        //     return '<span style="display: none;">'.$data->invoice_number.'</span><a class="text-left badge d-block '.$badges[$data->status - 1].'" name="'.$data->invoice_number.'" href="'. route('invoice.show', ['id'=>Crypt::encryptString($data->id)]) .'" ><span>'.$data->invoice_number.'</span></a>';
+        // })
         ->addColumn('status', function ($data) {
             $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-danger'];            
             // $data['status'] = ['1'=>'DRAFT','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','6'=>'PAID'];

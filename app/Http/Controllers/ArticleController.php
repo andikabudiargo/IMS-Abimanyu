@@ -1220,7 +1220,8 @@ class ArticleController extends Controller
                     $alert  ="success";
                     $message  = "$this->title $articleAltCode is successfully updated";
                     \LogActivity::addToLog($title,"username: $username Status $message");
-                    return redirect()->back()->with(['status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'articleCode'=>$articleAltCode]);
+                    return redirect()->route('article.request')->with(['status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'articleCode'=>$articleAltCode]);
+                    // return redirect()->back()->with(['status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'articleCode'=>$articleAltCode]);
                 }else{
                     $title ="Update $this->title";
                     $alert  ="warning";
@@ -1349,7 +1350,6 @@ class ArticleController extends Controller
         }
 
         // $berhakApprove = Approval::approveValidate($this->moduleCode,$bomNumber,$username);
-
         $data=DB::table('article_request')
         ->select('article_request.*'
         ,'costprice'
@@ -1383,7 +1383,7 @@ class ArticleController extends Controller
             $cust ? $query->where('third_party','ilike','%'.$cust.'%') :'';
             $supp ? $query->where('third_party','ilike','%'.$supp.'%') :'';
             $type ? $query->where('article_type','ilike',$type.'%') :'';      
-            $status ? $query->where('article_request.status',$status) :''; 
+            $status ? $query->where('article_request.status_approve',$status) :''; 
         })->orderBy('article_desc')->get();
        
         return Datatables::of($data)
