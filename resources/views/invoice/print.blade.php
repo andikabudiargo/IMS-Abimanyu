@@ -22,7 +22,8 @@
         body.A4.landscape .sheet { width: 297mm; height: 209mm }
         body.A5           .sheet { width: 148mm; height: 209mm }
         body.A5.landscape .sheet { width: 210mm; height: 147mm }
-        body.Letter           .sheet { width: 215mm; height: 296mm }
+        /* body.Letter           .sheet { width: 215mm; height: 296mm } */
+        body.Letter           .sheet { width: 215mm; height: 300mm }
         /* body.Letter           .sheet { width: 230mm; height: 310mm } */
         body.Letter.landscape .sheet { width: 297mm; height: 215mm }
 
@@ -257,7 +258,7 @@
 
         .sub_div_tengah {
             /* border : thin solid var(--line-color); */
-            height : 512px;
+            height : 529px;
             width  : 803px;
             position: absolute;
             margin-left : 1.4mm;
@@ -354,7 +355,7 @@
                     @foreach ($details as $val )
                         @if(count($details)> 19)
                             {{-- <tr style="font-size: 11pt;height:23px"> --}}
-                            <tr style="font-size: 11pt;">
+                            <tr style="font-size: 11pt;height:22px">
                         @else
                             <tr style="font-size: 11pt;height:23px">
                         @endif
@@ -366,7 +367,6 @@
                             <td  style="border-right: 1px solid black;padding:0 3px 0 3px" align="right">{{ number_format(($val->qty*$val->price),2) }}</td>
                             <td  style="border-right: 1px solid black;padding:0 3px 0 3px" align="right">{{ number_format(($val->qty*$val->price_service),2) }}</td>
                         </tr>
-                                                
                     @endforeach
                     <?php $totalBaris = 30 ?>
                     @for ($i=1;$i< $totalBaris-(count($details));$i++)
@@ -394,7 +394,7 @@
                     @foreach ($totals as $val )   
                         <tr style="height:25px">
                             {{-- <td colspan="4" rowspan="4" style="border-bottom: 1px solid black;"><b>Terbilang : </b><i>{{ ucwords(strtolower($terbilang)) }}</i> </td> --}}
-                            <td colspan="4" rowspan="4" style="border-bottom: 1px solid black;">
+                            <td width="60%" colspan="4" rowspan="4" style="border-bottom: 1px solid black;">
                                 <table style="table-layout:fixed;">
                                     <tr>
                                         <td style="border-right: none;border-left: none;padding-right:0px" width="15%" valign="top"><b>Terbilang : </b></td>
@@ -402,20 +402,20 @@
                                     </tr>
                                 </table>
                             </td>
-                            <td width="7.5%" colspan="" style="border: 1px solid #0c0c0c;padding-left:10px">DPP</td>
-                            <td width="22.5%" colspan="2" align="right" style="border: 1px solid #0c0c0c;padding-left:10px">{{ number_format($val->sub_total,2) }}</td>
+                            <td width="6.7%" colspan="" style="border: 1px solid #0c0c0c;">DPP</td>
+                            <td width="23.3%" colspan="2" align="right" style="border: 1px solid #0c0c0c;">{{ number_format($val->sub_total,2) }}</td>
                         </tr>
                         <tr style="height:25px">
-                            <td colspan="" style="border: 1px solid #0c0c0c;padding-left:10px">PPN {{ $nilaiPPN }}% </td>
-                            <td colspan="2" align="right" style="border: 1px solid #0c0c0c;padding-left:10px">{{ number_format($val->ppn,2) }}</td>
+                            <td colspan="" style="border: 1px solid #0c0c0c;">PPN {{ $nilaiPPN }}% </td>
+                            <td colspan="2" align="right" style="border: 1px solid #0c0c0c;">{{ number_format($val->ppn,2) }}</td>
                         </tr>
                         <tr style="height:25px">
-                            <td colspan="" style="border: 1px solid #0c0c0c;padding-left:10px">PPH 23</td>
-                            <td colspan="2" align="right" style="border: 1px solid #0c0c0c;padding-left:10px">{{ $val->pph23 ? '-'.number_format($val->pph23,2):'-' }}</td>
+                            <td colspan="" style="border: 1px solid #0c0c0c;">PPH 23</td>
+                            <td colspan="2" align="right" style="border: 1px solid #0c0c0c;">{{ $val->pph23 ? '-'.number_format($val->pph23,2):'-' }}</td>
                         </tr>
                         <tr style="height:25px">
-                            <td colspan="" style="border: 1px solid #0c0c0c;padding-left:10px">Total</td>
-                            <td colspan="2" align="right" style="border: 1px solid #0c0c0c;padding-left:10px">{{ number_format($val->grand_total,2) }}</td>
+                            <td colspan="" style="border: 1px solid #0c0c0c;">Total</td>
+                            <td colspan="2" align="right" style="border: 1px solid #0c0c0c;">{{ number_format($val->grand_total,2) }}</td>
                         </tr>
                     @endforeach
                     <tr>
