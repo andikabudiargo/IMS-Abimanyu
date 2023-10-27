@@ -1699,6 +1699,13 @@ class AccountPayableController extends Controller
         ->where('approval_order',3)
         ->first();
 
+        $data['approval4']=DB::table('approval_history')
+        ->leftJoin('users','users.username','approval_history.username')
+        ->where('module_code',$this->moduleCode)
+        ->where('module_number',$apNumber)
+        ->where('approval_order',4)
+        ->first();
+
         $data['apNumber'] =  $apInvoice->ap_number;
         $data['invoiceNumber'] = $apInvoice->inv_number;
         $data['supplierName'] = $apInvoice->supplier_name;
@@ -1751,6 +1758,13 @@ class AccountPayableController extends Controller
         ->where('module_code',$this->moduleCode)
         ->where('module_number',$apNumber)
         ->where('approval_order',3)
+        ->first();
+
+        $data['approval4']=DB::table('approval_history')
+        ->leftJoin('users','users.username','approval_history.username')
+        ->where('module_code',$this->moduleCode)
+        ->where('module_number',$apNumber)
+        ->where('approval_order',4)
         ->first();
 
         $data['apNumber'] =  $data['apInvoice']->ap_number;
@@ -1831,6 +1845,13 @@ class AccountPayableController extends Controller
         ->where('module_code',$this->moduleCode)
         ->where('module_number',$apNumber)
         ->where('approval_order',3)
+        ->first();
+
+        $data['approval4']=DB::table('approval_history')
+        ->leftJoin('users','users.username','approval_history.username')
+        ->where('module_code',$this->moduleCode)
+        ->where('module_number',$apNumber)
+        ->where('approval_order',4)
         ->first();
 
         $data['top']=DB::table('third_party')->where('kode',$apInvoice->supplier_id)->value('top_batas_1');

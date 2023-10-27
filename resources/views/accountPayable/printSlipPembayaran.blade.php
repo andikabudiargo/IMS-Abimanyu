@@ -320,15 +320,16 @@
                                 <td align="center" width="20%">Dibuat</td>
                             </tr>
                             <tr>
-                                {{-- <td align="center" height="70">{{ $approval1 ? 'Approval 1':'' }}</td>
-                                <td align="center">{{ $approval1 ? 'Approval 2':'' }}</td>
-                                <td align="center">{{ $approval1 ? 'Approval 3':'' }}</td>
-                                <td align="center">{{ $approval1 ? 'Approval 3':'' }}</td> --}}
-                                <td align="center" height="70"></td>
+                                <td align="center" height="70">{{ $approval4 ? 'Approval 4':'' }}<br>{{ $approval4 ? $approval4->name:'' }}</td>
+                                <td align="center">{{ $approval3 ? 'Approval 3':'' }}<br>{{ $approval3 ? $approval3->name:'' }}</td>
+                                <td align="center">{{ $approval2 ? 'Approval 2':'' }}<br>{{ $approval2 ? $approval2->name:'' }}</td>
+                                <td align="center"></td>
+                                <td align="center">{{ $approval1 ? 'Approval 1':'' }}<br>{{ $approval1 ? $approval1->name:'' }}</td>
+                                {{-- <td align="center" height="70"></td>
                                 <td align="center"></td>
                                 <td align="center"></td>
                                 <td align="center"></td>
-                                <td align="center"></td>
+                                <td align="center"></td> --}}
                             </tr>
                             {{-- <tr>
                                 <td align="center"></td>
