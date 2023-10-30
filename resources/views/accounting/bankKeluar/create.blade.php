@@ -43,16 +43,16 @@
                                     <label for="paidTo">Bayar Ke*</label>
                                     <select class="select2 form-control" id="paidTo" name="paidTo" required>
                                         <option value=""></option>
+                                        <option value="other">Other</option>
                                         @foreach ($suppliers as $val)
                                             <option value="{{ $val->kode }}">{{ $val->kode }} | {{ $val->nama }}</option>
                                         @endforeach
-                                        <option value="other">Other</option>
                                     </select>
                                 </div>
                                 <div class="form-group col-md-3 d-none other-desc">
                                     <div class="form-group">
                                         <label for="paidToDesc">Other Bayar Ke Desc*</label>
-                                        <input type="text" id="paidToDesc" name="paidToDesc" class="form-control" required/>
+                                        <input type="text" id="paidToDesc" name="paidToDesc" class="form-control"/>
                                     </div>
                                 </div>
                                 <div class="form-group col-md-3">
@@ -497,10 +497,12 @@
             $(".other-desc").removeClass("d-none");
             $("#paidToDesc").val("");
             $("#paidToDesc").focus();
+            $("#paidToDesc").attr('required','required');
         }else{
             $(".other-desc").addClass("d-none");
             contentText = contentText.split("|");
             $("#paidToDesc").val(contentText[1].trim());
+            $("#paidToDesc").removwAttr('required');
         }    
     });
 

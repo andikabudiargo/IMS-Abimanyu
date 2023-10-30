@@ -52,7 +52,7 @@
                                 <div class="form-group col-md-3 {{ $header->paid_to =='other' ? '' : 'd-none' }} other-desc">
                                     <div class="form-group">
                                         <label for="paidToDesc">Other Bayar Ke Desc*</label>
-                                        <input type="text" id="paidToDesc" name="paidToDesc" value="{{ $header->description }}" class="form-control" required/>
+                                        <input type="text" id="paidToDesc" name="paidToDesc" value="{{ $header->description }}" class="form-control" {{ $header->paid_to =='other' ? 'required' : '' }}/>
                                     </div>
                                 </div>
                                 <div class="form-group col-md-3">

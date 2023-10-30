@@ -32,8 +32,8 @@ class BankKeluarController extends Controller
             ['data'=>'action','name'=>'action','title'=>'action','orderable'=> false,'searchable'=>false],
             ['data'=>'voucher_number','name'=>'voucher_number','title'=>'Voucher Number'],
             ['data'=>'voucher_date','name'=>'voucher_date','title'=>'Date'],
-            // ['data'=>'supplier_name','name'=>'supplier_name','title'=>'Paid To'],
-            ['data'=>'description','name'=>'description','title'=>'Paid To'],
+            ['data'=>'supplier_name','name'=>'supplier_name','title'=>'Paid To'],
+            // ['data'=>'description','name'=>'description','title'=>'Paid To'],
             ['data'=>'amount','name'=>'amount','title'=>'Amount'],
             ['data'=>'period','name'=>'period','title'=>'Period'],
             ['data'=>'note','name'=>'note','title'=>'Note'],
@@ -235,10 +235,11 @@ class BankKeluarController extends Controller
         $data['subtitle'] = "Detail $this->title";
 
         $data['header'] = DB::table('kas_hdr')
-        // ->leftJoin('third_party','third_party.kode','kas_hdr.paid_to')
+        ->leftJoin('third_party','third_party.kode','kas_hdr.paid_to')
         ->select('kas_hdr.*'
-        ,'description as supplier_name'
-        // ,db::raw("concat(third_party.kode,'-',third_party.nama) as supplier_name")
+        // ,'description as supplier_name'
+        // ,db::raw("case when description != null then description else concat(third_party.kode,'-',third_party.nama) end as supplier_name")
+        ,db::raw("case when description != '' then kas_hdr.description else third_party.nama end as supplier_name")
         )
         ->where('kas_hdr.id',$id)
         ->get()->first();
@@ -577,7 +578,8 @@ class BankKeluarController extends Controller
         ->select(
             'kas_hdr.*'
             ,'kas_hdr.status as statusku'
-            ,db::raw("concat(third_party.kode,'-',third_party.nama) as supplier_name")
+            // ,db::raw("concat(third_party.kode,'-',third_party.nama) as supplier_name")
+            ,db::raw("case when description != '' then kas_hdr.description else third_party.nama end as supplier_name")
             ,db::raw("(select (select name from users where username = z.username) from approval_history z where module_number = kas_hdr.voucher_number order by approval_order desc limit 1) as approval_by")
             ,db::raw("(select to_char(approval_date::date, 'DD-MM-YYYY') from approval_history z where module_number = kas_hdr.voucher_number order by approval_order desc limit 1) as approval_at")
         )
