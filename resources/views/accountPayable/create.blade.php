@@ -159,7 +159,7 @@
                                     <div class="form-group row mb-03 d-none">
                                         <label for="totalPPN" class="col-sm-4 col-form-label titik-dua">Discount </label>
                                         <div class="col-sm-6">
-                                            <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el" id="totalDiscount" name="totalDiscount" />
+                                            <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el" oninput='inputDecimal(this)' id="totalDiscount" name="totalDiscount" />
                                         </div>
                                     </div>
                                     <div class="form-group row mb-03">
@@ -171,7 +171,7 @@
                                             </div>
                                         </div>    
                                         <div class="col-sm-5">
-                                            <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el" id="totalPPN"  name="totalPPN" disabled/>
+                                            <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el" oninput='inputDecimal(this)' id="totalPPN"  name="totalPPN" disabled/>
                                         </div>
                                     </div>
                                     
@@ -184,7 +184,7 @@
                                             </div>
                                         </div> 
                                         <div class="col-sm-5">
-                                            <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el" id="totalPPH23" name="totalPPH23" disabled/>
+                                            <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el" oninput='inputDecimal(this)' id="totalPPH23" name="totalPPH23" disabled/>
                                         </div>
                                     </div>
                                     <div class="form-group row mb-03">
@@ -196,7 +196,7 @@
                                             </div>
                                         </div> 
                                         <div class="col-sm-5">
-                                            <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el" id="totalPPH21" name="totalPPH21" disabled/>
+                                            <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el" oninput='inputDecimal(this)' id="totalPPH21" name="totalPPH21" disabled/>
                                         </div>
                                     </div>
                                     <div class="form-group row mb-03">
@@ -208,7 +208,7 @@
                                             </div>
                                         </div> 
                                         <div class="col-sm-5">
-                                            <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el" id="totalPPH42" name="totalPPH42" disabled/>
+                                            <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el" oninput='inputDecimal(this)' id="totalPPH42" name="totalPPH42" disabled/>
                                         </div>
                                     </div>
                                     <div class="form-group row mb-03">

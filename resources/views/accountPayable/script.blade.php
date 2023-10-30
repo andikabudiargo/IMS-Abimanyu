@@ -9,11 +9,20 @@
     let sNilaiPPH42= "{{ $nilaiPPH42 }}";
     let showDetail="";
     let edit="";
+
+    let delayTimer;
+    function inputDecimal(ele) {
+        clearTimeout(delayTimer);
+        delayTimer = setTimeout(function() {
+            let nilai = ele.value.replace(/,/gi, '') || 0;;
+            ele.value = humanizeNumber(parseFloat(nilai).toFixed(2)).toString();
+        }, 1100); 
+    }
     
     $("#pph23Check").change(function() {
         if(this.checked) {
             let basisAmount = parseFloat($('#basisAmount').val().replace(/,/gi, '')) || 0;
-            $("#totalPPH23").val(basisAmount * (sNilaiPPH23/100));
+            $("#totalPPH23").val(parseFloat(basisAmount * (sNilaiPPH23/100)).toFixed(2));
             $("#nilaiPPH23").text(sNilaiPPH23+'%');
             $('#pph21Check').prop('checked',false);
             $('#pph42Check').prop('checked',false);
@@ -41,7 +50,7 @@
     $("#pph21Check").change(function() {
         if(this.checked) {
             let basisAmount = parseFloat($('#basisAmount').val().replace(/,/gi, '')) || 0;
-            $("#totalPPH21").val(basisAmount * (sNilaiPPH21/100));
+            $("#totalPPH21").val(parseFloat(basisAmount * (sNilaiPPH21/100)).toFixed(2));
             $("#nilaiPPH21").text(sNilaiPPH21+'%');
             $("#nilaiPPH23").text('');
             $("#nilaiPPH42").text('');
@@ -69,7 +78,7 @@
     $("#pph42Check").change(function() {
         if(this.checked) {
             let basisAmount = parseFloat($('#basisAmount').val().replace(/,/gi, '')) || 0;
-            $("#totalPPH42").val(basisAmount * (sNilaiPPH42/100));
+            $("#totalPPH42").val(parseFloat(basisAmount * (sNilaiPPH42/100)).toFixed(2));
             $("#nilaiPPH42").text(sNilaiPPH42+'%');
             $('#pph23Check').prop('checked',false);
             $('#pph21Check').prop('checked',false);
@@ -97,7 +106,7 @@
     $("#vatCheck").change(function() {
         if(this.checked) {
             let basisAmount = parseFloat($('#basisAmount').val().replace(/,/gi, '')) || 0;
-            $("#totalPPN").val(basisAmount * (sNilaiPPN/100));
+            $("#totalPPN").val(parseFloat(basisAmount * (sNilaiPPN/100)).toFixed(2));
             $("#nilaiPPN").text(sNilaiPPN+'%');
             $("#totalPPN").removeAttr('disabled');
             $("#taxInvoiceNumber").removeAttr('disabled');
@@ -317,8 +326,8 @@
                                     <td>${result.detailRec[i].desc}</td>
                                     <td>${result.detailRec[i].uom}</td>
                                     <td class="text-right">${humanizeNumber(result.detailRec[i].qty)}</td>
-                                    <td class="text-right">${humanizeNumber(result.detailRec[i].price)}</td>
-                                    <td class="text-right">${humanizeNumber(result.detailRec[i].total)}</td>
+                                    <td class="text-right">${humanizeNumber(parseFloat(result.detailRec[i].price).toFixed(2))}</td>
+                                    <td class="text-right">${humanizeNumber(parseFloat(result.detailRec[i].total).toFixed(2))}</td>
                                 </tr>`;
                             grandTotalQty+=parseFloat(result.detailRec[i].qty);
                         }

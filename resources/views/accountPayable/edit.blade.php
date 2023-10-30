@@ -171,7 +171,7 @@
                                             </div>
                                         </div>    
                                         <div class="col-sm-5">
-                                            <input type="text" class="form-control text-right font-weight-bold   disabled-el numeral-mask-digit" id="totalPPN" name="totalPPN" value="{{ $header->vat>0 ? $header->vat : 0 }}"  {{ $header->vat > 0 ? '' : 'disabled' }} {{ $header->vat > 0 ? 'required' : '' }}/>
+                                            <input type="text" class="form-control text-right font-weight-bold   disabled-el numeral-mask-digit" id="totalPPN" name="totalPPN" oninput='inputDecimal(this)' value="{{ $header->vat>0 ? number_format($header->vat,2) : 0 }}"  {{ $header->vat > 0 ? '' : 'disabled' }} {{ $header->vat > 0 ? 'required' : '' }}/>
                                         </div>
                                     </div>
                                     <div class="form-group row mb-03">
@@ -183,7 +183,7 @@
                                             </div>
                                         </div> 
                                         <div class="col-sm-5">
-                                            <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el" id="totalPPH23" name="totalPPH23" value="{{ $header->pph23_type == 'PPH23' ? $header->pph23 : 0 }}" {{ $header->pph23_type == 'PPH23' ? '' : 'disabled' }} {{ $header->pph23_type == 'PPH23' ? 'required' : '' }} />
+                                            <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el" id="totalPPH23" name="totalPPH23" oninput='inputDecimal(this)' value="{{ $header->pph23_type == 'PPH23' ? number_format($header->pph23,2) : 0 }}" {{ $header->pph23_type == 'PPH23' ? '' : 'disabled' }} {{ $header->pph23_type == 'PPH23' ? 'required' : '' }} />
                                         </div>
                                     </div>
                                     <div class="form-group row mb-03">
@@ -195,7 +195,7 @@
                                             </div>
                                         </div> 
                                         <div class="col-sm-5">
-                                            <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el" id="totalPPH21" name="totalPPH21" value="{{ $header->pph23_type == 'PPH21' ? $header->pph23 : 0 }}" {{ $header->pph23_type == 'PPH21' ? '' : 'disabled' }} {{ $header->pph23_type == 'PPH21' ? 'required' : '' }}/>
+                                            <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el" id="totalPPH21" name="totalPPH21" oninput='inputDecimal(this)' value="{{ $header->pph23_type == 'PPH21' ? number_format($header->pph23,2) : 0 }}" {{ $header->pph23_type == 'PPH21' ? '' : 'disabled' }} {{ $header->pph23_type == 'PPH21' ? 'required' : '' }}/>
                                         </div>
                                     </div>
                                     <div class="form-group row mb-03">
@@ -207,7 +207,7 @@
                                             </div>
                                         </div> 
                                         <div class="col-sm-5">
-                                            <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el" id="totalPPH42" name="totalPPH42" value="{{ $header->pph23_type == 'PPH42' ? $header->pph23 : 0 }}" {{ $header->pph23_type == 'PPH42' ? '' : 'disabled' }} {{ $header->pph23_type == 'PPH42' ? 'required' : '' }}/>
+                                            <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el" id="totalPPH42" name="totalPPH42" oninput='inputDecimal(this)' value="{{ $header->pph23_type == 'PPH42' ? number_format($header->pph23,2) : 0 }}" {{ $header->pph23_type == 'PPH42' ? '' : 'disabled' }} {{ $header->pph23_type == 'PPH42' ? 'required' : '' }}/>
                                         </div>
                                     </div>
                                     <div class="form-group row mb-03">
@@ -294,6 +294,7 @@
 @section('scripts')
 @include('accountPayable.script')
 <script type="text/javascript">
+
     $(document).ready(function(){
         validateFormToast("frmAdd");
         mask_thousand();
