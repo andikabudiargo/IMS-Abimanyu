@@ -737,6 +737,11 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('jurnalUmum/approve',['as'=>'jurnalUmum.approve','uses'=>'Accounting\GeneralJournalController@approve']);
 	Route::get('jurnalUmum/get/invoice/ammount',['as'=>'jurnalUmum.get.invoice.amount','uses'=>'Accounting\GeneralJournalController@getInvoiceAmount']);
 
+
+	Route::get('bukuBesar',['as'=>'bukuBesar.index','uses'=>'Accounting\BukuBesarController@index']);
+	Route::get('bukuBesar/list',['as'=>'bukuBesar.list','uses'=>'Accounting\BukuBesarController@list']);
+	
+
 	Route::get('forecastSales',['as'=>'forecastSales.index','uses'=>'Forecasting\ForcastingSalesController@index']);
 	Route::get('forecastSales/create',['as'=>'forecastSales.create','uses'=>'Forecasting\ForcastingSalesController@create']);
 	Route::post('forecastSales/store',['as'=>'forecastSales.store','uses'=>'Forecasting\ForcastingSalesController@store']);

@@ -4,14 +4,18 @@
         <span class="badge badge-pill badge-danger badge-up">{!! $jumlahSo + $jumlahPo + $jumlahBom + $jumlahPr + $jumlahTso+ $jumlahDn + $jumlahAp + $jumlahAr + $jumlahRec !!}</span>
     </a>
     <ul class="dropdown-menu dropdown-menu-media dropdown-menu-right">
-        @if( $jumlahSo > 0 )
-            <li class="dropdown-menu-header">
-                <div class="dropdown-header d-flex">
+        <li class="dropdown-menu-header">
+            <div class="dropdown-header d-flex">
+                <h4 class="notification-title mb-0 mr-auto">Notifications </h4>
+                <div class="badge badge-pill badge-light-primary">{!! $jumlahSo + $jumlahPo + $jumlahBom + $jumlahPr + $jumlahTso+ $jumlahDn + $jumlahAp + $jumlahAr + $jumlahRec !!} New</div>
+            </div>
+        </li>   
+        <li class="scrollable-container media-list">
+            @if( $jumlahSo > 0 )
+                <div class="media d-flex align-items-center">
                     <h4 class="notification-title mb-0 mr-auto">SO needs to be approved </h4>
                     <div class="badge badge-pill badge-light-primary">{!! count($listSo2) !!} New</div>
                 </div>
-            </li>   
-            <li class="scrollable-container media-list">
                 @foreach($listSo2 as $key=>$val)
                     <a class="d-flex" href="{{ route('salesOrder.edit', ['id'=>Crypt::encryptString($val->id)]) }}">
                         <div class="media d-flex align-items-start">
@@ -58,16 +62,12 @@
                         </div>
                     </a>
                 @endforeach
-            </li>
-        @endif
-        @if( $jumlahPo > 0 )
-            <li class="dropdown-menu-header">
-                <div class="dropdown-header d-flex">
+            @endif
+            @if( $jumlahPo > 0 )
+                <div class="media d-flex align-items-center">
                     <h4 class="notification-title mb-0 mr-auto">PO needs to be approved </h4>
                     <div class="badge badge-pill badge-light-primary">{!! count($listPoNotif) !!} New</div>
                 </div>
-            </li>   
-            <li class="scrollable-container media-list">
                 @foreach($listPoNotif as $key=>$val)
                         <div class="media d-flex align-items-start">
                             <div class="media-left">
@@ -127,133 +127,119 @@
                             </div>
                         </div>
                 @endforeach
-            </li>
-        @endif
-        @if( $jumlahBom > 0 )
-            <li class="dropdown-menu-header">
-                <div class="dropdown-header d-flex">
+            @endif
+            @if( $jumlahBom > 0 )
+                <div class="media d-flex align-items-center">
                     <h4 class="notification-title mb-0 mr-auto">BOM needs to be approved </h4>
                     <div class="badge badge-pill badge-light-primary">{!! count($listBomNotif) !!} New</div>
                 </div>
-            </li>   
-            <li class="scrollable-container media-list">
                 @foreach($listBomNotif as $key=>$val)
-                        <div class="media d-flex align-items-start">
-                            <div class="media-left">
-                                <div class="avatar">
-                                    <div class="avatar-content">BOM</div>
-                                </div>
-                            </div>
-                            <div class="media-body">
-                                <div class="col-12">
-                                    <p class="media-heading">
-                                        <span class="font-weight-bolder">{{ $val->bom_code }}</span>
-                                    </p>
-                                    <p class="media-heading">
-                                        <small class="notification-text">Article FG: {{ $val->article_fg }}</small>
-                                    </p>
-                                    <p class="media-heading">
-                                        <small class="notification-text">Article RM: {{ $val->article_rm }}</small>
-                                    </p>
-                                    <p class="media-heading">
-                                        <small class="notification-text">Supplier: {{ $val->customer_name }}</small>
-                                    </p>
-                                    <p class="media-heading">
-                                        <small class="notification-text">#Approved: {{ $val->current_level }} of {{ $val->max_level }}</small>
-                                    </p>
-                                </div>
-                                <div class="col-12 mt-50">
-                                    <a class="btn btn-outline-info btn-sm" 
-                                        id="cmdDetailBom{{ $key }}" 
-                                        name="cmdDetailBom{{ $key }}" 
-                                        href="{{ route('bom.show', ['id'=>Crypt::encryptString($val->id)]) }}"> 
-                                        <i data-feather='list'></i>
-                                        Detail
-                                    </a>
-                                    <a href='javascript:;'
-                                        onclick="action(this)"
-                                        id = 'buttonBom{{ $key }}'
-                                        class="btn btn-outline-success btn-sm buttonBom-{{ $val->id }}"
-                                        data-id-class = "buttonBom-{{ $val->id }}"
-                                        data-id-class-decline = "buttonBomDecline-{{ $val->id }}"
-                                        data-doc-number='{{ $val->bom_code }}'
-                                        data-url='{{ route("bom.approve", ["bomNumber"=>$val->bom_code]) }}'>
-                                        <i data-feather='check-circle'></i>
-                                        Approve
-                                    </a>
-                                </div>
+                    <div class="media d-flex align-items-start">
+                        <div class="media-left">
+                            <div class="avatar">
+                                <div class="avatar-content">BOM</div>
                             </div>
                         </div>
-                @endforeach
-            </li>
-        @endif
-        @if( $jumlahTso > 0 )
-            <li class="scrollable-container media-list">
-                <li class="dropdown-menu-header">
-                    <div class="dropdown-header d-flex">
-                        <h4 class="notification-title mb-0 mr-auto">TSO needs to be approved </h4>
-                        <div class="badge badge-pill badge-light-primary">{!! count($listTsoNotif) !!} New</div>
+                        <div class="media-body">
+                            <div class="col-12">
+                                <p class="media-heading">
+                                    <span class="font-weight-bolder">{{ $val->bom_code }}</span>
+                                </p>
+                                <p class="media-heading">
+                                    <small class="notification-text">Article FG: {{ $val->article_fg }}</small>
+                                </p>
+                                <p class="media-heading">
+                                    <small class="notification-text">Article RM: {{ $val->article_rm }}</small>
+                                </p>
+                                <p class="media-heading">
+                                    <small class="notification-text">Supplier: {{ $val->customer_name }}</small>
+                                </p>
+                                <p class="media-heading">
+                                    <small class="notification-text">#Approved: {{ $val->current_level }} of {{ $val->max_level }}</small>
+                                </p>
+                            </div>
+                            <div class="col-12 mt-50">
+                                <a class="btn btn-outline-info btn-sm" 
+                                    id="cmdDetailBom{{ $key }}" 
+                                    name="cmdDetailBom{{ $key }}" 
+                                    href="{{ route('bom.show', ['id'=>Crypt::encryptString($val->id)]) }}"> 
+                                    <i data-feather='list'></i>
+                                    Detail
+                                </a>
+                                <a href='javascript:;'
+                                    onclick="action(this)"
+                                    id = 'buttonBom{{ $key }}'
+                                    class="btn btn-outline-success btn-sm buttonBom-{{ $val->id }}"
+                                    data-id-class = "buttonBom-{{ $val->id }}"
+                                    data-id-class-decline = "buttonBomDecline-{{ $val->id }}"
+                                    data-doc-number='{{ $val->bom_code }}'
+                                    data-url='{{ route("bom.approve", ["bomNumber"=>$val->bom_code]) }}'>
+                                    <i data-feather='check-circle'></i>
+                                    Approve
+                                </a>
+                            </div>
+                        </div>
                     </div>
-                </li>   
-                <li class="scrollable-container media-list">
-                    @foreach($listTsoNotif as $key=>$val)
-                        <div class="media d-flex align-items-start">
-                            <div class="media-left">
-                                <div class="avatar">
-                                    <div class="avatar-content">TSO</div>
-                                </div>
-                            </div>
-                            <div class="media-body">
-                                <div class="col-12">
-                                    <p class="media-heading">
-                                        <span class="font-weight-bolder">{{ $val->tso_code }}</span>
-                                    </p>
-                                    <p class="media-heading">
-                                        <small class="notification-text">Desc: {{ $val->tso_name }}</small>
-                                    </p>
-                                    <p class="media-heading">
-                                        <small class="notification-text">Date: {{ $val->tso_date }}</small>
-                                    </p>
-                                    <p class="media-heading">
-                                        <small class="notification-text">Note: {{ $val->note }}</small>
-                                    </p>
-                                    <p class="media-heading">
-                                        <small class="notification-text">#Approved: {{ $val->current_level }} of {{ $val->max_level }}</small>
-                                    </p>
-                                </div>
-                                <div class="col-12 mt-50">
-                                    <a class="btn btn-outline-info btn-sm" 
-                                        id="cmdDetailTso{{ $key }}" 
-                                        name="cmdDetailTso{{ $key }}" 
-                                        href="{{ route('targetSo.show', ['id'=>Crypt::encryptString($val->id)]) }}"> 
-                                        <i data-feather='list'></i>
-                                        Detail
-                                    </a>
-                                    <a href='javascript:;'
-                                        onclick="action(this)"
-                                        id = 'buttonTso{{ $key }}'
-                                        class="btn btn-outline-success btn-sm buttonTso-{{ $val->id }}"
-                                        data-id-class = "buttonTso-{{ $val->id }}"
-                                        data-doc-number='{{ $val->tso_code }}'
-                                        data-url='{{ route("targetSo.approve", ["tsoCode"=>$val->tso_code]) }}'>
-                                        <i data-feather='check-circle'></i>
-                                        Approve
-                                    </a>
-                                </div>
+                @endforeach
+            @endif
+            @if( $jumlahTso > 0 )
+                <div class="media d-flex align-items-center">
+                    <h4 class="notification-title mb-0 mr-auto">TSO needs to be approved </h4>
+                    <div class="badge badge-pill badge-light-primary">{!! count($listTsoNotif) !!} New</div>
+                </div>
+                @foreach($listTsoNotif as $key=>$val)
+                    <div class="media d-flex align-items-start">
+                        <div class="media-left">
+                            <div class="avatar">
+                                <div class="avatar-content">TSO</div>
                             </div>
                         </div>
-                    @endforeach
-                </li>
-            </li>
-        @endif
-        @if( $jumlahPr > 0 )
-            <li class="dropdown-menu-header">
-                <div class="dropdown-header d-flex">
+                        <div class="media-body">
+                            <div class="col-12">
+                                <p class="media-heading">
+                                    <span class="font-weight-bolder">{{ $val->tso_code }}</span>
+                                </p>
+                                <p class="media-heading">
+                                    <small class="notification-text">Desc: {{ $val->tso_name }}</small>
+                                </p>
+                                <p class="media-heading">
+                                    <small class="notification-text">Date: {{ $val->tso_date }}</small>
+                                </p>
+                                <p class="media-heading">
+                                    <small class="notification-text">Note: {{ $val->note }}</small>
+                                </p>
+                                <p class="media-heading">
+                                    <small class="notification-text">#Approved: {{ $val->current_level }} of {{ $val->max_level }}</small>
+                                </p>
+                            </div>
+                            <div class="col-12 mt-50">
+                                <a class="btn btn-outline-info btn-sm" 
+                                    id="cmdDetailTso{{ $key }}" 
+                                    name="cmdDetailTso{{ $key }}" 
+                                    href="{{ route('targetSo.show', ['id'=>Crypt::encryptString($val->id)]) }}"> 
+                                    <i data-feather='list'></i>
+                                    Detail
+                                </a>
+                                <a href='javascript:;'
+                                    onclick="action(this)"
+                                    id = 'buttonTso{{ $key }}'
+                                    class="btn btn-outline-success btn-sm buttonTso-{{ $val->id }}"
+                                    data-id-class = "buttonTso-{{ $val->id }}"
+                                    data-doc-number='{{ $val->tso_code }}'
+                                    data-url='{{ route("targetSo.approve", ["tsoCode"=>$val->tso_code]) }}'>
+                                    <i data-feather='check-circle'></i>
+                                    Approve
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                @endforeach
+            @endif
+            @if( $jumlahPr > 0 )
+                <div class="media d-flex align-items-center">
                     <h4 class="notification-title mb-0 mr-auto">PR needs to be approved </h4>
                     <div class="badge badge-pill badge-light-primary">{!! count($listPrNotif) !!} New</div>
                 </div>
-            </li>   
-            <li class="scrollable-container media-list">
                 @foreach($listPrNotif as $key=>$val)
                         <div class="media d-flex align-items-start">
                             <div class="media-left">
@@ -301,16 +287,12 @@
                             </div>
                         </div>
                 @endforeach
-            </li>
-        @endif
-        @if( $jumlahDn > 0 )
-            <li class="dropdown-menu-header">
-                <div class="dropdown-header d-flex">
+            @endif
+            @if( $jumlahDn > 0 )
+                <div class="media d-flex align-items-center">
                     <h4 class="notification-title mb-0 mr-auto">DN needs to be approved </h4>
                     <div class="badge badge-pill badge-light-primary">{!! count($listDnNotif) !!} New</div>
                 </div>
-            </li>   
-            <li class="scrollable-container media-list">
                 @foreach($listDnNotif as $key=>$val)
                         <div class="media d-flex align-items-start">
                             <div class="media-left">
@@ -358,16 +340,12 @@
                             </div>
                         </div>
                 @endforeach
-            </li>
-        @endif
-        @if( $jumlahRec > 0 )
-            <li class="dropdown-menu-header">
-                <div class="dropdown-header d-flex">
+            @endif
+            @if( $jumlahRec > 0 )
+                <div class="media d-flex align-items-center">
                     <h4 class="notification-title mb-0 mr-auto">Receiving needs to be approved </h4>
                     <div class="badge badge-pill badge-light-primary">{!! count($listRecNotif) !!} New</div>
                 </div>
-            </li>   
-            <li class="scrollable-container media-list">
                 @foreach($listRecNotif as $key=>$val)
                         <div class="media d-flex align-items-start">
                             <div class="media-left">
@@ -415,16 +393,12 @@
                             </div>
                         </div>
                 @endforeach
-            </li>
-        @endif
-        @if( $jumlahAp > 0 )
-            <li class="dropdown-menu-header">
-                <div class="dropdown-header d-flex">
+            @endif
+            @if( $jumlahAp > 0 )
+                <div class="media d-flex align-items-center">
                     <h4 class="notification-title mb-0 mr-auto">AP needs to be approved </h4>
                     <div class="badge badge-pill badge-light-primary">{!! count($listApNotif) !!} New</div>
                 </div>
-            </li>   
-            <li class="scrollable-container media-list">
                 @foreach($listApNotif as $key=>$val)
                         <div class="media d-flex align-items-start">
                             <div class="media-left">
@@ -472,16 +446,12 @@
                             </div>
                         </div>
                 @endforeach
-            </li>
-        @endif
-        @if( $jumlahAr > 0 )
-            <li class="dropdown-menu-header">
-                <div class="dropdown-header d-flex">
+            @endif
+            @if( $jumlahAr > 0 )
+                <div class="media d-flex align-items-center">
                     <h4 class="notification-title mb-0 mr-auto">Invoice needs to be approved </h4>
-                    <div class="badge badge-pill badge-light-primary">{!! count($listArNotif) !!} New</div>
+                        <div class="badge badge-pill badge-light-primary">{!! count($listArNotif) !!} New</div>
                 </div>
-            </li>   
-            <li class="scrollable-container media-list">
                 @foreach($listArNotif as $key=>$val)
                         <div class="media d-flex align-items-start">
                             <div class="media-left">
@@ -529,8 +499,8 @@
                             </div>
                         </div>
                 @endforeach
-            </li>
-        @endif
+            @endif
+        </li>
     </ul>
 </li>
 

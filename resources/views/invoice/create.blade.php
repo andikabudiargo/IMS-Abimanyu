@@ -284,6 +284,7 @@
         if (!$("#frmAdd")[0].checkValidity()){
             $("#frmAdd").submit();
         }else{ 
+            $('#cmdSave').attr('disabled','disabled');
             $('.disabled-el').removeAttr('disabled');
             // ambil semua data article
             let objQty= $('#article_row input[name="qtyInv[]"]');
@@ -379,6 +380,7 @@
                                 show_msg(data.title, data.message[i], data.alert);
                             }
                             $('#invNumber').attr('disabled','disabled');
+                            $('#cmdSave').removeAttr('disabled');
                         }else{
                             show_msg(data.title, data.message, data.alert);
                             $('#invNumber').val(data.invNumber);
