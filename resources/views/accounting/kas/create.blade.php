@@ -245,7 +245,7 @@
                         let sDebit=objVcDebit.eq(i).val().replace(/,/gi, '') || 0;
                         let sCredit=objVcCredit.eq(i).val().replace(/,/gi, '') || 0;
 
-                        if ((sDesc!=='') && ((sDebit + sCredit) > 0) && (sAccount!=='') && (sCc!=='')){
+                        if ((sDesc!=='') && ((sDebit + sCredit) != 0) && (sAccount!=='') && (sCc!=='')){
                             details.push({
                                 "account":sAccount,
                                 "description":sDesc,
