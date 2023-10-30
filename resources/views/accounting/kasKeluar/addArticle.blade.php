@@ -57,20 +57,20 @@
                         </select>
                     </td>
                     <td class="isian" style="width: 10%">
-                        <input type="text" class="form-control-plaintext numeral-mask text-right tombol-panah" 
+                        <input type="text" class="form-control-plaintext numeral-mask-digit text-right tombol-panah" 
                         data-type-el-kiri="select" 
                         data-nama-el-kiri='vcCc'
                         data-type-el-kanan='input'
                         data-nama-el-kanan='vcCredit'
-                        id = "vcDebit" name="vcDebit[]" maxlength="12" />
+                        id = "vcDebit" name="vcDebit[]" maxlength="20" oninput='inputDecimal(this)' />
                     </td>
                     <td class="isian" style="width: 10%">
-                        <input type="text" class="form-control-plaintext numeral-mask text-right tombol-panah" 
+                        <input type="text" class="form-control-plaintext numeral-mask-digit text-right tombol-panah" 
                         data-type-el-kiri="input" 
                         data-nama-el-kiri='vcDebit'
                         data-type-el-kanan='input'
                         data-nama-el-kanan='vcDesc'
-                        id = "vcCredit" name="vcCredit[]" maxlength="12" />
+                        id = "vcCredit" name="vcCredit[]" maxlength="20" oninput='inputDecimal(this)'/>
                     </td>
                     <td class="isian text-center" style="width: 5%">
                         <a onmouseover="this.style.cursor='pointer'" onclick="$(this).parents('.tanda-baris').remove();hitungGrandTotal()" data-toggle="tooltip" data-placement="left" title="Delete row">
@@ -85,6 +85,15 @@
 </div>
 {{-- \.table row --}} 
 <script type="text/javascript">
+    let delayTimer;
+    function inputDecimal(ele) {
+        clearTimeout(delayTimer);
+        delayTimer = setTimeout(function() {
+            let nilai = ele.value.replace(/,/gi, '') || 0;;
+            ele.value = humanizeNumber(parseFloat(nilai).toFixed(2)).toString();
+        }, 1100); 
+    }
+
     function hitungTotal(){
         let objvcDebit= $('#item_row input[name="vcDebit[]"]');
         let objVcCredit= $('#item_row input[name="vcCredit[]"]');
@@ -117,18 +126,18 @@
         let TotalCredit=0;
 
         var arr = objvcDebit.map(function (i) {
-            let debit = parseInt(objvcDebit.eq(i).val().replace(/,/gi, '')) || 0;
+            let debit = parseFloat(objvcDebit.eq(i).val().replace(/,/gi, '')) || 0;
             TotalDebit+= debit;
         }).get();
 
         var arr = objVcCredit.map(function (i) {
-            let cashOut = parseInt(objVcCredit.eq(i).val().replace(/,/gi, '')) || 0;
+            let cashOut = parseFloat(objVcCredit.eq(i).val().replace(/,/gi, '')) || 0;
             TotalCredit+= cashOut;
         }).get();
 
-        objTotalVcDebit.val(humanizeNumber(TotalDebit));
-        objTotalVcCredit.val(humanizeNumber(TotalCredit));
-        objSelisih.val(humanizeNumber(TotalDebit-TotalCredit));
+        objTotalVcDebit.val(humanizeNumber(TotalDebit.toFixed(2)));
+        objTotalVcCredit.val(humanizeNumber(TotalCredit.toFixed(2)));
+        objSelisih.val(humanizeNumber((TotalDebit-TotalCredit).toFixed(2)));
 
     }
 

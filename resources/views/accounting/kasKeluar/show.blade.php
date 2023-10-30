@@ -42,7 +42,7 @@
                                 <div class="form-group col-md-3">
                                     <div class="form-group">
                                         <label for="totalAmount">Amount</label>
-                                        <input type="text" id="totalAmount" name="totalAmount" value="{{ number_format($header->amount) }}" class="form-control text-right numeral-mask" disabled/>
+                                        <input type="text" id="totalAmount" name="totalAmount" value="{{ number_format($header->amount,2) }}" class="form-control text-right numeral-mask-digit" disabled/>
                                     </div>
                                 </div>
                             </div>
@@ -99,10 +99,10 @@
                                     {{ $item->cost_center_name }}
                                 </td>
                                 <td class="isian text-right" style="width: 10%">
-                                    {{ number_format($item->debit) }}
+                                    {{ number_format($item->debit,2) }}
                                 </td>
                                 <td class="isian text-right" style="width: 10%">
-                                    {{ number_format($item->credit) }}
+                                    {{ number_format($item->credit,2) }}
                                 </td>
                             </tr>
                             @endforeach
@@ -117,10 +117,10 @@
                                     TOTAL
                                 </td>
                                 <td class="isian text-right" style="width: 10%">
-                                    {{ number_format($total->total_debit) }}
+                                    {{ number_format($total->total_debit,2) }}
                                 </td>
                                 <td class="isian text-right" style="width: 10%">
-                                    {{ number_format($total->total_credit) }}
+                                    {{ number_format($total->total_credit,2) }}
                                 </td>
                             </tr>
                         </tbody>
