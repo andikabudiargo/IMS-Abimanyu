@@ -667,7 +667,7 @@ class PurchaseRequestController extends Controller
                     full outer join (select * from purchase_request_det where pr_number = '$prTerakhir') b on b.article_code = a.article_code
                     where a.pr_number = '$prNumber'
                     and a.qty <> b.qty
-                    and purchase_order_det.qty < b.qty
+                    --and purchase_order_det.qty < b.qty
                     )
                     and purchase_order_hdr.status <> '7'");
                     
@@ -2328,16 +2328,35 @@ class PurchaseRequestController extends Controller
                 ]
             );
 
-            //lalu update qty sesuai dengan yang sudah di update di PR 
+            /*
+                lalu update qty sesuai dengan yang sudah di update di PR 
+                Pada saat PR di revisi
+                Kalau PO lebih besar dari PR PO tidak berubah
+                Kalau PO lebih kecil dari PR PO akan berubah
+                
+            */
+
             DB::table('purchase_order_det')
             ->where('po_number',$poOrigin)
-            // ->where('qty','=',0)
             ->update(
             [
-                'qty' => DB::RAW("coalesce((select sum(qty) 
+                // 'qty' => DB::RAW("coalesce((select sum(qty) 
+                //                     from purchase_request_det a  
+                //                     where a.pr_number = purchase_order_det.pr_number 
+                //                     and a.article_code = purchase_order_det.article_code),0)
+                // "),
+                'qty' => DB::RAW("(case when purchase_order_det.qty < coalesce((select sum(qty) 
                                     from purchase_request_det a  
                                     where a.pr_number = purchase_order_det.pr_number 
                                     and a.article_code = purchase_order_det.article_code),0)
+                                    then
+                                    coalesce((select sum(qty) 
+                                    from purchase_request_det a  
+                                    where a.pr_number = purchase_order_det.pr_number 
+                                    and a.article_code = purchase_order_det.article_code),0)
+                                    else
+                                    purchase_order_det.qty
+                                    end)
                 "),
                 'updated_by' => Auth::user()->username,
                 'updated_at' => date('Y-m-d H:i:s')
