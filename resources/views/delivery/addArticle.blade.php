@@ -110,6 +110,7 @@
                 method:"GET",
                 data:{
                     value:value,
+                    dariEdit : fromEdit
                 },
                 success:function(result){
                     if (cloneCount > 1){

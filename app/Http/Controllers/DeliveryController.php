@@ -141,19 +141,37 @@ class DeliveryController extends Controller
     public function soDetail(Request $request)
     {
         $so = $request->value;
-        $data = DB::table('sales_order_det as a')
-        ->leftJoin('article','article.article_code','=','a.article_code')
-        ->leftJoin('sales_order_hdr','sales_order_hdr.so_code','=','a.so_code')
-        ->leftJoin('uom','a.uom','uom.code')
-        ->select('a.*'
-        ,'article.*'
-        ,'sales_order_hdr.po_number'
-        ,DB::RAW("(coalesce((select sum(qty) as qty_delivery from delivery_det where delivery_number in (select delivery_number from delivery_hdr where so_number = a.so_code and status not in ('5','7','10')) and article_code = a.article_code group by article_code),0)) as qty_delivery")
-        ,DB::RAW("(a.qty - coalesce((select sum(qty) as qty_delivery from delivery_det where delivery_number in (select delivery_number from delivery_hdr where so_number = a.so_code and status not in ('5','7','10')) and article_code = a.article_code group by article_code),0)) as qty_so")
-        )
-        ->where('a.so_code',$so)
-        ->orderBy('a.id')
-        ->get();
+        $edit = $request->dariEdit;
+
+        if ( $edit == 'false' ){
+            $data = DB::table('sales_order_det as a')
+            ->leftJoin('article','article.article_code','=','a.article_code')
+            ->leftJoin('sales_order_hdr','sales_order_hdr.so_code','=','a.so_code')
+            ->leftJoin('uom','a.uom','uom.code')
+            ->select('a.*'
+            ,'article.*'
+            ,'sales_order_hdr.po_number'
+            ,DB::RAW("(coalesce((select sum(qty) as qty_delivery from delivery_det where delivery_number in (select delivery_number from delivery_hdr where so_number = a.so_code and status not in ('5','7')) and article_code = a.article_code group by article_code),0)) as qty_delivery")
+            ,DB::RAW("(a.qty - coalesce((select sum(qty) as qty_delivery from delivery_det where delivery_number in (select delivery_number from delivery_hdr where so_number = a.so_code and status not in ('5','7')) and article_code = a.article_code group by article_code),0)) as qty_so")
+            )
+            ->where('a.so_code',$so)
+            ->orderBy('a.id')
+            ->get();
+        }else{
+            $data = DB::table('sales_order_det as a')
+            ->leftJoin('article','article.article_code','=','a.article_code')
+            ->leftJoin('sales_order_hdr','sales_order_hdr.so_code','=','a.so_code')
+            ->leftJoin('uom','a.uom','uom.code')
+            ->select('a.*'
+            ,'article.*'
+            ,'sales_order_hdr.po_number'
+            ,DB::RAW("(coalesce((select sum(qty) as qty_delivery from delivery_det where delivery_number in (select delivery_number from delivery_hdr where so_number = a.so_code and status not in ('5','7','10')) and article_code = a.article_code group by article_code),0)) as qty_delivery")
+            ,DB::RAW("(a.qty - coalesce((select sum(qty) as qty_delivery from delivery_det where delivery_number in (select delivery_number from delivery_hdr where so_number = a.so_code and status not in ('5','7','10')) and article_code = a.article_code group by article_code),0)) as qty_so")
+            )
+            ->where('a.so_code',$so)
+            ->orderBy('a.id')
+            ->get();
+        }
 
         return response()->json($data);
     }
