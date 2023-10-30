@@ -142,7 +142,7 @@
 
         objTotalVcDebit.val(humanizeNumber(TotalDebit.toFixed(2)));
         objTotalVcCredit.val(humanizeNumber(TotalCredit.toFixed(2)));
-        objSelisih.val(humanizeNumber(TotalDebit-TotalCredit.toFixed(2)));
+        objSelisih.val(humanizeNumber((TotalDebit-TotalCredit).toFixed(2)));
 
     }
 

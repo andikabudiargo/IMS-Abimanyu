@@ -115,6 +115,8 @@
                                 <td class="isian">
                                 </td>
                                 <td class="isian">
+                                </td>
+                                <td class="isian">
                                     TOTAL
                                 </td>
                                 <td class="isian text-right" style="width: 10%">

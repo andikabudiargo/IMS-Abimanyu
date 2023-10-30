@@ -58,7 +58,7 @@
                                 <div class="form-group col-md-3">
                                     <div class="form-group">
                                         <label for="totalAmount">Amount*</label>
-                                        <input type="text" id="totalAmount" name="totalAmount" value="{{ $header->amount }}" class="form-control text-right numeral-mask-digit" oninput='inputDecimal(this)' maxlength="20" required/>
+                                        <input type="text" id="totalAmount" name="totalAmount" value="{{ number_format($header->amount,2) }}" class="form-control text-right numeral-mask-digit" oninput='inputDecimal(this)' maxlength="20" required/>
                                     </div>
                                 </div>
                             </div>
@@ -403,8 +403,8 @@
         // $("#account"+cloneCount).val(account).trigger('change');;
         $("#vcCc"+cloneCount).val(cc).trigger('change');
         $("#vcDesc"+cloneCount).val(desc);
-        $("#vcDebit"+cloneCount).val(debit != 0 ? debit : '');
-        $("#vcCredit"+cloneCount).val(credit != 0 ? credit : '');
+        $("#vcDebit"+cloneCount).val(debit != 0 ? parseFloat(debit).toFixed(2) : '');
+        $("#vcCredit"+cloneCount).val(credit != 0 ? parseFloat(credit).toFixed(2) : '');
 
         $('#remove_button').tooltip();
         activate_angka();

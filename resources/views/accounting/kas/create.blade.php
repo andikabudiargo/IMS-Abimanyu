@@ -58,7 +58,7 @@
                                 <div class="form-group col-md-3">
                                     <div class="form-group">
                                         <label for="totalAmount">Amount*</label>
-                                        <input type="text" id="totalAmount" name="totalAmount" class="form-control text-right numeral-mask" maxlength="12" required/>
+                                        <input type="text" id="totalAmount" name="totalAmount" class="form-control text-right numeral-mask-digit" oninput='inputDecimal(this)' maxlength="20" required/>
                                     </div>
                                 </div>
                             </div>
@@ -92,10 +92,10 @@
                                     <label style="font-size: 12pt;">Total</label>
                                 </td>
                                 <td class="isian" style="width: 10%">
-                                    <input type="text" class="form-control-plaintext numeral-mask text-right" id="vcTotalDebit" disabled />
+                                    <input type="text" class="form-control-plaintext numeral-mask-digit text-right" id="vcTotalDebit" disabled />
                                 </td>
                                 <td class="isian" style="width: 10%">
-                                    <input type="text" class="form-control-plaintext numeral-mask text-right" id= "vcTotalCredit" disabled />
+                                    <input type="text" class="form-control-plaintext numeral-mask-digit text-right" id= "vcTotalCredit" disabled />
                                 </td>
                                 <td class="isian text-center" style="width: 5%;border-right: 1px solid white;border-bottom: 1px solid white;">
                                 </td>
@@ -107,7 +107,7 @@
                                 <td class="isian" style="width: 10%">
                                 </td>
                                 <td class="isian" style="width: 10%">
-                                    <input type="text" class="form-control-plaintext numeral-mask text-right" id="selisih" disabled />
+                                    <input type="text" class="form-control-plaintext numeral-mask-digit text-right" id="selisih" disabled />
                                 </td>
                                 <td class="isian text-center" style="width: 5%;border-right: 1px solid white;border-bottom: 1px solid white;">
                                 </td>
@@ -220,7 +220,7 @@
         if (!$("#frmAdd")[0].checkValidity()){
             $("#frmAdd").submit();
         }else{  
-            if (((parseInt(objTotalVcDebit)-parseInt(objTotalVcCredit)) == 0) && (parseInt(objTotalVcCredit)==parseInt(totalAmount))){ 
+            if (((parseFloat(objTotalVcDebit)-parseFloat(objTotalVcCredit)) == 0) && (parseFloat(objTotalVcCredit)==parseFloat(totalAmount))){ 
                 $('#cmdSave').attr('disabled','disabled');
                 $('.disabled-el').removeAttr('disabled');
                 // ambil semua data article
@@ -331,6 +331,7 @@
         // tombolPanah('vcCredit');
         activate_angka();
         mask_thousand();
+        mask_thousand_digit(2);
         hitungTotal();
         hitungGrandTotal();
         findInvoice();
@@ -408,84 +409,6 @@
         }    
     });
 
-    // function findInvoice(){
-    //     let objAccount = $('#item_row select[name="account[]"]');
-    //     let objVcRef= $('#item_row select[name="vcRef[]"]');
-    //     let objVcDebit= $('#item_row input[name="vcDebit[]"]');
-    //     let objVcCredit= $('#item_row input[name="vcCredit[]"]');
-        
-    //     objAccount.change(function(e){        
-    //         let objIndex = objAccount.index(this);
-    //         let accountNumber = objAccount.eq(objIndex).val();
-    //         let recFrom = $('#recFrom').val();
-    //         let objCust = "vcRef"+(objIndex+1);
-    //         if(accountNumber){
-    //             if (accountNumber =='1100.40'){
-    //                 // if(recFrom){
-    //                     invList('referenceAr',objCust,recFrom);
-    //                 // }else{
-    //                 //     Swal.fire('Warning..','Kolom bayar ke /supplier code masih kosong','warning');
-    //                 // }
-    //             }else{
-    //                 objVcDebit.eq(objIndex).val("");
-    //                 objVcCredit.eq(objIndex).val("");
-    //                 objVcRef.eq(objIndex).empty().trigger('change');
-    //                 hitungGrandTotal();
-    //             }
-    //         }
-    //     });
-    // }
-
-    // function invList(dependent,obj,value) {
-    //   $.ajax({
-    //     url:"{{route('dynamic.dependent')}}",
-    //     method:"POST",
-    //     data:{
-    //         dependent:dependent,
-    //         value:value
-    //     },
-    //     success:function(result){
-    //         $('#'+obj).html(result);
-    //         $('#'+obj).val("").trigger('change');
-    //     }
-    //   })
-    // }
-
-    // function getAmount(){
-    //     let objRef = $('#item_row select[name="vcRef[]"]');
-    //     objRef.change(function(e){ 
-    //         let objIndex = objRef.index(this);
-    //         let vRef = objRef.eq(objIndex).val();
-    //         if(vRef){
-    //             getAmountValue(vRef,objIndex); 
-    //         }
-    //     });
-    // }   
-
-    // function getAmountValue(vRef,objIndex) {
-    //     let objVcDebit= $('#item_row input[name="vcDebit[]"]');
-    //     let objVcCredit= $('#item_row input[name="vcCredit[]"]');
-    //     $.ajax({
-    //         type: "get",
-    //         url: "{{ route('kasPenerimaan.get.invoice.amount') }}",
-    //         data: {
-    //             vRef:vRef
-    //         },
-    //         dataType: "json",
-    //         success: function(data) {
-    //             objVcCredit.eq(objIndex).val('');
-    //             objVcDebit.eq(objIndex).val('');
-    //             if(data.amount){
-    //                 objVcDebit.eq(objIndex).val(humanizeNumber(data.amount));
-    //                 objVcCredit.eq(objIndex).val('');
-    //                 hitungGrandTotal();
-    //             }
-    //         },
-    //         error: function(error) {
-    //             console.log(error);
-    //         }
-    //     });
-    // }
 
     $.ajaxSetup({
         headers: {

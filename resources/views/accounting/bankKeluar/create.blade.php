@@ -453,7 +453,6 @@
         });
     }
 
-
     $("#cmdNew").click(function(){ 
         let objAccount= $('#item_row select[name="account[]"]');
         let details = [];
