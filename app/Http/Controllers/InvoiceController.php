@@ -1072,13 +1072,14 @@ class InvoiceController extends Controller
             $data= DB::table("delivery_hdr") 
             ->leftJoin('dn_receipt','dn_receipt.delivery_number','delivery_hdr.delivery_number')
             ->where("so_number",$soNumber)
-            // ->where("status","4")
+            ->where("delivery_hdr.status","<>","7")
             ->where('dn_receipt.status','2') //sudah di submitt di dn receipt
             // ->where("status","8") //sudah di received
-            // ->whereNotIn(DB::raw("delivery_number"), function($query) {
-            //     $query->select('dn_number')
-            //     ->from('invoice_det');
-            // })
+            ->whereNotIn(DB::raw("delivery_hdr.delivery_number"), function($query) use ($invNumber) {
+                $query->select('dn_number')
+                ->from('invoice_det')
+                ->where('invoice_number','<>',$invNumber);
+            })
             ->orderBy("delivery_date")
             ->select("delivery_hdr.delivery_number","so_number","po_number","delivery_hdr.delivery_date")
             ->get();
@@ -1086,6 +1087,7 @@ class InvoiceController extends Controller
             $data= DB::table("delivery_hdr") 
             ->leftJoin('dn_receipt','dn_receipt.delivery_number','delivery_hdr.delivery_number')
             ->where("so_number",$soNumber)
+            // ->where("delivery_hdr.status","<>","7")
             // ->where("status","4")
             ->where('dn_receipt.status','2') //sudah di submitt di dn receipt
             // ->where("status","8") //sudah di received
@@ -1268,4 +1270,107 @@ class InvoiceController extends Controller
 		}     		
 		return ucfirst($hasil);
 	}
+
+    public function prosesPosting($invNumber){
+        /* Proses posting ke kas*/
+        $apData = db::table('ap_invoice')
+        ->leftJoin('third_party', 'third_party.kode', '=', 'ap_invoice.supplier_id')
+        ->select('ap_invoice.*','third_party.nama as supplier_name')
+        ->where('ap_number',$invNumber)->first();
+
+        DB::table('kas_hdr')->insert([
+            'voucher_number' =>$invNumber,
+            'voucher_type' =>$this->moduleCode,
+            'voucher_date' =>date('Y-m-d'), //tanggal posting
+            'paid_to' => $apData->supplier_id,
+            'description' => $invNumber,
+            'amount' => $apData->grand_total,
+            'period' =>date('n'),
+            'year' =>date('Y'),                        
+            'note' => $apData->note,
+            'status' => '1',
+            'created_by' => Auth::user()->username,
+            'updated_by' => Auth::user()->username,
+            'created_at' => date('Y-m-d H:i:s'),
+            'updated_at' => date('Y-m-d H:i:s')
+        ]);
+
+        // $reference = $invNumber;
+        $reference = '';
+
+        $dataSet = [];
+        $dataSet[] = [
+            'voucher_number' => $invNumber,
+            'account' =>$apData->account_ba,
+            'description' => $invNumber.' '.$apData->supplier_name,
+            'debit' => $apData->basis_amount,
+            'credit' => 0,
+            'reference' => $reference,  //sementara tidak di masukan belum tau fungsinya apa
+            'created_by' => Auth::user()->username,
+            'updated_by' => Auth::user()->username,
+            'created_at' => date('Y-m-d H:i:s'),
+            'updated_at' => date('Y-m-d H:i:s')
+        ];
+
+        if($apData->vat > 0){
+            $dataSet[] = [
+                'voucher_number' => $invNumber,
+                'account' =>$apData->account_vat,
+                'description' => $invNumber.' '.$apData->supplier_name,
+                'debit' => $apData->vat,
+                'credit' => 0,
+                'reference' => $reference,
+                'created_by' => Auth::user()->username,
+                'updated_by' => Auth::user()->username,
+                'created_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s')
+            ];
+        }
+
+        //belum ada no account nya
+        // if($apData->total_discount > 0){
+        //     $dataSet[] = [
+        //         'voucher_number' => $invNumber,
+        //         'account' =>$apData->account_total,
+        //         'description' => $invNumber.' '.$apData->supplier_name,
+        //         'debit' => 0,
+        //         'credit' => $apData->total_discount,
+        //         'reference' => $reference,
+        //         'created_by' => Auth::user()->username,
+        //         'updated_by' => Auth::user()->username,
+        //         'created_at' => date('Y-m-d H:i:s'),
+        //         'updated_at' => date('Y-m-d H:i:s')
+        //     ];  
+        // }
+
+        if($apData->pph23 > 0){
+            $dataSet[] = [
+                'voucher_number' => $invNumber,
+                'account' =>$apData->account_pph,
+                'description' => $invNumber.' '.$apData->supplier_name,
+                'debit' => 0,
+                'credit' => $apData->pph23,
+                'reference' => $reference,
+                'created_by' => Auth::user()->username,
+                'updated_by' => Auth::user()->username,
+                'created_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s')
+            ];  
+        }
+
+        $dataSet[] = [
+            'voucher_number' => $invNumber,
+            'account' =>$apData->account_total,
+            'description' => $invNumber.' '.$apData->supplier_name,
+            'debit' => 0,
+            'credit' => $apData->grand_total,
+            'reference' => $reference,
+            'created_by' => Auth::user()->username,
+            'updated_by' => Auth::user()->username,
+            'created_at' => date('Y-m-d H:i:s'),
+            'updated_at' => date('Y-m-d H:i:s')
+        ];  
+
+        DB::table('kas_det')->insert($dataSet);
+    }
 }
