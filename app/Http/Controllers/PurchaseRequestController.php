@@ -317,6 +317,7 @@ class PurchaseRequestController extends Controller
             ,DB::raw("(select STRING_AGG( (qty::real)::text,' -> ' ORDER BY pr_number) AS main from purchase_request_det p where article_code = purchase_request_det.article_code and pr_number like '$prNumber%' ) as notes")
 
         )
+        ->orderBy('purchase_request_det.pr_number')
         ->orderBy('purchase_request_det.id')
         ->get();       
 
@@ -611,48 +612,63 @@ class PurchaseRequestController extends Controller
                     ]);
                 }
 
-                // if($statusPr == '3'){
-                    //kalau status nya sudah approved makan akan update PO kalo PR ini sudah jadi PO
-                    //cek apakah ada po yang pake PR ini atau tidak, kalo ada maka PO nya harus di edit juga
+                if($statusPr == '3'){
+                    /*
+                      kalau status nya sudah approved makan akan update PO kalo PR ini sudah jadi PO
+                      cek apakah ada po yang pake PR ini atau tidak, kalo ada maka PO nya harus di edit juga
+                    */
 
                     /*
                         16/10/2023
                         dari bu Ifah 
                         Kalau PR di revisi PO tidak ikutan di revisi
+                        -- batal
+                        jadinya seperti ini:
+                        Pada saat PR di revisi
+                        Kalau PO lebih besar dari PR PO tidak berubah
+                        Kalau PO lebih kecil dari PR PO akan berubah
+
                     */
 
-                    //Ambil nomor PR terakhir
-                    /*
-                    1.
-                    $prTerakhir = DB::select("select max(pr_number) as pr_number from purchase_request_hdr where origin_pr_number = '$prNumber'");
+                    // 1. Ambil nomor PR terakhir
+                    
+                    $prTerakhir = DB::select("select max(pr_number) as pr_number 
+                                                from purchase_request_hdr 
+                                                where origin_pr_number = '$prNumber'");
                     $prTerakhir = $prTerakhir[0]->pr_number;
-                    */
-
-                    // $poList = DB::table('purchase_order_det')
-                    // ->leftJoin('purchase_order_hdr','purchase_order_hdr.po_number','purchase_order_det.po_number')
-                    // ->where('pr_number',$prNumber)
-                    // ->where('status','!=','7')
-                    // ->distinct('purchase_order_det.po_number')
-                    // ->get();
+                    
+                    $poList = DB::table('purchase_order_det')
+                    ->leftJoin('purchase_order_hdr','purchase_order_hdr.po_number','purchase_order_det.po_number')
+                    ->where('pr_number',$prNumber)
+                    ->where('status','!=','7')
+                    ->distinct('purchase_order_det.po_number')
+                    ->get();
 
                     /* 
-                        Bandingkan QTY PR sekrang dan terakhir, kalau ada yang beda ata berubah PO nya langsung di revisi
+                        2.
+                        Bandingkan QTY PR sekrang dan terakhir, kalau ada yang beda ata berubah PO nya 
+                        langsung di revisi
                         Tidak lihat status PO langsung di revisi saja
                         Query dibawah untuk dapat list no PO untuk article yang berubah QTY nya dari PR yang sama
 
+                        Pada saat PR di revisi
+                        Kalau PO lebih besar dari PR PO tidak berubah
+                        Kalau PO lebih kecil dari PR PO akan berubah
+
+
                      */
 
-                    /*
-                    2.
-                    $poList = DB::select("SELECT distinct(purchase_order_det.po_number) from purchase_order_det 
+                    $poList = DB::select("SELECT distinct(purchase_order_det.po_number) 
+                    from purchase_order_det
                     left join purchase_order_hdr on purchase_order_det.po_number = purchase_order_hdr.po_number
                     where pr_number = '$prNumber' 
-                        and article_code in (
-                        select a.article_code from purchase_request_det a 
-                        full outer join (select * from purchase_request_det where pr_number = '$prTerakhir') b on b.article_code = a.article_code
-                        where a.pr_number = '$prNumber'
-                        and a.qty <> b.qty
-                        )
+                    and article_code in (
+                    select a.article_code from purchase_request_det a 
+                    full outer join (select * from purchase_request_det where pr_number = '$prTerakhir') b on b.article_code = a.article_code
+                    where a.pr_number = '$prNumber'
+                    and a.qty <> b.qty
+                    and purchase_order_det.qty < b.qty
+                    )
                     and purchase_order_hdr.status <> '7'");
                     
                     if (count($poList)>0){
@@ -660,8 +676,8 @@ class PurchaseRequestController extends Controller
                             $this->revisionPoFromPr($val->po_number,$prNumber,'Revisi');
                         }
                     }
-                    */
-                // }
+                    
+                }
                 
                 DB::commit();
                 $title ="Approve $this->title";
@@ -817,15 +833,27 @@ class PurchaseRequestController extends Controller
                                     <span>". __('Revision') ."</span>
                                 </a>";
                 }else{
-                    $buttons .=     "<a href='javascript:;'
-                                    id='revisionReasonButton'
-                                    class='dropdown-item'
-                                    data-toggle='modal'
-                                    data-target='#reasonModalRevision'
-                                    data-href='". route("purchaseRequest.revision", ["id"=>Crypt::encryptString($data->id),"nR"=>$data->num_revision]) ."'>
-                                    <i data-feather='corner-down-left' class='feather-14-red'></i>
-                                    <span>". __('Revision') ."</span>
-                                </a>";
+                    if ($data->order_type == 'tso'){
+                        $buttons .= "<a href='javascript:void(0);'
+                                        id='revisionReasonButtonTso'
+                                        class='dropdown-item'
+                                        data-toggle='modal'
+                                        data-target='#reasonModalRevisionTso'
+                                        data-href='". route("purchaseRequest.revision", ["id"=>Crypt::encryptString($data->id),"nR"=>$data->num_revision]) ."'>
+                                        <i data-feather='corner-down-left' class='feather-14-red'></i>
+                                        <span>". __('Revision') ."</span>
+                                    </a>";
+                    }else{
+                        $buttons .= "<a href='javascript:void(0);'
+                                        id='revisionReasonButton'
+                                        class='dropdown-item'
+                                        data-toggle='modal'
+                                        data-target='#reasonModalRevision'
+                                        data-href='". route("purchaseRequest.revision", ["id"=>Crypt::encryptString($data->id),"nR"=>$data->num_revision]) ."'>
+                                        <i data-feather='corner-down-left' class='feather-14-red'></i>
+                                        <span>". __('Revision') ."</span>
+                                    </a>";
+                    }
                 }
                 
             }
@@ -1309,10 +1337,13 @@ class PurchaseRequestController extends Controller
         $tsoCode=$prHdr->tso_code;
         $tsoIsApproved = 0;       
         $reasonRequest = $request->reason;
-
+        $mdlStockDate = $request->mdlStockDate;
        
         if ($tsoCode){
-            //kalo PR dari TSO, maka di revisi tapi lihat status TSO nya
+            /*
+                Kalau ada no TSO berarti dia PR dari TSO
+                kalo PR dari TSO, maka di revisi tapi lihat status TSO nya
+            */
             $tsoIsApproved=DB::table('target_order_hdr')
             ->where('tso_code',$tsoCode)
             ->where('status','3')
@@ -1320,23 +1351,8 @@ class PurchaseRequestController extends Controller
 
             // kalau status TSO sudah approve maka bisa di revisi , kala belum tidak bisa di revisi
             if($tsoIsApproved > 0){
-                $hasilRevisi = $this->revisionPrFromTso($tsoCode,$reasonRequest,$id);
+                $hasilRevisi = $this->revisionPrFromTso($tsoCode,$reasonRequest,$id,$mdlStockDate);
                 if($hasilRevisi['success']){
-
-                    // //kalau PR nya sudah ada PO nya maka PO nya akan di revisi juga, nilai PO seusai dengan nilai PR
-                    // $poList = DB::table('purchase_order_det')
-                    // ->leftJoin('purchase_order_hdr','purchase_order_hdr.po_number','purchase_order_det.po_number')
-                    // ->where('pr_number',$prOrigin)
-                    // ->where('status','!=','7')
-                    // ->distinct('purchase_order_det.po_number')
-                    // ->get();
-    
-                    // if (count($poList)>0){
-                    //     foreach($poList as $val){
-                    //         $this->revisionPoFromPr($val->po_number,$prOrigin,$reasonRequest);
-                    //     }
-                    // }
-
                     $title ="Save $this->title";
                     $alert  ="success";
                     $message  = "$title Revision Pr: ".$hasilRevisi['prOrigin'] ." to ".$hasilRevisi['prNew']." is successfully saved";
@@ -1476,7 +1492,13 @@ class PurchaseRequestController extends Controller
                     ]
                 );
 
-                // //cek apakah ada po yang pake PR ini atau tidak, kalo ada maka PO nya harus di revisi juga                
+                /*
+        
+                    PO Di revisi kalau PRTSO sudah di approve 
+                    jadi yang di bawah ini diabaikan
+
+                */
+
                 // $poList = DB::table('purchase_order_det')
                 // ->leftJoin('purchase_order_hdr','purchase_order_hdr.po_number','purchase_order_det.po_number')
                 // ->where('pr_number',$prOrigin)
@@ -1512,13 +1534,17 @@ class PurchaseRequestController extends Controller
         return view('purchaseRequest.warning', $data);
     }
 
-    public function revisionPrFromTso($tsoCode,$reason,$id){
+    public function revisionPrFromTso($tsoCode,$reason,$id,$mdlStockDate){
 
         $username =  Auth::user()->username;
         $siteCode = 'HO';
         $location = 'WH';
         $reasonRequest = $reason;
         $reason = "(Revision from TSO : $tsoCode, by $username, $reason)";
+
+        if ($mdlStockDate){
+            $mdlStockDate = implode("-", array_reverse(explode("-", $mdlStockDate)));
+        }
 
         $prNumber = DB::table('target_order_hdr')
         ->where('tso_code',$tsoCode)
@@ -1531,8 +1557,10 @@ class PurchaseRequestController extends Controller
             ->where('pr_number',$prNumber)
             ->first(); 
     
-            $stockDate = $prHdr->stock_date;
-                            
+            /*revisi program tanggal diinput waktu melakukan revisi */
+            // $stockDate = $prHdr->stock_date;
+            $stockDate = $mdlStockDate;
+                                        
             $numRevision = $prHdr->num_revision ? $prHdr->num_revision+1 : 1 ;
             $prNew = $prOrigin.'-R'.$numRevision;
             
@@ -1708,148 +1736,261 @@ class PurchaseRequestController extends Controller
                  created_at
             )
             select 
-            --z.alternative
-            z.pr_number
-            ,z.article_code
-            --,z.qty
-            ,case when (z.qty<coalesce(y.qty,0)) or (coalesce(y.qty,0)=0) then z.qty else y.qty end as qty_baru
-            ,z.uom
-            ,z.supp_code
-            ,z.qty_hitung
-            ,z.qty_stock
-            ,z.updated_by
-            ,z.updated_at
-            --,y.alternative
-            --,y.pr_number
-            --,y.article_code
-            --,coalesce(y.qty,0) as qty_asal
-            --,y.uom
-            --,y.supp_code
-            --,y.qty_hitung
-            --,y.updated_by
-            --,y.updated_at
-            --,case when (z.qty<coalesce(y.qty,0)) or (coalesce(y.qty,0)=0) then z.qty else y.qty end as qty_baru
-            from (
-            select 
-            alternative
-            ,'$prOrigin' as pr_number
-            ,article_code
-            ,ceil(((sum(qty_target * qty_bom)-qty_stock)+safety_stock)/min_package) * min_package as qty
-            ,mari.uom
-            ,(select third_party from article where article_code = mari.article_code) as supp_code
-            ,ceil(((sum(qty_target * qty_bom)-qty_stock)+safety_stock)/min_package) * min_package as qty_hitung
-            ,qty_stock
-            ,'$username' as updated_by
-            ,now() as updated_at
-            from 
-            (
-            select 
-            bom_code
-            ,oki.article_bom as article_code
-            ,(select article_alternative_code from article where article_code = oki.article_bom) as alternative
-            ,(select sum(qty_target) from target_order_det where tso_code = '$tsoCode' and target_order_det.article_code = oki.article_code_fg group by target_order_det.article_code) as qty_target
-            ,qty 
-            ,article.uom as uom
-            ,uom_con
-            ,nilai_konversi
-            ,qty_hasil_konversi as qty_bom
-            ,(select sum(qty_target) from target_order_det where tso_code = '$tsoCode' and target_order_det.article_code = oki.article_code_fg group by target_order_det.article_code) * qty_hasil_konversi  as qty_total_order
-            ,coalesce(article.min_package,1) as min_package
-            ,coalesce(article.safety_stock,0) as safety_stock
-            ,get_last_qty(oki.article_bom,'$stockDate','$siteCode','$location') as qty_stock
-            from 
-            (
-                select *,
-                coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = article.uom),1) as nilai_konversi
-                ,qty * coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = article.uom),1) as qty_hasil_konversi
+                --z.alternative
+                z.pr_number
+                ,z.article_code
+                --,z.qty
+                ,case when (z.qty<coalesce(y.qty,0)) or (coalesce(y.qty,0)=0) then z.qty else y.qty end as qty_baru
+                ,z.uom
+                ,z.supp_code
+                ,z.qty_hitung
+                ,z.qty_stock
+                ,z.updated_by
+                ,z.updated_at
+                --,y.alternative
+                --,y.pr_number
+                --,y.article_code
+                --,coalesce(y.qty,0) as qty_asal
+                --,y.uom
+                --,y.supp_code
+                --,y.qty_hitung
+                --,y.updated_by
+                --,y.updated_at
+                --,case when (z.qty<coalesce(y.qty,0)) or (coalesce(y.qty,0)=0) then z.qty else y.qty end as qty_baru
                 from (
-                select bom_code
-                ,bom_det.article_code as article_bom
-                ,(select article_code from bom_hdr where bom_code = bom_det.bom_code) as article_code_fg
-                ,sum(qty) as qty
-                ,bom_det.uom
+                select 
+                alternative
+                ,'$prOrigin' as pr_number
+                ,article_code
+                ,ceil(((sum(qty_target * qty_bom)-qty_stock)+safety_stock)/min_package) * min_package as qty
+                ,mari.uom
+                ,(select third_party from article where article_code = mari.article_code) as supp_code
+                ,ceil(((sum(qty_target * qty_bom)-qty_stock)+safety_stock)/min_package) * min_package as qty_hitung
+                ,qty_stock
+                ,'$username' as updated_by
+                ,now() as updated_at
+                from 
+                (
+                select 
+                bom_code
+                ,oki.article_bom as article_code
+                ,(select article_alternative_code from article where article_code = oki.article_bom) as alternative
+                ,(select sum(qty_target) from target_order_det where tso_code = '$tsoCode' and target_order_det.article_code = oki.article_code_fg group by target_order_det.article_code) as qty_target
+                ,qty 
+                ,article.uom as uom
                 ,uom_con
-                from bom_det 
-                where bom_code in 
-                ( select bom_code
+                ,nilai_konversi
+                ,qty_hasil_konversi as qty_bom
+                ,(select sum(qty_target) from target_order_det where tso_code = '$tsoCode' and target_order_det.article_code = oki.article_code_fg group by target_order_det.article_code) * qty_hasil_konversi  as qty_total_order
+                ,coalesce(article.min_package,1) as min_package
+                ,coalesce(article.safety_stock,0) as safety_stock
+                ,get_last_qty(oki.article_bom,'$stockDate','$siteCode','$location') as qty_stock
+                from 
+                (
+                    select *,
+                    coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = article.uom),1) as nilai_konversi
+                    ,qty * coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = article.uom),1) as qty_hasil_konversi
+                    from (
+                    select bom_code
+                    ,bom_det.article_code as article_bom
+                    ,(select article_code from bom_hdr where bom_code = bom_det.bom_code) as article_code_fg
+                    ,sum(qty) as qty
+                    ,bom_det.uom
+                    ,uom_con
+                    from bom_det 
+                    where bom_code in 
+                    ( select bom_code
+                    from (select article_code,qty_target as qty from target_order_det where tso_code = '$tsoCode') as production_detail_temp
+                    left join bom_hdr on bom_hdr.article_code=production_detail_temp.article_code
+                    where bom_hdr.status = '3')
+                    group by bom_det.bom_code,bom_det.article_code,bom_det.uom_con,bom_det.uom) bom_det
+                    left join article on article.article_code = bom_det.article_bom
+                ) as oki
+                left join article on article.article_code = oki.article_bom
+                order by alternative
+                ) as mari 
+                group by mari.article_code,alternative,mari.safety_stock,mari.qty_stock,mari.min_package,mari.uom
+                having (ceil(((sum(qty_target * qty_bom)-qty_stock)+safety_stock)/min_package) * min_package) > 0
+                union
+                select 
+                alternative
+                ,'$prOrigin' as pr_number
+                ,article_code
+                ,ceil(((sum(qty_target * qty_bom)-qty_stock)+safety_stock)/min_package) * min_package as qty
+                ,mari.uom
+                ,(select third_party from article where article_code = mari.article_code) as supp_code
+                ,ceil(((sum(qty_target * qty_bom)-qty_stock)+safety_stock)/min_package) * min_package as qty_hitung
+                ,qty_stock
+                ,'$username'
+                ,now()
+                from 
+                (
+                select 
+                bom_code
+                ,oki.article_code_rm as article_code
+                ,(select article_alternative_code from article where article_code = oki.article_code_rm) as alternative
+                ,(select sum(qty_target) from target_order_det where tso_code = '$tsoCode' and target_order_det.article_code = oki.article_code_fg group by target_order_det.article_code) as qty_target
+                ,qty 
+                ,article.uom as uom
+                ,uom_con
+                ,nilai_konversi
+                ,qty_hasil_konversi as qty_bom
+                ,(select sum(qty_target) from target_order_det where tso_code = '$tsoCode' and target_order_det.article_code = oki.article_code_fg group by target_order_det.article_code) * qty_hasil_konversi  as qty_total_order
+                ,coalesce(min_package,1) as min_package
+                ,coalesce(safety_stock,0) as safety_stock
+                ,get_last_qty(oki.article_code_rm,'$stockDate','$siteCode','$location') as qty_stock
+                from 
+                (
+                select 
+                article_alternative_code
+                ,bom_code
+                ,bom_hdr.article_code_rm as article_code_rm
+                ,bom_hdr.article_code as article_code_fg
+                ,1 as qty
+                ,article.uom as uom
+                ,article.uom as uom_con
+                ,1 as nilai_konversi
+                ,1 as qty_hasil_konversi
                 from (select article_code,qty_target as qty from target_order_det where tso_code = '$tsoCode') as production_detail_temp
                 left join bom_hdr on bom_hdr.article_code=production_detail_temp.article_code
-                where bom_hdr.status = '3')
-                group by bom_det.bom_code,bom_det.article_code,bom_det.uom_con,bom_det.uom) bom_det
-                left join article on article.article_code = bom_det.article_bom
-            ) as oki
-            left join article on article.article_code = oki.article_bom
-            order by alternative
-            ) as mari 
-            group by mari.article_code,alternative,mari.safety_stock,mari.qty_stock,mari.min_package,mari.uom
-            having (ceil(((sum(qty_target * qty_bom)-qty_stock)+safety_stock)/min_package) * min_package) > 0
-            union
-            select 
-            alternative
-            ,'$prOrigin' as pr_number
-            ,article_code
-            ,ceil(((sum(qty_target * qty_bom)-qty_stock)+safety_stock)/min_package) * min_package as qty
-            ,mari.uom
-            ,(select third_party from article where article_code = mari.article_code) as supp_code
-            ,ceil(((sum(qty_target * qty_bom)-qty_stock)+safety_stock)/min_package) * min_package as qty_hitung
-            ,qty_stock
-            ,'$username'
-            ,now()
-            from 
-            (
-            select 
-            bom_code
-            ,oki.article_code_rm as article_code
-            ,(select article_alternative_code from article where article_code = oki.article_code_rm) as alternative
-            ,(select sum(qty_target) from target_order_det where tso_code = '$tsoCode' and target_order_det.article_code = oki.article_code_fg group by target_order_det.article_code) as qty_target
-            ,qty 
-            ,article.uom as uom
-            ,uom_con
-            ,nilai_konversi
-            ,qty_hasil_konversi as qty_bom
-            ,(select sum(qty_target) from target_order_det where tso_code = '$tsoCode' and target_order_det.article_code = oki.article_code_fg group by target_order_det.article_code) * qty_hasil_konversi  as qty_total_order
-            ,coalesce(min_package,1) as min_package
-            ,coalesce(safety_stock,0) as safety_stock
-            ,get_last_qty(oki.article_code_rm,'$stockDate','$siteCode','$location') as qty_stock
-            from 
-            (
-            select 
-            article_alternative_code
-            ,bom_code
-            ,bom_hdr.article_code_rm as article_code_rm
-            ,bom_hdr.article_code as article_code_fg
-            ,1 as qty
-            ,article.uom as uom
-            ,article.uom as uom_con
-            ,1 as nilai_konversi
-            ,1 as qty_hasil_konversi
-            from (select article_code,qty_target as qty from target_order_det where tso_code = '$tsoCode') as production_detail_temp
-            left join bom_hdr on bom_hdr.article_code=production_detail_temp.article_code
-            left join article on article.article_code = bom_hdr.article_code_rm
-            where bom_hdr.status = '3'
-            and article_alternative_code is not null
-            and article.article_type = 'RMP'
-            order by article_alternative_code
-            ) as oki
-            left join article on article.article_code = oki.article_code_rm
-            order by alternative
-            ) as mari 
-            group by mari.article_code,alternative,mari.safety_stock,mari.qty_stock,mari.min_package,mari.uom
-            having (ceil(((sum(qty_target * qty_bom)-qty_stock)+safety_stock)/min_package) * min_package) > 0) z
-            full outer join (select '$prOrigin'::text as pr_number
-				,article_code
-				,qty
-				,uom
-				,supp_code
-				,qty_hitung
-				,updated_by
-				,updated_at from purchase_request_det where pr_number = '$prNew') as y on y.pr_number = z.pr_number and  y.article_code = z.article_code
-            where z.alternative is not null
-            order by z.alternative
+                left join article on article.article_code = bom_hdr.article_code_rm
+                where bom_hdr.status = '3'
+                and article_alternative_code is not null
+                and article.article_type = 'RMP'
+                order by article_alternative_code
+                ) as oki
+                left join article on article.article_code = oki.article_code_rm
+                order by alternative
+                ) as mari 
+                group by mari.article_code,alternative,mari.safety_stock,mari.qty_stock,mari.min_package,mari.uom
+                having (ceil(((sum(qty_target * qty_bom)-qty_stock)+safety_stock)/min_package) * min_package) > 0) z
+                full outer join (select '$prOrigin'::text as pr_number
+                    ,article_code
+                    ,qty
+                    ,uom
+                    ,supp_code
+                    ,qty_hitung
+                    ,updated_by
+                    ,updated_at from purchase_request_det where pr_number = '$prNew') as y on y.pr_number = z.pr_number and  y.article_code = z.article_code
+                where z.alternative is not null
+                order by z.alternative
             ";
+    
+            $rowAffected =  DB::select($sqlHdr);
+            if ($rowAffected){
+
+                /*
+                    update PR lama diisi dengan nomor yang baru yang nomor revisi
+                */
+                $oki = DB::table('purchase_request_det')
+                ->where('pr_number',$prOrigin)
+                ->update([
+                    'pr_number' => $prNew
+                ]);    
+                
+                /*
+                    insert data hasil hitungan sebagai nomor PR yang lama
+                */
+
+                DB::select($sqlDetInsert);
+
+                // if ($oki){
+                // Update isi dari PR detail dengan data yang baru hitung ulang
+                    /*Delete dulu yang tidak ada di hasil hitung*/
+                    //DB::select($sqlDetDelete);
+                    /*Insert hanya yang berubah saja*/
+                    // DB::select($sqlDetInsert);
+                // }
+        
+                //update PR isi jumlah revisi nya
+                DB::table('purchase_request_hdr')
+                ->where('pr_number',$prOrigin)
+                ->update(
+                    [
+                        'num_revision' => $numRevision,
+                        'status' => '1',
+                        // 'note'=> DB::raw("CONCAT(note,', $reason')"),
+                        'stock_date' =>$stockDate,
+                        'revised_by'=>Auth::user()->username,
+                        'revised_at'=> date('Y-m-d H:i:s'),
+                        'updated_by' => Auth::user()->username,
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]
+                );
+    
+                //update history approve PR yang lama  jadi tidak aktif
+                DB::table('approval_history')
+                ->where('module_number',$prOrigin)
+                ->update(
+                    [
+                        'module_number' => $prNew,
+                        'status' => '0',
+                        'updated_by' => Auth::user()->username,
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]
+                );
+
+                /*
+                    PO Di revisi kalau PTTSO sudah di approve y
+                    jadi yangdi bawah ini diabaikan
+
+                */
+
+                // $listPO = DB::table("purchase_request_det")
+                // ->where("pr_number",$prOrigin)
+                // ->where("po_number","<>",null)
+                // ->distinct('po_number')
+                // ->get();
+
+                // if(count($listPO)> 1){
+                //     foreach($listPO as $val){
+                //         $this->revisionPoFromPr($val->po_number,$prOrigin,$reason);
+                //     }
+                // }
+                  
+                $title ="Save $this->title";
+                $alert  ="success";
+                $message  = "$title Revision PR from TSO: $prOrigin to $prNew TSO:$tsoCode is successfully saved";
+                \LogActivity::addToLog($title,"username: $username Status $message");
+                // return redirect()->route('purchaseRequest.edit', ['id'=>Crypt::encryptString($id)]);
+                // return 'success';
+                return array(
+                    'prOrigin' => $prOrigin, 
+                    'prNew'   => $prNew,
+                    'tsoCode' =>$tsoCode, 
+                    'success' => true
+                   );
+            }else{
+                $title ="Save $this->title";
+                $alert  ="warning";
+                $message  = "$title Revision PR from TSO: $prOrigin to $prNew TSO:$tsoCode is failed to save";
+                \LogActivity::addToLog($title,"username: $username Status $message");
+                // return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);
+                // return 'failed';
+                return array(
+                    'prOrigin' => $prOrigin, 
+                    'prNew'   => $prNew,
+                    'tsoCode' =>$tsoCode, 
+                    'success' => false
+                );
+            }       
+        }else{
+            $title ="Save $this->title";
+            $alert  ="warning";
+            $message  = "$title Revision PR from TSO, PR:$prNumber not found";
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            // return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);
+            // return 'failed';
+            return array(
+                'prOrigin' => $prNumber, 
+                'prNew'   => $prNumber,
+                'tsoCode' =>$tsoCode, 
+                'success' => false
+            );
+        }
 
 
-            /*Dilengkapi dengan dengan RMP*/
+        /*Dilengkapi dengan dengan RMP*/
             // $sqlDet="INSERT into purchase_request_det
             // (
             //     pr_number,
@@ -2049,106 +2190,6 @@ class PurchaseRequestController extends Controller
             having (ceil(((sum(qty_target * qty_bom)-qty_stock)+safety_stock)/min_package) * min_package) > 0
             order by alternative";
             */
-    
-            $rowAffected =  DB::select($sqlHdr);
-            
-            if ($rowAffected){
-                //update PR lama diisi dengan nomor yang baru
-                $oki = DB::table('purchase_request_det')
-                ->where('pr_number',$prOrigin)
-                ->update([
-                    'pr_number' => $prNew
-                ]);                
-
-                // if ($oki){
-                // Update isi dari PR detail dengan data yang baru hitung ulang
-                    /*Delete dulu yang tidak ada di hasil hitung*/
-                    //DB::select($sqlDetDelete);
-                    /*Insert hanya yang berubah saja*/
-                    DB::select($sqlDetInsert);
-                // }
-        
-                //update PR isi jumlah revisi nya
-                DB::table('purchase_request_hdr')
-                ->where('pr_number',$prOrigin)
-                ->update(
-                    [
-                        'num_revision' => $numRevision,
-                        'status' => '1',
-                        // 'note'=> DB::raw("CONCAT(note,', $reason')"),
-                        'revised_by'=>Auth::user()->username,
-                        'revised_at'=> date('Y-m-d H:i:s'),
-                        'updated_by' => Auth::user()->username,
-                        'updated_at' => date('Y-m-d H:i:s')
-                    ]
-                );
-    
-                //update history approve PR yang lama  jadi tidak aktif
-                DB::table('approval_history')
-                ->where('module_number',$prOrigin)
-                ->update(
-                    [
-                        'module_number' => $prNew,
-                        'status' => '0',
-                        'updated_by' => Auth::user()->username,
-                        'updated_at' => date('Y-m-d H:i:s')
-                    ]
-                );
-
-                //cari apakah PR sudah jadi PO
-                // $listPO = DB::table("purchase_request_det")
-                // ->where("pr_number",$prOrigin)
-                // ->where("po_number","<>",null)
-                // ->distinct('po_number')
-                // ->get();
-
-                // if(count($listPO)> 1){
-                //     foreach($listPO as $val){
-                //         $this->revisionPoFromPr($val->po_number,$prOrigin,$reason);
-                //     }
-                // }
-                  
-                $title ="Save $this->title";
-                $alert  ="success";
-                $message  = "$title Revision PR from TSO: $prOrigin to $prNew TSO:$tsoCode is successfully saved";
-                \LogActivity::addToLog($title,"username: $username Status $message");
-                // return redirect()->route('purchaseRequest.edit', ['id'=>Crypt::encryptString($id)]);
-                // return 'success';
-                return array(
-                    'prOrigin' => $prOrigin, 
-                    'prNew'   => $prNew,
-                    'tsoCode' =>$tsoCode, 
-                    'success' => true
-                   );
-            }else{
-                $title ="Save $this->title";
-                $alert  ="warning";
-                $message  = "$title Revision PR from TSO: $prOrigin to $prNew TSO:$tsoCode is failed to save";
-                \LogActivity::addToLog($title,"username: $username Status $message");
-                // return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);
-                // return 'failed';
-                return array(
-                    'prOrigin' => $prOrigin, 
-                    'prNew'   => $prNew,
-                    'tsoCode' =>$tsoCode, 
-                    'success' => false
-                );
-            }       
-        }else{
-            $title ="Save $this->title";
-            $alert  ="warning";
-            $message  = "$title Revision PR from TSO, PR:$prNumber not found";
-            \LogActivity::addToLog($title,"username: $username Status $message");
-            // return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);
-            // return 'failed';
-            return array(
-                'prOrigin' => $prNumber, 
-                'prNew'   => $prNumber,
-                'tsoCode' =>$tsoCode, 
-                'success' => false
-            );
-        }
-
     }
 
     public function revisionPoFromPr($poOrigin,$prNumber,$reason){
@@ -2165,7 +2206,7 @@ class PurchaseRequestController extends Controller
         $checkNewPo=DB::table('purchase_order_hdr')->where('po_number',$poNew)->count();
 
         if ($checkNewPo > 0){
-            $poNew = $poOrigin.'-R'.$numRevision+1;
+            $poNew = $poOrigin.'-R'.($numRevision+1);
         } 
                 
         $sqlHdr = "INSERT into purchase_order_hdr 
@@ -2294,10 +2335,10 @@ class PurchaseRequestController extends Controller
             ->update(
             [
                 'qty' => DB::RAW("coalesce((select sum(qty) 
-                                             from purchase_request_det a  
-                                             where a.pr_number = purchase_order_det.pr_number and 
-                                             a.article_code = purchase_order_det.article_code),0)
-                        "),
+                                    from purchase_request_det a  
+                                    where a.pr_number = purchase_order_det.pr_number 
+                                    and a.article_code = purchase_order_det.article_code),0)
+                "),
                 'updated_by' => Auth::user()->username,
                 'updated_at' => date('Y-m-d H:i:s')
             ]

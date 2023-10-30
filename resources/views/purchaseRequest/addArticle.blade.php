@@ -64,6 +64,7 @@
 <script type="text/javascript">
     let orderDate = $('#orderDate');
     let stockDate = $('#stockDate');
+    let mdlStockDate = $('#mdlStockDate');
     let oDept = $('#dept');
     let objPoType = $('#poType');
     let objTsoBox = $('#tsoBox');

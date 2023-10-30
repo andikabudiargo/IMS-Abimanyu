@@ -60,7 +60,7 @@
                   <span aria-hidden="true">&times;</span>
               </button>
           </div>
-          <form id="modalReasonCancel" action="" method="post" >
+          <form id="modalReasonCancel" action="" method="post" autocomplete="off">
             @csrf
             <div class="modal-body">
               <div class="text-center">
@@ -95,7 +95,7 @@
                   <span aria-hidden="true">&times;</span>
               </button>
           </div>
-          <form id="modalReasonRevision" action="" method="post" >
+          <form id="modalReasonRevision" action="" method="post" autocomplete="off">
             @csrf
             <div class="modal-body">
               <div class="text-center">
@@ -107,7 +107,7 @@
               <br>
               <div class="form-row">
                 <div class="form-group col-md-12">
-                    <label for="account">Reason</label>
+                    <label for="reason">Reason</label>
                     <input type="text" id="reason" name="reason" class="form-control" value="{{ old('reason') }}"  required maxlength="100"/>
                 </div>
               </div>
@@ -120,3 +120,10 @@
       </div>
   </div>
 </div>
+
+<script type="text/javascript">     
+  // $('#reasonModalRevision').on('shown.bs.modal', function(e) {
+  //   alert('oki');
+  //    $('#reason').focus();
+  // });
+</script>

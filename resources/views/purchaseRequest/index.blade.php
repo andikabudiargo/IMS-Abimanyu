@@ -103,6 +103,7 @@
 </style>
 @endsection
 @section('scripts')
+@include('purchaseRequest.modalRevisi')
 <script type="text/javascript">
 
   let searchPr = document.querySelector("#searchPr");
@@ -213,6 +214,21 @@
       href = $(this).data('href');
       $('#modalReasonRevision').attr("action", href);
   });
+
+  $(document).on('click', '#revisionReasonButtonTso', function(event) {
+      event.preventDefault();
+      href = $(this).data('href');
+      $('#modalReasonRevisionTso').attr("action", href);
+  });
+
+  // $('#reasonModalRevisionTso').on('shown.bs.modal', function(e) {
+  //   if ($('#mdlStockDate').length) {
+  //     $('#mdlStockDate').flatpickr({
+  //       dateFormat: "d-m-Y",
+  //       // static : true 
+  //     });
+  //   } 
+  // });
 
   $.ajaxSetup({
     headers: {

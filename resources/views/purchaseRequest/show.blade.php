@@ -104,7 +104,10 @@
                                                     <th width="20%">Supplier</th>
                                                     <th class="text-right">QTY</th>
                                                     <th class="text-left">UOM</th>
-                                                    {{-- <th class="text-left">History</th> --}}
+                                                    @if($key ==0)
+                                                        <th class="text-left">Balance</th>
+                                                    @endif
+                                                    
                                                     @if ($key !=0)
                                                         @foreach( $headers as $key1 => $oki )
                                                             @if ($key1 < $key and $key1!= 0 )
@@ -130,10 +133,15 @@
                                                         <td >{{ $item->supplier_name }}</td>
                                                         <td class="text-right">{{ number_format($item->qty,2) }} </td>
                                                         <td>{{ $item->uom }}</td>
-                                                        {{-- <td class="text-left">{{ $item->notes }}</td> --}}
+                                                        
                                                         @php
                                                             {{ $histori = explode("->",$item->notes);}}
                                                         @endphp 
+
+                                                        @if ($key ==0)
+                                                            <td class="text-right">{{ number_format(intval($item->qty -$histori[count($histori)-1])) }}</td>
+                                                        @endif
+
                                                         @if ($key !=0)
                                                             @foreach( $headers as $key1 => $oki )
                                                                 @if ($key1 < $key and $key1!= 0)
@@ -155,7 +163,11 @@
                                                                 @endif
                                                             @endforeach
                                                         @endif
-                                                        
+                                                        {{-- @if ($key1 < $key and $key1!= 0)
+                                                            <td>{{ $key }} - {{ count($histori) }} - {{ $histori[count($histori)] }}</td>
+                                                        @else
+                                                            <td>{{ $key }} - {{ count($histori) }} - {{ $histori[count($histori)-1] }}</td>
+                                                        @endif --}}
                                                         <td>{{ $item->note }}</td>
                                                     </tr>
                                                 @endif
