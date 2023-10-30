@@ -58,7 +58,7 @@
                                 <div class="form-group col-md-3">
                                     <div class="form-group">
                                         <label for="totalAmount">Amount*</label>
-                                        <input type="text" id="totalAmount" name="totalAmount" value="{{ $header->amount }}" class="form-control text-right numeral-mask-digit" oninput='inputDecimal(this)' maxlength="20" required/>
+                                        <input type="text" id="totalAmount" name="totalAmount" value="{{ number_format($header->amount,2) }}" class="form-control text-right numeral-mask-digit" oninput='inputDecimal(this)' maxlength="20" required/>
                                     </div>
                                 </div>
                             </div>
@@ -312,7 +312,7 @@
                         let sDebit=objVcDebit.eq(i).val().replace(/,/gi, '') || 0;
                         let sCredit=objVcCredit.eq(i).val().replace(/,/gi, '') || 0;
 
-                        if ((sDesc!=='') && ((sDebit + sCredit) > 0) && (sAccount!=='') && (sCc!=='')){
+                        if ((sDesc!=='') && ((sDebit + sCredit) != 0) && (sAccount!=='') && (sCc!=='')){
                             details.push({
                                 "account":sAccount,
                                 "description":sDesc,
