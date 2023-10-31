@@ -486,6 +486,7 @@ class AccountPayableController extends Controller
         $invoiceNumber=$request->invoiceNumber;
         $taxInvoiceNumber=$request->taxInvoiceNumber;
         $recNumberSave = explode(",",$request->recNumberSave);
+        $period=$request->period;
 
         $periodNomor=explode('-', $apDate)[1];
 
@@ -600,7 +601,8 @@ class AccountPayableController extends Controller
                     'account_pph' => $accountPph,
                     'inv_number' => $invoiceNumber,
                     'tax_inv_number' =>$taxInvoiceNumber,
-                    'ap_date' =>$apDate
+                    'ap_date' =>$apDate,
+                    'period' =>$period
                 ]);
 
                 if($rowAffected){
@@ -835,6 +837,7 @@ class AccountPayableController extends Controller
         $otherDeduct = 0;
         $account= $request->account;
         $note=$request->note;
+        $period=$request->period;
 
         $apDate= $request->apDate;
         $invoiceNumber=$request->invoiceNumber;
@@ -949,6 +952,7 @@ class AccountPayableController extends Controller
                         'account_total' => $acountTotal,
                         'account_vat' => $accountVat,
                         'account_pph' => $accountPph,
+                        'period' => $period
                     ]
                 );
 
@@ -1043,6 +1047,10 @@ class AccountPayableController extends Controller
                         'updated_at' => date('Y-m-d H:i:s')
                     ]);
                 }
+
+                if($status == '3'){
+                    $this->prosesPosting($apNumber);
+                }
                 
                 DB::commit();
                 $title ="Approve $this->title";
@@ -1068,6 +1076,8 @@ class AccountPayableController extends Controller
         ->select('ap_invoice.*','third_party.nama as supplier_name')
         ->where('ap_number',$apNumber)->first();
 
+        $period = $apData->period ? $apData->period : (int)explode('-',$apData->ap_date)[1];
+
         DB::table('kas_hdr')->insert([
             'voucher_number' =>$apNumber,
             'voucher_type' =>$this->moduleCode,
@@ -1075,7 +1085,8 @@ class AccountPayableController extends Controller
             'paid_to' => $apData->supplier_id,
             'description' => $apNumber,
             'amount' => $apData->grand_total,
-            'period' =>date('n'),
+            // 'period' =>date('n'),
+            'period' => $period,
             'year' =>date('Y'),                        
             'note' => $apData->note,
             'status' => '1',
@@ -1162,6 +1173,17 @@ class AccountPayableController extends Controller
         ];  
 
         DB::table('kas_det')->insert($dataSet);
+        DB::table('ap_invoice')
+        ->where('ap_number',$apNumber)
+        ->update(
+            [   
+                'status' => '4',
+                'authorized_by' => Auth::user()->username,
+                'authorized_at' => date('Y-m-d H:i:s'),
+                'updated_by' => Auth::user()->username,
+                'updated_at' => date('Y-m-d H:i:s')
+            ]
+        );
     }
 
     public function posting(Request $request)
@@ -1174,16 +1196,16 @@ class AccountPayableController extends Controller
         $authorizedBy = Auth::user()->username;
                 
         $rowAffected = DB::table('ap_invoice')
-            ->where('ap_number',$apNumber)
-            ->update(
-                [   
-                    'status' => $status,
-                    'authorized_by' => $authorizedBy,
-                    'authorized_at' => date('Y-m-d H:i:s'),
-                    'updated_by' => Auth::user()->username,
-                    'updated_at' => date('Y-m-d H:i:s')
-                ]
-            );
+        ->where('ap_number',$apNumber)
+        ->update(
+            [   
+                'status' => $status,
+                'authorized_by' => $authorizedBy,
+                'authorized_at' => date('Y-m-d H:i:s'),
+                'updated_by' => Auth::user()->username,
+                'updated_at' => date('Y-m-d H:i:s')
+            ]
+        );
 
         if($rowAffected){
 

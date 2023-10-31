@@ -260,8 +260,8 @@
                 if (!$("#frmAdd")[0].checkValidity()){
                     $("#frmAdd").submit();
                 }else{
+                    $("#cmdSave").attr('disabled','disabled')
                     $('.disabled-el').removeAttr('disabled');
-                    
                     $('#recNumberSave').val(recNumber);
                     $("#frmAdd").submit();
                 }

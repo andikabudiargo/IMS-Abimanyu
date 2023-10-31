@@ -21,14 +21,23 @@
                             <div class="row">
                                 <div class="col-md-6 col-12">
                                     <div class="form-row">
-                                        <div class="form-group col-md-9">
+                                        <div class="form-group col-md-7">
                                             <label for="apNumber">AP Number</label> <small class="text-muted"> automatic</small>
                                             <input type="text" id="apNumber" name="apNumber" class="form-control text-hitam disabled-el" value="{{ $header->ap_number }}" disabled />
                                             <input type="hidden" id="recNumberSave" name="recNumberSave" class="form-control text-hitam disabled-el" value="{{ $recNumbers }}" />
                                         </div>
                                         <div class="form-group col-md-3">
-                                            <label for="apDate">Invoice Date*</label>
+                                            <label for="apDate">Receive AP*</label>
                                             <input type="text" id="apDate" name="apDate" class="form-control" value="{{ old('apDate',$header->ap_date)  }}" placeholder="DD-MM-YYYY" />
+                                        </div> 
+                                        <div class="form-group col-md-2">
+                                            <label for="period">Period*</label>
+                                            <select class="select2 form-control" id="period" name="period" required>
+                                                <option value=""></option>
+                                                @for ($i = 1; $i <= 12; $i++)
+                                                    <option value="{{ $i }}" {{$i == $header->period ? "selected" : ""}}>{{ $i }}</option>
+                                                @endfor
+                                            </select>
                                         </div> 
                                     </div>
                                     <div class="form-row">
