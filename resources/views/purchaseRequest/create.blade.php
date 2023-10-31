@@ -37,7 +37,7 @@
                                 </div>
                                 <div class="form-group col-md-2">
                                     <label for="orderDate">Request Date*</label>
-                                    <input type="text" id="orderDate" name="orderDate" class="form-control" placeholder="DD-MM-YYYY" disabled/>
+                                    <input type="text" id="orderDate" name="orderDate" class="form-control" placeholder="DD-MM-YYYY"/>
                                 </div>
                                 
                                 <div class="form-group col-md-4">
