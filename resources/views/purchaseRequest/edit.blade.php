@@ -40,7 +40,7 @@
                                 </div>
                                 <div class="form-group col-md-2">
                                     <label for="orderDate">Order Date</label>
-                                    <input type="text" id="orderDate" name="orderDate" class="form-control disabled-el" placeholder="DD-MM-YYYY" value="{{ $header->date }}" disabled/>
+                                    <input type="text" id="orderDate" name="orderDate" class="form-control disabled-el" placeholder="DD-MM-YYYY" value="{{ $header->date }}"/>
                                 </div>
                                 <div class="form-group col-md-4">
                                     <label class="form-label" for="dept">Department*</label>
