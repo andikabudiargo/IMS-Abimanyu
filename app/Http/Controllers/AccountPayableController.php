@@ -487,7 +487,7 @@ class AccountPayableController extends Controller
         $taxInvoiceNumber=$request->taxInvoiceNumber;
         $recNumberSave = explode(",",$request->recNumberSave);
 
-        $periodNomor=explode('-', $invoiceDate)[1];
+        $periodNomor=explode('-', $apDate)[1];
 
         $totalDiscount = is_null($request->totalDiscount) ? 0 : preg_replace('/[^0-9.]+/', '', $request->totalDiscount);
         $grandTotal = is_null($request->grandTotal) ? 0 :  preg_replace('/[^0-9.]+/', '', $request->grandTotal);
