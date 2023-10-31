@@ -715,12 +715,12 @@ class BankKeluarController extends Controller
         ->where('approval_order',4)
         ->first();
 
-        return view('accounting.bankKeluar.print',$data);
+        // return view('accounting.bankKeluar.print',$data);
 
-        // view()->share($data);
+        view()->share($data);
 
-        // $pdf = PDF::loadView('accounting.bankKeluar.print');
-        // return $pdf->stream("$vcNumber.pdf");
+        $pdf = PDF::loadView('accounting.bankKeluar.print');
+        return $pdf->stream("$vcNumber.pdf");
 
     }
 
