@@ -147,7 +147,7 @@
                 </tr>
                 <tr>
                     <td valign="" width="3%" class="font-10 header-padding">No PO</td>
-                    <td valign="" width="30%" class="font-10 header-padding">: {{ $poNumber }}</td>
+                    <td valign="" width="80%" class="font-10 header-padding">: {{ $poNumber }}</td>
                     <td></td>
                 </tr>
                 <tr>

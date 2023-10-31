@@ -658,7 +658,12 @@ class PurchaseRequestController extends Controller
 
                      */
 
-                    $poList = DB::select("SELECT distinct(purchase_order_det.po_number) 
+                   
+
+                    $poList = DB::select("SELECT distinct po_number
+                    from purchase_order_det a 
+                    where 
+                    po_number in (SELECT distinct(purchase_order_det.po_number) 
                     from purchase_order_det
                     left join purchase_order_hdr on purchase_order_det.po_number = purchase_order_hdr.po_number
                     where pr_number = '$prNumber' 
@@ -667,10 +672,27 @@ class PurchaseRequestController extends Controller
                     full outer join (select * from purchase_request_det where pr_number = '$prTerakhir') b on b.article_code = a.article_code
                     where a.pr_number = '$prNumber'
                     and a.qty <> b.qty
-                    --and purchase_order_det.qty < b.qty
                     )
-                    and purchase_order_hdr.status <> '7'");
-                    
+                    and purchase_order_hdr.status <> '7')
+                    and a.qty < (select qty from purchase_request_det b where b.pr_number = a.pr_number and a.article_code = b.article_code)");
+
+
+                    /* QUERY LAMA
+                        $poList = DB::select("SELECT distinct(purchase_order_det.po_number) 
+                        from purchase_order_det
+                        left join purchase_order_hdr on purchase_order_det.po_number = purchase_order_hdr.po_number
+                        where pr_number = '$prNumber' 
+                        and article_code in (
+                        select a.article_code from purchase_request_det a 
+                        full outer join (select * from purchase_request_det where pr_number = '$prTerakhir') b on b.article_code = a.article_code
+                        where a.pr_number = '$prNumber'
+                        and a.qty <> b.qty
+                        --and purchase_order_det.qty < b.qty
+                        )
+                        and purchase_order_hdr.status <> '7'");
+                    */
+
+                   
                     if (count($poList)>0){
                         foreach($poList as $val){
                             $this->revisionPoFromPr($val->po_number,$prNumber,'Revisi');

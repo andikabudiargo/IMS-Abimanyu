@@ -150,7 +150,7 @@
       tableId:"detailedTable",
       route:"{{ route('transferIn.list') }}",
       kolom:{!! $kolom !!},
-      arrColPrint:[1,2,3,4,5],
+      arrColPrint:[1,2,3,4,5,6,7,8],
       columnDefs :[
         { width: '5%', targets: 0 },
       ],
@@ -160,7 +160,7 @@
         searchStatus:searchStatus,
         trDate:trDate
       },
-      orderColumn:[[ 4, 'asc' ],[ 1, 'desc' ]],
+      orderColumn:[[ 7, 'asc' ],[ 1, 'desc' ]],
       excelFileName:'transfer_in'
     });
   }
