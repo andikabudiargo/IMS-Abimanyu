@@ -80,8 +80,13 @@ class InvoiceController extends Controller
         return view("invoice.index",$data);
     }
 
-    public function getLastCode($key)
+    public function getLastCode($key,$period)
     {
+        /*
+            31 Oktober 2023
+            Untuk angka romawi berdasarkan period
+        */
+        
         DB::table('master_code')
         ->where('code_key',$key)
         ->update([
@@ -94,7 +99,8 @@ class InvoiceController extends Controller
         ->where('code_key',$key)
         ->value('code_number'); 
         $months = ['I', 'II', 'III','IV','V', 'VI', 'VII', 'VIII','IX','X','XI','XII'];
-        $month = $months[date('n')-1];
+        // $month = $months[date('n')-1];
+        $month = $months[$period-1];
         $year = date('y');
         $invNumber="$key/ASN/$year/$month/$newCode";
         
@@ -140,6 +146,8 @@ class InvoiceController extends Controller
         $dpp = $request->totalAmount;
         $grandTotal = $request->grandTotal;
 
+        $periodNomor=explode('-', $invDate)[1];
+
        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','6'=>'PAID','7'=>'REVISED'];
 
         $messages = [
@@ -175,7 +183,7 @@ class InvoiceController extends Controller
             return response()->json(array('status' => 0,'title' => $title, 'message' => $error_array,'alert' =>$alert));
         }else{
             $hasilUpdate = AppHelpers::resetCode($this->moduleCode);
-            $invCode = $this->getLastCode($this->moduleCode);
+            $invCode = $this->getLastCode($this->moduleCode,$periodNomor);
             DB::beginTransaction();
             try {
                 DB::table('invoice_hdr')->insert([

@@ -109,7 +109,8 @@ class AccountPayableController extends Controller
         return view("accountPayable.index",$data);
     }
 
-    public function getLastCode($key)
+    // public function getLastCode($key)
+    public function getLastCode($key,$period)
     {
         DB::table('master_code')
         ->where('code_key',$key)
@@ -123,7 +124,8 @@ class AccountPayableController extends Controller
         ->where('code_key',$key)
         ->value('code_number'); 
         $months = ['I', 'II', 'III','IV','V', 'VI', 'VII', 'VIII','IX','X','XI','XII'];
-        $month = $months[date('n')-1];
+        // $month = $months[date('n')-1];
+        $month = $months[$period-1];
         $year = date('Y');
         $poNumber="$key-ASN/$year/$month/$newCode";
         
@@ -485,6 +487,8 @@ class AccountPayableController extends Controller
         $taxInvoiceNumber=$request->taxInvoiceNumber;
         $recNumberSave = explode(",",$request->recNumberSave);
 
+        $periodNomor=explode('-', $invoiceDate)[1];
+
         $totalDiscount = is_null($request->totalDiscount) ? 0 : preg_replace('/[^0-9.]+/', '', $request->totalDiscount);
         $grandTotal = is_null($request->grandTotal) ? 0 :  preg_replace('/[^0-9.]+/', '', $request->grandTotal);
 
@@ -565,7 +569,7 @@ class AccountPayableController extends Controller
         $this->validate($request,$rule,$messages);
 
         $hasilUpdate = AppHelpers::resetCode($this->moduleCode);
-        $apNumber = $this->getLastCode($this->moduleCode);
+        $apNumber = $this->getLastCode($this->moduleCode,$periodNomor);
         DB::beginTransaction();
         try {
                 $rowAffected = DB::table('ap_invoice')->insert([

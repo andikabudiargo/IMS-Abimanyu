@@ -164,7 +164,7 @@
         searchStatus:searchStatus,
         recDate:recDate
       },
-      orderColumn:[[ 1, 'desc' ]],
+      orderColumn:[[ 14, 'desc' ]],
       excelFileName:'invoice_customer'
     });
   }

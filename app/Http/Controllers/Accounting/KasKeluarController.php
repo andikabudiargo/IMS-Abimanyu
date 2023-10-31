@@ -71,7 +71,7 @@ class KasKeluarController extends Controller
         return json_encode($kolom, true);
     }
 
-    public function getLastCode($key)
+    public function getLastCode($key,$period)
     {
         DB::table('master_code')
         ->where('code_key',$key)
@@ -86,7 +86,8 @@ class KasKeluarController extends Controller
         ->value('code_number'); 
 
         $newCode = str_pad($newCode,4,"0",STR_PAD_LEFT);
-        $month = str_pad(date('n'),2,"0",STR_PAD_LEFT);
+        // $month = str_pad(date('n'),2,"0",STR_PAD_LEFT);
+        $month = str_pad($period,2,"0",STR_PAD_LEFT);
         $year = date('y');
         $code="$key/$month/$year/$newCode";
        
@@ -139,6 +140,8 @@ class KasKeluarController extends Controller
         $leadCode =$this->moduleCode;
         $paidToDesc = $request->paidToDesc;
 
+        $periodNomor=explode('-', $vcDate)[1];
+
         // dd($details);
         
         $messages = [
@@ -171,7 +174,7 @@ class KasKeluarController extends Controller
             return response()->json(array('status' => 0,'title' => $title, 'message' => $error_array,'alert' =>$alert));
         }else{
             $hasilUpdate = AppHelpers::resetCode($leadCode);
-            $vcNumber = $this->getLastCode($leadCode);
+            $vcNumber = $this->getLastCode($leadCode,$periodNomor);
             DB::beginTransaction();
             try {
                     DB::table('kas_hdr')->insert([
