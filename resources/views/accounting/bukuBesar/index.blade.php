@@ -42,6 +42,26 @@
               </div>
             </div>
             <div class="form-row">
+              <div class="form-group col-md-4">
+                <label class="form-label" for="perkiraan1">Perkiraan Awal</label>
+                <select class="select2 form-control" id="perkiraan1" name="perkiraan1" >
+                  <option value=""></option>
+                  @foreach($accounts as $val)
+                    <option value="{{ $val->account }}">{{ $val->account }} - {{ $val->description }}</option>
+                  @endforeach
+                </select>
+              </div>
+              <div class="form-group col-md-4">
+                <label class="form-label" for="perkiraan2">Perkiraan Akhir</label>
+                <select class="select2 form-control" id="perkiraan2" name="perkiraan2" >
+                  <option value=""></option>
+                  @foreach($accounts as $val)
+                      <option value="{{ $val->account }}">{{ $val->account }} - {{ $val->description }}</option>
+                  @endforeach
+                </select>
+              </div>
+            </div>
+            <div class="form-row">
               <div class="form-group col-md-8"> 
                 <label class="form-label" for="departement">Departemen</label>
                 <select class="select2 form-control" id="departement" name="departement" multiple>
@@ -121,10 +141,12 @@
     let period1 = $("#period1").val();
     let period2 = $("#period2").val();
     let dept = $("#departement").val();
-    showList(vcDate,period1,period2,dept);
+    let perkiraan1 = $("#perkiraan1").val();
+    let perkiraan2 = $("#perkiraan2").val();
+    showList(vcDate,period1,period2,dept,perkiraan1,perkiraan2);
   });
 
-  const showList = (vcDate,period1,period2,dept) => {
+  const showList = (vcDate,period1,period2,dept,perkiraan1,perkiraan2) => {
     if ($('#detailedTable tr').length >0){
         let table= $('#detailedTable').DataTable();
         table.destroy();
@@ -148,7 +170,9 @@
         vcDate:vcDate,
         period1:period1,
         period2:period2,
-        dept:dept
+        dept:dept,
+        perkiraan1,
+        perkiraan2
       },
       // orderColumn:[[ 9,'asc']],
       excelFileName:'buku_besar'

@@ -73,6 +73,10 @@ class BukuBesarController extends Controller
         $data['depts'] = DB::table('depts')
         ->orderBy('name')
         ->get();
+
+        $data['accounts'] = DB::table('accounts')
+        ->orderBy('account')
+        ->get();
           
         return view("accounting.bukuBesar.index",$data);
     }
@@ -84,6 +88,21 @@ class BukuBesarController extends Controller
         $period1 = $request->period1;
         $period2 = $request->period2;
         $costCenter = $request->dept;
+        $perkiraan1 = $request->perkiraan1;
+        $perkiraan2 = $request->perkiraan2;
+
+        $adaPerkiraan = "";
+
+        if ($perkiraan1 || $perkiraan2){
+            $adaPerkiraan = "ada";
+            if($perkiraan1 && !$perkiraan2){
+                $perkiraan2=$perkiraan1;
+            }
+            if(!$perkiraan1 && $perkiraan2){
+                $perkiraan1=$perkiraan2;
+            }
+        }        
+
         $fromDate = "";
         $toDate = "";
         
@@ -105,10 +124,11 @@ class BukuBesarController extends Controller
         ->leftJoin('accounts','accounts.account','kas_det.account')
         ->leftJoin('depts','depts.code','kas_det.cost_center')
         // ->leftJoin('third_party','third_party.kode','kas_hdr.paid_to')
-        ->where(function ($query) use ($vcDate,$fromDate,$toDate,$period1,$period2,$costCenter) {
+        ->where(function ($query) use ($vcDate,$fromDate,$toDate,$period1,$period2,$costCenter,$perkiraan1,$perkiraan2,$adaPerkiraan) {
             $vcDate ? $query->whereBetween(DB::raw("to_date(voucher_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
             $period1 ? $query->whereBetween('period', [$period1, $period2]) : '';
             $costCenter ? $query->whereIn('cost_center', $costCenter) : '';
+            $adaPerkiraan ? $query->whereBetween('kas_det.account', [$perkiraan1, $perkiraan2]) : '';
         })
         ->whereNOtIn('kas_hdr.status',['4','5'])
         ->select(
