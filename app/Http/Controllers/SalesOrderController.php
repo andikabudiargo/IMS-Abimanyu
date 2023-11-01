@@ -1191,10 +1191,14 @@ class SalesOrderController extends Controller
         left join delivery_hdr b on a.delivery_number=b.delivery_number 
         where a.so_number = sales_order_hdr.so_code and a.article_code = sales_order_det.article_code 
         and status <> '5' group by article_code) as qty_kirim")
-        ,db::raw("coalesce((select sum(qty) from delivery_det a
+        // ,db::raw("(coalesce((select sum(qty) from delivery_det a
+        // left join delivery_hdr b on a.delivery_number=b.delivery_number 
+        // where a.so_number = sales_order_hdr.so_code and a.article_code = sales_order_det.article_code 
+        // and status <> '5' group by article_code),0)-sales_order_det.qty) as balance")
+        ,db::raw("case when sales_order_det.status = '1' then 0 else (coalesce((select sum(qty) from delivery_det a
         left join delivery_hdr b on a.delivery_number=b.delivery_number 
         where a.so_number = sales_order_hdr.so_code and a.article_code = sales_order_det.article_code 
-        and status <> '5' group by article_code),0)-sales_order_det.qty as balance")
+        and status <> '5' group by article_code),0)-sales_order_det.qty) end as balance")
         // ,'sales_order_hdr.status as statusKu'
         // ,'uom_group'
         // ,'qty_target'
@@ -1207,6 +1211,10 @@ class SalesOrderController extends Controller
         ->get(); 
     
         return Datatables::of($data)
+        // ->addColumn('balance', function ($data) {
+        //     return $data->balance;
+        // })
+        // ->rawColumns(['balance'])
         ->make(true);
     }
 

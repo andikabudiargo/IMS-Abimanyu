@@ -1564,20 +1564,27 @@ class PurchaseRequestController extends Controller
         $reasonRequest = $reason;
         $reason = "(Revision from TSO : $tsoCode, by $username, $reason)";
 
-        if ($mdlStockDate){
-            $mdlStockDate = implode("-", array_reverse(explode("-", $mdlStockDate)));
-        }
-
-        $prNumber = DB::table('target_order_hdr')
+        $prData = DB::table('target_order_hdr')
         ->where('tso_code',$tsoCode)
-        ->value('pr_number');
+        ->first(); 
+        // ->value('pr_number');
 
+        $prNumber = $prData->pr_number;
+        
         if ($prNumber){
 
             $prOrigin = $prNumber;
             $prHdr = DB::table('purchase_request_hdr')
             ->where('pr_number',$prNumber)
             ->first(); 
+
+            $stockDateOrigin = $prHdr->stock_date;
+
+            if ($mdlStockDate){
+                $mdlStockDate = implode("-", array_reverse(explode("-", $mdlStockDate)));
+            }else{
+                $mdlStockDate = $stockDateOrigin;
+            }
     
             /*revisi program tanggal diinput waktu melakukan revisi */
             // $stockDate = $prHdr->stock_date;
