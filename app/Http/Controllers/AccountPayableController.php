@@ -488,7 +488,18 @@ class AccountPayableController extends Controller
         $recNumberSave = explode(",",$request->recNumberSave);
         $period=$request->period;
 
-        $periodNomor=explode('-', $apDate)[1];
+        $tanggalReceive = (int)explode('-', $apDate)[0];
+        $bulanReceive = (int)explode('-', $apDate)[1];
+        
+        if($tanggalReceive < 5 ){
+            if($bulanReceive == 1){
+                $periodNomor = 12;
+            }else{
+                $periodNomor = $bulanReceive-1;
+            }
+        }else{
+            $periodNomor= $bulanReceive;
+        }
 
         $totalDiscount = is_null($request->totalDiscount) ? 0 : preg_replace('/[^0-9.]+/', '', $request->totalDiscount);
         $grandTotal = is_null($request->grandTotal) ? 0 :  preg_replace('/[^0-9.]+/', '', $request->grandTotal);

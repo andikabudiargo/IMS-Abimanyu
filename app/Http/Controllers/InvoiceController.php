@@ -146,7 +146,7 @@ class InvoiceController extends Controller
         $dpp = $request->totalAmount;
         $grandTotal = $request->grandTotal;
 
-        $periodNomor=explode('-', $invDate)[1];
+        $periodNomor=(int)explode('-', $invDate)[1];
 
        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','6'=>'PAID','7'=>'REVISED'];
 
