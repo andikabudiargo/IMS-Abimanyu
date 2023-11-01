@@ -98,13 +98,16 @@ class InvoiceController extends Controller
         $newCode = DB::table('master_code')
         ->where('code_key',$key)
         ->value('code_number'); 
+        $newCode = str_pad($newCode,4,"0",STR_PAD_LEFT);
         $months = ['I', 'II', 'III','IV','V', 'VI', 'VII', 'VIII','IX','X','XI','XII'];
         // $month = $months[date('n')-1];
         $month = $months[$period-1];
         $year = date('y');
-        $invNumber="$key/ASN/$year/$month/$newCode";
+        // INV-ASN-23-X-0001
+        $code="$key-ASN-$year-$month-$newCode";
+        // $code="$key/ASN/$year/$month/$newCode";
         
-        return $invNumber;
+        return $code;
     }
 
     public function create(Request $request)
@@ -145,8 +148,11 @@ class InvoiceController extends Controller
         $fakturPajak  = $request->fakturPajak;
         $dpp = $request->totalAmount;
         $grandTotal = $request->grandTotal;
+        $period = (int)explode('-', $invDate)[1];
+        $periodNomor = (int)explode('-', $invDate)[1];
 
-        $periodNomor=(int)explode('-', $invDate)[1];
+        $accountPenjualan = DB::table('third_party')->where('kode',$customer)->value('coa_penjualan');
+        $accountPiutang = DB::table('third_party')->where('kode',$customer)->value('account');
 
        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','6'=>'PAID','7'=>'REVISED'];
 
@@ -211,7 +217,10 @@ class InvoiceController extends Controller
                     'faktur_pajak' =>$fakturPajak,
                     'grand_total' =>$grandTotal,
                     'total_ppn' =>$totalPpn,
-                    'total_pph' =>$totalPph
+                    'total_pph' =>$totalPph,
+                    'period'=> $period,
+                    'account_piutang' =>$accountPiutang,
+                    'account_penjualan' =>$accountPenjualan
                 ]);
 
                 $dataSet = [];
@@ -409,6 +418,11 @@ class InvoiceController extends Controller
         $dpp = $request->totalAmount;
         $grandTotal = $request->grandTotal;
 
+        $period = (int)explode('-', $invDate)[1];
+
+        $accountPenjualan = DB::table('third_party')->where('kode',$customer)->value('coa_penjualan');
+        $accountPiutang = DB::table('third_party')->where('kode',$customer)->value('account');
+
         // $data['status'] = ['1'=>'DRAFT','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','6'=>'CLOSED','6'=>'PAID'];
 
         $customMessages = [
@@ -470,7 +484,10 @@ class InvoiceController extends Controller
                             'faktur_pajak' =>$fakturPajak,
                             'grand_total' =>$grandTotal,
                             'total_ppn' =>$totalPpn,
-                            'total_pph' =>$totalPph
+                            'total_pph' =>$totalPph,
+                            'period' =>$period,
+                            'account_piutang' =>$accountPiutang,
+                            'account_penjualan' =>$accountPenjualan
                         ]
                     );
 
@@ -682,7 +699,7 @@ class InvoiceController extends Controller
             ->where('module_number',$invNumber)
             ->where('module_code',$this->moduleCode)
             ->delete();
-
+            
             // DB::table('invoice_det')
             // ->where('invoice_number',$invNumber)
             // ->update(
@@ -1222,6 +1239,10 @@ class InvoiceController extends Controller
                         'updated_at' => date('Y-m-d H:i:s')
                     ]);
                 }
+
+                if($statusInv == '3'){
+                    $this->prosesPosting($invNumber);
+                }
                 
                 DB::commit();
                 $title ="Approve $this->title";
@@ -1281,20 +1302,24 @@ class InvoiceController extends Controller
 
     public function prosesPosting($invNumber){
         /* Proses posting ke kas*/
-        $apData = db::table('ap_invoice')
-        ->leftJoin('third_party', 'third_party.kode', '=', 'ap_invoice.supplier_id')
-        ->select('ap_invoice.*','third_party.nama as supplier_name')
-        ->where('ap_number',$invNumber)->first();
+
+        $pphDibayarDimuka = '1100.75';
+        $ppnKeluaranCustomer = '2000.14.1';
+
+        $apData = db::table('invoice_hdr')
+        ->leftJoin('third_party', 'third_party.kode', '=', 'invoice_hdr.customer_id')
+        ->select('invoice_hdr.*','third_party.nama as customer_name')
+        ->where('invoice_number',$invNumber)->first();
 
         DB::table('kas_hdr')->insert([
             'voucher_number' =>$invNumber,
             'voucher_type' =>$this->moduleCode,
             'voucher_date' =>date('Y-m-d'), //tanggal posting
-            'paid_to' => $apData->supplier_id,
+            'paid_to' => $apData->customer_id,
             'description' => $invNumber,
             'amount' => $apData->grand_total,
-            'period' =>date('n'),
-            'year' =>date('Y'),                        
+            'period' => $apData->period,
+            'year' => date('Y'),                        
             'note' => $apData->note,
             'status' => '1',
             'created_by' => Auth::user()->username,
@@ -1306,79 +1331,101 @@ class InvoiceController extends Controller
         // $reference = $invNumber;
         $reference = '';
 
+        /*
+            1.piutang usaha dulu
+        */
+
         $dataSet = [];
         $dataSet[] = [
             'voucher_number' => $invNumber,
-            'account' =>$apData->account_ba,
-            'description' => $invNumber.' '.$apData->supplier_name,
-            'debit' => $apData->basis_amount,
+            'account' =>$apData->account_piutang,
+            'description' => $invNumber.' '.$apData->customer_name,
+            'debit' => $apData->grand_total,
             'credit' => 0,
             'reference' => $reference,  //sementara tidak di masukan belum tau fungsinya apa
             'created_by' => Auth::user()->username,
             'updated_by' => Auth::user()->username,
             'created_at' => date('Y-m-d H:i:s'),
-            'updated_at' => date('Y-m-d H:i:s')
+            'updated_at' => date('Y-m-d H:i:s'),
+            'cost_center' => '007'
         ];
 
-        if($apData->vat > 0){
+        /*
+            2.pph dibayar dimuka 1100.75
+
+        */
+        
+        if($apData->total_pph > 0){
             $dataSet[] = [
                 'voucher_number' => $invNumber,
-                'account' =>$apData->account_vat,
-                'description' => $invNumber.' '.$apData->supplier_name,
-                'debit' => $apData->vat,
+                'account' =>$pphDibayarDimuka,
+                'description' => $invNumber.' '.$apData->customer_name,
+                'debit' => $apData->total_pph,
                 'credit' => 0,
                 'reference' => $reference,
                 'created_by' => Auth::user()->username,
                 'updated_by' => Auth::user()->username,
                 'created_at' => date('Y-m-d H:i:s'),
-                'updated_at' => date('Y-m-d H:i:s')
+                'updated_at' => date('Y-m-d H:i:s'),
+                'cost_center' => '007'
             ];
         }
 
-        //belum ada no account nya
-        // if($apData->total_discount > 0){
-        //     $dataSet[] = [
-        //         'voucher_number' => $invNumber,
-        //         'account' =>$apData->account_total,
-        //         'description' => $invNumber.' '.$apData->supplier_name,
-        //         'debit' => 0,
-        //         'credit' => $apData->total_discount,
-        //         'reference' => $reference,
-        //         'created_by' => Auth::user()->username,
-        //         'updated_by' => Auth::user()->username,
-        //         'created_at' => date('Y-m-d H:i:s'),
-        //         'updated_at' => date('Y-m-d H:i:s')
-        //     ];  
-        // }
+        /*
+            3.penjualan
+        */
 
-        if($apData->pph23 > 0){
+        $dataSet[] = [
+            'voucher_number' => $invNumber,
+            'account' =>$apData->account_penjualan,
+            'description' => $invNumber.' '.$apData->customer_name,
+            'debit' => 0,
+            'credit' => $apData->dpp,
+            'reference' => $reference,  //sementara tidak di masukan belum tau fungsinya apa
+            'created_by' => Auth::user()->username,
+            'updated_by' => Auth::user()->username,
+            'created_at' => date('Y-m-d H:i:s'),
+            'updated_at' => date('Y-m-d H:i:s'),
+            'cost_center' => '007'
+        ];
+
+        /*
+            3.ppn keluran customer
+        */
+
+        if($apData->total_ppn > 0){
             $dataSet[] = [
                 'voucher_number' => $invNumber,
-                'account' =>$apData->account_pph,
-                'description' => $invNumber.' '.$apData->supplier_name,
+                'account' =>$ppnKeluaranCustomer,
+                'description' => $invNumber.' '.$apData->customer_name,
                 'debit' => 0,
-                'credit' => $apData->pph23,
+                'credit' => $apData->total_ppn,
                 'reference' => $reference,
                 'created_by' => Auth::user()->username,
                 'updated_by' => Auth::user()->username,
                 'created_at' => date('Y-m-d H:i:s'),
-                'updated_at' => date('Y-m-d H:i:s')
-            ];  
-        }
-
-        $dataSet[] = [
-            'voucher_number' => $invNumber,
-            'account' =>$apData->account_total,
-            'description' => $invNumber.' '.$apData->supplier_name,
-            'debit' => 0,
-            'credit' => $apData->grand_total,
-            'reference' => $reference,
-            'created_by' => Auth::user()->username,
-            'updated_by' => Auth::user()->username,
-            'created_at' => date('Y-m-d H:i:s'),
-            'updated_at' => date('Y-m-d H:i:s')
-        ];  
+                'updated_at' => date('Y-m-d H:i:s'),
+                'cost_center' => '007'
+            ];
+        }       
 
         DB::table('kas_det')->insert($dataSet);
+    }
+
+    public function prosesAllPosting(){
+        $listInvoice = db::table('invoice_hdr')
+        ->where('status',['3'])
+        ->whereNotIn(DB::raw("invoice_number"), function($query) {
+            $query->select('voucher_number')
+            ->from('kas_det');
+        })
+        ->get();
+
+        foreach($listInvoice as $val){
+            $this->prosesPosting($val->invoice_number);
+        }
+
+        return "beres";
+
     }
 }

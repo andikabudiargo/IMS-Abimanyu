@@ -159,7 +159,7 @@
       tableId:"detailedTable",
       route:"{{ route('bankKeluar.list') }}",
       kolom:{!! $kolom !!},
-      arrColPrint:[1,2,3,4,5,6,7,8,9,10],
+      arrColPrint:[1,2,3,4,5,6,7,8,9,10,11],
       columnDefs :[
         { width: '5%', targets: 0 },
         {
@@ -175,7 +175,7 @@
         year:year,
         searchStatus:searchStatus
       },
-      orderColumn:[[ 1, 'desc' ]],
+      orderColumn:[[ 11, 'desc' ]],
       excelFileName:'bank_pembayaran'
     });
   }

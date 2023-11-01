@@ -123,13 +123,17 @@ class AccountPayableController extends Controller
         $newCode = DB::table('master_code')
         ->where('code_key',$key)
         ->value('code_number'); 
+
+        $newCode = str_pad($newCode,4,"0",STR_PAD_LEFT);
         $months = ['I', 'II', 'III','IV','V', 'VI', 'VII', 'VIII','IX','X','XI','XII'];
         // $month = $months[date('n')-1];
         $month = $months[$period-1];
         $year = date('Y');
-        $poNumber="$key-ASN/$year/$month/$newCode";
+        // AP-ASN-23-X-0001
+        $code="$key-ASN-$year-$month-$newCode";
+        // $code="$key-ASN/$year/$month/$newCode";
         
-        return $poNumber;
+        return $code;
     }
 
     public function getLastCodeVoucher($key)
@@ -491,7 +495,8 @@ class AccountPayableController extends Controller
         $tanggalReceive = (int)explode('-', $apDate)[0];
         $bulanReceive = (int)explode('-', $apDate)[1];
         
-        if($tanggalReceive < 5 ){
+        $getTodayMonth = day('n'); 
+        if(($tanggalReceive < 5) && ($getTodayMonth==$bulanReceive)){
             if($bulanReceive == 1){
                 $periodNomor = 12;
             }else{

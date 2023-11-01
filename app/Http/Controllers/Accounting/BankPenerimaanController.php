@@ -89,7 +89,9 @@ class BankPenerimaanController extends Controller
         // $month = str_pad(date('n'),2,"0",STR_PAD_LEFT);
         // $month = str_pad($period,2,"0",STR_PAD_LEFT);
         $year = date('y');
-        $code="$key/$month/$year/$newCode";
+        // BM-ASN-23-X-0001
+        $code="$key-ASN-$year-$month-$newCode";
+        // $code="$key/$month/$year/$newCode";
         return $code;
     }
 
