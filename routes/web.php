@@ -357,6 +357,8 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('invoice/approve',['as'=>'invoice.approve','uses'=>'InvoiceController@approve']);
 	Route::get('invoice/notif/approve',['as'=>'invoice.notif.approve','uses'=>'InvoiceController@approve']);
 
+	Route::get('invoice/posting/all',['as'=>'invoice.posting.all','uses'=>'InvoiceController@prosesAllPosting']);
+
 	Route::get('aps',['as'=>'aps.index','uses'=>'AccountPayableController@index','middleware' => ['permission:ap-index']]);
 	Route::get('aps/create',['as'=>'ap.create','uses'=>'AccountPayableController@create','middleware' => ['permission:ap-create']]);
 	Route::get('aps/list/sj',['as'=>'ap.list.sj','uses'=>'AccountPayableController@listSj']);
