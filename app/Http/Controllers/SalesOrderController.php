@@ -1195,7 +1195,7 @@ class SalesOrderController extends Controller
         // left join delivery_hdr b on a.delivery_number=b.delivery_number 
         // where a.so_number = sales_order_hdr.so_code and a.article_code = sales_order_det.article_code 
         // and status <> '5' group by article_code),0)-sales_order_det.qty) as balance")
-        ,db::raw("case when sales_order_det.status = '1' then 0 else (coalesce((select sum(qty) from delivery_det a
+        ,db::raw("case when sales_order_det.status = '0' then 0 else (coalesce((select sum(qty) from delivery_det a
         left join delivery_hdr b on a.delivery_number=b.delivery_number 
         where a.so_number = sales_order_hdr.so_code and a.article_code = sales_order_det.article_code 
         and status <> '5' group by article_code),0)-sales_order_det.qty) end as balance")
