@@ -128,11 +128,11 @@
                                 <input type="text" id ="approveLevel" name ="approveLevel" class="d-none" value="{{ $approveValidate[0]->next_level }}">
                                 <input type="text" id ="maxLevel" name ="maxLevel" class="d-none" value="{{ $approveValidate[0]->max_level }}">
                                 <button class="btn btn-success" type="button" id="cmdApprove" name="cmdApprove">Approve</button>
-                            @if( $status =='NEW')
+                            @if( $status =='NEW' || $status =='VALIDATED')
                                 <button class="btn btn-primary" type="button" id="cmdUpdate" name="cmdUpdate" >Update</button>
                             @endif
                             @else
-                                @if( !$approveValidate && $status =='NEW')
+                                @if(!$approveValidate && ($status =='NEW'|| $status =='VALIDATED'))
                                     <button class="btn btn-primary" type="button" id="cmdUpdate" name="cmdUpdate" >Update</button>
                                 @endif
                             @endif
