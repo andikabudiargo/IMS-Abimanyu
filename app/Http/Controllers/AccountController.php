@@ -29,10 +29,10 @@ class AccountController extends Controller
             ['data'=> 'action', 'name'=>'action','title'=>'action', 'orderable'=> false, 'searchable'=> false ],
             ['data'=> 'account', 'name'=>'account','title'=>'Account' ],
             ['data'=> 'description', 'name'=>'description','title'=>'Description' ],
-            ['data'=> 'sub_account', 'name'=>'sub_account','title'=>'Sub Account' ],
-            ['data'=> 'type', 'name'=>'type','title'=>'Account Type' ],
             ['data'=> 'opening_balance', 'name'=>'opening_balance','title'=>'Opening Balance' ],
             ['data'=> 'acc_header', 'name'=>'acc_header','title'=>'Header' ],
+            ['data'=> 'type', 'name'=>'type','title'=>'Account Type' ],            
+            ['data'=> 'sub_account', 'name'=>'sub_account','title'=>'Sub Account' ],
             ['data'=> 'debit_credit', 'name'=>'debit_credit','title'=>'Db/Cr' ],
             ['data'=> 'final_statement', 'name'=>'final_statement','title'=>'Final Statement' ],
             ['data'=> 'note', 'name'=>'note','title'=>'Note' ]
