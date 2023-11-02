@@ -174,7 +174,7 @@
         perkiraan1,
         perkiraan2
       },
-      orderColumn:[[ 1,'asc']],
+      orderColumn:[[ 1,'asc'],[ 6,'asc']],
       excelFileName:'buku_besar'
     });
   }
