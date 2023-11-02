@@ -1321,7 +1321,7 @@ class InvoiceController extends Controller
             'period' => $apData->period,
             'year' => date('Y'),                        
             'note' => $apData->note,
-            'status' => '1',
+            'status' => '3',
             'created_by' => Auth::user()->username,
             'updated_by' => Auth::user()->username,
             'created_at' => date('Y-m-d H:i:s'),
