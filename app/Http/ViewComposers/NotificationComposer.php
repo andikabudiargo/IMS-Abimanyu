@@ -12,7 +12,21 @@ class NotificationComposer
     public function compose(View $view)
     {
         $username =  Auth::user() ? Auth::user()->username : '';
-        $adaModule = db::table('approval_level')->where('username',$username)->distinct()->pluck('module_code')->toarray();
+        $adaModule = db::table('approval_level')
+        ->where('username',$username)
+        ->where('approval_order','>',1)
+        ->distinct()
+        ->pluck('module_code')->toarray();
+
+        $lists['jumlahSo'] = 0;
+        $lists['jumlahPo'] = 0;
+        $lists['jumlahBom'] = 0;
+        $lists['jumlahPr'] = 0;
+        $lists['jumlahTso'] = 0;
+        $lists['jumlahDn'] = 0;
+        $lists['jumlahAp'] = 0;
+        $lists['jumlahAr'] = 0;
+        $lists['jumlahRec'] = 0;
         
         // dd($adaModule);
 
@@ -38,6 +52,10 @@ class NotificationComposer
                 where status in ('1','2')
                 ) as Oki
             where current_level+1 = berhak_approve");
+            
+            if($bisaApproveSo[0]->jumlah >0 ){
+                $lists['jumlahSo'] = (int)$bisaApproveSo[0]->jumlah >0;
+            }
 
             if($bisaApproveSo[0]->jumlah >0 ){
                 $lists['listSo2'] = DB::select("SELECT * from (
@@ -269,6 +287,10 @@ class NotificationComposer
                 where status in ('1','2')
                 ) as Oki
             where current_level+1 = berhak_approve");
+
+            if($bisaApproveAp[0]->jumlah >0 ){
+                $lists['jumlahAp'] = $bisaApproveAp[0]->jumlah;
+            }
     
             if($bisaApproveAp[0]->jumlah >0 ){
                 $lists['listApNotif'] = DB::select("SELECT * from (
