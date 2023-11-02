@@ -697,6 +697,8 @@ class DependentController extends Controller
                 $output .='<option value="'.$row->code.'|'.$row->uom_group.'">'.$row->code.' - '.$row->name.'</option>';
             }elseif($dependent =='account'){
                 $output .='<option value="'.$row->account.'">'.$row->account.' - '.$row->description.'</option>';
+            }elseif($dependent =='list_coa'){
+                $output .='<option value="'.$row->account.'">'.$row->account.' - '.$row->description.'</option>';
             }elseif($dependent =='tsoArticle'){
                 $output .="<option value='$row->article_code' data-uom-group ='$row->uom_group' data-uom ='$row->uom'>$row->article_alternative_code - $row->article_desc</option>";
             }elseif($dependent =='trArticle'){
