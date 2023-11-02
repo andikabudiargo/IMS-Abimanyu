@@ -83,7 +83,7 @@
                             <span class="align-middle d-sm-inline-block d-none">Add Article</span>
                         </button>
                     </div> --}}
-                    <div class="d-flex justify-content-between align-items-end mt-75">
+                    {{-- <div class="d-flex justify-content-between align-items-end mt-75">
                         <div class="col-md-4">
                             <div class="form-group row mb-03">
                                 <label for="totalRow" class="col-sm-4 col-form-label titik-dua">Row(s)</label>
@@ -106,7 +106,7 @@
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    </div> --}}
                     <hr>
                     <div class="form-row mt-75">
                         <div class="col-md-12">

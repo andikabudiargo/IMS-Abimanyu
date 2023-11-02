@@ -81,7 +81,9 @@
                         </button> --}}
                         @endif
                     </div>
-                    <div class="d-flex justify-content-between align-items-end mt-75">
+
+                    {{-- pada saat ngitung qty jadi bikin lambat input  qty nya --}}
+                    {{-- <div class="d-flex justify-content-between align-items-end mt-75">
                         <div class="col-md-4">
                             <div class="form-group row mb-03">
                                 <label for="totalRow" class="col-sm-4 col-form-label titik-dua">Row(s)</label>
@@ -92,19 +94,19 @@
                         </div>
                         <div class="col-md-5">
                             <div class="form-group row mb-03">
-                                <label for="totalAmount" class="col-sm-3 col-form-label titik-dua">Total QTY Target</label>
+                                <label for="totalQtyTarget" class="col-sm-3 col-form-label titik-dua">Total QTY Target</label>
                                 <div class="col-sm-6">
                                     <input type="text" class="form-control text-right font-weight-bold" id="totalQtyTarget" disabled />
                                 </div>
                             </div>
                             <div class="form-group row mb-03">
-                                <label for="totalAmount" class="col-sm-3 col-form-label titik-dua">Total QTY Forcast</label>
+                                <label for="totalQtyForcast" class="col-sm-3 col-form-label titik-dua">Total QTY Forcast</label>
                                 <div class="col-sm-6">
                                     <input type="text" class="form-control text-right font-weight-bold" id="totalQtyForcast" disabled />
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    </div> --}}
                     <hr>
                     <div class="form-row">
                         <div class="col-md-12">

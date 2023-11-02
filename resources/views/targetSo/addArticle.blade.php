@@ -3,20 +3,34 @@
         <div class="form-row d-flex align-items-center">
             <div class="col-md-1 col-12">
                 <div class="form-group margin-nol">
-                    <label for="articleId" class="d-block d-md-none">No</label>
+                    <label  class="d-block d-md-none">No</label>
                     <span class="input-group-text" id ="number" name="number[]"></span>
                 </div>
             </div>
             <div class="col-md-6 col-12">
                 <div class="form-group margin-nol">
-                    <label for="articleId" class="d-block d-md-none">Article</label>
+                    <label  class="d-block d-md-none">Article</label>
                     <select class="form-control" id="articleId" name="articleId[]" data-dependent="articleId">
                     </select>
                 </div>
             </div>
+            {{-- <div class="col-md-2 col-12">
+                <div class="form-group margin-nol">
+                    <label  class="d-block d-md-none">QTY Target</label>
+                    <input type="text" class="form-control numeral-mask-satuan text-right" 
+                        id ="qtyTarget" name="qtyTarget[]" maxlength="9" />
+                </div>
+            </div>
             <div class="col-md-2 col-12">
                 <div class="form-group margin-nol">
-                    <label for="qtyTarget" class="d-block d-md-none">QTY Target</label>
+                    <label for="qtyForcast" class="d-block d-md-none">QTY Forcast</label>
+                    <input type="text" class="form-control numeral-mask-satuan text-right" 
+                        id ="qtyForcast" name="qtyForcast[]" maxlength="9" />
+                </div>
+            </div> --}}
+            <div class="col-md-2 col-12">
+                <div class="form-group margin-nol">
+                    <label  class="d-block d-md-none">QTY Target</label>
                     <input type="text" class="form-control numeral-mask-satuan text-right tombol-panah" 
                         data-type-el-kiri="select" 
                         data-nama-el-kiri='articleId'
@@ -372,8 +386,8 @@
             $('#number'+ cloneCount).text(cloneCount);
             $("#articleId"+cloneCount).select2();
             $('#remove_button').tooltip();
-            tombolPanah('qtyTarget','','qtyForcast');
-            tombolPanah('qtyForcast','qtyTarget','');
+            // tombolPanah('qtyTarget','','qtyForcast');
+            // tombolPanah('qtyForcast','qtyTarget','');
             mask_thousand_satuan();
             // splitArticle();
             hitungTotal();
@@ -446,31 +460,31 @@
     }
 
     hitungTotal = () => {
-        let objQtyTarget= $('#article_row input[name="qtyTarget[]"]');
-        let objQtyForcast= $('#article_row input[name="qtyForcast[]"]');
-        objQtyTarget.keyup(function() {
-            hitungGrandTotal();
-        });    
-        objQtyForcast.keyup(function() {
-            hitungGrandTotal();
-        });    
+        // let objQtyTarget= $('#article_row input[name="qtyTarget[]"]');
+        // let objQtyForcast= $('#article_row input[name="qtyForcast[]"]');
+        // objQtyTarget.keyup(function() {
+        //     hitungGrandTotal();
+        // });    
+        // objQtyForcast.keyup(function() {
+        //     hitungGrandTotal();
+        // });    
     }
       
     hitungGrandTotal = ()=>{
-        let objArticle = $('#article_row select[name="articleId[]"]');
-        let objQtyTiw= $('#article_row input[name="qty_order[]"]');
-        let objQTYTarget= $('#article_row input[name="qtyTarget[]"]');
-        let objQTYForcast= $('#article_row input[name="qtyForcast[]"]');
-        let totalQtyTarget= 0;
-        let totalQtyForcast= 0;
-        let qtyTarget = objQTYTarget.map(function(){return $(this).val();}).get();
-        let qtyForcast = objQTYForcast.map(function(){return $(this).val();}).get();
-        totalQtyTarget = sumFromArray(qtyTarget);
-        totalQtyForcast = sumFromArray(qtyForcast);
+        // let objArticle = $('#article_row select[name="articleId[]"]');
+        // let objQtyTiw= $('#article_row input[name="qty_order[]"]');
+        // let objQTYTarget= $('#article_row input[name="qtyTarget[]"]');
+        // let objQTYForcast= $('#article_row input[name="qtyForcast[]"]');
+        // let totalQtyTarget= 0;
+        // let totalQtyForcast= 0;
+        // let qtyTarget = objQTYTarget.map(function(){return $(this).val();}).get();
+        // let qtyForcast = objQTYForcast.map(function(){return $(this).val();}).get();
+        // totalQtyTarget = sumFromArray(qtyTarget);
+        // totalQtyForcast = sumFromArray(qtyForcast);
         // objArticle.length>0 ?$('#customer').attr('disabled','disabled'):$('#customer').removeAttr('disabled');
-        $("#totalRow").val(objArticle.length);
-        $("#totalQtyTarget").val(humanizeNumber(totalQtyTarget));
-        $("#totalQtyForcast").val(humanizeNumber(totalQtyForcast));
+        // $("#totalRow").val(objArticle.length);
+        // $("#totalQtyTarget").val(humanizeNumber(totalQtyTarget));
+        // $("#totalQtyForcast").val(humanizeNumber(totalQtyForcast));
     }
 
     $("input[type='text']").click(function () {
