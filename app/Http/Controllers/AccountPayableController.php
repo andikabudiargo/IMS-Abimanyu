@@ -1097,7 +1097,8 @@ class AccountPayableController extends Controller
         DB::table('kas_hdr')->insert([
             'voucher_number' =>$apNumber,
             'voucher_type' =>$this->moduleCode,
-            'voucher_date' =>date('d-m-Y'), //tanggal posting
+            // 'voucher_date' =>date('d-m-Y'), //tanggal posting
+            'voucher_date' => $apData->ap_date, //receive date
             'paid_to' => $apData->supplier_id,
             'description' => $apNumber,
             'amount' => $apData->grand_total,

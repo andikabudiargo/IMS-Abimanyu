@@ -1305,8 +1305,9 @@ class InvoiceController extends Controller
 
         $pphDibayarDimuka = '1100.75';
         $ppnKeluaranCustomer = '2000.14.1';
+        $costCenter = '007';
 
-        $apData = db::table('invoice_hdr')
+        $invData = db::table('invoice_hdr')
         ->leftJoin('third_party', 'third_party.kode', '=', 'invoice_hdr.customer_id')
         ->select('invoice_hdr.*','third_party.nama as customer_name')
         ->where('invoice_number',$invNumber)->first();
@@ -1314,13 +1315,14 @@ class InvoiceController extends Controller
         DB::table('kas_hdr')->insert([
             'voucher_number' =>$invNumber,
             'voucher_type' =>$this->moduleCode,
-            'voucher_date' =>date('d-m-Y'), //tanggal posting
-            'paid_to' => $apData->customer_id,
+            // 'voucher_date' =>date('d-m-Y'), //tanggal posting
+            'voucher_date' =>$invData->invoice_date, //invoice date
+            'paid_to' => $invData->customer_id,
             'description' => $invNumber,
-            'amount' => $apData->grand_total,
-            'period' => $apData->period,
+            'amount' => $invData->grand_total,
+            'period' => $invData->period,
             'year' => date('Y'),                        
-            'note' => $apData->note,
+            'note' => $invData->note,
             'status' => '3',
             'created_by' => Auth::user()->username,
             'updated_by' => Auth::user()->username,
@@ -1338,16 +1340,16 @@ class InvoiceController extends Controller
         $dataSet = [];
         $dataSet[] = [
             'voucher_number' => $invNumber,
-            'account' =>$apData->account_piutang,
-            'description' => $invNumber.' '.$apData->customer_name,
-            'debit' => $apData->grand_total,
+            'account' =>$invData->account_piutang,
+            'description' => $invNumber.' '.$invData->customer_name,
+            'debit' => $invData->grand_total,
             'credit' => 0,
             'reference' => $reference,  //sementara tidak di masukan belum tau fungsinya apa
             'created_by' => Auth::user()->username,
             'updated_by' => Auth::user()->username,
             'created_at' => date('Y-m-d H:i:s'),
             'updated_at' => date('Y-m-d H:i:s'),
-            'cost_center' => '007'
+            'cost_center' => $costCenter
         ];
 
         /*
@@ -1355,19 +1357,19 @@ class InvoiceController extends Controller
 
         */
         
-        if($apData->total_pph > 0){
+        if($invData->total_pph > 0){
             $dataSet[] = [
                 'voucher_number' => $invNumber,
                 'account' =>$pphDibayarDimuka,
-                'description' => $invNumber.' '.$apData->customer_name,
-                'debit' => $apData->total_pph,
+                'description' => $invNumber.' '.$invData->customer_name,
+                'debit' => $invData->total_pph,
                 'credit' => 0,
                 'reference' => $reference,
                 'created_by' => Auth::user()->username,
                 'updated_by' => Auth::user()->username,
                 'created_at' => date('Y-m-d H:i:s'),
                 'updated_at' => date('Y-m-d H:i:s'),
-                'cost_center' => '007'
+                'cost_center' => $costCenter
             ];
         }
 
@@ -1377,35 +1379,35 @@ class InvoiceController extends Controller
 
         $dataSet[] = [
             'voucher_number' => $invNumber,
-            'account' =>$apData->account_penjualan,
-            'description' => $invNumber.' '.$apData->customer_name,
+            'account' =>$invData->account_penjualan,
+            'description' => $invNumber.' '.$invData->customer_name,
             'debit' => 0,
-            'credit' => $apData->dpp,
+            'credit' => $invData->dpp,
             'reference' => $reference,  //sementara tidak di masukan belum tau fungsinya apa
             'created_by' => Auth::user()->username,
             'updated_by' => Auth::user()->username,
             'created_at' => date('Y-m-d H:i:s'),
             'updated_at' => date('Y-m-d H:i:s'),
-            'cost_center' => '007'
+            'cost_center' => $costCenter
         ];
 
         /*
             3.ppn keluran customer
         */
 
-        if($apData->total_ppn > 0){
+        if($invData->total_ppn > 0){
             $dataSet[] = [
                 'voucher_number' => $invNumber,
                 'account' =>$ppnKeluaranCustomer,
-                'description' => $invNumber.' '.$apData->customer_name,
+                'description' => $invNumber.' '.$invData->customer_name,
                 'debit' => 0,
-                'credit' => $apData->total_ppn,
+                'credit' => $invData->total_ppn,
                 'reference' => $reference,
                 'created_by' => Auth::user()->username,
                 'updated_by' => Auth::user()->username,
                 'created_at' => date('Y-m-d H:i:s'),
                 'updated_at' => date('Y-m-d H:i:s'),
-                'cost_center' => '007'
+                'cost_center' => $costCenter
             ];
         }       
 
