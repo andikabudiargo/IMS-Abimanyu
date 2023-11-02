@@ -186,20 +186,53 @@
     $(document).ready(function(){           
         validateForm('frmAdd');
         isiArticle('tsoArticle');
-        let timerId= setInterval(() => checkVariable(), 1000);
-        function checkVariable() {
-            if (dataArticle.length > 0) {
-                clearInterval(timerId);
-                let detail = {!!  $details !!};
-                for(let i=0;i<detail.length;i++){
-                    article = detail[i].article_code;
-                    qtyTarget = detail[i].qty_target;
-                    qtyForcast =  detail[i].qty_forcast;
-                    add_new_row_edit(article,qtyTarget,qtyForcast)
+        setTimeout(function () {
+            $(".loading-spinner-container").addClass("-show");
+        }, 500);
+        timerId= setInterval(() => checkVariable(), 1000);
+
+        // let timerId= setInterval(() => checkVariable(), 1000);
+        // function checkVariable() {
+        //     if (dataArticle.length > 0) {
+        //         // clearInterval(timerId);
+        //         $(".loading-spinner-container").addClass("-show");
+        //         let detail = {!!  $details !!};
+        //         let nilai = 0;
+        //         for(let i=0;i<detail.length;i++){
+        //             article = detail[i].article_code;
+        //             qtyTarget = detail[i].qty_target;
+        //             qtyForcast =  detail[i].qty_forcast;
+        //             add_new_row_edit(article,qtyTarget,qtyForcast)
+        //             nilai++;
+        //         }
+        //         if (nilai == detail.length ){
+        //             $(".loading-spinner-container").removeClass("-show");
+        //         }
+        //     }
+        // }
+    });
+
+    let detail = {!! $details !!};
+    function checkVariable() {
+        if (dataArticle.length > 0) {
+            clearInterval(timerId);
+            isiData(detail);
+        }
+    }
+
+    isiData = (data) =>{
+        if (data){
+            for(let i=0;i<detail.length;i++){
+                article = detail[i].article_code;
+                qtyTarget = detail[i].qty_target;
+                qtyForcast =  detail[i].qty_forcast;
+                add_new_row_edit(article,qtyTarget,qtyForcast)
+                if (i==(data.length-1)){
+                    $(".loading-spinner-container").removeClass("-show");
                 }
             }
         }
-    });
+    }
 
     if (updateBtn) {
         updateBtn.addEventListener('click',() =>{
