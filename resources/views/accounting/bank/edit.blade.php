@@ -394,7 +394,9 @@
 
         if(account=='1100.40'){
             let recFrom = $('#recFrom').val();
-            invList('referenceAr','vcRef'+ cloneCount,account,ref);
+            if(ref){
+                invList('referenceAr','vcRef'+ cloneCount,account,ref);
+            }
         }
         
         $("#account"+cloneCount).select2();

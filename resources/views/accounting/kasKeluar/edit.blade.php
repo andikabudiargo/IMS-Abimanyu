@@ -394,7 +394,9 @@
 
         if(account=='2000.11'){
             let paidTo = $('#paidTo').val();
-            invList('reference','vcRef'+ cloneCount,paidTo,ref);
+            if(ref){
+                invList('reference','vcRef'+ cloneCount,paidTo,ref);
+            }
         }
         
         $("#account"+cloneCount).select2();
