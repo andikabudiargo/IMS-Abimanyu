@@ -240,21 +240,53 @@
 <script type="text/javascript">
     let currentDate = todayDate('dd-mm-yyyy');   
     let type = "{{ $type }}";
+    let listCoa="";
     
     $(document).ready(function(){           
         validateFormToast('frmAdd');
+        isiCoa('list_coa');
+        setTimeout(function () {
+            $(".loading-spinner-container").addClass("-show");
+        }, 500);
+        timerId= setInterval(() => checkVariable(), 1000);
 
-        let detail = {!!  $details !!};
-        for(let i=0;i<detail.length;i++){
-            vcAccount = detail[i].account;
-            vcDesc = detail[i].description;
-            vcRef = detail[i].reference;
-            vcCc = detail[i].cost_center;
-            vcDebit = detail[i].debit;
-            vcCredit = detail[i].credit;
-            add_new_row(vcAccount,vcDesc,vcRef,vcCc,vcDebit,vcCredit);
-        }
+        // let detail = {!!  $details !!};
+        // for(let i=0;i<detail.length;i++){
+        //     vcAccount = detail[i].account;
+        //     vcDesc = detail[i].description;
+        //     vcRef = detail[i].reference;
+        //     vcCc = detail[i].cost_center;
+        //     vcDebit = detail[i].debit;
+        //     vcCredit = detail[i].credit;
+        //     add_new_row(vcAccount,vcDesc,vcRef,vcCc,vcDebit,vcCredit);
+        // }
     });
+
+    let detail = {!! $details !!};
+    function checkVariable() {
+        if (listCoa.length > 0) {
+            clearInterval(timerId);
+            isiData(detail);
+        }
+    }
+
+    isiData = (data) =>{
+        if (data){
+            for(let i=0;i<data.length;i++){
+                vcAccount = data[i].account;
+                vcDesc = data[i].description;
+                vcRef = data[i].reference;
+                vcCc = data[i].cost_center;
+                vcDebit = data[i].debit;
+                vcCredit = data[i].credit;
+                add_new_row(vcAccount,vcDesc,vcRef,vcCc,vcDebit,vcCredit);
+                if (i==(data.length-1)){
+                    $(".loading-spinner-container").removeClass("-show");
+                }
+            }
+            
+        }
+    }
     
     vcDate = $('#vcDate');
     if (vcDate.length) {
@@ -391,7 +423,8 @@
         $("#new_row"+ cloneCount).find('#vcDebit').attr('id', 'vcDebit'+ cloneCount);
         $("#new_row"+ cloneCount).find('#vcCredit').attr('id', 'vcCredit'+ cloneCount);
 
-        accList('account','account'+ cloneCount,account);
+        // accList('account','account'+ cloneCount,account);
+        changeselect('account','account'+ cloneCount,account);
 
         if(account=='2000.11'){
             let paidTo = $('#paidTo').val();
@@ -556,6 +589,27 @@
             $("#paidToDesc").val(contentText[1].trim());
         }    
     }); 
+
+    function isiCoa(dependent) {
+        $.ajax({
+            url:"{{route('dynamic.dependent')}}",
+            method:"POST",
+            data:{
+                dependent:dependent
+            },
+            success:function(result){
+                listCoa = result;
+            }
+        })
+    }
+
+    function changeselect(dependent,obj,article) {
+        $('#'+obj).attr('disabled','disabled');
+        $('#'+obj).html(listCoa);
+        $('#'+obj).select2();
+        $('#'+obj).val(article).trigger('change');
+        $('#'+obj).removeAttr('disabled');
+    }
 
     $.ajaxSetup({
         headers: {

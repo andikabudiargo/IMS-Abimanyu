@@ -295,6 +295,15 @@ class DependentController extends Controller
                 $default='';
                 $defaulttxt='Choose SO';
                 break;
+            case 'list_coa': 
+                $table='accounts';
+                $field ='';
+                $order ='account';
+                $value ='account';
+                $name  ='description';
+                $default='';
+                $defaulttxt='Choose Account';
+                break;
             case 'pRequest': 
                 $table='purchase_request_det';
                 $field ='supp_code';
@@ -553,6 +562,10 @@ class DependentController extends Controller
             ->orderBy('so_code')
             ->get();
         }elseif($dependent =='account'){
+            $data= DB::table($table) 
+            ->orderBy($order)
+            ->get();
+        }elseif($dependent =='list_coa'){
             $data= DB::table($table) 
             ->orderBy($order)
             ->get();
