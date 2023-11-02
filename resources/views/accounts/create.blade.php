@@ -2,7 +2,7 @@
 @section('title', $title)
 @section('content')
 @include('layouts.breadcrumb')
-@include('partials.alert')
+{{-- @include('partials.alert') --}}
 <section id="add-index">
     <div class="row">
         <div class="col-6">
@@ -64,6 +64,42 @@
                                 </select>
                             </div>
                         </div>
+                        <div class="row">
+                            <div class="form-group col-md-6">
+                                <label class="form-label" for="accHeader">Header</label>
+                                <select class="select2 w-100" id="accHeader" name="accHeader">
+                                    <option value=""></option>
+                                    <option label="HEADER">HEADER</option>
+                                    <option label="DETAIL">DETAIL</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="form-group col-md-6">
+                                <label class="form-label" for="accDebitCredit">Header</label>
+                                <select class="select2 w-100" id="accDebitCredit" name="accDebitCredit">
+                                    <option value=""></option>
+                                    <option label="DEBIT">DEBIT</option>
+                                    <option label="KREDIT">KREDIT</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="form-group col-md-6">
+                                <label class="form-label" for="accFinalStatement">Final Statement</label>
+                                <select class="select2 w-100" id="accFinalStatement" name="accFinalStatement">
+                                    <option value=""></option>
+                                    <option label="NERACA">NERACA</option>
+                                    <option label="LABA_RUGI">LABA RUGI</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group col-md-12">
+                                <label class="form-label" for="note">Notes</label>
+                                <textarea type="text" id="note" name="note" class="form-control" rows="1" >{{ old('note') }}</textarea>
+                            </div>
+                        </div>
                         {{-- <div class="row">
                             <div class="form-group col-md-6">
                                 <label class="form-label" for="dept">Dept</label>
@@ -75,7 +111,7 @@
                                 </select>
                             </div>
                         </div> --}}
-                        <div class="row">
+                        {{-- <div class="row">
                             <div class="form-group col-md-6">
                                 <label class="form-label" for="cashBank">Cash/Bank</label>
                                 <select class="select2 w-100" id="cashBank" name="cashBank">
@@ -84,7 +120,7 @@
                                     <option label="bank">Bank</option>
                                 </select>
                             </div>
-                        </div>
+                        </div> --}}
                         
                         <div class="row">
                             <div class="col-12">
@@ -128,8 +164,12 @@
     }
 
     $("#cmdSave").click(function(){       
-        $('.disabled-el').removeAttr('disabled');
-        $("#frmAdd").submit(); // Submit the form
+        if (!$("#frmAdd")[0].checkValidity()){
+            $("#frmAdd").submit();
+        }else{ 
+            $('.disabled-el').removeAttr('disabled');
+            $("#frmAdd").submit(); // Submit the form
+        }
     });
 
     $("#cmdCancel").click(function() {

@@ -32,6 +32,10 @@ class AccountController extends Controller
             ['data'=> 'sub_account', 'name'=>'sub_account','title'=>'Sub Account' ],
             ['data'=> 'type', 'name'=>'type','title'=>'Account Type' ],
             ['data'=> 'opening_balance', 'name'=>'opening_balance','title'=>'Opening Balance' ],
+            ['data'=> 'acc_header', 'name'=>'acc_header','title'=>'Header' ],
+            ['data'=> 'debit_credit', 'name'=>'debit_credit','title'=>'Db/Cr' ],
+            ['data'=> 'final_statement', 'name'=>'final_statement','title'=>'Final Statement' ],
+            ['data'=> 'note', 'name'=>'note','title'=>'Note' ]
         ];
         return json_encode($kolom, true);
     }
@@ -79,10 +83,15 @@ class AccountController extends Controller
         $group = $request->group;
         $type = $request->type;
         $dept = $request->dept;
-        $cashBank = $request->cashBank;
         $status = '1';
         $other = '';
         $subAccount = $request->subAccount;
+        // $cashBank = $request->cashBank;
+        $cashBank = '';
+        $accHeader = $request->accHeader;
+        $accDebitCredit = $request->accDebitCredit;
+        $accFinalStatement = $request->accFinalStatement;
+        $note = $request->note;
         
         $messages = [
             'required' => 'The field is required.',
@@ -120,7 +129,12 @@ class AccountController extends Controller
                     'updated_by' => Auth::user()->username,
                     'created_at' => date('Y-m-d H:i:s'),
                     'updated_at' => date('Y-m-d H:i:s'),
-                    'parent_id' => $subAccount
+                    'parent_id' => $subAccount,
+                    'acc_header' => $accHeader ,
+                    'debit_credit' => $accDebitCredit,
+                    'final_statement' =>$accFinalStatement ,
+                    'note' => $note
+
                 ]);
 
                 DB::commit();
@@ -183,8 +197,13 @@ class AccountController extends Controller
         $group = $request->group;
         $type = $request->type;
         $dept = $request->dept;
-        $cashBank = $request->cashBank;
         $subAccount = $request->subAccount;
+        // $cashBank = $request->cashBank;
+        $cashBank = '';
+        $accHeader = $request->accHeader;
+        $accDebitCredit = $request->accDebitCredit;
+        $accFinalStatement = $request->accFinalStatement;
+        $note = $request->note;
 
         $status = '1';
         $other = '';
@@ -218,7 +237,11 @@ class AccountController extends Controller
                         'other' => $other,
                         'updated_by' => Auth::user()->username,
                         'updated_at' => date('Y-m-d H:i:s'),
-                        'parent_id' => $subAccount
+                        'parent_id' => $subAccount,
+                        'acc_header' => $accHeader ,
+                        'debit_credit' => $accDebitCredit,
+                        'final_statement' =>$accFinalStatement ,
+                        'note' => $note
                     ]
                 );
 
