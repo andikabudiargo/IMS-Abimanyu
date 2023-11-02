@@ -283,6 +283,7 @@
         let totalAmount = $('#totalAmount').val().replace(/,/gi, '') || 0;
         let note = $('#note').val();
         let paidTo = $('#paidTo').val();
+        let paidToDesc = $('#paidToDesc').val();
         let vcNumber = $('#voucherNumber').val();
     
         if (((parseFloat(objTotalVcDebit)-parseFloat(objTotalVcCredit)) == 0) && (parseFloat(objTotalVcCredit)==parseFloat(totalAmount))){
@@ -346,6 +347,7 @@
                             totalAmount:totalAmount,
                             paidTo:paidTo,
                             vcNumber:vcNumber,
+                            paidToDesc:paidToDesc
                         },
                         dataType: "json",
                         success: function(data) {
