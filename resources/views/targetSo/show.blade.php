@@ -80,19 +80,68 @@
                                             <thead class="thead-dark">
                                                 <tr>
                                                     <th>No</th>
-                                                    <th>Article Code</th>
+                                                    <th width="20%">Article Code</th>
                                                     <th class="text-right">Qty Target</th>
                                                     <th class="text-right">Qty Forcast</th>
+
+                                                    @if($key ==0)
+                                                        <th class="text-left">Balance</th>
+                                                    @endif
+
+                                                    @if ($key !=0)
+                                                        @foreach( $headers as $key1 => $oki )
+                                                            @if ($key1 < $key and $key1!= 0 )
+                                                                <th class="text-center">R-{{ $key1 }}</th>
+                                                            @endif
+                                                        @endforeach
+                                                    @else
+                                                        @foreach( $headers as $key1 => $oki )
+                                                            @if ($key1 > $key and $key1!= 0 )
+                                                                <th class="text-center">R-{{ $key1-1 }}</th>
+                                                            @endif
+                                                        @endforeach
+                                                    @endif
+                                                    {{-- <th class="text-right">Notes</th> --}}
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                            @foreach( $details as $key =>$item )
+                                            @foreach( $details as $item )
                                                 @if($item->tso_code === $header2->tso_code )
                                                     <tr>
                                                         <td ></td>
-                                                        <td >{{ $item->article }}</td>
+                                                        <td width="20%">{{ $item->article }}</td>
                                                         <td class="text-right">{{ number_format($item->qty_target) }} </td>
                                                         <td class="text-right">{{ number_format($item->qty_forcast) }} </td>
+                                                        @php
+                                                            {{ $histori = explode("->",$item->notes);}}
+                                                        @endphp 
+
+                                                        @if ($key ==0)
+                                                            <td class="text-right">{{ number_format(intval($item->qty_target -$histori[count($histori)-1])) }}</td>
+                                                        @endif
+
+                                                        @if ($key !=0)
+                                                            @foreach( $headers as $key1 => $oki )
+                                                                @if ($key1 < $key and $key1!= 0)
+                                                                    @if( $key1 < count($histori) )
+                                                                        <td class="text-right">{{ number_format(intval($histori[$key1])) }}</td>
+                                                                    @else
+                                                                        <td class="text-right"></td>
+                                                                    @endif
+                                                                @endif
+                                                            @endforeach
+                                                        @else
+                                                            @foreach( $headers as $key1 => $oki )
+                                                                @if ($key1 > $key and $key1!= 0)
+                                                                    @if( $key1 < count($histori) )
+                                                                        <td class="text-right">{{ number_format(intval($histori[$key1])) }}</td>
+                                                                    @else
+                                                                        <td class="text-right"></td>
+                                                                    @endif
+                                                                @endif
+                                                            @endforeach
+                                                        @endif
+                                                        {{-- <td class="text-right">{{ $item->notes }} </td> --}}
                                                     </tr>
                                                 @endif
                                             @endforeach
@@ -231,6 +280,9 @@
 <style>
     .main-table table {
         counter-reset: rowNumber;
+        display: block;
+        height: 500px;
+        overflow-y: scroll;
     }
 
     .main-table table tr > td:first-child{

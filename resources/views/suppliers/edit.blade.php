@@ -110,6 +110,12 @@
                                     </div>
                                 </div>
                             </div>
+                            <div class="form-group col-md-2 align-self-end" >
+                                <div class="custom-control custom-checkbox">
+                                    <input type="checkbox" class="custom-control-input" id="pkp" name="pkp" {{ old('pkp',$suppliers->pkp) == 'Y' ? 'checked' : '' }} />
+                                    <label class="custom-control-label" for="pkp">PKP</label>
+                                </div>
+                            </div>
                         </div>
                         <div class="form-row">
                             <div class="form-group col-md-6">

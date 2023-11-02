@@ -875,7 +875,7 @@ class ReceivingController extends Controller
         $reason = $request->reason;
 
         if ($checkNewRec > 0){
-            $recNew = $recOrigin.'-R'.$numRevision+1;
+            $recNew = $recOrigin.'-R'.($numRevision+1);
         } 
                 
         $sqlHdr = "INSERT into receiving_hdr 

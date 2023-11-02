@@ -103,7 +103,7 @@ class DeliveryController extends Controller
         return view("delivery.index",$data);
     }
 
-    public function getLastCode($key)
+    public function getLastCode($key,$period)
     {
         DB::table('master_code')
         ->where('code_key',$key)
@@ -118,7 +118,8 @@ class DeliveryController extends Controller
         ->value('code_number'); 
         // $months = ['I', 'II', 'III','IV','V', 'VI', 'VII', 'VIII','IX','X','XI','XII'];
         $months = ['01', '02', '03','04','05', '06', '07', '08','09','10','11','12'];
-        $month = $months[date('n')-1];
+        $month = $months[$period-1];
+        // $month = $months[date('n')-1];
         $year = date('y');
         $code="$key/ASN/$year/$month/$newCode";
         
@@ -189,6 +190,8 @@ class DeliveryController extends Controller
         $gudang = 'false';
         $kurs = 1;
 
+        $periodNomor=(int)explode('-', $dnDate)[1];
+
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED','8'=>'RECEIVED','10'=>'REVISI'];
 
         $messages = [
@@ -222,7 +225,7 @@ class DeliveryController extends Controller
             return response()->json(array('status' => 0,'title' => $title, 'message' => $error_array,'alert' =>$alert));
         }else{
             $hasilUpdate = AppHelpers::resetCode($this->moduleCode);
-            $dnCode = $this->getLastCode($this->moduleCode);
+            $dnCode = $this->getLastCode($this->moduleCode,$periodNomor);
             DB::beginTransaction();
             try {
                     $id = DB::table('delivery_hdr')->insertGetId([

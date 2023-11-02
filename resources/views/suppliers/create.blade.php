@@ -4,7 +4,7 @@
 @include('layouts.breadcrumb')
 <section id="add-index">
     <div class="form-row">
-        <div class="col-md-6">
+        <div class="col-md-8">
             <div class="card">
                 {{-- <div class="card-header">
                     <h4 class="card-title">Suppliers</h4>
@@ -110,6 +110,12 @@
                                     <div class="input-group-append">
                                         <span class="input-group-text">Days</span>
                                     </div>
+                                </div>
+                            </div>
+                            <div class="form-group col-md-3 align-self-end" >
+                                <div class="custom-control custom-checkbox">
+                                    <input type="checkbox" class="custom-control-input" id="pkp" name="pkp" {{ old('pkp') == 'Y' ? 'checked' : '' }} />
+                                    <label class="custom-control-label" for="pkp">PKP</label>
                                 </div>
                             </div>
                         </div>
@@ -227,13 +233,17 @@
         }
     });
 
-    $("#cmdSave").click(function(){       
-        $('.disabled-el').removeAttr('disabled');
-        $("#frmAdd").submit(); // Submit the form
+    $("#cmdSave").click(function(){    
+        if (!$("#frmAdd")[0].checkValidity()){
+            $("#frmAdd").submit();
+        }else{
+            $('.disabled-el').removeAttr('disabled');
+            $("#frmAdd").submit(); // Submit the form
+        }
     });
 
     $("#cmdCancel").click(function() {
-        $(".select2").val('').trigger('change');
+        // $(".select2").val('').trigger('change');
         $("#frmAdd").validate().resetForm();
     });
 

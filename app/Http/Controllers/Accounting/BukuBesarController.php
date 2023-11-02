@@ -130,7 +130,8 @@ class BukuBesarController extends Controller
             $costCenter ? $query->whereIn('cost_center', $costCenter) : '';
             $adaPerkiraan ? $query->whereBetween('kas_det.account', [$perkiraan1, $perkiraan2]) : '';
         })
-        ->whereNOtIn('kas_hdr.status',['4','5'])
+        // ->whereNOtIn('kas_hdr.status',['4','5'])
+        ->whereNOtIn('kas_hdr.status',['3'])
         ->select(
             'depts.name as nama_dept'
             ,'kas_det.account'

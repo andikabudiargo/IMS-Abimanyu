@@ -28,6 +28,10 @@
         background-color:#f8f8f8;
         color:black;
     }
+
+    .table-bordered td {
+        border: 1px solid #68676a;
+    }
     
 </style>
 {{-- table row untuk di clone--}}  

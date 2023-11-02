@@ -31,7 +31,8 @@ class SupplierController extends Controller
             ['data'=>'hp','name'=>'hp','title'=>'HP'],
             ['data'=>'fax','name'=>'fax','title'=>'Fax'],
             ['data'=>'alamat_tagih','name'=>'alamat_tagih','title'=>'Alamat'],
-            ['data'=>'top_batas_1','name'=>'top_batas_1','title'=>'TOP']
+            ['data'=>'top_batas_1','name'=>'top_batas_1','title'=>'TOP'],
+            ['data'=>'pkp','name'=>'pkp','title'=>'PKP']
         ];
         return json_encode($kolom, true);
     }
@@ -164,7 +165,8 @@ class SupplierController extends Controller
         $third_party_type='supp';
         $aktif = '1';
         $blacklist = '0';
-        $pkp = 'N';
+        // $pkp = 'N';
+        $pkp = $request->pkp ? 'Y' : 'N';
         
         $messages = [
             'required' => 'The field is required.',
@@ -367,7 +369,8 @@ class SupplierController extends Controller
         // $bankBca = $request->input('bankBca') ? 'yes' : 'no';
         $aktif = '1';
         $blacklist = '0';
-        $pkp = 'N';
+        // $pkp = 'N';
+        $pkp = $request->pkp ? 'Y' : 'N';
     
         $messages = [
             'required' => 'The field is required.',

@@ -239,7 +239,8 @@ class TargetSoController extends Controller
         // ->where('target_order_det.tso_code',$tsoCode)
         ->select('target_order_det'.'.*'
         ,'uom.uom_group as uom_group'
-        ,DB::raw("concat(article.article_alternative_code,'-',article.article_desc) as article"))
+        ,DB::raw("concat(article.article_alternative_code,'-',article.article_desc) as article")
+        ,DB::raw("(select STRING_AGG( (qty_target::real)::text,' -> ' ORDER BY tso_code) AS main from target_order_det p where article_code = target_order_det.article_code and tso_code like '$tsoCode%' ) as notes"))
         ->orderBy('id')
         ->get();
             
