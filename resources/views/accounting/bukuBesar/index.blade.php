@@ -62,6 +62,17 @@
               </div>
             </div>
             <div class="form-row">
+              <div class="form-group col-md-2"> 
+                <label class="form-label" for="searchStatus">Status</label>
+                <select class="select2 form-control" id="searchStatus" name="searchStatus">
+                    <option value="">All</option>
+                    @foreach($status as $index=>$val)
+                        <option value="{{ $index }}">{{ $val }}</option>
+                    @endforeach
+                </select>
+              </div>
+            </div>
+            <div class="form-row">
               <div class="form-group col-md-8"> 
                 <label class="form-label" for="departement">Departemen</label>
                 <select class="select2 form-control" id="departement" name="departement" multiple>
@@ -143,10 +154,11 @@
     let dept = $("#departement").val();
     let perkiraan1 = $("#perkiraan1").val();
     let perkiraan2 = $("#perkiraan2").val();
-    showList(vcDate,period1,period2,dept,perkiraan1,perkiraan2);
+    let searchStatus = $("#searchStatus").val();
+    showList(vcDate,period1,period2,dept,perkiraan1,perkiraan2,searchStatus);
   });
 
-  const showList = (vcDate,period1,period2,dept,perkiraan1,perkiraan2) => {
+  const showList = (vcDate,period1,period2,dept,perkiraan1,perkiraan2,searchStatus) => {
     if ($('#detailedTable tr').length >0){
         let table= $('#detailedTable').DataTable();
         table.destroy();
@@ -171,8 +183,9 @@
         period1:period1,
         period2:period2,
         dept:dept,
-        perkiraan1,
-        perkiraan2
+        perkiraan1:perkiraan1,
+        perkiraan2:perkiraan2,
+        searchStatus:searchStatus
       },
       orderColumn:[[ 1,'asc'],[ 6,'asc']],
       excelFileName:'buku_besar'

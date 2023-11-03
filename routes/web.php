@@ -239,8 +239,9 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('salesOrder/approve',['as'=>'salesOrder.approve','uses'=>'SalesOrderController@approve']);
 	Route::post('salesOrder/revision',['as'=>'salesOrder.revision','uses'=>'SalesOrderController@revision']);
 
-	Route::get('salesOrderReport',['as'=>'salesOrder.report','uses'=>'SalesOrderController@report','middleware' => ['permission:salesOrder-index']]);
-	Route::get('salesOrderReport/list',['as'=>'salesOrder.list.report','uses'=>'SalesOrderController@listReport','middleware' => ['permission:salesOrder-index']]);
+	Route::get('salesOrderReport',['as'=>'salesOrder.report','uses'=>'SalesOrderController@report']);
+	Route::get('salesOrderReport/list',['as'=>'salesOrder.list.report','uses'=>'SalesOrderController@listReport']);
+	Route::get('salesOrderReport/detail/dn',['as'=>'salesOrder.list.report.detail.dn','uses'=>'SalesOrderController@listReportDetailDn']);
 
 	Route::get('purchaseOrders',['as'=>'purchaseOrders.index','uses'=>'PurchaseOrderController@index','middleware' => ['permission:purchaseOrder-index']]);
 	Route::get('purchaseOrders/create',['as'=>'purchaseOrder.create','uses'=>'PurchaseOrderController@create','middleware' => ['permission:purchaseOrder-create']]);

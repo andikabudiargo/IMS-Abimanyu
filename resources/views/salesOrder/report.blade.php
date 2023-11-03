@@ -77,6 +77,25 @@
     </div>
   </div>
 </section>
+<!-- Modal detail DN-->
+<div class="modal fade text-left bisa-geser" id="mdlDetail" tabindex="-1" role="dialog" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+      <div class="modal-content">
+          <div class="modal-header">
+              <h5>Delivery <span class="bold" id="mdLSoNumber"></span></h5>
+              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                  <span aria-hidden="true">&times;</span>
+              </button>
+          </div>
+          <div class="modal-body">
+            <div class="table-responsive">
+              <table class="table table-striped" id="mdlDetailTable">
+              </table>
+            </div>
+          </div>
+      </div>
+  </div>
+</div>
 @endsection
 @section('styles')
 <style>
@@ -84,7 +103,6 @@
 @endsection
 @section('scripts')
 <script type="text/javascript">
-
   let searchOrder = $("#searchOrder");
   let seachPo = $("#seachPo");
   let searchCustomer = $("#searchCustomer");
@@ -152,6 +170,7 @@
   });
 
   function changeselect(dependent,obj,value) {
+    $('#'+obj).val('').trigger('change');
     $.ajax({
       url:"{{route('dynamic.dependent')}}",
       method:"POST",
@@ -164,6 +183,43 @@
           // $('#'+obj).val('').trigger('change');
       }
     })
+  }
+
+  const detailDelivery = (artCode,soNumber,artDesc) => {
+    $('#mdlDetail').modal('show');
+    $('#mdLSoNumber').text(' | '+soNumber+' - '+artDesc);
+
+    if ($('#mdlDetailTable tr').length >0){
+        let table= $('#mdlDetailTable').DataTable();
+        table.destroy();
+        $('#mdlDetailTable tbody > tr').remove();
+        $("#mdlDetailTable thead > tr").remove();
+    }
+    showDataTables({
+      tableId:"mdlDetailTable",
+      route:"{{ route('salesOrder.list.report.detail.dn') }}",
+      kolom:{!! $kolomDetailDn !!},
+      arrColPrint:[0,1,2],
+      columnDefs :[
+        { width: '5%', targets: 0 },
+        {
+          targets: [ 2 ],
+          render: $.fn.dataTable.render.number(',', '.',2, ''),
+          className: "text-right"
+        },
+      ],
+      dataSearch:  {
+        artCode:artCode,
+        soNumber:soNumber
+      },
+      orderColumn:[[0,'asc'],[1,'asc']],
+      scrollY:350,
+      excelFileName:'detailDn'+soNumber,
+      lengthMenu: [
+        [ -1, 10, 25, 50 ],
+        [ 'all', '10', '25', '50']
+      ],
+    });
   }
 
   $.ajaxSetup({
