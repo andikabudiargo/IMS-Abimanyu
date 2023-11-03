@@ -260,7 +260,7 @@
                                     <?php //$totalBaris = 7 ?>
                                 @endif --}}
                                 
-                                <?php $totalBaris = 22 ?>
+                                <?php $totalBaris = 20 ?>
 
                                 @for ($i=1;$i<$totalBaris-(count($details));$i++)
                                     <tr >
