@@ -495,7 +495,7 @@ class AccountPayableController extends Controller
         $tanggalReceive = (int)explode('-', $apDate)[0];
         $bulanReceive = (int)explode('-', $apDate)[1];
         
-        $getTodayMonth = day('n'); 
+        $getTodayMonth = date('n'); 
         if(($tanggalReceive < 5) && ($getTodayMonth==$bulanReceive)){
             if($bulanReceive == 1){
                 $periodNomor = 12;
