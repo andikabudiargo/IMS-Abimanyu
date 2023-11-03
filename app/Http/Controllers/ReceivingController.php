@@ -1162,8 +1162,11 @@ class ReceivingController extends Controller
         ->select('receiving_hdr.*'
         ,DB::raw("(select STRING_AGG((select name from users where username = a.username), ' -> ' ORDER BY approval_order) AS main from approval_history a where module_number = receiving_hdr.rec_number) as approval_by")
         ,DB::raw("(select concat(kode,'-',nama) from third_party where kode = receiving_hdr.supplier_id limit 1) as supp_name")
-        ,DB::raw("(select ap_number from ap_invoice_detail where rec_number= receiving_hdr.rec_number limit 1) as ap_number")
-        ,DB::raw("(select ap_date from ap_invoice where ap_number = (select ap_number from ap_invoice_detail where rec_number= receiving_hdr.rec_number limit 1)) as ap_date")
+        ,DB::raw("(select ap_invoice_detail.ap_number from ap_invoice_detail 
+                    left join ap_invoice on ap_invoice.ap_number = ap_invoice_detail.ap_number 
+                    where ap_invoice_detail.rec_number = receiving_hdr.rec_number 
+                    and ap_invoice.status = '4' limit 1 ) as ap_number")
+        ,DB::raw("(select ap_date from ap_invoice where ap_number = (select ap_number from ap_invoice_detail where rec_number = receiving_hdr.rec_number limit 1)  and status = '4') as ap_date")
         )
         ->orderBy('id')
         ->get(); 
@@ -1328,9 +1331,7 @@ class ReceivingController extends Controller
         }
 
         $data = DB::table('receiving_det')
-        ->leftJoin('receiving_hdr','receiving_hdr.rec_number','receiving_det.rec_number')
-        ->leftJoin('ap_invoice_detail','ap_invoice_detail.rec_number','receiving_det.rec_number')
-        ->leftJoin('ap_invoice','ap_invoice.ap_number','ap_invoice_detail.ap_number')
+        ->leftJoin('receiving_hdr','receiving_hdr.rec_number','receiving_det.rec_number')      
         ->leftJoin('article','article.article_code','receiving_det.article_code')
         ->leftJoin('article_types','article_types.code','article.article_type')
         ->leftJoin('uom','uom.code','receiving_det.uom_rec')
@@ -1356,8 +1357,11 @@ class ReceivingController extends Controller
         ,DB::raw("(select STRING_AGG((select name from users where username = a.username), ' -> ' ORDER BY approval_order) AS main from approval_history a where module_number = receiving_hdr.rec_number) as approval_by")
         ,DB::raw("(select concat(kode,'-',nama) from third_party where kode = receiving_hdr.supplier_id limit 1) as supp_name")
         ,DB::raw("(select (select name from depts where code = dept) as nama_dept from purchase_request_hdr where pr_number in (select pr_number from purchase_order_det where po_number = receiving_hdr.po_number) order by dept desc limit 1)")
-        ,'ap_invoice_detail.ap_number'
-        ,'ap_invoice.ap_date'
+        ,DB::raw("(select ap_invoice_detail.ap_number from ap_invoice_detail 
+                    left join ap_invoice on ap_invoice.ap_number = ap_invoice_detail.ap_number 
+                    where ap_invoice_detail.rec_number = receiving_hdr.rec_number 
+                    and ap_invoice.status = '4' limit 1 ) as ap_number")
+        ,DB::raw("(select ap_date from ap_invoice where ap_number = (select ap_number from ap_invoice_detail where rec_number = receiving_hdr.rec_number limit 1)  and status = '4') as ap_date")
         )
         ->orderBy('receiving_det.id')
         ->get(); 
