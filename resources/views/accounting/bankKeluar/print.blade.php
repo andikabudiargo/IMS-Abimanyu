@@ -192,7 +192,7 @@
                                 <td class="tanpa-padding font-14" width="10%">Departemen</td><td >: {{ $costCenter }}</td>
                             </tr>
                             <tr class="tanpa-padding">
-                                <td class="tanpa-padding font-14" width="10%">Dari</td>
+                                <td class="tanpa-padding font-14" width="10%">Kepada</td>
                                 <td class="tanpa-padding font-14" width="50%">: {{ $header->supplier_name }}</td>
                                 <td class="tanpa-padding font-14" width="10%">Halaman</td><td>: <span class="pagenum"></span></td>
                             </tr>

@@ -214,7 +214,7 @@
                                             <td style="text-align:right">Departemen</td><td>: {{ $costCenter }}</td>
                                         </tr>
                                         <tr class="tanpa-padding">
-                                            <td class="tanpa-padding font-14">Dari</td>
+                                            <td class="tanpa-padding font-14">Kepada</td>
                                             <td class="tanpa-padding font-14">: {{ $header->supplier_name }}</td>
                                             <td></td><td></td>
                                         </tr>
