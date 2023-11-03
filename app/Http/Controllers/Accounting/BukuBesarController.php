@@ -37,7 +37,8 @@ class BukuBesarController extends Controller
             ['data'=>'description','name'=>'description','title'=>'Description'],
             ['data'=>'voucher_date','name'=>'voucher_date','title'=>'Date'],
             ['data'=>'debit','name'=>'debit','title'=>'Debet'],
-            ['data'=>'credit','name'=>'credit','title'=>'Kredit']
+            ['data'=>'credit','name'=>'credit','title'=>'Kredit'],
+            ['data'=>'statusku','name'=>'statusku','title'=>'Status']
         ];
         return json_encode($kolom, true);
     }
@@ -77,6 +78,8 @@ class BukuBesarController extends Controller
         $data['accounts'] = DB::table('accounts')
         ->orderBy('account')
         ->get();
+
+        $data['status'] = ['1'=>'NEW','2'=>'VALIDATED','3'=>'APPROVED'];
           
         return view("accounting.bukuBesar.index",$data);
     }
@@ -90,6 +93,7 @@ class BukuBesarController extends Controller
         $costCenter = $request->dept;
         $perkiraan1 = $request->perkiraan1;
         $perkiraan2 = $request->perkiraan2;
+        $status =  $request->searchStatus;
 
         $adaPerkiraan = "";
 
@@ -124,14 +128,15 @@ class BukuBesarController extends Controller
         ->leftJoin('accounts','accounts.account','kas_det.account')
         ->leftJoin('depts','depts.code','kas_det.cost_center')
         // ->leftJoin('third_party','third_party.kode','kas_hdr.paid_to')
-        ->where(function ($query) use ($vcDate,$fromDate,$toDate,$period1,$period2,$costCenter,$perkiraan1,$perkiraan2,$adaPerkiraan) {
+        ->where(function ($query) use ($vcDate,$fromDate,$toDate,$period1,$period2,$costCenter,$perkiraan1,$perkiraan2,$adaPerkiraan,$status) {
             $vcDate ? $query->whereBetween(DB::raw("to_date(voucher_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
             $period1 ? $query->whereBetween('period', [$period1, $period2]) : '';
             $costCenter ? $query->whereIn('cost_center', $costCenter) : '';
             $adaPerkiraan ? $query->whereBetween('kas_det.account', [$perkiraan1, $perkiraan2]) : '';
+            $status ? $query->where('kas_hdr.status',$status) : '';
         })
-        // ->whereNOtIn('kas_hdr.status',['4','5'])
-        ->whereIn('kas_hdr.status',['3'])
+        ->whereNOtIn('kas_hdr.status',['5'])
+        // ->whereIn('kas_hdr.status',['3'])
         ->select(
             'depts.name as nama_dept'
             ,'kas_det.account'
@@ -142,13 +147,18 @@ class BukuBesarController extends Controller
             ,'kas_hdr.voucher_date'
             ,'debit'
             ,'credit'
+            ,'kas_hdr.status as statusku'
         )
         // ->orderBy('kas_hdr.voucher_date')
         ->orderBy('kas_det.account')
         ->get(); 
        
         return Datatables::of($data)
-        
+        ->addColumn('statusku', function ($data) {
+            $statusBb = ['NEW','VALIDATE','APPROVED'];
+            return $statusBb[$data->statusku - 1];
+        })
+        ->rawColumns(['statusku'])
         ->make(true);
     }
 
