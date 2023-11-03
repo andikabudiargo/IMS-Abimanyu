@@ -1332,7 +1332,7 @@ class ReceivingController extends Controller
             $searchPo ? $query->where('po_number','ilike','%'.$searchPo.'%') : '';
             $searchInv ? $query->where('inv_number','ilike','%'.$searchInv.'%') : '';
             $searchSupplier ? $query->where('supplier_id','ilike','%'.$searchSupplier.'%') : '';
-            $searchRec ? $query->where('rec_number','ilike','%'.$searchRec.'%') : '';
+            $searchRec ? $query->where('receiving_det.rec_number','ilike','%'.$searchRec.'%') : '';
             $searchStatus ? $query->where('status',$searchStatus) : '';
             $recDate ? $query->whereBetween(DB::raw("to_date(rec_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
             $doDate ? $query->whereBetween(DB::raw("to_date(do_date,'DD-MM-YYYY')"), [$fromDateDo, $toDateDo]) : '';
