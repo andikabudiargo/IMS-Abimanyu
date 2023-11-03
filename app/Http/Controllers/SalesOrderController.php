@@ -1127,6 +1127,19 @@ class SalesOrderController extends Controller
             ['data'=>'qty_kirim','name'=>'qty_kirim','title'=>'Pengiriman'],
             ['data'=>'balance','name'=>'balance','title'=>'Sisa Order'],
             ['data'=>'date_period','name'=>'date_period','title'=>'date_period','visible'=>false],
+            ['data'=>'detail','name'=>'detail','title'=>'Detail'],
+        ];
+        return json_encode($kolom, true);
+    }
+
+    public function getTableColoumnDetailDn(){
+        $kolom=    
+        [
+            ['data'=>'delivery_number','name'=>'delivery_number','title'=>'Delivery Number'],
+            ['data'=>'delivery_date','name'=>'delivery_date','title'=>'Delivery Date'],
+            ['data'=>'qty','name'=>'qty','title'=>'QTY'],
+            ['data'=>'statusku','name'=>'statusku','title'=>'Status'],
+            ['data'=>'note','name'=>'note','title'=>'Note']
         ];
         return json_encode($kolom, true);
     }
@@ -1135,6 +1148,8 @@ class SalesOrderController extends Controller
     {
         $data['title'] = "$this->title Report";
         $data['kolom'] = $this->getTableColoumnReport();
+        $data['kolomDetailDn'] = $this->getTableColoumnDetailDn();
+        
 
         $data['custs'] = DB::table('third_party')
         ->where ('third_party_type','=','cust')
@@ -1179,6 +1194,7 @@ class SalesOrderController extends Controller
         ->whereNotIn('sales_order_hdr.status',['5','8'])
         ->select('sales_order_det.*'
         ,'sales_order_hdr.po_number'
+        ,'sales_order_hdr.status as statusku'
         ,'sales_order_hdr.so_code'
         ,'sales_order_hdr.so_date'
         ,'article_alternative_code'
@@ -1211,10 +1227,16 @@ class SalesOrderController extends Controller
         ->get(); 
     
         return Datatables::of($data)
-        // ->addColumn('balance', function ($data) {
-        //     return $data->balance;
-        // })
-        // ->rawColumns(['balance'])
+        ->addColumn('detail', function ($data) {
+            if($data->qty_kirim <> 0){
+                return '<a href="javascript:void(0);" onclick="detailDelivery(\''.$data->article_code.'\',\''.$data->so_code.'\',\''.preg_replace("/\"/"," ",$data->article_desc).'\')">
+                <span>Detail</span>
+                </a>';
+            }else{
+                return '';
+            }
+        })
+        ->rawColumns(['detail'])
         ->make(true);
     }
 
@@ -1358,4 +1380,30 @@ class SalesOrderController extends Controller
             return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);
         }
     }
+
+    public function listReportDetailDn(Request $request)
+    {
+        $artCode = $request->artCode;
+        $soNumber = $request->soNumber;
+
+       $data = DB::table('delivery_det')
+        ->leftJoin('delivery_hdr','delivery_hdr.delivery_number','delivery_det.delivery_number')
+        ->where('delivery_hdr.so_number',$soNumber)
+        ->where('delivery_det.article_code',$artCode)
+        ->where('delivery_hdr.status','<>','7')
+        ->select('delivery_det.*','delivery_hdr.status as statusku','delivery_hdr.delivery_date','delivery_hdr.note')
+        ->orderBy('delivery_det.id')
+        ->get(); 
+    
+        return Datatables::of($data)
+        ->addColumn('statusku', function ($data) {
+            $statusDel = ['NEW','VALIDATE','APPROVED','POSTED','CANCELED','','','RECEIVED','','REVISI'];
+            return $statusDel[$data->statusku - 1];
+        })
+
+        ->rawColumns(['statusku'])
+        ->make(true);
+    }
+
+    
 }
