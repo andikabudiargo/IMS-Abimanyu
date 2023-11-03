@@ -189,12 +189,12 @@
                             <tr class="tanpa-padding">
                                 <td class="tanpa-padding font-14" width="10%">Tanggal</td>
                                 <td class="tanpa-padding font-14" width="50%">: {{ $header->voucher_date }}</td>
-                                <td class="tanpa-padding font-14" width="20%">Departemen</td><td >: {{ $costCenter }}</td>
+                                <td class="tanpa-padding font-14" width="10%">Departemen</td><td >: {{ $costCenter }}</td>
                             </tr>
                             <tr class="tanpa-padding">
                                 <td class="tanpa-padding font-14" width="10%">Dari</td>
                                 <td class="tanpa-padding font-14" width="50%">: {{ $header->supplier_name }}</td>
-                                <td class="tanpa-padding font-14" width="20%">Halaman</td><td>: <span class="pagenum"></span></td>
+                                <td class="tanpa-padding font-14" width="10%">Halaman</td><td>: <span class="pagenum"></span></td>
                             </tr>
                         </table>
                     </td>
@@ -203,7 +203,7 @@
         </table>
     </header>
     <main>
-        <table>
+        <table width="100%"> 
             <thead style="font-size: 9pt;">
                 <tr>
                     <th class="isi-data-judul" width="10%">No Account</th>
