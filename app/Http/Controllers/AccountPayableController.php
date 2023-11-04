@@ -80,8 +80,9 @@ class AccountPayableController extends Controller
             ['data'=> 'rec_date', 'name'=> 'rec_date','title'=>'Rec Date','visible'=>false],
             ['data'=> 'basis_amount', 'name'=> 'basis_amount','title'=>'DPP'],
             ['data'=> 'vat', 'name'=> 'vat','title'=>'VAT'],
-            ['data'=> 'pph23_type', 'name'=> 'pph23_type','title'=>'PPH TYPE'],
-            ['data'=> 'pph23', 'name'=> 'pph23','title'=>'PPH'],
+            ['data'=> 'pph21', 'name'=> 'pph21','title'=>'PPH21'],
+            ['data'=> 'pph23', 'name'=> 'pph23','title'=>'PPH23'],
+            ['data'=> 'pph42', 'name'=> 'pph42','title'=>'PPH4(2)'],
             ['data'=> 'total_discount', 'name'=> 'total_discount','title'=>'Discount'],
             ['data'=> 'grand_total', 'name'=> 'grand_total','title'=>'Grand Total'],
             ['data'=> 'note', 'name'=> 'note','title'=>'Note'],
@@ -1695,6 +1696,9 @@ class AccountPayableController extends Controller
             ,'third_party.nama as supplier_name'
             ,db::raw("(select (select name from users where username = z.username) from approval_history z where module_number = ap_invoice.ap_number order by approval_order desc limit 1) as approval_by")
             ,db::raw("(select to_char(approval_date::date, 'DD-MM-YYYY') from approval_history z where module_number = ap_invoice.ap_number order by approval_order desc limit 1) as approval_at")
+            ,db::raw("case when pph23_type = 'PPH21' then pph23 else 0 end as pph21")
+            ,db::raw("case when pph23_type = 'PPH23' then pph23 else 0 end as pph23")
+            ,db::raw("case when pph23_type = 'PPH42' then pph23 else 0 end as pph42")
         )
         ->orderBy('ap_invoice.id')
         ->get(); 
