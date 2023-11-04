@@ -80,7 +80,8 @@ class AccountPayableController extends Controller
             ['data'=> 'rec_date', 'name'=> 'rec_date','title'=>'Rec Date','visible'=>false],
             ['data'=> 'basis_amount', 'name'=> 'basis_amount','title'=>'DPP'],
             ['data'=> 'vat', 'name'=> 'vat','title'=>'VAT'],
-            ['data'=> 'pph23', 'name'=> 'pph23','title'=>'PPH23'],
+            ['data'=> 'pph23_type', 'name'=> 'pph23_type','title'=>'PPH'],
+            ['data'=> 'pph', 'name'=> 'pph','title'=>'PPH'],
             ['data'=> 'total_discount', 'name'=> 'total_discount','title'=>'Discount'],
             ['data'=> 'grand_total', 'name'=> 'grand_total','title'=>'Grand Total'],
             ['data'=> 'note', 'name'=> 'note','title'=>'Note'],
@@ -1097,6 +1098,7 @@ class AccountPayableController extends Controller
         ->where('ap_number',$apNumber)->first();
 
         $period = $apData->period ? $apData->period : (int)explode('-',$apData->ap_date)[1];
+        $apStatus = $apData->status;
 
         DB::table('kas_hdr')->insert([
             'voucher_number' =>$apNumber,
@@ -1107,6 +1109,144 @@ class AccountPayableController extends Controller
             'description' => $apNumber,
             'amount' => $apData->grand_total,
             // 'period' =>date('n'),
+            'period' => $period,
+            'year' =>date('Y'),                        
+            'note' => $apData->note,
+            'status' => $apStatus,
+            'created_by' => Auth::user()->username,
+            'updated_by' => Auth::user()->username,
+            'created_at' => date('Y-m-d H:i:s'),
+            'updated_at' => date('Y-m-d H:i:s')
+        ]);
+
+        // $reference = $apNumber;
+        $reference = '';
+
+        $dataSet = [];
+        $dataSet[] = [
+            'voucher_number' => $apNumber,
+            'account' =>$apData->account_ba,
+            'description' => $apNumber.' '.$apData->supplier_name,
+            'debit' => $apData->basis_amount,
+            'credit' => 0,
+            'reference' => $reference,  //sementara tidak di masukan belum tau fungsinya apa
+            'created_by' => Auth::user()->username,
+            'updated_by' => Auth::user()->username,
+            'created_at' => date('Y-m-d H:i:s'),
+            'updated_at' => date('Y-m-d H:i:s')
+        ];
+
+        if($apData->vat > 0){
+            $dataSet[] = [
+                'voucher_number' => $apNumber,
+                'account' =>$apData->account_vat,
+                'description' => $apNumber.' '.$apData->supplier_name,
+                'debit' => $apData->vat,
+                'credit' => 0,
+                'reference' => $reference,
+                'created_by' => Auth::user()->username,
+                'updated_by' => Auth::user()->username,
+                'created_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s')
+            ];
+        }
+
+        //belum ada no account nya
+        // if($apData->total_discount > 0){
+        //     $dataSet[] = [
+        //         'voucher_number' => $apNumber,
+        //         'account' =>$apData->account_total,
+        //         'description' => $apNumber.' '.$apData->supplier_name,
+        //         'debit' => 0,
+        //         'credit' => $apData->total_discount,
+        //         'reference' => $reference,
+        //         'created_by' => Auth::user()->username,
+        //         'updated_by' => Auth::user()->username,
+        //         'created_at' => date('Y-m-d H:i:s'),
+        //         'updated_at' => date('Y-m-d H:i:s')
+        //     ];  
+        // }
+
+        if($apData->pph23 > 0){
+            $dataSet[] = [
+                'voucher_number' => $apNumber,
+                'account' =>$apData->account_pph,
+                'description' => $apNumber.' '.$apData->supplier_name,
+                'debit' => 0,
+                'credit' => $apData->pph23,
+                'reference' => $reference,
+                'created_by' => Auth::user()->username,
+                'updated_by' => Auth::user()->username,
+                'created_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s')
+            ];  
+        }
+
+        $dataSet[] = [
+            'voucher_number' => $apNumber,
+            'account' =>$apData->account_total,
+            'description' => $apNumber.' '.$apData->supplier_name,
+            'debit' => 0,
+            'credit' => $apData->grand_total,
+            'reference' => $reference,
+            'created_by' => Auth::user()->username,
+            'updated_by' => Auth::user()->username,
+            'created_at' => date('Y-m-d H:i:s'),
+            'updated_at' => date('Y-m-d H:i:s')
+        ];  
+
+        DB::table('kas_det')->insert($dataSet);
+        DB::table('ap_invoice')
+        ->where('ap_number',$apNumber)
+        ->update(
+            [   
+                'status' => '4',
+                'authorized_by' => Auth::user()->username,
+                'authorized_at' => date('Y-m-d H:i:s'),
+                'updated_by' => Auth::user()->username,
+                'updated_at' => date('Y-m-d H:i:s')
+            ]
+        );
+    }
+
+    public function prosesUpdatePosting($apNumber){
+        /* Update proses posting ke kas*/
+
+        $apData = db::table('ap_invoice')
+        ->leftJoin('third_party', 'third_party.kode', '=', 'ap_invoice.supplier_id')
+        ->select('ap_invoice.*','third_party.nama as supplier_name')
+        ->where('ap_number',$apNumber)->first();
+
+        $period = $apData->period ? $apData->period : (int)explode('-',$apData->ap_date)[1];
+        $apStatus = $apData->status;
+
+        $row_affected=DB::table('kas_hdr')
+        ->where('voucher_number',$apNumber)
+        ->update(
+            [
+                'voucher_type' =>$this->moduleCode,
+                'voucher_date' => $apData->ap_date, //receive date
+                'paid_to' => $apData->supplier_id,
+                'description' => $apNumber,
+                'amount' => $apData->grand_total,
+                'period' => $period,
+                'year' =>date('Y'),                        
+                'note' => $apData->note,
+                'status' => '3',
+                'created_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s'),
+                'updated_by' => Auth::user()->username,
+                'updated_at' => date('Y-m-d H:i:s')
+            ]
+        );
+
+        DB::table('kas_hdr')->insert([
+            'voucher_number' =>$apNumber,
+            'voucher_type' =>$this->moduleCode,
+            'voucher_date' => $apData->ap_date, //receive date
+            'paid_to' => $apData->supplier_id,
+            'description' => $apNumber,
+            'amount' => $apData->grand_total,
             'period' => $period,
             'year' =>date('Y'),                        
             'note' => $apData->note,
@@ -1552,7 +1692,7 @@ class AccountPayableController extends Controller
         ->select(
             'ap_invoice.*'
             ,DB::raw("(select STRING_AGG ( a.rec_number,',' ORDER BY a.id) as list_rec from ap_invoice_detail a where ap_number = ap_invoice.ap_number) as list_rec")
-            ,db::raw("concat(third_party.kode,'-',third_party.nama) as supplier_name")
+            ,'third_party.nama as supplier_name'
             ,db::raw("(select (select name from users where username = z.username) from approval_history z where module_number = ap_invoice.ap_number order by approval_order desc limit 1) as approval_by")
             ,db::raw("(select to_char(approval_date::date, 'DD-MM-YYYY') from approval_history z where module_number = ap_invoice.ap_number order by approval_order desc limit 1) as approval_at")
         )

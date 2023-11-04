@@ -313,7 +313,7 @@
                                     <strong> Customer: </strong><br>
                                     {{ $customers->nama }} <br>
                                     {{ $customers->alamat_kirim_1 }} <br>
-                                    @if(strlen($customers->alamat_kirim_1)<60)
+                                    @if(strlen($customers->alamat_kirim_1)<50)
                                     <br>
                                     @endif
                                     <strong>No. NPWP : </strong> {{ $customers->npwp }}</strong>
