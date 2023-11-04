@@ -25,7 +25,7 @@
                 <label for="searchSo">SO Number</label>
                 <input type="text" class="form-control text-uppercase" id="searchSo" name="searchSo" placeholder=""  />
               </div>
-              <div class="form-group col-md-3"> 
+              <div class="form-group col-md-6"> 
                 <label class="form-label" for="searchCustomer">Customer</label>
                 <select class="select2 form-control" id="searchCustomer" name="searchCustomer">
                     <option value="">All</option>
@@ -34,11 +34,13 @@
                     @endforeach
                 </select>
               </div>
+            </div>
+            <div class="form-row">
               <div class="col-md-3 form-group">
                 <label for="recDate">Date</label>
                 <input type="text" id="recDate" name="recDate" class="form-control flatpickr-range" placeholder="YYYY-MM-DD to YYYY-MM-DD" />
               </div>
-              <div class="form-group col-md-2"> 
+              <div class="form-group col-md-3"> 
                 <label class="form-label" for="searchStatus">Invoice Status</label>
                 <select class="select2 form-control" id="searchStatus" name="searchStatus">
                     <option value="">All</option>
