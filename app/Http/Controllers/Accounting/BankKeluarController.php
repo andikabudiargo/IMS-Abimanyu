@@ -142,10 +142,12 @@ class BankKeluarController extends Controller
         $status = '1';
         $leadCode =$this->moduleCode;
         $paidToDesc = $request->paidToDesc;
-
+        
+        /* batal pengkodean untuk angka romawi/bulan  jadi nya dari period
         $periodNomor=(int)explode('-', $vcDate)[1];
+        */
 
-        // dd($details);
+        $periodNomor=$period;
         
         $messages = [
             'required' => 'The field is required.',

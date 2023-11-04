@@ -143,11 +143,13 @@ class GeneralJournalController extends Controller
         $status = '1';
         $leadCode =$this->moduleCode;
         $paidToDesc = $request->paidToDesc;
-
-        $periodNomor=(int)explode('-', $vcDate)[1];
-
-        // dd($details);
         
+        /* batal pengkodean untuk angka romawi/bulan  jadi nya dari period
+            $periodNomor=(int)explode('-', $vcDate)[1];
+        */
+        
+        $periodNomor=$period;        
+
         $messages = [
             'required' => 'The field is required.',
             'unique' => 'The code has already been taken', 

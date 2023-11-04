@@ -140,10 +140,12 @@ class BankPenerimaanController extends Controller
         $status = '1';
         $leadCode =$this->moduleCode;
 
+        /* batal pengkodean untuk angka romawi/bulan  jadi nya dari period
         $periodNomor=(int)explode('-', $vcDate)[1];
+        */
 
-        // dd($details);
-        
+        $periodNomor=$period;
+
         $messages = [
             'required' => 'The field is required.',
             'unique' => 'The code has already been taken', 

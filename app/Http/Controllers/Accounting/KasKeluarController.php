@@ -144,10 +144,12 @@ class KasKeluarController extends Controller
         $leadCode =$this->moduleCode;
         $paidToDesc = $request->paidToDesc;
 
-        $periodNomor=(int)explode('-', $vcDate)[1];
+        /* batal pengkodean untuk angka romawi/bulan  jadi nya dari period
+            $periodNomor=(int)explode('-', $vcDate)[1];
+        */
 
-        // dd($details);
-        
+        $periodNomor=$period;
+
         $messages = [
             'required' => 'The field is required.',
             'unique' => 'The code has already been taken', 

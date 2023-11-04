@@ -492,6 +492,7 @@ class AccountPayableController extends Controller
         $recNumberSave = explode(",",$request->recNumberSave);
         $period=$request->period;
 
+        /* batal pengkodean untuk angka romawi/bulan  jadi nya dari period
         $tanggalReceive = (int)explode('-', $apDate)[0];
         $bulanReceive = (int)explode('-', $apDate)[1];
         
@@ -505,6 +506,9 @@ class AccountPayableController extends Controller
         }else{
             $periodNomor= $bulanReceive;
         }
+        */
+
+        $periodNomor=$period;
 
         $totalDiscount = is_null($request->totalDiscount) ? 0 : preg_replace('/[^0-9.]+/', '', $request->totalDiscount);
         $grandTotal = is_null($request->grandTotal) ? 0 :  preg_replace('/[^0-9.]+/', '', $request->grandTotal);

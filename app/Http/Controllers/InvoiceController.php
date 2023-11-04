@@ -315,6 +315,10 @@ class InvoiceController extends Controller
             ->from('invoice_det') 
             ->where('invoice_number',$invoiceNumber);
         })
+        ->select('delivery_hdr.delivery_number'
+        ,'delivery_hdr.delivery_date'
+        ,DB::raw("(select po_number from sales_order_hdr where so_code = delivery_hdr.so_number) as po_number")
+        )
         ->get();
 
         $data['customers'] = DB::table('third_party')
@@ -861,7 +865,8 @@ class InvoiceController extends Controller
             ,'third_party.nama as customer_name'
             ,db::raw("(select (select name from users where username = z.username) from approval_history z where module_number = invoice_hdr.invoice_number order by approval_order desc limit 1) as approval_by")
             ,db::raw("(select to_char(approval_date::date, 'DD-MM-YYYY') from approval_history z where module_number = invoice_hdr.invoice_number order by approval_order desc limit 1) as approval_at")
-            ,DB::raw("(select STRING_AGG ( distinct a.po_number,', ' ORDER BY a.po_number) as po_number from invoice_det a where invoice_number = invoice_hdr.invoice_number) as po_number")
+            // ,DB::raw("(select STRING_AGG ( distinct a.po_number,', ' ORDER BY a.po_number) as po_number from invoice_det a where invoice_number = invoice_hdr.invoice_number) as po_number")
+            ,DB::raw("(select STRING_AGG ( distinct (select po_number from sales_order_hdr where so_code = so_number),',') as po_number from invoice_det a where invoice_number = invoice_hdr.invoice_number) as po_number")
             ,DB::raw("(select STRING_AGG ( distinct a.dn_number,', ' ORDER BY a.dn_number) as dn_number from invoice_det a where invoice_number = invoice_hdr.invoice_number) as dn_number")
         )
         ->orderBy('invoice_hdr.id')
@@ -990,7 +995,11 @@ class InvoiceController extends Controller
         ->first();
 
 
-        $listpo=DB::select("SELECT string_agg(distinct po_number,',') as po_list from invoice_det where invoice_number = '$invNumber'");
+        // $listpo=DB::select("SELECT string_agg(distinct po_number,',') as po_list from invoice_det where invoice_number = '$invNumber'");
+        /*revisi PO diambil langsung dari data SO */
+
+        $listpo=DB::select("SELECT string_agg(distinct (select po_number from sales_order_hdr where so_code = so_number),',') as po_list from invoice_det where invoice_number = '$invNumber'");
+
         $data['listpo'] = $listpo[0]->po_list;
 
         $data['totals']=DB::select("SELECT total_ppn as ppn,
