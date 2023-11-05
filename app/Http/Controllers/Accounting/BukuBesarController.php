@@ -130,13 +130,14 @@ class BukuBesarController extends Controller
         // ->leftJoin('third_party','third_party.kode','kas_hdr.paid_to')
         ->where(function ($query) use ($vcDate,$fromDate,$toDate,$period1,$period2,$costCenter,$perkiraan1,$perkiraan2,$adaPerkiraan,$status) {
             $vcDate ? $query->whereBetween(DB::raw("to_date(voucher_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
-            $period1 ? $query->whereBetween('period', [$period1, $period2]) : '';
+            $period1 ? $query->whereBetween(db::raw("period::integer"), [$period1, $period2]) : '';
             $costCenter ? $query->whereIn('cost_center', $costCenter) : '';
             $adaPerkiraan ? $query->whereBetween('kas_det.account', [$perkiraan1, $perkiraan2]) : '';
             $status ? $query->where('kas_hdr.status',$status) : '';
         })
-        ->whereNOtIn('kas_hdr.status',['5'])
+        ->whereNotIn('kas_hdr.status',['5'])
         // ->whereIn('kas_hdr.status',['3'])
+        // ->where('kas_hdr.voucher_number','AP-ASN-2023-II-0111')
         ->select(
             'depts.name as nama_dept'
             ,'kas_det.account'
@@ -155,7 +156,7 @@ class BukuBesarController extends Controller
        
         return Datatables::of($data)
         ->addColumn('statusku', function ($data) {
-            $statusBb = ['NEW','VALIDATE','APPROVED'];
+            $statusBb = ['NEW','VALIDATE','APPROVED','',''];
             return $statusBb[$data->statusku - 1];
         })
         ->rawColumns(['statusku'])
