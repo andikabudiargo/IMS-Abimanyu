@@ -148,6 +148,7 @@ class KasKeluarController extends Controller
             $periodNomor=(int)explode('-', $vcDate)[1];
         */
 
+        $periodYear=(int)explode('-', $vcDate)[2];
         $periodNomor=$period;
 
         $messages = [
@@ -184,15 +185,15 @@ class KasKeluarController extends Controller
             DB::beginTransaction();
             try {
                     DB::table('kas_hdr')->insert([
-                        'voucher_number' =>$vcNumber,
-                        'voucher_type' =>$leadCode,
-                        'voucher_date' =>$vcDate,
+                        'voucher_number' => $vcNumber,
+                        'voucher_type' => $leadCode,
+                        'voucher_date' => $vcDate,
                         // 'receive_from' =>$recFrom,
                         'paid_to' => $paidTo,
                         'description' => $paidToDesc,
-                        'amount' =>$totalAmount,
-                        'period' =>$period,
-                        'year' =>date('Y'),                        
+                        'amount' => $totalAmount,
+                        'period' => $period,
+                        'year' => $periodYear,                        
                         'note' => $note,
                         'status' => $status,
                         'created_by' => Auth::user()->username,
