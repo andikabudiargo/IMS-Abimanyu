@@ -143,7 +143,8 @@ class KasPenerimaanController extends Controller
         /* batal pengkodean untuk angka romawi/bulan  jadi nya dari period
             $periodNomor=(int)explode('-', $vcDate)[1];
         */
-
+        
+        $periodYear=(int)explode('-', $vcDate)[2];
         $periodNomor=$period;
         
         $messages = [
@@ -180,15 +181,15 @@ class KasPenerimaanController extends Controller
             DB::beginTransaction();
             try {
                     DB::table('kas_hdr')->insert([
-                        'voucher_number' =>$vcNumber,
-                        'voucher_type' =>$leadCode,
-                        'voucher_date' =>$vcDate,
-                        'receive_from' =>$recFrom,
-                        'description' =>$recFromDesc,
+                        'voucher_number' => $vcNumber,
+                        'voucher_type' => $leadCode,
+                        'voucher_date' => $vcDate,
+                        'receive_from' => $recFrom,
+                        'description' => $recFromDesc,
                         // 'paid_to' =>,
-                        'amount' =>$totalAmount,
-                        'period' =>$period,
-                        'year' =>date('Y'),                        
+                        'amount' => $totalAmount,
+                        'period' => $period,
+                        'year' => $periodYear,                        
                         'note' => $note,
                         'status' => $status,
                         'created_by' => Auth::user()->username,
