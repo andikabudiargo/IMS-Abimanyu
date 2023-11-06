@@ -2107,7 +2107,7 @@ class AccountPayableController extends Controller
             $this->prosesPosting($val->ap_number);
         }
 
-        return "beres";
+        return "beres proses";
 
     }
 
