@@ -1711,6 +1711,8 @@ class AccountPayableController extends Controller
         )
         ->orderBy('ap_invoice.id')
         ->get(); 
+        
+        dd($data);
 
         return Datatables::of($data)
         ->addColumn('action', function ($data) {
