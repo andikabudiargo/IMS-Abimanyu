@@ -152,7 +152,7 @@
       columnDefs :[
         { width: '5%', targets: 0 },
         {
-          targets: [ 14,15,16,17,18,19 ],
+          targets: [ 16,17,18,19,20 ],
           render: $.fn.dataTable.render.number(',', '.', 2, ''),
           className: "text-right"
         },
@@ -164,8 +164,8 @@
         searchStatus:searchStatus,
         apDate:apDate
       },
-      orderColumn:[[ 24, 'desc' ]],
-      excelFileName:'invoice_supplier'
+      orderColumn:[[ 22, 'desc' ]],
+      excelFileName:'ap'
     });
   }
 
