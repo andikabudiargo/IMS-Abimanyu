@@ -577,13 +577,15 @@
                   </a>
                 </li>
               @endcan
-
+              
+              @can('ap-index')
               <li class="{{ \Request::segment(1) == 'bukuBesar'  ? 'active' : '' }}">
                 <a class="d-flex align-items-center" href="{{ route('bukuBesar.index') }}">
                   <i data-feather="circle"></i>
                   <span class="menu-item text-truncate" data-i18n="Input">Buku Besar</span>
                 </a>
               </li>
+              @endcan
 
               {{-- @can('bank-index')
                 <li class="{{ \Request::segment(1) == 'banks'  ? 'active' : '' }}">
