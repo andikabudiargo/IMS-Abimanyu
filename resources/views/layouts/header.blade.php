@@ -66,9 +66,15 @@
 						<span class="user-status">{{ strtoupper(Auth::user()->username) }}</span>
 					</div>
 					<span class="avatar">
-						<img class="round" src="{{ asset(Auth::user()->filename) }}" 
+						@if(asset(Auth::user()->filename) != null)
+							<img class="round" src="{{ asset(Auth::user()->filename) }}" 
 							onerror="this.src='{{ asset('app-assets/images/avatars/default.png') }}';" 
 							alt="avatar" height="40" width="40">
+						@else
+							<img class="round" src="{{ asset('app-assets/images/avatars/default.png') }}" 
+							onerror="this.src='{{ asset('app-assets/images/avatars/default.png') }}';" 
+							alt="avatar" height="40" width="40">
+						@endif
 						<span class="online"></span>
 						{{-- <span class="avatar-status-offline"></span> --}}
 					</span>
