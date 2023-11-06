@@ -164,7 +164,7 @@
         searchStatus:searchStatus,
         apDate:apDate
       },
-      // orderColumn:[[ 22, 'desc' ]],
+      orderColumn:[[ 22, 'desc' ]],
       excelFileName:'invoice_supplier'
     });
   }
