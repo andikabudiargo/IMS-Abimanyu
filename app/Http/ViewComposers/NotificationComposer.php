@@ -388,6 +388,20 @@ class NotificationComposer
 
 
         // dd($bisaApproveSo[0]->jumlah);
+        $total=
+        $lists['jumlahSo']+
+        $lists['jumlahPo']+
+        $lists['jumlahBom']+
+        $lists['jumlahPr']+
+        $lists['jumlahTso']+
+        $lists['jumlahDn']+
+        $lists['jumlahAp']+
+        $lists['jumlahAr']+
+        $lists['jumlahRec'];
+
+        $lists['totalDataNotifiaksi']=$total;
+
+        // dd($total);
                
         $view->with($lists);
     }
