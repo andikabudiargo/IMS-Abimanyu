@@ -66,7 +66,7 @@
 						<span class="user-status">{{ strtoupper(Auth::user()->username) }}</span>
 					</div>
 					<span class="avatar">
-						@if(asset(Auth::user()->filename) != null)
+						@if( Auth::user()->filename != null)
 							<img class="round" src="{{ asset(Auth::user()->filename) }}" 
 							onerror="this.src='{{ asset('app-assets/images/avatars/default.png') }}';" 
 							alt="avatar" height="40" width="40">
