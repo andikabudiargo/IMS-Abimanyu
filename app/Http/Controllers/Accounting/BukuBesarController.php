@@ -38,7 +38,10 @@ class BukuBesarController extends Controller
             ['data'=>'voucher_date','name'=>'voucher_date','title'=>'Date'],
             ['data'=>'debit','name'=>'debit','title'=>'Debet'],
             ['data'=>'credit','name'=>'credit','title'=>'Kredit'],
-            ['data'=>'statusku','name'=>'statusku','title'=>'Status']
+            ['data'=>'statusku','name'=>'statusku','title'=>'Status'],
+            ['data'=>'approval_by','name'=>'approval_by','title'=>'Approve By'],
+            ['data'=>'approval_at','name'=>'approval_at','title'=>'Approve At']
+            
         ];
         return json_encode($kolom, true);
     }
@@ -149,6 +152,8 @@ class BukuBesarController extends Controller
             ,'debit'
             ,'credit'
             ,'kas_hdr.status as statusku'
+            ,db::raw("(select (select name from users where username = z.username) from approval_history z where module_number = kas_hdr.voucher_number order by approval_order desc limit 1) as approval_by")
+            ,db::raw("(select to_char(approval_date::date, 'DD-MM-YYYY') from approval_history z where module_number = kas_hdr.voucher_number order by approval_order desc limit 1) as approval_at")
         )
         // ->orderBy('kas_hdr.voucher_date')
         ->orderBy('kas_det.account')
