@@ -1698,7 +1698,7 @@ class AccountPayableController extends Controller
             $searchStatus ? $query->where('ap_invoice.status','=',$searchStatus) : '';
             $apDate ? $query->whereBetween(DB::raw("to_date(inv_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
         })
-        ->where('ap_invoice.status','<>','6')
+        ->whereNotIn('ap_invoice.status',['5'])
         ->select(
             'ap_invoice.*'
             ,DB::raw("(select STRING_AGG ( a.rec_number,',' ORDER BY a.id) as list_rec from ap_invoice_detail a where ap_number = ap_invoice.ap_number) as list_rec")
