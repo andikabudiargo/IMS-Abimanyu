@@ -243,6 +243,7 @@ class InvoiceController extends Controller
                 }
 
                 DB::table('invoice_det')->insert($dataSet);
+                $this->prosesPosting($invCode);
 
                 DB::commit();
                 $title ='Save Invoice';
@@ -533,6 +534,8 @@ class InvoiceController extends Controller
                             ]
                         );
                     }
+
+                    $this->prosesUpdatePosting($invNumber);
                                                                 
                     DB::commit();
                     $title ="Update $this->title";
@@ -1249,8 +1252,30 @@ class InvoiceController extends Controller
                     ]);
                 }
 
+                $row_affected=DB::table('kas_hdr')
+                ->where('voucher_number',$invNumber)
+                ->update(
+                    [
+                        'status' => $statusInv,
+                        'updated_by' => Auth::user()->username,
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]
+                );
+
                 if($statusInv == '3'){
-                    $this->prosesPosting($invNumber);
+                    // $this->prosesPosting($invNumber);
+                    //posting AP ke kas
+                    DB::table('ap_invoice')
+                    ->where('ap_number',$invNumber)
+                    ->update(
+                        [   
+                            'status' => '4',
+                            'authorized_by' => Auth::user()->username,
+                            'authorized_at' => date('Y-m-d H:i:s'),
+                            'updated_by' => Auth::user()->username,
+                            'updated_at' => date('Y-m-d H:i:s')
+                        ]
+                    );
                 }
                 
                 DB::commit();
@@ -1321,6 +1346,9 @@ class InvoiceController extends Controller
         ->select('invoice_hdr.*','third_party.nama as customer_name')
         ->where('invoice_number',$invNumber)->first();
 
+        $periodYear = (int)explode('-', $invData->invoice_date)[2];
+        $invStatus = $invData->status;
+
         DB::table('kas_hdr')->insert([
             'voucher_number' =>$invNumber,
             'voucher_type' =>$this->moduleCode,
@@ -1330,9 +1358,9 @@ class InvoiceController extends Controller
             'description' => $invNumber,
             'amount' => $invData->grand_total,
             'period' => $invData->period,
-            'year' => date('Y'),                        
+            'year' => $periodYear,                        
             'note' => $invData->note,
-            'status' => '3',
+            'status' => $invStatus,
             'created_by' => Auth::user()->username,
             'updated_by' => Auth::user()->username,
             'created_at' => date('Y-m-d H:i:s'),
@@ -1423,12 +1451,135 @@ class InvoiceController extends Controller
         DB::table('kas_det')->insert($dataSet);
     }
 
+    public function prosesUpdatePosting($invNumber){
+        /* Proses posting ke kas*/
+
+        $pphDibayarDimuka = '1100.75';
+        $ppnKeluaranCustomer = '2000.14.1';
+        $costCenter = '007';
+
+        $invData = db::table('invoice_hdr')
+        ->leftJoin('third_party', 'third_party.kode', '=', 'invoice_hdr.customer_id')
+        ->select('invoice_hdr.*','third_party.nama as customer_name')
+        ->where('invoice_number',$invNumber)->first();
+
+        $periodYear=(int)explode('-', $invData->invoice_date)[2];
+        $invStatus = $invData->status == '4'? '3' : $invData->status;
+        $createdBy = $invData->created_by;
+        $createdAt = $invData->created_at;
+
+        $row_affected=DB::table('kas_hdr')
+        ->where('voucher_number',$invNumber)
+        ->update(
+            [
+                'voucher_type' =>$this->moduleCode,
+                'voucher_date' =>$invData->invoice_date, //invoice date
+                'paid_to' => $invData->customer_id,
+                'description' => $invNumber,
+                'amount' => $invData->grand_total,
+                'period' => $invData->period,
+                'year' => $periodYear,                        
+                'note' => $invData->note,
+                'status' => $invStatus,
+                'updated_by' => Auth::user()->username,
+                'updated_at' => date('Y-m-d H:i:s')
+            ]
+        );
+
+        DB::table('kas_det')
+        ->where('voucher_number',$invNumber)
+        ->delete();
+
+        // $reference = $invNumber;
+        $reference = '';
+
+        /*
+            1.piutang usaha dulu
+        */
+
+        $dataSet = [];
+        $dataSet[] = [
+            'voucher_number' => $invNumber,
+            'account' =>$invData->account_piutang,
+            'description' => $invNumber.' '.$invData->customer_name,
+            'debit' => $invData->grand_total,
+            'credit' => 0,
+            'reference' => $reference,  //sementara tidak di masukan belum tau fungsinya apa
+            'created_by' => $createdBy,
+            'updated_by' => Auth::user()->username,
+            'created_at' => $createdAt,
+            'updated_at' => date('Y-m-d H:i:s'),
+            'cost_center' => $costCenter
+        ];
+
+        /*
+            2.pph dibayar dimuka 1100.75
+
+        */
+        
+        if($invData->total_pph > 0){
+            $dataSet[] = [
+                'voucher_number' => $invNumber,
+                'account' =>$pphDibayarDimuka,
+                'description' => $invNumber.' '.$invData->customer_name,
+                'debit' => $invData->total_pph,
+                'credit' => 0,
+                'reference' => $reference,
+                'created_by' => $createdBy,
+                'updated_by' => Auth::user()->username,
+                'created_at' => $createdAt,
+                'updated_at' => date('Y-m-d H:i:s'),
+                'cost_center' => $costCenter
+            ];
+        }
+
+        /*
+            3.penjualan
+        */
+
+        $dataSet[] = [
+            'voucher_number' => $invNumber,
+            'account' =>$invData->account_penjualan,
+            'description' => $invNumber.' '.$invData->customer_name,
+            'debit' => 0,
+            'credit' => $invData->dpp,
+            'reference' => $reference,  //sementara tidak di masukan belum tau fungsinya apa
+            'created_by' => $createdBy,
+            'updated_by' => Auth::user()->username,
+            'created_at' => $createdAt,
+            'updated_at' => date('Y-m-d H:i:s'),
+            'cost_center' => $costCenter
+        ];
+
+        /*
+            3.ppn keluran customer
+        */
+
+        if($invData->total_ppn > 0){
+            $dataSet[] = [
+                'voucher_number' => $invNumber,
+                'account' =>$ppnKeluaranCustomer,
+                'description' => $invNumber.' '.$invData->customer_name,
+                'debit' => 0,
+                'credit' => $invData->total_ppn,
+                'reference' => $reference,
+                'created_by' => $createdBy,
+                'updated_by' => Auth::user()->username,
+                'created_at' => $createdAt,
+                'updated_at' => date('Y-m-d H:i:s'),
+                'cost_center' => $costCenter
+            ];
+        }       
+
+        DB::table('kas_det')->insert($dataSet);
+    }
+
     public function prosesAllPosting(){
         $listInvoice = db::table('invoice_hdr')
-        ->where('status',['3'])
+        ->whereIn('status',['1','2','3'])
         ->whereNotIn(DB::raw("invoice_number"), function($query) {
             $query->select('voucher_number')
-            ->from('kas_det');
+            ->from('kas_hdr');
         })
         ->get();
 
