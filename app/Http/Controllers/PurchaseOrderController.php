@@ -1299,7 +1299,7 @@ class PurchaseOrderController extends Controller
         ,'uom_group'
         ,'purchase_order_hdr.status as statusku'
         ,'article_types.name as article_type_name'
-        ,DB::raw("case when uom_group = 'PIECE' then TO_CHAR(qty,'999,999,999') when uom_group <> 'PIECE' then TO_CHAR(qty,'999,999,999.99') end as qtyku")
+        ,DB::raw("case when uom_group = 'PIECE' then TO_CHAR(qty,'999,999,999') else TO_CHAR(qty,'999,999,999.99') end as qtyku")
         ,DB::raw("TO_CHAR(price*qty*purchase_order_hdr.ppn/100,'999,999,999') as total_ppn")
         ,DB::raw("TO_CHAR(price*qty,'999,999,999') as total_dpp")
         ,DB::raw("TO_CHAR(price*qty*purchase_order_hdr.pph22/100,'999,999,999') as total_pph22")
