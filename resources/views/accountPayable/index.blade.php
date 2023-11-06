@@ -164,7 +164,7 @@
         searchStatus:searchStatus,
         apDate:apDate
       },
-      orderColumn:[[ 24, 'desc' ]],
+      orderColumn:[[ 22, 'desc' ]],
       excelFileName:'ap'
     });
   }
