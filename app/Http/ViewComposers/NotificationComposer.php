@@ -11,6 +11,7 @@ class NotificationComposer
 {
     public function compose(View $view)
     {
+        /*
         $username =  Auth::user() ? Auth::user()->username : '';
         $adaModule = db::table('approval_level')
         ->where('username',$username)
@@ -350,7 +351,6 @@ class NotificationComposer
             }
         }
 
-
         $lists['jumlahRec'] = 0;
         if (in_array("REC", $adaModule)){
             $bisaApproveRec =DB::select("SELECT  count(*) as jumlah from (
@@ -402,7 +402,9 @@ class NotificationComposer
         $lists['totalDataNotifiaksi']=$total;
 
         // dd($total);
+        
                
         $view->with($lists);
+        */
     }
 }

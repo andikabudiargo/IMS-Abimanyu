@@ -111,10 +111,10 @@
             <!-- Company Table Card -->
             <div class="col-lg-12 col-12">
                 <div class="card">
-                    <div class="card-header">PO needs to be approved </div>
-                    <div class="card-body p-0">
-                        <div class="table-responsive">
-                            <table class="table">
+                    <div class="card-header"><strong>PO needs to be approved <div class="badge badge-pill badge-info"> {{ count($listBomHome) }}</div></strong></div>
+                    <div class="card-body">
+                        <div class="table-responsive" style="max-height:300px">
+                            <table class="table" width="100%">
                                 <thead>
                                     <tr>
                                         <th>No</th>
@@ -212,10 +212,10 @@
             <!-- Company Table Card -->
             <div class="col-lg-12 col-12">
                 <div class="card">
-                    <div class="card-header">BOM needs to be approved </div>
-                    <div class="card-body p-0">
-                        <div class="table-responsive">
-                            <table class="table">
+                    <div class="card-header"><strong>BOM needs to be approved <div class="badge badge-pill badge-info"> {{ count($listBomHome) }}</div></strong> </div>
+                    <div class="card-body">
+                        <div class="table-responsive" style="max-height:300px">
+                            <table class="table" width="100%">
                                 <thead>
                                     <tr>
                                         <th>No</th>
@@ -323,10 +323,10 @@
             <!-- Company Table Card -->
             <div class="col-lg-12 col-12">
                 <div class="card">
-                    <div class="card-header">PR needs to be approved </div>
-                    <div class="card-body p-0">
-                        <div class="tableFixHead">
-                            <table class="table">
+                    <div class="card-header"><strong>PR needs to be approved <div class="badge badge-pill badge-info"> {{ count($listPrHome) }}</div></strong></div>
+                    <div class="card-body">
+                        <div class="table-responsive" style="max-height:300px">
+                            <table class="table" width="100%">
                                 <thead>
                                     <tr>
                                         <th>No</th>
@@ -442,10 +442,10 @@
             <!-- Company Table Card -->
             <div class="col-lg-12 col-12">
                 <div class="card">
-                    <div class="card-header">SO needs to be approved </div>
-                    <div class="card-body p-0">
-                        <div class="table-responsive">
-                            <table class="table">
+                    <div class="card-header"><strong>SO needs to be approved <div class="badge badge-pill badge-info"> {{ count($listSoHome) }}</div> </strong></div>
+                    <div class="card-body">
+                        <div class="table-responsive" style="max-height:300px">
+                            <table class="table" width="100%">
                                 <thead>
                                     <tr>
                                         <th>No</th>
@@ -542,10 +542,10 @@
             <!-- Company Table Card -->
             <div class="col-lg-12 col-12">
                 <div class="card">
-                    <div class="card-header">TSO needs to be approved </div>
-                    <div class="card-body p-0">
-                        <div class="table-responsive">
-                            <table class="table">
+                    <div class="card-header"><strong>TSO needs to be approved <div class="badge badge-pill badge-info"> {{ count($listTsoHome) }}</div> </strong> </div>
+                    <div class="card-body">
+                        <div class="table-responsive" style="max-height:300px">
+                            <table class="table" width="100%">
                                 <thead>
                                     <tr>
                                         <th>No</th>
@@ -649,10 +649,10 @@
             <!-- Company Table Card -->
             <div class="col-lg-12 col-12">
                 <div class="card">
-                    <div class="card-header">DN needs to be approved </div>
-                    <div class="card-body p-0">
-                        <div class="table-responsive">
-                            <table class="table">
+                    <div class="card-header"><strong>Delivery needs to be approved <div class="badge badge-pill badge-info"> {{ count($listDnHome) }}</div><strong> </div>
+                    <div class="card-body">
+                        <div class="table-responsive" style="max-height:300px">
+                            <table class="table" width="100%">
                                 <thead>
                                     <tr>
                                         <th>No</th>
@@ -751,13 +751,827 @@
             <!--/ Company Table Card -->
         </div>
     @endif
-    
-    
+    @if( count($listRecHome)>0 )
+        <div class="form-row">
+            <!-- Company Table Card -->
+            <div class="col-lg-12 col-12">
+                <div class="card">
+                    <div class="card-header"><strong>Receiving needs to be approved <div class="badge badge-pill badge-info"> {{ count($listRecHome) }}</div><strong> </div>
+                    <div class="card-body">
+                        <div class="table-responsive" style="max-height:300px">
+                            <table class="table" width="100%">
+                                <thead>
+                                    <tr>
+                                        <th>No</th>
+                                        <th>Rec Number</th>
+                                        <th>PO Number</th>
+                                        <th>Rec Date</th>
+                                        <th>Approved</th>
+                                        <th>Created_by</th>
+                                        <th>Status</th>
+                                        <th>Note</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($listRecHome as $key=>$val)
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div>
+                                                    <div class="font-weight-bolder">{{ $key+1 }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div>
+                                                    <div class="font-weight-bolder">{{ $val->rec_number }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div>
+                                                    <div class="font-weight-bolder">{{ $val->po_number }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div>
+                                                    <div class="font-weight-bolder">{{ $val->rec_date }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="text-right">
+                                            #Approved: {{ $val->current_level }} of {{ $val->max_level }}
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div>
+                                                    <div class="font-weight-bolder">{{ $val->created_by }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div>
+                                                    <div class="font-weight-bolder">{{ $val->status }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div>
+                                                    <div class="font-weight-bolder">{{ $val->note }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <a class="btn btn-outline-info btn-sm" 
+                                                id="cmdDetailRecHome{{ $key }}" 
+                                                name="cmdDetailRecHome{{ $key }}" 
+                                                href="{{ route('receiving.edit', ['id'=>Crypt::encryptString($val->id)]) }}"> 
+                                                <i data-feather='list'></i>
+                                                Detail
+                                            </a>
+                                            <a href='javascript:;'
+                                                onclick="action(this)"
+                                                id = 'buttonRecHome{{ $key }}'
+                                                class="btn btn-outline-success btn-sm buttonRec-{{ $val->id }}"
+                                                data-id-class = "buttonRec-{{ $val->id }}"
+                                                data-doc-number='{{ $val->rec_number }}'
+                                                data-url='{{ route("receiving.notif.approve", ["recNumber"=>$val->rec_number]) }}'>
+                                                <i data-feather='check-circle'></i>
+                                                Approve
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!--/ Company Table Card -->
+        </div>
+    @endif
+    @if( count($listBkHome)>0 )
+        <div class="form-row">
+            <!-- Company Table Card -->
+            <div class="col-lg-12 col-12">
+                <div class="card">
+                    <div class="card-header"><strong>Bank Keluar needs to be approved <div class="badge badge-pill badge-info"> {{ count($listBkHome) }}</div></strong></div>
+                    <div class="card-body">
+                        <div class="table-responsive" style="max-height:300px">
+                            <table class="table" width="100%">
+                                <thead>
+                                    <tr>
+                                        <th>No</th>
+                                        <th>Voucher Number</th>
+                                        <th>Note</th>
+                                        <th>Description</th>
+                                        <th>Approved</th>
+                                        <th>Created_by</th>
+                                        <th>Status</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($listBkHome as $key=>$val)
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div>
+                                                    <div class="font-weight-bolder">{{ $key+1 }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div>
+                                                    <div class="font-weight-bolder">{{ $val->voucher_number }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div>
+                                                    <div class="font-weight-bolder">{{ $val->note }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div>
+                                                    <div class="font-weight-bolder">{{ $val->description }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="text-right">
+                                            #Approved: {{ $val->current_level }} of {{ $val->max_level }}
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div>
+                                                    <div class="font-weight-bolder">{{ $val->created_by }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div>
+                                                    <div class="font-weight-bolder">{{ $val->status }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <a class="btn btn-outline-info btn-sm" 
+                                                id="cmdDetailBkHome{{ $key }}" 
+                                                name="cmdDetailBkHome{{ $key }}" 
+                                                href="{{ route('bankKeluar.edit', ['id'=>Crypt::encryptString($val->id)]) }}"> 
+                                                <i data-feather='list'></i>
+                                                Detail
+                                            </a>
+                                            <a href='javascript:;'
+                                                onclick="action(this)"
+                                                id = 'buttonBkHome{{ $key }}'
+                                                class="btn btn-outline-success btn-sm buttonBk-{{ $val->id }}"
+                                                data-id-class = "buttonBk-{{ $val->id }}"
+                                                data-doc-number='{{ $val->voucher_number }}'
+                                                data-url='{{ route("bankKeluar.notif.approve", ["vcNumber"=>$val->voucher_number]) }}'>
+                                                <i data-feather='check-circle'></i>
+                                                Approve
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!--/ Company Table Card -->
+        </div>
+    @endif
+    @if( count($listBmHome)>0 )
+        <div class="form-row">
+            <!-- Company Table Card -->
+            <div class="col-lg-12 col-12">
+                <div class="card">
+                    <div class="card-header"><strong>Bank Masuk needs to be approved <div class="badge badge-pill badge-info"> {{ count($listBmHome) }}</div></strong></div>
+                    <div class="card-body">
+                        <div class="table-responsive" style="max-height:300px">
+                            <table class="table" width="100%">
+                                <thead>
+                                    <tr>
+                                        <th>No</th>
+                                        <th>Voucher Number</th>
+                                        <th>Note</th>
+                                        <th>Description</th>
+                                        <th>Approved</th>
+                                        <th>Created_by</th>
+                                        <th>Status</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($listBmHome as $key=>$val)
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div>
+                                                    <div class="font-weight-bolder">{{ $key+1 }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div>
+                                                    <div class="font-weight-bolder">{{ $val->voucher_number }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div>
+                                                    <div class="font-weight-bolder">{{ $val->note }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div>
+                                                    <div class="font-weight-bolder">{{ $val->description }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="text-right">
+                                            #Approved: {{ $val->current_level }} of {{ $val->max_level }}
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div>
+                                                    <div class="font-weight-bolder">{{ $val->created_by }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div>
+                                                    <div class="font-weight-bolder">{{ $val->status }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <a class="btn btn-outline-info btn-sm" 
+                                                id="cmdDetailBmHome{{ $key }}" 
+                                                name="cmdDetailBmHome{{ $key }}" 
+                                                href="{{ route('bankPenerimaan.edit', ['id'=>Crypt::encryptString($val->id)]) }}"> 
+                                                <i data-feather='list'></i>
+                                                Detail
+                                            </a>
+                                            <a href='javascript:;'
+                                                onclick="action(this)"
+                                                id = 'buttonBmHome{{ $key }}'
+                                                class="btn btn-outline-success btn-sm buttonBm-{{ $val->id }}"
+                                                data-id-class = "buttonBm-{{ $val->id }}"
+                                                data-doc-number='{{ $val->voucher_number }}'
+                                                data-url='{{ route("bankPenerimaan.notif.approve", ["vcNumber"=>$val->voucher_number]) }}'>
+                                                <i data-feather='check-circle'></i>
+                                                Approve
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!--/ Company Table Card -->
+        </div>
+    @endif
+    @if( count($listKmHome)>0 )
+        <div class="form-row">
+            <!-- Company Table Card -->
+            <div class="col-lg-12 col-12">
+                <div class="card">
+                    <div class="card-header"><strong>Kas Masuk needs to be approved <div class="badge badge-pill badge-info"> {{ count($listKmHome) }}</div></strong></div>
+                    <div class="card-body">
+                        <div class="table-responsive" style="max-height:300px">
+                            <table class="table" width="100%">
+                                <thead>
+                                    <tr>
+                                        <th>No</th>
+                                        <th>Voucher Number</th>
+                                        <th>Note</th>
+                                        <th>Description</th>
+                                        <th>Approved</th>
+                                        <th>Created_by</th>
+                                        <th>Status</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($listKmHome as $key=>$val)
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div>
+                                                    <div class="font-weight-bolder">{{ $key+1 }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div>
+                                                    <div class="font-weight-bolder">{{ $val->voucher_number }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div>
+                                                    <div class="font-weight-bolder">{{ $val->note }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div>
+                                                    <div class="font-weight-bolder">{{ $val->description }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="text-right">
+                                            #Approved: {{ $val->current_level }} of {{ $val->max_level }}
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div>
+                                                    <div class="font-weight-bolder">{{ $val->created_by }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div>
+                                                    <div class="font-weight-bolder">{{ $val->status }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <a class="btn btn-outline-info btn-sm" 
+                                                id="cmdDetailKmHome{{ $key }}" 
+                                                name="cmdDetailKmHome{{ $key }}" 
+                                                href="{{ route('kasPenerimaan.edit', ['id'=>Crypt::encryptString($val->id)]) }}"> 
+                                                <i data-feather='list'></i>
+                                                Detail
+                                            </a>
+                                            <a href='javascript:;'
+                                                onclick="action(this)"
+                                                id = 'buttonKmHome{{ $key }}'
+                                                class="btn btn-outline-success btn-sm buttonKm-{{ $val->id }}"
+                                                data-id-class = "buttonKm-{{ $val->id }}"
+                                                data-doc-number='{{ $val->voucher_number }}'
+                                                data-url='{{ route("kasPenerimaan.notif.approve", ["vcNumber"=>$val->voucher_number]) }}'>
+                                                <i data-feather='check-circle'></i>
+                                                Approve
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!--/ Company Table Card -->
+        </div>
+    @endif
+    @if( count($listKkHome)>0 )
+        <div class="form-row">
+            <!-- Company Table Card -->
+            <div class="col-lg-12 col-12">
+                <div class="card">
+                    <div class="card-header"><strong>Kas Keluar needs to be approved <div class="badge badge-pill badge-info"> {{ count($listKkHome) }}</div></strong></div>
+                    <div class="card-body">
+                        <div class="table-responsive" style="max-height:300px">
+                            <table class="table" width="100%">
+                                <thead>
+                                    <tr>
+                                        <th>No</th>
+                                        <th>Voucher Number</th>
+                                        <th>Note</th>
+                                        <th>Description</th>
+                                        <th>Approved</th>
+                                        <th>Created_by</th>
+                                        <th>Status</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($listKkHome as $key=>$val)
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div>
+                                                    <div class="font-weight-bolder">{{ $key+1 }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div>
+                                                    <div class="font-weight-bolder">{{ $val->voucher_number }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div>
+                                                    <div class="font-weight-bolder">{{ $val->note }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div>
+                                                    <div class="font-weight-bolder">{{ $val->description }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="text-right">
+                                            #Approved: {{ $val->current_level }} of {{ $val->max_level }}
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div>
+                                                    <div class="font-weight-bolder">{{ $val->created_by }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div>
+                                                    <div class="font-weight-bolder">{{ $val->status }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <a class="btn btn-outline-info btn-sm" 
+                                                id="cmdDetailKkHome{{ $key }}" 
+                                                name="cmdDetailKkHome{{ $key }}" 
+                                                href="{{ route('kasKeluar.edit', ['id'=>Crypt::encryptString($val->id)]) }}"> 
+                                                <i data-feather='list'></i>
+                                                Detail
+                                            </a>
+                                            <a href='javascript:;'
+                                                onclick="action(this)"
+                                                id = 'buttonKkHome{{ $key }}'
+                                                class="btn btn-outline-success btn-sm buttonKk-{{ $val->id }}"
+                                                data-id-class = "buttonKk-{{ $val->id }}"
+                                                data-doc-number='{{ $val->voucher_number }}'
+                                                data-url='{{ route("kasKeluar.notif.approve", ["vcNumber"=>$val->voucher_number]) }}'>
+                                                <i data-feather='check-circle'></i>
+                                                Approve
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!--/ Company Table Card -->
+        </div>
+    @endif
+    @if( count($listGjHome)>0 )
+        <div class="form-row">
+            <!-- Company Table Card -->
+            <div class="col-lg-12 col-12">
+                <div class="card">
+                    <div class="card-header"><strong>General Journal needs to be approved <div class="badge badge-pill badge-info"> {{ count($listGjHome) }}</div></strong></div>
+                    <div class="card-body">
+                        <div class="table-responsive" style="max-height:300px">
+                            <table class="table" width="100%">
+                                <thead>
+                                    <tr>
+                                        <th>No</th>
+                                        <th>Voucher Number</th>
+                                        <th>Note</th>
+                                        <th>Description</th>
+                                        <th>Approved</th>
+                                        <th>Created_by</th>
+                                        <th>Status</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($listGjHome as $key=>$val)
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div>
+                                                    <div class="font-weight-bolder">{{ $key+1 }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div>
+                                                    <div class="font-weight-bolder">{{ $val->voucher_number }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div>
+                                                    <div class="font-weight-bolder">{{ $val->note }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div>
+                                                    <div class="font-weight-bolder">{{ $val->description }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="text-right">
+                                            #Approved: {{ $val->current_level }} of {{ $val->max_level }}
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div>
+                                                    <div class="font-weight-bolder">{{ $val->created_by }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div>
+                                                    <div class="font-weight-bolder">{{ $val->status }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <a class="btn btn-outline-info btn-sm" 
+                                                id="cmdDetailGjHome{{ $key }}" 
+                                                name="cmdDetailGjHome{{ $key }}" 
+                                                href="{{ route('jurnalUmum.edit', ['id'=>Crypt::encryptString($val->id)]) }}"> 
+                                                <i data-feather='list'></i>
+                                                Detail
+                                            </a>
+                                            <a href='javascript:;'
+                                                onclick="action(this)"
+                                                id = 'buttonGjHome{{ $key }}'
+                                                class="btn btn-outline-success btn-sm buttonGj-{{ $val->id }}"
+                                                data-id-class = "buttonGj-{{ $val->id }}"
+                                                data-doc-number='{{ $val->voucher_number }}'
+                                                data-url='{{ route("jurnalUmum.notif.approve", ["vcNumber"=>$val->voucher_number]) }}'>
+                                                <i data-feather='check-circle'></i>
+                                                Approve
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!--/ Company Table Card -->
+        </div>
+    @endif
+    @if( count($listApHome)>0 )
+        <div class="form-row">
+            <!-- Company Table Card -->
+            <div class="col-lg-12 col-12">
+                <div class="card">
+                    <div class="card-header"><strong>Invoice Supplier needs to be approved <div class="badge badge-pill badge-info"> {{ count($listApHome) }}</div></strong></div>
+                    <div class="card-body">
+                        <div class="table-responsive" style="max-height:300px">
+                            <table class="table" width="100%">
+                                <thead>
+                                    <tr>
+                                        <th>No</th>
+                                        <th>AP Number</th>
+                                        <th>AP Date</th>
+                                        <th>PO Number</th>
+                                        <th>Note</th>
+                                        <th>Approved</th>
+                                        <th>Created_by</th>
+                                        <th>Status</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($listApHome as $key=>$val)
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div>
+                                                    <div class="font-weight-bolder">{{ $key+1 }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div>
+                                                    <div class="font-weight-bolder">{{ $val->ap_number }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div>
+                                                    <div class="font-weight-bolder">{{ $val->ap_date }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div>
+                                                    <div class="font-weight-bolder">{{ $val->po_number }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div>
+                                                    <div class="font-weight-bolder">{{ $val->note }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="text-right">
+                                            #Approved: {{ $val->current_level }} of {{ $val->max_level }}
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div>
+                                                    <div class="font-weight-bolder">{{ $val->created_by }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div>
+                                                    <div class="font-weight-bolder">{{ $val->status }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <a class="btn btn-outline-info btn-sm" 
+                                                id="cmdDetailApHome{{ $key }}" 
+                                                name="cmdDetailApHome{{ $key }}" 
+                                                href="{{ route('ap.show', ['id'=>Crypt::encryptString($val->id)]) }}"> 
+                                                <i data-feather='list'></i>
+                                                Detail
+                                            </a>
+                                            <a href='javascript:;'
+                                                onclick="action(this)"
+                                                id = 'buttonApHome{{ $key }}'
+                                                class="btn btn-outline-success btn-sm buttonAp-{{ $val->id }}"
+                                                data-id-class = "buttonAp-{{ $val->id }}"
+                                                data-doc-number='{{ $val->ap_number }}'
+                                                data-url='{{ route("ap.notif.approve", ["apNumber"=>$val->ap_number]) }}'>
+                                                <i data-feather='check-circle'></i>
+                                                Approve
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!--/ Company Table Card -->
+        </div>
+    @endif
+    @if( count($listArHome)>0 )
+        <div class="form-row">
+            <!-- Company Table Card -->
+            <div class="col-lg-12 col-12">
+                <div class="card">
+                    <div class="card-header"><strong>Invoice Customer needs to be approved <div class="badge badge-pill badge-info"> {{ count($listArHome) }}</div></strong></div>
+                    <div class="card-body">
+                        <div class="table-responsive" style="max-height:300px">
+                            <table class="table" width="100%">
+                                <thead>
+                                    <tr>
+                                        <th>No</th>
+                                        <th>Invoice Number</th>
+                                        <th>Invoece Date</th>
+                                        <th>SO Number</th>
+                                        <th>Note</th>
+                                        <th>Approved</th>
+                                        <th>Created_by</th>
+                                        <th>Status</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($listArHome as $key=>$val)
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div>
+                                                    <div class="font-weight-bolder">{{ $key+1 }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div>
+                                                    <div class="font-weight-bolder">{{ $val->invoice_number }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div>
+                                                    <div class="font-weight-bolder">{{ $val->invoice_date }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div>
+                                                    <div class="font-weight-bolder">{{ $val->so_number }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div>
+                                                    <div class="font-weight-bolder">{{ $val->note }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="text-right">
+                                            #Approved: {{ $val->current_level }} of {{ $val->max_level }}
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div>
+                                                    <div class="font-weight-bolder">{{ $val->created_by }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div>
+                                                    <div class="font-weight-bolder">{{ $val->status }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <a class="btn btn-outline-info btn-sm" 
+                                                id="cmdDetailArHome{{ $key }}" 
+                                                name="cmdDetailArHome{{ $key }}" 
+                                                href="{{ route('invoice.show', ['id'=>Crypt::encryptString($val->id)]) }}"> 
+                                                <i data-feather='list'></i>
+                                                Detail
+                                            </a>
+                                            <a href='javascript:;'
+                                                onclick="action(this)"
+                                                id = 'buttonArHome{{ $key }}'
+                                                class="btn btn-outline-success btn-sm buttonAr-{{ $val->id }}"
+                                                data-id-class = "buttonAr-{{ $val->id }}"
+                                                data-doc-number='{{ $val->invoice_number }}'
+                                                data-url='{{ route("invoice.notif.approve", ["invNumber"=>$val->invoice_number]) }}'>
+                                                <i data-feather='check-circle'></i>
+                                                Approve
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!--/ Company Table Card -->
+        </div>
+    @endif
+   
 </section>
 @endsection
 
 @section('styles')
-
 <style>
 
     .tableFixHead {
@@ -790,6 +1604,44 @@
             show_msg('👋 {{ $greeting }},{{  strtoupper(Auth::user()->name) }}!', 'You have successfully logged in to IMS!', 'success');
             "{{ Session::forget('firstLogin') }}";
         }, 3000);
+    }
+
+    action=(me)=>{
+        let meId=me.getAttribute('id'),    
+        meDocNumber=me.getAttribute("data-doc-number"),
+        meUrl=me.getAttribute("data-url"),
+        meClassId = me.getAttribute("data-id-class");
+        meClassIdDecline = me.getAttribute("data-id-class-decline");
+        
+        fetch(meUrl, {
+            method: "GET",
+            headers: {"Content-type": "application/json;charset=UTF-8"}
+        })
+        .then(response => response.json())
+        .then((responseData) => {
+            const ele = document.getElementsByClassName(meClassId);
+            if (ele){
+                for (let i=0; i< ele.length; i++ ) {
+                    const idButtoHide = document.getElementById(ele[i].id);
+                    if (idButtoHide){
+                        idButtoHide.classList.add('d-none');
+                    }
+                }
+            }
+            
+            const eleDecline = document.getElementsByClassName(meClassIdDecline);
+            if (eleDecline){
+                for (let i=0; i< eleDecline.length; i++ ) {
+                    const idButtoHideDecline = document.getElementById(eleDecline[i].id);
+                    if (idButtoHideDecline){
+                        idButtoHideDecline.classList.add('d-none');
+                    }
+                }
+            }
+
+            show_msg(responseData.title, responseData.message, responseData.alert);
+        })
+        .catch(err => console.log(err));
     }
 </script>
 @endsection

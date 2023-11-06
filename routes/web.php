@@ -380,6 +380,7 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('aps/print/slip/pembayaran',['as'=>'ap.print.slip.pembayaran','uses'=>'AccountPayableController@printSlipPembayaran']);
 	Route::get('aps/notif/approve',['as'=>'ap.notif.approve','uses'=>'AccountPayableController@approve']);
 	Route::get('aps/print/draft',['as'=>'ap.print.draft','uses'=>'AccountPayableController@printDraft']);
+	Route::get('aps/notif/approve',['as'=>'ap.notif.approve','uses'=>'AccountPayableController@approve']);
 
 	// Route::get('ap/posting/all',['as'=>'ap.posting.all','uses'=>'AccountPayableController@prosesAllPosting']);
 
@@ -693,6 +694,7 @@ Route::group( ['middleware' => ['auth']], function() {
 	// Route::get('kasPenerimaan/validate',['as'=>'kasPenerimaan.validate','uses'=>'Accounting\KasPenerimaanController@validasi']);
 	Route::get('kasPenerimaan/approve',['as'=>'kasPenerimaan.approve','uses'=>'Accounting\KasPenerimaanController@approve']);
 	Route::get('kasPenerimaan/get/invoice/ammount',['as'=>'kasPenerimaan.get.invoice.amount','uses'=>'Accounting\KasPenerimaanController@getInvoiceAmount']);
+	Route::get('kasPenerimaan/notif/approve',['as'=>'kasPenerimaan.notif.approve','uses'=>'Accounting\KasPenerimaanController@approve']);
 
 	Route::get('kasKeluar',['as'=>'kasKeluar.index','uses'=>'Accounting\KasKeluarController@index']);
 	Route::get('kasKeluar/create',['as'=>'kasKeluar.create','uses'=>'Accounting\KasKeluarController@create']);
@@ -705,6 +707,7 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('kasKeluar/print',['as'=>'kasKeluar.print','uses'=>'Accounting\KasKeluarController@print']);
 	Route::get('kasKeluar/approve',['as'=>'kasKeluar.approve','uses'=>'Accounting\KasKeluarController@approve']);
 	Route::get('kasKeluar/get/invoice/ammount',['as'=>'kasKeluar.get.invoice.amount','uses'=>'Accounting\KasKeluarController@getInvoiceAmount']);
+	Route::get('kasKeluar/notif/approve',['as'=>'kasKeluar.notif.approve','uses'=>'Accounting\KasKeluarController@approve']);
 
 	Route::get('bankPenerimaan',['as'=>'bankPenerimaan.index','uses'=>'Accounting\BankPenerimaanController@index']);
 	Route::get('bankPenerimaan/create',['as'=>'bankPenerimaan.create','uses'=>'Accounting\BankPenerimaanController@create']);
@@ -717,6 +720,7 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('bankPenerimaan/print',['as'=>'bankPenerimaan.print','uses'=>'Accounting\BankPenerimaanController@print']);
 	Route::get('bankPenerimaan/approve',['as'=>'bankPenerimaan.approve','uses'=>'Accounting\BankPenerimaanController@approve']);
 	Route::get('bankPenerimaan/get/invoice/ammount',['as'=>'bankPenerimaan.get.invoice.amount','uses'=>'Accounting\BankPenerimaanController@getInvoiceAmount']);
+	Route::get('bankPenerimaan/notif/approve',['as'=>'bankPenerimaan.notif.approve','uses'=>'Accounting\BankPenerimaanController@approve']);
 
 	Route::get('bankKeluar',['as'=>'bankKeluar.index','uses'=>'Accounting\BankKeluarController@index']);
 	Route::get('bankKeluar/create',['as'=>'bankKeluar.create','uses'=>'Accounting\BankKeluarController@create']);
@@ -729,6 +733,7 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('bankKeluar/print',['as'=>'bankKeluar.print','uses'=>'Accounting\BankKeluarController@print']);
 	Route::get('bankKeluar/approve',['as'=>'bankKeluar.approve','uses'=>'Accounting\BankKeluarController@approve']);
 	Route::get('bankKeluar/get/invoice/ammount',['as'=>'bankKeluar.get.invoice.amount','uses'=>'Accounting\BankKeluarController@getInvoiceAmount']);
+	Route::get('bankKeluar/notif/approve',['as'=>'bankKeluar.notif.approve','uses'=>'Accounting\BankKeluarController@approve']);
 
 	Route::get('jurnalUmum',['as'=>'jurnalUmum.index','uses'=>'Accounting\GeneralJournalController@index']);
 	Route::get('jurnalUmum/create',['as'=>'jurnalUmum.create','uses'=>'Accounting\GeneralJournalController@create']);
@@ -741,6 +746,7 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('jurnalUmum/print',['as'=>'jurnalUmum.print','uses'=>'Accounting\GeneralJournalController@print']);
 	Route::get('jurnalUmum/approve',['as'=>'jurnalUmum.approve','uses'=>'Accounting\GeneralJournalController@approve']);
 	Route::get('jurnalUmum/get/invoice/ammount',['as'=>'jurnalUmum.get.invoice.amount','uses'=>'Accounting\GeneralJournalController@getInvoiceAmount']);
+	Route::get('jurnalUmum/notif/approve',['as'=>'jurnalUmum.notif.approve','uses'=>'Accounting\GeneralJournalController@approve']);
 
 
 	Route::get('bukuBesar',['as'=>'bukuBesar.index','uses'=>'Accounting\BukuBesarController@index']);

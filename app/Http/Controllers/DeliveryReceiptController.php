@@ -205,7 +205,7 @@ class DeliveryReceiptController extends Controller
                                 'updated_at' => date('Y-m-d H:i:s')
                             ]
                         );
-                        \LogActivity::addToLog('Delivery update',"username: $username Status Delivery update by receipt DN");
+                        \LogActivity::addToLog('Delivery update',"username: $username Status Delivery update by receipt $dnNumber $drNumber");
                     }
 
                     DB::commit();
@@ -305,7 +305,7 @@ class DeliveryReceiptController extends Controller
                             'updated_at' => date('Y-m-d H:i:s')
                         ]
                     );
-                     
+
                     DB::commit();
                     $title ="Submit $this->title";
                     $alert  ="success";
@@ -317,7 +317,7 @@ class DeliveryReceiptController extends Controller
                 DB::rollBack();
                 $title ="Submit $this->title";
                 $alert  ="warning";
-                $message  = "$title $drNumber is failed to sybmit";
+                $message  = "$title $drNumber is failed to submit";
                 \LogActivity::addToLog($title,"username: $username Status $message");
                 return redirect()->route('dnReceipt.index',['statusKu'=>$statusKu])->with(['alert'=>$alert,'message'=> $message,'drNumber'=> $drNumber,'statusKu'=>$statusKu]);
             }
