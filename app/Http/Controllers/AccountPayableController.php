@@ -86,8 +86,8 @@ class AccountPayableController extends Controller
             ['data'=> 'total_discount', 'name'=> 'total_discount','title'=>'Discount'],
             ['data'=> 'grand_total', 'name'=> 'grand_total','title'=>'Grand Total'],
             ['data'=> 'note', 'name'=> 'note','title'=>'Note'],
-            ['data'=> 'approval_by','name'=> 'approval_by','title'=>'Approved By'],
-            ['data'=> 'approval_at','name'=> 'approval_at','title'=>'Approved At'],
+            // ['data'=> 'approval_by','name'=> 'approval_by','title'=>'Approved By'],
+            // ['data'=> 'approval_at','name'=> 'approval_at','title'=>'Approved At'],
             ['data'=> 'created_by', 'name'=> 'created_by','title'=>'Created By'],
             ['data'=> 'created_at', 'name'=> 'created_at','title'=>'Created At']
         ];
