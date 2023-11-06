@@ -1730,7 +1730,9 @@ class AccountPayableController extends Controller
             }
 
             // if (($data->status != '3') && ($data->status != '4') && ($data->status != '5')){
-            if (($data->status != '4') && ($data->status != '5')){
+                //sibuka sementara dari pak leo 6-11-2023
+            if ($data->status != '5'){
+            // if (($data->status != '4') && ($data->status != '5')){
                 if (Auth::user()->can('ap-edit')) {
                 $buttons .=         '<a href="'. route('ap.edit',['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                         <i data-feather="file-text"></i>

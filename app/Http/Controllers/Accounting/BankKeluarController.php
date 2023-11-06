@@ -615,12 +615,13 @@ class BankKeluarController extends Controller
             }
             
             // if (Auth::user()->can('bankKeluar-edit')) {
-                if ( $data->statusku == '2' or $data->statusku == '1') {
+                // if ( $data->statusku == '2' or $data->statusku == '1') {
+                //sibuka sementara dari pak leo 6-11-2023
                 $buttons .=     '<a href="'. route('bankKeluar.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                     <i data-feather="file-text"></i>
                                     Edit
                                 </a>';
-                }
+                // }
             // }
 
             $buttons .=         '<a href="'. route('bankKeluar.show', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">

@@ -882,14 +882,7 @@ class InvoiceController extends Controller
                                 <i data-feather="menu"></i>
                             </a>';
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
-            if (($data->status != '3') && ($data->status != '4')){
-                if (Auth::user()->can('receiving-edit')) {
-                $buttons .=         '<a href="'. route('invoice.edit',  ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
-                                        <i data-feather="file-text"></i>
-                                        Edit
-                                    </a>';
-                }
-            }
+            
 
             if (($data->status != '3') && ($data->status != '4')){
                 if (Auth::user()->can('receiving-edit')) {
@@ -900,6 +893,21 @@ class InvoiceController extends Controller
                 }
             }
 
+            //sibuka sementara dari pak leo 6-11-2023
+            // if (($data->status != '3') && ($data->status != '4')){
+                if (Auth::user()->can('receiving-edit')) {
+                    $buttons .=         '<a href="'. route('invoice.edit',  ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+                                            <i data-feather="file-text"></i>
+                                            Edit
+                                        </a>';
+                    }
+                // }
+
+                $buttons .=      '<a href="'. route('invoice.show', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+                                    <i data-feather="list"></i>
+                                    Detail
+                                </a>';
+
             // if ($data->status == '3'){
                 $buttons .=         '<a href="'. route('invoice.print', ['id'=>Crypt::encryptString($data->id)]) .'" target="_blank" class="dropdown-item">
                                         <i data-feather="printer"></i>
@@ -907,10 +915,7 @@ class InvoiceController extends Controller
                                     </a>';
 
             // }
-            $buttons .=         '<a href="'. route('invoice.show', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
-                                    <i data-feather="list"></i>
-                                    Detail
-                                </a>';
+            
                 
             if (($data->status != '3') && ($data->status != '4')){
                 if (Auth::user()->can('receiving-delete')) {
