@@ -188,19 +188,19 @@ class AccountPayableController extends Controller
         if($edit == 'true'){
             $data= DB::table("purchase_order_hdr") 
             ->where("supplier_id",$supp)
-            ->whereIn('po_number', function($query) use ($supp) {
-                $listRec = DB::table('ap_invoice_detail')
-                ->whereIn('ap_number',DB::table('ap_invoice')
-                // ->where('ap_invoice.po_number','purchase_order_hdr.po_number')
-                ->where('status','4')
-                ->pluck('ap_number')->toArray())
-                ->pluck('rec_number')->toArray();
+            // ->whereIn('po_number', function($query) use ($supp) {
+            //     $listRec = DB::table('ap_invoice_detail')
+            //     ->whereIn('ap_number',DB::table('ap_invoice')
+            //     // ->where('ap_invoice.po_number','purchase_order_hdr.po_number')
+            //     ->where('status','4')
+            //     ->pluck('ap_number')->toArray())
+            //     ->pluck('rec_number')->toArray();
 
-                $query->select('po_number')
-                ->from('receiving_hdr') 
-                ->whereNotIn('rec_number',$listRec);
+            //     $query->select('po_number')
+            //     ->from('receiving_hdr') 
+            //     ->whereNotIn('rec_number',$listRec);
 
-            })
+            // })
             ->whereIn("status",['3','6'])
             ->orderBy("po_number")
             ->select("po_number","po_date","currency","kurs")
