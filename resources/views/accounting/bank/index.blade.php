@@ -163,15 +163,15 @@ td.wrapok {
       tableId:"detailedTable",
       route:"{{ route('bankPenerimaan.list') }}",
       kolom:{!! $kolom !!},
-      arrColPrint:[1,2,3,4,5,6,7,8,9,10],
+      arrColPrint:[1,2,3,4,5,6,7,8,9,10,11],
       columnDefs :[
         { width: '5%', targets: 0 },
         {
-          targets: [ 4 ],
+          targets: [ 5 ],
           render: $.fn.dataTable.render.number(',', '.',2, ''),
           className: "text-right"
         },
-        {targets:[3], class:"wrapok"}
+        {targets:[4], class:"wrapok"}
       ],
       dataSearch:  {
         seachVc:seachVc,
