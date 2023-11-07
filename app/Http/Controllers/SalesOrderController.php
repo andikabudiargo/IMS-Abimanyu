@@ -1071,6 +1071,7 @@ class SalesOrderController extends Controller
         $data['soSalesman'] = $soHdr -> salesman_code; 
         $data['soCurrency'] = $soHdr -> currency; 
         $data['soPoNumber'] = $soHdr -> po_number; 
+        $data['soNote'] = $soHdr -> note; 
         
         // $statusSo = ['New','Validated','Approved','Received','Canceled','Closed','Paid'];
         $statusSo = ['NEW','VALIDATED','APPROVED','RECEIVED','CANCELED','CLOSED','PAID','REVISED'];

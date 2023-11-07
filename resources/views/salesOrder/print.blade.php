@@ -15,7 +15,7 @@
 
         table{
             /* font-size: x-small; */
-            font-size:10pt;
+            font-size:9pt;
         }
         
         tfoot tr td{
@@ -112,13 +112,13 @@
             <tr>
                 <th width="5%">No</th>
                 {{-- <th width="10%">Code</th> --}}
-                <th width="40%">Description</th>
+                <th width="30%">Description</th>
                 <th width="10%">Qty</th>
                 <th width="10%">Material Price</th>
                 <th width="10%">Service Price</th>
-                <th width="13%">Total Material</th>
-                <th width="13%">Total Service</th>
-                <th width="13%">Grand Total</th>
+                <th width="14%">Total Material</th>
+                <th width="14%">Total Service</th>
+                <th width="15%">Grand Total</th>
             </tr>
             </thead>
             <tbody>
@@ -245,10 +245,10 @@
     <footer>
         <table>
             <tr>
-                <td colspan="7"> </td>
+                <td colspan="7" style="font-size:8pt;">Note: {{ $soNote }} </td>
             </tr>
             <tr>
-                <td colspan="3" rowspan="4" valign="top" style="border: 1px solid #0c0c0c;padding-left:10px">
+                <td colspan="3" rowspan="4" valign="top" style="border: 1px solid #0c0c0c;padding-left:10px;font-size:8pt;" >
                         <br>
                         {{-- Syarat Bayar : {{ $customers->syarat_bayar }}<br>
                         Waktu Kirim : {{ $customers->syarat_kirim }}<br> --}}
