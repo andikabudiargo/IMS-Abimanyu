@@ -339,6 +339,7 @@ class HomeController extends Controller
                 ,inv_date
                 ,po_number
                 ,note
+                ,ap_date
                 ,created_by
                 ,status
                 ,'$username' as username
