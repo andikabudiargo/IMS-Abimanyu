@@ -94,9 +94,13 @@
     function inputDecimal(ele) {
         clearTimeout(delayTimer);
         delayTimer = setTimeout(function() {
-            let nilai = ele.value.replace(/,/gi, '') || 0;;
-            ele.value = humanizeNumber(parseFloat(nilai).toFixed(2)).toString();
-        }, 1100); 
+            let nilai = ele.value.replace(/,/gi, '') || 0;
+            if(nilai!= 0){
+                ele.value = humanizeNumber(parseFloat(nilai).toFixed(2)).toString();
+            }else{
+                ele.value ='';
+            }
+        }, 2100); 
     }
 
     function hitungTotal(){
