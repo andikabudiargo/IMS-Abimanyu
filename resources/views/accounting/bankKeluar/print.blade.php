@@ -232,7 +232,7 @@
                     <?php //$totalBaris = 7 ?>
                 @endif --}}
 
-                <?php $totalBaris = 15 ?>
+                <?php $totalBaris = 20 ?>
 
                 @for ($i=1;$i< $totalBaris-(count($details));$i++)
                     <tr >
