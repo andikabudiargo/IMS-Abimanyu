@@ -43,10 +43,10 @@
                                     <label for="recFrom">Received From*</label>
                                     <select class="select2 form-control" id="recFrom" name="recFrom" required>
                                         <option value=""></option>
-                                        @foreach ($accounts as $val)
-                                            <option value="{{ $val->account }}">{{ $val->account }}|{{ $val->description }}</option>
-                                        @endforeach
                                         <option value="other">Other</option>
+                                        @foreach ($accounts as $val)
+                                            <option value="{{ $val->account }}">{{ $val->account }} | {{ $val->description }}</option>
+                                        @endforeach
                                     </select>
                                 </div>
                                 <div class="form-group col-md-3 d-none other-desc">

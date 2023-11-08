@@ -43,10 +43,10 @@
                                     <label for="recFrom">Received From*</label>
                                     <select class="select2 form-control" id="recFrom" name="recFrom" required>
                                         <option value=""></option>
-                                        @foreach ($accounts as $val)
-                                            <option value="{{ $val->account }}" {{$val->account == $header->receive_from ? "selected" : ""}} >{{ $val->account }}|{{ $val->description }}</option>
-                                        @endforeach
                                         <option value="other" {{ $header->receive_from == 'other' ? "selected" : ""}} >Other</option>
+                                        @foreach ($accounts as $val)
+                                            <option value="{{ $val->account }}" {{$val->account == $header->receive_from ? "selected" : ""}} >{{ $val->account }} | {{ $val->description }}</option>
+                                        @endforeach
                                     </select>
                                 </div>
                                 <div class="form-group col-md-3 {{ $header->receive_from =='other' ? '' : 'd-none' }} other-desc">

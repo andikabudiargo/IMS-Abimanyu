@@ -180,7 +180,7 @@ td.wrapok {
         year:year,
         searchStatus:searchStatus
       },
-      orderColumn:[[ 1, 'desc' ]],
+      orderColumn:[[ 11, 'desc' ]],
       excelFileName:'bank_penerimaan'
     });
   }

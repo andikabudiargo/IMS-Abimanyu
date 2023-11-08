@@ -118,7 +118,7 @@ class BankKeluarController extends Controller
         $data['type'] = 'pembayaran';
         
         $data['suppliers'] = DB::table('third_party')
-        ->where('third_party_type','supp')
+        // ->where('third_party_type','supp')
         ->orderBy('nama')
         ->get();
 
@@ -312,7 +312,7 @@ class BankKeluarController extends Controller
         ->get();
 
         $data['suppliers'] = DB::table('third_party')
-        ->where('third_party_type','supp')
+        // ->where('third_party_type','supp')
         ->orderBy('nama')
         ->get();
 

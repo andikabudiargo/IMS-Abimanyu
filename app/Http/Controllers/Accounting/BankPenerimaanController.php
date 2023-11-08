@@ -114,10 +114,24 @@ class BankPenerimaanController extends Controller
         $data['title'] = "Create $this->title";
         $data['subtitle'] = "Create $this->title";
         $data['type'] = 'penerimaan';
+
+        $data['accounts'] =db::select("select account,description from accounts <> 'HEADER'
+        union
+        select kode as account,nama description from third_party where third_party_type = 'supp' order by account");
         
-        $data['accounts'] = DB::table('accounts')
-        ->orderBy('account')
-        ->get();
+        // $suppliers = DB::table('third_party')
+        // ->select('kode as account','nama as description')
+        // ->where('third_party_type','supp')
+        // // ->orderBy('nama')
+        // ->get();
+
+        // $data['accounts'] = DB::table('accounts')
+        // ->select('account','description')
+        // // ->orderBy('account')
+        // ->union($suppliers)
+        // ->get();
+
+        // dd($data['accounts']);
 
         $data['depts'] = DB::table('depts')
         ->orderBy('name')
@@ -310,9 +324,13 @@ class BankPenerimaanController extends Controller
         ->orderBy('id')
         ->get();
 
-        $data['accounts'] = DB::table('accounts')
-        ->orderBy('account')
-        ->get();
+        // $data['accounts'] = DB::table('accounts')
+        // ->orderBy('account')
+        // ->get();
+
+        $data['accounts'] =db::select("select account,description from accounts where acc_header <> 'HEADER'
+        union
+        select kode as account,nama description from third_party where third_party_type = 'supp' order by account");
 
         $data['depts'] = DB::table('depts')
         ->orderBy('name')
