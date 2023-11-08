@@ -1434,7 +1434,7 @@
                                             <a class="btn btn-outline-info btn-sm" 
                                                 id="cmdDetailApHome{{ $key }}" 
                                                 name="cmdDetailApHome{{ $key }}" 
-                                                href="{{ route('ap.show', ['id'=>Crypt::encryptString($val->id)]) }}"> 
+                                                href="{{ route('ap.edit', ['id'=>Crypt::encryptString($val->id)]) }}"> 
                                                 <i data-feather='list'></i>
                                                 Detail
                                             </a>
