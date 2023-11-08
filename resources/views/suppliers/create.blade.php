@@ -37,6 +37,26 @@
                             </div>
                         </div>
                         <div class="form-row">
+                            <div class="form-group col-md-6">
+                                <label class="form-label" for="coaHutang">COA Hutang</label>
+                                <select class="select2 w-100" id="coaHutang" name="coaHutang">
+                                    <option value=""></option>
+                                    @foreach($accounts as $val)
+                                        <option value="{{$val->account}}" {{ $val->account == old("coaHutang") ? "selected" : ""}} >{{$val->account}} | {{$val->description}} </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="form-group col-md-6">
+                                <label class="form-label" for="coaReturPembelian">COA Retur Pembelian</label>
+                                <select class="select2 w-100" id="coaReturPembelian" name="coaReturPembelian">
+                                    {{-- <option value=""></option> --}}
+                                    @foreach($coaReturPembelian as $val)
+                                        <option value="{{$val->account}}" {{ $val->account == old("coaReturPembelian") ? "selected" : ""}} >{{$val->account}} | {{$val->description}} </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row">
                             <div class="form-group col-md-12">
                                 <label for="alamat">Address</label>
                                 <textarea type="text" id="alamat" name="alamat" class="form-control" rows="2" value="{{ old('alamat') }}" maxlength="100"></textarea>
@@ -142,7 +162,7 @@
                                 </select>
                             </div>
                         </div>
-                        <div class="form-row">
+                        {{-- <div class="form-row">
                             <div class="form-group col-md-12">
                                 <label class="form-label" for="account">Account</label>
                                 <select class="select2 form-control" id="account" name="account">
@@ -152,7 +172,7 @@
                                     @endforeach
                                 </select>
                             </div>
-                        </div>
+                        </div> --}}
                         <div class="row">
                             <div class="form-group col-md-6">
                                 <label class="form-label" for="bankType">Type*</label>

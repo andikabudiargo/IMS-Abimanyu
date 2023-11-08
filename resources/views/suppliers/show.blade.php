@@ -5,7 +5,7 @@
 @include('partials.alert')
 <section id="add-index">
     <div class="form-row">
-        <div class="col-md-6">
+        <div class="col-md-8">
             <div class="card">
                 {{-- <div class="card-header">
                     <h4 class="card-title">Suppliers</h4>
@@ -23,6 +23,26 @@
                             <div class="form-group col-md-2">
                                 <label class="form-label" for="inisial">Initial</label>
                                 <input type="text" id="inisial" name="inisial" class="form-control text-uppercase" value="{{ old('inisial',$suppliers->inisial) }}" required maxlength="3" disabled />
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group col-md-6">
+                                <label class="form-label" for="coaHutang">COA Hutang</label>
+                                <select class="select2 w-100" id="coaHutang" name="coaHutang" disabled>
+                                    <option value=""></option>
+                                    @foreach($accounts as $val)
+                                        <option value="{{$val->account}}" {{ $val->account == old("coaHutang",$suppliers->account) ? "selected" : ""}} >{{$val->account}} | {{$val->description}} </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="form-group col-md-6">
+                                <label class="form-label" for="coaReturPembelian">COA Retur Pembelian</label>
+                                <select class="select2 w-100" id="coaReturPembelian" name="coaReturPembelian" disabled>
+                                    {{-- <option value=""></option> --}}
+                                    @foreach($coaReturPembelian as $val)
+                                        <option value="{{$val->account}}" {{ $val->account == old("coaReturPembelian",$suppliers->coa_penjualan) ? "selected" : ""}} >{{$val->account}} | {{$val->description}} </option>
+                                    @endforeach
+                                </select>
                             </div>
                         </div>
                         <div class="form-row">
@@ -111,6 +131,12 @@
                                     </div>
                                 </div>
                             </div>
+                            <div class="form-group col-md-2 align-self-end" >
+                                <div class="custom-control custom-checkbox">
+                                    <input type="checkbox" class="custom-control-input" id="pkp" name="pkp" {{ old('pkp',$suppliers->pkp) == 'Y' ? 'checked' : '' }}  disabled/>
+                                    <label class="custom-control-label" for="pkp">PKP</label>
+                                </div>
+                            </div>
                         </div>
                         <div class="form-row">
                             <div class="form-group col-md-6">
@@ -135,7 +161,7 @@
                                 </select>
                             </div>
                         </div>
-                        <div class="form-row">
+                        {{-- <div class="form-row">
                             <div class="form-group col-md-12">
                                 <label class="form-label" for="account">Account</label>
                                 <select class="select2 form-control w-100" id="account" name="account" disabled>
@@ -145,7 +171,7 @@
                                     @endforeach
                                 </select>
                             </div>
-                        </div>
+                        </div> --}}
                         <div class="form-row">
                             <div class="form-group col-md-4">
                                 <label class="form-label" for="bankType">Type</label>
@@ -158,7 +184,7 @@
                         <div class="form-row">
                             <div class="form-group col-md-6">
                                 <label for="bankName">Name</label>
-                                <select class="select2 form-control" id="bankName" name="bankName">
+                                <select class="select2 form-control" id="bankName" name="bankName" disabled>
                                     <label for="bankName">Bank name</label>
                                     @foreach($banks as $val)
                                         <option value="{{ $val->bank_name }}" {{ $val->bank_name == old("bankName",$suppliers->bank_name) ? "selected" : ""}} >{{ $val->bank_name }} </option>

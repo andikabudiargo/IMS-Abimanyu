@@ -53,9 +53,6 @@ class SupplierController extends Controller
         ->where ('index','=',0)
         ->get();
 
-        $data['accounts'] = DB::table('accounts')
-        ->get();
-
         $data['banks'] = DB::table('banks')
         ->orderBy('bank_name')
         ->get();
@@ -70,6 +67,16 @@ class SupplierController extends Controller
         ->orderBy('nama')
         ->distinct('nama')
         ->pluck('nama');
+
+        $data['accounts'] = DB::table('accounts')
+        ->where('account','like','2000.11%')
+        ->orderBy('description')
+        ->get();
+
+        $data['coaReturPembelian'] = DB::table('accounts')
+        ->where('account','1100.38')
+        ->orderBy('description')
+        ->get();
                 
         return view("suppliers.create",$data);
     }
@@ -167,7 +174,9 @@ class SupplierController extends Controller
         $blacklist = '0';
         // $pkp = 'N';
         $pkp = $request->pkp ? 'Y' : 'N';
-        
+        $account = $request->coaHutang;
+        $coaPenjualan = $request->coaReturPembelian;
+                
         $messages = [
             'required' => 'The field is required.',
             'unique' => 'The code has already been taken',
@@ -220,7 +229,9 @@ class SupplierController extends Controller
                     'created_by' => Auth::user()->username,
                     'updated_by' => Auth::user()->username,
                     'created_at' => date('Y-m-d H:i:s'),
-                    'updated_at' => date('Y-m-d H:i:s')
+                    'updated_at' => date('Y-m-d H:i:s'),
+                    'account'=> $account,
+                    'coa_penjualan' => $coaPenjualan
                 ]);
 
                 //kalo supplier jadi supplier juga
@@ -291,9 +302,6 @@ class SupplierController extends Controller
         ->where ('index','=',0)
         ->get();
 
-        $data['accounts'] = DB::table('accounts')
-        ->get();
-
         $data['banks'] = DB::table('banks')
         ->orderBy('bank_name')
         ->get();
@@ -302,6 +310,17 @@ class SupplierController extends Controller
         ->where ('index','=',1)
         ->orderBy('region_name')
         ->get();
+
+        $data['accounts'] = DB::table('accounts')
+        ->where('account','like','2000.11%')
+        ->orderBy('description')
+        ->get();
+
+        $data['coaReturPembelian'] = DB::table('accounts')
+        ->where('account','1100.38')
+        ->orderBy('description')
+        ->get();
+
 
         $data['edit'] = 1;
 
@@ -333,6 +352,16 @@ class SupplierController extends Controller
         $data['cities'] = DB::table('regions')
         ->where ('index','=',1)
         ->orderBy('region_name')
+        ->get();
+
+        $data['accounts'] = DB::table('accounts')
+        ->where('account','like','2000.11%')
+        ->orderBy('description')
+        ->get();
+
+        $data['coaReturPembelian'] = DB::table('accounts')
+        ->where('account','1100.38')
+        ->orderBy('description')
         ->get();
 
         return view('suppliers.show',$data);
@@ -371,6 +400,8 @@ class SupplierController extends Controller
         $blacklist = '0';
         // $pkp = 'N';
         $pkp = $request->pkp ? 'Y' : 'N';
+        $account = $request->coaHutang;
+        $coaPenjualan = $request->coaReturPembelian;
     
         $messages = [
             'required' => 'The field is required.',
@@ -425,7 +456,9 @@ class SupplierController extends Controller
                         'account_number' => $accNumber,
                         'bank_branch' => $branch,
                         'updated_by' => Auth::user()->username,
-                        'updated_at' => date('Y-m-d H:i:s')
+                        'updated_at' => date('Y-m-d H:i:s'),
+                        'account'=> $account,
+                        'coa_penjualan' => $coaPenjualan
                     ]
                 );
 

@@ -4,7 +4,7 @@
 @include('layouts.breadcrumb')
 <section id="add-index">
     <div class="form-row">
-        <div class="col-md-6">
+        <div class="col-md-8">
             <div class="card">
                 {{-- <div class="card-header">
                     <h4 class="card-title">Suppliers</h4>
@@ -22,6 +22,26 @@
                             <div class="form-group col-md-2">
                                 <label class="form-label" for="inisial">Initial*</label>
                                 <input type="text" id="inisial" name="inisial" class="form-control text-uppercase" value="{{ old('inisial',$suppliers->inisial) }}" required maxlength="3"/>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group col-md-6">
+                                <label class="form-label" for="coaHutang">COA Hutang</label>
+                                <select class="select2 w-100" id="coaHutang" name="coaHutang">
+                                    <option value=""></option>
+                                    @foreach($accounts as $val)
+                                        <option value="{{$val->account}}" {{ $val->account == old("coaHutang",$suppliers->account) ? "selected" : ""}} >{{$val->account}} | {{$val->description}} </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="form-group col-md-6">
+                                <label class="form-label" for="coaReturPembelian">COA Retur Pembelian</label>
+                                <select class="select2 w-100" id="coaReturPembelian" name="coaReturPembelian">
+                                    {{-- <option value=""></option> --}}
+                                    @foreach($coaReturPembelian as $val)
+                                        <option value="{{$val->account}}" {{ $val->account == old("coaReturPembelian",$suppliers->coa_penjualan) ? "selected" : ""}} >{{$val->account}} | {{$val->description}} </option>
+                                    @endforeach
+                                </select>
                             </div>
                         </div>
                         <div class="form-row">
@@ -93,8 +113,7 @@
                                 <label class="form-label" for="kontak">Contact person</label>
                                 <input type="text" id="kontak" name="kontak" class="form-control" value="{{ old('kontak',$suppliers->nama_kontak) }}" maxlength="20"/>
                             </div>
-                        </div>
-                        <div class="form-row">
+                        
                             <div class="form-group col-md-6">
                                 <label class="form-label" for="email">Email</label>
                                 <input type="email" id="email" name="email" class="form-control" value="{{ old('email',$suppliers->email) }}" maxlength="50" />
@@ -140,7 +159,7 @@
                                 </select>
                             </div>
                         </div>
-                        <div class="form-row">
+                        {{-- <div class="form-row">
                             <div class="form-group col-md-12">
                                 <label class="form-label" for="account">Account</label>
                                 <select class="select2 form-control" id="account" name="account">
@@ -150,7 +169,7 @@
                                     @endforeach
                                 </select>
                             </div>
-                        </div>
+                        </div> --}}
                         <div class="form-row">
                             <div class="form-group col-md-4">
                                 <label class="form-label" for="bankType">Type*</label>
@@ -163,7 +182,7 @@
                         </div>
                         <div class="form-row">
                             <div class="form-group col-md-6">
-                                <label for="bankName">Name*</label>
+                                <label for="bankName">Name</label>
                                 <select class="select2 form-control" id="bankName" name="bankName">
                                     <option value="">Choose bank</option>
                                     <label for="bankName">Bank name</label>
@@ -175,14 +194,14 @@
                         </div>
                         <div class="form-row">
                             <div class="form-group col-md-6">
-                                <label for="accNumber">Acount Number*</label>
-                                <input type="text" id="accNumber" name="accNumber" class="form-control text-uppercase" value="{{ old('accNumber',$suppliers->account_number) }}" maxlength="100" required/>
+                                <label for="accNumber">Acount Number</label>
+                                <input type="text" id="accNumber" name="accNumber" class="form-control text-uppercase" value="{{ old('accNumber',$suppliers->account_number) }}" maxlength="100"/>
                             </div>
                         </div>
                         <div class="form-row">
                             <div class="form-group col-md-6">
-                                <label for="branch">Branch*</label>
-                                <input type="text" id="branch" name="branch" class="form-control" value="{{ old('branch',$suppliers->bank_branch) }}"  maxlength="100" required/>
+                                <label for="branch">Branch</label>
+                                <input type="text" id="branch" name="branch" class="form-control" value="{{ old('branch',$suppliers->bank_branch) }}"  maxlength="100" />
                             </div>
                         </div>
                         {{-- <div class="form-row">
