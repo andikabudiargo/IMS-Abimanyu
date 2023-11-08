@@ -115,7 +115,7 @@ class BankPenerimaanController extends Controller
         $data['subtitle'] = "Create $this->title";
         $data['type'] = 'penerimaan';
 
-        $data['accounts'] =db::select("select account,description from accounts <> 'HEADER'
+        $data['accounts'] =db::select("select account,description from accounts where acc_header <> 'HEADER'
         union
         select kode as account,nama description from third_party where third_party_type = 'supp' order by account");
         
