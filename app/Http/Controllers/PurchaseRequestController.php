@@ -632,6 +632,7 @@ class PurchaseRequestController extends Controller
 
                     // 1. Ambil nomor PR terakhir
                     
+                    /*
                     $prTerakhir = DB::select("select max(pr_number) as pr_number 
                                                 from purchase_request_hdr 
                                                 where origin_pr_number = '$prNumber'");
@@ -644,6 +645,8 @@ class PurchaseRequestController extends Controller
                     ->distinct('purchase_order_det.po_number')
                     ->get();
 
+                    */
+                    
                     /* 
                         2.
                         Bandingkan QTY PR sekrang dan terakhir, kalau ada yang beda ata berubah PO nya 
