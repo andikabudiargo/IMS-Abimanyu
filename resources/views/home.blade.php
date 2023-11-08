@@ -409,7 +409,7 @@
                                                     <a class="btn btn-outline-info btn-sm" 
                                                         id="cmdDetailPrHome{{ $key }}" 
                                                         name="cmdDetailPrHome{{ $key }}" 
-                                                        href="{{ route('purchaseRequest.show', ['id'=>Crypt::encryptString($val->id)]) }}"> 
+                                                        href="{{ route('purchaseRequest.edit', ['id'=>Crypt::encryptString($val->id)]) }}"> 
                                                         <i data-feather='list'></i>
                                                         Detail
                                                     </a>
@@ -1541,7 +1541,7 @@
                                             <a class="btn btn-outline-info btn-sm" 
                                                 id="cmdDetailArHome{{ $key }}" 
                                                 name="cmdDetailArHome{{ $key }}" 
-                                                href="{{ route('invoice.show', ['id'=>Crypt::encryptString($val->id)]) }}"> 
+                                                href="{{ route('invoice.edit', ['id'=>Crypt::encryptString($val->id)]) }}"> 
                                                 <i data-feather='list'></i>
                                                 Detail
                                             </a>
