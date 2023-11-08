@@ -353,8 +353,8 @@ class ArticleController extends Controller
 
         $code = $data['article']->article_type;
         $data['custs'] = DB::table('third_party')->where(function ($query) use ($code) {
-            $code == 'FG' ? $query->where('third_party_type','cust') : '';
-            $code != 'FG' && $code != 'RM' ? $query->where('third_party_type','supp') : '';
+            // $code == 'FG' ? $query->where('third_party_type','cust') : '';
+            // $code != 'FG' && $code != 'RM' ? $query->where('third_party_type','supp') : '';
         })->get();
 
         $data['groups'] = DB::table('group_materials')
@@ -399,10 +399,10 @@ class ArticleController extends Controller
         ->orderBy('name')
         ->get();
 
-        $data['article']->article_type  == 'FG' || $data['article']->article_type  == 'RM'  ? $typeTP = 'cust' : $typeTP = 'supp';
+        // $data['article']->article_type  == 'FG' || $data['article']->article_type  == 'RM'  ? $typeTP = 'cust' : $typeTP = 'supp';
 
         $data['custs'] = DB::table('third_party')
-        ->where ('third_party_type','=',$typeTP)
+        // ->where ('third_party_type','=',$typeTP)
         ->orderBy('nama')
         ->get();
 
@@ -729,8 +729,8 @@ class ArticleController extends Controller
         $data = DB::table('third_party')->where(function ($query) use ($code) {
             //kalo barang finish goods hanya punya nya customer, tapi kalo raw material yang punyanya bisa customer bisa supplier
             // $code == 'FG' ? $query->where('third_party_type','cust') : $query->where('third_party_type','supp');  //tadinya ini
-            $code == 'FG' ? $query->where('third_party_type','cust') : '';
-            $code != 'FG' ? $query->where('third_party_type','supp') : '';
+            // $code == 'FG' ? $query->where('third_party_type','cust') : '';
+            // $code != 'FG' ? $query->where('third_party_type','supp') : '';
 
         })->get();
         
@@ -1069,8 +1069,8 @@ class ArticleController extends Controller
 
         $code = $data['article']->article_type;
         $data['custs'] = DB::table('third_party')->where(function ($query) use ($code) {
-            $code == 'FG' ? $query->where('third_party_type','cust') : '';
-            $code != 'FG' ? $query->where('third_party_type','supp') : '';
+            // $code == 'FG' ? $query->where('third_party_type','cust') : '';
+            // $code != 'FG' ? $query->where('third_party_type','supp') : '';
         })->get();
 
         $data['groups'] = DB::table('group_materials')
@@ -1310,7 +1310,7 @@ class ArticleController extends Controller
         $data['article']->article_type  == 'FG' || $data['article']->article_type  == 'RM'  ? $typeTP = 'cust' : $typeTP = 'supp';
 
         $data['custs'] = DB::table('third_party')
-        ->where ('third_party_type','=',$typeTP)
+        // ->where ('third_party_type','=',$typeTP)
         ->orderBy('nama')
         ->get();
 
