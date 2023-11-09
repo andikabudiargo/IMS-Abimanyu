@@ -230,7 +230,7 @@
 
     objSupplier.change(function(e){        
         let suppCode = $(this).val();
-        let pkp = $(this).find(":selected").data("pkp") || 'Y';
+        let pkp = $(this).find(":selected").data("pkp");
         let top = $(this).find(":selected").data("top") || 30;
         $("#term").val(top);
         if (pkp =='Y'){
