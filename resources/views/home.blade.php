@@ -111,7 +111,7 @@
             <!-- Company Table Card -->
             <div class="col-lg-12 col-12">
                 <div class="card">
-                    <div class="card-header"><strong>PO needs to be approved <div class="badge badge-pill badge-info"> {{ count($listBomHome) }}</div></strong></div>
+                    <div class="card-header"><strong>PO needs to be approved <div class="badge badge-pill badge-info"> {{ count($listPoHome) }}</div></strong></div>
                     <div class="card-body">
                         <div class="table-responsive" style="max-height:300px">
                             <table class="table" width="100%">
