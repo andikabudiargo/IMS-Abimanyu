@@ -442,7 +442,8 @@ class BankKeluarController extends Controller
         $statusLevelApproval = Approval::approvalLevelPosition($this->moduleCode,$vcNumber,$username);        
         $nextLevel = $statusLevelApproval[0]->next_level;
         $status = $statusLevelApproval[0]->next_level == $statusLevelApproval[0]->max_level ? '3' :'2';
-
+        $maxLevel = $statusLevelApproval[0]->max_level;
+        
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATED','3'=>'APPROVED','4'=>'','5'=>'DELETED','6'=>"CLOSED"];
                 
         DB::beginTransaction();
@@ -489,6 +490,10 @@ class BankKeluarController extends Controller
                         ]
                     );
                 }
+
+                // if( $nextLevel == ($maxLevel-1) ){
+                //     $this->autoApprove($vcNumber,'budi');
+                // }
                 
                 DB::commit();
                 $title ="Approve $this->title";
@@ -504,6 +509,74 @@ class BankKeluarController extends Controller
             $message  = "$title $vcNumber is failed to Approve-".$nextLevel;
             \LogActivity::addToLog($title,"username: $username Status $message");
             return response()->json(array('status' => $status,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'$vcNumber'=>$vcNumber));
+        }
+    }
+
+    public function autoApprove($vcNumber,$username)
+    {
+        $statusLevelApproval = Approval::approvalLevelPosition($this->moduleCode,$vcNumber,$username);
+        $nextLevel = $statusLevelApproval[0]->next_level;
+        $status = $statusLevelApproval[0]->next_level == $statusLevelApproval[0]->max_level ? '3' :'2';
+        
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATED','3'=>'APPROVED','4'=>'','5'=>'DELETED','6'=>"CLOSED"];
+                
+        DB::beginTransaction();
+        try {
+                $row_affected=DB::table('kas_hdr')
+                ->where('voucher_number',$vcNumber)
+                ->update(
+                    [
+                        'status' => $status,
+                        'updated_by' => $username,
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]
+                );
+
+                if ($row_affected){
+                    DB::table('approval_history')->insert([
+                        'module_code' => $this->moduleCode,
+                        'module_number' => $vcNumber,
+                        'username' => $username,
+                        'approval_order' => $nextLevel,
+                        'approval_date' => date('Y-m-d'),
+                        'status' => 1,
+                        'created_by' => $username,
+                        'updated_by' => $username,
+                        'created_at' => date('Y-m-d H:i:s'),
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]);
+                }
+
+                $listInvoice=DB::table('kas_det')
+                ->where('voucher_number',$vcNumber)
+                ->pluck('reference')->toArray();
+                
+                //update invoice supplier jadi paid kalau status approved terakhir
+                // ['1'=>'DRAFT','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','6'=>'CLOSED','6'=>'PAID'];
+                if($status == '3'){
+                    DB::table('ap_invoice')
+                    ->whereIn('ap_number',$listInvoice)
+                    ->update(
+                        [   
+                            'status' =>'6',
+                            'updated_by' => Auth::user()->username,
+                            'updated_at' => date('Y-m-d H:i:s'),
+                        ]
+                    );
+                }
+                
+                DB::commit();
+                $title ="Auto Approve $this->title";
+                $alert  ="success";
+                $message  = "$title $vcNumber is successfully Approve-".$nextLevel;
+                \LogActivity::addToLog($title,"username: $username Status $message");
+
+        } catch (Exception $e) {
+            DB::rollBack();
+            $title ="Auto Approve $this->title";
+            $alert  ="warning";
+            $message  = "$title $vcNumber is failed to Approve-".$nextLevel;
+            \LogActivity::addToLog($title,"username: $username Status $message");
         }
     }
 
