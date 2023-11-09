@@ -67,10 +67,10 @@ class PurchaseOrderController extends Controller
             ['data'=>'discount','name'=>'discount','title'=>'Discount'],
             ['data'=>'ppn','name'=>'ppn','title'=>'PPN'],
             ['data'=>'netto','name'=>'netto','title'=>'Netto'],
-            ['data'=>'approval_by','name'=>'approval_by','title'=>'Approved By'],
             ['data'=>'note','name'=>'note','title'=>'Note'],
             ['data'=> 'created_by', 'name'=> 'created_by','title'=>'Created By'],
-            ['data'=> 'created_at', 'name'=> 'created_at','title'=>'Created At']
+            ['data'=> 'created_at', 'name'=> 'created_at','title'=>'Created At'],
+            ['data'=>'approval_by','name'=>'approval_by','title'=>'Approved By']
         ];
         return json_encode($kolom, true);
     }
@@ -1086,12 +1086,16 @@ class PurchaseOrderController extends Controller
         (select note from purchase_order_hdr where po_number = oki.po_number) as note,
         -- case when uom_group = 'PIECE' then TO_CHAR(qtyku,'999,999,999') when uom_group <> 'PIECE' then TO_CHAR(qtyku,'999,999,999.999') end as qty,
         qtyku as qty,
-        TO_CHAR(grossku,'999,999,999') as gross,
-        TO_CHAR(discountku,'999,999,999') as discount,
-        TO_CHAR(ppnku,'999,999,999') as ppn,
+        grossku as gross,
+        discountku as discount,
+        ppnku as ppn,
+        -- TO_CHAR(grossku,'999,999,999') as gross,
+        -- TO_CHAR(discountku,'999,999,999') as discount,
+        -- TO_CHAR(ppnku,'999,999,999') as ppn,
         delivery_date,
         (select concat(kode,'-',nama) from third_party where kode = supplier_id limit 1) as supp_name,
-        TO_CHAR((grossku-discountku)+ppnku,'999,999,999') as netto,
+        (grossku-discountku)+ppnku as netto,
+        -- TO_CHAR((grossku-discountku)+ppnku,'999,999,999') as netto,
         --query apakah user berhak untuk approve atau tidak
         (SELECT username = '$username' as validate from (
             select username,approval_order,
@@ -1299,11 +1303,16 @@ class PurchaseOrderController extends Controller
         ,'uom_group'
         ,'purchase_order_hdr.status as statusku'
         ,'article_types.name as article_type_name'
-        ,DB::raw("case when uom_group = 'PIECE' then TO_CHAR(qty,'999,999,999') else TO_CHAR(qty,'999,999,999.99') end as qtyku")
-        ,DB::raw("TO_CHAR(price*qty*purchase_order_hdr.ppn/100,'999,999,999') as total_ppn")
-        ,DB::raw("TO_CHAR(price*qty,'999,999,999') as total_dpp")
-        ,DB::raw("TO_CHAR(price*qty*purchase_order_hdr.pph22/100,'999,999,999') as total_pph22")
-        ,DB::raw("TO_CHAR((((price*qty)-discount)+(price*qty*purchase_order_hdr.ppn/100)-(price*qty*purchase_order_hdr.pph22)),'999,999,999') as grand_total")
+        ,'qty as qtyku'
+        ,DB::raw("price*qty*purchase_order_hdr.ppn/100 as total_ppn")
+        ,DB::raw("price*qty as total_dpp")
+        ,DB::raw("price*qty*purchase_order_hdr.pph22/100 as total_pph22")
+        ,DB::raw("(((price*qty)-discount)+(price*qty*purchase_order_hdr.ppn/100)-(price*qty*purchase_order_hdr.pph22)) as grand_total")
+        // ,DB::raw("case when uom_group = 'PIECE' then TO_CHAR(qty,'999,999,999') else TO_CHAR(qty,'999,999,999.99') end as qtyku")
+        // ,DB::raw("TO_CHAR(price*qty*purchase_order_hdr.ppn/100,'999,999,999') as total_ppn")
+        // ,DB::raw("TO_CHAR(price*qty,'999,999,999') as total_dpp")
+        // ,DB::raw("TO_CHAR(price*qty*purchase_order_hdr.pph22/100,'999,999,999') as total_pph22")
+        // ,DB::raw("TO_CHAR((((price*qty)-discount)+(price*qty*purchase_order_hdr.ppn/100)-(price*qty*purchase_order_hdr.pph22)),'999,999,999') as grand_total")
         ,DB::raw("(select STRING_AGG((select name from users where username = a.username), ' -> ' ORDER BY approval_order) AS main from approval_history a where module_number = purchase_order_det.po_number) as approval_by")
         ,'depts.name as nama_dept'
         ,'article.uom as article_uom'
