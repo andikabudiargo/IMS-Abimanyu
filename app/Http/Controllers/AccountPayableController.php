@@ -493,6 +493,7 @@ class AccountPayableController extends Controller
         $taxInvoiceNumber=$request->taxInvoiceNumber;
         $recNumberSave = explode(",",$request->recNumberSave);
         $period=$request->period;
+        $accountHutang = $request->accountHutang;
 
         /* batal pengkodean untuk angka romawi/bulan  jadi nya dari period
         $tanggalReceive = (int)explode('-', $apDate)[0];
@@ -547,7 +548,8 @@ class AccountPayableController extends Controller
         }
                 
         $accountVat   ='1100.73';
-        $acountTotal  ='2000.11';
+        $acountTotal  ='2000.11';  //ambil dari kode supplier
+        $acountTotal  =$accountHutang;
         $accountPph23 ='2000.14.3';
         $accountPph21 ='2000.14.2';
         $accountPph42 ='2000.14.6';
@@ -860,6 +862,7 @@ class AccountPayableController extends Controller
         $account= $request->account;
         $note=$request->note;
         $period=$request->period;
+        $accountHutang = $request->accountHutang;
 
         $apDate= $request->apDate;
         $invoiceNumber=$request->invoiceNumber;
@@ -900,7 +903,8 @@ class AccountPayableController extends Controller
         }
                 
         $accountVat   ='1100.73';
-        $acountTotal  ='2000.11';
+        // $acountTotal  ='2000.11';
+        $acountTotal  =$accountHutang;
         $accountPph23 ='2000.14.3';
         $accountPph21 ='2000.14.2';
         $accountPph42 ='2000.14.6';
@@ -1859,12 +1863,12 @@ class AccountPayableController extends Controller
             // }
                 
 
-            if (($data->status == '4')){
+            // if (($data->status == '4')){
                 $buttons .=         '<a href="'. route('ap.print', ['id'=>Crypt::encryptString($data->id)]) .'" target="_blank" class="dropdown-item">
                                     <i data-feather="printer"></i>
                                     <span>'. __("Print") .'</span>
                                 </a>';
-            }
+            // }
 
             // if (($data->status != '4')){
             //     $buttons .=         '<a href="'. route('ap.print.draft', ['id'=>Crypt::encryptString($data->id)]) .'" target="_blank" class="dropdown-item">

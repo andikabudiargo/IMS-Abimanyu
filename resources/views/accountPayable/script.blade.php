@@ -182,24 +182,30 @@
         let value= $(this).val();
         let obj = 'poNumber';
         let term = $(this).find(":selected").data("term");
-        $('#term').val(term);
-        kosongkanData();
-        $.ajax({
-            url:"{{ route('ap.list.po') }}",
-            method:"GET",
-            data:{
-                value:value,
-                edit:edit
-            },
-            success:function(result){
-                    $('#'+obj).html(result);
-                    poAda ? $('#'+obj).val(poAda).trigger('change'):'';
-            },
-            error: function (response) {
-                //Error here
-                Swal.fire("Warning","Get list PO failed","warning");
-            }
-        })
+        let coa = $(this).find(":selected").data("coa");
+        if(coa){
+            $('#term').val(term);
+            $('#accountHutang').val(coa);
+            kosongkanData();
+            $.ajax({
+                url:"{{ route('ap.list.po') }}",
+                method:"GET",
+                data:{
+                    value:value,
+                    edit:edit
+                },
+                success:function(result){
+                        $('#'+obj).html(result);
+                        poAda ? $('#'+obj).val(poAda).trigger('change'):'';
+                },
+                error: function (response) {
+                    //Error here
+                    Swal.fire("Warning","Get list PO failed","warning");
+                }
+            })
+        }else{
+            Swal.fire("Warning","Supplier belum memiliki COA Hutang","warning"); 
+        }
     });
 
     $('#poNumber').change(function(){
@@ -247,28 +253,36 @@
     $("#cmdSave").click(function(){     
         let recNumber="";
         let sumQty=0;
-        $('input:checkbox[name=customCheck]:checked').each(function(){
+        let accountHutang = $('#accountHutang').val();
+
+        if (accountHutang){
+
+            $('input:checkbox[name=customCheck]:checked').each(function(){
             recNumber += $(this).data('rec-number')+",";
             sumQty += parseFloat($(this).data('sum-qty'));
-        });
-        recNumber=recNumber.slice(0,-1);
-        let tableIsi = $('#listOfRec > tbody  tr').length;
-        if(parseFloat($("#grandTotalQty").val())!=sumQty){
-            Swal.fire("Warning","Data belum sesuai harus di submit ulang","warning"); 
-        }else{
-            if (recNumber && (tableIsi != 0)){
-                if (!$("#frmAdd")[0].checkValidity()){
-                    $("#frmAdd").submit();
-                }else{
-                    $("#cmdSave").attr('disabled','disabled')
-                    $('.disabled-el').removeAttr('disabled');
-                    $('#recNumberSave').val(recNumber);
-                    $("#frmAdd").submit();
-                }
+            });
+            recNumber=recNumber.slice(0,-1);
+            let tableIsi = $('#listOfRec > tbody  tr').length;
+            if(parseFloat($("#grandTotalQty").val())!=sumQty){
+                Swal.fire("Warning","Data belum sesuai harus di submit ulang","warning"); 
             }else{
-                Swal.fire("Warning","LPB Belum dipilih atau belum di submit","warning"); 
+                if (recNumber && (tableIsi != 0)){
+                    if (!$("#frmAdd")[0].checkValidity()){
+                        $("#frmAdd").submit();
+                    }else{
+                        $("#cmdSave").attr('disabled','disabled')
+                        $('.disabled-el').removeAttr('disabled');
+                        $('#recNumberSave').val(recNumber);
+                        $("#frmAdd").submit();
+                    }
+                }else{
+                    Swal.fire("Warning","LPB Belum dipilih atau belum di submit","warning"); 
+                }
             }
+        }else{
+            Swal.fire("Warning","Supplier belum memiliki COA Hutang","warning"); 
         }
+       
     });
 
     kosongkanData = () =>{

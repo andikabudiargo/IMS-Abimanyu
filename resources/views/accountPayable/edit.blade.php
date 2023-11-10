@@ -46,13 +46,19 @@
                                             <select class="select2 form-control" id="supplier" name="supplier" required>
                                                 <option value="">All</option>
                                                 @foreach($supps as $val)
-                                                    <option value="{{ $val->kode }}" data-term = "{{ $val->top_batas_1 }}" {{ old('supplier',$header->supplier_id) == $val->kode ? 'selected' : '' }} >{{$val->kode}} - {{$val->nama}}</option>
+                                                    <option value="{{ $val->kode }}" data-term = "{{ $val->top_batas_1 }}" data-coa = "{{ $val->account }}"  {{ old('supplier',$header->supplier_id) == $val->kode ? 'selected' : '' }} >{{$val->kode}} - {{$val->nama}}</option>
                                                 @endforeach
                                             </select>
                                         </div>
                                         <div class="form-group col-md-2">
                                             <label for="term">Term*</label>
                                             <input type="text" id="term" name="term" class="form-control" value="{{ old('term',$header->top_batas_1) }}" disabled />
+                                        </div> 
+                                    </div>
+                                    <div class="form-row">
+                                        <div class="form-group col-md-8">
+                                            <label for="accountHutang">COA Hutang*</label>
+                                            <input type="text" id="accountHutang" name="accountHutang" class="form-control disabled-el" value="{{ old('term',$header->account_total) }}" disabled />
                                         </div> 
                                     </div>
                                     <div class="form-row">

@@ -41,6 +41,16 @@
                                                 @endforeach
                                             </select>
                                         </div>
+                                        {{-- <div class="form-group col-md-2">
+                                            <label for="term">Term*</label>
+                                            <input type="text" id="term" name="term" class="form-control" value="{{ old('term',$header->top_batas_1) }}" disabled />
+                                        </div>  --}}
+                                    </div>
+                                    <div class="form-row">
+                                        <div class="form-group col-md-8">
+                                            <label for="accountHutang">COA Hutang*</label>
+                                            <input type="text" id="accountHutang" name="accountHutang" class="form-control disabled-el" value="{{ old('term',$header->account_total) }}" disabled />
+                                        </div> 
                                     </div>
                                     <div class="form-row">
                                         <div class="form-group col-md-8">
