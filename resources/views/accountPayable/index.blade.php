@@ -35,7 +35,7 @@
                 </select>
               </div>
               <div class="col-md-3 form-group">
-                <label for="apDate">Date</label>
+                <label for="apDate">AP Date</label>
                 <input type="text" id="apDate" name="apDate" class="form-control flatpickr-range" placeholder="YYYY-MM-DD to YYYY-MM-DD" />
               </div>
               <div class="form-group col-md-2"> 
