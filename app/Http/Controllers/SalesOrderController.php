@@ -789,7 +789,7 @@ class SalesOrderController extends Controller
     {
         $username =  Auth::user()->username;
         $id=Crypt::decryptString($request->id);
-        $so_code = DB::table('sales_order_hdr')->where('id',$id)->where('status','1')->value('so_code');
+        $so_code = DB::table('sales_order_hdr')->where('id',$id)->value('so_code');
         $rowAffected = DB::table('sales_order_hdr')->where('id',$id)->delete();
         if($rowAffected>0){
             DB::table('sales_order_det')->where('so_code',$so_code)->delete();
