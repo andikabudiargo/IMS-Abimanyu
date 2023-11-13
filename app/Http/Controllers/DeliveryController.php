@@ -1112,7 +1112,8 @@ class DeliveryController extends Controller
                 }   
             }
 
-            if ((($data->status == '1') || ($data->status == '2') || ($data->status == '3') || ($data->status == '4')) && ($data->sudah_di_bayar == 0)){
+            // if ((($data->status == '1') || ($data->status == '2') || ($data->status == '3') || ($data->status == '4')) && ($data->sudah_di_bayar == 0)){
+            if ((($data->status == '1') || ($data->status == '2') || ($data->status == '3') || ($data->status == '4'))){
                 $buttons .= "<a href='javascript:;'
                                 id='revisionReasonButton'
                                 class='dropdown-item'
