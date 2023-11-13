@@ -25,7 +25,7 @@
                                 </div>
                                 <div class="form-group col-md-2">
                                     <label for="recDate">Receiving Date*</label>
-                                    <input type="text" id="recDate" name="recDate" class="form-control" placeholder="DD-MM-YYYY" value="{{ $header->rec_date }}" required disabled/>
+                                    <input type="text" id="recDate" name="recDate" class="form-control" placeholder="DD-MM-YYYY" value="{{ $header->rec_date }}" required/>
                                 </div>                               
                             </div>
                             <div class="form-row">
