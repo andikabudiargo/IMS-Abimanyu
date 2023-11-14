@@ -156,10 +156,10 @@
                     value:value,
                 },
                 success:function(result){
-                    if (cloneCount > 1){
+                    // if (cloneCount > 1){
                         $("#article_row").empty();
                         cloneCount=1;
-                    }
+                    // }
                     
                     if(result.length > 0 ){
                         for (let i = 0; i < result.length; i++) {
