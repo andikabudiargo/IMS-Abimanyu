@@ -127,7 +127,8 @@
 {{-- \.table row --}}
 <script type="text/javascript">
     let currentDate = "{{ $currentDateValue }}";
-
+    let dariEdit="";
+    
     function searchPo(obj,value) {
       $.ajax({
         url:"{{ route('receiving.list.po') }}",
@@ -146,38 +147,44 @@
       })
     }
 
-    function searchPoDet(value) {
-        $.ajax({
-            url:"{{ route('receiving.po.det') }}",
-            method:"GET",
-            data:{
-                value:value,
-            },
-            success:function(result){
-                if (cloneCount > 1){
-                    $("#article_row").empty();
-                    cloneCount=1;
-                }
-                
-                if(result.length > 0 ){
-                    for (let i = 0; i < result.length; i++) {
-                        article=result[i].article_code;
-                        articleCode=result[i].article_alternative_code;
-                        articleDesc=result[i].article_desc;
-                        qtyPo=result[i].qty_order;
-                        qty=qtyPo <= 0 ? 0 :'';
-                        uomGroup=result[i].uom_group;
-                        uom=result[i].uom;
-                        price=result[i].price;
-                        add_new_row(article,articleCode,articleDesc,qtyPo,uomGroup,uom,price,qty);
+    function searchPoDet(value,dariEdit) {
+        if(dariEdit=='false'){
+            $.ajax({
+                url:"{{ route('receiving.po.det') }}",
+                method:"GET",
+                data:{
+                    value:value,
+                },
+                success:function(result){
+                    if (cloneCount > 1){
+                        $("#article_row").empty();
+                        cloneCount=1;
                     }
+                    
+                    if(result.length > 0 ){
+                        for (let i = 0; i < result.length; i++) {
+                            article=result[i].article_code;
+                            articleCode=result[i].article_alternative_code;
+                            articleDesc=result[i].article_desc;
+                            qtyPo=result[i].qty_order;
+                            qty=qtyPo <= 0 ? 0 :'';
+                            uomGroup=result[i].uom_group;
+                            uom=result[i].uom;
+                            price=result[i].price;
+                            add_new_row(article,articleCode,articleDesc,qtyPo,uomGroup,uom,price,qty);
+                        }
+                    }
+
+                    
+                    
+                },
+                error: function (response) {
+                    Swal.fire("Warning","Get detail PO failed","warning");
                 }
-                
-            },
-            error: function (response) {
-                Swal.fire("Warning","Get detail PO failed","warning");
-            }
-        })
+            })
+        }else{
+            dariEdit='false';
+        }
     }
 
     function listUom(obj,obj2,value,uom) {

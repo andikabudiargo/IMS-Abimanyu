@@ -1183,6 +1183,16 @@ class ReceivingController extends Controller
                             </a>';
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
 
+            // if (($data->status == '1') OR ($data->status == '2')){
+            if ($data->status == '10'){
+                if (Auth::user()->can('receiving-edit')) {
+                $buttons .=         '<a href="'. route('receiving.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+                                        <i data-feather="file-text"></i>
+                                        <span>'. __("Edit") .'</span>
+                                    </a>';
+                }
+            }
+
             if ($data->status == '10') {
                 if (Auth::user()->can('receiving-approve')) {
                 $buttons .=         '<a href="'. route('receiving.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
@@ -1221,15 +1231,6 @@ class ReceivingController extends Controller
                                 </a>";
                 // }            
             }
-
-            // if (($data->status == '1') OR ($data->status == '2')){
-            //     if (Auth::user()->can('receiving-edit')) {
-            //     $buttons .=         '<a href="'. route('receiving.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
-            //                             <i data-feather="file-text"></i>
-            //                             <span>'. __("Edit") .'</span>
-            //                         </a>';
-            //     }
-            // }
 
             // if ($data->status == '4'){
                 $buttons .=         "<a href='". route('receiving.print', ['id'=>Crypt::encryptString($data->id)]) ."' target='_blank' class='dropdown-item'>

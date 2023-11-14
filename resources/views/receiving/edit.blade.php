@@ -40,15 +40,20 @@
                                 </div>
                             </div>
                             <div class="form-row">
-                                <div class="form-group col-md-3">
+                                {{-- <div class="form-group col-md-2">
                                     <label class="form-label" for="poNumber">PO Number*</label>
                                     <input type="text" id="poNumber" name="poNumber" class="form-control text-hitam disabled-el" value="{{ $header->po_number }}"  disabled />
+                                </div> --}}
+                                <div class="form-group col-md-3">
+                                    <label class="form-label" for="poNumber">PO Number*</label>
+                                    <select class="select2 form-control" id="poNumber" name="poNumber" required>
+                                    </select>
                                 </div>
                                 <div class="form-group col-md-2">
                                     <label for="doDate">DO Date*</label>
                                     <input type="text" id="doDate" name="doDate" class="form-control" value="{{ $header->do_date }}" placeholder="DD-MM-YYYY" required />
                                 </div>                               
-                                <div class="form-group col-md-3">
+                                <div class="form-group col-md-2">
                                     <label for="doNumber">DO Number*</label>
                                     <input type="text" id="doNumber" name="doNumber" class="form-control disabled-el" value="{{ $header->do_number }}" required/>
                                 </div>
@@ -207,14 +212,22 @@
 @section('scripts')
 <script type="text/javascript">
     const approveBtn = $('#cmdApprove');
+    dariEdit = 'true';
+    
     $(document).ready(function(){          
         validateFormToast("frmAdd");
         let href;
+        let supplierId = "{{ $header->supplier_id }}";
+        let poNumber  = "{{ $header->po_number }}";
+            
         $(document).on('click', '#deleteButton', function(event) {
             event.preventDefault();
             href = $(this).data('href');
             $('#modalConfirmationCancel').attr("action", href);
         });
+
+        let dariEdit = "true";
+        searchPoEdit('poNumber',supplierId,poNumber);
 
         let detail = {!!  $detail !!};
         for(let i=0;i<detail.length;i++){
@@ -230,9 +243,37 @@
             uomFree =  detail[i].uom_free;
             price =  detail[i].price;
             uom_group = detail[i].uom_group;
-            add_new_row(article,articleCode,articleDesc,qtyPo,uomGroup,uom,qty,uomQty,qtyFree,uomFree,price);
+            add_new_row_edit(article,articleCode,articleDesc,qtyPo,uomGroup,uom,qty,uomQty,qtyFree,uomFree,price);
         }
     });
+
+    function searchPoEdit(obj,value,poNumber) {
+      $.ajax({
+        url:"{{ route('receiving.list.po') }}",
+        method:"GET",
+        data:{
+            value:value,
+        },
+        success:function(result){
+            $('#'+obj).html(result);
+            $('#'+obj).val(poNumber).trigger('change');
+            dariEdit='false';
+        },
+        error: function (response) {
+            //Error here
+            Swal.fire("Warning","Get list PO failed","warning");
+        }
+      })
+    }
+
+    $('#poNumber').change(function(){
+        let value= $(this).val();
+        if(dariEdit=='false'){
+            $("#doDate").val('');
+            $("#doNumber").val('');
+        }
+        searchPoDet(value,dariEdit);
+    })   
 
     invDate = $('#invDate');
     if (invDate.length) {
@@ -245,6 +286,14 @@
     recDate = $('#recDate');
     if (recDate.length) {
         recDate.flatpickr({
+            dateFormat: "d-m-Y",
+            maxDate: "today"
+        });
+    }
+
+    doDate = $('#doDate');
+    if (doDate.length) {
+        doDate.flatpickr({
             dateFormat: "d-m-Y",
             maxDate: "today"
         });
@@ -379,26 +428,28 @@
         }
     });
     
-    let cloneCount=0;
-    function add_new_row(article,articleCode,articleDesc,qtyPo,uomGroup,uom,qty,uomQty,qtyFree,uomFree,price) {
+    let cloneCountEdit=0;
+    function add_new_row_edit(article,articleCode,articleDesc,qtyPo,uomGroup,uom,qty,uomQty,qtyFree,uomFree,price) {
         $("#article_row").append($("#new_row").clone().html());
-        cloneCount++;
-        $("#article_row").find('#baru').attr('id', 'new_row'+ cloneCount);
-        $("#new_row"+ cloneCount).find('#article_id').attr('id', 'article_id'+ cloneCount);
-        $('#article_id'+ cloneCount).attr('data-code', article);
-        $('#article_id'+ cloneCount).attr('data-uom', uom);
-        $('#article_id'+ cloneCount).attr('data-price', price);
-        $('#article_id'+ cloneCount).val(articleCode +" - " + articleDesc);
-        $("#new_row"+ cloneCount).find('#qty_po').attr('id', 'qty_po'+ cloneCount);
-        $('#qty_po'+ cloneCount).val(qtyPo);
-        $("#new_row"+ cloneCount).find('#qty_rec').attr('id', 'qty_rec'+ cloneCount);
-        $('#qty_rec'+ cloneCount).val(qty);
-        $("#new_row"+ cloneCount).find('#uom').attr('id', 'uom'+ cloneCount);
-        listUom('uom'+ cloneCount,uomGroup,uom,uomQty);
-        $("#new_row"+ cloneCount).find('#qty_free').attr('id', 'qty_free'+ cloneCount);
-        $('#qty_free'+ cloneCount).val(qtyFree);
-        $("#new_row"+ cloneCount).find('#uomFree').attr('id', 'uomFree'+ cloneCount);
-        listUom('uomFree'+ cloneCount,uomGroup,uom,uomFree);
+        cloneCountEdit++;
+        $("#article_row").find('#baru').attr('id', 'new_row'+ cloneCountEdit);
+        $("#new_row"+ cloneCountEdit).find('#article_id').attr('id', 'article_id'+ cloneCountEdit);
+        $('#article_id'+ cloneCountEdit).attr('data-code', article);
+        $('#article_id'+ cloneCountEdit).attr('data-uom', uom);
+        $('#article_id'+ cloneCountEdit).attr('data-price', price);
+        $('#article_id'+ cloneCountEdit).val(articleCode +" - " + articleDesc);
+        $("#new_row"+ cloneCountEdit).find('#qty_po').attr('id', 'qty_po'+ cloneCountEdit);
+        $('#qty_po'+ cloneCountEdit).val(qtyPo);
+        $("#new_row"+ cloneCountEdit).find('#qty_rec').attr('id', 'qty_rec'+ cloneCountEdit);
+        $('#qty_rec'+ cloneCountEdit).val(qty);
+        $("#new_row"+ cloneCountEdit).find('#uom').attr('id', 'uom'+ cloneCountEdit);
+        // listUom('uom'+ cloneCountEdit,uomGroup,uom,uomQty);
+        $("#new_row"+ cloneCountEdit).find('#qty_free').attr('id', 'qty_free'+ cloneCountEdit);
+        $('#qty_free'+ cloneCountEdit).val(qtyFree);
+        $("#new_row"+ cloneCountEdit).find('#uomFree').attr('id', 'uomFree'+ cloneCountEdit);
+        
+        listUom('uom'+ cloneCountEdit,'uomFree'+ cloneCountEdit,uomGroup,uomQty);
+        // listUom('uomFree'+ cloneCount,uomGroup,uom,uomFree);
         tombolPanah('qty_rec');
         tombolPanah('qty_free');
         hitungTotal();
@@ -421,22 +472,52 @@
 
     }
 
-    function listUom(obj,value,uom,uomSelect) {
-      $.ajax({
-        url:"{{ route('receiving.list.uom') }}",
-        method:"GET",
-        data:{
-            value:value,
-        },
-        success:function(result){
-            $('#'+obj).html(result);
-            $('#'+obj).val(uomSelect).trigger('change');            
-        },
-        error: function (response) {
-            Swal.fire("Warning","Get list UOM failed","warning");
-        }
-      })
+    let cloneCount=0;
+    function add_new_row(article,articleCode,articleDesc,qtyPo,uomGroup,uom,price,qtyRec) {
+        $("#article_row").append($("#new_row").clone().html());
+        cloneCount++;
+        $("#article_row").find('#baru').attr('id', 'new_row'+ cloneCount);
+        $("#new_row"+ cloneCount).find('#article_id').attr('id', 'article_id'+ cloneCount);
+        $('#article_id'+ cloneCount).attr('data-code', article);
+        $('#article_id'+ cloneCount).attr('data-uom', uom);
+        $('#article_id'+ cloneCount).attr('data-price', price);
+        $('#article_id'+ cloneCount).val(articleCode +" - " + articleDesc);
+        $("#new_row"+ cloneCount).find('#qty_po').attr('id', 'qty_po'+ cloneCount);
+        $('#qty_po'+ cloneCount).val(qtyPo*1);
+        $("#new_row"+ cloneCount).find('#qty_rec').attr('id', 'qty_rec'+ cloneCount);
+        $('#qty_rec'+ cloneCount).val(qtyRec);
+        $('#qty_rec'+ cloneCount).attr('data-uom-group', uomGroup);
+        $("#new_row"+ cloneCount).find('#qty_free').attr('id', 'qty_free'+ cloneCount);
+        $('#qty_free'+ cloneCount).val(qtyRec);
+        $('#qty_free'+ cloneCount).attr('data-uom-group', uomGroup);
+        $("#new_row"+ cloneCount).find('#uom').attr('id', 'uom'+ cloneCount);
+        listUom('uom'+ cloneCount,'uomFree'+ cloneCount,uomGroup,uom);
+        $("#new_row"+ cloneCount).find('#uomFree').attr('id', 'uomFree'+ cloneCount);
+        qtyRec === 0 ? $('#qty_rec'+ cloneCount).attr('disabled','disabled') : '';
+        qtyRec === 0 ? $('#qty_free'+ cloneCount).attr('disabled','disabled') : '';
+        // listUom('uomFree'+ cloneCount,uomGroup,uom);
+        tombolPanah('qty_rec');
+        tombolPanah('qty_free');
+        mask_thousand_digit(2);
+        hitungTotal();
     }
+
+    // function listUom(obj,value,uom,uomSelect) {
+    //   $.ajax({
+    //     url:"{{ route('receiving.list.uom') }}",
+    //     method:"GET",
+    //     data:{
+    //         value:value,
+    //     },
+    //     success:function(result){
+    //         $('#'+obj).html(result);
+    //         $('#'+obj).val(uomSelect).trigger('change');            
+    //     },
+    //     error: function (response) {
+    //         Swal.fire("Warning","Get list UOM failed","warning");
+    //     }
+    //   })
+    // }
 
     function hitungTotal(){
         let objQtyRec= $('#article_row input[name="qty_rec[]"]');

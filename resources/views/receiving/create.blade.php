@@ -153,6 +153,7 @@
 @endsection
 @section('scripts')
 <script type="text/javascript">
+    dariEdit = 'false';
     $(document).ready(function(){
         validateFormToast("frmAdd");
         $("#totalRow").val(0);
@@ -376,7 +377,7 @@
 
     $('#poNumber').change(function(){
         let value= $(this).val();
-        searchPoDet(value);
+        searchPoDet(value,'false');
     })   
     
     function hitungTotal(){
