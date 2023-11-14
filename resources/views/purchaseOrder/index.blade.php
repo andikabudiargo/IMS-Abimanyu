@@ -167,7 +167,8 @@
         searchStatus:searchStatus,
         orderDate:orderDate
       },
-      orderColumn:[[ 21, 'desc' ],[ 3, 'asc' ],[ 1, 'desc' ]],
+      // orderColumn:[[ 19, 'desc' ],[ 3, 'asc' ],[ 1, 'desc' ]],
+      orderColumn:[[ 20, 'desc' ]],
       excelFileName:'purchase_order'
     });
   }
