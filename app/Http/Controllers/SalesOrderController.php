@@ -1207,7 +1207,7 @@ class SalesOrderController extends Controller
         ,db::raw("(select sum(qty) from delivery_det a
         left join delivery_hdr b on a.delivery_number=b.delivery_number 
         where a.so_number = sales_order_hdr.so_code and a.article_code = sales_order_det.article_code 
-        and status <> '5' group by article_code) as qty_kirim")
+        and b.status not in ('5','7')  group by article_code) as qty_kirim")
         // ,db::raw("(coalesce((select sum(qty) from delivery_det a
         // left join delivery_hdr b on a.delivery_number=b.delivery_number 
         // where a.so_number = sales_order_hdr.so_code and a.article_code = sales_order_det.article_code 
@@ -1215,7 +1215,7 @@ class SalesOrderController extends Controller
         ,db::raw("case when sales_order_det.status = '0' then 0 else (coalesce((select sum(qty) from delivery_det a
         left join delivery_hdr b on a.delivery_number=b.delivery_number 
         where a.so_number = sales_order_hdr.so_code and a.article_code = sales_order_det.article_code 
-        and status <> '5' group by article_code),0)-sales_order_det.qty) end as balance")
+        and b.status not in ('5','7')  group by article_code),0)-sales_order_det.qty) end as balance")
         // ,'sales_order_hdr.status as statusKu'
         // ,'uom_group'
         // ,'qty_target'
@@ -1391,7 +1391,7 @@ class SalesOrderController extends Controller
         ->leftJoin('delivery_hdr','delivery_hdr.delivery_number','delivery_det.delivery_number')
         ->where('delivery_hdr.so_number',$soNumber)
         ->where('delivery_det.article_code',$artCode)
-        ->where('delivery_hdr.status','<>','7')
+        ->whereNotIn('delivery_hdr.status',['5','7'])
         ->select('delivery_det.*','delivery_hdr.status as statusku','delivery_hdr.delivery_date','delivery_hdr.note')
         ->orderBy('delivery_det.id')
         ->get(); 
