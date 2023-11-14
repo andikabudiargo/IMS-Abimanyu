@@ -1352,9 +1352,10 @@ class ReceivingController extends Controller
         ,'article_alternative_code'
         ,'article_desc'
         ,'article_types.name as article_type_name'
-        ,DB::raw("case when uom_group = 'PIECE' then TO_CHAR(qty,'999,999,999') when uom_group <> 'PIECE' then TO_CHAR(qty,'999,999,999.99') end as qty")
-        ,DB::raw("case when uom_group = 'PIECE' then TO_CHAR(qty_free,'999,999,999') when uom_group <> 'PIECE' then TO_CHAR(qty_free,'999,999,999.99') end as qty_free")
-        ,DB::raw("TO_CHAR(price*qty,'999,999,999') as total_dpp")
+        // ,DB::raw("case when uom_group = 'PIECE' then TO_CHAR(qty,'999,999,999') when uom_group <> 'PIECE' then TO_CHAR(qty,'999,999,999.99') end as qty")
+        // ,DB::raw("case when uom_group = 'PIECE' then TO_CHAR(qty_free,'999,999,999') when uom_group <> 'PIECE' then TO_CHAR(qty_free,'999,999,999.99') end as qty_free")
+        ,DB::raw("price*qty as total_dpp")
+        // ,DB::raw("TO_CHAR(price*qty,'999,999,999') as total_dpp")
         ,DB::raw("(select STRING_AGG((select name from users where username = a.username), ' -> ' ORDER BY approval_order) AS main from approval_history a where module_number = receiving_hdr.rec_number) as approval_by")
         ,DB::raw("(select concat(kode,'-',nama) from third_party where kode = receiving_hdr.supplier_id limit 1) as supp_name")
         ,DB::raw("(select (select name from depts where code = dept) as nama_dept from purchase_request_hdr where pr_number in (select pr_number from purchase_order_det where po_number = receiving_hdr.po_number) order by dept desc limit 1)")
