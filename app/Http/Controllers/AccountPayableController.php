@@ -88,8 +88,8 @@ class AccountPayableController extends Controller
             ['data'=> 'note', 'name'=> 'note','title'=>'Note'],
             ['data'=> 'approval_oleh','name'=> 'approval_oleh','title'=>'Approved Oleh'],
             ['data'=> 'approval_oleh','name'=> 'approval_oleh','title'=>'Approved Oleh'],
-            ['data'=> 'created_by', 'name'=> 'created_by','title'=>'Created By'],
-            ['data'=> 'created_at', 'name'=> 'created_at','title'=>'Created At']
+            // ['data'=> 'created_by', 'name'=> 'created_by','title'=>'Created By'],
+            // ['data'=> 'created_at', 'name'=> 'created_at','title'=>'Created At']
         ];
         return json_encode($kolom, true);
     }
