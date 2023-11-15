@@ -148,15 +148,16 @@
       tableId:"detailedTable",
       route:"{{ route('ap.list') }}",
       kolom:{!! $kolom !!},
-      // arrColPrint:[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22],
-      // columnDefs :[
-      //   { width: '5%', targets: 0 },
-      //   {
-      //     targets: [ 14,15,16,17,18,19 ],
-      //     render: $.fn.dataTable.render.number(',', '.', 2, ''),
-      //     className: "text-right"
-      //   },
-      // ],
+      arrColPrint:[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22],
+      columnDefs :[
+        { width: '5%', targets: 0 },
+        {
+          targets: [ 14,15,16,17,18,19 ],
+          render: $.fn.dataTable.render.number(',', '.', 2, ''),
+          className: "text-right"
+        },
+      ],
+      type:"POST",
       dataSearch:  {
         searchPo:searchPo,
         searchAp:searchAp,
