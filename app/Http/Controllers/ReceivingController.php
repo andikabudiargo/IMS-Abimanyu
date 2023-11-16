@@ -660,6 +660,10 @@ class ReceivingController extends Controller
                 ,rec_number as description 
                 from receiving_hdr
                 where status = '4'
+                and rec_number in (select rec_number
+                from receiving_det
+                left join article on article.article_code = receiving_det.article_code
+                where article_type in ('RMP','CM1','CM2','RM'))
                 and rec_number = '$recNumber'
                 order by created_at");
 
@@ -675,7 +679,7 @@ class ReceivingController extends Controller
                 ,'003' as cost_center
                 from receiving_det
                 left join article on article.article_code = receiving_det.article_code
-                where article_type in ('RMP','CM1','CM2')
+                where article_type in ('RMP','CM1','CM2','RM')
                 and (qty+qty_free) > 0
                 and rec_number in (select rec_number from receiving_hdr where status = '4' and rec_number = '$recNumber')
                 order by receiving_det.created_at");
