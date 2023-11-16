@@ -663,7 +663,7 @@ class ReceivingController extends Controller
                 and rec_number = '$recNumber'
                 order by created_at");
 
-                DB::statement("INSERT into kas_det (voucher_number,account,description,debit,created_by,updated_by,created_at,updated_at) 
+                DB::statement("INSERT into kas_det (voucher_number,account,description,debit,created_by,updated_by,created_at,updated_at,cost_center) 
                 select rec_number as voucher_number
                 ,case when article_type='RMP' then '1100.31' when article_type='CM1' then '1100.32.1' when article_type='CM2' then '1100.32.2' else '' end as account
                 ,concat(rec_number,' ',article_desc) 
@@ -672,6 +672,7 @@ class ReceivingController extends Controller
                 ,receiving_det.updated_by
                 ,now()
                 ,now()
+                ,'003' as cost_center
                 from receiving_det
                 left join article on article.article_code = receiving_det.article_code
                 where article_type in ('RMP','CM1','CM2')
@@ -1038,7 +1039,7 @@ class ReceivingController extends Controller
             
             DB::table('kas_det')->where('voucher_number',$recNumber)->delete();
             DB::table('kas_hdr')->where('voucher_number',$recNumber)->delete();
-            
+
             $title ="Save $this->title";
             $alert  ="success";
             $message  = "$title Revision Rec: $recOrigin to $recNew is successfully saved";
