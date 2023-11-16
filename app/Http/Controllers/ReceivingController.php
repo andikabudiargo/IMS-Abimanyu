@@ -669,7 +669,7 @@ class ReceivingController extends Controller
 
                 DB::statement("INSERT into kas_det (voucher_number,account,description,debit,created_by,updated_by,created_at,updated_at,cost_center) 
                 select rec_number as voucher_number
-                ,case when article_type='RMP' then '1100.31' when article_type='CM1' then '1100.32.1' when article_type='CM2' then '1100.32.2' else '' end as account
+                ,case when article_type='RMP' then '1100.31' when article_type='RM' then '1100.31' when article_type='CM1' then '1100.32.1' when article_type='CM2' then '1100.32.2' else '' end as account
                 ,concat(rec_number,' ',article_desc) 
                 ,(qty+qty_free)*price as debit
                 ,receiving_det.created_by
