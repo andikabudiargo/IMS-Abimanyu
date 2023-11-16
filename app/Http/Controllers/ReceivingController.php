@@ -647,11 +647,11 @@ class ReceivingController extends Controller
                 DB::statement("INSERT into kas_hdr (voucher_number,voucher_type,voucher_date,receive_from,amount,period,year,note,status,created_by,updated_by,created_at,updated_at,description)
                 select rec_number as voucher_number
                 ,'REC' as voucher_type
-                ,rec_date as voucher_date
+                ,do_date as voucher_date
                 ,supplier_id as receive_from
                 ,(select sum((qty+qty_free)*price) from receiving_det where rec_number = receiving_hdr.rec_number) as amount
-                ,substring(rec_date,4,2)::integer as period
-                ,substring(rec_date,7) as year,note
+                ,substring(do_date,4,2)::integer as period
+                ,substring(do_date,7) as year,note
                 ,'3' as status
                 ,created_by
                 ,updated_by
