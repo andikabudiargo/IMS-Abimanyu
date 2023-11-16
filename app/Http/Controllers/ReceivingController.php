@@ -644,6 +644,41 @@ class ReceivingController extends Controller
 
                 DB::table('movement')->insert($dataSetMovement);
 
+                DB::statement("INSERT into kas_hdr (voucher_number,voucher_type,voucher_date,receive_from,amount,period,year,note,status,created_by,updated_by,created_at,updated_at,description)
+                select rec_number as voucher_number
+                ,'REC' as voucher_type
+                ,rec_date as voucher_date
+                ,supplier_id as receive_from
+                ,(select sum((qty+qty_free)*price) from receiving_det where rec_number = receiving_hdr.rec_number) as amount
+                ,substring(rec_date,4,2)::integer as period
+                ,substring(rec_date,7) as year,note
+                ,'3' as status
+                ,created_by
+                ,updated_by
+                ,now()
+                ,now()
+                ,rec_number as description 
+                from receiving_hdr
+                where status = '4'
+                and rec_number = '$recNumber'
+                order by created_at");
+
+                DB::statement("INSERT into kas_det (voucher_number,account,description,debit,created_by,updated_by,created_at,updated_at) 
+                select rec_number as voucher_number
+                ,case when article_type='RMP' then '1100.31' when article_type='CM1' then '1100.32.1' when article_type='CM2' then '1100.32.2' else '' end as account
+                ,concat(rec_number,' ',article_desc) 
+                ,(qty+qty_free)*price as debit
+                ,receiving_det.created_by
+                ,receiving_det.updated_by
+                ,now()
+                ,now()
+                from receiving_det
+                left join article on article.article_code = receiving_det.article_code
+                where article_type in ('RMP','CM1','CM2')
+                and (qty+qty_free) > 0
+                and rec_number in (select rec_number from receiving_hdr where status = '4' and rec_number = '$recNumber')
+                order by receiving_det.created_at");
+
                 $idKu = Crypt::encryptString($id);
 
                 DB::commit();
@@ -812,6 +847,9 @@ class ReceivingController extends Controller
 
             DB::table('movement')->insert($dataSetMovement);
 
+            DB::table('kas_det')->where('voucher_number',$recNumber)->delete();
+            DB::table('kas_hdr')->where('voucher_number',$recNumber)->delete();
+
             DB::commit();
             $title ="Cancel $this->title";
             $alert  ="success";
@@ -845,6 +883,9 @@ class ReceivingController extends Controller
 
         if($rowAffected>0){
             DB::table('receiving_det')->where('rec_number',$recNumber)->delete();
+            DB::table('kas_det')->where('voucher_number',$recNumber)->delete();
+            DB::table('kas_hdr')->where('voucher_number',$recNumber)->delete();
+            
             $title ="Delete $this->title";
             $alert  ="success";
             $message  = "$title $recNumber Successfully Deleted";
@@ -994,6 +1035,9 @@ class ReceivingController extends Controller
                     'updated_at' => date('Y-m-d H:i:s')
                 ]
             );
+            
+            DB::table('kas_det')->where('voucher_number',$recNumber)->delete();
+            DB::table('kas_hdr')->where('voucher_number',$recNumber)->delete();
             
             $title ="Save $this->title";
             $alert  ="success";
