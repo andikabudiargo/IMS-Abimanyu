@@ -374,7 +374,7 @@
                 </thead>
                 <tbody>
                     @foreach ($details as $val )
-                        @if(count($details)> 19)
+                        @if(count($details)>= 18)
                             {{-- <tr style="font-size: 11pt;height:23px"> --}}
                             <tr style="font-size: 11pt;height:22px">
                         @else
