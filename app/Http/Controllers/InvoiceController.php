@@ -996,7 +996,28 @@ class InvoiceController extends Controller
             ,'price_service'
         ])
         ->orderBy('article.article_code')
+        ->limit(25)
         ->get();
+
+        $data['details2']=DB::table('invoice_det')
+        ->leftJoin('article','article.article_code','invoice_det.article_code')
+        ->select('article.article_desc'
+        ,db::raw('sum(qty) as qty')
+        ,'price'
+        ,'price_service')
+        ->where('invoice_number',$invNumber)
+        ->groupBy([
+            'article.article_code'
+            ,'article.article_desc'
+            // ,'qty'
+            ,'price'
+            ,'price_service'
+        ])
+        ->orderBy('article.article_code')
+        ->offset(25)
+        ->get();
+
+        
         
         $header=DB::table('invoice_hdr')
         ->where('invoice_number',$invNumber)
