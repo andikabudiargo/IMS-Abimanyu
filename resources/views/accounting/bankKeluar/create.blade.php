@@ -45,7 +45,7 @@
                                         <option value=""></option>
                                         <option value="other">Other</option>
                                         @foreach ($suppliers as $val)
-                                            <option value="{{ $val->kode }}">{{ $val->kode }} | {{ $val->nama }}</option>
+                                            <option value="{{ $val->kode }}" data-coa="{{ $val->account }}">{{ $val->kode }} | {{ $val->nama }}</option>
                                         @endforeach
                                     </select>
                                 </div>
@@ -340,12 +340,18 @@
         let objVcCredit= $('#item_row input[name="vcCredit[]"]');
 
         let paidTo = $('#paidTo').val();
+        let coa = $('#paidTo').find(":selected").data("coa");
+
         if (paidTo){
             objAccount.map(function(i){
                 let $this=$(this);
                 let objSupp = "vcRef"+(i+1);
                 if ($this.val()){
-                    if ($this.val() =='2000.11'){
+                    // if ($this.val() == '2000.11'){
+                    // if ($this.val().includes("2000.11")){
+                    // if (($this.val().substring(0,7) =='2000.11') && ($this.val()!='2000.11')){
+                    if ($this.val() === coa){
+                        // console.log("oki");
                         invList('reference',objSupp,paidTo);
                         objVcDebit.eq(i).val("");
                         objVcCredit.eq(i).val("");
@@ -369,8 +375,11 @@
             let accountNumber = objAccount.eq(objIndex).val();
             let paidTo = $('#paidTo').val();
             let objSupp = "vcRef"+(objIndex+1);
+            let coa = $('#paidTo').find(":selected").data("coa");
             if(accountNumber){
-                if (accountNumber =='2000.11'){
+                // if (accountNumber =='2000.11'){
+                // if ((accountNumber.substring(0,7) =='2000.11') && (accountNumber !='2000.11')){
+                if ((accountNumber == coa)){
                     if(paidTo){
                         invList('reference',objSupp,paidTo);
                     }else{
