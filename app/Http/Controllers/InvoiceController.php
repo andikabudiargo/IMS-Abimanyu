@@ -980,6 +980,8 @@ class InvoiceController extends Controller
         $invNumber=$invHdr -> invoice_number;
 
         $data['title']=$invNumber;
+
+        $limits = 32;
        
         $data['details']=DB::table('invoice_det')
         ->leftJoin('article','article.article_code','invoice_det.article_code')
@@ -996,7 +998,7 @@ class InvoiceController extends Controller
             ,'price_service'
         ])
         ->orderBy('article.article_code')
-        ->limit(25)
+        ->limit($limits)
         ->get();
 
         $data['details2']=DB::table('invoice_det')
@@ -1014,7 +1016,7 @@ class InvoiceController extends Controller
             ,'price_service'
         ])
         ->orderBy('article.article_code')
-        ->offset(25)
+        ->offset($limits)
         ->get();
 
         
