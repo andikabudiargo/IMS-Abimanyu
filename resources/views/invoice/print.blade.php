@@ -276,6 +276,15 @@
             margin-left : 1.4mm;
         }
 
+        .sub_div3 {
+            position: absolute;
+            /* margin-right: 8mm; */
+            bottom: 18px;
+            background-color:white;
+            width  : 803px;
+            margin-left : 1.4mm;
+        }
+
         .sub_div_tengah {
             /* border : thin solid var(--line-color); */
             height : 529px;
@@ -494,6 +503,25 @@
                         <td>
                         </td>
                         <td align="right" width="10%"> Page 1 of 2</td>
+                    </tr>
+                </table>
+            </div>
+            <div class="sub_div3">
+                <table id="" style="table-layout:fixed;">
+                    <tbody>
+                        <tr>
+                            <table id="">
+                                <tr>
+                                    <td class="arial" valign="top"  align="center" >
+                                    </td>
+                                </tr>
+                            </table>
+                        </tr>
+                    </tbody>
+                </table>
+                <table>
+                    <tr>
+                        <td align="right" width="10%" height="25"> </td>
                     </tr>
                 </table>
             </div>
