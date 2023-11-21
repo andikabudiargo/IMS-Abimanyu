@@ -981,7 +981,18 @@ class InvoiceController extends Controller
 
         $data['title']=$invNumber;
 
-        $limits = 30;
+        $jumlahData = DB::table('invoice_det')
+        ->where('invoice_number',$invNumber)
+        ->select('article_code'
+        ,db::raw('sum(qty) as qty'))
+        ->groupBy([
+            'article_code'
+        ])->get();
+
+        // dd(count($jumlahData));
+        $jumlahData = count($jumlahData);
+
+        $limits = $jumlahData <= 20 ? $jumlahData : 30;
        
         $data['details']=DB::table('invoice_det')
         ->leftJoin('article','article.article_code','invoice_det.article_code')

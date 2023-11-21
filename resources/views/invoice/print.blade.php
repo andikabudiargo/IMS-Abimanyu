@@ -267,11 +267,10 @@
             margin-left : 1.4mm;
         }
 
-
         .sub_div2 {
             position: absolute;
             /* margin-right: 8mm; */
-            bottom: 64px;
+            bottom: 50px;
             background-color:white;
             width  : 803px;
             margin-left : 1.4mm;
@@ -483,7 +482,6 @@
                             <table id="tblContent4">
                                 <tr>
                                     <td class="arial" valign="top"  align="center" >
-                                        
                                     </td>
                                 </tr>
                             </table>
@@ -495,10 +493,9 @@
                     <tr>
                         <td>
                         </td>
-                        <td align="right" width="10%"> Halaman : 1</td>
+                        <td align="right" width="10%"> Page 1 of 2</td>
                     </tr>
                 </table>
-                
             </div>
         @endif
     </div>
@@ -690,7 +687,7 @@
                             <span class = "arial" style="font-size: 10pt;"><i>Lembar Asli untuk Penagihan kepada Customer</i></span><br>
                             <span class = "arial" style="font-size: 10pt;"><i>Lembar Copy untuk Arsip</i></span>
                         </td>
-                        <td align="right"  valign="top" width="10%"> Halaman : 2</td>
+                        <td align="right"  valign="top" width="10%">  Page 2 of 2</td>
                     </tr>
                 </table>
                 {{-- <span class = "arial" style="font-size: 10pt;"><i>Lembar Asli untuk Penagihan kepada Customer</i></span><br>
