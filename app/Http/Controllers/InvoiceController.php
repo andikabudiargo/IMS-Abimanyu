@@ -981,7 +981,7 @@ class InvoiceController extends Controller
 
         $data['title']=$invNumber;
 
-        $limits = 32;
+        $limits = 30;
        
         $data['details']=DB::table('invoice_det')
         ->leftJoin('article','article.article_code','invoice_det.article_code')
