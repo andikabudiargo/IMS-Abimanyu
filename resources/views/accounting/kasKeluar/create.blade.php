@@ -44,7 +44,7 @@
                                     <select class="select2 form-control" id="paidTo" name="paidTo" required>
                                         <option value=""></option>
                                         @foreach ($suppliers as $val)
-                                            <option value="{{ $val->kode }}">{{ $val->kode }} | {{ $val->nama }}</option>
+                                            <option value="{{ $val->kode }}" data-coa="{{ $val->account }}">{{ $val->kode }} | {{ $val->nama }}</option>
                                         @endforeach
                                         <option value="other">Other</option>
                                     </select>
@@ -341,6 +341,7 @@
         let objVcRef= $('#item_row select[name="vcRef[]"]');
         let objVcDebit= $('#item_row input[name="vcDebit[]"]');
         let objVcCredit= $('#item_row input[name="vcCredit[]"]');
+        let coa = $('#paidTo').find(":selected").data("coa");
 
         let paidTo = $('#paidTo').val();
         if (paidTo){
@@ -348,7 +349,8 @@
                 let $this=$(this);
                 let objSupp = "vcRef"+(i+1);
                 if ($this.val()){
-                    if ($this.val() =='2000.11'){
+                    // if ($this.val() =='2000.11'){
+                    if ($this.val() === coa){
                         invList('reference',objSupp,paidTo);
                         objVcDebit.eq(i).val("");
                         objVcCredit.eq(i).val("");
@@ -372,8 +374,10 @@
             let accountNumber = objAccount.eq(objIndex).val();
             let paidTo = $('#paidTo').val();
             let objSupp = "vcRef"+(objIndex+1);
+            let coa = $('#paidTo').find(":selected").data("coa");
             if(accountNumber){
-                if (accountNumber =='2000.11'){
+                // if (accountNumber =='2000.11'){
+                if ((accountNumber == coa)){
                     if(paidTo){
                         invList('reference',objSupp,paidTo);
                     }else{

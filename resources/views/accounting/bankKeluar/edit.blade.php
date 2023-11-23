@@ -468,7 +468,7 @@
                 let paidTo = $('#paidTo').val();
                 let objSupp = "vcRef"+(objIndex+1);
                 let coa = $('#paidTo').find(":selected").data("coa");
-                console.log(objSupp);
+                // console.log(objSupp);
                 // if (accountNumber =='2000.11'){
                 if ((accountNumber == coa)){
                     if(paidTo){
@@ -539,6 +539,7 @@
                 if(data.amount){
                     objVcDebit.eq(objIndex).val(humanizeNumber(data.amount));
                     objVcCredit.eq(objIndex).val('');
+                    hitungGrandTotal();
                 }
             },
             error: function(error) {
