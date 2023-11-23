@@ -1168,6 +1168,7 @@
                                     <tr>
                                         <th>No</th>
                                         <th>Voucher Number</th>
+                                        <th>Total</th>
                                         <th>Note</th>
                                         <th>Description</th>
                                         <th>Approved</th>
@@ -1190,6 +1191,13 @@
                                             <div class="d-flex align-items-center">
                                                 <div>
                                                     <div class="font-weight-bolder">{{ $val->voucher_number }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div>
+                                                    <div class="font-weight-bolder">{{ number_format($val->amount,2) }}</div>
                                                 </div>
                                             </div>
                                         </td>

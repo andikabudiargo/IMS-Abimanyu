@@ -302,6 +302,7 @@ class HomeController extends Controller
                 ,created_by
                 ,status
                 ,'$username' as username
+                ,amount
                 ,coalesce((select max(approval_order) from approval_history where module_code ='KK' and module_number =a.voucher_number),0) as current_level
                 ,(select approval_number from approval_master where module_code = 'KK') as max_level
                 ,coalesce((select min(approval_order) from approval_level where username = '$username' and module_code = 'KK' and approval_order not in(
