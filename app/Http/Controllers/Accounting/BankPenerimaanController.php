@@ -785,6 +785,26 @@ class BankPenerimaanController extends Controller
         ->orderBy('id')
         ->get();
 
+        $limits = 25;
+
+        $data['details']=DB::table('kas_det')
+        ->leftJoin('accounts','accounts.account','kas_det.account')
+        ->select('kas_det.*','accounts.description as account_name')
+        ->where('voucher_number',$vcNumber)
+        ->orderBy('debit')
+        ->orderBy('id')
+        ->limit($limits)
+        ->get();
+
+        $data['details2']=DB::table('kas_det')
+        ->leftJoin('accounts','accounts.account','kas_det.account')
+        ->select('kas_det.*','accounts.description as account_name')
+        ->where('voucher_number',$vcNumber)
+        ->orderBy('debit')
+        ->orderBy('id')
+        ->offset($limits)
+        ->get();
+
         $data['total']=DB::table('kas_det')
         ->select(DB::raw("sum(credit) as total_credit"),DB::raw("sum(debit) as total_debit"))
         ->where('voucher_number',$vcNumber)
