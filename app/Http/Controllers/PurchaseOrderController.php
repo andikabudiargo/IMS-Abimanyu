@@ -968,10 +968,24 @@ class PurchaseOrderController extends Controller
     {
         $username =  Auth::user()->username;       
         $id=Crypt::decryptString($request->id);
+        // $po_number = DB::table('purchase_order_hdr')->where('id',$id)->where('status','1')->value('po_number');
+        // $rowAffected = DB::table('purchase_order_hdr')->where('id',$id)->where('status','1')->delete();
+
         $po_number = DB::table('purchase_order_hdr')->where('id',$id)->where('status','1')->value('po_number');
         $rowAffected = DB::table('purchase_order_hdr')->where('id',$id)->where('status','1')->delete();
+
+        $urutanPo = (int)explode('/',$po_number)[3];
+        $urutanPoSebelum = (int)explode('/',$po_number)[3] -1;
+
         if($rowAffected>0){
             DB::table('purchase_order_det')->where('po_number',$po_number)->delete();
+            db::table('master_code')
+            ->where('code_key','PO')
+            ->where('code_number',$urutanPo)
+            ->update([
+                'code_number' => $urutanPoSebelum
+            ]);
+
             $title ="Delete $this->title";
             $alert  ="success";
             $message  = "$title $po_number Successfully Deleted";
