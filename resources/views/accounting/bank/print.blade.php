@@ -214,9 +214,8 @@
             /* margin-right: 8mm; */
             bottom: 0px;
             background-color:white;
-            width  : 788px;
-            /* margin-left : 1.4mm; */
-            /* padding-right : 20px; */
+            width  : 787.7px;
+            margin-left : 0.8mm;
         }
 
     </style>
@@ -321,77 +320,6 @@
                             </tbody>
                         </table>
                         <br><br>
-                        @if(count($details2)==0)
-                            <div class="sub_div">
-                                <table id="tblContent2" class="font-small" style="table-layout:fixed;">
-                                    <tr>
-                                        <td  align="left" width="9.2%"class="border-atas" ></td>
-                                        <td  align="left" width="20.8%" class="border-atas" ></td>
-                                        <td  align="left" width="15%" class="border-atas" ></td>
-                                        <td  align="left" width="21%" class="border-atas" >Total</td>
-                                        <td  align="right" width="12.7%" class="border-atas" >{{ number_format($total->total_debit,2) }}</td>
-                                        <td  align="right" width="12.7%" class="border-atas" >{{ number_format($total->total_credit,2)}}</td>
-                                    </tr>
-                                    <tr class="border-atas">
-                                        <td  align="left" class="border-atas" colspan="6">Note: {{ $header->note }}</td>
-                                    </tr>
-                                </table>
-                                <br><br><br>
-                                <table width="100%">
-                                    {{-- <tr><td colspan="5" height="3"></td></tr> --}}
-                                    <tr> 
-                                        {{-- <td align="center" width="10%"></td> --}}
-                                        <td align="center" width="20%">Dibuat oleh</td>
-                                        <td align="center" width="5%"></td>
-                                        <td align="center" width="20%">Diperiksa</td>
-                                        <td align="center" width="5%"></td>
-                                        <td align="center" width="20%">Mengetahui</td>
-                                        <td align="center" width="5%"></td>
-                                        <td align="center" width="20%">Menyetujui</td>
-                                        <td align="center" width="5%"></td>
-                                    </tr>
-                                    <tr>
-                                        {{-- <td align="center"></td> --}}
-                                        <td align="center" height="25">{{ $approval1 ? 'Approval 1':'' }}</td>
-                                        <td align="center"></td>
-                                        <td align="center">{{ $approval2 ? 'Approval 2':'' }}</td>
-                                        <td align="center"></td>
-                                        <td align="center">{{ $approval3 ? 'Approval 3':'' }}</td>
-                                        <td align="center"></td>
-                                        <td align="center">{{ $approval4 ? 'Approval 4':'' }}</td>
-                                        <td align="center"></td>
-                                    </tr>
-                                    <tr>
-                                        {{-- <td align="center"></td> --}}
-                                        <td align="center"  style="border-bottom: 1px solid black;">{{ $approval1 ? $approval1->name:'' }}</td>
-                                        <td align="center"></td>
-                                        <td align="center" style="border-bottom: 1px solid black;">  {{ $approval2 ? $approval2->name:'' }}  </td>
-                                        <td align="center"></td>
-                                        <td align="center" style="border-bottom: 1px solid black;">  {{ $approval3 ? $approval3->name:'' }}  </td>
-                                        <td align="center"></td>
-                                        <td align="center" style="border-bottom: 1px solid black;">  {{ $approval4 ? $approval4->name:'' }}  </td>
-                                        <td align="center"></td>
-                                    </tr>
-                                </table>
-                                <br>
-                            <table>
-                                <tr>
-                                    <td>
-                                    </td>
-                                    <td align="right" width="10%"></td>
-                                </tr>
-                            </table>
-                            <br>
-                            </div>
-                        @else
-                            <table>
-                                <tr>
-                                    <td>
-                                    </td>
-                                    <td align="right" width="10%"> Page 1 of 2</td>
-                                </tr>
-                            </table>
-                        @endif
                     </div>
                 </td>
             </tr>
@@ -405,6 +333,80 @@
             </tr>
         </tfoot>
     </table>
+    @if(count($details2)==0)
+        <div class="sub_div">
+            <table id="tblContent2" class="font-small" style="table-layout:fixed;">
+                <tr>
+                    <td  align="left" width="9.2%"class="border-atas" ></td>
+                    <td  align="left" width="20.8%" class="border-atas" ></td>
+                    <td  align="left" width="15%" class="border-atas" ></td>
+                    <td  align="left" width="21%" class="border-atas" >Total</td>
+                    <td  align="right" width="12.7%" class="border-atas" >{{ number_format($total->total_debit,2) }}</td>
+                    <td  align="right" width="12.7%" class="border-atas" >{{ number_format($total->total_credit,2)}}</td>
+                </tr>
+                <tr class="border-atas">
+                    <td  align="left" class="border-atas" colspan="6">Note: {{ $header->note }}</td>
+                </tr>
+            </table>
+            <br><br><br>
+            <table width="100%">
+                {{-- <tr><td colspan="5" height="3"></td></tr> --}}
+                <tr> 
+                    {{-- <td align="center" width="10%"></td> --}}
+                    <td align="center" width="20%">Dibuat oleh</td>
+                    <td align="center" width="5%"></td>
+                    <td align="center" width="20%">Diperiksa</td>
+                    <td align="center" width="5%"></td>
+                    <td align="center" width="20%">Mengetahui</td>
+                    <td align="center" width="5%"></td>
+                    <td align="center" width="20%">Menyetujui</td>
+                    <td align="center" width="5%"></td>
+                </tr>
+                <tr>
+                    {{-- <td align="center"></td> --}}
+                    <td align="center" height="25">{{ $approval1 ? 'Approval 1':'' }}</td>
+                    <td align="center"></td>
+                    <td align="center">{{ $approval2 ? 'Approval 2':'' }}</td>
+                    <td align="center"></td>
+                    <td align="center">{{ $approval3 ? 'Approval 3':'' }}</td>
+                    <td align="center"></td>
+                    <td align="center">{{ $approval4 ? 'Approval 4':'' }}</td>
+                    <td align="center"></td>
+                </tr>
+                <tr>
+                    {{-- <td align="center"></td> --}}
+                    <td align="center"  style="border-bottom: 1px solid black;">{{ $approval1 ? $approval1->name:'' }}</td>
+                    <td align="center"></td>
+                    <td align="center" style="border-bottom: 1px solid black;">  {{ $approval2 ? $approval2->name:'' }}  </td>
+                    <td align="center"></td>
+                    <td align="center" style="border-bottom: 1px solid black;">  {{ $approval3 ? $approval3->name:'' }}  </td>
+                    <td align="center"></td>
+                    <td align="center" style="border-bottom: 1px solid black;">  {{ $approval4 ? $approval4->name:'' }}  </td>
+                    <td align="center"></td>
+                </tr>
+            </table>
+            <br>
+        <table>
+            <tr>
+                <td>
+                </td>
+                <td align="right" width="10%"></td>
+            </tr>
+        </table>
+        <br>
+        </div>
+    @else
+        <div class="sub_div">
+        <table>
+            <tr>
+                <td>
+                </td>
+                <td align="right" width="10%"> Page 1 of 2</td>
+            </tr>
+        </table>
+        <br>
+        </div>
+    @endif
 </div>
 
 @if(count($details2)>0)
@@ -498,67 +500,7 @@
                                 </tr> --}}
                             </tbody>
                         </table>
-                        <div class="sub_div">
-                            <table id="tblContent2" class="font-small" style="table-layout:fixed;">
-                                <tr>
-                                    <td  align="left" width="9.2%"class="border-atas" ></td>
-                                    <td  align="left" width="20.8%" class="border-atas" ></td>
-                                    <td  align="left" width="15%" class="border-atas" ></td>
-                                    <td  align="left" width="21%" class="border-atas" >Total</td>
-                                    <td  align="right" width="12.7%" class="border-atas" >{{ number_format($total->total_debit,2) }}</td>
-                                    <td  align="right" width="12.7%" class="border-atas" >{{ number_format($total->total_credit,2)}}</td>
-                                </tr>
-                                <tr class="border-atas">
-                                    <td  align="left" class="border-atas" colspan="6">Note: {{ $header->note }}</td>
-                                </tr>
-                            </table>
-                            <br><br><br>
-                            <table width="100%">
-                                {{-- <tr><td colspan="5" height="3"></td></tr> --}}
-                                <tr> 
-                                    {{-- <td align="center" width="10%"></td> --}}
-                                    <td align="center" width="20%">Dibuat oleh</td>
-                                    <td align="center" width="5%"></td>
-                                    <td align="center" width="20%">Diperiksa</td>
-                                    <td align="center" width="5%"></td>
-                                    <td align="center" width="20%">Mengetahui</td>
-                                    <td align="center" width="5%"></td>
-                                    <td align="center" width="20%">Menyetujui</td>
-                                    <td align="center" width="5%"></td>
-                                </tr>
-                                <tr>
-                                    {{-- <td align="center"></td> --}}
-                                    <td align="center" height="25">{{ $approval1 ? 'Approval 1':'' }}</td>
-                                    <td align="center"></td>
-                                    <td align="center">{{ $approval2 ? 'Approval 2':'' }}</td>
-                                    <td align="center"></td>
-                                    <td align="center">{{ $approval3 ? 'Approval 3':'' }}</td>
-                                    <td align="center"></td>
-                                    <td align="center">{{ $approval4 ? 'Approval 4':'' }}</td>
-                                    <td align="center"></td>
-                                </tr>
-                                <tr>
-                                    {{-- <td align="center"></td> --}}
-                                    <td align="center"  style="border-bottom: 1px solid black;">{{ $approval1 ? $approval1->name:'' }}</td>
-                                    <td align="center"></td>
-                                    <td align="center" style="border-bottom: 1px solid black;">  {{ $approval2 ? $approval2->name:'' }}  </td>
-                                    <td align="center"></td>
-                                    <td align="center" style="border-bottom: 1px solid black;">  {{ $approval3 ? $approval3->name:'' }}  </td>
-                                    <td align="center"></td>
-                                    <td align="center" style="border-bottom: 1px solid black;">  {{ $approval4 ? $approval4->name:'' }}  </td>
-                                    <td align="center"></td>
-                                </tr>
-                            </table>
-                            <br>
-                            <table>
-                                <tr>
-                                    <td>
-                                    </td>
-                                    <td align="right" width="10%"> Page 2 of 2</td>
-                                </tr>
-                            </table>
-                            <br>
-                        </div>
+                       
                     </div>
                 </td>
             </tr>
@@ -572,6 +514,67 @@
             </tr>
         </tfoot>
     </table>
+    <div class="sub_div">
+        <table id="tblContent2" class="font-small" style="table-layout:fixed;">
+            <tr>
+                <td  align="left" width="9.2%"class="border-atas" ></td>
+                <td  align="left" width="20.8%" class="border-atas" ></td>
+                <td  align="left" width="15%" class="border-atas" ></td>
+                <td  align="left" width="21%" class="border-atas" >Total</td>
+                <td  align="right" width="12.7%" class="border-atas" >{{ number_format($total->total_debit,2) }}</td>
+                <td  align="right" width="12.7%" class="border-atas" >{{ number_format($total->total_credit,2)}}</td>
+            </tr>
+            <tr class="border-atas">
+                <td  align="left" class="border-atas" colspan="6">Note: {{ $header->note }}</td>
+            </tr>
+        </table>
+        <br><br><br>
+        <table width="100%">
+            {{-- <tr><td colspan="5" height="3"></td></tr> --}}
+            <tr> 
+                {{-- <td align="center" width="10%"></td> --}}
+                <td align="center" width="20%">Dibuat oleh</td>
+                <td align="center" width="5%"></td>
+                <td align="center" width="20%">Diperiksa</td>
+                <td align="center" width="5%"></td>
+                <td align="center" width="20%">Mengetahui</td>
+                <td align="center" width="5%"></td>
+                <td align="center" width="20%">Menyetujui</td>
+                <td align="center" width="5%"></td>
+            </tr>
+            <tr>
+                {{-- <td align="center"></td> --}}
+                <td align="center" height="25">{{ $approval1 ? 'Approval 1':'' }}</td>
+                <td align="center"></td>
+                <td align="center">{{ $approval2 ? 'Approval 2':'' }}</td>
+                <td align="center"></td>
+                <td align="center">{{ $approval3 ? 'Approval 3':'' }}</td>
+                <td align="center"></td>
+                <td align="center">{{ $approval4 ? 'Approval 4':'' }}</td>
+                <td align="center"></td>
+            </tr>
+            <tr>
+                {{-- <td align="center"></td> --}}
+                <td align="center"  style="border-bottom: 1px solid black;">{{ $approval1 ? $approval1->name:'' }}</td>
+                <td align="center"></td>
+                <td align="center" style="border-bottom: 1px solid black;">  {{ $approval2 ? $approval2->name:'' }}  </td>
+                <td align="center"></td>
+                <td align="center" style="border-bottom: 1px solid black;">  {{ $approval3 ? $approval3->name:'' }}  </td>
+                <td align="center"></td>
+                <td align="center" style="border-bottom: 1px solid black;">  {{ $approval4 ? $approval4->name:'' }}  </td>
+                <td align="center"></td>
+            </tr>
+        </table>
+        <br>
+        <table>
+            <tr>
+                <td>
+                </td>
+                <td align="right" width="10%"> Page 2 of 2</td>
+            </tr>
+        </table>
+        <br>
+    </div>
 </div>
 @endif
 
