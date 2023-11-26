@@ -501,7 +501,7 @@
         @can('accounting-menu')
           <li class=" navigation-header"><span data-i18n="Finance Accounting">Finance Accounting</span><i data-feather="more-horizontal"></i>
           </li>
-          <li class=" {{ in_array(\Request::segment(1), ['aps','banks','pettyCash','bankReceipt','invoice','kasPenerimaan','kasKeluar','bankPenerimaan','bankKeluar','deliveryReportAcc','deliveryReportSoAcc','jurnalUmum']) ? 'active' : '' }} nav-item">
+          <li class=" {{ in_array(\Request::segment(1), ['aps','banks','pettyCash','bankReceipt','invoice','kasPenerimaan','kasKeluar','bankPenerimaan','bankKeluar','deliveryReportAcc','deliveryReportSoAcc','jurnalUmum','accountPayable']) ? 'active' : '' }} nav-item">
             <a class="d-flex align-items-center" href="javascript:void(0);">
               <i data-feather="dollar-sign"></i>
               <span class="menu-title text-truncate" data-i18n="Form Elements">Finance & acc
@@ -512,7 +512,8 @@
               @can('ap-index')
                 <li><a class="d-flex align-items-center" href="#"><i data-feather="circle"></i><span class="menu-item text-truncate" data-i18n="Invoice">Invoice</span></a>
                   <ul class="menu-content">
-                    
+                      <li class="{{ \Request::segment(1) == 'accountPayable'  ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('accountPayable.index') }}"><span class="menu-item text-truncate" data-i18n="Invoice supplier">Invoice Supplier V2</span></a>
+                      </li>
                       <li class="{{ \Request::segment(1) == 'aps'  ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('aps.index') }}"><span class="menu-item text-truncate" data-i18n="Invoice supplier">Invoice Supplier</span></a>
                       </li>
                       <li class="{{ \Request::segment(1) == 'invoice' ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('invoice.index') }}"><span class="menu-item text-truncate" data-i18n="Invoice customer">Invoice Customer</span></a>
@@ -621,6 +622,7 @@
                 </a>
               </li>
               @endcan
+              
               {{-- <li><a class="d-flex align-items-center" href="#"><i data-feather="circle"></i><span class="menu-item text-truncate" data-i18n="Account Setting">Account default</span></a>
                 <ul class="menu-content">
                     <li class="{{ \Request::is(['account/setting/mataUang'])  ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('accountSetting.mataUang') }}"><span class="menu-item text-truncate" data-i18n="Mata Uang">Mata uang</span></a>
