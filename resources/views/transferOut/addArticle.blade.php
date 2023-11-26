@@ -149,6 +149,17 @@
         window.location.reload();
     }
 
+    $("#uploadExcel").click(function(){
+        if (!$("#frmExcel")[0].checkValidity()){
+            $("#frmExcel").submit();
+        }else{
+            $(".loading-spinner-container").addClass("-show");
+            $("#uploadExcel").attr('disabled','disabled');
+            $('.disabled-el').removeAttr('disabled');
+            $("#frmExcel").submit();
+        }
+    });
+
     $("#cmdCancel,#cmdNew").click(function(){
         reloadPage();
     });
@@ -320,6 +331,7 @@
         hitungTotal();
         hitungGrandTotal();
         mask_thousand_digit(numberOfDecimalDigit);
+        // console.log(cloneCount+" | "+article);
     }
 
     function add_new_row() {
@@ -355,7 +367,7 @@
         $('#'+obj).select2();
         $('#'+obj).val(article).trigger('change');
         $('#'+obj).removeAttr('disabled');
-        $('#'+obj).select2('focus');
+        // $('#'+obj).select2('focus');
     }
    
     function splitArticle(){

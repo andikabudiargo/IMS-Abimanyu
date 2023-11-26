@@ -6,8 +6,9 @@ use Illuminate\Database\Eloquent\Model;
 
 class ImportStake extends Model
 {
+    // public $timestamps = false;
     protected $table = 'import_stock_take_tmp';
     protected $fillable = [
-        'article_code', 'article_qty'
+        'file_name','article_code','qty'
     ];
 }
