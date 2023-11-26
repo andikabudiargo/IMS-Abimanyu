@@ -313,6 +313,17 @@ class DependentController extends Controller
                 $default='';
                 $defaulttxt='Choose PR';
                 break;
+            case 'listArtilcleAp': 
+                $table='';
+                $field ='';
+                $order ='';
+                $value ='';
+                $name  ='';
+                $default='';
+                $defaulttxt='Choose Article';
+                break;
+
+                
             break;
                 default:
                     $table='';
@@ -654,6 +665,22 @@ class DependentController extends Controller
             ->whereNotIn('status',['5','6'])
             ->orderBy($order)
             ->get();
+
+        }elseif($dependent =='listArtilcleAp'){
+            $data= DB::table('article') 
+            ->whereIn('article.article_code', function($query) use ($code) {
+                $query->select('article_code')
+                ->from('article_supplier') 
+                ->where('supplier_code',$code);
+            })
+            ->orderBy('article.article_desc')
+            ->distinct('article.article_desc')
+            ->select('article.article_alternative_code'
+            ,'article.article_code'
+            ,'article.article_desc'
+            ,'article.uom'
+            ,'article.costprice')
+            ->get();
         }else{
             $data= DB::table($table) 
             ->where($field,$code)
@@ -711,6 +738,8 @@ class DependentController extends Controller
                 // if(($row->qty-$row->qty_po) > 0){
                     $output .="<option value='$row->pr_number'>$row->pr_number</option>";
                 // }
+            }elseif($dependent =='listArtilcleAp'){
+                $output .="<option value='$row->article_code' data-uom ='$row->uom' data-cost-price ='$row->costprice' >$row->article_alternative_code - $row->article_desc</option>";
             }elseif($dependent =='reference'){
                 $output .="<option value='$row->inv_number'>$row->inv_number</option>";
             }elseif($dependent =='referenceAr'){

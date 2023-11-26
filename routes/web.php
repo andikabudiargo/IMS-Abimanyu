@@ -384,27 +384,27 @@ Route::group( ['middleware' => ['auth']], function() {
 
 
 	//Account payable versi 2
-	// Route::get('accountPayable',['as'=>'accountPayable.index','uses'=>'Accounting\AccountPayableController@index','middleware' => ['permission:ap-index']]);
-	// Route::get('accountPayable/create',['as'=>'accountPayable.create','uses'=>'Accounting\AccountPayableController@create','middleware' => ['permission:ap-create']]);
-	// Route::get('accountPayable/list/sj',['as'=>'accountPayable.list.sj','uses'=>'Accounting\AccountPayableController@listSj']);
-	// Route::get('accountPayable/list/po',['as'=>'accountPayable.list.po','uses'=>'Accounting\AccountPayableController@listPo']);
-	// Route::get('accountPayable/list/rec',['as'=>'accountPayable.list.rec','uses'=>'Accounting\AccountPayableController@listRec']);
-	// Route::get('accountPayable/detail/rec',['as'=>'accountPayable.detail.rec','uses'=>'Accounting\AccountPayableController@detailRec']);
-	// Route::post('accountPayable/store',['as'=>'accountPayable.store','uses'=>'Accounting\AccountPayableController@store']);
-	// Route::get('accountPayable/show',['as'=>'accountPayable.show','uses'=>'Accounting\AccountPayableController@show']);
-	// Route::get('accountPayable/edit',['as'=>'accountPayable.edit','uses'=>'Accounting\AccountPayableController@edit','middleware' => ['permission:ap-edit']]);
-	// Route::get('accountPayable/list',['as'=>'accountPayable.list','uses'=>'Accounting\AccountPayableController@list']);
-	// Route::post('accountPayable/delete',['as'=>'accountPayable.destroy','uses'=>'Accounting\AccountPayableController@destroy']);
-	// Route::post('accountPayable/update',['as'=>'accountPayable.update','uses'=>'Accounting\AccountPayableController@update']);
-	// Route::post('accountPayable/posting',['as'=>'accountPayable.posting','uses'=>'Accounting\AccountPayableController@posting']);
-	// Route::get('accountPayable/revision',['as'=>'accountPayable.revision','uses'=>'Accounting\AccountPayableController@revision']);
-	// Route::get('accountPayable/show',['as'=>'accountPayable.show','uses'=>'Accounting\AccountPayableController@show']);
-	// Route::get('accountPayable/print',['as'=>'accountPayable.print','uses'=>'Accounting\AccountPayableController@print']);
-	// Route::post('accountPayable/approve',['as'=>'accountPayable.approve','uses'=>'Accounting\AccountPayableController@approve']);
-	// Route::get('accountPayable/print/slip/pembayaran',['as'=>'accountPayable.print.slip.pembayaran','uses'=>'Accounting\AccountPayableController@printSlipPembayaran']);
-	// Route::get('accountPayable/notif/approve',['as'=>'accountPayable.notif.approve','uses'=>'Accounting\AccountPayableController@approve']);
-	// Route::get('accountPayable/print/draft',['as'=>'accountPayable.print.draft','uses'=>'Accounting\AccountPayableController@printDraft']);
-	// Route::get('accountPayable/notif/approve',['as'=>'accountPayable.notif.approve','uses'=>'Accounting\AccountPayableController@approve']);
+	Route::get('accountPayable',['as'=>'accountPayable.index','uses'=>'Accounting\AccountPayableController@index','middleware' => ['permission:ap-index']]);
+	Route::get('accountPayable/create',['as'=>'accountPayable.create','uses'=>'Accounting\AccountPayableController@create','middleware' => ['permission:ap-create']]);
+	Route::get('accountPayable/list/sj',['as'=>'accountPayable.list.sj','uses'=>'Accounting\AccountPayableController@listSj']);
+	Route::get('accountPayable/list/po',['as'=>'accountPayable.list.po','uses'=>'Accounting\AccountPayableController@listPo']);
+	Route::get('accountPayable/list/rec',['as'=>'accountPayable.list.rec','uses'=>'Accounting\AccountPayableController@listRec']);
+	Route::get('accountPayable/detail/rec',['as'=>'accountPayable.detail.rec','uses'=>'Accounting\AccountPayableController@detailRec']);
+	Route::post('accountPayable/store',['as'=>'accountPayable.store','uses'=>'Accounting\AccountPayableController@store']);
+	Route::get('accountPayable/show',['as'=>'accountPayable.show','uses'=>'Accounting\AccountPayableController@show']);
+	Route::get('accountPayable/edit',['as'=>'accountPayable.edit','uses'=>'Accounting\AccountPayableController@edit','middleware' => ['permission:ap-edit']]);
+	Route::get('accountPayable/list',['as'=>'accountPayable.list','uses'=>'Accounting\AccountPayableController@list']);
+	Route::post('accountPayable/delete',['as'=>'accountPayable.destroy','uses'=>'Accounting\AccountPayableController@destroy']);
+	Route::post('accountPayable/update',['as'=>'accountPayable.update','uses'=>'Accounting\AccountPayableController@update']);
+	Route::post('accountPayable/posting',['as'=>'accountPayable.posting','uses'=>'Accounting\AccountPayableController@posting']);
+	Route::get('accountPayable/revision',['as'=>'accountPayable.revision','uses'=>'Accounting\AccountPayableController@revision']);
+	Route::get('accountPayable/show',['as'=>'accountPayable.show','uses'=>'Accounting\AccountPayableController@show']);
+	Route::get('accountPayable/print',['as'=>'accountPayable.print','uses'=>'Accounting\AccountPayableController@print']);
+	Route::post('accountPayable/approve',['as'=>'accountPayable.approve','uses'=>'Accounting\AccountPayableController@approve']);
+	Route::get('accountPayable/print/slip/pembayaran',['as'=>'accountPayable.print.slip.pembayaran','uses'=>'Accounting\AccountPayableController@printSlipPembayaran']);
+	Route::get('accountPayable/notif/approve',['as'=>'accountPayable.notif.approve','uses'=>'Accounting\AccountPayableController@approve']);
+	Route::get('accountPayable/print/draft',['as'=>'accountPayable.print.draft','uses'=>'Accounting\AccountPayableController@printDraft']);
+	Route::get('accountPayable/notif/approve',['as'=>'accountPayable.notif.approve','uses'=>'Accounting\AccountPayableController@approve']);
 
 	// Route::get('ap/posting/all',['as'=>'ap.posting.all','uses'=>'AccountPayableController@prosesAllPosting']);
 
@@ -668,6 +668,9 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('transferOut/article',['as'=>'transferOut.article','uses'=>'TransferOutController@article','middleware' => ['permission:transferOut-index']]);
 	Route::get('transferOut/print',['as'=>'transferOut.print','uses'=>'TransferOutController@print']);
 	Route::get('transferOut/article/tso',['as'=>'transferOut.article.tso','uses'=>'TransferOutController@articleTso']);
+
+	Route::post('transferOut/import-excel',['as'=>'transferOut.import.excel','uses'=>'TransferOutController@importExcel']);
+	Route::get('transferOut/export-excel',['as'=>'transferOut.export.excel','uses'=>'TransferOutController@export']);
 
 	Route::get('wosMixing',['as'=>'wosMixing.index','uses'=>'WosMixingController@index','middleware' => ['permission:wosMixing-index']]);
 	Route::get('wosMixing/create',['as'=>'wosMixing.create','uses'=>'WosMixingController@create','middleware' => ['permission:wosMixing-create']]);
