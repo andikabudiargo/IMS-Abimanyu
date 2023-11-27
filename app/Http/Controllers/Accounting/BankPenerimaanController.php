@@ -126,6 +126,7 @@ class BankPenerimaanController extends Controller
         // ->get();
 
         // $data['accounts'] = DB::table('accounts')
+        // ->where('acc_header','!=','HEADER')
         // ->select('account','description')
         // // ->orderBy('account')
         // ->union($suppliers)
@@ -325,6 +326,7 @@ class BankPenerimaanController extends Controller
         ->get();
 
         // $data['accounts'] = DB::table('accounts')
+        // ->where('acc_header','!=','HEADER')
         // ->orderBy('account')
         // ->get();
 

@@ -465,10 +465,12 @@ class AccountPayableController extends Controller
 
         $data['accountBa'] = DB::table('accounts')
         // ->whereIn('type_code',['po.ppn11','12','14','15','42','44','46','48'])
+        ->where('acc_header','!=','HEADER')
         ->get();
 
         $data['accounts'] = DB::table('accounts')
         // ->whereIn('type_code',['21','22','23','24'])
+        ->where('acc_header','!=','HEADER')
         ->get();
 
         $data['depts'] = $this->lisDept();
@@ -779,10 +781,12 @@ class AccountPayableController extends Controller
         $data['currency'] = ['IDR','USD'];
         $data['accountBa'] = DB::table('accounts')
         // ->whereIn('type_code',['11','12','14','15','42','44','46','48'])
+        ->where('acc_header','!=','HEADER')
         ->get();
 
         $data['accounts'] = DB::table('accounts')
         // ->whereIn('type_code',['21','22','23','24'])
+        ->where('acc_header','!=','HEADER')
         ->get();
 
         $data['nilaiPPN'] = $this->nilaiPpn;
@@ -853,10 +857,12 @@ class AccountPayableController extends Controller
 
         $data['accountBa'] = DB::table('accounts')
         // ->whereIn('type_code',['11','12','14','15','42','44','46','48'])
+        ->where('acc_header','!=','HEADER')
         ->get();
 
         $data['accounts'] = DB::table('accounts')
         // ->whereIn('type_code',['21','22','23','24'])
+        ->where('acc_header','!=','HEADER')
         ->get();
 
         $data['depts'] = $this->lisDept();

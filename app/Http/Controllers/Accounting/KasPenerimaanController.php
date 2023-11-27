@@ -116,6 +116,7 @@ class KasPenerimaanController extends Controller
         $data['type'] = 'penerimaan';
         
         $data['accounts'] = DB::table('accounts')
+        ->where('acc_header','!=','HEADER')
         ->orderBy('account')
         ->get();
 
@@ -311,6 +312,7 @@ class KasPenerimaanController extends Controller
         ->get();
 
         $data['accounts'] = DB::table('accounts')
+        ->where('acc_header','!=','HEADER')
         ->orderBy('account')
         ->get();
 

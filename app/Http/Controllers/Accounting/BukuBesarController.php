@@ -79,6 +79,7 @@ class BukuBesarController extends Controller
         ->get();
 
         $data['accounts'] = DB::table('accounts')
+        ->where('acc_header','!=','HEADER')
         ->orderBy('account')
         ->get();
 

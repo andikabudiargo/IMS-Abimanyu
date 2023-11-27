@@ -574,10 +574,12 @@ class DependentController extends Controller
             ->get();
         }elseif($dependent =='account'){
             $data= DB::table($table) 
+            ->where('acc_header','!=','HEADER')
             ->orderBy($order)
             ->get();
         }elseif($dependent =='list_coa'){
             $data= DB::table($table) 
+            ->where('acc_header','!=','HEADER')
             ->orderBy($order)
             ->get();
         }elseif($dependent =='tsoArticle'){
