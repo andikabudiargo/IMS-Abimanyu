@@ -55,7 +55,7 @@
                                             <div class="form-group col-md-5">
                                                 <label class="form-label" for="customer">Customer</label>
                                                 <select class="select2 form-control" id="customer" name="customer" disabled>
-                                                    {{-- <option value="">All</option> --}}
+                                                    <option value="">All</option>
                                                     @foreach($customers as $val)
                                                         <option value="{{$val->kode}}" {{$val->kode == $header2->customer_id ? "selected" : ""}} >{{$val->kode}} - {{$val->nama}}</option>
                                                     @endforeach
