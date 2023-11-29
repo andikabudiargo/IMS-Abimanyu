@@ -240,7 +240,7 @@
             <tr>
                 <td>
                     <div class="content">
-                        <table id="tblContent" class="font-small" style="margin-top:5px">
+                        <table id="tblContent" class="font-small" style="margin-top:6px">
                             <thead>
                                 <tr>
                                     <th width="10%">No Account</th>
