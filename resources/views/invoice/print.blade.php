@@ -396,7 +396,7 @@
                             <td  style="border-right: 1px solid black;padding:0 3px 0 3px" align="right">{{ number_format(($val->qty*$val->price_service),2) }}</td>
                         </tr>
                     @endforeach
-                    <?php $totalBaris = 35 ?>
+                    <?php $totalBaris = 34 ?>
                     @for ($i=1;$i< $totalBaris-(count($details));$i++)
                         {{-- @if(count($details)> 19)
                             <tr style="height:23px">
