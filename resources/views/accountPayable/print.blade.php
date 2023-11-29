@@ -211,16 +211,22 @@
                                     <br>
                                     <table width="100%">
                                         <tr class="tanpa-padding">
-                                            <td class="tanpa-padding font-14" width="15%">Tanggal</td>
-                                            <td class="tanpa-padding font-14" width="40%">: {{ $invDate }}</td>
-                                            <td class="tanpa-padding font-14" >Supplier</td>
-                                            <td class="tanpa-padding font-14">: {{ $supplierName }}</td>
+                                            <td class="tanpa-padding font-14" width="15%" valign="top">Tanggal</td>
+                                            <td class="tanpa-padding font-14" width="40%" valign="top">: {{ $invDate }}</td>
+                                            <td class="tanpa-padding font-14" valign="top">Supplier</td>
+                                            <td class="tanpa-padding font-14" valign="top">: {{ $supplierName }}</td>
                                         </tr>
                                         <tr class="tanpa-padding">
-                                            <td class="tanpa-padding font-14">Invoice Number</td>
-                                            <td class="tanpa-padding font-14">: {{ $invoiceNumber }}</td>
-                                            <td class="tanpa-padding font-14" >NO. PO</td>
-                                            <td class="tanpa-padding font-14">: {{ $noPo }}</td>
+                                            <td class="tanpa-padding font-14" valign="top">Invoice Number</td>
+                                            <td class="tanpa-padding font-14" rowspan="2" valign="top">: {{ $invoiceNumber }}</td>
+                                            <td class="tanpa-padding font-14" valign="top">NO. PO</td>
+                                            <td class="tanpa-padding font-14" valign="top">: {{ $noPo }}</td>
+                                        </tr>
+                                        <tr class="tanpa-padding">
+                                            <td class="tanpa-padding font-14"></td>
+                                            <td class="tanpa-padding font-14"></td>
+                                            <td class="tanpa-padding font-14" ></td>
+                                            <td class="tanpa-padding font-14"></td>
                                         </tr>
                                     </table>
                                 </td>
@@ -234,7 +240,7 @@
             <tr>
                 <td>
                     <div class="content">
-                        <table id="tblContent" class="font-small">
+                        <table id="tblContent" class="font-small" style="margin-top:5px">
                             <thead>
                                 <tr>
                                     <th width="10%">No Account</th>
