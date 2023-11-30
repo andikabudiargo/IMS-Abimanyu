@@ -1165,7 +1165,7 @@ class DeliveryController extends Controller
 
         ->addColumn('status', function ($data) {
             $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-success','badge-success','badge-success'];            
-            $statusDel = ['NEW','VALIDATE','APPROVED','POSTED','CANCELED','','','RECEIVED','','REVISI'];
+            $statusDel = ['NEW','VALIDATE','APPROVED','PphpOSTED','CANCELED','','','RECEIVED','','REVISI'];
             return "<div class='badge ".$badges[$data->status - 1]."'>".$statusDel[$data->status - 1]."</div>";
         })
 
@@ -1238,9 +1238,15 @@ class DeliveryController extends Controller
         $cust= $request->value;
         $output="";
 
+        /*
+            Natasya 30/11/2023
+            untuk SO approval sudah 2 sudah bisa di bikin DN
+
+        */
         $data= DB::table("sales_order_hdr") 
         ->where("customer_id",$cust)
-        ->where("status","3")
+        // ->where("status","3")
+        ->where(db::raw("(select max(approval_order) from approval_history where module_code = 'SO' and module_number = sales_order_hdr.so_code)"),'>=',2)
         ->orderBy("so_code")
         ->select("so_code","po_number")
         ->get();          
