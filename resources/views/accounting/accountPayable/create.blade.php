@@ -270,7 +270,7 @@
                             <br>
                             <div class="form-row">
                                 <div class="col-md-12">
-                                    <a href="{{ route('aps.index') }}" class="btn btn-light">Back</a>
+                                    <a href="{{ route('accountPayable.index') }}" class="btn btn-light">Back</a>
                                     <button class="btn btn-info" type="reset" id="cmdNew" name="cmdCancel">New</button>
                                     @if( Session::get('status') != 'Saved' )
                                         <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Save</button>
