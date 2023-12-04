@@ -150,7 +150,7 @@
         }
 
         #tblContent  td {
-            padding : 0px 10px 0px 10px;
+            padding : 0px 2px 0px 4px;
             border-bottom: none;
             border-left: thin solid var(--line-color);
             border-right: thin solid var(--line-color);
@@ -261,7 +261,9 @@
         .sub_div {
             position: absolute;
             /* margin-right: 8mm; */
-            bottom: 18px;
+            /* bottom: 18px; */
+            padding-bottom:18px;
+            bottom: 0px;
             background-color:white;
             width  : 803px;
             margin-left : 1.4mm;
