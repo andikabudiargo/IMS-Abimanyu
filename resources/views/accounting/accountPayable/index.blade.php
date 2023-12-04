@@ -157,6 +157,7 @@
           className: "text-right"
         },
       ],
+      type:"POST",
       dataSearch:  {
         searchPo:searchPo,
         searchAp:searchAp,
