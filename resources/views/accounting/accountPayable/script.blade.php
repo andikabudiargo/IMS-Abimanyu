@@ -11,6 +11,7 @@
     let listArticle="";
     let listCoa="";
     let edit="";
+    let dariEdit="";
     let urutanRow = 0;
     let depts = '{!! $depts !!}';
 
@@ -137,12 +138,15 @@
     });
 
     hitungTotal = () => {
+        console.log(edit);
         let ba = parseFloat($('#basisAmount').val().replace(/[^0-9.]/g, '')) || 0;
         let baA = parseFloat($('#basisAmountA').val().replace(/[^0-9.]/g, '')) || 0;
+
         let vat = parseFloat($('#totalPPN').val().replace(/[^0-9.]/g, '')) || 0;
         let pph23 = parseFloat($('#totalPPH23').val().replace(/[^0-9.]/g, '')) || 0;
         let pph21 = parseFloat($('#totalPPH21').val().replace(/[^0-9.]/g, '')) || 0;
         let pph42 = parseFloat($('#totalPPH42').val().replace(/[^0-9.]/g, '')) || 0;
+
         let od = parseFloat($('#totalDiscount').val().replace(/[^0-9.]/g, '')) || 0;
         let total;
 
@@ -152,22 +156,49 @@
         
         totalDebit = sumFromArray(debit);
         ba = baA + totalDebit;
+
+        if(edit == 'false'){
+            if($('#vatCheck').is(':checked') ) {
+                $("#totalPPN").val(parseFloat(ba * (sNilaiPPN/100)).toFixed(2));
+                vat = parseFloat($('#totalPPN').val().replace(/[^0-9.]/g, '')) || 0;
+            }
+
+            if($("#pph23Check").is(':checked') ) {
+                $("#totalPPH23").val(parseFloat(ba * (sNilaiPPH23/100)).toFixed(2));
+                pph23 = parseFloat($('#totalPPH23').val().replace(/[^0-9.]/g, '')) || 0;
+            }
+
+            if($("#pph21Check").is(':checked') ) {
+                $("#totalPPH21").val(parseFloat(ba * (sNilaiPPH21/100)).toFixed(2));
+                pph21 = parseFloat($('#totalPPH21').val().replace(/[^0-9.]/g, '')) || 0;
+            }
+
+            if($("#pph42Check").is(':checked') ) {
+                $("#totalPPH42").val(parseFloat(ba * (sNilaiPPH42/100)).toFixed(2));
+                pph42 = parseFloat($('#totalPPH42').val().replace(/[^0-9.]/g, '')) || 0;
+            }
+        }
         
         if(vat){
-            total = ba? (ba-od)+vat-(pph23+pph21+pph42) : '';
+            total = ba ? (ba-od)+vat-(pph23+pph21+pph42) : '';
         }else{
-            total = ba? (ba-od)-(pph23+pph21+pph42) : '';
+            total = ba ? (ba-od)-(pph23+pph21+pph42) : '';
         }
 
         $('#basisAmount').val(humanizeNumber(parseFloat(ba).toFixed(2)))
         $('#grandTotal').val(humanizeNumber(parseFloat(total).toFixed(2)));
-        // mask_thousand_digit(2);
-        // mask_thousand();
+
+        mask_thousand_digit(2);
+        mask_thousand();
     }
 
     $("#basisAmount,#totalPPN,#totalPPH23,#totalPPH21,#totalPPH42,#totalDiscount,nilaiDebit").keyup(function(){
         hitungTotal();
     })
+
+    $('body').on('keyup', 'input[name="addAccountDebit[]"]', function (){
+        hitungTotal();
+    });
    
     invoiceDate = $('#invoiceDate');
     if (invoiceDate.length) {
@@ -366,10 +397,19 @@
                         let myformData = $("#frmAdd").serialize();
                         // console.log(myformData);
                         let detailsData = JSON.stringify(details);
+                        let url='';
+                        let apId = '';
+                        if (dariEdit='true'){
+                            url ="{{ route('accountPayable.update') }}";
+                            apId =$('#apId').val();
+                        }else{
+                            url ="{{ route('accountPayable.store') }}";
+                        }
+                        
                         $.ajax({
                             type: "post",
-                            url: "{{ route('accountPayable.store') }}",
-                            data: myformData+'&details='+detailsData,
+                            url: url,
+                            data: myformData+'&details='+detailsData+'&id='+apId,
                             dataType: "json",
                             success: function(data) {
                                 if (data.status == 0 ){
@@ -408,14 +448,14 @@
         
         $("#listOfLpb > tbody").empty();
         $("#listOfRec > tbody").empty();
-        $("#addItem > tbody").empty();
-        add_new_row();
-        add_new_row();
-        add_new_row();
-        add_new_row();
         $('#cmdSubmit').attr('disabled','disabled');
         
         if (edit == 'false'){
+            $("#addItem > tbody").empty();
+            add_new_row();
+            add_new_row();
+            add_new_row();
+            add_new_row();
             $('#pph23Check').prop('checked',false);
             $('#pph21Check').prop('checked',false);
             $('#pph42Check').prop('checked',false);
@@ -458,25 +498,28 @@
                         for(i=0;i<result.detailRec.length;i++){
                             urutanRow++;
                             isiTabel +=`<tr>
-                                    <td width="30%" style="padding:0px 5px 0px 5px;">
+                                    <td style="padding:0px 5px 0px 5px;">
                                         <select class="form-control activateSelect2" id="articleAccount${i}" name="articleAccount[]">
                                             ${listCoa}
                                         </select>
                                     </td>
-                                    <td width="5%" style="padding:0px 5px 0px 5px;">
+                                    <td  style="padding:0px 5px 0px 5px;">
                                         <input type="text" class="form-control-plaintext" id="articleCodeAlternative" name="articleCodeAlternative[]" value="${result.detailRec[i].article}" disabled/></td>
                                         <input type="hidden" class="form-control-plaintext disabled-el" id="articleCode" name="articleCode[]" value="${result.detailRec[i].article_code}"/></td>
-                                    <td width="30%"><input type="text" class="form-control-plaintext disabled-el" id="articleDesc" name="articleDesc[]" value="${result.detailRec[i].desc}" style="text-align:right;" disabled/></td>
-                                    <td width="5%"><input type="text" class="form-control-plaintext disabled-el" id="articleCc" name="articleCc[]" value="${result.detailRec[i].dept}" style="text-align:right;" disabled/></td>
-                                    <td width="5%">${result.detailRec[i].uom}</td>
-                                    <td width="10%" class="text-right" style="padding:0px 5px 0px 5px;"><input type="text" class="form-control-plaintext disabled-el" id="articleQty" name="articleQty[]" value="${humanizeNumber(result.detailRec[i].qty)}" style="text-align:right;" disabled/></td>
-                                    <td width="10%" class="text-right" style="padding:0px 5px 0px 5px;"><input type="text" class="form-control-plaintext disabled-el" id="articlePrice" name="articlePrice[]" value="${humanizeNumber(parseFloat(result.detailRec[i].price).toFixed(2))}" style="text-align:right;" disabled/></td>
-                                    <td width="10%" class="text-right" style="padding:0px 5px 0px 5px;"><input type="text" class="form-control-plaintext disabled-el" id="articleTotal" name="articleTotal[]" value="${humanizeNumber(parseFloat(result.detailRec[i].total).toFixed(2))}" style="text-align:right;" disabled/></td>
+                                    <td style="padding:0px 5px 0px 5px;"><input type="text" class="form-control-plaintext disabled-el" id="articleDesc" name="articleDesc[]" value="${result.detailRec[i].desc}" disabled/></td>
+                                    <td style="padding:0px 5px 0px 5px;"><input type="text" class="form-control-plaintext disabled-el" id="articleCc" name="articleCc[]" value="${result.detailRec[i].dept}" style="text-align:right;" disabled/></td>
+                                    <td style="padding:0px 5px 0px 5px;">${result.detailRec[i].uom}</td>
+                                    <td  class="text-right" style="padding:0px 5px 0px 5px;"><input type="text" class="form-control-plaintext disabled-el" id="articleQty" name="articleQty[]" value="${humanizeNumber(parseFloat(result.detailRec[i].qty).toFixed(2))}" style="text-align:right;" disabled/></td>
+                                    <td  class="text-right" style="padding:0px 5px 0px 5px;"><input type="text" class="form-control-plaintext disabled-el" id="articlePrice" name="articlePrice[]" value="${humanizeNumber(parseFloat(result.detailRec[i].price).toFixed(2))}" style="text-align:right;" disabled/></td>
+                                    <td  class="text-right" style="padding:0px 5px 0px 5px;"><input type="text" class="form-control-plaintext disabled-el" id="articleTotal" name="articleTotal[]" value="${humanizeNumber(parseFloat(result.detailRec[i].total).toFixed(2))}" style="text-align:right;" disabled/></td>
                                 </tr>`;
                             grandTotalQty+=parseFloat(result.detailRec[i].qty);
-                        }
+                        }                       
 
                         $("#listOfRec tbody").append(isiTabel);
+                        for(i=0;i<result.detailRec.length;i++){
+                            $('#articleAccount'+i).val(result.detailRec[i].account).trigger('change');
+                        }
                         $('.activateSelect2').select2();
                         $("#grandTotalQty").val(grandTotalQty);
                     }
@@ -494,11 +537,9 @@
                         $("#totalPPN").prop('required',true);
                         $('#nilaiPPN').val(humanizeNumber(result.summaryRec[0].vat));
                         $('#totalPPN').val(humanizeNumber(parseFloat(result.summaryRec[0].nilai_pajak).toFixed(2)));
-                    }
-                                        
+                    }                                        
                     hitungTotal();
-                    edit == false;
-
+                    edit = 'false';
                 },
                 error: function (response) {
                     //Error here
@@ -546,7 +587,7 @@
     }
 
     $("#cmdSubmit").click(function (e) {
-        cmdSubmit();        
+        cmdSubmit();       
     });
 
     hitungGrandTotal=()=>{}
@@ -573,7 +614,7 @@
                                     oninput='inputDecimal(this)' />
                             </td>
                             <td width=5%" class="text-right" style="padding:0px 5px 0px 5px;">
-                                <a onmouseover="this.style.cursor='pointer'" id="deleteButton" onclick="deleteRow(this);hitungGrandTotal()" data-toggle="tooltip" data-placement="left" title="Delete row">
+                                <a onmouseover="this.style.cursor='pointer'" id="deleteButton" onclick="deleteRow(this);hitungTotal()" data-toggle="tooltip" data-placement="left" title="Delete row">
                                     <i data-feather="trash-2" class="remove_button feather-24"></i>
                                 </a>
                             </td>
@@ -584,38 +625,48 @@
         $('.activate-select2').select2();
     }
 
+    add_new_row_edit =(account,desc,dept,amount)=>{
+        urutanRow++;
+        let isiTabel =`<tr>
+                            <td width="20%" style="padding:0px 5px 0px 5px;">
+                                <select class="form-control activate-select2" id="addAccount${urutanRow}" name="addAccount[]">
+                                    ${listCoa}
+                                </select>
+                            </td>
+                            <td width="30%" style="padding:0px 5px 0px 5px;">
+                                <input type="text" class="form-control-plaintext" id="addAccountDesc" name="addAccountDesc[]" value="${desc}" />
+                            </td>
+                            <td width="20%" style="padding:0px 5px 0px 5px;">
+                                <select class="form-control activate-select2" id="addAccountCc${urutanRow}" name="addAccountCc[]">
+                                    ${depts}
+                                </select>
+                            </td>
+                            <td width="10%" style="padding:0px 5px 0px 5px;">
+                                <input type="text" 
+                                    class="form-control-plaintext numeral-mask-digit" 
+                                    id="addAccountDebit" name="addAccountDebit[]" value="${amount}" style="text-align:right;" 
+                                    oninput='inputDecimal(this)' />
+                            </td>
+                            <td width=5%" class="text-right" style="padding:0px 5px 0px 5px;">
+                                <a onmouseover="this.style.cursor='pointer'" id="deleteButton" onclick="deleteRow(this);hitungTotal()" data-toggle="tooltip" data-placement="left" title="Delete row">
+                                    <i data-feather="trash-2" class="remove_button feather-24"></i>
+                                </a>
+                            </td>   
+                        </tr>`;
+        $("#addItem tbody").append(isiTabel);
+        $('#addAccount'+urutanRow).val(account).trigger('change');
+        $('#addAccountCc'+urutanRow).val(dept).trigger('change');
+        mask_thousand_digit(2);
+        feather.replace();
+        $('.activate-select2').select2();
+        hitungTotal();
+    }
+
     function deleteRow(obj) {
         $(obj).closest('tr').remove();
     }
 
-    $('body').on('keyup', 'input[name="addAccountDebit[]"]', function (){
-
-        if($('#vatCheck').is(':checked') ) {
-            console.log('oki');
-            let basisAmount = parseFloat($('#basisAmount').val().replace(/,/gi, '')) || 0;
-            $("#totalPPN").val(parseFloat(basisAmount * (sNilaiPPN/100)).toFixed(2));
-        }
-
-        if($("#pph23Check").is(':checked') ) {
-            let basisAmount = parseFloat($('#basisAmount').val().replace(/,/gi, '')) || 0;
-            $("#totalPPH23").val(parseFloat(basisAmount * (sNilaiPPH23/100)).toFixed(2));
-        }
-
-        if($("#pph21Check").is(':checked') ) {
-            let basisAmount = parseFloat($('#basisAmount').val().replace(/,/gi, '')) || 0;
-            $("#totalPPH21").val(parseFloat(basisAmount * (sNilaiPPH21/100)).toFixed(2));
-        }
-
-        if($("#pph42Check").is(':checked') ) {
-            let basisAmount = parseFloat($('#basisAmount').val().replace(/,/gi, '')) || 0;
-            $("#totalPPH42").val(parseFloat(basisAmount * (sNilaiPPH42/100)).toFixed(2));
-        }
-
-        hitungTotal();
-        mask_thousand_digit(2);
-        mask_thousand();
-
-    });
+   
 
 
 </script>

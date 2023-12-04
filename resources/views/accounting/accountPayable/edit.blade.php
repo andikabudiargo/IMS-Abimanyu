@@ -16,7 +16,8 @@
                 </div>
                 <div class="card-content collapse show">
                     <div class="card-body">
-                        <form id="frmAdd" name="frmAdd" action="{{ route('ap.update',['id'=>Crypt::encryptString($id)]) }}" method="post" autocomplete="off">
+                        <form id="frmAdd" name="frmAdd"  method="post" autocomplete="off">
+                            <input type="hidden" id="apId" name="apId" class="form-control text-hitam disabled-el" value="{{ Crypt::encryptString($id) }}" />
                             @csrf
                             <div class="row">
                                 <div class="col-md-6 col-12">
@@ -32,7 +33,7 @@
                                         </div> 
                                         <div class="form-group col-md-2">
                                             <label for="period">Period*</label>
-                                            <select class="select2 form-control" id="period" name="period" required>
+                                            <select class="select2 form-control disabled-el" id="period" name="period" disabled>
                                                 <option value=""></option>
                                                 @for ($i = 1; $i <= 12; $i++)
                                                     <option value="{{ $i }}" {{$i == $header->period ? "selected" : ""}}>{{ $i }}</option>
@@ -56,6 +57,12 @@
                                         </div> 
                                     </div>
                                     <div class="form-row">
+                                        <div class="form-group col-md-10">
+                                            <label for="accountHutang">COA Hutang*</label>
+                                            <input type="text" id="accountHutang" name="accountHutang" class="form-control disabled-el" value="{{ old('accountHutang',$header->account_total) }}" disabled />
+                                        </div> 
+                                    </div>
+                                    <div class="form-row">
                                         <div class="form-group col-md-8">
                                             <label class="form-label" for="poNumber">PO Number*</label>
                                             <select class="select2 form-control" id="poNumber" name="poNumber" required>
@@ -74,7 +81,7 @@
                                             <input type="text" id="rate" name="rate" value="{{ old('rate',$header->kurs) }}" class="form-control numeral-mask text-right" required/>
                                         </div>
                                     </div>
-                                    <div class="form-row">
+                                    {{-- <div class="form-row">
                                         <div class="form-group col-md-12">
                                             <label class="form-label" for="accountBasisA">COA Basis Amount*</label>
                                             <select class="select2 form-control w-100" id="accountBasisA" name="accountBasisA" required>
@@ -84,7 +91,7 @@
                                                 @endforeach
                                             </select>
                                         </div>
-                                    </div>
+                                    </div> --}}
                                     <div class="form-row">
                                         <div class="form-group col-md-4">
                                             <label for="invoiceNumber">Invoice Number*</label>
@@ -126,11 +133,12 @@
                                             </div>
                                         </div>
                                     </div>
-                                </div>
-                            </div>
-                            <div class="form-row">
-                                <div class="col-md-12">
-                                    <button class="btn btn-primary" type="button" id="cmdSubmit" name="cmdSubmit">Submit</button>
+                                    <br>
+                                    <div class="form-row">
+                                        <div class="col-md-12">
+                                            <button class="btn btn-primary" type="button" id="cmdSubmit" name="cmdSubmit">Submit</button>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                             <hr>
@@ -138,21 +146,51 @@
                                 <div class="col-sm-12">
                                     <p class="mb-0">Detail receiving</p>
                                     <div class="card-datatable table-responsive pt-0">
-                                    <table class="table table-bordered" id="listOfRec">
+                                    <table class="table table-bordered" id="listOfRec" style="table-layout: fixed;" width="100%">
                                         <thead>
                                             <tr>
-                                                <th scope="col" width="20%">Article Code</th>
-                                                <th scope="col" width="40%">Description</th>
-                                                <th scope="col" width="10%">UOM</th>
-                                                <th scope="col" width="10%">Qty</th>
-                                                <th scope="col" width="10%">Price</th>
-                                                <th scope="col" width="10%">Total</th>
+                                                <th scope="col" width="20%" align="center" style="padding:5px;text-align:center;">Account</th>
+                                                <th scope="col" width="12%" style="padding:5px;text-align:center;">Article</th>
+                                                <th scope="col" width="" style="padding:5px;text-align:center;">Description</th>
+                                                <th scope="col" width="5%" style="padding:5px;text-align:center;">Dept</th>
+                                                <th scope="col" width="5%" style="padding:5px;text-align:center;">UOM</th>
+                                                <th scope="col" width="8%" style="padding:5px;text-align:center;">Qty</th>
+                                                <th scope="col" width="10%" style="padding:5px;text-align:center;">Price</th>
+                                                <th scope="col" width="15%" style="padding:5px;text-align:center;">Total</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                         </tbody>
                                         </table>
                                     </div>
+                                </div>
+                            </div>
+                            <hr>
+                            <br>
+                            <div class="form-row">
+                                <div class="col-sm-12">
+                                    <p class="mb-0">Add item</p>
+                                    <div class="card-datatable table-responsive pt-0">
+                                      <table class="table table-bordered" id="addItem" width="100%">
+                                            <thead>
+                                                <tr>
+                                                    <th scope="col" width="25%">Account</th>
+                                                    <th scope="col" width="30%">Description</th>
+                                                    <th scope="col" width="20%">CC</th>
+                                                    <th scope="col" width="10%">Amount</th>
+                                                    <th scope="col" width="5%">-</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                                <div class="col-sm-12 mt-75">
+                                    <button class="btn btn-primary btn-prev" type="button" id="addNewRow" onclick="add_new_row();hitungGrandTotal();">
+                                        <i data-feather="plus" class="align-middle mr-sm-25 mr-0"></i>
+                                        <span class="align-middle d-sm-inline-block d-none">Add Article</span>
+                                    </button>
                                 </div>
                             </div>
                             <hr>
@@ -163,6 +201,7 @@
                                         <label for="basisAmount" class="col-sm-4 col-form-label titik-dua">DPP</label>
                                         <div class="col-sm-6">
                                             <input type="text" class="form-control text-right font-weight-bold disabled-el" id="basisAmount" name="basisAmount" disabled />
+                                            <input type="hidden" class="form-control text-right font-weight-bold disabled-el" id="basisAmountA" name="basisAmountA" />
                                         </div>
                                     </div>
                                     <div class="form-group row mb-03 d-none">
@@ -304,18 +343,39 @@
 </style>
 @endsection
 @section('scripts')
-@include('accountPayable.script')
+@include('accounting.accountPayable.script')
 <script type="text/javascript">
 
     $(document).ready(function(){
         validateFormToast("frmAdd");
+        isiCoa('list_coa');
+
+        setTimeout(function () {
+            $(".loading-spinner-container").addClass("-show");
+        }, 500);
+        timerId= setInterval(() => checkVariable(), 1000);
+
         mask_thousand();
         mask_thousand_digit(2);
         edit='true';
+        dariEdit='true';
         poAda ="{{ $header->po_number }}";
-        $('#supplier').val("{{ $header->supplier_id }}").trigger('change');
-        showDetail='false';
+        // $('#supplier').val("{{ $header->supplier_id }}").trigger('change');
+        showDetail='false';       
+
     });
+
+    function checkVariable() {
+        if (listCoa.length > 0) {
+            clearInterval(timerId);
+            $('#supplier').val("{{ $header->supplier_id }}").trigger('change');
+            let apDetails = @json($apDetails);
+            for(i=0;i<apDetails.length;i++){
+                add_new_row_edit(apDetails[i].account,apDetails[i].description,apDetails[i].cost_center,apDetails[i].debit);
+            }
+            $(".loading-spinner-container").removeClass("-show");
+        }
+    }
 
     $("#cmdPosting").click(function(){        
         let apNumber = $('#apNumber').val();            

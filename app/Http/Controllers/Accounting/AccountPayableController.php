@@ -357,6 +357,7 @@ class AccountPayableController extends Controller
 
     public function detailRec(Request $request){
         $poNumber = $request->poNumber;
+        $apNumber = 'AP-ASN-2023-XII-0330';
         $recNumber = $request->recNumber;
         $arrayRecNumber = explode(",",$recNumber);
 
@@ -367,6 +368,7 @@ class AccountPayableController extends Controller
         $detailRec = DB::table('receiving_det')
         ->leftJoin('receiving_hdr','receiving_hdr.rec_number','receiving_det.rec_number')
         ->leftJoin('article','article.article_code','receiving_det.article_code')
+        ->leftJoin(DB::RAW("(select * from ap_invoice_det where ap_number='$apNumber') as ap"),'ap.reference','receiving_det.article_code')
         ->leftJoin(DB::RAW("(select * from purchase_order_det where po_number = '$poNumber') AS po"),function($join){
             $join->on('po.po_number','=','receiving_hdr.po_number')
                 ->on('po.article_code','=','receiving_det.article_code');
@@ -387,13 +389,16 @@ class AccountPayableController extends Controller
         // ,'purchase_order_hdr.discount'
         // ,db::raw("sum((qty*po.price)-((qty*po.price)*purchase_order_hdr.discount/100)+(((qty*po.price)-((qty*po.price)*purchase_order_hdr.discount/100))*po.ppn/100)-(((qty*po.price)-((qty*po.price)*purchase_order_hdr.discount/100))*po.pph/100)) as total")
         // )
-        ,db::raw("(sum(receiving_det.qty*po.price)) as total"))
+        ,db::raw("(sum(receiving_det.qty*po.price)) as total")
+        ,'ap.account as account'
+        )
         ->groupBy('article.article_alternative_code')
         ->groupBy('article.article_desc')
         ->groupBy('receiving_det.uom_rec')
         ->groupBy('po.price')
         ->groupBy('receiving_det.article_code')
         ->groupBy(db::raw("(select dept from purchase_request_hdr where pr_number in (select pr_number from purchase_order_det where po_number = receiving_hdr.po_number ) limit 1)"))
+        ->groupBy('ap.account')
         ->get();
 
         $summaryRec =  DB::select("SELECT z.*
@@ -504,6 +509,8 @@ class AccountPayableController extends Controller
         $accountHutang = $request->accountHutang;
         $details = json_decode($request->details);
         $accountBasisA = ''; //untuk account basis amount akan diganti dengan account masing2 item
+
+        // dd($recNumberSave);
 
         /* batal pengkodean untuk angka romawi/bulan  jadi nya dari period
         $tanggalReceive = (int)explode('-', $apDate)[0];
@@ -678,9 +685,9 @@ class AccountPayableController extends Controller
                 $message  = "$title $apNumber is successfully saved";
 
                 \LogActivity::addToLog($title,"username: $username Status $message");
-                return redirect()->back()->with(array('title' => $title, 'message' => $message,'alert'=>$alert,'apNumber'=>$apNumber));
+                return response()->json(array('status' => 1, 'message' => $message,'alert'=>$alert,'apNumber'=>$apNumber));
+                // return redirect()->back()->with(array('title' => $title, 'message' => $message,'alert'=>$alert,'apNumber'=>$apNumber));
                 // return redirect()->route('ap.create')->with(array('title' => $title, 'message' => $message,'alert'=>$alert));
-
                 // return redirect()->back()->with($data);
 
         } catch (Exception $e) {
@@ -689,7 +696,8 @@ class AccountPayableController extends Controller
             $alert  ="warning";
             $message  = "*Invoice $apNumber is failed to save";
             \LogActivity::addToLog($title,"username: $username Status $message");
-            return redirect()->back()->with(array('title' => $title, 'message' => $message,'alert'=>$alert,'apNumber'=>$apNumber));
+            return response()->json(array('status' => 0, 'message' => $message,'alert'=>$alert,'apNumber'=>$apNumber));
+            // return redirect()->back()->with(array('title' => $title, 'message' => $message,'alert'=>$alert,'apNumber'=>$apNumber));
         }
         
     }
@@ -708,7 +716,7 @@ class AccountPayableController extends Controller
         ->leftJoin('third_party', 'third_party.kode', '=', 'ap_invoice.supplier_id')
         ->select('ap_invoice.*','third_party.top_batas_1')
         ->where('ap_invoice.id',$id)
-        ->get()->first();
+        ->get()->first(); 
         
         $apNumber = $data['header']->ap_number;
         $poNumber = $data['header']->po_number;
@@ -752,6 +760,7 @@ class AccountPayableController extends Controller
         $data['detailRec'] = DB::table('receiving_det')
         ->leftJoin('receiving_hdr','receiving_hdr.rec_number','receiving_det.rec_number')
         ->leftJoin('article','article.article_code','receiving_det.article_code')
+        ->leftJoin(DB::RAW("(select * from ap_invoice_det where ap_number='$apNumber') as ap"),'ap.reference','receiving_det.article_code')
         ->leftJoin(DB::RAW("(select * from purchase_order_det where po_number = '$poNumber') AS po"),function($join){
             $join->on('po.po_number','=','receiving_hdr.po_number')
                 ->on('po.article_code','=','receiving_det.article_code');
@@ -763,11 +772,22 @@ class AccountPayableController extends Controller
         ,'receiving_det.uom_rec as uom'
         ,db::raw("sum(receiving_det.qty) as qty")
         ,'po.price'
-        ,db::raw("(sum(receiving_det.qty*po.price)) as total"))
+        ,db::raw("(sum(receiving_det.qty*po.price)) as total")
+        ,'ap.account as account'
+        ,db::raw("(select dept from purchase_request_hdr where pr_number in (select pr_number from purchase_order_det where po_number = receiving_hdr.po_number ) limit 1) as dept")
+        )
         ->groupBy('article.article_alternative_code')
         ->groupBy('article.article_desc')
         ->groupBy('receiving_det.uom_rec')
         ->groupBy('po.price')
+        ->groupBy(db::raw("(select dept from purchase_request_hdr where pr_number in (select pr_number from purchase_order_det where po_number = receiving_hdr.po_number ) limit 1)"))
+        ->groupBy('ap.account')
+        ->get();
+
+        $data['apDetails'] = DB::table('ap_invoice_det')
+        ->leftJoin('depts','ap_invoice_det.cost_center','depts.code')
+        ->where('ap_number',$apNumber)
+        ->where('reference','')
         ->get();
 
         $data['supps'] = DB::table('third_party')
@@ -865,6 +885,11 @@ class AccountPayableController extends Controller
         ->where('acc_header','!=','HEADER')
         ->get();
 
+        $data['apDetails'] = DB::table('ap_invoice_det')
+        ->where('ap_number',$apNumber)
+        ->where('reference','')
+        ->get();
+
         $data['depts'] = $this->lisDept();
 
         $data['nilaiPPN'] = $this->nilaiPpn;
@@ -941,7 +966,7 @@ class AccountPayableController extends Controller
                 
         $accountVat   ='1100.73';
         // $acountTotal  ='2000.11';
-        $acountTotal  =$accountHutang;
+        $acountTotal  =  $accountHutang;
         $accountPph23 ='2000.14.3';
         $accountPph21 ='2000.14.2';
         $accountPph42 ='2000.14.6';
@@ -1019,9 +1044,6 @@ class AccountPayableController extends Controller
                     ]
                 );
 
-                
-                
-
                 if($rowAffected){
                     $dataReceiving = [];
                     foreach ($recNumberSave as $val) {
@@ -1081,7 +1103,9 @@ class AccountPayableController extends Controller
                 $data['alert'] = $alert;
 
                 \LogActivity::addToLog($title,"username: $username Status $message");
-                return redirect()->route('ap.edit', ['id'=>Crypt::encryptString($id)])->with(array('title' => $title, 'message' => $message,'alert'=>$alert));
+                return response()->json(array('status' => 1, 'message' => $message,'alert'=>$alert,'apNumber'=>$apNumber));
+                // return redirect()->back()->with(array('title' => $title, 'message' => $message,'alert'=>$alert,'apNumber'=>$apNumber));
+                // return redirect()->route('ap.edit', ['id'=>Crypt::encryptString($id)])->with(array('title' => $title, 'message' => $message,'alert'=>$alert));
                 // return redirect()->back()->with($data);
 
         } catch (Exception $e) {
@@ -1090,7 +1114,8 @@ class AccountPayableController extends Controller
             $alert  ="warning";
             $message  = "Invoice $apNumber is failed to update";
             \LogActivity::addToLog($title,"username: $username Status $message");
-            return redirect()->back()->with(array('title' => $title, 'message' => $message,'alert'=>$alert,'apNumber'=>$apNumber));
+            return response()->json(array('status' => 0, 'message' => $message,'alert'=>$alert,'apNumber'=>$apNumber));
+            // return redirect()->back()->with(array('title' => $title, 'message' => $message,'alert'=>$alert,'apNumber'=>$apNumber));
         }
         
     }
@@ -1349,7 +1374,6 @@ class AccountPayableController extends Controller
         ->where('voucher_number',$apNumber)
         ->delete();
 
-
         $listApDetail = DB::table('ap_invoice_det')
         ->where('ap_number',$apNumber)
         ->orderBy('id')
@@ -1374,7 +1398,6 @@ class AccountPayableController extends Controller
             ];
         }
 
-
        // $reference = $apNumber;
         
         /*
@@ -1393,6 +1416,7 @@ class AccountPayableController extends Controller
             'updated_at' => date('Y-m-d H:i:s')
         ];
         */
+
         if($apData->vat > 0){
             $dataSet[] = [
                 'voucher_number' => $apNumber,
@@ -1402,9 +1426,9 @@ class AccountPayableController extends Controller
                 'debit' => $apData->vat,
                 'credit' => 0,
                 'reference' => $reference,
-                'created_by' => $createdBy,
+                'created_by' => Auth::user()->username,
                 'updated_by' => Auth::user()->username,
-                'created_at' => $createdAt,
+                'created_at' => date('Y-m-d H:i:s'),
                 'updated_at' => date('Y-m-d H:i:s')
             ];
         }
@@ -1418,9 +1442,9 @@ class AccountPayableController extends Controller
                 'debit' => 0,
                 'credit' => $apData->pph23,
                 'reference' => $reference,
-                'created_by' => $createdBy,
+                'created_by' => Auth::user()->username,
                 'updated_by' => Auth::user()->username,
-                'created_at' => $createdAt,
+                'created_at' => date('Y-m-d H:i:s'),
                 'updated_at' => date('Y-m-d H:i:s')
             ];  
         }
@@ -1433,9 +1457,9 @@ class AccountPayableController extends Controller
             'debit' => 0,
             'credit' => $apData->grand_total,
             'reference' => $reference,
-            'created_by' => $createdBy,
+            'created_by' => Auth::user()->username,
             'updated_by' => Auth::user()->username,
-            'created_at' => $createdAt,
+            'created_at' => date('Y-m-d H:i:s'),
             'updated_at' => date('Y-m-d H:i:s')
         ];  
 
@@ -1842,7 +1866,7 @@ class AccountPayableController extends Controller
 
             if ( $data->status == '2' or $data->status == '1') {
                 // if (Auth::user()->can('kasPenerimaan-approve')) {
-                $buttons .=     '<a href="'. route('ap.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+                $buttons .=     '<a href="'. route('accountPayable.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                     <i data-feather="check"></i>
                                     <span>'. __("Approve") .'</span>
                                 </a>';
@@ -1854,14 +1878,14 @@ class AccountPayableController extends Controller
             if ($data->status != '5'){
             // if (($data->status != '4') && ($data->status != '5')){
                 if (Auth::user()->can('ap-edit')) {
-                $buttons .=         '<a href="'. route('ap.edit',['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+                $buttons .=         '<a href="'. route('accountPayable.edit',['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                         <i data-feather="file-text"></i>
                                         <span>'. __("Edit") .'</span>
                                     </a>';
                 }
             }
 
-            $buttons .=         '<a href="'. route('ap.show', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+            $buttons .=         '<a href="'. route('accountPayable.show', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                             <i data-feather="list"></i>
                             <span>'. __("Detail") .'</span>
                         </a>';
@@ -1895,7 +1919,7 @@ class AccountPayableController extends Controller
                 
 
             // if (($data->status == '4')){
-                $buttons .=         '<a href="'. route('ap.print', ['id'=>Crypt::encryptString($data->id)]) .'" target="_blank" class="dropdown-item">
+                $buttons .=         '<a href="'. route('accountPayable.print', ['id'=>Crypt::encryptString($data->id)]) .'" target="_blank" class="dropdown-item">
                                     <i data-feather="printer"></i>
                                     <span>'. __("Print") .'</span>
                                 </a>';
@@ -1910,7 +1934,7 @@ class AccountPayableController extends Controller
 
 
             // if (($data->status == '4')){
-                $buttons .=         '<a href="'. route('ap.print.slip.pembayaran', ['id'=>Crypt::encryptString($data->id)]) .'" target="_blank" class="dropdown-item">
+                $buttons .=         '<a href="'. route('accountPayable.print.slip.pembayaran', ['id'=>Crypt::encryptString($data->id)]) .'" target="_blank" class="dropdown-item">
                                     <i data-feather="printer"></i>
                                     <span>'. __("Print Slip") .'</span>
                                 </a>';
@@ -1923,7 +1947,7 @@ class AccountPayableController extends Controller
                                         class='dropdown-item'
                                         data-toggle='modal'
                                         data-target='#smallModal'
-                                        data-href='". route("ap.destroy", ["id"=>Crypt::encryptString($data->id)]) ."'>
+                                        data-href='". route("accountPayable.destroy", ["id"=>Crypt::encryptString($data->id)]) ."'>
                                         <i data-feather='trash-2' class='feather-14-red'></i>
                                         Delete
                                     </a>";

@@ -58,7 +58,7 @@
                                     <div class="form-row">
                                         <div class="form-group col-md-8">
                                             <label for="accountHutang">COA Hutang*</label>
-                                            <input type="text" id="accountHutang" name="accountHutang" class="form-control disabled-el" value="{{ old('term',$header->account_total) }}" disabled />
+                                            <input type="text" id="accountHutang" name="accountHutang" class="form-control disabled-el" value="{{ old('accountHutang',$header->account_total) }}" disabled />
                                         </div> 
                                     </div>
                                     <div class="form-row">

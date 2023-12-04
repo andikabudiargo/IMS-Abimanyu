@@ -16,7 +16,7 @@
                 </div>
                 <div class="card-content collapse show">
                     <div class="card-body">
-                        <form id="frmAdd" name="frmAdd" action="{{ route('accountPayable.store') }}" method="post" autocomplete="off">
+                        <form id="frmAdd" name="frmAdd" method="post" autocomplete="off">
                             @csrf
                             <div class="row">
                                 <div class="col-md-6 col-12">
@@ -57,8 +57,8 @@
                                     </div>
                                     <div class="form-row">
                                         <div class="form-group col-md-10">
-                                            <label for="accountHutang">Account Hutang*</label>
-                                            <input type="text" id="accountHutang" name="accountHutang" class="form-control disabled-el" value="{{ old('term') }}" disabled />
+                                            <label for="accountHutang">COA Hutang*</label>
+                                            <input type="text" id="accountHutang" name="accountHutang" class="form-control disabled-el" value="{{ old('accountHutang') }}" disabled />
                                         </div> 
                                     </div>
                                     <div class="form-row">
@@ -145,17 +145,17 @@
                                 <div class="col-sm-12">
                                     <p class="mb-0">Detail receiving</p>
                                     <div class="card-datatable table-responsive pt-0">
-                                      <table class="table table-bordered" id="listOfRec" width="100%">
+                                      <table class="table table-bordered" id="listOfRec" style="table-layout: fixed;" width="100%">
                                           <thead>
                                             <tr>
-                                                <th scope="col" width="30%">Account</th>
-                                                <th scope="col" width="5%">Article Code</th>
-                                                <th scope="col" width="30%">Description</th>
-                                                <th scope="col" width="5%">Dept</th>
-                                                <th scope="col" width="5%">UOM</th>
-                                                <th scope="col" width="10%">Qty</th>
-                                                <th scope="col" width="10%">Price</th>
-                                                <th scope="col" width="10%">Total</th>
+                                                <th scope="col" width="20%" align="center" style="padding:5px;text-align:center;">Account</th>
+                                                <th scope="col" width="12%" style="padding:5px;text-align:center;">Article</th>
+                                                <th scope="col" width="" style="padding:5px;text-align:center;">Description</th>
+                                                <th scope="col" width="5%" style="padding:5px;text-align:center;">Dept</th>
+                                                <th scope="col" width="5%" style="padding:5px;text-align:center;">UOM</th>
+                                                <th scope="col" width="8%" style="padding:5px;text-align:center;">Qty</th>
+                                                <th scope="col" width="10%" style="padding:5px;text-align:center;">Price</th>
+                                                <th scope="col" width="15%" style="padding:5px;text-align:center;">Total</th>
                                             </tr>
                                           </thead>
                                           <tbody>
@@ -186,7 +186,7 @@
                                     </div>
                                 </div>
                                 <div class="col-sm-12 mt-75">
-                                    <button class="btn btn-primary btn-prev" type="button" id="addNewRow" onclick="add_new_row();hitungGrandTotal();">
+                                    <button class="btn btn-primary btn-prev" type="button" id="addNewRow" onclick="add_new_row();hitungTotal();">
                                         <i data-feather="plus" class="align-middle mr-sm-25 mr-0"></i>
                                         <span class="align-middle d-sm-inline-block d-none">Add Article</span>
                                     </button>
@@ -363,6 +363,7 @@
         mask_thousand();
         showDetail='false';
         edit='false';
+        dariEdit='false';
        
     });
 

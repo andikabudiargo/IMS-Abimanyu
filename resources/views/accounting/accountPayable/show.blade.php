@@ -127,24 +127,57 @@
                                         <table class="table table-bordered" id="listOfRec">
                                             <thead>
                                                 <tr>
+                                                    <th scope="col" width="30%">Aaccount</th>
                                                     <th scope="col" width="20%">Article Code</th>
-                                                    <th scope="col" width="40%">Description</th>
+                                                    <th scope="col" width="30%">Description</th>
+                                                    <th scope="col" width="5%">Dept</th>
                                                     <th scope="col" width="10%">UOM</th>
-                                                    <th scope="col" width="10%">Qty</th>
+                                                    <th scope="col" width="8%">Qty</th>
                                                     <th scope="col" width="10%">Price</th>
-                                                    <th scope="col" width="10%">Total</th>
+                                                    <th scope="col" width="12%">Total</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 @foreach($detailRec as $item)
                                                 <tr>
+                                                    <td>{{ $item->account }}</td>
                                                     <td>{{ $item->article }}</td>
                                                     <td>{{ $item->desc }}</td>
+                                                    <td>{{ $item->dept }}</td>
                                                     <td>{{ $item->uom }}</td>
-                                                    <td class="text-right">{{ number_format($item->qty) }}</td>
+                                                    <td class="text-right">{{ number_format($item->qty,2) }}</td>
                                                     <td class="text-right">{{ number_format($item->price,2) }}</td>
                                                     <td class="text-right">{{ number_format($item->total,2) }}</td>
                                                 </tr>
+                                                @endforeach
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                            <hr>
+                            <br>
+                            <div class="form-row">
+                                <div class="col-sm-12">
+                                    <p class="mb-0">Add item</p>
+                                    <div class="card-datatable table-responsive pt-0">
+                                      <table class="table table-bordered" id="addItem" width="100%">
+                                            <thead>
+                                                <tr>
+                                                    <th width="25%">Account</th>
+                                                    <th width="30%">Description</th>
+                                                    <th width="20%">CC</th>
+                                                    <th width="10%">Amount</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach($apDetails as $val)
+                                                    <tr>
+                                                        <td width="25%">{{ $val->account }}</td>
+                                                        <td width="30%">{{ $val->description }}</td>
+                                                        <td width="20%">{{ $val->name }}</td>
+                                                        <td width="10%">{{ number_format($val->debit,2) }}</td>
+                                                    </tr>
                                                 @endforeach
                                             </tbody>
                                         </table>
