@@ -477,6 +477,7 @@
 
     cmdSubmit=()=> {
         let recNumber="";
+        let apNumber=$('#apNumber').val();
         $('input:checkbox[name=customCheck]:checked').each(function(){
             recNumber += $(this).data('rec-number')+",";
         });
@@ -489,7 +490,8 @@
                 method:"GET",
                 data:{
                     poNumber:poNumber,
-                    recNumber:recNumber
+                    recNumber:recNumber,
+                    apNumber:apNumber
                 },
                 success:function(result){
                     let isiTabel= "";

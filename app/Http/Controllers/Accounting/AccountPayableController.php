@@ -357,7 +357,7 @@ class AccountPayableController extends Controller
 
     public function detailRec(Request $request){
         $poNumber = $request->poNumber;
-        $apNumber = 'AP-ASN-2023-XII-0330';
+        $apNumber = $request->apNumber;
         $recNumber = $request->recNumber;
         $arrayRecNumber = explode(",",$recNumber);
 
