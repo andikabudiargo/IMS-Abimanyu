@@ -393,7 +393,7 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('accountPayable/store',['as'=>'accountPayable.store','uses'=>'Accounting\AccountPayableController@store']);
 	Route::get('accountPayable/show',['as'=>'accountPayable.show','uses'=>'Accounting\AccountPayableController@show']);
 	Route::get('accountPayable/edit',['as'=>'accountPayable.edit','uses'=>'Accounting\AccountPayableController@edit','middleware' => ['permission:ap-edit']]);
-	Route::get('accountPayable/list',['as'=>'accountPayable.list','uses'=>'Accounting\AccountPayableController@list']);
+	Route::post('accountPayable/list',['as'=>'accountPayable.list','uses'=>'Accounting\AccountPayableController@list']);
 	Route::post('accountPayable/delete',['as'=>'accountPayable.destroy','uses'=>'Accounting\AccountPayableController@destroy']);
 	Route::post('accountPayable/update',['as'=>'accountPayable.update','uses'=>'Accounting\AccountPayableController@update']);
 	Route::post('accountPayable/posting',['as'=>'accountPayable.posting','uses'=>'Accounting\AccountPayableController@posting']);
