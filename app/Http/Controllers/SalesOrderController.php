@@ -39,7 +39,8 @@ class SalesOrderController extends Controller
             ['data'=>'order_type','name'=>'order_type','title'=>'Type'],
             ['data'=>'status','name'=>'status','title'=>'Status'],
             ['data'=>'note','name'=>'note','title'=>'Note'],
-            ['data'=>'num_revision','name'=>'num_revision','title'=>'Num Revision']
+            ['data'=>'num_revision','name'=>'num_revision','title'=>'Num Revision'],
+            // ['data'=>'detail','name'=>'detail','title'=>'Detail'],
 
         ];
         return json_encode($kolom, true);
@@ -67,6 +68,7 @@ class SalesOrderController extends Controller
             ['data'=>'created_at','name'=>'created_at','title'=>'Created Date'],
             ['data'=>'updated_by','name'=>'updated_by','title'=>'Updated By'],
             ['data'=>'updated_at','name'=>'updated_at','title'=>'Updated Date'],
+            ['data'=>'tanggal_so','name'=>'tanggal_so','title'=>'Tanggal SO', 'visible'=>false],
         ];
         return json_encode($kolom, true);
     }
@@ -76,6 +78,7 @@ class SalesOrderController extends Controller
         $data['title'] = "$this->title";
         $data['kolom'] = $this->getTableColoumn();
         $data['kolomDetail'] = $this->getTableColoumnDetail();
+        $data['kolomDetailDn'] = $this->getTableColoumnDetailDn();
 
         $data['custs'] = DB::table('third_party')
         ->where ('third_party_type','=','cust')
@@ -931,7 +934,18 @@ class SalesOrderController extends Controller
             $statusSo = ['NEW','VALIDATED','APPROVED','RECEIVED','CANCELED','CLOSED','PAID','REVISED'];
             return "<div class='badge ".$badges[$data->status - 1]."'>".$statusSo[$data->status - 1]."</div>";
         })
-        ->rawColumns(['action','status','so_code'])
+
+        // ->addColumn('detail', function ($data) {
+        //     if($data->qty_kirim <> 0){
+        //         return '<a href="javascript:void(0);" onclick="detailDelivery(\''.$data->article_code.'\',\''.$data->so_code.'\',\''.preg_replace("/\"/"," ",$data->article_desc).'\')">
+        //         <span>Detail</span>
+        //         </a>';
+        //     }else{
+        //         return '';
+        //     }
+        // })
+
+        ->rawColumns(['action','status','so_code','detail'])
         ->make(true);
     }
 
@@ -985,6 +999,7 @@ class SalesOrderController extends Controller
         ,'employees.name as salesman'
         ,'sales_order_det.id as id_det'
         ,'sales_order_hdr.status as statusKu'
+        ,db::raw("to_date(so_date,'dd-mm-yyyy') as tanggal_so")
         // ,'uom_group'
         // ,'qty_target'
         // ,'qty_forcast'

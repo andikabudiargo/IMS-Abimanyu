@@ -15,7 +15,7 @@
     </div>
     <div class="card-content collapse show">
       <div class="card-body">
-        <form class="needs-validation" novalidate>
+        <form id="frmAdd" name="frmAdd">
             <div class="form-row">
               <div class="form-group col-md-3"> 
                 <label for="searchOrder">Order Number</label>
@@ -23,7 +23,7 @@
               </div>
               <div class="form-group col-md-2"> 
                 <label for="seachPo">PO Number</label>
-                <input type="text" class="form-control text-uppercase" id="seachPo" name="seachPo" placeholder=""  />
+                <input type="text" class="form-control text-uppercase" id="seachPo" name="seachPo" placeholder="" />
               </div>
               <div class="form-group col-md-3"> 
                 <label class="form-label" for="searchCustomer">Customer</label>
@@ -47,7 +47,7 @@
             <div class="form-row">
               <div class="col-md-3 form-group">
                 <label for="orderDate">Range Date</label>
-                <input type="text" id="orderDate" name="orderDate" class="form-control flatpickr-range" placeholder="YYYY-MM-DD to YYYY-MM-DD" />
+                <input type="text" id="orderDate" name="orderDate" class="form-control flatpickr-range" placeholder="YYYY-MM-DD to YYYY-MM-DD" required/>
               </div>
               <div class="form-group col-md-2"> 
                 <label class="form-label" for="searchType">Order Type</label>
@@ -123,6 +123,7 @@
 
   $(document).ready(function(){    
     let href;
+    validateFormToast("frmAdd");
     $(document).on('click', '#deleteButton', function(event) {
         event.preventDefault();
         href = $(this).data('href');
@@ -132,7 +133,6 @@
 
     btnSummary.style.display = "none";
     btnDetail.style.display = "none";
-
   });
 
   let showAlert = "{{ Session::get('alert') }}";
@@ -149,10 +149,12 @@
   });
 
   rangePickr = $('.flatpickr-range');
+
   if (rangePickr.length) {
     rangePickr.flatpickr({
       dateFormat: "d-m-Y",
-      mode: 'range'
+      mode: 'range',
+      allowInput:true
     });
   }
 
@@ -167,8 +169,12 @@
 
     btnDetail.style.display = "block";
     btnSummary.style.display = "none";
-    
-    showList(searchOrder,seachPo,searchCustomer,searchSalesman,searchType,searchStatus,orderDate);
+
+    if (!$("#frmAdd")[0].checkValidity()){
+        $("#frmAdd").submit();
+    }else{ 
+        showList(searchOrder,seachPo,searchCustomer,searchSalesman,searchType,searchStatus,orderDate);
+    }
 
   });
 
@@ -182,8 +188,12 @@
     let searchType = $("#searchType").val();
     let searchStatus = $("#searchStatus").val();
     let orderDate = $("#orderDate").val();
-    
-    showList(searchOrder,seachPo,searchCustomer,searchSalesman,searchType,searchStatus,orderDate);
+
+    if (!$("#frmAdd")[0].checkValidity()){
+        $("#frmAdd").submit();
+    }else{ 
+        showList(searchOrder,seachPo,searchCustomer,searchSalesman,searchType,searchStatus,orderDate);
+    }  
 
   });
   
@@ -198,7 +208,11 @@
     let searchStatus = $("#searchStatus").val();
     let orderDate = $("#orderDate").val();
     
-    showListDetail(searchOrder,seachPo,searchCustomer,searchSalesman,searchType,searchStatus,orderDate);
+    if (!$("#frmAdd")[0].checkValidity()){
+      $("#frmAdd").submit();
+    }else{ 
+      showListDetail(searchOrder,seachPo,searchCustomer,searchSalesman,searchType,searchStatus,orderDate);
+    }
 
   });
 
@@ -260,7 +274,7 @@
         searchStatus:searchStatus,
         orderDate:orderDate
       },
-      orderColumn:[[ 2, 'asc' ]],
+      orderColumn:[[ 19, 'asc' ]],
       excelFileName:'sales_order'
     });
   }
@@ -271,6 +285,43 @@
       href = $(this).data('href');
       $('#modalReasonRevision').attr("action", href);
   });
+
+  const detailDelivery = (artCode,soNumber,artDesc) => {
+    $('#mdlDetail').modal('show');
+    $('#mdLSoNumber').text(' | '+soNumber+' - '+artDesc);
+
+    if ($('#mdlDetailTable tr').length >0){
+        let table= $('#mdlDetailTable').DataTable();
+        table.destroy();
+        $('#mdlDetailTable tbody > tr').remove();
+        $("#mdlDetailTable thead > tr").remove();
+    }
+    showDataTables({
+      tableId:"mdlDetailTable",
+      route:"{{ route('salesOrder.list.report.detail.dn') }}",
+      kolom:{!! $kolomDetailDn !!},
+      arrColPrint:[0,1,2],
+      columnDefs :[
+        { width: '5%', targets: 0 },
+        {
+          targets: [ 2 ],
+          render: $.fn.dataTable.render.number(',', '.',2, ''),
+          className: "text-right"
+        },
+      ],
+      dataSearch:  {
+        artCode:artCode,
+        soNumber:soNumber
+      },
+      orderColumn:[[0,'asc'],[1,'asc']],
+      scrollY:350,
+      excelFileName:'detailDn'+soNumber,
+      lengthMenu: [
+        [ -1, 10, 25, 50 ],
+        [ 'all', '10', '25', '50']
+      ],
+    });
+  }
 
   $.ajaxSetup({
     headers: {

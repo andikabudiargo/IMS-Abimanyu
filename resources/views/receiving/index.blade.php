@@ -212,7 +212,7 @@
       tableId:"detailedTable",
       route:"{{ route('receiving.list.detail') }}",
       kolom:{!! $kolomDetail !!},
-      arrColPrint:[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18],
+      arrColPrint:[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20],
       columnDefs :[
         { width: '5%', targets: 0 },
         {
@@ -231,7 +231,7 @@
         recDate:recDate,
         doDate:doDate
       },
-      orderColumn:[[ 19, 'asc' ],[ 5, 'asc' ]],
+      orderColumn:[[ 21, 'asc' ]],
       excelFileName:'receiving_detail'
     });
   }

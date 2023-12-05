@@ -45,7 +45,7 @@ class ReceivingController extends Controller
             ['data'=>'created_by','name'=>'created_by','title'=>'Created By'],
             ['data'=>'approval_by','name'=>'approval_by','title'=>'Approved By'],
             ['data'=>'created_at','name'=>'created_at','title'=>'Created At', 'visible'=>false]
-            
+                    
         ];
         return json_encode($kolom, true);
     }
@@ -78,7 +78,8 @@ class ReceivingController extends Controller
             ['data'=>'approval_by','name'=>'approval_by','title'=>'Approved By'],
             ['data'=>'article_type_name','name'=>'article_type_name','title'=>'Keterangan'],
             ['data'=>'note','name'=>'note','title'=>'Note'],
-            ['data'=>'created_at','name'=>'created_at','title'=>'Created At', 'visible'=>false]
+            // ['data'=>'created_at','name'=>'created_at','title'=>'Created At', 'visible'=>false]
+            ['data'=>'tanggal_do','name'=>'tanggal_do','title'=>'Tanggal DO', 'visible'=>false]
         ];
         return json_encode($kolom, true);
     }
@@ -1413,6 +1414,7 @@ class ReceivingController extends Controller
                     where ap_invoice_detail.rec_number = receiving_hdr.rec_number 
                     and ap_invoice.status = '4' limit 1 ) as ap_number")
         ,DB::raw("(select ap_date from ap_invoice where ap_number = (select ap_number from ap_invoice_detail where rec_number = receiving_hdr.rec_number limit 1)  and status = '4') as ap_date")
+        ,DB::raw("to_date(do_date,'DD-MM-YYYY') as tanggal_do")
         )
         ->orderBy('receiving_det.id')
         ->get(); 
