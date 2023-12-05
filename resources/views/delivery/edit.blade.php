@@ -210,15 +210,8 @@
 @include('delivery.addArticle')
 <script type="text/javascript">
     let currentDate = todayDate('dd-mm-yyyy');
-    let fromEdit = true;
+    let fromEdit = 'true';
     const approveBtn = document.querySelector('#cmdApprove');
-
-    $(document).ready(function(){
-        searchSo('soNumber',"{!! $header->customer_id !!}","{!! $header->so_number !!}");
-        setTimeout(() => {
-            fromEdit = false;    
-        }, 1000);
-    });
 
     if (approveBtn) {
         approveBtn.addEventListener('click',() =>{
@@ -258,6 +251,11 @@
     }
 
     $(document).ready(function(){    
+        searchSo('soNumber',"{!! $header->customer_id !!}","{!! $header->so_number !!}");
+        setTimeout(() => {
+            fromEdit = 'false';
+        }, 10000);
+
         validateFormToast("frmAdd");
         let href;
         $(document).on('click', '#deleteButton', function(event) {
@@ -280,7 +278,7 @@
             add_new_row_edit(article,articleCode,articleDesc,qtyDel,uomGroup,uom,soCode,poNumber,qtySo);
         }
 
-        //supaya yang sisa SO nya juga keluar datanya bukan hanya yang di delivery saja
+        // supaya yang sisa SO nya juga keluar datanya bukan hanya yang di delivery saja
         let detailSo = {!! $detailSo !!};
         for(let i=0;i<detailSo.length;i++){
             article = detailSo[i].article_code;
@@ -405,90 +403,7 @@
             }
         }
     });
-        
-    // function listUom(obj,value,uom,uomSelect) {
-    //   $.ajax({
-    //     url:"{{ route('receiving.list.uom') }}",
-    //     method:"GET",
-    //     data:{
-    //         value:value,
-    //     },
-    //     success:function(result){
-    //         $('#'+obj).html(result);
-    //         $('#'+obj).val(uomSelect).trigger('change');            
-    //     },
-    //     error: function (response) {
-    //         Swal.fire("Warning","Get list UOM failed","warning");
-    //     }
-    //   })
-    // }
-
-    // function hitungTotal(){
-    //     let objQtyInv= $('#article_row input[name="qtyInv[]"]');
-    //     objQtyInv.keyup(function() {
-    //         let indexnya= objQtyInv.index(this);
-    //         let qty = objQtyInv.eq(indexnya).val().replace(/,/gi, '') || 0; 
-    //         hitungGrandTotal();
-    //     });
-    // }
-
-    // function hitungGrandTotal(){
-    //     let objArticle = $('#article_row input[name="articleId[]"]');
-    //     let objQtyTiw= $('#article_row input[name="qtyInv[]"]');
-    //     let objQTY= $('#article_row input[name="qtyInv[]"]');
-    //     let totalQty=0;
-    //     var arr = objQtyTiw.map(function (i) {
-    //         let qty = parseInt(objQTY.eq(i).val().replace(/,/gi, '')) || 0;
-    //         totalQty+= qty;
-    //     }).get();
-        
-    //     $("#totalRow").val(objArticle.length);
-    //     $("#totalQTY").val(humanizeNumber(totalQty));
-    // }
-
-    // function hitungGrandTotalLoad(){
-    //     let objArticle = $('#article_row input[name="articleId[]"]');
-    //     let objQtyTiw= $('#article_row input[name="qtyInv[]"]');
-    //     let objQTY= $('#article_row input[name="qtyInv[]"]');
-    //     let totalQty=0;
-    //     var arr = objQtyTiw.map(function (i) {
-    //         let qty = parseInt(objQTY.eq(i).val().replace(/,/gi, '')) || 0;
-    //         totalQty+= qty;
-    //     }).get();
-        
-    //     $("#totalRow").val(objArticle.length);
-    //     $("#totalQTY").val(humanizeNumber(totalQty));
-    // }
-
-    // let cloneCountEdit=0;
-    // function add_new_row_edit(article,articleCode,articleDesc,qtyDel,uomGroup,uom,soCode,poNumber,qtySo) {
-    //     // console.log(article,articleCode,articleDesc,qtyDel,uomGroup,uom);
-    //     $("#article_row").append($("#new_row").clone().html());
-    //     cloneCountEdit++;
-    //     $("#article_row").find('#baru').attr('id', 'new_row'+ cloneCountEdit);
-    //     $("#new_row"+ cloneCountEdit).find('#qtySo').attr('id', 'qtySo'+ cloneCountEdit);
-    //     $("#new_row"+ cloneCountEdit).find('#articleId').attr('id', 'articleId'+ cloneCountEdit);
-    //     $('#articleId'+ cloneCountEdit).attr('data-code', article);
-    //     $('#articleId'+ cloneCountEdit).attr('data-desc', articleDesc);
-    //     $('#articleId'+ cloneCountEdit).attr('data-uom', uom);
-    //     // $('#articleId'+ cloneCountEdit).attr('data-price', price);
-    //     // $('#articleId'+ cloneCountEdit).attr('data-price-service', priceJasa);
-    //     $('#articleId'+ cloneCountEdit).attr('data-so-code', soCode);
-    //     $('#articleId'+ cloneCountEdit).attr('data-po-number', poNumber);
-    //     $('#articleId'+ cloneCountEdit).attr('data-so-qty', qtySo);
-    //     $('#articleId'+ cloneCountEdit).val(articleCode+'-'+articleDesc);
-
-    //     $("#new_row"+ cloneCountEdit).find('#qtyInv').attr('id', 'qtyInv'+ cloneCountEdit);
-    //     $('#qtyInv'+ cloneCountEdit).val(qtyDel);
-    //     $("#new_row"+ cloneCountEdit).find('#uom').attr('id', 'uom'+ cloneCountEdit);
-    //     $('#qtySo'+ cloneCountEdit).val(qtySo*1);
-    //     listUom('uom'+ cloneCountEdit,uomGroup,uom,uom);
-    //     tombolPanah('qtyInv');
-    //     mask_thousand();
-    //     hitungTotal();
-    //     hitungGrandTotalLoad();
-    // }
-            
+                    
     $.ajaxSetup({
         headers: {
             'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')

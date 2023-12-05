@@ -165,7 +165,7 @@
 @include('delivery.addArticle')
 <script type="text/javascript">
     let currentDate = todayDate('dd-mm-yyyy');    
-    let fromEdit = false;
+    let fromEdit = 'false';
     $(document).ready(function(){
         validateFormToast("frmAdd");
         $("#totalRow").val(0);

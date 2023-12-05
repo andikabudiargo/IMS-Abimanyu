@@ -108,7 +108,7 @@
     }
 
     function searchSoDet(value) {
-        if(value && (fromEdit == false)){
+        if(value && (fromEdit == 'false')){
             $.ajax({
                 url:"{{ route('delivery.so.det') }}",
                 method:"GET",
