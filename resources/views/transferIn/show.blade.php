@@ -53,7 +53,7 @@
                                     <tr>
                                         <td ></td>
                                         <td >{{ $item->article }}</td>
-                                        <td class="text-right">{{ number_format($item->qty,$decimalPlaces) }} {{ $item->uom }}</td>
+                                        <td class="text-right">{{ number_format($item->qty,2) }} {{ $item->uom }}</td>
                                         <td class="text-right">{{ $item->note }}</td>
                                     </tr>
                                 @endforeach
@@ -65,7 +65,7 @@
                                 <span>ROW : {{ $header->sum_row }}</span>
                             </div>
                             <div class="col-md-4">
-                                <span>QTY : {{ $header->sum_qty }}</span>
+                                <span>QTY : {{ number_format($header->sum_qty,2) }}</span>
                             </div>
                         </div>
                         <br>

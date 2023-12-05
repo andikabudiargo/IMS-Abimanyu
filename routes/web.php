@@ -653,6 +653,9 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('transferIn/article',['as'=>'transferIn.article','uses'=>'TransferInController@article','middleware' => ['permission:transferIn-index']]);
 	Route::get('transferIn/print',['as'=>'transferIn.print','uses'=>'TransferInController@print']);
 
+	Route::post('transferIn/import-excel',['as'=>'transferIn.import.excel','uses'=>'TransferInController@importExcel']);
+	Route::get('transferIn/export-excel',['as'=>'transferIn.export.excel','uses'=>'TransferInController@export']);
+
 	Route::get('transferOut',['as'=>'transferOut.index','uses'=>'TransferOutController@index','middleware' => ['permission:transferOut-index']]);
 	Route::get('transferOut/create',['as'=>'transferOut.create','uses'=>'TransferOutController@create']);
 	Route::post('transferOut/store',['as'=>'transferOut.store','uses'=>'TransferOutController@store']);

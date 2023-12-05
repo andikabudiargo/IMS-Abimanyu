@@ -37,6 +37,31 @@
                                 </div>
                             </div>                            
                         </form>
+                        <form id="frmExcel" name="frmExcel" method="POST" enctype="multipart/form-data">
+                            @csrf
+                            <div class="form-row">
+                                <div class="col-lg-3 col-md-12">
+                                    <div class="form-group">
+                                        <div>
+                                            <input type="file" class="custom-file-input" name="file" id="file" required/>
+                                            <label class="custom-file-label" for="file">Choose file</label>
+                                        </div>
+                                        
+                                    </div>
+                                </div>
+                                <div class="col-lg-6 col-md-12">
+                                    <button type="button" class="btn btn-primary">
+                                        <i data-feather="upload" class="align-middle mr-sm-25 mr-0"></i>
+                                        <span class="align-middle d-sm-inline-block d-none" id="uploadExcel">Upload Excel</span>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="col-lg-3 col-md-12">
+                                    <a href="{{ route('transferIn.export.excel') }}" class="btn btn-light"><i data-feather="download"></i> Downlod Template</a>
+                                </div>
+                            </div>
+                        </form>
                     </div>
                 </div>
             </div>
@@ -111,6 +136,80 @@
         validateFormToast("frmAdd");
         $('#trDate').val(currentDate);
         isiArticle('trArticle');
+
+        $('#frmExcel').on('submit', function(event){
+            $('#message').html('');
+            event.preventDefault();
+            $.ajax({
+                url:"{{ route('transferIn.import.excel') }}",
+                method:"POST",
+                data: new FormData(this),
+                dataType:"json",
+                contentType:false,
+                cache:false,
+                processData:false,
+                beforeSend:function(){
+                    $('#uploadExcel').attr('disabled','disabled');
+                },
+                success:function(data){
+                    // console.log(data.dataDetail);
+                    // console.log(data.status);
+                    if(data.status == 1){
+                        Swal.fire({
+                            title: "Proses validasi...",
+                            icon: "warning",
+                            showConfirmButton: false,
+                            didOpen: () => {
+                                Swal.showLoading();
+                            },
+                        })
+
+                        let timerId = setInterval(() => checkVariable(), 1000);
+                        function checkVariable() {
+                            if (dataArticle.length > 0) {
+                                clearInterval(timerId);
+                                for(let i=0;i<data.dataDetail.length;i++){
+                                    add_new_row_edit(data.dataDetail[i].article_code,data.dataDetail[i].qty,data.dataDetail[i].uom,data.dataDetail[i].uom_member,'');
+                                    if (i==(data.dataDetail.length-1)){
+                                            $("#uploadExcel").removeAttr('disabled');
+                                            show_msg(data.title, data.message, data.alert);
+                                            $(".loading-spinner-container").removeClass("-show");
+                                            swal.close();
+                                    }
+                                }
+                            }
+                        }
+
+                    }
+
+                    if(data.status == 0){
+                        for(let i = 0; i < data.message.length; i++) {
+                            show_msg(data.title, data.message[i], data.alert);
+                        }
+                        swal.fire("warning",data.pesan,"warning");
+                        $(".loading-spinner-container").removeClass("-show");
+                    }
+                },
+                error: function(xhr, status, error) {
+                    let err = JSON.parse(xhr.responseText);
+                    // Swal.fire('Error..',err.errors.file[0],'error');
+                    Swal.fire('Error..',err.message,'error');
+                    $(".loading-spinner-container").removeClass("-show");
+                }
+            })
+        });
     });
+
+    $("#uploadExcel").click(function(){
+        if (!$("#frmExcel")[0].checkValidity()){
+            $("#frmExcel").submit();
+        }else{
+            $(".loading-spinner-container").addClass("-show");
+            $("#uploadExcel").attr('disabled','disabled');
+            $('.disabled-el').removeAttr('disabled');
+            $("#frmExcel").submit();
+        }
+    });
+    
 </script>
 @endsection

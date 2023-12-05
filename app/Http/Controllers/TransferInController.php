@@ -14,6 +14,9 @@ use DB;
 use PDF;
 use AppHelpers;
 use Approval;
+use Excel;
+use App\Imports\TransferOutImport;
+use App\Exports\TransferOutExport;
 
 class TransferInController extends Controller
 {
@@ -994,5 +997,88 @@ class TransferInController extends Controller
         return $pdf->stream("$trNumber.pdf");
 
     }
+
+    public function importExcel(Request $request)
+    {
+
+        // validasi
+		$this->validate($request, [
+			'file' => 'required|mimes:xls,xlsx'
+		]);
+ 
+		// menangkap file excel
+		$file = $request->file('file');
+ 
+		// // membuat nama file unik
+		$namaFile = rand().$file->getClientOriginalName();
+ 
+		// // upload ke folder file_siswa di dalam folder public
+		// $file->move('file_siswa',$namaFile);
+		// import data
+		// Excel::import(new SiswaImport, public_path('/file_siswa/'.$namaFile));
+
+        $data['filename']=$namaFile;
+        db::table('import_stock_take_tmp')->delete();
+        Excel::import(new TransferOutImport($data), $file);
+
+        $dataValidasi = DB::table('import_stock_take_tmp')
+        ->leftJoin('article','article.article_alternative_code','import_stock_take_tmp.article_code')
+        ->select('import_stock_take_tmp.article_code'
+        ,'import_stock_take_tmp.qty'
+        ,DB::RAW("concat(
+            case when import_stock_take_tmp.qty::text ~ '^[0-9.]+$' = false then concat('Urutan ',row_number() over(),': Qty salah - ',qty) end,
+            case when article.article_code is null then concat('Urutan ',row_number() over(),': Article Code:',import_stock_take_tmp.article_code, ' tidak terdaftar') end
+            ) as notes")
+        )
+        ->where('file_name', $namaFile)
+        ->get();
+
+        $dataNotes=[];
+        foreach ($dataValidasi as $val) {
+            if($val->notes){
+                $dataNotes[]= [$val->notes];
+            }
+        } 
+
+        $title ="Import $this->title";
+        $pesan="";
+
+        if (count($dataNotes) > 0 ){
+            $pesan .='Ada error pada data yang diupload, silahkan cek notes error!';
+            $status = 0;
+            $alert = "error";
+            $message = $dataNotes;
+            $data = "";
+
+        }else{
+
+            // return redirect()->back()->with('success', 'Excel file imported successfully!');
+            $data = db::table('import_stock_take_tmp')
+            ->leftJoin('article','article.article_alternative_code','import_stock_take_tmp.article_code')
+            ->select('article.article_code'
+            ,'article.uom'
+            ,'import_stock_take_tmp.qty'
+            ,DB::RAW("(select string_agg(unit_to,',' order by unit_from) as uom_member from uom_con where unit_from = article.uom)"))
+            ->where('file_name', $namaFile)
+            ->get();    
+            
+            $status = 1;
+            $alert = "success";
+            $message  = "$title is successfully imported";
+
+        }
+                  
+        // $alert  ="success";
+        // $message  = "$title is successfully imported";
+
+        return response()->json(array('status' => $status,'title' => $title, 'message' => $message,'alert' =>$alert,'dataDetail'=>$data,'pesan'=>$pesan));
+
+        // return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message,'dataDetail'=>$data]);
+    }
+
+    public function export()
+    {
+		return Excel::download(new TransferInExport, 'transfer_in_template.xls');
+	}
 
 }

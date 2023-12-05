@@ -191,7 +191,6 @@
                             });
                         }
                     // } 
-                        console.log(arrArticles);
                     if (qty == 0 ){
                         pesan +="QTY of items "+ articleName +" cannot be 0 <br>"; 
                         flag=1;
@@ -299,7 +298,7 @@
         $("#new_row"+ cloneCount).find('#articleId').attr('id', 'articleId'+ cloneCount);
         changeselect('trArticle','articleId'+ cloneCount,article);
         $("#new_row"+ cloneCount).find('#qty').attr('id', 'qty'+ cloneCount);
-        $("#qty"+ cloneCount).val(qty);
+        $("#qty"+ cloneCount).val(humanizeNumber(qty,2));
         $("#new_row"+ cloneCount).find('#note').attr('id', 'note'+ cloneCount);
         $("#note"+ cloneCount).val(note);
         let uomOption="";
@@ -319,7 +318,7 @@
         $('#remove_button').tooltip();
         hitungTotal();
         hitungGrandTotal();
-        mask_thousand_digit(numberOfDecimalDigit);
+        mask_thousand_digit(2);
     }
 
     function add_new_row() {
@@ -332,7 +331,7 @@
         splitArticle();
         hitungTotal();
         hitungGrandTotal();
-        mask_thousand_digit(numberOfDecimalDigit);
+        mask_thousand_digit(2);
         $('[data-toggle="tooltip"]').tooltip();
     };
 
@@ -406,7 +405,7 @@
         let qty = objQTY.map(function(){return $(this).val();}).get();
         totalQty = sumFromArray(qty);
         $("#totalRow").val(objArticle.length);
-        $("#totalQty").val(humanizeNumber(totalQty));
+        $("#totalQty").val(humanizeNumber(parseFloat(totalQty).toFixed(2)));
     }
 
     $("input[type='text']").click(function () {
