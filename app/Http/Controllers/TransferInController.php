@@ -16,7 +16,8 @@ use AppHelpers;
 use Approval;
 use Excel;
 use App\Imports\TransferOutImport;
-use App\Exports\TransferOutExport;
+use App\Imports\TransferInImport;
+use App\Exports\TransferInExport;
 
 class TransferInController extends Controller
 {
