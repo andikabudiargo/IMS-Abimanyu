@@ -399,13 +399,13 @@
                         let detailsData = JSON.stringify(details);
                         let url='';
                         let apId = '';
-                        if (dariEdit='true'){
+                        if (dariEdit=='true'){
                             url ="{{ route('accountPayable.update') }}";
                             apId =$('#apId').val();
                         }else{
                             url ="{{ route('accountPayable.store') }}";
                         }
-                        
+                                                
                         $.ajax({
                             type: "post",
                             url: url,
