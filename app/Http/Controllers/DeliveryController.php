@@ -1246,6 +1246,7 @@ class DeliveryController extends Controller
         $data= DB::table("sales_order_hdr") 
         ->where("customer_id",$cust)
         // ->where("status","3")
+        ->whereNotIn("status",['5','6','7','8'])
         ->where(db::raw("(select max(approval_order) from approval_history where module_code = 'SO' and module_number = sales_order_hdr.so_code)"),'>=',2)
         ->orderBy("so_code")
         ->select("so_code","po_number")
