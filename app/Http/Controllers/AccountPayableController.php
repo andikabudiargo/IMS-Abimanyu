@@ -106,7 +106,7 @@ class AccountPayableController extends Controller
         $data['kolom'] = $this->getTableColoumn();        
 
         // $data['status'] = ['1'=>'DRAFT','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','6'=>'CLOSED','7'=>'PAID'];
-        $data['status'] = ['1'=>'DRAFT','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','7'=>'PAID'];
+        $data['status'] = ['1'=>'DRAFT','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','6'=>'PAID'];
             
         return view("accountPayable.index",$data);
     }
