@@ -202,6 +202,7 @@ class BankKeluarController extends Controller
                         'updated_at' => date('Y-m-d H:i:s')
                     ]);
 
+                    //reference itu no invoice bukan no ap
                     $dataSet = [];
                     foreach ($details as $val) {
                         $dataSet[] = [
@@ -481,7 +482,8 @@ class BankKeluarController extends Controller
                 // ['1'=>'DRAFT','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','6'=>'CLOSED','6'=>'PAID'];
                 if($status == '3'){
                     DB::table('ap_invoice')
-                    ->whereIn('ap_number',$listInvoice)
+                    // ->whereIn('ap_number',$listInvoice)
+                    ->whereIn('inv_number',$listInvoice)
                     ->update(
                         [   
                             'status' =>'6',
