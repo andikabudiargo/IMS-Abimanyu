@@ -417,11 +417,14 @@
                                     for(let i = 0; i < data.message.length; i++) {
                                         show_msg(data.title, data.message[i], data.alert);
                                     }                        
-                                    $('#voucherNumber').attr('disabled','disabled');
+                                    $('#apNumber').attr('disabled','disabled');
                                 }else{
                                     show_msg(data.title, data.message, data.alert);
+                                    $('#apNumber').attr('disabled','disabled');
+                                    $('#apNumber').val(data.apNumber);
                                     $('#cmdSave').attr('disabled','disabled');
                                     $('#addNewRow').attr('disabled','disabled');
+                                    window.location.href = "{{ route('accountPayable.create') }}";
                                 }
                             },
                             error: function(error) {
