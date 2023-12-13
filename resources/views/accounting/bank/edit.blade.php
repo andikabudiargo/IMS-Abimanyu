@@ -427,11 +427,14 @@
         // accList('account','account'+ cloneCount,account);
 
         changeselect('account','account'+ cloneCount,account)
-
-        if(account=='1100.40'){
+        let coa = $('#recFrom').find(":selected").data("coa");
+        // if(account=='1100.40'){
+        // if(account == coa){
+        if (account.substring(0,7) =='1100.40'){
             let recFrom = $('#recFrom').val();
             if(ref){
-                invList('referenceAr','vcRef'+ cloneCount,account,ref);
+                // invList('referenceAr','vcRef'+ cloneCount,account,ref);
+                invList('referenceAr','vcRef'+ cloneCount,recFrom,ref);
             }
         }
         

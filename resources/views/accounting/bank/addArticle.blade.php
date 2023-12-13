@@ -150,7 +150,7 @@
 
     }
 
-    function findInvoice(){
+    function findInvoice(ref){
         let objAccount = $('#item_row select[name="account[]"]');
         let objVcRef= $('#item_row select[name="vcRef[]"]');
         let objVcDebit= $('#item_row input[name="vcDebit[]"]');
@@ -164,7 +164,7 @@
             if(accountNumber){
                 if (accountNumber.substring(0,7) =='1100.40'){
                     if(recFrom){
-                        invList('referenceAr',objCust,recFrom,'');
+                        invList('referenceAr',objCust,recFrom,ref);
                     }else{
                         Swal.fire('Warning..','Kolom terima dari supplier code masih kosong','warning');
                     }
