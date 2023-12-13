@@ -115,7 +115,7 @@
                     <td scope="row" style="border-bottom: 1px solid #ddd;">{{ ++$no }}</td>
                     <td style="border-bottom: 1px solid #ddd;" align="left">{{ $val->article_alternative_code }}</td>
                     <td style="border-bottom: 1px solid #ddd;" align="left">{{ $val->article_desc }}</td>
-                    <td style="border-bottom: 1px solid #ddd;" align="right">{{ number_format($val->qty) }}</td>
+                    <td style="border-bottom: 1px solid #ddd;" align="right">{{ number_format($val->qty,2) }}</td>
                     <td style="border-bottom: 1px solid #ddd;" align="right">{{ $val->uom }}</td>
                     <td style="border-bottom: 1px solid #ddd;" align="right">{{ number_format($val->price,2) }}</td>
                     {{-- <td style="border-bottom: 1px solid #ddd;" align="right">{{ number_format($val->ppn) }}</td> --}}
