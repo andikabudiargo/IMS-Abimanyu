@@ -1215,7 +1215,7 @@ class ReceivingController extends Controller
         ,DB::raw("(select ap_invoice_detail.ap_number from ap_invoice_detail 
                     left join ap_invoice on ap_invoice.ap_number = ap_invoice_detail.ap_number 
                     where ap_invoice_detail.rec_number = receiving_hdr.rec_number 
-                    and ap_invoice.status = '4' limit 1 ) as ap_number")
+                    and ap_invoice.status in  ('4','6') limit 1 ) as ap_number")
         ,DB::raw("(select ap_date from ap_invoice where ap_number = (select ap_number from ap_invoice_detail where rec_number = receiving_hdr.rec_number limit 1)  and status in('4','6')) as ap_date")
         )
         ->orderBy('id')
@@ -1412,7 +1412,7 @@ class ReceivingController extends Controller
         ,DB::raw("(select ap_invoice_detail.ap_number from ap_invoice_detail 
                     left join ap_invoice on ap_invoice.ap_number = ap_invoice_detail.ap_number 
                     where ap_invoice_detail.rec_number = receiving_hdr.rec_number 
-                    and ap_invoice.status = '4' limit 1 ) as ap_number")
+                    and ap_invoice.status  in  ('4','6') limit 1 ) as ap_number")
         ,DB::raw("(select ap_date from ap_invoice where ap_number = (select ap_number from ap_invoice_detail where rec_number = receiving_hdr.rec_number limit 1)  and status in('4','6')) as ap_date")
         ,DB::raw("to_date(do_date,'DD-MM-YYYY') as tanggal_do")
         )
