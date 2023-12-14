@@ -16,13 +16,13 @@
               <div class="form-row">
                   <div class="col-md-4"> 
                       <div class="form-group">
-                      <label for="basicInput">Kode</label>
+                      <label for="searchDeptCode">Kode</label>
                       <input type="text" class="form-control text-uppercase" id="searchDeptCode" name="searchDeptCode" placeholder=""  />
                       </div>
                   </div>
                   <div class="col-md-4"> 
                   <div class="form-group">
-                      <label for="basicInput">Keterangan</label>
+                      <label for="searchDept">Keterangan</label>
                       <input type="text" class="form-control text-uppercase" id="searchDept" name="searchDept" placeholder="" />
                   </div>
                   </div>

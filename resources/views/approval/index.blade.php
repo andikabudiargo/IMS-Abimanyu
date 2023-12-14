@@ -11,13 +11,13 @@
               <div class="form-row">
                   <div class="col-md-4"> 
                       <div class="form-group">
-                      <label for="basicInput">Approval Name</label>
+                      <label for="searchCode">Approval Name</label>
                       <input type="text" class="form-control text-uppercase" id="searchCode" name="searchCode" placeholder=""  />
                       </div>
                   </div>
                   <div class="col-md-4"> 
                   <div class="form-group">
-                      <label for="basicInput">Userame</label>
+                      <label for="searchName">Userame</label>
                       <input type="text" class="form-control text-uppercase" id="searchName" name="searchName" placeholder="" />
                   </div>
                   </div>

@@ -15,7 +15,7 @@
             <div class="form-row">
               <div class="col-md-4"> 
                 <div class="form-group">
-                  <label for="basicInput">Username</label>
+                  <label for="SearchUser">Username</label>
                   <input type="text" class="form-control" id="SearchUser" name="SearchUser" placeholder="" />
                 </div>
               </div>

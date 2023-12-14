@@ -16,13 +16,13 @@
                 <div class="form-row">
                     <div class="col-md-4"> 
                         <div class="form-group">
-                        <label for="basicInput">Kode</label>
+                        <label for="searchSubContratorCode">Kode</label>
                         <input type="text" class="form-control text-uppercase" id="searchSubContratorCode" name="searchSubContratorCode" placeholder="" />
                         </div>
                     </div>
                     <div class="col-md-4"> 
                     <div class="form-group">
-                        <label for="basicInput">Nama</label>
+                        <label for="searchSubContrator">Nama</label>
                         <input type="text" class="form-control text-uppercase" id="searchSubContrator" name="searchSubContrator" placeholder="" />
                     </div>
                     </div>

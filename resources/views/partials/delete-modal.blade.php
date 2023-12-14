@@ -72,7 +72,7 @@
               <br>
               <div class="form-row">
                 <div class="form-group col-md-12">
-                    <label for="account">Reason</label>
+                    <label for="reason">Reason</label>
                     <input type="text" id="reason" name="reason" class="form-control" value="{{ old('reason') }}"  required maxlength="100"/>
                 </div>
               </div>

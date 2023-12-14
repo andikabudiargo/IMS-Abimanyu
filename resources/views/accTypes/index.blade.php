@@ -15,13 +15,13 @@
                 <div class="form-row">
                     <div class="col-md-4"> 
                         <div class="form-group">
-                        <label for="basicInput">Kode</label>
+                        <label for="searchAccTypeCode">Kode</label>
                         <input type="text" class="form-control text-uppercase" id="searchAccTypeCode" name="searchAccTypeCode" placeholder=""  />
                         </div>
                     </div>
                     <div class="col-md-4"> 
                     <div class="form-group">
-                        <label for="basicInput">Keterangan</label>
+                        <label for="searchAccType">Keterangan</label>
                         <input type="text" class="form-control text-uppercase" id="searchAccType" name="searchAccType" placeholder="" />
                     </div>
                     </div>
