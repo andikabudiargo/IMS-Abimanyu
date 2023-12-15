@@ -21,10 +21,19 @@ class DeliveryController extends Controller
 {
     private $title;
     private $moduleCode;
+    private $lockDate;
     public function __construct()
     {
         $this->title = "Delivery";
         $this->moduleCode = "DN";
+        $lockDate1 = DB::table('application_lock')
+        ->where('code_key',$this->moduleCode)
+        ->where('status','1')
+        ->value('lock_date');
+
+        $lockDateHere = $lockDate1 ? $lockDate1 : '2023-01-01' ;
+        $lockDateAt = date('d-m-Y', strtotime($lockDateHere));
+        $this->lockDate = $lockDateAt;
     }
 
     public function getTableColoumn()
@@ -99,6 +108,7 @@ class DeliveryController extends Controller
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED','8'=>'RECEIVED'];
         $data['status'] = ['1'=>'NEW','3'=>'APPROVED','4'=>'POSTED','8'=>'RECEIVED','10'=>'REVISI'];
         $data['statusKu'] = '1';
+        $data['lockDate'] = $this->lockDate;
             
         return view("delivery.index",$data);
     }
@@ -135,6 +145,7 @@ class DeliveryController extends Controller
         ->where ('third_party_type','=','cust')
         ->orderBy('nama')
         ->get();
+        $data['lockDate'] = $this->lockDate;
 
         return view("delivery.create",$data);
     }
@@ -392,6 +403,8 @@ class DeliveryController extends Controller
         $data['uoms'] = DB::table('uom')
         ->orderBy('name')
         ->get();
+
+        $data['lockDate'] = $this->lockDate;
 
         $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode,$dnNumber,$username);
         $data['approveValidate'] = Approval::approveValidate($this->moduleCode,$dnNumber,$username);
@@ -1042,6 +1055,8 @@ class DeliveryController extends Controller
             }
         }
 
+
+
         $data = DB::table('delivery_hdr')
         ->leftJoin('third_party','third_party.kode','delivery_hdr.customer_id')
         ->where(function ($query) use ($searchDn,$searchSo,$searchCustomer,$searchStatus,$requestDate,$fromDate,$toDate) {
@@ -1063,8 +1078,10 @@ class DeliveryController extends Controller
         ->orderBy('id')
         ->get();
 
+        $lockDateToDate = $this->lockDate;
+
         return Datatables::of($data)
-        ->addColumn('action', function ($data) {
+        ->addColumn('action', function ($data) use($lockDateToDate)  {
             $buttons = '<div class="d-inline-flex">
                             <a class="pr-1 dropdown-toggle hide-arrow" data-toggle="dropdown">
                                 <i data-feather="menu"></i>
@@ -1114,15 +1131,18 @@ class DeliveryController extends Controller
 
             // if ((($data->status == '1') || ($data->status == '2') || ($data->status == '3') || ($data->status == '4')) && ($data->sudah_di_bayar == 0)){
             if ((($data->status == '1') || ($data->status == '2') || ($data->status == '3') || ($data->status == '4'))){
-                $buttons .= "<a href='javascript:;'
-                                id='revisionReasonButton'
-                                class='dropdown-item'
-                                data-toggle='modal'
-                                data-target='#reasonModalRevision'
-                                data-href='". route('delivery.revision', ['id'=>Crypt::encryptString($data->id),'nR'=>$data->num_revision]) ."'>
-                                <i data-feather='corner-down-left' class='feather-14-red'></i>
-                                <span>". __('Revision') ."</span>
-                            </a>";            
+                $dnDate = date('Y/m/d', strtotime($data->delivery_date));
+                if($dnDate>$lockDateToDate){
+                    $buttons .= "<a href='javascript:;'
+                                    id='revisionReasonButton'
+                                    class='dropdown-item'
+                                    data-toggle='modal'
+                                    data-target='#reasonModalRevision'
+                                    data-href='". route('delivery.revision', ['id'=>Crypt::encryptString($data->id),'nR'=>$data->num_revision]) ."'>
+                                    <i data-feather='corner-down-left' class='feather-14-red'></i>
+                                    <span>". __('Revision') ."</span>
+                                </a>";     
+                }
             }
 
             if ($data->status == '4'){
@@ -1139,15 +1159,18 @@ class DeliveryController extends Controller
                 
             if (($data->status != '3') && ($data->status != '4') && ($data->status != '8') && ($data->status != '7')){
                 if (Auth::user()->can('delivery-delete')) {
-                $buttons .=         "<a href='javascript:;'
-                                        id='deleteButton'
-                                        class='dropdown-item'
-                                        data-toggle='modal'
-                                        data-target='#smallModalCancel'
-                                        data-href='". route("delivery.destroy",  ['id'=>Crypt::encryptString($data->id)]) ."'>
-                                        <i data-feather='trash-2' class='feather-14-red'></i>
-                                        Cancel
-                                    </a>";
+                    $dnDate = date('Y/m/d', strtotime($data->delivery_date));
+                    if($dnDate>$lockDateToDate){
+                        $buttons .=         "<a href='javascript:;'
+                                                id='deleteButton'
+                                                class='dropdown-item'
+                                                data-toggle='modal'
+                                                data-target='#smallModalCancel'
+                                                data-href='". route("delivery.destroy",  ['id'=>Crypt::encryptString($data->id)]) ."'>
+                                                <i data-feather='trash-2' class='feather-14-red'></i>
+                                                Cancel
+                                            </a>";
+                    }
                 }
             }
             $buttons .=     '</div>

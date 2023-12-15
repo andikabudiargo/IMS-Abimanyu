@@ -23,10 +23,20 @@ class TransferInController extends Controller
 {
     private $title;
     private $moduleCode;
+    private $lockDate;
     public function __construct()
     {
         $this->title = "Transfer In";
         $this->moduleCode = "TRIN";
+
+        $lockDate1 = DB::table('application_lock')
+        ->where('code_key',$this->moduleCode)
+        ->where('status','1')
+        ->value('lock_date');
+
+        $lockDateHere = $lockDate1 ? $lockDate1 : '2023-01-01' ;
+        $lockDateAt = date('d-m-Y', strtotime($lockDateHere));
+        $this->lockDate = $lockDateAt;
     }
 
     public function getTableColoumn()
@@ -98,6 +108,8 @@ class TransferInController extends Controller
         $data['kolomDetail'] = $this->getTableColoumnDetail();
         
         $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED'];
+
+        $data['lockDate'] = $this->lockDate;
     
         return view("transferIn.index",$data);
     }
@@ -107,6 +119,8 @@ class TransferInController extends Controller
         $data['title'] = "Create $this->title";
         $data['subtitle'] = "Create $this->title";
         $data['oEdit']=false;
+
+        $data['lockDate'] = $this->lockDate;
 
         return view("transferIn.create",$data);
 
@@ -545,6 +559,8 @@ class TransferInController extends Controller
 
         $data['oEdit']=true;
 
+        $data['lockDate'] = $this->lockDate;
+
         return view("transferIn.edit",$data);
     }
 
@@ -776,9 +792,11 @@ class TransferInController extends Controller
         ->where('tr_type',$trType)
         ->orderBy('id')
         ->get(); 
+
+        $lockDateToDate = $this->lockDate;
        
         return Datatables::of($data)
-        ->addColumn('action', function ($data) {
+        ->addColumn('action', function ($data) use($lockDateToDate) {
             $buttons = '<div class="d-inline-flex">
                             <a class="pr-1 dropdown-toggle hide-arrow" data-toggle="dropdown">
                                 <i data-feather="menu"></i>
@@ -813,24 +831,30 @@ class TransferInController extends Controller
             
             if ( $data->status == '1' or $data->status == '2' ){
                 if (Auth::user()->can('transferIn-edit')) {
-                $buttons .=         '<a href="'. route('transferIn.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
-                                        <i data-feather="file-text"></i>
-                                        <span>'. __("Edit") .'</span>
-                                    </a>';
+                    $trDate = date('Y/m/d', strtotime($data->tr_date));
+                    if($trDate>$lockDateToDate){
+                        $buttons .=         '<a href="'. route('transferIn.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+                                                <i data-feather="file-text"></i>
+                                                <span>'. __("Edit") .'</span>
+                                            </a>';
+                    }
                 }
             }
   
             if ( $data->status == '4' ){
                 if (Auth::user()->can('transferIn-delete')) {
-                    $buttons .=         "<a href='javascript:;'
-                                            id='cancelReasonButton'
-                                            class='dropdown-item'
-                                            data-toggle='modal'
-                                            data-target='#reasonModalCancel'
-                                            data-href='". route("transferIn.cancel", ["id"=>Crypt::encryptString($data->id)]) ."'>
-                                            <i data-feather='corner-down-left' class='feather-14-red'></i>
-                                            <span>". __('Cancel') ."</span>
-                                        </a>";
+                    $trDate = date('Y/m/d', strtotime($data->tr_date));
+                    if($trDate>$lockDateToDate){
+                        $buttons .=         "<a href='javascript:;'
+                                                id='cancelReasonButton'
+                                                class='dropdown-item'
+                                                data-toggle='modal'
+                                                data-target='#reasonModalCancel'
+                                                data-href='". route("transferIn.cancel", ["id"=>Crypt::encryptString($data->id)]) ."'>
+                                                <i data-feather='corner-down-left' class='feather-14-red'></i>
+                                                <span>". __('Cancel') ."</span>
+                                            </a>";
+                    }
                 }
 
                 // if (Auth::user()->can('transferIn-delete')) {
@@ -855,17 +879,20 @@ class TransferInController extends Controller
 
             if ( $data->status != '4' and $data->status != '5' ){
                 if (Auth::user()->can('transferIn-delete')) {
-                    $buttons .=         "<a href='javascript:;'
-                                        class='dropdown-item' 
-                                        data-size='sm'
-                                        data-ajax-delete='true'
-                                        data-confirm='Are You Sure want to Delete?|This action can not be undone. Do you want to continue?' 
-                                        data-confirm-yes='document.getElementById(\""."delete-form-".$data->id."\").submit();'
-                                        data-modal-id='".$data->id."'
-                                        data-url='". route('transferIn.destroy', ['id'=>Crypt::encryptString($data->id)]) ."'>
-                                        <i data-feather='trash-2' class='feather-14-red'></i>
-                                        <span>". __('Delete') ."</span>
-                                    </a>";
+                    $trDate = date('Y/m/d', strtotime($data->tr_date));
+                    if($trDate>$lockDateToDate){
+                        $buttons .=         "<a href='javascript:;'
+                                            class='dropdown-item' 
+                                            data-size='sm'
+                                            data-ajax-delete='true'
+                                            data-confirm='Are You Sure want to Delete?|This action can not be undone. Do you want to continue?' 
+                                            data-confirm-yes='document.getElementById(\""."delete-form-".$data->id."\").submit();'
+                                            data-modal-id='".$data->id."'
+                                            data-url='". route('transferIn.destroy', ['id'=>Crypt::encryptString($data->id)]) ."'>
+                                            <i data-feather='trash-2' class='feather-14-red'></i>
+                                            <span>". __('Delete') ."</span>
+                                        </a>";
+                    }
                 }
             }
             

@@ -108,6 +108,9 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('account/setting/store',['as'=>'accountSetting.store','uses'=>'AccountSettingController@store']);
 	Route::get('account/setting/mataUang',['as'=>'accountSetting.mataUang','uses'=>'AccountSettingController@mataUang']);
 
+	Route::get('lockTransaction',['as'=>'lockTransaction.index','uses'=>'LockTransactionController@index']);
+	Route::post('lockTransaction/store',['as'=>'lockTransaction.store','uses'=>'LockTransactionController@store']);
+
 	Route::get('accTypes',['as'=>'accTypes.index','uses'=>'AccTypeController@index','middleware' => ['permission:accType-index']]);
 	Route::get('accTypes/create',['as'=>'accType.create','uses'=>'AccTypeController@create','middleware' => ['permission:accType-create']]);
 	Route::post('accTypes/store',['as'=>'accType.store','uses'=>'AccTypeController@store']);

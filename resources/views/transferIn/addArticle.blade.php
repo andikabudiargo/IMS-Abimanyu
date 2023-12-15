@@ -138,10 +138,13 @@
     const currentDate = "{{ $currentDateValue }}";
     const trDate = $('#trDate');
     let dataArticle=""; 
+    let lockedAt = "{{ $lockDate }}";
 
     if (trDate.length) {
         trDate.flatpickr({
             dateFormat: "d-m-Y",
+            maxDate: "today",
+            minDate:lockedAt
         });
     }
   

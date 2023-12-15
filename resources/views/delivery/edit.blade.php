@@ -211,6 +211,7 @@
 <script type="text/javascript">
     let currentDate = todayDate('dd-mm-yyyy');
     let fromEdit = 'true';
+    let lockedAt = "{{ $lockDate }}";
     const approveBtn = document.querySelector('#cmdApprove');
 
     if (approveBtn) {
@@ -299,7 +300,8 @@
     if (dnDate.length) {
         dnDate.flatpickr({
             dateFormat: "d-m-Y",
-            maxDate: "today"
+            maxDate: "today",
+            minDate:lockedAt
         });
     }
 

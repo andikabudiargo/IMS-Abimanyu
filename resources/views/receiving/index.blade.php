@@ -5,7 +5,7 @@
 <section id="receiving-index">
   <div class="card">
     <div class="card-header">  
-      <h4 class="card-title">Filter</h4>
+      <h4 class="card-title">Filter <small class="text-muted"> {{ $lockDate ? "Locked at : ".$lockDate : '' }}</small></h4>
       <div class="heading-elements">
         <ul class="list-inline mb-0">
             <li><a data-action="collapse"><i data-feather="chevron-down"></i></a></li>

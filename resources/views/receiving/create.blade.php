@@ -154,6 +154,7 @@
 @section('scripts')
 <script type="text/javascript">
     dariEdit = 'false';
+    let lockedAt = "{{ $lockDate }}";
     $(document).ready(function(){
         validateFormToast("frmAdd");
         $("#totalRow").val(0);
@@ -179,7 +180,8 @@
     if (doDate.length) {
         doDate.flatpickr({
             dateFormat: "d-m-Y",
-            maxDate: "today"
+            maxDate: "today",
+            minDate:lockedAt
         });
     }
 
@@ -187,7 +189,8 @@
     if (recDate.length) {
         recDate.flatpickr({
             dateFormat: "d-m-Y",
-            maxDate: "today"
+            maxDate: "today",
+            minDate:lockedAt
         });
     }
     

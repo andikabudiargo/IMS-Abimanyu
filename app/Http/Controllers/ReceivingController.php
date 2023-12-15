@@ -20,11 +20,21 @@ class ReceivingController extends Controller
     private $title;
     private $moduleCode;
     private $decimalPlaces;
+    private $lockDate;
     public function __construct()
     {
         $this->title = "Receiving";
         $this->moduleCode = "REC";
         $this->decimalPlaces = config('globalParam.decimal');
+        $lockDate1 = DB::table('application_lock')
+        ->where('code_key',$this->moduleCode)
+        ->where('status','1')
+        ->value('lock_date');
+
+        $lockDateHere = $lockDate1 ? $lockDate1 : '2023-01-01' ;
+        $lockDateAt = date('d-m-Y', strtotime($lockDateHere));
+        $this->lockDate = $lockDateAt;
+
     }
 
     public function getTableColoumn(){
@@ -98,6 +108,7 @@ class ReceivingController extends Controller
         $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','10'=>'REVISI'];
         $data['kolom'] = $this->getTableColoumn();
         $data['kolomDetail'] = $this->getTableColoumnDetail();
+        $data['lockDate'] = $this->lockDate;
             
         return view("receiving.index",$data);
     }
@@ -127,13 +138,12 @@ class ReceivingController extends Controller
     {
         $data['title'] = "Create $this->title";
         $data['subtitle'] = "Create $this->title";
-        
         $data['supps'] = DB::table('third_party')
         ->where ('third_party_type','=','supp')
         ->orderBy('nama')
         ->get();
-
         $data['oEdit']=false;
+        $data['lockDate'] = $this->lockDate;
 
         return view("receiving.create",$data);
     }
@@ -381,6 +391,8 @@ class ReceivingController extends Controller
         $data['statusRec'] = $statusRec[$data['header']->status-1];
 
         $data['oEdit']=true;
+
+        $data['lockDate'] = $this->lockDate;
 
         return view("receiving.edit",$data);
         
@@ -1225,8 +1237,15 @@ class ReceivingController extends Controller
         // (select concat(kode,'-',nama) from third_party where kode = supplier_id limit 1) as supp_name ,prepared_by,authorized_by,status
         // from receiving_hdr a $filter");
 
+        $lockDateToDate = $this->lockDate;
+
+        // $recDate = '11-12-2023';
+        // $recDate = strtotime($recDate); 
+        // $recDate = date('Y/m/d', $recDate);
+        // dd($recDate>$lockDateToDate);
+
         return Datatables::of($data)
-        ->addColumn('action', function ($data) {
+        ->addColumn('action', function ($data) use($lockDateToDate) {
             $buttons = '<div class="d-inline-flex">
                             <a class="pr-1 dropdown-toggle hide-arrow" data-toggle="dropdown">
                                 <i data-feather="menu"></i>
@@ -1235,11 +1254,14 @@ class ReceivingController extends Controller
 
             // if (($data->status == '1') OR ($data->status == '2')){
             if ($data->status == '10'){
-                if (Auth::user()->can('receiving-edit')) {
-                $buttons .=         '<a href="'. route('receiving.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
-                                        <i data-feather="file-text"></i>
-                                        <span>'. __("Edit") .'</span>
-                                    </a>';
+                $recDate = date('Y/m/d', strtotime($data->rec_date));
+                if($recDate>$lockDateToDate){
+                    if (Auth::user()->can('receiving-edit')) {
+                    $buttons .=         '<a href="'. route('receiving.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+                                            <i data-feather="file-text"></i>
+                                            <span>'. __("Edit") .'</span>
+                                        </a>';
+                    }
                 }
             }
 
@@ -1270,15 +1292,18 @@ class ReceivingController extends Controller
 
             if ( in_array($data->status,['1','2','3','4']) ) {
                 // if (Auth::user()->can('receiving-revision')) {
-                    $buttons .= "<a href='javascript:;'
-                                    id='revisionReasonButton'
-                                    class='dropdown-item'
-                                    data-toggle='modal'
-                                    data-target='#reasonModalRevision'
-                                    data-href='". route('receiving.revision', ['id'=>Crypt::encryptString($data->id),'nR'=>$data->num_revision]) ."'>
-                                    <i data-feather='corner-down-left' class='feather-14-red'></i>
-                                    <span>". __('Revision') ."</span>
-                                </a>";
+                    $recDate = date('d-m-Y', strtotime($data->rec_date));
+                    if($recDate>$lockDateToDate){
+                        $buttons .= "<a href='javascript:;'
+                                        id='revisionReasonButton'
+                                        class='dropdown-item'
+                                        data-toggle='modal'
+                                        data-target='#reasonModalRevision'
+                                        data-href='". route('receiving.revision', ['id'=>Crypt::encryptString($data->id),'nR'=>$data->num_revision]) ."'>
+                                        <i data-feather='corner-down-left' class='feather-14-red'></i>
+                                        <span>". __('Revision') ."</span>
+                                    </a>";
+                    }
                 // }            
             }
 
@@ -1296,32 +1321,38 @@ class ReceivingController extends Controller
                                 </a>';
 
             if ( $data->status == '4' ){
-                if (Auth::user()->can('receiving-delete')) {
-                    $buttons .=         "<a href='javascript:;'
-                                            id='cancelReasonButton'
-                                            class='dropdown-item'
-                                            data-toggle='modal'
-                                            data-target='#reasonModalCancel'
-                                            data-href='". route("receiving.cancel", ["id"=>Crypt::encryptString($data->id)]) ."'>
-                                            <i data-feather='corner-down-left' class='feather-14-red'></i>
-                                            <span>". __('Cancel') ."</span>
-                                        </a>";
+                $recDate = date('d-m-Y', strtotime($data->rec_date));
+                if($recDate>$lockDateToDate){
+                    if (Auth::user()->can('receiving-delete')) {
+                        $buttons .=         "<a href='javascript:;'
+                                                id='cancelReasonButton'
+                                                class='dropdown-item'
+                                                data-toggle='modal'
+                                                data-target='#reasonModalCancel'
+                                                data-href='". route("receiving.cancel", ["id"=>Crypt::encryptString($data->id)]) ."'>
+                                                <i data-feather='corner-down-left' class='feather-14-red'></i>
+                                                <span>". __('Cancel') ."</span>
+                                            </a>";
+                    }
                 }
             }
             
             if ( $data->status != '4' and $data->status != '5' and $data->status != '7'){
-                if (Auth::user()->can('receiving-delete')) {
-                    $buttons .=         "<a href='javascript:;'
-                                        class='dropdown-item' 
-                                        data-size='sm'
-                                        data-ajax-delete='true'
-                                        data-confirm='Are You Sure want to Delete?|This action can not be undone. Do you want to continue?' 
-                                        data-confirm-yes='document.getElementById(\""."delete-form-".$data->id."\").submit();'
-                                        data-modal-id='".$data->id."'
-                                        data-url='". route('receiving.destroy', ['id'=>Crypt::encryptString($data->id)]) ."'>
-                                        <i data-feather='trash-2' class='feather-14-red'></i>
-                                        <span>". __('Delete') ."</span>
-                                    </a>";
+                $recDate = date('d-m-Y', strtotime($data->rec_date));
+                if($recDate>$lockDateToDate){
+                    if (Auth::user()->can('receiving-delete')) {
+                        $buttons .=         "<a href='javascript:;'
+                                            class='dropdown-item' 
+                                            data-size='sm'
+                                            data-ajax-delete='true'
+                                            data-confirm='Are You Sure want to Delete?|This action can not be undone. Do you want to continue?' 
+                                            data-confirm-yes='document.getElementById(\""."delete-form-".$data->id."\").submit();'
+                                            data-modal-id='".$data->id."'
+                                            data-url='". route('receiving.destroy', ['id'=>Crypt::encryptString($data->id)]) ."'>
+                                            <i data-feather='trash-2' class='feather-14-red'></i>
+                                            <span>". __('Delete') ."</span>
+                                        </a>";
+                    }
                 }
             }
             $buttons .=     '</div>

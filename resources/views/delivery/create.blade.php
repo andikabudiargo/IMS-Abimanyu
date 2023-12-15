@@ -166,6 +166,7 @@
 <script type="text/javascript">
     let currentDate = todayDate('dd-mm-yyyy');    
     let fromEdit = 'false';
+    let lockedAt = "{{ $lockDate }}";
     $(document).ready(function(){
         validateFormToast("frmAdd");
         $("#totalRow").val(0);
@@ -181,7 +182,8 @@
     if (dnDate.length) {
         dnDate.flatpickr({
             dateFormat: "d-m-Y",
-            maxDate: "today"
+            maxDate: "today",
+            minDate:lockedAt
         });
     }
 

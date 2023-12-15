@@ -622,31 +622,6 @@
                 </a>
               </li>
               @endcan
-              
-              {{-- <li><a class="d-flex align-items-center" href="#"><i data-feather="circle"></i><span class="menu-item text-truncate" data-i18n="Account Setting">Account default</span></a>
-                <ul class="menu-content">
-                    <li class="{{ \Request::is(['account/setting/mataUang'])  ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('accountSetting.mataUang') }}"><span class="menu-item text-truncate" data-i18n="Mata Uang">Mata uang</span></a>
-                    </li>
-                    <li class="{{ \Request::is(['account/setting/barang']) ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('accountSetting.barang') }}"><span class="menu-item text-truncate" data-i18n="Barang">Barang</span></a>
-                    </li>
-                </ul>
-              </li> --}}
-              {{-- @can('group-index')
-              <li class="{{ \Request::segment(1) == 'groups'  ? 'active' : '' }}">
-                <a class="d-flex align-items-center" href="{{ route('groups.index') }}">
-                  <i data-feather="circle"></i>
-                  <span class="menu-item text-truncate" data-i18n="Input">Group Account</span>
-                </a>
-              </li>
-              @endcan --}}
-              {{-- @can('jobPosition-index')
-              <li class="{{ \Request::segment(1) == 'jobPositionsjjj'  ? 'active' : '' }} disabled">
-                <a class="d-flex align-items-center" href="{{ route('jobPositions.index') }}">
-                  <i data-feather="circle"></i>
-                  <span class="menu-item text-truncate" data-i18n="Input">Reports</span>
-                </a>
-              </li>
-              @endcan --}}
             </ul>
           </li>
         @endcan
@@ -660,14 +635,6 @@
             </span>
           </a>
           <ul class="menu-content">
-            {{-- @can('employee-index')
-            <li class="{{ \Request::segment(1) == 'employees'  ? 'active' : '' }}">
-              <a class="d-flex align-items-center" href="{{ route('employees.index') }}">
-                <i data-feather="circle"></i>
-                <span class="menu-item text-truncate" data-i18n="Input">Employee</span>
-              </a>
-            </li>
-            @endcan --}}
             @can('department-index')
             <li class="{{ \Request::segment(1) == 'depts'  ? 'active' : '' }}">
               <a class="d-flex align-items-center" href="{{ route('depts.index') }}">
@@ -676,35 +643,11 @@
               </a>
             </li>
             @endcan
-            {{-- @can('jobPosition-index')
-            <li class="{{ \Request::segment(1) == 'jobPositions'  ? 'active' : '' }}">
-              <a class="d-flex align-items-center" href="{{ route('jobPositions.index') }}">
-                <i data-feather="circle"></i>
-                <span class="menu-item text-truncate" data-i18n="Input">Position</span>
-              </a>
-            </li>
-            @endcan --}}
-            {{-- @can('jobPosition-index')
-            <li class="{{ \Request::segment(1) == 'jobPositionsSS'  ? 'active' : '' }} disabled">
-              <a class="d-flex align-items-center" href="{{ route('jobPositions.index') }}">
-                <i data-feather="circle"></i>
-                <span class="menu-item text-truncate" data-i18n="Input">Attendant</span>
-              </a>
-            </li>
-            @endcan
-            @can('jobPosition-index')
-            <li class="{{ \Request::segment(1) == 'jobPositionsSS'  ? 'active' : '' }} disabled">
-              <a class="d-flex align-items-center" href="{{ route('jobPositions.index') }}">
-                <i data-feather="circle"></i>
-                <span class="menu-item text-truncate" data-i18n="Input">Payroll</span>
-              </a>
-            </li>
-            @endcan --}}
           </ul>
         </li>
         <li class=" navigation-header"><span data-i18n="Settings">Settings</span><i data-feather="more-horizontal"></i>
         </li>
-        <li class=" {{ in_array(\Request::segment(1), ['setting','users','roles','permissions','company','approval']) ? 'active' : '' }} nav-item">
+        <li class=" {{ in_array(\Request::segment(1), ['setting','users','roles','permissions','company','approval','lockTransaction']) ? 'active' : '' }} nav-item">
           <a class="d-flex align-items-center" href="javascript:void(0);">
             <i data-feather="settings"></i>
             <span class="menu-title text-truncate" data-i18n="Form Elements">Setting
@@ -735,12 +678,14 @@
                 </a>
               </li>
               @endcan
-              {{-- <li class="{{ \Request::segment(1) == 'menu' && \Request::segment(2) == '' ? 'active' : '' }}">
-                <a class="d-flex align-items-center" href="{{ route('show.menu') }}">
-                  <i data-feather="circle"></i>
-                  <span class="menu-item text-truncate" data-i18n="Input">Menu</span>
+              @can('lock-transaction-index')
+              <li class="{{ \Request::segment(1) == 'lockTransaction' && \Request::segment(2) == '' ? 'active' : '' }}">
+                <a class="d-flex align-items-center" href="{{ route('lockTransaction.index') }}">
+                  <i data-feather="lock"></i>
+                  <span class="menu-item text-truncate" data-i18n="Input">Lock Transaction</span>
                 </a>
-              </li> --}}
+              </li>
+              @endcan
               @can('permission-index')
               <li class="{{ \Request::segment(1) == 'permissions' && \Request::segment(2) == '' ? 'active' : '' }}">
                 <a class="d-flex align-items-center" href="{{ route('permissions.index') }}">
@@ -750,7 +695,7 @@
               </li>
               @endcan
               @can('role-index')
-              <li class="{{ \Request::segment(1) == 'roles' && \Request::segment(2) == '' ? 'active' : '' }}">
+              <li class="{{ \Request::is(['roles','roles/create']) ? 'active' : '' }}">
                 <a class="d-flex align-items-center" href="{{ route('roles.index') }}">
                   <i data-feather="circle"></i>
                   <span class="menu-item text-truncate" data-i18n="Input">Roles</span>

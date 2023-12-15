@@ -213,6 +213,7 @@
 <script type="text/javascript">
     const approveBtn = $('#cmdApprove');
     dariEdit = 'true';
+    let lockedAt = "{{ $lockDate }}";
     
     $(document).ready(function(){          
         validateFormToast("frmAdd");
@@ -287,7 +288,8 @@
     if (recDate.length) {
         recDate.flatpickr({
             dateFormat: "d-m-Y",
-            maxDate: "today"
+            maxDate: "today",
+            minDate:lockedAt
         });
     }
 
