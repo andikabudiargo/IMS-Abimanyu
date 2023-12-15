@@ -169,16 +169,30 @@ class ArticleController extends Controller
             // ->select(DB::raw("CONCAT('$leadingCode',inisial,'$newCode','~','c') AS new_code"))->value('new_code');
 
         }else{
-            $lastCode = DB::table('article')
-            ->where('article_alternative_code','like',$leadingCode.'%')
-            ->orderBy('article_alternative_code','DESC')->first();
-
-            if (!$lastCode){
-                $newCode = '0000001';
+            
+            if($leadingCode=='GA'){
+                $lastCode = DB::table('article')
+                ->where('article_alternative_code','like',$leadingCode.'0%')
+                ->orderBy('article_alternative_code','DESC')->first();
             }else{
-                $newCode = str_pad(substr($lastCode->article_alternative_code,-7)+1, 7, "0", STR_PAD_LEFT);
+                $lastCode = DB::table('article')
+                ->where('article_alternative_code','like',$leadingCode.'%')
+                ->orderBy('article_alternative_code','DESC')->first();
             }
 
+            if (!$lastCode){
+                if($leadingCode=='GA'){
+                    $newCode = '00000001';
+                }else{
+                    $newCode = '0000001';
+                }
+            }else{
+                $newCode = str_pad(substr($lastCode->article_alternative_code,-7)+1, 7, "0", STR_PAD_LEFT);
+                if($leadingCode=='GA'){
+                    $newCode='0'.$newCode;
+                }
+            }
+            
             $articleCode = $leadingCode.$newCode."~".$leadingCode;
         }
         

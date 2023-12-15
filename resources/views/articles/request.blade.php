@@ -154,7 +154,7 @@
         type:type,
         status:status
       },
-      orderColumn:[[ 2, 'asc' ]],
+      orderColumn:[[ 14, 'desc' ]],
       excelFileName:'article_request'
     });
   }
