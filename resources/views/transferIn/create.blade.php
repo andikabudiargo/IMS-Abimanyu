@@ -126,7 +126,6 @@
 @section('scripts')
 @include('transferIn.addArticle')
 <script type="text/javascript">
-    let lockedAt = "{{ $lockDate }}";
     document.querySelector('#cmdSave').addEventListener('click',() =>{
         let element = document.getElementById('cmdSave');
         let oEdit = document.getElementById('oEdit');
