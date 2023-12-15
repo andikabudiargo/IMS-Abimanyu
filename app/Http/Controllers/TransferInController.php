@@ -24,6 +24,7 @@ class TransferInController extends Controller
     private $title;
     private $moduleCode;
     private $lockDate;
+    private $lockDateIndex;
     public function __construct()
     {
         $this->title = "Transfer In";
@@ -35,8 +36,12 @@ class TransferInController extends Controller
         ->value('lock_date');
 
         $lockDateHere = $lockDate1 ? $lockDate1 : '2023-01-01' ;
-        $lockDateAt = date('d-m-Y', strtotime($lockDateHere));
+        $lockDateAt = date('d-m-Y', strtotime("+1 day", strtotime($lockDateHere)));
         $this->lockDate = $lockDateAt;
+
+        $lockDateHereIndex = $lockDate1 ? $lockDate1 : '2023-01-01' ;
+        $lockDateAtIndex = date('d-m-Y', strtotime($lockDateHere));
+        $this->lockDateIndex = $lockDateAtIndex;
     }
 
     public function getTableColoumn()
@@ -106,10 +111,9 @@ class TransferInController extends Controller
 
         $data['kolom'] = $this->getTableColoumn();
         $data['kolomDetail'] = $this->getTableColoumnDetail();
-        
         $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED'];
 
-        $data['lockDate'] = $this->lockDate;
+        $data['lockDate'] = $this->lockDateIndex;
     
         return view("transferIn.index",$data);
     }

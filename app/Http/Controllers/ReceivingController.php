@@ -21,6 +21,7 @@ class ReceivingController extends Controller
     private $moduleCode;
     private $decimalPlaces;
     private $lockDate;
+    private $lockDateIndex;
     public function __construct()
     {
         $this->title = "Receiving";
@@ -32,8 +33,12 @@ class ReceivingController extends Controller
         ->value('lock_date');
 
         $lockDateHere = $lockDate1 ? $lockDate1 : '2023-01-01' ;
-        $lockDateAt = date('d-m-Y', strtotime($lockDateHere));
+        $lockDateAt = date('d-m-Y', strtotime("+1 day", strtotime($lockDateHere)));
         $this->lockDate = $lockDateAt;
+
+        $lockDateHereIndex = $lockDate1 ? $lockDate1 : '2023-01-01' ;
+        $lockDateAtIndex = date('d-m-Y', strtotime($lockDateHere));
+        $this->lockDateIndex = $lockDateAtIndex;
 
     }
 
@@ -108,7 +113,9 @@ class ReceivingController extends Controller
         $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','10'=>'REVISI'];
         $data['kolom'] = $this->getTableColoumn();
         $data['kolomDetail'] = $this->getTableColoumnDetail();
-        $data['lockDate'] = $this->lockDate;
+
+
+        $data['lockDate'] = $this->lockDateIndex;
             
         return view("receiving.index",$data);
     }
