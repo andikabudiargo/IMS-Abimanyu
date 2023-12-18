@@ -369,10 +369,10 @@ class AccountPayableController extends Controller
         ->leftJoin('receiving_hdr','receiving_hdr.rec_number','receiving_det.rec_number')
         ->leftJoin('article','article.article_code','receiving_det.article_code')
         ->leftJoin(DB::RAW("(select * from ap_invoice_det where ap_number='$apNumber') as ap"),'ap.reference','receiving_det.article_code')
-        ->leftJoin(DB::RAW("(select * from purchase_order_det where po_number = '$poNumber') AS po"),function($join){
-            $join->on('po.po_number','=','receiving_hdr.po_number')
-                ->on('po.article_code','=','receiving_det.article_code');
-        })
+        // ->leftJoin(DB::RAW("(select * from purchase_order_det where po_number = '$poNumber') AS po"),function($join){
+        //     $join->on('po.po_number','=','receiving_hdr.po_number')
+        //         ->on('po.article_code','=','receiving_det.article_code');
+        // })
         // ->leftJoin('purchase_order_hdr','purchase_order_hdr.po_number','purchase_order_det.po_number')
         // ->leftJoin(DB::RAW("(select * from purchase_order_det where po_number = '$poNumber') AS po"),'po.po_number','receiving_hdr.po_number')
         ->whereIn('receiving_det.rec_number',$arrayRecNumber)
@@ -382,24 +382,29 @@ class AccountPayableController extends Controller
         ,'article.article_desc as desc'
         ,'receiving_det.uom_rec as uom'
         ,db::raw("sum(receiving_det.qty) as qty")
-        ,'po.price'
+        // ,'po.price'
+        ,'receiving_det.price'
         ,db::raw("(select dept from purchase_request_hdr where pr_number in (select pr_number from purchase_order_det where po_number = receiving_hdr.po_number ) limit 1) as dept")
         // ,'po.ppn'
         // ,'po.pph22'
         // ,'purchase_order_hdr.discount'
         // ,db::raw("sum((qty*po.price)-((qty*po.price)*purchase_order_hdr.discount/100)+(((qty*po.price)-((qty*po.price)*purchase_order_hdr.discount/100))*po.ppn/100)-(((qty*po.price)-((qty*po.price)*purchase_order_hdr.discount/100))*po.pph/100)) as total")
         // )
-        ,db::raw("(sum(receiving_det.qty*po.price)) as total")
+        // ,db::raw("(sum(receiving_det.qty*po.price)) as total")
+        ,db::raw("(sum(receiving_det.qty*receiving_det.price)) as total")
         ,'ap.account as account'
         )
         ->groupBy('article.article_alternative_code')
         ->groupBy('article.article_desc')
         ->groupBy('receiving_det.uom_rec')
-        ->groupBy('po.price')
+        // ->groupBy('po.price')
+        ->groupBy('receiving_det.price')
         ->groupBy('receiving_det.article_code')
         ->groupBy(db::raw("(select dept from purchase_request_hdr where pr_number in (select pr_number from purchase_order_det where po_number = receiving_hdr.po_number ) limit 1)"))
         ->groupBy('ap.account')
         ->get();
+
+        // dd($detailRec);
 
         $summaryRec =  DB::select("SELECT z.*
         ,basis_amount1 - (basis_amount1*y.discount/100) as basis_amount
@@ -427,7 +432,7 @@ class AccountPayableController extends Controller
         group by b.po_number) z
         left join purchase_order_hdr y on y.po_number = z.po_number");
 
-        // dd($summaryRec);
+        
         return response()->json(array('detailRec'=>$detailRec,'summaryRec'=>$summaryRec));
     }
 

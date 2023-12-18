@@ -307,6 +307,9 @@
         });
         recNumber=recNumber.slice(0,-1);
         let tableIsi = $('#listOfRec > tbody  tr').length;
+        
+        console.log('Grand Total Check :'+sumQty);
+
         if(parseFloat($("#grandTotalQty").val())!=sumQty){
             Swal.fire("Warning","Data belum sesuai harus di submit ulang","warning"); 
         }else{
@@ -527,6 +530,7 @@
                         }
                         $('.activateSelect2').select2();
                         $("#grandTotalQty").val(grandTotalQty);
+                        console.log('Grand Total :'+grandTotalQty);
                     }
 
                     $('#totalPO').val(humanizeNumber(result.summaryRec[0].total_amount_po));
