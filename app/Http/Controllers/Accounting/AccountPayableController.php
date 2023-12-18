@@ -766,25 +766,28 @@ class AccountPayableController extends Controller
         ->leftJoin('receiving_hdr','receiving_hdr.rec_number','receiving_det.rec_number')
         ->leftJoin('article','article.article_code','receiving_det.article_code')
         ->leftJoin(DB::RAW("(select * from ap_invoice_det where ap_number='$apNumber') as ap"),'ap.reference','receiving_det.article_code')
-        ->leftJoin(DB::RAW("(select * from purchase_order_det where po_number = '$poNumber') AS po"),function($join){
-            $join->on('po.po_number','=','receiving_hdr.po_number')
-                ->on('po.article_code','=','receiving_det.article_code');
-        })
+        // ->leftJoin(DB::RAW("(select * from purchase_order_det where po_number = '$poNumber') AS po"),function($join){
+        //     $join->on('po.po_number','=','receiving_hdr.po_number')
+        //         ->on('po.article_code','=','receiving_det.article_code');
+        // })
         ->whereIn('receiving_det.rec_number',$listRec)
         ->where('receiving_det.qty','>',0)
         ->select('article.article_alternative_code as article'
         ,'article.article_desc as desc'
         ,'receiving_det.uom_rec as uom'
         ,db::raw("sum(receiving_det.qty) as qty")
-        ,'po.price'
-        ,db::raw("(sum(receiving_det.qty*po.price)) as total")
+        // ,'po.price'
+        ,'receiving_det.price'
+        // ,db::raw("(sum(receiving_det.qty*po.price)) as total")
+        ,db::raw("(sum(receiving_det.qty*receiving_det.price)) as total")
         ,'ap.account as account'
         ,db::raw("(select dept from purchase_request_hdr where pr_number in (select pr_number from purchase_order_det where po_number = receiving_hdr.po_number ) limit 1) as dept")
         )
         ->groupBy('article.article_alternative_code')
         ->groupBy('article.article_desc')
         ->groupBy('receiving_det.uom_rec')
-        ->groupBy('po.price')
+        // ->groupBy('po.price')
+        ->groupBy('receiving_det.price')
         ->groupBy(db::raw("(select dept from purchase_request_hdr where pr_number in (select pr_number from purchase_order_det where po_number = receiving_hdr.po_number ) limit 1)"))
         ->groupBy('ap.account')
         ->get();
