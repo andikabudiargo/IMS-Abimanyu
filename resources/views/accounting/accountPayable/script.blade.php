@@ -530,7 +530,7 @@
                         }
                         $('.activateSelect2').select2();
                         $("#grandTotalQty").val(grandTotalQty);
-                        console.log('Grand Total :'+grandTotalQty);
+                        // console.log('Grand Total :'+grandTotalQty);
                     }
 
                     $('#totalPO').val(humanizeNumber(result.summaryRec[0].total_amount_po));

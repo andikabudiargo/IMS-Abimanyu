@@ -422,16 +422,16 @@ class AccountPayableController extends Controller
         from 
         (select b.po_number
         ,sum(a.qty) as total_qty_rec
-        ,(sum(a.qty*c.price)) as basis_amount1
+        ,(sum(a.qty*a.price)) as basis_amount1
+        -- ,(sum(a.qty*c.price)) as basis_amount1
         from receiving_det a
         left join receiving_hdr b on a.rec_number = b.rec_number 
-        left join purchase_order_det c on c.po_number = b.po_number and c.article_code = a.article_code 
+        -- left join purchase_order_det c on c.po_number = b.po_number and c.article_code = a.article_code 
         -- where a.rec_number in ('REC-ASN/2022/XI/4','REC-ASN/2023/I/1')
         where a.rec_number in ($result)
         --and a.qty > 0
         group by b.po_number) z
         left join purchase_order_hdr y on y.po_number = z.po_number");
-
         
         return response()->json(array('detailRec'=>$detailRec,'summaryRec'=>$summaryRec));
     }
