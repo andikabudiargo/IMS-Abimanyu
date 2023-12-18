@@ -402,13 +402,13 @@
       
     hitungGrandTotal = ()=>{
         let objArticle = $('#article_row select[name="articleId[]"]');
-        let objQtyTiw= $('#article_row input[name="qty_order[]"]');
-        let objQTY= $('#article_row input[name="qty[]"]');
-        let totalQty= 0;
-        let qty = objQTY.map(function(){return $(this).val();}).get();
-        totalQty = sumFromArray(qty);
+        // let objQtyTiw= $('#article_row input[name="qty_order[]"]');
+        // let objQTY= $('#article_row input[name="qty[]"]');
+        // let totalQty= 0;
+        // let qty = objQTY.map(function(){return $(this).val();}).get();
+        // totalQty = sumFromArray(qty);
         $("#totalRow").val(objArticle.length);
-        $("#totalQty").val(humanizeNumber(parseFloat(totalQty).toFixed(2)));
+        // $("#totalQty").val(humanizeNumber(parseFloat(totalQty).toFixed(2)));
     }
 
     $("input[type='text']").click(function () {

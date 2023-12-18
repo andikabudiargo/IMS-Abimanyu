@@ -65,7 +65,7 @@
                                 <span>ROW : {{ $header->sum_row }}</span>
                             </div>
                             <div class="col-md-4">
-                                <span>QTY : {{ number_format($header->sum_qty,2) }}</span>
+                                {{-- <span>QTY : {{ number_format($header->sum_qty,2) }}</span> --}}
                             </div>
                         </div>
                         <br>
