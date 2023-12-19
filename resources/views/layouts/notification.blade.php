@@ -428,7 +428,7 @@
                                     <a class="btn btn-outline-info btn-sm" 
                                         id="cmdDetailAp{{ $key }}" 
                                         name="cmdDetailAp{{ $key }}" 
-                                        href="{{ route('ap.show', ['id'=>Crypt::encryptString($val->id)]) }}"> 
+                                        href="{{ route('accountPayable.show', ['id'=>Crypt::encryptString($val->id)]) }}"> 
                                         <i data-feather='list'></i>
                                         Detail
                                     </a>
@@ -438,7 +438,7 @@
                                         class="btn btn-outline-success btn-sm buttonAp-{{ $val->id }}"
                                         data-id-class = "buttonAp-{{ $val->id }}"
                                         data-doc-number='{{ $val->ap_number }}'
-                                        data-url='{{ route("ap.notif.approve", ["apNumber"=>$val->ap_number]) }}'>
+                                        data-url='{{ route("accountPayable.notif.approve", ["apNumber"=>$val->ap_number]) }}'>
                                         <i data-feather='check-circle'></i>
                                         Approve
                                     </a>
