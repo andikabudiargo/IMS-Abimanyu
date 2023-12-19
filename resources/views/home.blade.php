@@ -725,7 +725,7 @@
                                             <a class="btn btn-outline-info btn-sm" 
                                                 id="cmdDetailDnHome{{ $key }}" 
                                                 name="cmdDetailDnHome{{ $key }}" 
-                                                href="{{ route('delivery.show', ['id'=>Crypt::encryptString($val->id)]) }}"> 
+                                                href="{{ route('delivery.edit', ['id'=>Crypt::encryptString($val->id)]) }}"> 
                                                 <i data-feather='list'></i>
                                                 Detail
                                             </a>
@@ -1442,7 +1442,7 @@
                                             <a class="btn btn-outline-info btn-sm" 
                                                 id="cmdDetailApHome{{ $key }}" 
                                                 name="cmdDetailApHome{{ $key }}" 
-                                                href="{{ route('ap.edit', ['id'=>Crypt::encryptString($val->id)]) }}"> 
+                                                href="{{ route('accountPayable.edit', ['id'=>Crypt::encryptString($val->id)]) }}"> 
                                                 <i data-feather='list'></i>
                                                 Detail
                                             </a>
@@ -1452,7 +1452,7 @@
                                                 class="btn btn-outline-success btn-sm buttonAp-{{ $val->id }}"
                                                 data-id-class = "buttonAp-{{ $val->id }}"
                                                 data-doc-number='{{ $val->ap_number }}'
-                                                data-url='{{ route("ap.notif.approve", ["apNumber"=>$val->ap_number]) }}'>
+                                                data-url='{{ route("accountPayable.notif.approve", ["apNumber"=>$val->ap_number]) }}'>
                                                 <i data-feather='check-circle'></i>
                                                 Approve
                                             </a>
