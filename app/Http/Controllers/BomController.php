@@ -15,6 +15,8 @@ use PDF;
 use AppHelpers;
 use Approval;
 
+date_default_timezone_set('Asia/Bangkok');
+
 class BomController extends Controller
 {
     private $title;
@@ -857,9 +859,14 @@ class BomController extends Controller
         $data['bomHdr']=DB::table('bom_hdr')
         ->leftJoin('third_party','third_party.kode','bom_hdr.customer')
         ->leftJoin('article','article.article_code','bom_hdr.article_code')
-        ->select('bom_hdr.*','third_party.*','article.*','bom_hdr.note as note_hdr')
+        ->select(
+            'bom_hdr.*','third_party.*','article.*','bom_hdr.note as note_hdr'
+            ,'bom_hdr.created_at as tanggal_revisi'
+        )
         ->where('bom_hdr.id',$id)
         ->first();
+
+        // dd(  $data['bomHdr']);
 
         $bomNumber=$data['bomHdr']->bom_code;
 
@@ -943,7 +950,8 @@ class BomController extends Controller
                     ->select('bom_det.*'
                     ,'article.article_alternative_code'
                     ,'article.article_desc'
-                    ,'third_party.nama')
+                    ,'third_party.nama'
+                    ,'bom_det.id as idku')
                     ->where('bom_code',$bomNumber)
                     ->where('bom_det.pos',$groupPos)
                     ->where(function ($query) use ($tone) {
@@ -961,7 +969,8 @@ class BomController extends Controller
                     ->select('bom_det.*'
                     ,'article.article_alternative_code'
                     ,'article.article_desc'
-                    ,'third_party.nama')
+                    ,'third_party.nama'
+                    ,'bom_det.id as idku')
                     ->where('bom_code',$bomNumber)
                     ->where(function ($query) use ($tone) {
                         $tone ? $query->where('tone',$tone) : '';

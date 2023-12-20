@@ -175,7 +175,8 @@
             </tr>
             <tr>
                 <td align="left" class="detail-padding-bawah">Enginering</td>
-                <td align="left" class="detail-padding-bawah">:10 Juni 2022</td>
+                {{-- <td align="left" class="detail-padding-bawah">:10 Juni 2022</td> --}}
+                <td align="left" class="detail-padding-bawah">:{{ $bomHdr->tanggal_revisi ? date_format(date_create($bomHdr->tanggal_revisi),"d F Y"): '' }}</td>
             </tr>
         </table>
         <table width="100%" border="0">
