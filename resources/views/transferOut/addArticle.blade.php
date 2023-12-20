@@ -259,6 +259,9 @@
                             $('#trNumber').attr('disabled','disabled');
                             $('#trNumber').val(data.trNumber);
                             $('#oEdit').val(data.oEdit);
+                            if(oEdit==false){
+                                window.location.href = "{{ route('transferOut.create') }}";
+                            }
                         }
                     },
                     error: function(error) {

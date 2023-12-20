@@ -249,7 +249,7 @@
                             show_msg(data.title, data.message, data.alert);
                             $('#trNumber').attr('disabled','disabled');
                             $('#trNumber').val(data.trNumber);
-                            // $('#oEdit').val(data.oEdit);
+                            $('#oEdit').val(data.oEdit);
                             if(oEdit==false){
                                 window.location.href = "{{ route('transferIn.create') }}";
                             }
