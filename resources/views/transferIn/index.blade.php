@@ -160,7 +160,7 @@
         searchStatus:searchStatus,
         trDate:trDate
       },
-      orderColumn:[[ 7, 'asc' ]],
+      orderColumn:[[ 7, 'desc' ]],
       excelFileName:'transfer_in'
     });
   }

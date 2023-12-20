@@ -35,8 +35,34 @@ class TransferInController extends Controller
         ->where('status','1')
         ->value('lock_date');
 
+        $lastDatePrevMonth = date('t-m-Y', strtotime('-1 months'));
+        $lastDatePrevMonth = date('t-m-Y', strtotime('-1 months',strtotime('05-11-2023')));
+        $firstDayCurrentMonth = date('1-m-Y');
+        $firstDayCurrentMonth = date('1-m-Y', strtotime('05-11-2023'));
+        $prevmonth = date('M Y 1', strtotime('-1 months'));
+        
+        /*
+        jika tanggal hari ini lebih kecil dari lockdate maka
+        min date nya adalah tanggal akhir dari bulan sebelumnya
+        kalau tanggal hari ini lebi besar dari lockdate maka 
+        tanggal minimum nya adalah tanngal awal di bulan ini
+        */
+
+        $todayDate = date('d-m-Y');
         $lockDateHere = $lockDate1 ? $lockDate1 : '2023-01-01' ;
         $lockDateAt = date('d-m-Y', strtotime("+1 day", strtotime($lockDateHere)));
+
+        // dd(date('t-m-Y', strtotime($lockDateAt)));
+
+        if ($todayDate < $lockDateAt ){
+            $firstDatePrevMonth = date('1-m-Y', strtotime("-1 months",strtotime($lockDateHere)));
+            $lockDateAt = $firstDatePrevMonth;
+        }else{
+            $lockDateAt = date('1-m-Y', strtotime($lockDateAt));
+        }
+
+        // $lockDateHere = $lockDate1 ? $lockDate1 : '2023-01-01' ;
+        // $lockDateAt = date('d-m-Y', strtotime("+1 day", strtotime($lockDateHere)));
         $this->lockDate = $lockDateAt;
 
         $lockDateHereIndex = $lockDate1 ? $lockDate1 : '2023-01-01' ;
@@ -797,8 +823,9 @@ class TransferInController extends Controller
         ->orderBy('id')
         ->get(); 
 
-        $lockDateToDate = $this->lockDate;
-       
+        $lockDateToDate = date('Y-m-d',strtotime($this->lockDate));
+        // $trDate = date('Y-m-d', strtotime('30-12-2023'));
+               
         return Datatables::of($data)
         ->addColumn('action', function ($data) use($lockDateToDate) {
             $buttons = '<div class="d-inline-flex">
@@ -835,7 +862,7 @@ class TransferInController extends Controller
             
             if ( $data->status == '1' or $data->status == '2' ){
                 if (Auth::user()->can('transferIn-edit')) {
-                    $trDate = date('Y/m/d', strtotime($data->tr_date));
+                    $trDate = date('Y-m-d', strtotime($data->tr_date));
                     if($trDate>$lockDateToDate){
                         $buttons .=         '<a href="'. route('transferIn.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                                 <i data-feather="file-text"></i>
@@ -847,7 +874,7 @@ class TransferInController extends Controller
   
             if ( $data->status == '4' ){
                 if (Auth::user()->can('transferIn-delete')) {
-                    $trDate = date('Y/m/d', strtotime($data->tr_date));
+                    $trDate = date('Y-m-d', strtotime($data->tr_date));
                     if($trDate>$lockDateToDate){
                         $buttons .=         "<a href='javascript:;'
                                                 id='cancelReasonButton'
@@ -883,7 +910,7 @@ class TransferInController extends Controller
 
             if ( $data->status != '4' and $data->status != '5' ){
                 if (Auth::user()->can('transferIn-delete')) {
-                    $trDate = date('Y/m/d', strtotime($data->tr_date));
+                    $trDate = date('Y-m-d', strtotime($data->tr_date));
                     if($trDate>$lockDateToDate){
                         $buttons .=         "<a href='javascript:;'
                                             class='dropdown-item' 

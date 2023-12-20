@@ -66,7 +66,7 @@
     if (datePicker.length) {
         datePicker.flatpickr({
             dateFormat: "d-m-Y",
-            maxDate: "today",
+            // maxDate: "today",
         });
     }
 </script>

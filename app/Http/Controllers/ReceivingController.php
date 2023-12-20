@@ -32,8 +32,35 @@ class ReceivingController extends Controller
         ->where('status','1')
         ->value('lock_date');
 
+        $lastDatePrevMonth = date('t-m-Y', strtotime('-1 months'));
+        $lastDatePrevMonth = date('t-m-Y', strtotime('-1 months',strtotime('05-11-2023')));
+        $firstDayCurrentMonth = date('1-m-Y');
+        $firstDayCurrentMonth = date('1-m-Y', strtotime('05-11-2023'));
+        $prevmonth = date('M Y 1', strtotime('-1 months'));
+        
+        /*
+        jika tanggal hari ini lebih kecil dari lockdate maka
+        min date nya adalah tanggal akhir dari bulan sebelumnya
+        kalau tanggal hari ini lebi besar dari lockdate maka 
+        tanggal minimum nya adalah tanngal awal di bulan ini
+        */
+
+        $todayDate = date('d-m-Y');
         $lockDateHere = $lockDate1 ? $lockDate1 : '2023-01-01' ;
         $lockDateAt = date('d-m-Y', strtotime("+1 day", strtotime($lockDateHere)));
+
+        // dd(date('t-m-Y', strtotime($lockDateAt)));
+        // dd($todayDate." < ".$lockDateAt);
+
+        if ($todayDate < $lockDateAt ){
+            $firstDatePrevMonth = date('1-m-Y', strtotime("-1 months",strtotime($lockDateHere)));
+            $lockDateAt = $firstDatePrevMonth;
+        }else{
+            $lockDateAt = date('1-m-Y', strtotime($lockDateAt));
+        }
+
+        // $lockDateHere = $lockDate1 ? $lockDate1 : '2023-01-01' ;
+        // $lockDateAt = date('d-m-Y', strtotime("+1 day", strtotime($lockDateHere)));
         $this->lockDate = $lockDateAt;
 
         $lockDateHereIndex = $lockDate1 ? $lockDate1 : '2023-01-01' ;
@@ -114,7 +141,7 @@ class ReceivingController extends Controller
         $data['kolom'] = $this->getTableColoumn();
         $data['kolomDetail'] = $this->getTableColoumnDetail();
 
-
+        // dd($this->lockDate);
         $data['lockDate'] = $this->lockDateIndex;
             
         return view("receiving.index",$data);
@@ -1244,7 +1271,12 @@ class ReceivingController extends Controller
         // (select concat(kode,'-',nama) from third_party where kode = supplier_id limit 1) as supp_name ,prepared_by,authorized_by,status
         // from receiving_hdr a $filter");
 
-        $lockDateToDate = $this->lockDate;
+        $lockDateToDate = date('Y-m-d',strtotime($this->lockDate));
+
+        // $trDate = date('Y-m-d', strtotime('02-11-2023'));
+        
+        // dd($trDate ." > ". $lockDateToDate);
+        // dd($trDate > $lockDateToDate);
 
         // $recDate = '11-12-2023';
         // $recDate = strtotime($recDate); 
@@ -1261,7 +1293,7 @@ class ReceivingController extends Controller
 
             // if (($data->status == '1') OR ($data->status == '2')){
             if ($data->status == '10'){
-                $recDate = date('Y/m/d', strtotime($data->rec_date));
+                $recDate = date('Y-m-d', strtotime($data->rec_date));
                 if($recDate>$lockDateToDate){
                     if (Auth::user()->can('receiving-edit')) {
                     $buttons .=         '<a href="'. route('receiving.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
@@ -1299,7 +1331,7 @@ class ReceivingController extends Controller
 
             if ( in_array($data->status,['1','2','3','4']) ) {
                 // if (Auth::user()->can('receiving-revision')) {
-                    $recDate = date('d-m-Y', strtotime($data->rec_date));
+                    $recDate = date('Y-m-d', strtotime($data->rec_date));
                     if($recDate>$lockDateToDate){
                         $buttons .= "<a href='javascript:;'
                                         id='revisionReasonButton'
@@ -1328,7 +1360,7 @@ class ReceivingController extends Controller
                                 </a>';
 
             if ( $data->status == '4' ){
-                $recDate = date('d-m-Y', strtotime($data->rec_date));
+                $recDate = date('Y-m-d', strtotime($data->rec_date));
                 if($recDate>$lockDateToDate){
                     if (Auth::user()->can('receiving-delete')) {
                         $buttons .=         "<a href='javascript:;'
@@ -1345,7 +1377,7 @@ class ReceivingController extends Controller
             }
             
             if ( $data->status != '4' and $data->status != '5' and $data->status != '7'){
-                $recDate = date('d-m-Y', strtotime($data->rec_date));
+                $recDate = date('Y-m-d', strtotime($data->rec_date));
                 if($recDate>$lockDateToDate){
                     if (Auth::user()->can('receiving-delete')) {
                         $buttons .=         "<a href='javascript:;'

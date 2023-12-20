@@ -32,8 +32,34 @@ class DeliveryController extends Controller
         ->where('status','1')
         ->value('lock_date');
 
+        $lastDatePrevMonth = date('t-m-Y', strtotime('-1 months'));
+        $lastDatePrevMonth = date('t-m-Y', strtotime('-1 months',strtotime('05-11-2023')));
+        $firstDayCurrentMonth = date('1-m-Y');
+        $firstDayCurrentMonth = date('1-m-Y', strtotime('05-11-2023'));
+        $prevmonth = date('M Y 1', strtotime('-1 months'));
+        
+        /*
+        jika tanggal hari ini lebih kecil dari lockdate maka
+        min date nya adalah tanggal akhir dari bulan sebelumnya
+        kalau tanggal hari ini lebi besar dari lockdate maka 
+        tanggal minimum nya adalah tanngal awal di bulan ini
+        */
+
+        $todayDate = date('d-m-Y');
         $lockDateHere = $lockDate1 ? $lockDate1 : '2023-01-01' ;
         $lockDateAt = date('d-m-Y', strtotime("+1 day", strtotime($lockDateHere)));
+
+        // dd(date('t-m-Y', strtotime($lockDateAt)));
+
+        if ($todayDate < $lockDateAt ){
+            $firstDatePrevMonth = date('1-m-Y', strtotime("-1 months",strtotime($lockDateHere)));
+            $lockDateAt = $firstDatePrevMonth;
+        }else{
+            $lockDateAt = date('1-m-Y', strtotime($lockDateAt));
+        }
+
+        // $lockDateHere = $lockDate1 ? $lockDate1 : '2023-01-01' ;
+        // $lockDateAt = date('d-m-Y', strtotime("+1 day", strtotime($lockDateHere)));
         $this->lockDate = $lockDateAt;
 
         $lockDateHereIndex = $lockDate1 ? $lockDate1 : '2023-01-01' ;
@@ -101,6 +127,11 @@ class DeliveryController extends Controller
     public function index(Request $request)
     {
         $data['title'] = $this->title;
+
+        // $firstDayCurrentMonth = date('1-m-Y', strtotime('05-11-2023'));
+        // $lastDatePrevMonth = date('t-m-Y', strtotime('-1 months',strtotime('05-12-2023')));
+        // $todaYDate = date('d-m-Y');
+        
 
         $data['customers'] = DB::table('third_party')
         ->where ('third_party_type','=','cust')
@@ -1061,8 +1092,6 @@ class DeliveryController extends Controller
             }
         }
 
-
-
         $data = DB::table('delivery_hdr')
         ->leftJoin('third_party','third_party.kode','delivery_hdr.customer_id')
         ->where(function ($query) use ($searchDn,$searchSo,$searchCustomer,$searchStatus,$requestDate,$fromDate,$toDate) {
@@ -1084,7 +1113,8 @@ class DeliveryController extends Controller
         ->orderBy('id')
         ->get();
 
-        $lockDateToDate = $this->lockDate;
+        // $lockDateToDate = $this->lockDate;
+        $lockDateToDate = date('Y-m-d',strtotime($this->lockDate));
 
         return Datatables::of($data)
         ->addColumn('action', function ($data) use($lockDateToDate)  {
@@ -1137,7 +1167,7 @@ class DeliveryController extends Controller
 
             // if ((($data->status == '1') || ($data->status == '2') || ($data->status == '3') || ($data->status == '4')) && ($data->sudah_di_bayar == 0)){
             if ((($data->status == '1') || ($data->status == '2') || ($data->status == '3') || ($data->status == '4'))){
-                $dnDate = date('Y/m/d', strtotime($data->delivery_date));
+                $dnDate = date('Y-m-d', strtotime($data->delivery_date));
                 if($dnDate>$lockDateToDate){
                     $buttons .= "<a href='javascript:;'
                                     id='revisionReasonButton'
@@ -1165,7 +1195,7 @@ class DeliveryController extends Controller
                 
             if (($data->status != '3') && ($data->status != '4') && ($data->status != '8') && ($data->status != '7')){
                 if (Auth::user()->can('delivery-delete')) {
-                    $dnDate = date('Y/m/d', strtotime($data->delivery_date));
+                    $dnDate = date('Y-m-d', strtotime($data->delivery_date));
                     if($dnDate>$lockDateToDate){
                         $buttons .=         "<a href='javascript:;'
                                                 id='deleteButton'
