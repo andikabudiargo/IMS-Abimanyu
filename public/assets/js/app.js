@@ -658,7 +658,7 @@
                 if (arr2.length>0){
                     nilai2 = arr2[i].replace(/,/gi, '') || 0;
                 }
-                jumlah += parseFloat(nilai1)*parseInt(nilai2); 
+                jumlah += parseFloat(nilai1)*parseFloat(nilai2); 
             }
         }
         return jumlah;

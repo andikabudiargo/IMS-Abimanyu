@@ -723,6 +723,8 @@
         totalQty = sumFromArray(qty);
         totalAmount = sumFromArray(qty,price);
 
+        console.log(totalAmount);
+
         // mask_thousand_digit(2);
 
         let nilaiPph23 = parseFloat((parseFloat(pph23)*(totalAmount-((totalAmount*parseFloat(persenDiscount))/100))))/100;
@@ -732,7 +734,7 @@
         $("#totalRow").val(objPrNumber.length);
         // $("#nilaiPPN").text(ppn+"%");
         $("#totalQTY").val(totalQty);
-        $("#totalAmount").val(humanizeNumber(totalAmount.toFixed(2)));
+        $("#totalAmount").val(humanizeNumber(parseFloat(totalAmount).toFixed(2)));
         $("#totalDiscount").val(nilaiDisc ?humanizeNumber(nilaiDisc.toFixed(2)):0);
         $("#totalDpp").val(humanizeNumber((totalAmount-((totalAmount*parseFloat(persenDiscount))/100)).toFixed(2)));
         $("#totalPPN").val(nilaiPpn ?humanizeNumber(nilaiPpn.toFixed(2)):0 );
