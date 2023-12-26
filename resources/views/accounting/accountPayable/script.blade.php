@@ -138,7 +138,7 @@
     });
 
     hitungTotal = () => {
-        console.log(edit);
+        // console.log(edit);
         let ba = parseFloat($('#basisAmount').val().replace(/[^0-9.]/g, '')) || 0;
         let baA = parseFloat($('#basisAmountA').val().replace(/[^0-9.]/g, '')) || 0;
 
@@ -308,7 +308,7 @@
         recNumber=recNumber.slice(0,-1);
         let tableIsi = $('#listOfRec > tbody  tr').length;
         
-        console.log('Grand Total Check :'+sumQty);
+        // console.log('Grand Total Check :'+sumQty);
 
         if(parseFloat($("#grandTotalQty").val())!=sumQty){
             Swal.fire("Warning","Data belum sesuai harus di submit ulang","warning"); 
@@ -317,7 +317,7 @@
                 if (!$("#frmAdd")[0].checkValidity()){
                     $("#frmAdd").submit();
                 }else{
-                    $('#cmdSave').attr('disabled','disabled');
+                    // $('#cmdSave').attr('disabled','disabled');
                     $('.disabled-el').removeAttr('disabled');
                     $('#recNumberSave').val(recNumber);
                     // ambil semua data article
@@ -358,6 +358,7 @@
                                     "credit":0,
                                 });
                             }
+                            // console.log(details);
 
                             if ((sArtDesc =='') || (sArtCc =='') || ((sArtDebit) == 0)){
                                 cekIsi++;
@@ -397,22 +398,27 @@
                     }
 
                     if (flag == 0){
-                        let myformData = $("#frmAdd").serialize();
-                        // console.log(myformData);
-                        let detailsData = JSON.stringify(details);
+                        // let myformData = $("#frmAdd").serialize();
                         let url='';
                         let apId = '';
+                        let detailsData = JSON.stringify(details);
+                        let myformData = $("#frmAdd").serializeArray();
+                                                
                         if (dariEdit=='true'){
                             url ="{{ route('accountPayable.update') }}";
                             apId =$('#apId').val();
                         }else{
                             url ="{{ route('accountPayable.store') }}";
                         }
+
+                        myformData.push({ name: "details", value: detailsData });
+                        myformData.push({ name: "id", value: apId });
                                                 
                         $.ajax({
                             type: "post",
                             url: url,
-                            data: myformData+'&details='+detailsData+'&id='+apId,
+                            // data: myformData+'&details='+detailsData+'&id='+apId,
+                            data: myformData,
                             dataType: "json",
                             success: function(data) {
                                 if (data.status == 0 ){
@@ -425,7 +431,7 @@
                                     show_msg(data.title, data.message, data.alert);
                                     $('#apNumber').attr('disabled','disabled');
                                     $('#apNumber').val(data.apNumber);
-                                    $('#cmdSave').attr('disabled','disabled');
+                                    // $('#cmdSave').attr('disabled','disabled');
                                     $('#addNewRow').attr('disabled','disabled');
                                     window.location.href = "{{ route('accountPayable.create') }}";
                                 }
