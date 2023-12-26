@@ -317,7 +317,7 @@
                 if (!$("#frmAdd")[0].checkValidity()){
                     $("#frmAdd").submit();
                 }else{
-                    // $('#cmdSave').attr('disabled','disabled');
+                    $('#cmdSave').attr('disabled','disabled');
                     $('.disabled-el').removeAttr('disabled');
                     $('#recNumberSave').val(recNumber);
                     // ambil semua data article
@@ -431,7 +431,7 @@
                                     show_msg(data.title, data.message, data.alert);
                                     $('#apNumber').attr('disabled','disabled');
                                     $('#apNumber').val(data.apNumber);
-                                    // $('#cmdSave').attr('disabled','disabled');
+                                    $('#cmdSave').attr('disabled','disabled');
                                     $('#addNewRow').attr('disabled','disabled');
                                     window.location.href = "{{ route('accountPayable.create') }}";
                                 }
