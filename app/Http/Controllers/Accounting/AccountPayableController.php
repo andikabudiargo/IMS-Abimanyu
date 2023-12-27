@@ -1135,6 +1135,7 @@ class AccountPayableController extends Controller
         $statusLevelApproval = Approval::approvalLevelPosition($this->moduleCode,$apNumber,$username);        
         $nextLevel = $statusLevelApproval[0]->next_level;
         $status = $statusLevelApproval[0]->next_level == $statusLevelApproval[0]->max_level ? '3' :'2';
+        $maxLevel = $statusLevelApproval[0]->max_level;
 
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATED','3'=>'APPROVED','4'=>'','5'=>'DELETED','6'=>"CLOSED"];
                 
