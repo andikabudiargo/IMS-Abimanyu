@@ -377,6 +377,7 @@
                 });
 
             }else{
+                $('#cmdSave').removeAttr('disabled');
                 Swal.fire('Warning..',pesan,'warning');
             }
         }
