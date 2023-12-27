@@ -1189,6 +1189,15 @@ class AccountPayableController extends Controller
                         ]
                     );
                 }
+
+                /*
+                    permintaan pak leo 9-11-2023
+                    untuk akun pak Budi bisa auto apporoved
+
+                */
+                if( $nextLevel == ($maxLevel-1) ){
+                    $this->autoApprove($apNumber,'budi');
+                }
                 
                 DB::commit();
                 $title ="Approve $this->title";
@@ -1204,6 +1213,81 @@ class AccountPayableController extends Controller
             $message  = "$title $apNumber is failed to Approve-".$nextLevel;
             \LogActivity::addToLog($title,"username: $username Status $message");
             return response()->json(array('status' => $status,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'$apNumber'=>$apNumber));
+        }
+    }
+
+    public function autoApprove($apNumber,$username)
+    {
+        $statusLevelApproval = Approval::approvalLevelPosition($this->moduleCode,$apNumber,$username);        
+        $nextLevel = $statusLevelApproval[0]->next_level;
+        $status = $statusLevelApproval[0]->next_level == $statusLevelApproval[0]->max_level ? '3' :'2';
+
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATED','3'=>'APPROVED','4'=>'','5'=>'DELETED','6'=>"CLOSED"];
+                
+        DB::beginTransaction();
+        try {
+                $row_affected=DB::table('ap_invoice')
+                ->where('ap_number',$apNumber)
+                ->update(
+                    [
+                        'status' => $status,
+                        'updated_by' => $username,
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]
+                );
+
+                if ($row_affected){
+                    DB::table('approval_history')->insert([
+                        'module_code' => $this->moduleCode,
+                        'module_number' => $apNumber,
+                        'username' => $username,
+                        'approval_order' => $nextLevel,
+                        'approval_date' => date('Y-m-d'),
+                        'status' => 1,
+                        'created_by' => $username,
+                        'updated_by' => $username,
+                        'created_at' => date('Y-m-d H:i:s'),
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]);
+                }
+
+                $row_affected=DB::table('kas_hdr')
+                ->where('voucher_number',$apNumber)
+                ->update(
+                    [
+                        'status' => $status,
+                        'updated_by' => $username,
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]
+                );
+
+                if($status == '3'){
+                    //posting AP ke kas
+                    DB::table('ap_invoice')
+                    ->where('ap_number',$apNumber)
+                    ->update(
+                        [   
+                            'status' => '4',
+                            'authorized_by' => $username,
+                            'authorized_at' => date('Y-m-d H:i:s'),
+                            'updated_by' => $username,
+                            'updated_at' => date('Y-m-d H:i:s')
+                        ]
+                    );
+                }
+                
+                DB::commit();
+                $title ="Approve $this->title";
+                $alert  ="success";
+                $message  = "$title $apNumber is successfully Approve-".$nextLevel;
+                \LogActivity::addToLog($title,"username: $username Status $message");
+
+        } catch (Exception $e) {
+            DB::rollBack();
+            $title ="Approve $this->title";
+            $alert  ="warning";
+            $message  = "$title $apNumber is failed to Approve-".$nextLevel;
+            \LogActivity::addToLog($title,"username: $username Status $message");
         }
     }
 
