@@ -2102,7 +2102,9 @@ class AccountPayableController extends Controller
         ->select('kas_det.*'
         ,'ap_invoice.ap_number'
         ,'ap_invoice.inv_number'
-        ,'accounts.description as account_name')
+        ,'accounts.description as account_name'
+        ,DB::raw("(select STRING_AGG ( a.rec_number,', ' ORDER BY a.id) as list_rec from ap_invoice_detail a where ap_number = ap_invoice.ap_number) as list_rec")
+        )
         ->where('kas_det.voucher_number',$voucherNumber)
         ->orderBy('id')
         ->get();

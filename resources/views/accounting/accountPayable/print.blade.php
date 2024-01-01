@@ -165,6 +165,11 @@
             /* font-size: medium; */
         }
 
+        .font-8{
+            font-size:8pt;
+            /* font-size: medium; */
+        }
+
         .font-16{
             font-size:16pt;
             /* font-size: medium; */
@@ -217,7 +222,7 @@
                                             <td class="tanpa-padding font-14">: {{ $supplierName }}</td>
                                         </tr>
                                         <tr class="tanpa-padding">
-                                            <td class="tanpa-padding font-14">Invoice Number</td>
+                                            <td class="tanpa-padding font-14" valign="top">Invoice Number</td>
                                             <td class="tanpa-padding font-14">: {{ $invoiceNumber }}</td>
                                             <td class="tanpa-padding font-14" >NO. PO</td>
                                             <td class="tanpa-padding font-14">: {{ $noPo }}</td>
@@ -250,7 +255,8 @@
                                     <tr >
                                         <td align="left">{{ $val->account }}</td>
                                         <td align="left">{{ $val->account_name }}</td>
-                                        <td align="left">{{ $val->ap_number }}</td>
+                                        {{-- <td align="left">{{ $val->ap_number }}</td> --}}
+                                        <td align="left" class="font-8">{{ $val->list_rec }}</td>
                                         <td align="left">{{ $val->inv_number }}</td>
                                         <td align="right">{{ number_format($val->debit,2) }}</td>
                                         <td align="right">{{ number_format($val->credit,2) }}</td>
