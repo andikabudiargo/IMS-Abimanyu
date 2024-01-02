@@ -80,13 +80,16 @@ class InvoiceController extends Controller
         return view("invoice.index",$data);
     }
 
-    public function getLastCode($key,$period)
+    public function getLastCode($key,$period,$year)
     {
         /*
             31 Oktober 2023
             Untuk angka romawi berdasarkan period
         */
-        
+       
+        /*
+        old ways
+
         DB::table('master_code')
         ->where('code_key',$key)
         ->update([
@@ -106,7 +109,54 @@ class InvoiceController extends Controller
         // INV-ASN-23-X-0001
         $code="$key-ASN-$year-$month-$newCode";
         // $code="$key/ASN/$year/$month/$newCode";
+
+        */
+
+        /*
+            new ways
+            Jadi dilihat nomor terakhir bukan dari tabel master_code lagi
+            tapi dari nomor terakhir transaksi
+            $data['status'] = ['1'=>'DRAFT','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','6'=>'PAID'];
+            "INV-ASN-24-I-0001"
+        */
         
+        $getCurrentYear = date('y');
+        $inputYear = $year;
+        $basicCode = "$key-ASN-$inputYear";
+
+        $getResetRule = DB::table('master_code')
+        ->where('code_key',$key)
+        ->value('reset_by');
+
+        if($getResetRule == 'YEAR'){
+            $getLastNumber = DB::table('invoice_hdr')
+            ->where('invoice_number','like',$basicCode.'%')
+            ->where('status','<>','5')
+            ->orderBy('id','desc')
+            ->first();
+        }else{
+            $getLastNumber = DB::table('invoice_hdr')
+            ->where('status','<>','5')
+            ->orderBy('id','desc')
+            ->first();
+        }       
+
+        if ($getLastNumber){
+            $getYear = explode('-',$getLastNumber->invoice_number)[2];
+            $getLastCode = explode('-',$getLastNumber->invoice_number)[4];
+            $newCode = ($getLastCode*1)+1;
+        }else{
+            $getYear = $getCurrentYear;
+            $getLastCode = 1;
+            $newCode = 1;
+        }
+        
+        $newCode = str_pad($newCode,4,"0",STR_PAD_LEFT);
+        $months = ['I', 'II', 'III','IV','V', 'VI', 'VII', 'VIII','IX','X','XI','XII'];
+        $month = $months[$period-1];
+        $year = $inputYear;
+        $code="$key-ASN-$year-$month-$newCode";
+       
         return $code;
     }
 
@@ -188,8 +238,9 @@ class InvoiceController extends Controller
             $alert ="error";
             return response()->json(array('status' => 0,'title' => $title, 'message' => $error_array,'alert' =>$alert));
         }else{
-            $hasilUpdate = AppHelpers::resetCode($this->moduleCode);
-            $invCode = $this->getLastCode($this->moduleCode,$periodNomor);
+            // $hasilUpdate = AppHelpers::resetCode($this->moduleCode);
+            $inputYear = substr($invDate,-2);
+            $invCode = $this->getLastCode($this->moduleCode,$periodNomor,$inputYear);
             DB::beginTransaction();
             try {
                 DB::table('invoice_hdr')->insert([
