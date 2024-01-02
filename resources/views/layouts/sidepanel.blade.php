@@ -514,8 +514,8 @@
                   <ul class="menu-content">
                       <li class="{{ \Request::segment(1) == 'accountPayable'  ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('accountPayable.index') }}"><span class="menu-item text-truncate" data-i18n="Invoice supplier">Invoice Supplier V2</span></a>
                       </li>
-                      <li class="{{ \Request::segment(1) == 'aps'  ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('aps.index') }}"><span class="menu-item text-truncate" data-i18n="Invoice supplier">Invoice Supplier</span></a>
-                      </li>
+                      {{-- <li class="{{ \Request::segment(1) == 'aps'  ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('aps.index') }}"><span class="menu-item text-truncate" data-i18n="Invoice supplier">Invoice Supplier</span></a>
+                      </li> --}}
                       <li class="{{ \Request::segment(1) == 'invoice' ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('invoice.index') }}"><span class="menu-item text-truncate" data-i18n="Invoice customer">Invoice Customer</span></a>
                       </li>
                   </ul>
