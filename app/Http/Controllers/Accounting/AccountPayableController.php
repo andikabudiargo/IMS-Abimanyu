@@ -112,28 +112,78 @@ class AccountPayableController extends Controller
     }
 
     // public function getLastCode($key)
-    public function getLastCode($key,$period)
+    public function getLastCode($key,$period,$year)
     {
-        DB::table('master_code')
-        ->where('code_key',$key)
-        ->update([
-            'code_number' => DB::raw('code_number + 1'),
-            'updated_by' => Auth::user()->username,
-            'updated_at' => date('Y-m-d H:i:s')
-        ]);
+        /*
+            old ways
+            DB::table('master_code')
+            ->where('code_key',$key)
+            ->update([
+                'code_number' => DB::raw('code_number + 1'),
+                'updated_by' => Auth::user()->username,
+                'updated_at' => date('Y-m-d H:i:s')
+            ]);
 
-        $newCode = DB::table('master_code')
+            $newCode = DB::table('master_code')
+            ->where('code_key',$key)
+            ->value('code_number'); 
+
+            $newCode = str_pad($newCode,4,"0",STR_PAD_LEFT);
+            $months = ['I', 'II', 'III','IV','V', 'VI', 'VII', 'VIII','IX','X','XI','XII'];
+            // $month = $months[date('n')-1];
+            $month = $months[$period-1];
+            $year = date('Y');
+            // AP-ASN-23-X-0001
+            $code="$key-ASN-$year-$month-$newCode";
+            // $code="$key-ASN/$year/$month/$newCode";
+        */
+
+        /*
+            new ways
+            Jadi dilihat nomor terakhir bukan dari tabel master_code lagi
+            tapi dari nomor terakhir transaksi
+                             1          2          3         4         5         6
+            $statusCode = ['DRAFT','VALIDATED','APPROVED','POSTED','CANCELED','PAID'];
+            "AP-ASN-2024-I-0001"
+        */
+        
+        $getCurrentYear = date('Y');
+        $inputYear = $year;
+        // $basicCode = "$key-ASN-$inputYear";
+        $basicCode = "______-$inputYear";
+
+        $getResetRule = DB::table('master_code')
         ->where('code_key',$key)
-        ->value('code_number'); 
+        ->value('reset_by');
+
+        if($getResetRule == 'YEAR'){
+            $getLastNumber = DB::table('ap_invoice')
+            ->where('ap_number','like',$basicCode.'%')
+            ->where('status','<>','5')
+            ->orderBy('id','desc')
+            ->first();
+        }else{
+            $getLastNumber = DB::table('ap_invoice')
+            ->where('status','<>','5')
+            ->orderBy('id','desc')
+            ->first();
+        }       
+
+        if ($getLastNumber){
+            $getYear = explode('-',$getLastNumber->ap_number)[2];
+            $getLastCode = explode('-',$getLastNumber->ap_number)[4];
+            $newCode = ($getLastCode*1)+1;
+        }else{
+            $getYear = $getCurrentYear;
+            $getLastCode = 1;
+            $newCode = 1;
+        }
 
         $newCode = str_pad($newCode,4,"0",STR_PAD_LEFT);
         $months = ['I', 'II', 'III','IV','V', 'VI', 'VII', 'VIII','IX','X','XI','XII'];
-        // $month = $months[date('n')-1];
         $month = $months[$period-1];
-        $year = date('Y');
-        // AP-ASN-23-X-0001
+        $year = $inputYear;
         $code="$key-ASN-$year-$month-$newCode";
-        // $code="$key-ASN/$year/$month/$newCode";
         
         return $code;
     }
@@ -615,8 +665,9 @@ class AccountPayableController extends Controller
 
         $this->validate($request,$rule,$messages);
 
-        $hasilUpdate = AppHelpers::resetCode($this->moduleCode);
-        $apNumber = $this->getLastCode($this->moduleCode,$periodNomor);
+        $inputYear = substr($apDate,-4);
+        // $hasilUpdate = AppHelpers::resetCode($this->moduleCode);
+        $apNumber = $this->getLastCode($this->moduleCode,$periodNomor,$inputYear);
         DB::beginTransaction();
         try {
                 $rowAffected = DB::table('ap_invoice')->insert([

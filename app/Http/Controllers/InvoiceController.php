@@ -122,7 +122,7 @@ class InvoiceController extends Controller
         
         $getCurrentYear = date('y');
         $inputYear = $year;
-        $basicCode = "$key-ASN-$inputYear";
+        $basicCode = "_______-$inputYear";
 
         $getResetRule = DB::table('master_code')
         ->where('code_key',$key)
