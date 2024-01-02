@@ -175,7 +175,6 @@ class AccountPayableController extends Controller
             $newCode = ($getLastCode*1)+1;
         }else{
             $getYear = $getCurrentYear;
-            $getLastCode = 1;
             $newCode = 1;
         }
 

@@ -69,29 +69,71 @@ class KasPenerimaanController extends Controller
         return json_encode($kolom, true);
     }
 
-    public function getLastCode($key,$period)
+    public function getLastCode($key,$period,$year)
     {
-        DB::table('master_code')
-        ->where('code_key',$key)
-        ->update([
-            'code_number' => DB::raw('code_number + 1'),
-            'updated_by' => Auth::user()->username,
-            'updated_at' => date('Y-m-d H:i:s')
-        ]);
+        /*
 
-        $newCode = DB::table('master_code')
+            DB::table('master_code')
+            ->where('code_key',$key)
+            ->update([
+                'code_number' => DB::raw('code_number + 1'),
+                'updated_by' => Auth::user()->username,
+                'updated_at' => date('Y-m-d H:i:s')
+            ]);
+
+            $newCode = DB::table('master_code')
+            ->where('code_key',$key)
+            ->value('code_number'); 
+
+            $newCode = str_pad($newCode,4,"0",STR_PAD_LEFT);
+            $months = ['I', 'II', 'III','IV','V', 'VI', 'VII', 'VIII','IX','X','XI','XII'];
+            $month = $months[$period-1];
+            // $month = str_pad(date('n'),2,"0",STR_PAD_LEFT);
+            // $month = str_pad($period,2,"0",STR_PAD_LEFT);
+            $year = date('y');
+            // KM-ASN-23-X-0001
+            $code="$key-ASN-$year-$month-$newCode";
+            // $code="$key/$month/$year/$newCode";
+        */
+
+        $getCurrentYear = date('y');
+        $inputYear = $year;
+        $basicCode = "______-$inputYear";
+
+        $getResetRule = DB::table('master_code')
         ->where('code_key',$key)
-        ->value('code_number'); 
+        ->value('reset_by');
+
+        if($getResetRule == 'YEAR'){
+            $getLastNumber = DB::table('kas_hdr')
+            ->where('voucher_number','like',$basicCode.'%')
+            // ->where('status','<>','5')
+            ->where('voucher_type',$key)
+            ->orderBy('id','desc')
+            ->first();
+        }else{
+            $getLastNumber = DB::table('kas_hdr')
+            // ->where('status','<>','5')
+            ->where('voucher_type',$key)
+            ->orderBy('id','desc')
+            ->first();
+        }       
+
+        if ($getLastNumber){
+            $getYear = explode('-',$getLastNumber->voucher_number)[2];
+            $getLastCode = explode('-',$getLastNumber->voucher_number)[4];
+            $newCode = ($getLastCode*1)+1;
+        }else{
+            $getYear = $getCurrentYear;
+            $newCode = 1;
+        }
 
         $newCode = str_pad($newCode,4,"0",STR_PAD_LEFT);
         $months = ['I', 'II', 'III','IV','V', 'VI', 'VII', 'VIII','IX','X','XI','XII'];
         $month = $months[$period-1];
-        // $month = str_pad(date('n'),2,"0",STR_PAD_LEFT);
-        // $month = str_pad($period,2,"0",STR_PAD_LEFT);
-        $year = date('y');
-        // KM-ASN-23-X-0001
+        $year = $inputYear;
         $code="$key-ASN-$year-$month-$newCode";
-        // $code="$key/$month/$year/$newCode";
+
         return $code;
     }
 
@@ -177,8 +219,9 @@ class KasPenerimaanController extends Controller
             $alert ="error";
             return response()->json(array('status' => 0,'title' => $title, 'message' => $error_array,'alert' =>$alert));
         }else{
-            $hasilUpdate = AppHelpers::resetCode($leadCode);
-            $vcNumber = $this->getLastCode($leadCode,$periodNomor);
+            // $hasilUpdate = AppHelpers::resetCode($leadCode);
+            $inputYear = substr($vcDate,-2);
+            $vcNumber = $this->getLastCode($leadCode,$periodNomor,$inputYear);
             DB::beginTransaction();
             try {
                     DB::table('kas_hdr')->insert([
