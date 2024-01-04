@@ -1239,6 +1239,10 @@ class SalesOrderController extends Controller
         //,DB::raw("case when uom_group = 'PIECE' then TO_CHAR(qty_forcast,'999,999,999') when uom_group <> 'PIECE' then TO_CHAR(qty_forcast,'999,999,999.999') end as qty_forcast")
         ,DB::RAW("to_date(so_date,'dd-mm-yyyy') as date_period")
         )
+        ->where(db::raw("case when sales_order_det.status = '0' then 0 else (coalesce((select sum(qty) from delivery_det a
+        left join delivery_hdr b on a.delivery_number=b.delivery_number 
+        where a.so_number = sales_order_hdr.so_code and a.article_code = sales_order_det.article_code 
+        and b.status not in ('5','7')  group by article_code),0)-sales_order_det.qty) end"),'!=',0)
         ->orderBy('sales_order_det.id')
         ->get(); 
     
