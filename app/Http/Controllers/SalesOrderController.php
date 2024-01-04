@@ -40,6 +40,7 @@ class SalesOrderController extends Controller
             ['data'=>'status','name'=>'status','title'=>'Status'],
             ['data'=>'note','name'=>'note','title'=>'Note'],
             ['data'=>'num_revision','name'=>'num_revision','title'=>'Num Revision'],
+            ['data'=>'created_at','name'=>'created_at','title'=>'Created At','visible'=>false],
             // ['data'=>'detail','name'=>'detail','title'=>'Detail'],
 
         ];

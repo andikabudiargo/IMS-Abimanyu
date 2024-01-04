@@ -240,7 +240,7 @@
         searchStatus:searchStatus,
         orderDate:orderDate
       },
-      orderColumn:[[ 1, 'desc' ]],
+      orderColumn:[[ 12, 'desc' ]],
       excelFileName:'sales_order'
     });
   }
