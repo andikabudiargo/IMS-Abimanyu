@@ -422,7 +422,6 @@
         let coa = $('#recFrom').find(":selected").data("coa");
         // if(account=='1100.40'){
         // if(account == coa){
-            // console.log(ref);
         if (account.substring(0,7) =='1100.40'){
             let recFrom = $('#recFrom').val();
             if(ref){
@@ -543,7 +542,6 @@
             },
             success:function(result){
                 listInv = result;
-                console.log(listInv);
             }
         })
     }
