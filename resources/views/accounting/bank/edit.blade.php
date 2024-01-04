@@ -543,6 +543,7 @@
             },
             success:function(result){
                 listInv = result;
+                console.log(listInv);
             }
         })
     }

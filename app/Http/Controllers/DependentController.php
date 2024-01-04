@@ -706,7 +706,7 @@ class DependentController extends Controller
                 ->where('kas_det.voucher_number','like','KM%');
             })
             ->orderBy($order)
-            ->get();
+            ->get();           
         }elseif($dependent =='listPo'){
             $data= DB::table($table)
             ->where($field,$code)
