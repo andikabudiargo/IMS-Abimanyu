@@ -16,6 +16,7 @@ class DependentController extends Controller
     {
         $code= $request->value;
         $type= $request->type;
+        $nilai= $request->nilai;
         $dependent=$request->dependent;
         $akhusus='';
 
@@ -269,6 +270,15 @@ class DependentController extends Controller
                 $defaulttxt='Choose invoice';
                 break;
             case 'referenceAr': 
+                $table='invoice_hdr';
+                $field ='customer_id';
+                $order ='invoice_number';
+                $value = $code;
+                $name  ='invoice_number';
+                $default='';
+                $defaulttxt='Choose invoice';
+                break;
+            case 'referenceArEdit': 
                 $table='invoice_hdr';
                 $field ='customer_id';
                 $order ='invoice_number';
@@ -644,7 +654,25 @@ class DependentController extends Controller
             $customerId = DB::table('third_party')->where('account',$code)->value('kode');
             $data= DB::table($table)
             ->where($field,$customerId)
-            ->where('status','=','3') //approved
+            ->whereIn('status',['3']) //approved
+            ->whereNotIn(DB::raw("invoice_number"), function($query) {
+                $query->select(DB::raw("reference"))
+                ->from('kas_det') 
+                ->leftJoin('kas_hdr','kas_hdr.voucher_number','kas_det.voucher_number')
+                ->where('kas_hdr.status','<>','5')
+                ->where('kas_det.voucher_number','like','BM%')
+                ->where('kas_det.voucher_number','like','KM%');
+            })
+            ->orderBy($order)
+            ->get();
+        }elseif($dependent =='referenceArEdit'){
+            $customerId = DB::table('third_party')->where('account',$code)->value('kode');
+            $data= DB::table($table)
+            ->where($field,$customerId)
+            ->whereIn('status',['3','6']) //approved
+            ->where(function($query) use ($nilai) {
+                $nilai ? $query->where('invoice_number','=',$nilai) : '';
+            })
             ->whereNotIn(DB::raw("invoice_number"), function($query) {
                 $query->select(DB::raw("reference"))
                 ->from('kas_det') 
@@ -745,6 +773,8 @@ class DependentController extends Controller
             }elseif($dependent =='reference'){
                 $output .="<option value='$row->inv_number'>$row->inv_number</option>";
             }elseif($dependent =='referenceAr'){
+                $output .="<option value='$row->invoice_number'>$row->invoice_number</option>";
+            }elseif($dependent =='referenceArEdit'){
                 $output .="<option value='$row->invoice_number'>$row->invoice_number</option>";
             }else{
                 $output .='<option value="'.$row->$value.'">'.$row->$name.'</option>';

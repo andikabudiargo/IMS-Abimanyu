@@ -181,7 +181,7 @@
         </div>
     </div>
 </section>
-@include('accounting.kas.addArticle')
+@include('accounting.bank.addArticle')
 @endsection
 @section('styles')
 <link rel="stylesheet" type="text/css" href="{{ asset('assets/css/jquery-ui.css') }}">
@@ -434,7 +434,8 @@
             let recFrom = $('#recFrom').val();
             if(ref){
                 // invList('referenceAr','vcRef'+ cloneCount,account,ref);
-                invList('referenceAr','vcRef'+ cloneCount,recFrom,ref);
+                invListEdit('referenceArEdit','vcRef'+ cloneCount,recFrom,ref);
+                // invList('referenceAr','vcRef'+ cloneCount,recFrom,ref);
             }
         }
         

@@ -194,6 +194,24 @@
       })
     }
 
+    function invListEdit(dependent,obj,value,ref) {
+      $.ajax({
+        url:"{{route('dynamic.dependent')}}",
+        method:"POST",
+        data:{
+            dependent:dependent,
+            value:value,
+            nilai:ref
+        },
+        success:function(result){
+            // console.log(result);
+            $('#'+obj).html(result).select2();
+            $('#'+obj).val(ref).trigger('change');
+        }
+      })
+    }
+    
+
     function getAmount(){
         let objRef = $('#item_row select[name="vcRef[]"]');
         objRef.change(function(e){ 
