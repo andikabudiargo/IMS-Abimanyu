@@ -404,7 +404,7 @@
         }
     });
 
-    let cloneCount=1;
+    let cloneCount=0;
     function add_new_row(account,desc,ref,cc,debit,credit) {
         $("#item_row").append($("#new_row").clone().html());
         cloneCount++;
@@ -422,15 +422,17 @@
         let coa = $('#recFrom').find(":selected").data("coa");
         // if(account=='1100.40'){
         // if(account == coa){
-        if (account.substring(0,7) =='1100.40'){
-            let recFrom = $('#recFrom').val();
-            if(ref){
-                changeselectInv('vcRef'+ cloneCount,ref);
-                // invList('referenceAr','vcRef'+ cloneCount,account,ref);
-                // invListEdit('referenceArEdit','vcRef'+ cloneCount,recFrom,ref);
-                // invList('referenceAr','vcRef'+ cloneCount,recFrom,ref);
-            }else{
-                changeselectInv('vcRef'+ cloneCount,'');
+        if(account){
+            if (account.substring(0,7) =='1100.40'){
+                let recFrom = $('#recFrom').val();
+                if(ref){
+                    changeselectInv('vcRef'+ cloneCount,ref);
+                    // invList('referenceAr','vcRef'+ cloneCount,account,ref);
+                    // invListEdit('referenceArEdit','vcRef'+ cloneCount,recFrom,ref);
+                    // invList('referenceAr','vcRef'+ cloneCount,recFrom,ref);
+                }else{
+                    changeselectInv('vcRef'+ cloneCount,'');
+                }
             }
         }
         
@@ -451,10 +453,10 @@
         hitungTotal();
         hitungGrandTotal();
 
-        if(!account){
+        // if(!account){
             getAmount();
             findInvoice();
-        }
+        // }
 
         $('[data-toggle="tooltip"]').tooltip();
     };
