@@ -1243,6 +1243,7 @@ class SalesOrderController extends Controller
         left join delivery_hdr b on a.delivery_number=b.delivery_number 
         where a.so_number = sales_order_hdr.so_code and a.article_code = sales_order_det.article_code 
         and b.status not in ('5','7')  group by article_code),0)-sales_order_det.qty) end"),'!=',0)
+        ->where('article.article_desc',"<>",'')
         ->orderBy('sales_order_det.id')
         ->get(); 
     
