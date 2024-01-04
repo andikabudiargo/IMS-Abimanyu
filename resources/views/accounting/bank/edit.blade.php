@@ -240,32 +240,24 @@
     let currentDate = todayDate('dd-mm-yyyy');   
     let type = "{{ $type }}";
     let listCoa="";
+    let listInv="";
     
-    $(document).ready(function(){           
+    $(document).ready(function(){
+        let recFrom = $('#recFrom').val();
         validateFormToast('frmAdd');
         isiCoa('list_coa');
+        isiInv('list_inv',recFrom);
 
         setTimeout(function () {
             $(".loading-spinner-container").addClass("-show");
         }, 500);
         timerId= setInterval(() => checkVariable(), 1000);
 
-        // let detail = {!!  $details !!};
-        // for(let i=0;i<detail.length;i++){
-        //     vcAccount = detail[i].account;
-        //     vcDesc = detail[i].description;
-        //     vcRef = detail[i].reference;
-        //     vcCc = detail[i].cost_center;
-        //     vcDebit = detail[i].debit;
-        //     vcCredit = detail[i].credit;
-        //     add_new_row(vcAccount,vcDesc,vcRef,vcCc,vcDebit,vcCredit);
-        // }
-
     });
 
     let detail = {!! $details !!};
     function checkVariable() {
-        if (listCoa.length > 0) {
+        if ((listCoa.length > 0)) {
             clearInterval(timerId);
             isiData(detail);
         }
@@ -433,8 +425,9 @@
         if (account.substring(0,7) =='1100.40'){
             let recFrom = $('#recFrom').val();
             if(ref){
+                changeselectInv('vcRef'+ cloneCount,ref);
                 // invList('referenceAr','vcRef'+ cloneCount,account,ref);
-                invListEdit('referenceArEdit','vcRef'+ cloneCount,recFrom,ref);
+                // invListEdit('referenceArEdit','vcRef'+ cloneCount,recFrom,ref);
                 // invList('referenceAr','vcRef'+ cloneCount,recFrom,ref);
             }
         }
@@ -537,11 +530,33 @@
         })
     }
 
+    function isiInv(dependent,nilai) {
+        $.ajax({
+            url:"{{route('dynamic.dependent')}}",
+            method:"POST",
+            data:{
+                dependent:dependent,
+                nilai:nilai
+            },
+            success:function(result){
+                listInv = result;
+            }
+        })
+    }
+
     function changeselect(dependent,obj,article) {
         $('#'+obj).attr('disabled','disabled');
         $('#'+obj).html(listCoa);
         $('#'+obj).select2();
         $('#'+obj).val(article).trigger('change');
+        $('#'+obj).removeAttr('disabled');
+    }
+
+    function changeselectInv(obj,ref) {
+        $('#'+obj).attr('disabled','disabled');
+        $('#'+obj).html(listInv);
+        $('#'+obj).select2();
+        $('#'+obj).val(ref).trigger('change');
         $('#'+obj).removeAttr('disabled');
     }
 

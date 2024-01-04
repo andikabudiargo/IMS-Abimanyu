@@ -314,6 +314,15 @@ class DependentController extends Controller
                 $default='';
                 $defaulttxt='Choose Account';
                 break;
+            case 'list_inv': 
+                $table='invoice_hdr';
+                $field ='';
+                $order ='invoice_number';
+                $value ='';
+                $name  ='';
+                $default='';
+                $defaulttxt='Choose Account';
+                break;
             case 'pRequest': 
                 $table='purchase_request_det';
                 $field ='supp_code';
@@ -592,6 +601,21 @@ class DependentController extends Controller
             ->where('acc_header','!=','HEADER')
             ->orderBy($order)
             ->get();
+        }elseif($dependent =='list_inv'){
+            $customerId = DB::table('third_party')->where('account',$nilai)->value('kode');
+            $data= DB::table($table) 
+            ->where('customer_id',$customerId)
+            ->whereIn('status',['3','6']) //approved
+            ->whereNotIn(DB::raw("invoice_number"), function($query) {
+                $query->select(DB::raw("reference"))
+                ->from('kas_det') 
+                ->leftJoin('kas_hdr','kas_hdr.voucher_number','kas_det.voucher_number')
+                ->where('kas_hdr.status','<>','5')
+                ->where('kas_det.voucher_number','like','BM%')
+                ->where('kas_det.voucher_number','like','KM%');
+            })
+            ->orderBy($order)
+            ->get();
         }elseif($dependent =='tsoArticle'){
             $data= DB::table($table)
             ->leftJoin('uom','uom.code','=',$table.'.uom')
@@ -775,6 +799,8 @@ class DependentController extends Controller
             }elseif($dependent =='referenceAr'){
                 $output .="<option value='$row->invoice_number'>$row->invoice_number</option>";
             }elseif($dependent =='referenceArEdit'){
+                $output .="<option value='$row->invoice_number'>$row->invoice_number</option>";
+            }elseif($dependent =='list_inv'){
                 $output .="<option value='$row->invoice_number'>$row->invoice_number</option>";
             }else{
                 $output .='<option value="'.$row->$value.'">'.$row->$name.'</option>';
