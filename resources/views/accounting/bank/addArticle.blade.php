@@ -211,7 +211,6 @@
       })
     }
     
-
     function getAmount(){
         let objRef = $('#item_row select[name="vcRef[]"]');
         objRef.change(function(e){ 
