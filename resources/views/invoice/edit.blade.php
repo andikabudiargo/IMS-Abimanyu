@@ -39,10 +39,16 @@
                                             <select class="select2 form-control" id="customer" name="customer" required disabled>
                                                 <option value="">All</option>
                                                 @foreach($customers as $val)
-                                                    <option value="{{$val->kode}}" {{$val->kode == $header->customer_id ? "selected" : ""}} >{{$val->kode}} - {{$val->nama}}</option>
+                                                    <option value="{{$val->kode}}" data-coa = "{{ $val->account }}" {{$val->kode == $header->customer_id ? "selected" : ""}} >{{$val->kode}} - {{$val->nama}}</option>
                                                 @endforeach
                                             </select>
                                         </div>
+                                    </div>
+                                    <div class="form-row">
+                                        <div class="form-group col-md-6">
+                                            <label for="accountPiutang">COA Piutang*</label>
+                                            <input type="text" id="accountPiutang" name="accountPiutang" class="form-control disabled-el" value="{{ old('accountPiutang',$header->account_piutang) }}" disabled />
+                                        </div> 
                                     </div>
                                     <div class="form-row">
                                         <div class="form-group col-md-12">

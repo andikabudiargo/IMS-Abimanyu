@@ -582,8 +582,6 @@ class AccountPayableController extends Controller
         }
         */
 
-        $periodNomor=$period;
-
         $totalDiscount = is_null($request->totalDiscount) ? 0 : preg_replace('/[^0-9.]+/', '', $request->totalDiscount);
         $grandTotal = is_null($request->grandTotal) ? 0 :  preg_replace('/[^0-9.]+/', '', $request->grandTotal);
 
@@ -664,7 +662,33 @@ class AccountPayableController extends Controller
 
         $this->validate($request,$rule,$messages);
 
-        $inputYear = substr($apDate,-4);
+        $inputYear = substr($apDate,-4)*1;
+        $inputMonth = explode("-",$apDate)[1]*1;
+        $getCurrentYear = date('Y')*1;
+        $getCurrentMonth = date('m')*1;
+        $getTodayDate = date('d')*1; 
+        
+        $periodNomor=$period;
+
+        /*
+            Khusus untuk bulan Januai dibatasi oleh cut off per tanggal 5
+        */
+
+        if ($getCurrentMonth == 1){
+            if($getTodayDate < 6 ){
+                if ($inputMonth == 1){
+                    $inputYear = $getCurrentYear;
+                }else{
+                    $inputYear=$getCurrentYear-1;
+                }
+            }else{
+                $periodNomor= 1;
+                $inputYear = $getCurrentYear;
+            } 
+        }else{
+            $inputYear = substr($apDate,-4)*1;
+        }
+        
         // $hasilUpdate = AppHelpers::resetCode($this->moduleCode);
         $apNumber = $this->getLastCode($this->moduleCode,$periodNomor,$inputYear);
         DB::beginTransaction();
@@ -1983,7 +2007,7 @@ class AccountPayableController extends Controller
             $searchAp ? $query->where('ap_number','ilike','%'.$searchAp.'%') : '';
             $searchSupplier ? $query->where('supplier_id','ilike','%'.$searchSupplier.'%') : '';
             $searchStatus ? $query->where('ap_invoice.status','=',$searchStatus) : '';
-            $apDate ? $query->whereBetween(DB::raw("to_date(inv_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
+            $apDate ? $query->whereBetween(DB::raw("to_date(ap_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
         })
         ->whereNotIn('ap_invoice.status',['5'])
         ->select(

@@ -104,7 +104,15 @@
     }
 
     customer.change(function(){
-        searchSo('soNumber',$(this).val());
+        $('#accountPiutang').val("");
+        $('#soNumber').empty();
+        let coa = $(this).find(":selected").data("coa");
+        if(coa){
+            $('#accountPiutang').val(coa);
+            searchSo('soNumber',$(this).val());
+        }else{
+            Swal.fire("Warning","Customer belum memiliki COA Piutang","warning"); 
+        }
     });
     
     function searchSo(obj,value) {

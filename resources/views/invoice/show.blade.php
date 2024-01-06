@@ -43,6 +43,14 @@
                                                 @endforeach
                                             </select>
                                         </div>
+                                    </div>
+                                    <div class="form-row">
+                                        <div class="form-group col-md-6">
+                                            <label for="accountPiutang">COA Piutang*</label>
+                                            <input type="text" id="accountPiutang" name="accountPiutang" class="form-control disabled-el" value="{{ old('accountPiutang',$header->account_piutang) }}" disabled />
+                                        </div> 
+                                    </div>
+                                    <div class="form-row">
                                         <div class="form-group col-md-12">
                                             <label class="form-label" for="soNumber" disabled>SO Number*</label>
                                             <input type="text" id="soNumber" name="soNumber" value="{{ $header->so_number }}" class="form-control" disabled />

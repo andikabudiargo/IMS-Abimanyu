@@ -482,7 +482,9 @@
             $("#nilaiPPN").text('');
             $('#totalPPN').val(0);
             // $("#accountHutang").val('');
-            $("#period").val('').trigger("change");
+            if(!$("#period").val()){
+                $("#period").val('').trigger("change");
+            }
         }
         hitungTotal();
     }
@@ -680,8 +682,5 @@
     function deleteRow(obj) {
         $(obj).closest('tr').remove();
     }
-
-   
-
 
 </script>
