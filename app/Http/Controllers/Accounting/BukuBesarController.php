@@ -131,6 +131,14 @@ class BukuBesarController extends Controller
         ->leftJoin('kas_hdr','kas_hdr.voucher_number','kas_det.voucher_number')
         ->leftJoin('accounts','accounts.account','kas_det.account')
         ->leftJoin('depts','depts.code','kas_det.cost_center')
+        ->leftJoin(db::raw("(SELECT module_number,(select name from users where username = subq.username) as username,approval_date
+                            FROM (SELECT module_number
+                                    ,username
+                                    ,approval_date
+                                        ,approval_order
+                                        ,MAX(approval_order) OVER (partition by module_number) as max_value
+                                FROM approval_history) as subq
+                            WHERE subq.approval_order = subq.max_value) as u"),'u.module_number','kas_hdr.voucher_number')
         // ->leftJoin('third_party','third_party.kode','kas_hdr.paid_to')
         ->where(function ($query) use ($vcDate,$fromDate,$toDate,$period1,$period2,$costCenter,$perkiraan1,$perkiraan2,$adaPerkiraan,$status) {
             $vcDate ? $query->whereBetween(DB::raw("to_date(voucher_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
@@ -153,8 +161,10 @@ class BukuBesarController extends Controller
             ,'debit'
             ,'credit'
             ,'kas_hdr.status as statusku'
-            ,db::raw("(select (select name from users where username = z.username) from approval_history z where module_number = kas_hdr.voucher_number order by approval_order desc limit 1) as approval_by")
-            ,db::raw("(select to_char(approval_date::date, 'DD-MM-YYYY') from approval_history z where module_number = kas_hdr.voucher_number order by approval_order desc limit 1) as approval_at")
+            ,'u.username as approval_by'
+            ,db::raw("to_char(u.approval_date::date, 'DD-MM-YYYY') as approval_at")
+            // ,db::raw("(select (select name from users where username = z.username) from approval_history z where module_number = kas_hdr.voucher_number order by approval_order desc limit 1) as approval_by")
+            // ,db::raw("(select to_char(approval_date::date, 'DD-MM-YYYY') from approval_history z where module_number = kas_hdr.voucher_number order by approval_order desc limit 1) as approval_at")
         )
         // ->orderBy('kas_hdr.voucher_date')
         ->orderBy('kas_det.account')
@@ -162,7 +172,7 @@ class BukuBesarController extends Controller
        
         return Datatables::of($data)
         ->addColumn('statusku', function ($data) {
-            $statusBb = ['NEW','VALIDATE','APPROVED','','','CLOSED'];
+            $statusBb = ['NEW','VALIDATE','APPROVED','','','PAID'];
             return $statusBb[$data->statusku - 1];
         })
         ->rawColumns(['statusku'])
