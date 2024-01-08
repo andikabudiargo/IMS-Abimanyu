@@ -287,7 +287,7 @@
     });
 
     $("#cmdSave").click(function(){    
-        let coa = $("accountPiutang").val();
+        let coa = $("#accountPiutang").val();
         if (coa){
             if (!$("#frmAdd")[0].checkValidity()){
                 $("#frmAdd").submit();
