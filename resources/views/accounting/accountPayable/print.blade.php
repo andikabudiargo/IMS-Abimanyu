@@ -195,7 +195,7 @@
 
     </style>
 </head>
-<body class="{{ (count($details)) < 7 ? "A4A5" : "A4" }}">
+<body class="{{ $jumlahBaris < 18 ? "A4A5" : "A4" }}">
 <div class="row hide-print" style="margin-left:20px;margin-top:20px">
     <div class="col-md-12">
         <button class="btn btn-primary" type="button" id="cmdPrint" name="cmdPrint">Print</button>
@@ -252,10 +252,11 @@
                             </thead>
                             <tbody>
                                 @foreach ($details as $val )
-                                    <tr >
+                                    <tr>
                                         <td align="left">{{ $val->account }}</td>
                                         <td align="left">{{ $val->account_name }}</td>
                                         {{-- <td align="left">{{ $val->ap_number }}</td> --}}
+                                        {{-- <td align="left" class="font-8">{{ count(explode(",",$val->list_rec)) }}</td> --}}
                                         <td align="left" class="font-8">{{ $val->list_rec }}</td>
                                         <td align="left">{{ $val->inv_number }}</td>
                                         <td align="right">{{ number_format($val->debit,2) }}</td>
