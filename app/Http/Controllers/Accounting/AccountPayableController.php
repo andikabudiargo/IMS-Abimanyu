@@ -2183,6 +2183,14 @@ class AccountPayableController extends Controller
         ->orderBy('id')
         ->get();
 
+        $jumlahBaris= 0;
+        foreach($data['details'] as $val){
+            $jumlahBaris += count(explode(",",$val->list_rec));
+        }
+
+        // dd($jumlahBaris);
+
+        $data['jumlahBaris'] = $jumlahBaris;
         $data['total']=DB::table('kas_det')
         ->select(DB::raw("sum(credit) as total_credit"),DB::raw("sum(debit) as total_debit"))
         ->where('voucher_number',$voucherNumber)
