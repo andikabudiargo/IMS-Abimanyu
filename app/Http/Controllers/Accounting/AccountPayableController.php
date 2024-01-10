@@ -2188,8 +2188,19 @@ class AccountPayableController extends Controller
             $jumlahBaris += count(explode(",",$val->list_rec));
         }
 
+        if (count($data['details']) < 7){
+            if ($jumlahBaris < 18){
+                $ukuranKertas = "A4A5";
+            }else{
+                $ukuranKertas = "A4";
+            }
+        }else{
+            $ukuranKertas = "A4";
+        }
+
         // dd($jumlahBaris);
 
+        $data['ukuranKertas'] = $ukuranKertas;
         $data['jumlahBaris'] = $jumlahBaris;
         $data['total']=DB::table('kas_det')
         ->select(DB::raw("sum(credit) as total_credit"),DB::raw("sum(debit) as total_debit"))

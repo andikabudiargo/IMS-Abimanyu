@@ -195,7 +195,10 @@
 
     </style>
 </head>
-<body class="{{ $jumlahBaris < 18 ? "A4A5" : "A4" }}">
+{{-- <body class="{{ (count($details) < 7) $jumlahBaris < 18 ? "A4A5" : "A4" }}"> --}}
+{{-- <body class="{{ $jumlahBaris < 18 ? "A4A5" : "A4" }}"> --}}
+<body class="{{ $ukuranKertas }}">
+    
 <div class="row hide-print" style="margin-left:20px;margin-top:20px">
     <div class="col-md-12">
         <button class="btn btn-primary" type="button" id="cmdPrint" name="cmdPrint">Print</button>
