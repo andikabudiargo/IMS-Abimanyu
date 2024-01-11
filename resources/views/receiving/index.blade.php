@@ -116,13 +116,6 @@
   let btnDetail = $('#btnDetail');
 
   $(document).ready(function(){    
-    // let href;
-    // $(document).on('click', '#deleteButton', function(event) {
-    //     event.preventDefault();
-    //     href = $(this).data('href');
-    //     console.log(href);
-    //     $('#modalConfirmationCancel').attr("action", href);
-    // });
     let href;
     $(document).on('click', '#cancelReasonButton', function(event) {
         event.preventDefault();
@@ -134,8 +127,6 @@
     btnDetail.hide();
 
   });
-
-  
 
   //refresh di cards
   $('a[data-action="reload"]').on('click', function () {
@@ -177,12 +168,11 @@
         $('#detailedTable tbody > tr').remove();
         $("#detailedTable thead > tr").remove();
     }
-
     showDataTables({
       tableId:"detailedTable",
       route:"{{ route('receiving.list') }}",
       kolom:{!! $kolom !!},
-      arrColPrint:[1,2,3,4,5,6,7,8,9,10,11],
+      arrColPrint:[1,2,3,4,5,6,7,8,9,10,11,12],
       columnDefs :[
         { width: '5%', targets: 0 }
       ],
@@ -207,16 +197,15 @@
         $('#detailedTable tbody > tr').remove();
         $("#detailedTable thead > tr").remove();
     }
-
     showDataTables({
       tableId:"detailedTable",
       route:"{{ route('receiving.list.detail') }}",
       kolom:{!! $kolomDetail !!},
-      arrColPrint:[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20],
+      arrColPrint:[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24],
       columnDefs :[
         { width: '5%', targets: 0 },
         {
-          targets: [ 11,12,13,14,15 ],
+          targets: [ 12,13,15,16,17,18,19 ],
           render: $.fn.dataTable.render.number(',', '.',2, ''),
           className: "text-right"
         },

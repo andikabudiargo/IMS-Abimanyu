@@ -80,6 +80,7 @@ class ReceivingController extends Controller
             ['data'=>'ap_number','name'=>'ap_number','title'=>'AP Number'],
             ['data'=>'ap_date','name'=>'ap_date','title'=>'AP Date'],
             ['data'=>'po_number','name'=>'po_number','title'=>'PO Number'],
+            ['data'=>'supplier_id','name'=>'supplier_id','title'=>'S.Code'],
             ['data'=>'supp_name','name'=>'supp_name','title'=>'Supplier'],
             // ['data'=>'prepared_by','name'=>'prepared_by','title'=>'Prepared By'],
             // ['data'=>'authorized_by','name'=>'authorized_by','title'=>'Authorized By'],
@@ -103,6 +104,7 @@ class ReceivingController extends Controller
             ['data'=>'ap_date','name'=>'ap_date','title'=>'AP Date'],
             ['data'=>'rec_number','name'=>'rec_number','title'=>'Rec Number'],
             ['data'=>'po_number','name'=>'po_number','title'=>'PO Number'],
+            ['data'=>'supplier_id','name'=>'supplier_id','title'=>'S.Code'],
             ['data'=>'supp_name','name'=>'supp_name','title'=>'Supplier'],
             ['data'=>'article_alternative_code','name'=>'article_alternative_code','title'=>'Article Code'],
             ['data'=>'article_desc','name'=>'article_desc','title'=>'Article Desc'],
@@ -111,6 +113,9 @@ class ReceivingController extends Controller
             ['data'=>'uom_rec','name'=>'uom_rec','title'=>'uom'],
             ['data'=>'price','name'=>'price','title'=>'Price'],
             ['data'=>'total_dpp','name'=>'total_dpp','title'=>'Total Tanpa PPN'],
+            // ['data'=>'ppn','name'=>'ppn','title'=>'PPN'],
+            ['data'=>'total_ppn','name'=>'total_ppn','title'=>'PPN'],
+            ['data'=>'total_plus_ppn','name'=>'total_plus_ppn','title'=>'Total Plus PPN'],
             // ['data'=>'inv_number','name'=>'inv_number','title'=>'Invoice Number'],
             // ['data'=>'inv_date','name'=>'inv_date','title'=>'Invoice Date'],
             // ['data'=>'prepared_by','name'=>'prepared_by','title'=>'Prepared By'],
@@ -1257,7 +1262,8 @@ class ReceivingController extends Controller
         ->whereNotIn('status',['5','7'])
         ->select('receiving_hdr.*'
         ,DB::raw("(select STRING_AGG((select name from users where username = a.username), ' -> ' ORDER BY approval_order) AS main from approval_history a where module_number = receiving_hdr.rec_number) as approval_by")
-        ,DB::raw("(select concat(kode,'-',nama) from third_party where kode = receiving_hdr.supplier_id limit 1) as supp_name")
+        // ,DB::raw("(select concat(kode,'-',nama) from third_party where kode = receiving_hdr.supplier_id limit 1) as supp_name")
+        ,DB::raw("(select nama from third_party where kode = receiving_hdr.supplier_id limit 1) as supp_name")
         ,DB::raw("(select ap_invoice_detail.ap_number from ap_invoice_detail 
                     left join ap_invoice on ap_invoice.ap_number = ap_invoice_detail.ap_number 
                     where ap_invoice_detail.rec_number = receiving_hdr.rec_number 
@@ -1453,6 +1459,7 @@ class ReceivingController extends Controller
 
         $data = DB::table('receiving_det')
         ->leftJoin('receiving_hdr','receiving_hdr.rec_number','receiving_det.rec_number')      
+        ->leftJoin('purchase_order_hdr','purchase_order_hdr.po_number','receiving_hdr.po_number')      
         ->leftJoin('article','article.article_code','receiving_det.article_code')
         ->leftJoin('article_types','article_types.code','article.article_type')
         ->leftJoin('uom','uom.code','receiving_det.uom_rec')
@@ -1468,6 +1475,7 @@ class ReceivingController extends Controller
         ->where('receiving_det.qty','>',0)
         ->whereNotIn('receiving_hdr.status',['5','7'])
         ->select('receiving_det.*'
+        ,DB::raw("purchase_order_hdr.ppn::numeric as ppn")
         ,'receiving_hdr.*'
         ,'article_alternative_code'
         ,'article_desc'
@@ -1475,9 +1483,12 @@ class ReceivingController extends Controller
         // ,DB::raw("case when uom_group = 'PIECE' then TO_CHAR(qty,'999,999,999') when uom_group <> 'PIECE' then TO_CHAR(qty,'999,999,999.99') end as qty")
         // ,DB::raw("case when uom_group = 'PIECE' then TO_CHAR(qty_free,'999,999,999') when uom_group <> 'PIECE' then TO_CHAR(qty_free,'999,999,999.99') end as qty_free")
         ,DB::raw("price*qty as total_dpp")
+        ,DB::raw("(price*qty)*(purchase_order_hdr.ppn::numeric/100) as total_ppn")
+        ,DB::raw("((price*qty)*(purchase_order_hdr.ppn::numeric/100))+(price*qty) as totaL_plus_ppn")
         // ,DB::raw("TO_CHAR(price*qty,'999,999,999') as total_dpp")
         ,DB::raw("(select STRING_AGG((select name from users where username = a.username), ' -> ' ORDER BY approval_order) AS main from approval_history a where module_number = receiving_hdr.rec_number) as approval_by")
-        ,DB::raw("(select concat(kode,'-',nama) from third_party where kode = receiving_hdr.supplier_id limit 1) as supp_name")
+        // ,DB::raw("(select concat(kode,'-',nama) from third_party where kode = receiving_hdr.supplier_id limit 1) as supp_name")
+        ,DB::raw("(select nama from third_party where kode = receiving_hdr.supplier_id limit 1) as supp_name")
         ,DB::raw("(select (select name from depts where code = dept) as nama_dept from purchase_request_hdr where pr_number in (select pr_number from purchase_order_det where po_number = receiving_hdr.po_number) order by dept desc limit 1)")
         ,DB::raw("(select ap_invoice_detail.ap_number from ap_invoice_detail 
                     left join ap_invoice on ap_invoice.ap_number = ap_invoice_detail.ap_number 
@@ -1488,6 +1499,8 @@ class ReceivingController extends Controller
         )
         ->orderBy('receiving_det.id')
         ->get(); 
+
+        // dd($data);
         
         return Datatables::of($data)
         ->addColumn('status', function ($data) {
