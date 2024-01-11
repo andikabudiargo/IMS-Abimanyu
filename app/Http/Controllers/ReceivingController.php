@@ -1466,7 +1466,7 @@ class ReceivingController extends Controller
         ->where(function ($query) use ($searchRec,$searchPo,$searchInv,$searchSupplier,$searchStatus,$recDate,$fromDate,$toDate,$doDate,$fromDateDo,$toDateDo) {
             $searchPo ? $query->where('po_number','ilike','%'.$searchPo.'%') : '';
             $searchInv ? $query->where('inv_number','ilike','%'.$searchInv.'%') : '';
-            $searchSupplier ? $query->where('supplier_id','ilike','%'.$searchSupplier.'%') : '';
+            $searchSupplier ? $query->where('receiving_hdr.supplier_id','ilike','%'.$searchSupplier.'%') : '';
             $searchRec ? $query->where('receiving_det.rec_number','ilike','%'.$searchRec.'%') : '';
             $searchStatus ? $query->where('status',$searchStatus) : '';
             $recDate ? $query->whereBetween(DB::raw("to_date(rec_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
