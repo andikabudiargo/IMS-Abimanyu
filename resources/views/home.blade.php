@@ -280,7 +280,7 @@
                                             <a class="btn btn-outline-info btn-sm" 
                                                 id="cmdDetailBomHome{{ $key }}" 
                                                 name="cmdDetailBomHome{{ $key }}" 
-                                                href="{{ route('bom.show', ['id'=>Crypt::encryptString($val->id)]) }}"> 
+                                                href="{{ route('bom.edit', ['id'=>Crypt::encryptString($val->id)]) }}"> 
                                                 <i data-feather='list'></i>
                                                 Detail
                                             </a>
@@ -511,7 +511,7 @@
                                             <a class="btn btn-outline-info btn-sm" 
                                                 id="cmdDetailSoHome{{ $key }}" 
                                                 name="cmdDetailSoHome{{ $key }}" 
-                                                href="{{ route('salesOrder.show', ['id'=>Crypt::encryptString($val->id)]) }}"> 
+                                                href="{{ route('salesOrder.edit', ['id'=>Crypt::encryptString($val->id)]) }}"> 
                                                 <i data-feather='list'></i>
                                                 Detail
                                             </a>
@@ -618,7 +618,7 @@
                                             <a class="btn btn-outline-info btn-sm" 
                                                 id="cmdDetailTsoHome{{ $key }}" 
                                                 name="cmdDetailTsoHome{{ $key }}" 
-                                                href="{{ route('targetSo.show', ['id'=>Crypt::encryptString($val->id)]) }}"> 
+                                                href="{{ route('targetSo.edit', ['id'=>Crypt::encryptString($val->id)]) }}"> 
                                                 <i data-feather='list'></i>
                                                 Detail
                                             </a>

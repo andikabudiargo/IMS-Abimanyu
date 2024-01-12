@@ -675,19 +675,29 @@ class AccountPayableController extends Controller
         */
 
         if ($getCurrentMonth == 1){
-            if($getTodayDate < 6 ){
-                if ($inputMonth == 1){
-                    $inputYear = $getCurrentYear;
-                }else{
-                    $inputYear=$getCurrentYear-1;
-                }
-            }else{
-                $periodNomor= 1;
+            if($periodNomor == 1){
                 $inputYear = $getCurrentYear;
-            } 
-        }else{
-            $inputYear = substr($apDate,-4)*1;
+            }
+            
+            if($periodNomor == 12){
+                $inputYear=$getCurrentYear-1;
+            }
         }
+
+        // if ($getCurrentMonth == 1){
+        //     if($getTodayDate < 6 ){
+        //         if ($inputMonth == 1){
+        //             $inputYear = $getCurrentYear;
+        //         }else{
+        //             $inputYear=$getCurrentYear-1;
+        //         }
+        //     }else{
+        //         $periodNomor= 1;
+        //         $inputYear = $getCurrentYear;
+        //     } 
+        // }else{
+        //     $inputYear = substr($apDate,-4)*1;
+        // }
         
         // $hasilUpdate = AppHelpers::resetCode($this->moduleCode);
         $apNumber = $this->getLastCode($this->moduleCode,$periodNomor,$inputYear);

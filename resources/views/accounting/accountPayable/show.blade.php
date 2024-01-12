@@ -21,18 +21,22 @@
                             <div class="row">
                                 <div class="col-md-6 col-12">
                                     <div class="form-row">
-                                        <div class="form-group col-md-9">
+                                        <div class="form-group col-md-7">
                                             <label for="apNumber">AP Number</label> <small class="text-muted"> automatic</small>
                                             <input type="text" id="apNumber" name="apNumber" class="form-control text-hitam disabled-el" value="{{ $header->ap_number }}" disabled />
                                             <input type="hidden" id="recNumberSave" name="recNumberSave" class="form-control text-hitam disabled-el" value="{{ $recNumbers }}" />
                                         </div>
                                         <div class="form-group col-md-3">
-                                            <label for="apDate">Invoice Date*</label>
+                                            <label for="apDate">Receive AP</label>
                                             <input type="text" id="apDate" name="apDate" class="form-control" value="{{ $header->ap_date  }}" placeholder="DD-MM-YYYY" disabled>
+                                        </div> 
+                                        <div class="form-group col-md-2">
+                                            <label for="period">Period</label>
+                                            <input type="text" id="period" name="period" class="form-control" value="{{ $header->period  }}" placeholder="DD-MM-YYYY" disabled/>
                                         </div> 
                                     </div>
                                     <div class="form-row">
-                                        <div class="form-group col-md-12">
+                                        <div class="form-group col-md-10">
                                             <label class="form-label" for="supplier">Supplier*</label>
                                             <select class="select2 form-control" id="supplier" name="supplier" disabled>
                                                 <option value="">All</option>
@@ -41,6 +45,16 @@
                                                 @endforeach
                                             </select>
                                         </div>
+                                        <div class="form-group col-md-2">
+                                            <label for="term">Term</label>
+                                            <input type="text" id="term" name="term" class="form-control" value="{{ $header->top_batas_1 }}" disabled />
+                                        </div> 
+                                    </div>
+                                    <div class="form-row">
+                                        <div class="form-group col-md-10">
+                                            <label for="accountHutang">COA Hutang</label>
+                                            <input type="text" id="accountHutang" name="accountHutang" class="form-control disabled-el" value="{{ $header->account_total }}" disabled />
+                                        </div> 
                                     </div>
                                     <div class="form-row">
                                         <div class="form-group col-md-8">
@@ -60,7 +74,7 @@
                                             <input type="text" id="rate" name="rate" value="{{ $header->kurs }}" class="form-control numeral-mask text-right" disabled/>
                                         </div>
                                     </div>
-                                    <div class="form-row">
+                                    {{-- <div class="form-row">
                                         <div class="form-group col-md-12">
                                             <label class="form-label" for="accountBasisA">COA Basis Amount*</label>
                                             <select class="select2 form-control w-100" id="accountBasisA" name="accountBasisA" disabled>
@@ -70,7 +84,7 @@
                                                 @endforeach
                                             </select>
                                         </div>
-                                    </div>
+                                    </div> --}}
                                     <div class="form-row">
                                         <div class="form-group col-md-4">
                                             <label for="invoiceNumber">Invoice Number*</label>
