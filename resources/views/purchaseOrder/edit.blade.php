@@ -360,7 +360,7 @@
     const approveBtn = document.querySelector('#cmdApprove');
     const declineBtn = document.querySelector('#cmdDecline');
     let cloneCount={{ count($detail) }};
-    let lockedAt = "{{ $lockDate }}";
+    // let lockedAt = "{{ $lockDate }}";
 
     $(document).ready(function(){           
         validateForm('frmAdd');
