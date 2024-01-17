@@ -6,7 +6,7 @@
 <section id="article-index">
   <div class="card">
     <div class="card-header">  
-      <h4 class="card-title">Filter</h4>
+      <h4 class="card-title">Filter  <small class="text-muted"> {{ $lockDate ? "Locked From : ".$lockDate : '' }}</small></h4>
       <div class="heading-elements">
         <ul class="list-inline mb-0">
             <li><a data-action="collapse"><i data-feather="chevron-down"></i></a></li>
@@ -169,12 +169,17 @@
 
     btnDetail.style.display = "block";
     btnSummary.style.display = "none";
-
-    if (!$("#frmAdd")[0].checkValidity()){
-        $("#frmAdd").submit();
-    }else{ 
-        showList(searchOrder,seachPo,searchCustomer,searchSalesman,searchType,searchStatus,orderDate);
+    
+    if(searchOrder || seachPo){
+      showList(searchOrder,seachPo,searchCustomer,searchSalesman,searchType,searchStatus,orderDate);
+    }else{
+      if (!$("#frmAdd")[0].checkValidity()){
+          $("#frmAdd").submit();
+      }else{ 
+          showList(searchOrder,seachPo,searchCustomer,searchSalesman,searchType,searchStatus,orderDate);
+      }
     }
+
 
   });
 

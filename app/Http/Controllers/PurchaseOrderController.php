@@ -23,6 +23,8 @@ class PurchaseOrderController extends Controller
     private $nilaiPph23;
     private $nilaiPph21;
     private $nilaiPph42;
+    private $lockDate;
+    private $lockDateIndex;
 
     public function __construct()
     {
@@ -44,6 +46,42 @@ class PurchaseOrderController extends Controller
         $this->nilaiPph42 = DB::table('attributes')
         ->where('attr_id','mainpph42')
         ->value('attr_value');
+
+        /*
+
+        $lastDatePrevMonth = date('t-m-Y', strtotime('-1 months'));
+        $lastDatePrevMonth = date('t-m-Y', strtotime('-1 months',strtotime('05-11-2023')));
+        $firstDayCurrentMonth = date('1-m-Y');
+        $firstDayCurrentMonth = date('1-m-Y', strtotime('05-11-2023'));
+        $prevmonth = date('M Y 1', strtotime('-1 months'));
+        
+        jika tanggal hari ini lebih kecil dari lockdate maka
+        min date nya adalah tanggal akhir dari bulan sebelumnya
+        kalau tanggal hari ini lebi besar dari lockdate maka 
+        tanggal minimum nya adalah tanngal awal di bulan ini
+        */
+
+        $lockDate1 = DB::table('application_lock')
+        ->where('code_key',$this->moduleCode)
+        ->where('status','1')
+        ->value('lock_date');
+
+        $todayDate = date('d-m-Y');
+        $lockDateHere = $lockDate1 ? $lockDate1 : '2023-01-01' ;
+        $lockDateAt = date('d-m-Y', strtotime("+1 day", strtotime($lockDateHere)));
+
+        if ($todayDate < $lockDateAt ){
+            $firstDatePrevMonth = date('1-m-Y', strtotime("-1 months",strtotime($lockDateHere)));
+            $lockDateAt = $firstDatePrevMonth;
+        }else{
+            $lockDateAt = date('1-m-Y', strtotime($lockDateAt));
+        }
+
+        $this->lockDate = $lockDateAt;
+
+        $lockDateHereIndex = $lockDate1 ? $lockDate1 : '2023-01-01' ;
+        $lockDateAtIndex = date('d-m-Y', strtotime($lockDateHere));
+        $this->lockDateIndex = $lockDateAtIndex;
     }
 
     public function getTableColoumn(){
@@ -123,6 +161,8 @@ class PurchaseOrderController extends Controller
         ->get();
 
         $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'RECEIVED','5'=>'CANCELED','6'=>'CLOSED','8'=>'DECLINE'];
+
+        $data['lockDate'] = $this->lockDateIndex;
             
         return view("purchaseOrder.index",$data);
     }
@@ -164,6 +204,8 @@ class PurchaseOrderController extends Controller
         $data['uoms'] = DB::table('uom')
         ->orderBy('name')
         ->get();
+
+        $data['lockDate'] = $this->lockDate;
 
         return view("purchaseOrder.create",$data);
     }
@@ -469,6 +511,8 @@ class PurchaseOrderController extends Controller
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'RECEIVED','5'=>'CANCELED','6'=>'CLOSED','7'=>'REVISED','8'=>'DECLINE'];
         $statusPo = ['NEW','VALIDATED','APPROVED','RECEIVED','CANCELED','CLOSED','REVISED','DECLINE'];
         $data['statusPo'] = $statusPo[$data['header']->status-1];
+
+        $data['lockDate'] = $this->lockDate;
 
         return view("purchaseOrder.edit",$data);
     }
@@ -1150,9 +1194,13 @@ class PurchaseOrderController extends Controller
         order by oki.id desc");
 
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'RECEIVED','5'=>'CANCELED','6'=>'CLOSED','7'=>'REVISED','8'=>'DECLINE'];
-    
+
+        $lockDateToDate = date('Y-m-d',strtotime($this->lockDate));
+
+        $poDate = date('Y-m-d', strtotime('04-01-2024'));
+
         return Datatables::of($data)
-        ->addColumn('action', function ($data) {
+        ->addColumn('action', function ($data) use($lockDateToDate) {
             $buttons = '<div class="d-inline-flex">
                             <a class="pr-1 dropdown-toggle hide-arrow" data-toggle="dropdown">
                                 <i data-feather="menu"></i>
@@ -1169,11 +1217,14 @@ class PurchaseOrderController extends Controller
                 }
             }
             if ( $data->status == '1' or $data->status == '2' ){
-                if (Auth::user()->can('purchaseOrder-edit')) {
-                $buttons .=         '<a href="'. route('purchaseOrder.edit', ['id'=>Crypt::encryptString($data->idku)]) .'" class="dropdown-item">
-                                        <i data-feather="file-text"></i>
-                                        <span>'. __("Edit") .'</span>
-                                    </a>';
+                $poDate = date('Y-m-d', strtotime($data->po_date));
+                if($poDate>$lockDateToDate){
+                    if (Auth::user()->can('purchaseOrder-edit')) {
+                    $buttons .=         '<a href="'. route('purchaseOrder.edit', ['id'=>Crypt::encryptString($data->idku)]) .'" class="dropdown-item">
+                                            <i data-feather="file-text"></i>
+                                            <span>'. __("Edit") .'</span>
+                                        </a>';
+                    }
                 }
             }
             if (($data->status == '2') || ($data->status == '3') ){
@@ -1188,15 +1239,18 @@ class PurchaseOrderController extends Controller
                 //                     <span>". __('Revision') ."</span>
                 //                 </a>";
                 // }else{
-                    $buttons .= "<a href='javascript:;'
-                                    id='revisionReasonButton'
-                                    class='dropdown-item'
-                                    data-toggle='modal'
-                                    data-target='#reasonModalRevision'
-                                    data-href='". route('purchaseOrder.revision', ['id'=>Crypt::encryptString($data->idku),'nR'=>$data->num_revision]) ."'>
-                                    <i data-feather='corner-down-left' class='feather-14-red'></i>
-                                    <span>". __('Revision') ."</span>
-                                </a>";
+                    $poDate = date('Y-m-d', strtotime($data->po_date));
+                    if($poDate>$lockDateToDate){
+                        $buttons .= "<a href='javascript:;'
+                                        id='revisionReasonButton'
+                                        class='dropdown-item'
+                                        data-toggle='modal'
+                                        data-target='#reasonModalRevision'
+                                        data-href='". route('purchaseOrder.revision', ['id'=>Crypt::encryptString($data->idku),'nR'=>$data->num_revision]) ."'>
+                                        <i data-feather='corner-down-left' class='feather-14-red'></i>
+                                        <span>". __('Revision') ."</span>
+                                    </a>";
+                    }
                 // }
 
                 // if (Auth::user()->can('purchaseOrder-revision')) {
@@ -1235,19 +1289,22 @@ class PurchaseOrderController extends Controller
             }
 
             if ( $data->status == '1' ){
-                if (Auth::user()->can('purchaseOrder-delete')) {
-                    $buttons .=         "<a href='javascript:;'
-                                        class='dropdown-item' 
-                                        data-size='sm'
-                                        data-ajax-delete='true'
-                                        data-confirm='Are You Sure want to Delete?|This action can not be undone. Do you want to continue?' 
-                                        data-confirm-yes='document.getElementById(\""."delete-form-".$data->idku."\").submit();'
-                                        data-modal-id='".$data->idku."'
-                                        id='deleteButton'
-                                        data-url='". route('purchaseOrder.destroy', ['id'=>Crypt::encryptString($data->idku)]) ."'>
-                                        <i data-feather='trash-2' class='feather-14-red'></i>
-                                        <span>". __('Delete') ."</span>
-                                    </a>";
+                $poDate = date('Y-m-d', strtotime($data->po_date));
+                if($poDate>$lockDateToDate){
+                    if (Auth::user()->can('purchaseOrder-delete')) {
+                        $buttons .=         "<a href='javascript:;'
+                                            class='dropdown-item' 
+                                            data-size='sm'
+                                            data-ajax-delete='true'
+                                            data-confirm='Are You Sure want to Delete?|This action can not be undone. Do you want to continue?' 
+                                            data-confirm-yes='document.getElementById(\""."delete-form-".$data->idku."\").submit();'
+                                            data-modal-id='".$data->idku."'
+                                            id='deleteButton'
+                                            data-url='". route('purchaseOrder.destroy', ['id'=>Crypt::encryptString($data->idku)]) ."'>
+                                            <i data-feather='trash-2' class='feather-14-red'></i>
+                                            <span>". __('Delete') ."</span>
+                                        </a>";
+                    }
                 }
             }
 

@@ -368,6 +368,8 @@
 @section('scripts')
 @include('salesOrder.addArticle')
 <script type="text/javascript">
+    let lockedAt = "{{ $lockDate }}";
+
     $(document).ready(function(){           
         validateFormToast("frmAdd");
         tombolPanah('qty_order');

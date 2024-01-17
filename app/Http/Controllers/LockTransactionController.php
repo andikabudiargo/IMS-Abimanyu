@@ -33,7 +33,7 @@ class LockTransactionController extends Controller
         ,db::raw("to_char(lock_date, 'dd-mm-yyyy') as lock_date")
         ,db::raw("to_char(application_lock.created_at, 'dd-mm-yyyy hh:ss:mm') as created_at")
         )
-        ->orderBy('code_desc')
+        ->orderBy('code_key')
         ->get();
 
         return view("lockTransaction.index",$data);
@@ -44,6 +44,7 @@ class LockTransactionController extends Controller
         $username =  Auth::user()->username;
         $codeKey = $request->codeKey;
         $newDate = $request->newDate;
+        $dateBefore = $request->dateBefore;
 
         DB::table('application_lock')
         ->where('status','1')
@@ -55,16 +56,20 @@ class LockTransactionController extends Controller
         
         foreach($codeKey as $index=>$val){
             $lockDate = $newDate[$index] ? date('Y/m/d', strtotime($newDate[$index])) : null ;
-             DB::table('application_lock')
-                ->insert([
-                    'code_key' => $val,
-                    'lock_date' => $lockDate,
-                    'status' => '1',
-                    'created_by' => Auth::user()->username,
-                    'created_at' => date('Y-m-d H:i:s'),
-                    'updated_by' => Auth::user()->username,
-                    'updated_at' => date('Y-m-d H:i:s')
-                ]);
+            if( ($lockDate == null) && $dateBefore[$index] ){
+                $lockDate = date('Y/m/d', strtotime($dateBefore[$index]));
+            }
+
+            DB::table('application_lock')
+            ->insert([
+                'code_key' => $val,
+                'lock_date' => $lockDate,
+                'status' => '1',
+                'created_by' => Auth::user()->username,
+                'created_at' => date('Y-m-d H:i:s'),
+                'updated_by' => Auth::user()->username,
+                'updated_at' => date('Y-m-d H:i:s')
+            ]);
         }
 
         $title ="Update $this->title";

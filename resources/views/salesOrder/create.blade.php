@@ -241,6 +241,8 @@
 @include('salesOrder.addArticle')
 <script type="text/javascript">    
     let currentDate = todayDate('dd-mm-yyyy');
+    let lockedAt = "{{ $lockDate }}";
+    
     $(document).ready(function(){           
         validateFormToast("frmAdd");
         $('#orderDate').val(currentDate);

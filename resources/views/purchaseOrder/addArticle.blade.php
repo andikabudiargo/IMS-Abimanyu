@@ -187,6 +187,9 @@
     const defaultPpn = "{{ $vatValue }}";
     $("#nilaiPPN").text("{{ $vatValue }}%");
     $("#nilaiPPH").text("{{ $pph23Value }}%");
+    let lockedAt = "{{ $lockDate }}";
+
+    console.log(lockedAt);
 
     let delayTimer;
     function inputDecimal(ele) {
@@ -200,6 +203,7 @@
     if (orderDate.length) {
         orderDate.flatpickr({
             dateFormat: "d-m-Y",
+            minDate:lockedAt
         });
     }
 
@@ -723,7 +727,7 @@
         totalQty = sumFromArray(qty);
         totalAmount = sumFromArray(qty,price);
 
-        console.log(totalAmount);
+        // console.log(totalAmount);
 
         // mask_thousand_digit(2);
 

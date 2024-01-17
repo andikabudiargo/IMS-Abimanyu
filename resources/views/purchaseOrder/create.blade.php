@@ -209,13 +209,14 @@
 @include('purchaseOrder.addArticle')
 <script type="text/javascript">
     let cloneCount=0;
-
+    
     $(document).ready(function(){           
         validateFormToast("frmAdd");
         $('#orderDate').val(currentDate);
         // $("#nilaiPPN").text("{{ $vatValue }}%");
         // disabledEnabledSelect2();
         mask_thousand_digit(2);
+
     });
 
     document.querySelector('#cmdSave').addEventListener('click',() =>{

@@ -43,7 +43,7 @@
                         <br>
                         <div class="form-row">
                             <div class="col-md-12">
-                                <button class="btn btn-primary" type="submit" id="cmdSave" name="cmdSave">Save</button>
+                                <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Save</button>
                             </div>
                         </div>
                     </form>
@@ -61,6 +61,15 @@
      $(document).ready(function(){           
         validateFormToast("frmAdd");
     });
+
+    $("#cmdSave").click(function(){
+        if (!$("#frmAdd")[0].checkValidity()){
+            $("#frmAdd").submit();
+        }else{ 
+            $('.disabled-el').removeAttr('disabled');
+            $("#frmAdd").submit();
+        }
+    })
 
     let datePicker = $('.date-picker');
     if (datePicker.length) {

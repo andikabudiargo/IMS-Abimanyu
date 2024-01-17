@@ -19,10 +19,34 @@ class SalesOrderController extends Controller
 {
     private $title;
     private $moduleCode;
+    private $lockDate;
+    private $lockDateIndex;
+
     public function __construct()
     {
         $this->title = "Sales Order";
         $this->moduleCode = "SO";
+        $lockDate1 = DB::table('application_lock')
+        ->where('code_key',$this->moduleCode)
+        ->where('status','1')
+        ->value('lock_date');
+
+        $todayDate = date('d-m-Y');
+        $lockDateHere = $lockDate1 ? $lockDate1 : '2023-01-01' ;
+        $lockDateAt = date('d-m-Y', strtotime("+1 day", strtotime($lockDateHere)));
+
+        if ($todayDate < $lockDateAt ){
+            $firstDatePrevMonth = date('1-m-Y', strtotime("-1 months",strtotime($lockDateHere)));
+            $lockDateAt = $firstDatePrevMonth;
+        }else{
+            $lockDateAt = date('1-m-Y', strtotime($lockDateAt));
+        }
+
+        $this->lockDate = $lockDateAt;
+
+        $lockDateHereIndex = $lockDate1 ? $lockDate1 : '2023-01-01' ;
+        $lockDateAtIndex = date('d-m-Y', strtotime($lockDateHere));
+        $this->lockDateIndex = $lockDateAtIndex;
     }
 
     public function getTableColoumn(){
@@ -93,6 +117,8 @@ class SalesOrderController extends Controller
         $data['types'] = ['NEW','REPEAT'];
         $data['status'] = ['1'=>'NEW','2'=>'VALIDATED','3'=>'APPROVED','4'=>'RECEIVED','6'=>"CLOSED",'7'=>'PAID'];
 
+        $data['lockDate'] = $this->lockDateIndex;
+
         return view("salesOrder.index",$data);
     }
 
@@ -141,6 +167,8 @@ class SalesOrderController extends Controller
         $data['attribute'] = DB::table('attributes')
         ->where('attr_name','main')
         ->pluck('attr_value','attr_code');
+
+        $data['lockDate'] = $this->lockDateIndex;
 
         // $data['orderNumber'] = $this->getLastCode('SO');
 
@@ -465,6 +493,8 @@ class SalesOrderController extends Controller
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATED','3'=>'APPROVED','4'=>'RECEIVED','5'=>'CANCELED','6'=>"CLOSED",'7'=>'PAID','8'=>'REVISED'];
         $statusSo = ['NEW','VALIDATED','APPROVED','RECEIVED','CANCELED','CLOSED','PAID','REVISED'];
         $data['statusSo'] = $statusSo[$data['header']->status-1];
+
+        $data['lockDate'] = $this->lockDateIndex;
 
         return view("salesOrder.edit",$data);
         
@@ -853,8 +883,10 @@ class SalesOrderController extends Controller
             $fromDate ? $query->whereBetween(DB::raw("to_date(so_date,'DD-MM-YYYY')"), [$fromDate, $toDate]):'';
         })->get();
 
+        $lockDateToDate = date('Y-m-d',strtotime($this->lockDate));
+
         return Datatables::of($data)
-        ->addColumn('action', function ($data) {
+        ->addColumn('action', function ($data) use($lockDateToDate){
             $buttons = '<div class="d-inline-flex">
                             <a class="pr-1 dropdown-toggle hide-arrow" data-toggle="dropdown">
                                 <i data-feather="menu"></i>
@@ -872,14 +904,19 @@ class SalesOrderController extends Controller
             // if (Auth::user()->can('salesOrder-edit') and ($data->status == 1)) {
             //dibukain dulu agar bisa di edit walaupun belum apporoved
             if (Auth::user()->can('salesOrder-edit') and ($data->status == 1 or $data->status== 2)) {
-            $buttons .=         '<a href="'. route('salesOrder.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
-                                    <i data-feather="file-text"></i>
-                                    <span>'. __("Edit") .'</span>
-                                </a>';
+                $soDate = date('Y-m-d', strtotime($data->so_date));
+                if($soDate>$lockDateToDate){
+                    $buttons .=         '<a href="'. route('salesOrder.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+                                            <i data-feather="file-text"></i>
+                                            <span>'. __("Edit") .'</span>
+                                        </a>';
+                }
             }
 
             if (($data->status == '2') || ($data->status == '3') ){
                 // if (Auth::user()->can('salesOrder-revision')) {
+                $soDate = date('Y-m-d', strtotime($data->so_date));
+                if($soDate>$lockDateToDate){
                     $buttons .=     "<a href='javascript:;'
                                         id='revisionReasonButton'
                                         class='dropdown-item'
@@ -889,6 +926,7 @@ class SalesOrderController extends Controller
                                         <i data-feather='corner-down-left' class='feather-14-red'></i>
                                         <span>". __('Revision') ."</span>
                                     </a>";
+                }
                 // }
             }
             
@@ -904,15 +942,18 @@ class SalesOrderController extends Controller
                                 </a>';
             }
             if (Auth::user()->can('salesOrder-delete') and  ($data->status == 1 or $data->status == 2 or $data->status == 3)) {
-            $buttons .=         "<a href='javascript:;'
-                                    id='deleteButton'
-                                    class='dropdown-item'
-                                    data-toggle='modal'
-                                    data-target='#smallModal'
-                                    data-href='". route("salesOrder.destroy", ["id"=>Crypt::encryptString($data->id)]) ."'>
-                                    <i data-feather='trash-2' class='feather-14-red'></i>
-                                    <span>". __('Delete') ."</span>
-                                </a>";
+                $soDate = date('Y-m-d', strtotime($data->so_date));
+                if($soDate>$lockDateToDate){
+                    $buttons .=         "<a href='javascript:;'
+                                            id='deleteButton'
+                                            class='dropdown-item'
+                                            data-toggle='modal'
+                                            data-target='#smallModal'
+                                            data-href='". route("salesOrder.destroy", ["id"=>Crypt::encryptString($data->id)]) ."'>
+                                            <i data-feather='trash-2' class='feather-14-red'></i>
+                                            <span>". __('Delete') ."</span>
+                                        </a>";
+                }
             }
             if (Auth::user()->can('salesOrder-delete') ) {
 
