@@ -32,17 +32,19 @@ class ReceivingController extends Controller
         ->where('status','1')
         ->value('lock_date');
 
-        $lastDatePrevMonth = date('t-m-Y', strtotime('-1 months'));
-        $lastDatePrevMonth = date('t-m-Y', strtotime('-1 months',strtotime('05-11-2023')));
-        $firstDayCurrentMonth = date('1-m-Y');
-        $firstDayCurrentMonth = date('1-m-Y', strtotime('05-11-2023'));
-        $prevmonth = date('M Y 1', strtotime('-1 months'));
-        
         /*
-        jika tanggal hari ini lebih kecil dari lockdate maka
-        min date nya adalah tanggal akhir dari bulan sebelumnya
-        kalau tanggal hari ini lebi besar dari lockdate maka 
-        tanggal minimum nya adalah tanngal awal di bulan ini
+        
+            $lastDatePrevMonth = date('t-m-Y', strtotime('-1 months'));
+            $lastDatePrevMonth = date('t-m-Y', strtotime('-1 months',strtotime('05-11-2023')));
+            $firstDayCurrentMonth = date('1-m-Y');
+            $firstDayCurrentMonth = date('1-m-Y', strtotime('05-11-2023'));
+            $prevmonth = date('M Y 1', strtotime('-1 months'));
+            
+            
+            jika tanggal hari ini lebih kecil dari lockdate maka
+            min date nya adalah tanggal akhir dari bulan sebelumnya
+            kalau tanggal hari ini lebi besar dari lockdate maka 
+            tanggal minimum nya adalah tanngal awal di bulan ini
         */
 
         $todayDate = date('d-m-Y');
