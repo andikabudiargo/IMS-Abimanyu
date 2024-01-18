@@ -1224,7 +1224,7 @@ class DeliveryController extends Controller
 
         ->addColumn('status', function ($data) {
             $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-success','badge-success','badge-success'];            
-            $statusDel = ['NEW','VALIDATE','APPROVED','PphpOSTED','CANCELED','','','RECEIVED','','REVISI'];
+            $statusDel = ['NEW','VALIDATE','APPROVED','POSTED','CANCELED','','','RECEIVED','','REVISI'];
             return "<div class='badge ".$badges[$data->status - 1]."'>".$statusDel[$data->status - 1]."</div>";
         })
 
