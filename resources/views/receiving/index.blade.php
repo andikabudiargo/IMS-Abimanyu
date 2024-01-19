@@ -185,7 +185,7 @@
         recDate:recDate,
         doDate:doDate
       },
-      orderColumn:[[ 3, 'asc' ]],
+      orderColumn:[[ 13, 'desc' ]],
       excelFileName:'receiving'
     });
   }
@@ -202,7 +202,7 @@
       route:"{{ route('receiving.list.detail') }}",
       kolom:{!! $kolomDetail !!},
       type:'POST',
-      arrColPrint:[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24],
+      arrColPrint:[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23],
       columnDefs :[
         { width: '5%', targets: 0 },
         {
@@ -221,7 +221,7 @@
         recDate:recDate,
         doDate:doDate
       },
-      orderColumn:[[ 21, 'asc' ]],
+      orderColumn:[[ 24, 'asc' ],[ 6, 'asc' ]],
       excelFileName:'receiving_detail'
     });
   }
