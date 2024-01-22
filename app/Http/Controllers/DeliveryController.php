@@ -770,7 +770,7 @@ class DeliveryController extends Controller
         }
     }
 
-    public function unPosting($dnNumber)
+    public function unPosting($dnNumber,$reason)
     {
         $username =  Auth::user()->username;
         $dnNumber = $dnNumber;
@@ -783,6 +783,7 @@ class DeliveryController extends Controller
         $movementDate = date("d-m-Y");
                 
         if ($dnNumber){
+
             $data = DB::table('delivery_det')
             ->leftJoin('delivery_hdr','delivery_hdr.delivery_number','delivery_det.delivery_number')
             ->leftJoin('article','article.article_code','delivery_det.article_code')
@@ -849,7 +850,7 @@ class DeliveryController extends Controller
                     'movement_price' => $val->movement_price,
                     'movement_transnno' => $val->movement_transnno,
                     'movement_type' => $val->movement_type,
-                    'movement_desc' => $val->movement_desc."(Revision)",
+                    'movement_desc' => $val->movement_desc."($reason)",
                     'created_by' => Auth::user()->username,
                     'created_at' => date('Y-m-d H:i:s'),
                     'site_code' => $siteCode,
@@ -874,13 +875,15 @@ class DeliveryController extends Controller
         $id=Crypt::decryptString($request->id);
         $status = "5";
 
-        $poHdr= DB::table('delivery_hdr')
+        $dnHdr= DB::table('delivery_hdr')
         ->where('id',$id)
         ->get()->first();
 
-        $dnNumber = $poHdr->delivery_number;
-        $soNumber = $poHdr->so_number;
-        $note = $poHdr->note;
+        $dnNumber = $dnHdr->delivery_number;
+        $soNumber = $dnHdr->so_number;
+        $note = $dnHdr->note;
+        $dnStatus = $dnHdr->status;
+        
 
         $rowAffected=DB::table('delivery_hdr')
         ->where('delivery_number',$dnNumber)
@@ -906,6 +909,12 @@ class DeliveryController extends Controller
                     'updated_at' => date('Y-m-d H:i:s')
                 ]
             );
+
+            $dnAfterCancel = $dnNumber."(C)";
+
+            if($dnStatus == '4'){
+                $this->unPosting($dnAfterCancel,'Cancel');
+            }
 
             $title ="Cancel $this->title";
             $alert  ="success";
@@ -1038,7 +1047,7 @@ class DeliveryController extends Controller
 
             if($rowAffected){
                 if($dnStatus == '4'){
-                    $this->unPosting($dnOrigin);
+                    $this->unPosting($dnOrigin,'Revision');
                 }
             }
 
@@ -1193,7 +1202,8 @@ class DeliveryController extends Controller
                                     Detail
                                 </a>';
                 
-            if (($data->status != '3') && ($data->status != '4') && ($data->status != '8') && ($data->status != '7')){
+            // if (($data->status != '3') && ($data->status != '4') && ($data->status != '8') && ($data->status != '7')){
+            if (($data->status != '3') && ($data->status != '10') && ($data->status != '8') && ($data->status != '7')){
                 if (Auth::user()->can('delivery-delete')) {
                     $dnDate = date('Y-m-d', strtotime($data->delivery_date));
                     if($dnDate>$lockDateToDate){
