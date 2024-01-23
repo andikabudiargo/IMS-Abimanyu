@@ -108,7 +108,9 @@
     }
 
     function searchSoDet(value) {
+        
         if(value && (fromEdit == 'false')){
+            
             $.ajax({
                 url:"{{ route('delivery.so.det') }}",
                 method:"GET",
@@ -143,7 +145,7 @@
                         }
                     }
 
-                    fromEdit = false;
+                    fromEdit = 'false';
                     
                 },
                 error: function (response) {

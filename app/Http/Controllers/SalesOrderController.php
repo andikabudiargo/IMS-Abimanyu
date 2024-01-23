@@ -338,7 +338,6 @@ class SalesOrderController extends Controller
         $data['title'] = "Detail $this->title";
         $data['subtitle'] = "Detail $this->title";
 
-
         $data['headers'] = DB::table('sales_order_hdr')
         ->select('sales_order_hdr.*'
         ,DB::raw("(select concat(kode,' - ',nama) from third_party where kode = sales_order_hdr.customer_id) as supp_name") 
@@ -365,6 +364,7 @@ class SalesOrderController extends Controller
             $query->select('so_code')->from('sales_order_hdr')->where('origin_so_code',$soCode);
         })
         ->select('sales_order_det'.'.*'
+        ,'sales_order_det.status as status_detail'
         ,DB::raw('round(sales_order_det.qty) as qty')
         ,'article_stock.article_qty as qty_stock'
         ,'uom.uom_group'

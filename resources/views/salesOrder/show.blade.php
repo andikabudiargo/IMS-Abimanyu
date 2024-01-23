@@ -128,6 +128,7 @@
                                             <thead class="thead-dark">
                                                 <tr>
                                                     <th>No</th>
+                                                    <th>Status</th>
                                                     <th>Article Code</th>
                                                     <th class="text-right">QTY Stock</th>
                                                     <th class="text-right">QTY Order</th>
@@ -156,6 +157,7 @@
                                                     @if($item->so_code === $header2->so_code )
                                                     <tr>
                                                         <td ></td>
+                                                        <td >{{ $item->status_detail == '1' ? "Open": "Closed" }}</td>
                                                         <td >{{ $item->article }}</td>
                                                         <td class="text-right">{{ $item->uom_group =='PIECE' ? number_format($item->qty_stock ==0 ? 0 :$item->qty_stock) : number_format($item->qty_stock ==0 ? 0 :$item->qty_stock,$decimalPlaces) }}</td>
                                                         <td class="text-right">{{ $item->uom_group =='PIECE' ? number_format($item->qty) : number_format($item->qty,$decimalPlaces) }} {{ $item->uom }}</td>
