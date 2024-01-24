@@ -16,6 +16,7 @@
     let depts = '{!! $depts !!}';
 
     let delayTimer;
+    let delayTimerTax;
     function inputDecimal(ele) {
         clearTimeout(delayTimer);
         delayTimer = setTimeout(function() {
@@ -160,8 +161,8 @@
         if(edit == 'false'){
             if($('#vatCheck').is(':checked') ) {
                 if(!$("#totalPPN").val()){
-                    clearTimeout(delayTimer);
-                    delayTimer = setTimeout(function() {
+                    clearTimeout(delayTimerTax);
+                    delayTimerTax = setTimeout(function() {
                         $("#totalPPN").val(parseFloat(ba * (sNilaiPPN/100)).toFixed(2));
                     }, 2100); 
                 }
@@ -170,8 +171,8 @@
 
             if($("#pph23Check").is(':checked') ) {
                 if(!$("#totalPPH23").val()){
-                    clearTimeout(delayTimer);
-                    delayTimer = setTimeout(function() {
+                    clearTimeout(delayTimerTax);
+                    delayTimerTax = setTimeout(function() {
                         $("#totalPPH23").val(parseFloat(ba * (sNilaiPPH23/100)).toFixed(2));
                     }, 2100); 
                 }                
@@ -180,8 +181,8 @@
 
             if($("#pph21Check").is(':checked') ) {
                 if(!$("#totalPPH21").val()){
-                    clearTimeout(delayTimer);
-                    delayTimer = setTimeout(function() {
+                    clearTimeout(delayTimerTax);
+                    delayTimerTax = setTimeout(function() {
                         $("#totalPPH21").val(parseFloat(ba * (sNilaiPPH21/100)).toFixed(2));
                     }, 2100); 
                 }
@@ -190,12 +191,11 @@
 
             if($("#pph42Check").is(':checked') ) {
                 if(!$("#totalPPH42").val()){
-                    clearTimeout(delayTimer);
-                    delayTimer = setTimeout(function() {
+                    clearTimeout(delayTimerTax);
+                    delayTimerTax = setTimeout(function() {
                         $("#totalPPH42").val(parseFloat(ba * (sNilaiPPH42/100)).toFixed(2));
                     }, 2100); 
                 }
-                
                 pph42 = parseFloat($('#totalPPH42').val().replace(/[^0-9.]/g, '')) || 0;
             }
         }
