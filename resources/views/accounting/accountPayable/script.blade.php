@@ -159,22 +159,43 @@
 
         if(edit == 'false'){
             if($('#vatCheck').is(':checked') ) {
-                $("#totalPPN").val(parseFloat(ba * (sNilaiPPN/100)).toFixed(2));
+                if(!$("#totalPPN").val()){
+                    clearTimeout(delayTimer);
+                    delayTimer = setTimeout(function() {
+                        $("#totalPPN").val(parseFloat(ba * (sNilaiPPN/100)).toFixed(2));
+                    }, 2100); 
+                }
                 vat = parseFloat($('#totalPPN').val().replace(/[^0-9.]/g, '')) || 0;
             }
 
             if($("#pph23Check").is(':checked') ) {
-                $("#totalPPH23").val(parseFloat(ba * (sNilaiPPH23/100)).toFixed(2));
+                if(!$("#totalPPH23").val()){
+                    clearTimeout(delayTimer);
+                    delayTimer = setTimeout(function() {
+                        $("#totalPPH23").val(parseFloat(ba * (sNilaiPPH23/100)).toFixed(2));
+                    }, 2100); 
+                }                
                 pph23 = parseFloat($('#totalPPH23').val().replace(/[^0-9.]/g, '')) || 0;
             }
 
             if($("#pph21Check").is(':checked') ) {
-                $("#totalPPH21").val(parseFloat(ba * (sNilaiPPH21/100)).toFixed(2));
+                if(!$("#totalPPH21").val()){
+                    clearTimeout(delayTimer);
+                    delayTimer = setTimeout(function() {
+                        $("#totalPPH21").val(parseFloat(ba * (sNilaiPPH21/100)).toFixed(2));
+                    }, 2100); 
+                }
                 pph21 = parseFloat($('#totalPPH21').val().replace(/[^0-9.]/g, '')) || 0;
             }
 
             if($("#pph42Check").is(':checked') ) {
-                $("#totalPPH42").val(parseFloat(ba * (sNilaiPPH42/100)).toFixed(2));
+                if(!$("#totalPPH42").val()){
+                    clearTimeout(delayTimer);
+                    delayTimer = setTimeout(function() {
+                        $("#totalPPH42").val(parseFloat(ba * (sNilaiPPH42/100)).toFixed(2));
+                    }, 2100); 
+                }
+                
                 pph42 = parseFloat($('#totalPPH42').val().replace(/[^0-9.]/g, '')) || 0;
             }
         }
@@ -192,6 +213,7 @@
         mask_thousand();
     }
 
+    // $("#basisAmount,#totalPPN,#totalPPH23,#totalPPH21,#totalPPH42,#totalDiscount,nilaiDebit").keyup(function(){
     $("#basisAmount,#totalPPN,#totalPPH23,#totalPPH21,#totalPPH42,#totalDiscount,nilaiDebit").keyup(function(){
         hitungTotal();
     })
