@@ -187,7 +187,7 @@
                 </table>
                 <table width="100%" border="0" class="font-12">
                     <tr>
-                        <td width="45%" valign="top" >
+                        <td width="40%" valign="top" >
                             <table class="tableHeader">
                                 <tr>
                                     <td width="30%" >Rec. Number </td><td>: {{ $recHdr->rec_number }}</td>
@@ -201,7 +201,7 @@
                             </table>
                         </td>
                         <td width=""></td>
-                        <td width="55%">
+                        <td width="60%">
                             <table class="tableHeader">
                                 <tr>
                                     <td width="20%">Customer </td><td>: {{ $suppliers[0]->nama }}</td>
