@@ -1250,6 +1250,7 @@ class SalesOrderController extends Controller
         })
         ->where('sales_order_hdr.so_code','<>',null)
         ->whereNotIn('sales_order_hdr.status',['5','8'])
+        ->where('sales_order_det.status',['1'])
         ->select('sales_order_det.*'
         ,'sales_order_hdr.po_number'
         ,'sales_order_hdr.status as statusku'
