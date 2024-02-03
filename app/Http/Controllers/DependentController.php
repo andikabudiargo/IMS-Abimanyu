@@ -661,9 +661,17 @@ class DependentController extends Controller
             ->orderBy($order)
             ->get();
         }elseif($dependent =='reference'){
+            
+            /*
+                status:
+                4:Posted
+                6:Paid
+
+            */
+
             $data= DB::table($table)
             ->where($field,$code)
-            ->where('status','=','4') //POSTED
+            ->whereIn('status',['4','6']) //POSTED
             ->whereNotIn(DB::raw("ap_number"), function($query) {
                 $query->select(DB::raw("reference"))
                 ->from('kas_det') 
