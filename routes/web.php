@@ -815,6 +815,9 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('stockTake/import',['as'=>'stockTake.import','uses'=>'StockTake\StockTakeController@import']);
 	Route::get('stockTake/export',['as'=>'stockTake.export','uses'=>'StockTake\StockTakeController@export']);
 
+	Route::get('filesBackup',['as'=>'file.index','uses'=>'FilesController@index']);
+	Route::get('filesBackup/download',['as'=>'file.download','uses'=>'FilesController@download']);
+
 	Route::post('dynamic/dependent',['as'=>'dynamic.dependent','uses'=>'DependentController@dependentFetch']);
 
 	Route::get('monitoring/qtyNotBalance',['as'=>'monitoring.qtyNotBalance','uses'=>'MonitoringController@qtyNotBalance']);
