@@ -265,7 +265,8 @@
             if (result == 'selesai'){
                 setTimeout(() => {
                     splitArticle();
-                    isiListArticle();
+                    // isiListArticle();
+                    oEdit.val('false');
                 }, 10000);
             }
         });
