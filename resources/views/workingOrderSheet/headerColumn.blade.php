@@ -4,14 +4,14 @@
             <label class="d-none d-md-block">Urutan</label>
         </div>
     </div>
-    <div class="col-md-2 col-12 d-none d-md-block" style="max-width: 14%;">
-        <div class="form-group">
-            <label class="d-none d-md-block">SO Number</label>
-        </div>
-    </div>
     <div class="col-md-3 col-12 d-none d-md-block">
         <div class="form-group">
             <label class="d-none d-md-block">Article Code</label>
+        </div>
+    </div>
+    <div class="col-md-2 col-12 d-none d-md-block" style="max-width: 14%;">
+        <div class="form-group">
+            <label class="d-none d-md-block">SO Number</label>
         </div>
     </div>
     <div class="col-md-1 col-12 d-none d-md-block">

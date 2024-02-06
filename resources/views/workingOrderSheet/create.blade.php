@@ -98,13 +98,13 @@
                         <div class="lebar-list-item">
                             <br>
                             @include('workingOrderSheet.headerColumn')
-                            <div class="" id="article_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px">
+                            <div class="" id="article_row" style="max-height: 24rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px">
                                 <input type="text" id ="last_row_number" class="d-none" value="0">
                             </div>
                         </div>
                     </div>
                     <div class="d-flex justify-content-start align-items-end mt-75">
-                        <button class="btn btn-primary btn-prev" type="button" id="addNewRow" onclick="add_new_row();">
+                        <button class="btn btn-primary btn-prev" type="button" id="addNewRow" onclick="add_new_row();" data-toggle="tooltip" data-placement="top" title="Article yang sudah ada di BOM dan di SO">
                             <i data-feather="plus" class="align-middle mr-sm-25 mr-0"></i>
                             <span class="align-middle d-sm-inline-block d-none">Add Article</span>
                         </button>
@@ -171,16 +171,12 @@
 @include('workingOrderSheet.addArticle')
 <script type="text/javascript">
     
-    $(document).ready(function(){           
-        validateFormToast("frmAdd");
-        wosDate.val(currentDate);
-    });   
-    
     $.ajaxSetup({
         headers: {
             'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
         }
     });
+
 
 </script>
 @endsection
