@@ -44,6 +44,9 @@ class InvoiceController extends Controller
             ['data'=> 'action', 'name'=> 'action','title'=>'action', 'orderable'=> false, 'searchable'=> false ],
             ['data'=> 'invoice_number', 'name'=> 'invoice_number','title'=>'Inv. Number' ],
             ['data'=> 'status', 'name'=> 'status','title'=>'Status' ],
+            ['data'=> 'voucher_date', 'name'=> 'voucher_date','title'=>'Paid Date'],
+            ['data'=> 'voucher_number', 'name'=> 'voucher_number','title'=>'Voucher Number'],
+            ['data'=> 'voucher_amount', 'name'=> 'voucher_amount','title'=>'Amount Paid'],
             ['data'=> 'invoice_date', 'name'=> 'invoice_date','title'=>'Date' ],
             ['data'=> 'so_number', 'name'=> 'so_number','title'=>'SO Number' ],
             ['data'=> 'po_number', 'name'=> 'po_number','title'=>'PO Number' ],
@@ -921,6 +924,9 @@ class InvoiceController extends Controller
             // ,DB::raw("(select STRING_AGG ( distinct a.po_number,', ' ORDER BY a.po_number) as po_number from invoice_det a where invoice_number = invoice_hdr.invoice_number) as po_number")
             ,DB::raw("(select STRING_AGG ( distinct (select po_number from sales_order_hdr where so_code = so_number),',') as po_number from invoice_det a where invoice_number = invoice_hdr.invoice_number) as po_number")
             ,DB::raw("(select STRING_AGG ( distinct a.dn_number,', ' ORDER BY a.dn_number) as dn_number from invoice_det a where invoice_number = invoice_hdr.invoice_number) as dn_number")
+            ,db::raw("case when invoice_hdr.status = '6' then (select voucher_date from kas_hdr where voucher_number = (select voucher_number from kas_det where reference = invoice_hdr.invoice_number)) else '' end as voucher_date")
+            ,db::raw("case when invoice_hdr.status = '6' then (select voucher_number from kas_det where reference = invoice_hdr.invoice_number) else '' end as voucher_number")
+            ,db::raw("case when invoice_hdr.status = '6' then (select credit from kas_det where reference = invoice_hdr.invoice_number) else 0 end as voucher_amount")
         )
         ->orderBy('invoice_hdr.id')
         ->get(); 
