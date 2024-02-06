@@ -209,8 +209,9 @@
         $("#new_row"+ cloneCountEdit).find('#tagAsli').attr('id', 'tagAsli'+ cloneCountEdit);
         $("#new_row"+ cloneCountEdit).find('#tone').attr('id', 'tone'+ cloneCountEdit);
         changeselectEdit('salesOrder','salesOrder'+ cloneCountEdit,noSo,'articleId'+ cloneCountEdit,noArticle,'tone'+ cloneCountEdit,tone);
+        addArticleEdit('articleId'+ cloneCountEdit,noArticle);
         // changeSelectArticleEdit('searchFromSO','articleId'+ cloneCountEdit,noSo,noArticle);
-        $("#articleId"+cloneCount).html(listArticle);
+        // $("#articleId"+cloneCount).html(listArticle);
         $('#urutan'+ cloneCountEdit).val(cloneCountEdit);
         $('#qtyOrder'+ cloneCountEdit).val(qtySo);
         $('#qtyProd'+ cloneCountEdit).val(qtyProd);
@@ -226,7 +227,7 @@
         $("#salesOrder"+cloneCountEdit).select2();
         $("#tone"+cloneCountEdit).select2();
         $("#qtyOrder"+ cloneCountEdit).tooltip();
-        $("#articleId"+cloneCount).val(noArticle);
+        // $("#articleId"+cloneCount).val(noArticle);
         tombolPanah('qtyProd');
         mask_thousand_satuan();
         hitungWaktu(); 
@@ -272,7 +273,13 @@
         })
     }
 
-    
+    function addArticleEdit(obj,article) {
+        $('#'+obj).attr('disabled','disabled');
+        $('#'+obj).html(listArticle);
+        $('#'+obj).val(article).trigger('change');
+        $('#'+obj).removeAttr('disabled');
+    }
+     
     let cloneCount=0;
     function add_new_row() {
         $("#article_row").append($("#new_row").clone().html());
@@ -295,21 +302,7 @@
         mask_thousand_satuan();
         // isiListArticle();
         updatQty();
-    };
-
-    
-
-    // function isiListArticle(){
-    //     let objSo = $('#article_row select[name="salesOrder[]"]');
-    //     objSo.change(function(e){        
-    //         let objIndex = objSo.index(this);
-    //         let soCode = objSo.eq(objIndex).val();
-    //         if (soCode){
-    //             changeSelectArticle('searchFromSO',objIndex,soCode);
-    //             splitArticle();
-    //         }
-    //     });
-    // }
+    };   
 
     function splitArticle(){
         // split article with delimiter |
@@ -323,81 +316,84 @@
         let objTagAsli = $('input[name="tagAsli[]"]');
         let objWaktu = $('input[name="waktu[]"]');
 
-        objArticle.change(function(e){        
-            let objIndex = objArticle.index(this);
-            let detail = objArticle.eq(objIndex).find(":selected").data("detail");
-            let articleRm = objArticle.eq(objIndex).find(":selected").data("article-rm");
-            let articleCode =  objArticle.eq(objIndex).val();
+        // if (!oEdit.val()){
             
-            objTone.eq(objIndex).val('').trigger('change');
+            objArticle.change(function(e){        
+                let objIndex = objArticle.index(this);
+                let detail = objArticle.eq(objIndex).find(":selected").data("detail");
+                let articleRm = objArticle.eq(objIndex).find(":selected").data("article-rm");
+                let articleCode =  objArticle.eq(objIndex).val();
+                
+                objTone.eq(objIndex).val('').trigger('change');
 
-            if(articleCode === 'gantiwarna' || articleCode==='istirahat'){
-                objTag.eq(objIndex).val(0) ;
-                objTagAsli.eq(objIndex).val(0) ;
-                objWaktu.eq(objIndex).val($('#wosTime').val()+":00");
-                objQtyRepaint.eq(objIndex).attr('disabled','disabled');
-            }else{
-                objQtyRepaint.eq(objIndex).removeAttr('disabled');
-            }
-
-            if (detail){
-                let arrDetail = detail.split("|");
-                objArticleRm.eq(objIndex).val(articleRm);
-                objQtyProd.eq(objIndex).val('');
-                objQtyRepaint.eq(objIndex).val('');
-                // objQtyOrder.eq(objIndex).val(arrDetail[3]);
-                // objTag.eq(objIndex).val(arrDetail[2] || 0) ;
-                // objTagAsli.eq(objIndex).val(arrDetail[2] || 0) ;
-                // objWaktu.eq(objIndex).val($('#wosTime').val()+":00");
-                // if (detail){
-                //     setTimeout(() => {
-                //         objQtyProd.eq(objIndex).focus().select();
-                //     }, 5);
-                // }
-                mask_thousand_satuan();
-                // hitungWaktu();   
-            }else{
-                objQtyProd.eq(objIndex).val('');
-                // objQtyOrder.eq(objIndex).val('');
-                objQtyRepaint.eq(objIndex).val('');
-                // objTag.eq(objIndex).val('');
-                // objTagAsli.eq(objIndex).val('');
-                // objWaktu.eq(objIndex).val('');
-            }
-		});
-
-        objTone.change(function(e){
-            let objIndex = objTone.index(this);
-            let tone = objTone.eq(objIndex).val();
-            let sprayBooth = $('#sprayBooth').val();
-            let articleCode = objArticle.eq(objIndex).val();
-
-            if(articleCode === 'gantiwarna' || articleCode==='istirahat'){
-
-            }else{
-                if (sprayBooth){
-                    // getTack(articleCode,sprayBooth,tone,objIndex);
-                    if (tone){
-                        getTack(articleCode,sprayBooth,tone,objIndex);
-                        // console.log("iko");
-                        // objTag.eq(objIndex).val(tack || 0) ;
-                        // objTagAsli.eq(objIndex).val(tack || 0);
-                        // objWaktu.eq(objIndex).val($('#wosTime').val()+":00");
-                    }else{
-                        objTag.eq(objIndex).val(0) ;
-                        objTagAsli.eq(objIndex).val(0);
-                        objWaktu.eq(objIndex).val('');
-                    }
+                if(articleCode === 'gantiwarna' || articleCode==='istirahat'){
+                    objTag.eq(objIndex).val(0) ;
+                    objTagAsli.eq(objIndex).val(0) ;
+                    objWaktu.eq(objIndex).val($('#wosTime').val()+":00");
+                    objQtyRepaint.eq(objIndex).attr('disabled','disabled');
                 }else{
-                    if (tone){
-                        swal.fire('Warning','Spraybooth belum di pilih','warning');
-                        objTone.eq(objIndex).val('').trigger('change');
-                    }
-
+                    objQtyRepaint.eq(objIndex).removeAttr('disabled');
                 }
-            }
 
-		});
+                if (detail){
+                    let arrDetail = detail.split("|");
+                    objArticleRm.eq(objIndex).val(articleRm);
+                    objQtyProd.eq(objIndex).val('');
+                    objQtyRepaint.eq(objIndex).val('');
+                    // objQtyOrder.eq(objIndex).val(arrDetail[3]);
+                    // objTag.eq(objIndex).val(arrDetail[2] || 0) ;
+                    // objTagAsli.eq(objIndex).val(arrDetail[2] || 0) ;
+                    // objWaktu.eq(objIndex).val($('#wosTime').val()+":00");
+                    // if (detail){
+                    //     setTimeout(() => {
+                    //         objQtyProd.eq(objIndex).focus().select();
+                    //     }, 5);
+                    // }
+                    mask_thousand_satuan();
+                    // hitungWaktu();   
+                }else{
+                    objQtyProd.eq(objIndex).val('');
+                    // objQtyOrder.eq(objIndex).val('');
+                    objQtyRepaint.eq(objIndex).val('');
+                    // objTag.eq(objIndex).val('');
+                    // objTagAsli.eq(objIndex).val('');
+                    // objWaktu.eq(objIndex).val('');
+                }
+            });
+
+            objTone.change(function(e){
+                let objIndex = objTone.index(this);
+                let tone = objTone.eq(objIndex).val();
+                let sprayBooth = $('#sprayBooth').val();
+                let articleCode = objArticle.eq(objIndex).val();
+
+                if(articleCode === 'gantiwarna' || articleCode==='istirahat'){
+
+                }else{
+                    if (sprayBooth){
+                        // getTack(articleCode,sprayBooth,tone,objIndex);
+                        if (tone){
+                            getTack(articleCode,sprayBooth,tone,objIndex);
+                            // console.log("iko");
+                            // objTag.eq(objIndex).val(tack || 0) ;
+                            // objTagAsli.eq(objIndex).val(tack || 0);
+                            // objWaktu.eq(objIndex).val($('#wosTime').val()+":00");
+                        }else{
+                            objTag.eq(objIndex).val(0) ;
+                            objTagAsli.eq(objIndex).val(0);
+                            objWaktu.eq(objIndex).val('');
+                        }
+                    }else{
+                        if (tone){
+                            swal.fire('Warning','Spraybooth belum di pilih','warning');
+                            objTone.eq(objIndex).val('').trigger('change');
+                        }
+
+                    }
+                }
+
+            });
+        // }
     }
 
     if (wosDate.length) {
@@ -460,6 +456,7 @@
         let objWaktu = $('#article_row input[name="waktu[]"]');
         let objTone = $('#article_row select[name="tone[]"]');
         let jumlahUrutan = objUrutan.length;
+        oEdit.val('true');
 
         // $(".loading-spinner-container").addClass("-show");
    
@@ -543,7 +540,8 @@
                         if (result == 'selesai'){
                             setTimeout(() => {
                                 splitArticle();
-                                // isiListArticle();
+                                console.log("harusnya kesini");
+                                oEdit.val('false');
                             }, 5000);
                             $(".loading-spinner-container").removeClass("-show");
                         }
@@ -772,7 +770,7 @@
             if (flag==0){
                 let wosNumber = "";
                 let urlKu="";
-                if (oEdit.val()){
+                if (oEdit.val()=='true'){
                     wosNumber = $('#wosNumber').val();
                     urlKu ="{{ route('workingOrderSheet.update') }}";
                 }else{
@@ -889,51 +887,55 @@
         let objArticleRm = $('input[name="articleRm[]"]');
         let objTag = $('#article_row input[name="tag[]"]');
         let objTagAsli = $('#article_row input[name="tagAsli[]"]');
+        console.log("Status edit "+oEdit.val())
+        if(oEdit.val() == 'false'){    
 
-        objArticleRm.eq(objIndex).val('');
-        objSo.eq(objIndex).empty();
-        objTone.eq(objIndex).empty();
+            console.log("nah kesini");
+            objArticleRm.eq(objIndex).val('');
+            objSo.eq(objIndex).empty();
+            objTone.eq(objIndex).empty();
 
-        if (articleCode){
-            if ((articleCode == 'gantiwarna') || (articleCode == 'istirahat')){
-                objSo.eq(objIndex).html(`<option value="other">Others</option>'`);
-                objSo.eq(objIndex).select2();
-                objSo.removeAttr('disabled');
-                objTagAsli.eq(objIndex).val(0);
-                objTag.eq(objIndex).val(0);
-            }else{
-                let articleRm = objArticle.eq(objIndex).find(":selected").data("article-rm");
-                let jumlahTone = objArticle.eq(objIndex).find(":selected").data("jumlah-tone");
-                let toneOption = `<option value=""></option>`;
-                jumlahTone = parseInt(jumlahTone.slice(-1));
-                console.log(jumlahTone);
-                if (jumlahTone > 0){
-                    for(let i=1;i<=jumlahTone;i++){
-                        console.log(i);
-                        toneOption +=`<option value="t${i}">Tone ${i}</option>`;
-                    }
-                }
-
-                objTone.eq(objIndex).html(toneOption);
-                objTone.eq(objIndex).val(valTone).trigger('change');
-                objArticleRm.eq(objIndex).val(articleRm);
-                objSo.attr('disabled','disabled');
-                $.ajax({
-                    url:"{{route('dynamic.dependent')}}",
-                    method:"POST",
-                    data:{
-                        value:articleCode,
-                        dependent:'getSoList'
-                    },
-                    success:function(result){
-                        objSo.eq(objIndex).html(result);
-                        objSo.eq(objIndex).select2();
-                        if(value){
-                            objSo.eq(objIndex).val(value).trigger('change');
+            if (articleCode){
+                if ((articleCode == 'gantiwarna') || (articleCode == 'istirahat')){
+                    objSo.eq(objIndex).html(`<option value="other">Others</option>'`);
+                    objSo.eq(objIndex).select2();
+                    objSo.removeAttr('disabled');
+                    objTagAsli.eq(objIndex).val(0);
+                    objTag.eq(objIndex).val(0);
+                }else{
+                    let articleRm = objArticle.eq(objIndex).find(":selected").data("article-rm");
+                    let jumlahTone = objArticle.eq(objIndex).find(":selected").data("jumlah-tone");
+                    let toneOption = `<option value=""></option>`;
+                    jumlahTone = parseInt(jumlahTone.slice(-1));
+                    console.log(jumlahTone);
+                    if (jumlahTone > 0){
+                        for(let i=1;i<=jumlahTone;i++){
+                            console.log(i);
+                            toneOption +=`<option value="t${i}">Tone ${i}</option>`;
                         }
-                        objSo.removeAttr('disabled');
                     }
-                });
+
+                    objTone.eq(objIndex).html(toneOption);
+                    objTone.eq(objIndex).val(valTone).trigger('change');
+                    objArticleRm.eq(objIndex).val(articleRm);
+                    objSo.attr('disabled','disabled');
+                    $.ajax({
+                        url:"{{route('dynamic.dependent')}}",
+                        method:"POST",
+                        data:{
+                            value:articleCode,
+                            dependent:'getSoList'
+                        },
+                        success:function(result){
+                            objSo.eq(objIndex).html(result);
+                            objSo.eq(objIndex).select2();
+                            if(value){
+                                objSo.eq(objIndex).val(value).trigger('change');
+                            }
+                            objSo.removeAttr('disabled');
+                        }
+                    });
+                }
             }
         }
     }
