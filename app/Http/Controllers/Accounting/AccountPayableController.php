@@ -69,6 +69,9 @@ class AccountPayableController extends Controller
             ['data'=> 'ap_number', 'name'=> 'ap_number','title'=>'AP Number'],
             ['data'=> 'ap_date', 'name'=> 'ap_date','title'=>'AP Date'],
             ['data'=> 'status', 'name'=> 'status','title'=>'Status'],
+            ['data'=> 'voucher_date', 'name'=> 'voucher_date','title'=>'Paid Date'],
+            ['data'=> 'voucher_number', 'name'=> 'voucher_number','title'=>'Voucher Number'],
+            ['data'=> 'voucher_amount', 'name'=> 'voucher_amount','title'=>'Amount Paid'],
             ['data'=> 'num_revision', 'name'=> 'num_revision','title'=>'Rev.','visible'=>false],
             ['data'=> 'inv_number', 'name'=> 'inv_number','title'=>'Invoice Number'],
             ['data'=> 'proforma_inv_number', 'name'=> 'proforma_inv_number','title'=>'Proforma','visible'=>false],
@@ -2029,6 +2032,9 @@ class AccountPayableController extends Controller
             ,db::raw("case when pph23_type = 'PPH21' then pph23 else 0 end as pph21")
             ,db::raw("case when pph23_type = 'PPH23' then pph23 else 0 end as pph23")
             ,db::raw("case when pph23_type = 'PPH42' then pph23 else 0 end as pph42")
+            ,db::raw("case when ap_invoice.status = '6' then (select voucher_date from kas_hdr where voucher_number = (select voucher_number from kas_det where reference = ap_invoice.inv_number)) else '' end as voucher_date")
+            ,db::raw("case when ap_invoice.status = '6' then (select voucher_number from kas_det where reference = ap_invoice.inv_number) else '' end as voucher_number")
+            ,db::raw("case when ap_invoice.status = '6' then (select debit from kas_det where reference = ap_invoice.inv_number) else 0 end as voucher_amount")
         )
         ->orderBy('ap_invoice.id')
         ->get(); 

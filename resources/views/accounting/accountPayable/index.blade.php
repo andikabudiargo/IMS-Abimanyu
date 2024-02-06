@@ -148,11 +148,11 @@
       tableId:"detailedTable",
       route:"{{ route('accountPayable.list') }}",
       kolom:{!! $kolom !!},
-      arrColPrint:[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24],
+      arrColPrint:[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27],
       columnDefs :[
         { width: '5%', targets: 0 },
         {
-          targets: [ 14,15,16,17,18,19 ],
+          targets: [ 6,16,17,18,19,20,21,22 ],
           render: $.fn.dataTable.render.number(',', '.', 2, ''),
           className: "text-right"
         },
@@ -165,7 +165,7 @@
         searchStatus:searchStatus,
         apDate:apDate
       },
-      orderColumn:[[ 24, 'desc' ]],
+      orderColumn:[[ 27, 'desc' ]],
       excelFileName:'invoice_supplier'
     });
   }
