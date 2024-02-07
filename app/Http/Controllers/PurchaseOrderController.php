@@ -1197,7 +1197,7 @@ class PurchaseOrderController extends Controller
 
         $lockDateToDate = date('Y-m-d',strtotime($this->lockDate));
 
-        $poDate = date('Y-m-d', strtotime('04-01-2024'));
+        // $poDate = date('Y-m-d', strtotime('04-01-2024'));
 
         return Datatables::of($data)
         ->addColumn('action', function ($data) use($lockDateToDate) {
@@ -1218,7 +1218,7 @@ class PurchaseOrderController extends Controller
             }
             if ( $data->status == '1' or $data->status == '2' ){
                 $poDate = date('Y-m-d', strtotime($data->po_date));
-                if($poDate>$lockDateToDate){
+                if($poDate>=$lockDateToDate){
                     if (Auth::user()->can('purchaseOrder-edit')) {
                     $buttons .=         '<a href="'. route('purchaseOrder.edit', ['id'=>Crypt::encryptString($data->idku)]) .'" class="dropdown-item">
                                             <i data-feather="file-text"></i>
