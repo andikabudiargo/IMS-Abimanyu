@@ -41,6 +41,7 @@ class CustomerController extends Controller
             ['data'=>'epte','name'=>'epte','title'=>'EPTE'],
             ['data'=>'account','name'=>'account','title'=>'COA Piutang'],
             ['data'=>'coa_penjualan','name'=>'coa_penjualan','title'=>'COA Penjualan'],
+            ['data'=>'top_batas_1','name'=>'top_batas_1','title'=>'TOP'],
         ];
         return json_encode($kolom, true);
     }
