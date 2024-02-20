@@ -208,7 +208,7 @@
         $("#new_row"+ cloneCountEdit).find('#tag').attr('id', 'tag'+ cloneCountEdit);
         $("#new_row"+ cloneCountEdit).find('#tagAsli').attr('id', 'tagAsli'+ cloneCountEdit);
         $("#new_row"+ cloneCountEdit).find('#tone').attr('id', 'tone'+ cloneCountEdit);
-        changeselectEdit('salesOrder','salesOrder'+ cloneCountEdit,noSo,'articleId'+ cloneCountEdit,noArticle,'tone'+ cloneCountEdit,tone);
+        changeselectEdit('salesOrder','salesOrder'+ cloneCountEdit,noSo,'articleId'+ cloneCountEdit,noArticle,'tone'+ cloneCountEdit,tone,cloneCountEdit);
         addArticleEdit('articleId'+ cloneCountEdit,noArticle);
         // changeSelectArticleEdit('searchFromSO','articleId'+ cloneCountEdit,noSo,noArticle);
         // $("#articleId"+cloneCount).html(listArticle);
@@ -255,7 +255,7 @@
         })
     }
 
-    function changeselectEdit(dependent,obj,noSo,objArticle,noArticle,objTone,tone) {
+    function changeselectEdit(dependent,obj,noSo,objArticle,noArticle,objTone,tone,indexObj) {
         $('#'+obj).attr('disabled','disabled');
         $.ajax({
             url:"{{route('dynamic.dependent')}}",
@@ -268,7 +268,10 @@
                 $('#'+obj).html(result1);
                 $('#'+obj).val(noSo).trigger('change');
                 $('#'+obj).removeAttr('disabled');
-                // changeSelectArticleEdit('searchFromSO',objArticle,noSo,noArticle,objTone,tone);
+                jumlahTone = $('#articleId'+indexObj).find(":selected").data("jumlah-tone");
+                if (jumlahTone){
+                    fillToneOptionEdit(jumlahTone,indexObj,tone)
+                }
             }
         })
     }
@@ -458,7 +461,8 @@
         let jumlahUrutan = objUrutan.length;
         oEdit.val('true');
 
-        // $(".loading-spinner-container").addClass("-show");
+        $("#addNewRow").attr('disabled','disabled')  
+        $(".loading-spinner-container").addClass("-show");
    
         objSoCode.map(function(i) {
 		    let $this=$(this);
@@ -540,8 +544,9 @@
                         if (result == 'selesai'){
                             setTimeout(() => {
                                 splitArticle();
-                                console.log("harusnya kesini");
                                 oEdit.val('false');
+                                console.log("Finish show data, status edit :" + oEdit.val())
+                                $("#addNewRow").removeAttr('disabled') 
                             }, 5000);
                             $(".loading-spinner-container").removeClass("-show");
                         }
@@ -770,8 +775,9 @@
             if (flag==0){
                 let wosNumber = "";
                 let urlKu="";
-                if (oEdit.val()=='true'){
-                    wosNumber = $('#wosNumber').val();
+                // if (oEdit.val()=='true'){
+                wosNumber = $('#wosNumber').val();
+                if (wosNumber)
                     urlKu ="{{ route('workingOrderSheet.update') }}";
                 }else{
                     urlKu ="{{ route('workingOrderSheet.store') }}";
@@ -889,7 +895,6 @@
         let objTagAsli = $('#article_row input[name="tagAsli[]"]');
         console.log("Status edit "+oEdit.val())
         if(oEdit.val() == 'false'){    
-
             console.log("nah kesini");
             objArticleRm.eq(objIndex).val('');
             objSo.eq(objIndex).empty();
@@ -905,18 +910,9 @@
                 }else{
                     let articleRm = objArticle.eq(objIndex).find(":selected").data("article-rm");
                     let jumlahTone = objArticle.eq(objIndex).find(":selected").data("jumlah-tone");
-                    let toneOption = `<option value=""></option>`;
-                    jumlahTone = parseInt(jumlahTone.slice(-1));
-                    console.log(jumlahTone);
-                    if (jumlahTone > 0){
-                        for(let i=1;i<=jumlahTone;i++){
-                            console.log(i);
-                            toneOption +=`<option value="t${i}">Tone ${i}</option>`;
-                        }
-                    }
 
-                    objTone.eq(objIndex).html(toneOption);
-                    objTone.eq(objIndex).val(valTone).trigger('change');
+                    fillToneOption(jumlahTone,objIndex,valTone)
+
                     objArticleRm.eq(objIndex).val(articleRm);
                     objSo.attr('disabled','disabled');
                     $.ajax({
@@ -999,6 +995,31 @@
             }
         });       
 
+    }
+
+    fillToneOption = (jumlahTone,objIndex,valTone) =>{
+        let toneOption = `<option value=""></option>`;
+        let objTone = $('#article_row select[name="tone[]"]');
+        jumlahTone = parseInt(jumlahTone.slice(-1));
+        if (jumlahTone > 0){
+            for(let i=1;i<=jumlahTone;i++){
+                toneOption +=`<option value="t${i}">Tone ${i}</option>`;
+            }
+        }
+        objTone.eq(objIndex).html(toneOption);
+        objTone.eq(objIndex).val(valTone).trigger('change');
+    }
+
+    fillToneOptionEdit = (jumlahTone,objIndex,valTone) =>{
+        let toneOption = `<option value=""></option>`;
+        jumlahTone = parseInt(jumlahTone.slice(-1));
+        if (jumlahTone > 0){
+            for(let i=1;i<=jumlahTone;i++){
+                toneOption +=`<option value="t${i}">Tone ${i}</option>`;
+            }
+        }
+        $('#tone'+ objIndex).html(toneOption);
+        $('#tone'+ objIndex).val(valTone).trigger('change');
     }
 
 

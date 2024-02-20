@@ -236,7 +236,8 @@
     
     $(document).ready(function(){           
         validateFormToast("frmAdd");
-        let detail1 = {!!  $details !!};       
+        let detail1 = {!!  $details !!};   
+        $("#addNewRow").attr('disabled','disabled')    
 
         insertData=(detail,callback) => {
             let jumData = detail.length;
@@ -265,8 +266,9 @@
             if (result == 'selesai'){
                 setTimeout(() => {
                     splitArticle();
-                    // isiListArticle();
                     oEdit.val('false');
+                    console.log("Finish show data, status edit :" + oEdit.val())
+                    $("#addNewRow").removeAttr('disabled')
                 }, 10000);
             }
         });
