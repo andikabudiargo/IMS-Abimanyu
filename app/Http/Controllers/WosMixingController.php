@@ -934,6 +934,8 @@ class WosMixingController extends Controller
         $data['details']=DB::table('wos_mixing_det')
         ->leftJoin('article_stock','article_stock.article_code','wos_mixing_det.article_code')
         ->leftJoin('article','article.article_code','wos_mixing_det.article_code')
+        ->select('wos_mixing_det.*','article.article_alternative_code','article.article_desc',
+        db::raw("coalesce(article_qty,0) as article_qty"))
         ->where('mix_number',$mixNumber)
         ->get();
 
@@ -1001,7 +1003,7 @@ class WosMixingController extends Controller
             BOM juga di grouping berdasarkan tone nya
         */
 
-        $data=DB::select("SELECT 
+        $data=DB::select("SELECT
         article_code_det as article_code
         ,min_package 
         ,safety_stock
