@@ -1096,8 +1096,8 @@ class ReceivingController extends Controller
                 ]
             );
             
-            DB::table('kas_det')->where('voucher_number',$recNumber)->delete();
-            DB::table('kas_hdr')->where('voucher_number',$recNumber)->delete();
+            DB::table('kas_det')->where('voucher_number',$recOrigin)->delete();
+            DB::table('kas_hdr')->where('voucher_number',$recOrigin)->delete();
 
             $title ="Save $this->title";
             $alert  ="success";
