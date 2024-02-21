@@ -1183,7 +1183,7 @@ class DeliveryController extends Controller
             // if ((($data->status == '1') || ($data->status == '2') || ($data->status == '3') || ($data->status == '4')) && ($data->sudah_di_bayar == 0)){
             if ((($data->status == '1') || ($data->status == '2') || ($data->status == '3') || ($data->status == '4'))){
                 $dnDate = date('Y-m-d', strtotime($data->delivery_date));
-                if($dnDate>$lockDateToDate){
+                if($dnDate>=$lockDateToDate){
                     $buttons .= "<a href='javascript:;'
                                     id='revisionReasonButton'
                                     class='dropdown-item'
@@ -1212,7 +1212,7 @@ class DeliveryController extends Controller
             if (($data->status != '3') && ($data->status != '10') && ($data->status != '8') && ($data->status != '7')){
                 if (Auth::user()->can('delivery-delete')) {
                     $dnDate = date('Y-m-d', strtotime($data->delivery_date));
-                    if($dnDate>$lockDateToDate){
+                    if($dnDate>=$lockDateToDate){
                         $buttons .=         "<a href='javascript:;'
                                                 id='deleteButton'
                                                 class='dropdown-item'
