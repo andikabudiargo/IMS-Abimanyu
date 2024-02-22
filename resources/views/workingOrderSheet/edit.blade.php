@@ -37,6 +37,7 @@
                                         <option value=""></option>
                                         <option value="pagi" {{ $header->wo_shift == 'pagi' ? "selected" : "" }} >Pagi</option>
                                         <option value="siang" {{ $header->wo_shift == 'siang' ? "selected" : "" }} >Siang</option>
+                                        <option value="malam" {{ $header->wo_shift == 'malam' ? "selected" : "" }} >Malam</option>
                                     </select>
                                 </div>
                                 <div class="form-group col-md-2">

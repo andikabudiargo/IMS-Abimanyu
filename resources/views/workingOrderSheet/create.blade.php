@@ -37,6 +37,7 @@
                                         <option value=""></option>
                                         <option value="pagi">Pagi</option>
                                         <option value="siang">Siang</option>
+                                        <option value="malam">Malam</option>
                                     </select>
                                 </div>
                                 <div class="form-group col-md-2">
