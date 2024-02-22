@@ -99,7 +99,7 @@
                         <div class="lebar-list-item">
                             <br>
                             @include('workingOrderSheet.headerColumn')
-                            <div class="" id="article_row" style="max-height: 24rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px">
+                            <div class="" id="article_row" style="max-height: 20rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px">
                                 <input type="text" id ="last_row_number" class="d-none" value="0">
                             </div>
                         </div>

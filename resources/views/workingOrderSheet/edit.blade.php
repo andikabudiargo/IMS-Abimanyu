@@ -98,7 +98,7 @@
                         <div class="lebar-list-item">
                             <br>
                             @include('workingOrderSheet.headerColumn')
-                            <div class="" id="article_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px;">
+                            <div class="" id="article_row" style="max-height: 20rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px;">
                                 <input type="text" id ="last_row_number" class="d-none" value="0">
                             </div>
                         </div>
@@ -227,6 +227,7 @@
 @include('workingOrderSheet.addArticle')
 <script type="text/javascript">
     const approveBtn = document.querySelector('#cmdApprove');
+    $(".loading-spinner-container").addClass("-show");
 
     if (approveBtn) {
         approveBtn.addEventListener('click',() =>{
@@ -239,6 +240,7 @@
         validateFormToast("frmAdd");
         let detail1 = {!!  $details !!};   
         $("#addNewRow").attr('disabled','disabled')    
+        $("#cmdSort").attr('disabled','disabled')
 
         insertData=(detail,callback) => {
             let jumData = detail.length;
@@ -270,7 +272,9 @@
                     oEdit.val('false');
                     console.log("Finish show data, status edit :" + oEdit.val())
                     $("#addNewRow").removeAttr('disabled')
+                    $("#cmdSort").removeAttr('disabled')
                 }, 10000);
+                $(".loading-spinner-container").removeClass("-show");
             }
         });
         
