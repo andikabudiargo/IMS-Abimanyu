@@ -1304,7 +1304,7 @@ class ReceivingController extends Controller
             // if (($data->status == '1') OR ($data->status == '2')){
             if ($data->status == '10'){
                 $recDate = date('Y-m-d', strtotime($data->rec_date));
-                if($recDate>$lockDateToDate){
+                if($recDate>=$lockDateToDate){
                     if (Auth::user()->can('receiving-edit')) {
                     $buttons .=         '<a href="'. route('receiving.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                             <i data-feather="file-text"></i>
@@ -1342,7 +1342,7 @@ class ReceivingController extends Controller
             if ( in_array($data->status,['1','2','3','4']) ) {
                 // if (Auth::user()->can('receiving-revision')) {
                     $recDate = date('Y-m-d', strtotime($data->rec_date));
-                    if($recDate>$lockDateToDate){
+                    if($recDate>=$lockDateToDate){
                         $buttons .= "<a href='javascript:;'
                                         id='revisionReasonButton'
                                         class='dropdown-item'
@@ -1371,7 +1371,7 @@ class ReceivingController extends Controller
 
             if ( $data->status == '4' ){
                 $recDate = date('Y-m-d', strtotime($data->rec_date));
-                if($recDate>$lockDateToDate){
+                if($recDate>=$lockDateToDate){
                     if (Auth::user()->can('receiving-delete')) {
                         $buttons .=         "<a href='javascript:;'
                                                 id='cancelReasonButton'
@@ -1388,7 +1388,7 @@ class ReceivingController extends Controller
             
             if ( $data->status != '4' and $data->status != '5' and $data->status != '7'){
                 $recDate = date('Y-m-d', strtotime($data->rec_date));
-                if($recDate>$lockDateToDate){
+                if($recDate>=$lockDateToDate){
                     if (Auth::user()->can('receiving-delete')) {
                         $buttons .=         "<a href='javascript:;'
                                             class='dropdown-item' 
