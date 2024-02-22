@@ -777,7 +777,7 @@
                 let urlKu="";
                 // if (oEdit.val()=='true'){
                 wosNumber = $('#wosNumber').val();
-                if (wosNumber)
+                if (wosNumber){
                     urlKu ="{{ route('workingOrderSheet.update') }}";
                 }else{
                     urlKu ="{{ route('workingOrderSheet.store') }}";
