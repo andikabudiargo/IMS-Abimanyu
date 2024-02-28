@@ -403,7 +403,7 @@ class BankPenerimaanController extends Controller
         $totalAmount= $request->totalAmount;
         $recFrom = $request->recFrom;
         $recFromDesc = $request->recFromDesc;
-        $status = '1';
+        // $status = '1';
         $leadCode =$this->moduleCode;
         
         $messages = [
@@ -477,6 +477,29 @@ class BankPenerimaanController extends Controller
                     }
 
                     DB::table('kas_det')->insert($dataSet);
+
+                    //update invoice jadi paid
+                    // ['1'=>'DRAFT','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','6'=>'CLOSED','6'=>'PAID'];
+
+                    $listInvoice=DB::table('kas_det')
+                    ->where('voucher_number',$vcNumber)
+                    ->pluck('reference')->toArray();
+
+                    $status=DB::table('kas_hdr')
+                    ->where('voucher_number',$vcNumber)
+                    ->value('status');
+             
+                    if($status == '3'){
+                        DB::table('invoice_hdr')
+                        ->whereIn('invoice_number',$listInvoice)
+                        ->update(
+                            [   
+                                'status' =>'6',
+                                'updated_by' => Auth::user()->username,
+                                'updated_at' => date('Y-m-d H:i:s'),
+                            ]
+                        );
+                    }
 
                     DB::commit();
                     $title ="Update $this->title";
