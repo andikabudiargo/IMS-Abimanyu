@@ -512,7 +512,7 @@ class WosMixingController extends Controller
         ,DB::RAW("(select string_agg(unit_to,',' order by unit_from) as uom_member from uom_con where unit_from = wos_mixing_det.uom)
         ")
         )
-        ->orderBy('id')
+        ->orderBy('alternative')
         ->get();
 
         $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode,$mixNumber,$username);
@@ -1069,6 +1069,92 @@ class WosMixingController extends Controller
         // group by article_code_det,uom_bom,min_package
         // order by article_code_det
         // ");
+
+        if ($data){
+            DB::table('wo_detail_temp')
+                ->where('code',$randomCode)
+                ->delete();
+        }
+        
+        return response()->json($data);                        
+    }
+
+    public function articleMixRefresh(Request $request)
+    {
+        $woCode = $request->wosCode;
+        $mixNumber = $request->mixNumber;
+
+        $siteCode = 'HO';
+        $location = 'WH';
+
+        $articles = DB::table('wo_det')
+        ->where('wo_code',$woCode)
+        ->where('so_code','<>','other')
+        ->get();
+
+        $dataSet = [];
+        $randomCode = rand();
+        foreach ($articles as $val) {
+            $dataSet[] = [
+                'code' => $randomCode,
+                'article_code' => $val->article_code,
+                //yang dihitung datanya cuma yang fresh yang repaint tidak motong chemical lagi 
+                //'qty' => $val->plan_qty_fresh+$val->plan_qty_repaint
+                'qty' => $val->plan_qty_fresh,
+                'uom' => 'PCS',
+                'tone' => $val->tone
+            ];
+        }
+
+        DB::table('wo_detail_temp')->insert($dataSet);
+
+        /*
+            pada saat wos mixing di ambil data di wos nya sesuai dengan tone yang ada di BOM
+            BOM juga di grouping berdasarkan tone nya
+        */
+
+        $data=DB::select("SELECT oki.article_code, min_package,safety_stock,total,grand_total,uom,uom_group,supp,alternative,article_desc,qty_actual from 
+            (
+            SELECT
+            article_code_det as article_code
+            ,min_package 
+            ,safety_stock
+            ,sum(plan_qty_fresh * qty_bom) as total
+            ,sum(plan_qty_fresh * qty_bom) as grand_total
+            ,uom_article as uom
+            ,(select uom_group from uom where uom.code = uom_article) as uom_group
+            ,(select third_party from article where article.article_code = article_code_det) as supp
+            ,alternative
+            ,article_desc
+            from(
+            select 
+            bom_det.article_code as article_code_det
+            ,wo_detail_temp.qty as plan_qty_fresh
+            ,wo_detail_temp.uom as uom_order
+            ,bom_det.qty * coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = bom_det.uom),1) as qty_bom
+            ,bom_det.uom as uom_bom
+            ,article.uom as uom_article
+            ,bom_hdr.article_code 
+            ,coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = article.uom),1) as factor_qty
+            ,coalesce((select coalesce(min_package,1) from article where article_code = bom_det.article_code),1) as min_package 
+            ,coalesce(article.safety_stock,0) as safety_stock 
+            ,article_alternative_code as alternative
+            ,article_desc
+            from wo_detail_temp
+            left join bom_hdr on bom_hdr.article_code=wo_detail_temp.article_code
+            --left join bom_det on  bom_det.bom_code = bom_hdr.bom_code
+            --left join (select bom_code,sum(qty) as qty,uom_con,uom,article_code from bom_det where bom_code in (select bom_code from bom_hdr where status = '3') group by bom_code,article_code,uom_con,uom) bom_det on  bom_det.bom_code = bom_hdr.bom_code and bom_det.tone = wo_detail_temp.tone
+            left join (select bom_code,sum(qty) as qty,uom_con,uom,article_code,tone from bom_det where bom_code in (select bom_code from bom_hdr where status = '3') group by bom_code,article_code,uom_con,uom,tone) bom_det on  bom_det.bom_code = bom_hdr.bom_code and bom_det.tone = wo_detail_temp.tone
+            left join article on article.article_code = bom_det.article_code
+            where wo_detail_temp.code ='$randomCode'
+            and bom_hdr.status = '3'
+            order by article_alternative_code
+            ) a
+            group by article_code_det,alternative,article_desc,uom_article,min_package,safety_stock
+            having sum(plan_qty_fresh * qty_bom) > 0
+            order by alternative
+            ) as oki
+        left join (select article_code, qty_actual from wos_mixing_det where mix_number = '$mixNumber') as wox_mixing on wox_mixing.article_code = oki.article_code");
 
         if ($data){
             DB::table('wo_detail_temp')
