@@ -41,7 +41,14 @@
                                     <label class="form-label" for="note">Notes</label>
                                     <textarea type="text" id="note" name="note" class="form-control" rows="1" >{{ old('mixDate',$header->note) }}</textarea>
                                 </div>
-                            </div>                            
+                            </div>      
+                            <div class="form-row">
+                                <button class="btn btn-success" type="button" id="refreshWosMixing" name="refreshWosMixing" onclick="refresMixing();" data-toggle="tooltip" data-placement="top" title="Refresh WOS Mixing">
+                                    <i data-feather="rotate-cw" class="align-middle mr-sm-25 mr-0"></i>
+                                    <span class="align-middle d-sm-inline-block d-none">Refresh WOS</span>
+                                </button>
+                            </div>
+
                         </form>
                     </div>
                 </div>
@@ -192,5 +199,34 @@
         }
         
     });
+
+    refresMixing=()=>{
+        let wosCode = $("#wosCode").val(); 
+        let mixNumber = $("#mixNumber").val();   
+        if (mixNumber){        
+            $.ajax({
+                type: "GET",
+                url: "{{ route('wosMixing.article.mix.refresh') }}",
+                data: {
+                    wosCode:wosCode,
+                    mixNumber:mixNumber
+                },
+                dataType: "json",
+                success: function(data) {
+                    // console.log(data) 
+                    if (data){
+                        $("#article_row").empty()
+                        for(let i=0;i<data.length;i++){
+                            add_new_row_edit(data[i].article_code,data[i].grand_total,data[i].uom,data[i].uom_member,data[i].qty_actual,data[i].alternative,data[i].article_desc);
+                        }
+                    }
+                },
+                error: function(error) {
+                    console.log(error);
+                }
+            });
+        }
+    }
+        
 </script>
 @endsection

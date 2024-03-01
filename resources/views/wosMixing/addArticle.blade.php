@@ -328,7 +328,7 @@
         $('#remove_button').tooltip();
         hitungTotal();
         hitungGrandTotal();
-        mask_thousand_digit(numberOfDecimalDigit);
+        mask_thousand_digit(2);
     }
 
     function add_new_row() {
