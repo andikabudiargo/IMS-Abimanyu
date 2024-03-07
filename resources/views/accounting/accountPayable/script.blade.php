@@ -532,6 +532,7 @@
                 success:function(result){
                     let isiTabel= "";
                     let grandTotalQty=0;
+                    console.log(result.detailRec)
                     if(result.detailRec.length>0){
                         for(i=0;i<result.detailRec.length;i++){
                             urutanRow++;

@@ -537,7 +537,8 @@
                 objVcDebit.eq(objIndex).val('');
 
                 if(data.amount){
-                    objVcDebit.eq(objIndex).val(humanizeNumber(data.amount));
+                    let fixAmount = parseFloat(data.amount).toFixed(2);
+                    objVcDebit.eq(objIndex).val(humanizeNumber(fixAmount));
                     objVcCredit.eq(objIndex).val('');
                     hitungGrandTotal();
                 }
