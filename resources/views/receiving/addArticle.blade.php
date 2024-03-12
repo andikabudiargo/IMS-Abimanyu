@@ -163,15 +163,16 @@
                     
                     if(result.length > 0 ){
                         for (let i = 0; i < result.length; i++) {
-                            article=result[i].article_code;
-                            articleCode=result[i].article_alternative_code;
-                            articleDesc=result[i].article_desc;
-                            qtyPo=result[i].qty_order;
-                            qty=qtyPo <= 0 ? 0 :'';
-                            uomGroup=result[i].uom_group;
-                            uom=result[i].uom;
-                            price=result[i].price;
-                            add_new_row(article,articleCode,articleDesc,qtyPo,uomGroup,uom,price,qty);
+                            let article=result[i].article_code;
+                            let articleCode=result[i].article_alternative_code;
+                            let articleDesc=result[i].article_desc;
+                            let qtyPo=result[i].qty_order;
+                            let qty=qtyPo <= 0 ? 0 :'';
+                            let uomGroup=result[i].uom_group;
+                            let uom=result[i].uom;
+                            let price=result[i].price;
+                            let poPrNumber=result[i].pr_number;
+                            add_new_row(article,articleCode,articleDesc,qtyPo,uomGroup,uom,price,qty,poPrNumber);
                         }
                     }
 
