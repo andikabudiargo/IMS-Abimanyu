@@ -14,8 +14,14 @@
                         </ul>
                     </div>    
                 </div>
+                
                 <div class="card-content collapse show">
                     <div class="card-body">
+                        @if($cekReceiving > 0)
+                        <div>
+                            <h4 class="card-title">PO Sudah di receiving tidak bisa ganti supplier</h4>
+                        </div>
+                        @endif
                         <form id="frmAdd" name="frmAdd" autocomplete="off">
                             @csrf
                             <input type="text" id="article" name="article" hidden>
@@ -46,7 +52,7 @@
                                     <select class="select2 form-control disabled-el" id="supplier" name="supplier" disabled required>
                                         <option value="">All</option>
                                         @foreach($supps as $val)
-                                            <option value="{{$val->kode}}" {{$val->kode == $header->supplier_id ? "selected" : ""}} >{{$val->kode}} - {{$val->nama}}</option>
+                                            <option value="{{$val->kode}}" {{$val->kode == $header->supplier_id ? "selected" : ""}} data-pkp="{{ $val->pkp }}" data-top="{{ $val->top_batas_1 }}">{{$val->kode}} - {{$val->nama}}</option>
                                         @endforeach
                                     </select>
                                 </div>
@@ -162,15 +168,15 @@
                                                 <div class="form-group margin-nol">
                                                     <label for="price" class="d-block d-md-none">Price</label>
                                                     <div class="input-group input-group-merge">
-                                                        <input type="text" class="form-control numeral-mask-digit text-right" oninput='inputDecimal(this)' id="newPrice" name="newPrice[]" value="{{ number_format((float) $item->price,2) }}"  maxlength="20">
+                                                        <input type="text" class="form-control numeral-mask-digit text-right" oninput='inputDecimal(this)' id="newPrice{{ $key }}" name="newPrice[]" value="{{ number_format((float) $item->price,2) }}"  maxlength="20">
                                                         <div class="input-group-append">
                                                             <span class="input-group-text cursor-pointer">
                                                                 <a onmouseover="this.style.cursor='pointer'" 
-                                                                    id="listPrice" name="listPrice[]" 
+                                                                    id="listPrice{{ $key }}" name="listPrice[]" 
                                                                     data-toggle="tooltip" 
                                                                     data-placement="right" 
                                                                     title="List Price"
-                                                                    onClick="listPrice('{{ $item->article_code }}','{{ $item->article_code }}','{{ $key }}')">
+                                                                    onClick="listPrice('{{ $item->article_code }}','{{ $item->article_code }}','{{ 'newPrice'.$key }}')">
                                                                     <i data-feather="info" class="feather-24">
                                                                     </i>
                                                                 </a>
@@ -400,11 +406,25 @@
         },{ once:true});
     }
 
-    
     prSelect.change(function(e){        
         let prNumber = $(this).val();
         let suppCode = $('#supplier').val();
         changeSelectPr(suppCode,prNumber);
+    });
+
+    objSupplier.change(function(e){        
+        let suppCode = $(this).val();
+        let pkp = $(this).find(":selected").data("pkp");
+        let top = $(this).find(":selected").data("top") || 0;
+        $("#term").val(top);
+        if (pkp =='Y'){
+            $("#pkp").attr('checked','checked');
+            // $("#nilaiPPN").text("{{ $vatValue }}%");
+            $("#ppn").val("{{ $vatValue }}");
+        }else{
+            $("#pkp").removeAttr('checked');
+        } 
+        changeselect('pRequest','prSelect',suppCode); 
     });
                
 </script>

@@ -305,6 +305,8 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('receiving/revision',['as'=>'receiving.revision','uses'=>'ReceivingController@revision']);
 	Route::get('receiving/notif/approve',['as'=>'receiving.notif.approve','uses'=>'ReceivingController@approve']);
 
+	Route::get('receiving/prosesUlangKas',['as'=>'receiving.prosesUlangKas','uses'=>'ReceivingController@prosesReInsertIntoKas']);
+
 	Route::get('delivery',['as'=>'delivery.index','uses'=>'DeliveryController@index','middleware' => ['permission:delivery-index']]);
 	Route::get('delivery/create',['as'=>'delivery.create','uses'=>'DeliveryController@create','middleware' => ['permission:delivery-create']]);
 	Route::get('delivery/search',['as'=>'delivery.search','uses'=>'DeliveryController@search']);
@@ -811,6 +813,17 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('forecastPurchase/get/article',['as'=>'forecastPurchase.get.article','uses'=>'Forecasting\ForcastingPurchaseController@getArticle']);
 	Route::post('forecastPurchase/get/qty/article',['as'=>'forecastPurchase.get.qty.article','uses'=>'Forecasting\ForcastingPurchaseController@getQtyArticle']);
 	Route::post('forecastPurchase/get/list/article',['as'=>'forecastPurchase.get.list.article','uses'=>'Forecasting\ForcastingPurchaseController@getListArticle']);
+
+	// Route::get('suratJalanSementara',['as'=>'suratJalanSementara.index','uses'=>'TemporaryDnController@index','middleware' => ['permission:suratJalanSementara-index']]);
+	// Route::get('suratJalanSementara/create',['as'=>'suratJalanSementara.create','uses'=>'TemporaryDnController@create','middleware' => ['permission:suratJalanSementara-create']]);
+	// Route::post('suratJalanSementara/store',['as'=>'suratJalanSementara.store','uses'=>'TemporaryDnController@store']);
+	// Route::get('suratJalanSementara/list',['as'=>'suratJalanSementara.list','uses'=>'TemporaryDnController@list']);
+	// Route::get('suratJalanSementara/list/detail',['as'=>'suratJalanSementara.list.detail','uses'=>'TemporaryDnController@listDetail']);
+	// Route::get('suratJalanSementara/show',['as'=>'suratJalanSementara.show','uses'=>'TemporaryDnController@show']);
+	// Route::get('suratJalanSementara/edit',['as'=>'suratJalanSementara.edit','uses'=>'TemporaryDnController@edit','middleware' => ['permission:suratJalanSementara-edit']]);
+	// Route::post('suratJalanSementara/update',['as'=>'suratJalanSementara.update','uses'=>'TemporaryDnController@update']);
+	// Route::post('suratJalanSementara/delete',['as'=>'suratJalanSementara.destroy','uses'=>'TemporaryDnController@destroy']);
+	// Route::get('suratJalanSementara/print',['as'=>'suratJalanSementara.print','uses'=>'TemporaryDnController@print']);
 
 	Route::get('stockTake',['as'=>'stockTake.index','uses'=>'StockTake\StockTakeController@index']);
 	Route::post('stockTake/import',['as'=>'stockTake.import','uses'=>'StockTake\StockTakeController@import']);

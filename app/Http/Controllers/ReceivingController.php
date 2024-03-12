@@ -1770,6 +1770,17 @@ class ReceivingController extends Controller
         order by receiving_det.created_at");
     }
 
+    public function prosesReInsertIntoKas()
+    {
+        $listRec = array('REC-ASN/2024/I/151','REC-ASN/2024/I/227','REC-ASN/2024/I/228','REC-ASN/2024/I/228','REC-ASN/2024/I/309','REC-ASN/2024/I/309','REC-ASN/2024/I/311','REC-ASN/2024/I/355','REC-ASN/2024/I/355','REC-ASN/2024/I/384','REC-ASN/2024/I/384','REC-ASN/2024/I/386','REC-ASN/2024/I/77','REC-ASN/2024/I/77','REC-ASN/2024/II/683','REC-ASN/2024/II/792');
+
+        foreach($listRec as $rec){
+            $this->reInsertIntoKas($rec);
+        }
+        return 'selesai';
+        
+    }  
+
 
     // public function posting(Request $request)
     // {

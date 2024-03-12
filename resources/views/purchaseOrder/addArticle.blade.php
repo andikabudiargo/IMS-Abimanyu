@@ -625,10 +625,12 @@
             prSelect.find("option[value='" + key + "']").attr('disabled',true).trigger("chosen:updated");
         });
         
-        if (arrValueSelected.length > 0){
-            objSupplier.attr('disabled','disabled');
-        }else{
-            objSupplier.removeAttr('disabled');
+        if ({{ $cekReceiving }} == 0){
+            if (arrValueSelected.length > 0){
+                objSupplier.attr('disabled','disabled');
+            }else{
+                objSupplier.removeAttr('disabled');
+            }
         }
     }
 
