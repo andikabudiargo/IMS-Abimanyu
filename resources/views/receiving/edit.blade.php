@@ -215,7 +215,7 @@
     dariEdit = 'true';
     let lockedAt = "{{ $lockDate }}";
     
-    $(document).ready(function(){          
+    $(document).ready(function(){   
         validateFormToast("frmAdd");
         let href;
         let supplierId = "{{ $header->supplier_id }}";
@@ -232,20 +232,23 @@
 
         let detail = {!!  $detail !!};
         for(let i=0;i<detail.length;i++){
-            article = detail[i].article_code;
-            articleCode = detail[i].article_alternative_code;
-            articleDesc = detail[i].article_desc;
-            qtyPo =  detail[i].qty_po*1;
-            uomGroup =  detail[i].uom_group;
-            uom =  detail[i].uomQty;
-            qty =  detail[i].qty*1;
-            uomQty =  detail[i].uom_rec;
-            qtyFree =  detail[i].qty_free;
-            uomFree =  detail[i].uom_free;
-            price =  detail[i].price;
-            uom_group = detail[i].uom_group;
-            add_new_row_edit(article,articleCode,articleDesc,qtyPo,uomGroup,uom,qty,uomQty,qtyFree,uomFree,price);
+            let article = detail[i].article_code;
+            let articleCode = detail[i].article_alternative_code;
+            let articleDesc = detail[i].article_desc;
+            let qtyPo =  detail[i].qty_po*1;
+            let uomGroup =  detail[i].uom_group;
+            let uom =  detail[i].uomQty;
+            let qty =  detail[i].qty*1;
+            let uomQty =  detail[i].uom_rec;
+            let qtyFree =  detail[i].qty_free;
+            let uomFree =  detail[i].uom_free;
+            // price =  detail[i].price;
+            let poPrice =  detail[i].po_price;
+            let uom_group = detail[i].uom_group;
+            let prNumber = detail[i].pr_number;
+            add_new_row_edit(article,articleCode,articleDesc,qtyPo,uomGroup,uom,qty,uomQty,qtyFree,uomFree,poPrice,prNumber);
         }
+
     });
 
     function searchPoEdit(obj,value,poNumber) {
@@ -336,10 +339,10 @@
                     let articleCode = $this.data("code");
                     let articleUom = $this.data("uom");
                     let articlePrice = $this.data("price");
+                    let articlePrNumber = $this.data("prnumber");
                     let article=$this.val().split("|");
                     let plu=article[0];
                     let articleName=article[1];
-                    // let qty=objQty.eq(i).val().replace(/,/gi, '') || 0;
                     let qtyPo=objQtyPo.eq(i).val().replace(/,/gi, '') || 0;
                     let qty=objQty.eq(i).val().replace(/,/gi, '') || 0;
                     let qtyUom=objUom.eq(i).val() || articleUom;
@@ -357,7 +360,8 @@
                         "uom":qtyUom,
                         "qty_free":qtyFree,
                         "uom_free":qtyFreeUom,
-                        "price":price,
+                        "price":articlePrice,
+                        "pr_number":articlePrNumber,
                     });
                 }
             });
@@ -431,7 +435,8 @@
     });
     
     let cloneCountEdit=0;
-    function add_new_row_edit(article,articleCode,articleDesc,qtyPo,uomGroup,uom,qty,uomQty,qtyFree,uomFree,price) {
+    function add_new_row_edit(article,articleCode,articleDesc,qtyPo,uomGroup,uom,qty,uomQty,qtyFree,uomFree,price,prNumber) {
+        prNumber= prNumber == null ? '':prNumber
         $("#article_row").append($("#new_row").clone().html());
         cloneCountEdit++;
         $("#article_row").find('#baru').attr('id', 'new_row'+ cloneCountEdit);
@@ -439,6 +444,7 @@
         $('#article_id'+ cloneCountEdit).attr('data-code', article);
         $('#article_id'+ cloneCountEdit).attr('data-uom', uom);
         $('#article_id'+ cloneCountEdit).attr('data-price', price);
+        $('#article_id'+ cloneCountEdit).attr('data-prnumber', prNumber);
         $('#article_id'+ cloneCountEdit).val(articleCode +" - " + articleDesc);
         $("#new_row"+ cloneCountEdit).find('#qty_po').attr('id', 'qty_po'+ cloneCountEdit);
         $('#qty_po'+ cloneCountEdit).val(qtyPo);
@@ -475,7 +481,8 @@
     }
 
     let cloneCount=0;
-    function add_new_row(article,articleCode,articleDesc,qtyPo,uomGroup,uom,price,qtyRec) {
+    function add_new_row(article,articleCode,articleDesc,qtyPo,uomGroup,uom,price,qtyRec,prNumber) {
+        prNumber= prNumber == null ? '':prNumber
         $("#article_row").append($("#new_row").clone().html());
         cloneCount++;
         $("#article_row").find('#baru').attr('id', 'new_row'+ cloneCount);
@@ -483,6 +490,7 @@
         $('#article_id'+ cloneCount).attr('data-code', article);
         $('#article_id'+ cloneCount).attr('data-uom', uom);
         $('#article_id'+ cloneCount).attr('data-price', price);
+        $('#article_id'+ cloneCount).attr('data-prnumber', prNumber);
         $('#article_id'+ cloneCount).val(articleCode +" - " + articleDesc);
         $("#new_row"+ cloneCount).find('#qty_po').attr('id', 'qty_po'+ cloneCount);
         $('#qty_po'+ cloneCount).val(qtyPo*1);
@@ -503,23 +511,6 @@
         mask_thousand_digit(2);
         hitungTotal();
     }
-
-    // function listUom(obj,value,uom,uomSelect) {
-    //   $.ajax({
-    //     url:"{{ route('receiving.list.uom') }}",
-    //     method:"GET",
-    //     data:{
-    //         value:value,
-    //     },
-    //     success:function(result){
-    //         $('#'+obj).html(result);
-    //         $('#'+obj).val(uomSelect).trigger('change');            
-    //     },
-    //     error: function (response) {
-    //         Swal.fire("Warning","Get list UOM failed","warning");
-    //     }
-    //   })
-    // }
 
     function hitungTotal(){
         let objQtyRec= $('#article_row input[name="qty_rec[]"]');

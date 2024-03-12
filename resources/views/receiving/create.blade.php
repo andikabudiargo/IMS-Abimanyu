@@ -225,6 +225,7 @@
                     let articleCode = $this.data("code");
                     let articleUom = $this.data("uom");
                     let articlePrice = $this.data("price");
+                    let prNumber = $this.data("prnumber");
                     let article=$this.val().split("|");
                     let plu=article[0];
                     let articleName=article[1];
@@ -245,7 +246,8 @@
                         "uom":qtyUom,
                         "qty_free":qtyFree,
                         "uom_free":qtyFreeUom,
-                        "price":articlePrice
+                        "price":articlePrice,
+                        "pr_number":prNumber,
                     });
                 }
             });
@@ -349,7 +351,8 @@
     });
 
     let cloneCount=0;
-    function add_new_row(article,articleCode,articleDesc,qtyPo,uomGroup,uom,price,qtyRec) {
+    function add_new_row(article,articleCode,articleDesc,qtyPo,uomGroup,uom,price,qtyRec,prNumber) {
+        prNumber= prNumber == null ? '':prNumber
         $("#article_row").append($("#new_row").clone().html());
         cloneCount++;
         $("#article_row").find('#baru').attr('id', 'new_row'+ cloneCount);
@@ -357,6 +360,7 @@
         $('#article_id'+ cloneCount).attr('data-code', article);
         $('#article_id'+ cloneCount).attr('data-uom', uom);
         $('#article_id'+ cloneCount).attr('data-price', price);
+        $('#article_id'+ cloneCount).attr('data-prnumber', prNumber);
         $('#article_id'+ cloneCount).val(articleCode +" - " + articleDesc);
         $("#new_row"+ cloneCount).find('#qty_po').attr('id', 'qty_po'+ cloneCount);
         $('#qty_po'+ cloneCount).val(qtyPo*1);
