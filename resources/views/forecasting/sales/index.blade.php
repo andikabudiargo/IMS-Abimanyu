@@ -164,6 +164,7 @@ td.wrapok {
                     list=`<td ><button class="btn btn-danger btn-sm" type="button" onclick="deleteArticle('${result.data[i].customer_id}','${result.data[i].article_code}','${result.data[i].year}','${result.data[i].article_desc}')" id="cmdEdit" name="cmdEdit" >Delete</button> 
                         </td>`
                     list+=`<td >${result.data[i].nama}</td>`
+                    list+=`<td >${result.data[i].article_alternative_code}</td>`
                     list+=`<td >${result.data[i].article_desc}</td>`
                     for(a=parseInt(bulanAwal);a<=parseInt(bulanAkhir);a++){
                         z=conversi[a];

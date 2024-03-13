@@ -92,7 +92,10 @@
         // $("#judulTabel th").remove();
         // $("#judulListTabel th").remove();
         
-        judul = `<th class="isian" style="width: 30%">
+        judul = `<th class="isian" style="width: 5%">
+                 <label>Article Code</label>
+                 </th>
+                <th class="isian" style="width: 30%">
                  <label>Article</label>
                  </th>`;
 
