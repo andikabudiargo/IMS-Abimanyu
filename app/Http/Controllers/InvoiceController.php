@@ -44,9 +44,6 @@ class InvoiceController extends Controller
             ['data'=> 'action', 'name'=> 'action','title'=>'action', 'orderable'=> false, 'searchable'=> false ],
             ['data'=> 'invoice_number', 'name'=> 'invoice_number','title'=>'Inv. Number' ],
             ['data'=> 'status', 'name'=> 'status','title'=>'Status' ],
-            ['data'=> 'voucher_date', 'name'=> 'voucher_date','title'=>'Paid Date'],
-            ['data'=> 'voucher_number', 'name'=> 'voucher_number','title'=>'Voucher Number'],
-            ['data'=> 'voucher_amount', 'name'=> 'voucher_amount','title'=>'Amount Paid'],
             ['data'=> 'invoice_date', 'name'=> 'invoice_date','title'=>'Date' ],
             ['data'=> 'so_number', 'name'=> 'so_number','title'=>'SO Number' ],
             ['data'=> 'po_number', 'name'=> 'po_number','title'=>'PO Number' ],
@@ -55,6 +52,10 @@ class InvoiceController extends Controller
             ['data'=> 'total_ppn', 'name'=> 'total_ppn','title'=>'PPN' ],
             ['data'=> 'total_pph', 'name'=> 'total_pph','title'=>'PPH' ],
             ['data'=> 'grand_total', 'name'=> 'grand_total','title'=>'Total' ],
+            ['data'=> 'voucher_date', 'name'=> 'voucher_date','title'=>'Paid Date'],
+            ['data'=> 'voucher_amount', 'name'=> 'voucher_amount','title'=>'Amount Paid'],
+            ['data'=> 'balance', 'name'=> 'balance','title'=>'Balance'],
+            ['data'=> 'voucher_number', 'name'=> 'voucher_number','title'=>'Voucher Number'],
             ['data'=> 'approval_by', 'name'=> 'approval_by','title'=>'Approved By' ],
             ['data'=> 'approval_at', 'name'=> 'approval_at','title'=>'Approved At' ],
             ['data'=> 'created_by', 'name'=> 'created_by','title'=>'Created By' ],
@@ -918,6 +919,7 @@ class InvoiceController extends Controller
             // ,DB::raw("(select STRING_AGG ( a.rec_number,',' ORDER BY a.id) as list_rec from invoice_hdr_detail a where ap_number = invoice_hdr.ap_number) as list_rec")
             //,db::raw("concat(third_party.kode,'-',third_party.nama) as customer_name")
             // ,db::raw("(select STRING_AGG((select name from users where username = z.username), ' -> ' ORDER BY approval_order) AS main from approval_history z where module_number = invoice_hdr.invoice_number) as approval_by")
+            ,db::raw("replace(invoice_date,'-','/') as invoice_date")
             ,'third_party.nama as customer_name'
             ,db::raw("(select (select name from users where username = z.username) from approval_history z where module_number = invoice_hdr.invoice_number order by approval_order desc limit 1) as approval_by")
             ,db::raw("(select to_char(approval_date::date, 'DD-MM-YYYY') from approval_history z where module_number = invoice_hdr.invoice_number order by approval_order desc limit 1) as approval_at")
@@ -927,6 +929,7 @@ class InvoiceController extends Controller
             ,db::raw("case when invoice_hdr.status = '6' then (select voucher_date from kas_hdr where voucher_number = (select voucher_number from kas_det where reference = invoice_hdr.invoice_number)) else '' end as voucher_date")
             ,db::raw("case when invoice_hdr.status = '6' then (select voucher_number from kas_det where reference = invoice_hdr.invoice_number) else '' end as voucher_number")
             ,db::raw("case when invoice_hdr.status = '6' then (select credit from kas_det where reference = invoice_hdr.invoice_number) else 0 end as voucher_amount")
+            ,db::raw("case when invoice_hdr.status = '6' then grand_total-(select credit from kas_det where reference = invoice_hdr.invoice_number) else 0 end as balance")
         )
         ->orderBy('invoice_hdr.id')
         ->get(); 
