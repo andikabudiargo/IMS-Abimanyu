@@ -150,7 +150,7 @@
       tableId:"detailedTable",
       route:"{{ route('invoice.list') }}",
       kolom:{!! $kolom !!},
-      arrColPrint:[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18],
+      arrColPrint:[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19],
       columnDefs :[
         { width: '5%', targets: 0 },
         {
@@ -166,7 +166,7 @@
         searchStatus:searchStatus,
         recDate:recDate
       },
-      orderColumn:[[ 17, 'desc' ]],
+      orderColumn:[[ 18, 'desc' ]],
       excelFileName:'invoice_customer'
     });
   }
