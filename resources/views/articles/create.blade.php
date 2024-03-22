@@ -70,7 +70,7 @@
                             <div class="col-md-12">
                                 <div class="form-group">
                                     <label for="nama">Description*</label>
-                                    <input type="text" id="nama" name="nama" class="form-control text-uppercase" value="{{ old('nama') }}" maxlength="100" required/>
+                                    <input type="text" id="nama" name="nama" class="form-control text-uppercase" value="{{ old('nama') }}" maxlength="200" required/>
                                 </div>
                             </div>
                         </div>

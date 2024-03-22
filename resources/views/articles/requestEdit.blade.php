@@ -66,7 +66,7 @@
                             <div class="col-12">
                                 <div class="form-group">
                                 <label for="nama">Description *</label>
-                                    <input type="text" id="nama" name="nama" class="form-control text-uppercase" value="{{ old('nama',$article->desc) }}"  required  maxlength="100"/>
+                                    <input type="text" id="nama" name="nama" class="form-control text-uppercase" value="{{ old('nama',$article->desc) }}"  required  maxlength="200"/>
                                 </div>
                             </div>
                         </div>

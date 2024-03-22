@@ -74,7 +74,7 @@
                             <div class="col-12">
                                 <div class="form-group">
                                 <label for="nama">Description *</label>
-                                    <input type="text" id="nama" name="nama" class="form-control" value="{{ old('nama',$article->desc) }}" maxlength="100" disabled/>
+                                    <input type="text" id="nama" name="nama" class="form-control" value="{{ old('nama',$article->desc) }}" disabled/>
                                 </div>
                             </div>
                         </div>
