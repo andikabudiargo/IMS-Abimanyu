@@ -3,7 +3,6 @@
 @section('content')
 @include('layouts.breadcrumb')
 @include('partials.alert')
-
 <section id="article-index">
   <div class="card">
     <div class="card-header">  
@@ -25,7 +24,6 @@
               <div class="form-group col-md-2">
                 <label class="form-label" for="period1">Period Awal</label>
                 <select class="select2 form-control" id="period1" name="period1" >
-                    {{-- <option value=""></option> --}}
                     @for ($i = 1; $i <= 12; $i++)
                         <option value="{{ $i }}">{{ $i }}</option>
                     @endfor
@@ -34,8 +32,15 @@
               <div class="form-group col-md-2">
                 <label class="form-label" for="period2">Period Akhir</label>
                 <select class="select2 form-control" id="period2" name="period2" >
-                    {{-- <option value=""></option> --}}
                     @for ($i = 1; $i <= 12; $i++)
+                        <option value="{{ $i }}">{{ $i }}</option>
+                    @endfor
+                </select>
+              </div>
+              <div class="form-group col-md-2">
+                <label class="form-label" for="periodTahun">Tahun</label>
+                <select class="select2 form-control" id="periodTahun" name="periodTahun" >
+                    @for ($i = 2023; $i <= 2100; $i++)
                         <option value="{{ $i }}">{{ $i }}</option>
                     @endfor
                 </select>
@@ -86,9 +91,6 @@
             <div class="form-row">
                 <div class="col-12"> 
                     <button type="button" class="btn btn-primary" id ="btnSearch" name="btnSearch">Search</button>
-                    {{-- @can('pettyCash-create') --}}
-                    {{-- <a href="{{ route('jurnalUmum.create') }}" class="btn btn-info"><i class="fa fa-plus"></i> Create</a> --}}
-                    {{-- @endcan --}}
                 </div>
             </div>
         </form>
