@@ -436,7 +436,8 @@ class AccountPayableController extends Controller
         ,db::raw("sum(receiving_det.qty) as qty")
         // ,'po.price'
         ,'receiving_det.price'
-        ,db::raw("(select dept from purchase_request_hdr where pr_number in (select pr_number from purchase_order_det where po_number = receiving_hdr.po_number ) limit 1) as dept")
+        // ,db::raw("(select dept from purchase_request_hdr where pr_number in (select pr_number from purchase_order_det where po_number = receiving_hdr.po_number ) limit 1) as dept")
+        ,db::raw("(select dept from purchase_request_hdr where pr_number in (select pr_number from purchase_order_det where po_number = receiving_hdr.po_number and purchase_order_det.article_code = receiving_det.article_code ) limit 1) as dept")
         // ,'po.ppn'
         // ,'po.pph22'
         // ,'purchase_order_hdr.discount'
@@ -452,7 +453,8 @@ class AccountPayableController extends Controller
         // ->groupBy('po.price')
         ->groupBy('receiving_det.price')
         ->groupBy('receiving_det.article_code')
-        ->groupBy(db::raw("(select dept from purchase_request_hdr where pr_number in (select pr_number from purchase_order_det where po_number = receiving_hdr.po_number ) limit 1)"))
+        // ->groupBy(db::raw("(select dept from purchase_request_hdr where pr_number in (select pr_number from purchase_order_det where po_number = receiving_hdr.po_number ) limit 1)"))
+        ->groupBy(db::raw("(select dept from purchase_request_hdr where pr_number in (select pr_number from purchase_order_det where po_number = receiving_hdr.po_number and purchase_order_det.article_code = receiving_det.article_code) limit 1)"))
         ->groupBy('ap.account')
         ->get();
 
@@ -868,14 +870,16 @@ class AccountPayableController extends Controller
         // ,db::raw("(sum(receiving_det.qty*po.price)) as total")
         ,db::raw("(sum(receiving_det.qty*receiving_det.price)) as total")
         ,'ap.account as account'
-        ,db::raw("(select dept from purchase_request_hdr where pr_number in (select pr_number from purchase_order_det where po_number = receiving_hdr.po_number ) limit 1) as dept")
+        ,db::raw("(select dept from purchase_request_hdr where pr_number in (select pr_number from purchase_order_det where po_number = receiving_hdr.po_number and purchase_order_det.article_code = receiving_det.article_code) limit 1) as dept")
+        // ,db::raw("(select dept from purchase_request_hdr where pr_number in (select pr_number from purchase_order_det where po_number = receiving_hdr.po_number and purchase_order_det.article_code = receiving_det.article_code ) limit 1) as dept")
         )
         ->groupBy('article.article_alternative_code')
         ->groupBy('article.article_desc')
         ->groupBy('receiving_det.uom_rec')
         // ->groupBy('po.price')
         ->groupBy('receiving_det.price')
-        ->groupBy(db::raw("(select dept from purchase_request_hdr where pr_number in (select pr_number from purchase_order_det where po_number = receiving_hdr.po_number ) limit 1)"))
+        ->groupBy(db::raw("(select dept from purchase_request_hdr where pr_number in (select pr_number from purchase_order_det where po_number = receiving_hdr.po_number and purchase_order_det.article_code = receiving_det.article_code) limit 1)"))
+        // ->groupBy(db::raw("(select dept from purchase_request_hdr where pr_number in (select pr_number from purchase_order_det where po_number = receiving_hdr.po_number ) limit 1)"))
         ->groupBy('ap.account')
         ->get();
 
