@@ -348,10 +348,19 @@
             @endcan
 
             @can('delivery-index')
-            <li class="{{ \Request::segment(1) == 'suratJalanSementara' ? 'active' : '' }} " >
+            <li class="{{ \Request::segment(1) == 'temporaryDn' ? 'active' : '' }} " >
               <a class="d-flex align-items-center" href="{{ route('suratJalanSementara.index') }}">
                 <i data-feather="circle"></i>
                 <span class="menu-item text-truncate" data-i18n="Temporary DN">Temporary DN</span>
+              </a>
+            </li>
+            @endcan
+
+            @can('delivery-index')
+            <li class="{{ \Request::segment(1) == 'dnReturn' ? 'active' : '' }} " >
+              <a class="d-flex align-items-center" href="{{ route('dnReturn.index') }}">
+                <i data-feather="circle"></i>
+                <span class="menu-item text-truncate" data-i18n="DN Return">DN Return</span>
               </a>
             </li>
             @endcan

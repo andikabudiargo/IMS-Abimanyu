@@ -829,6 +829,19 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('temporaryDn/update/so',['as'=>'suratJalanSementara.updateSo','uses'=>'TemporaryDnController@updateSo']);
 	Route::post('temporaryDn/update/so/update',['as'=>'suratJalanSementara.updateSo.update','uses'=>'TemporaryDnController@updateSoUpdate']);
 
+	Route::get('dnReturn',['as'=>'dnReturn.index','uses'=>'DnReturnController@index']);
+	Route::get('dnReturn/create',['as'=>'dnReturn.create','uses'=>'DnReturnController@create']);
+	Route::post('dnReturn/store',['as'=>'dnReturn.store','uses'=>'DnReturnController@store']);
+	Route::get('dnReturn/list',['as'=>'dnReturn.list','uses'=>'DnReturnController@list']);
+	Route::get('dnReturn/list/detail',['as'=>'dnReturn.list.detail','uses'=>'DnReturnController@listDetail']);
+	Route::get('dnReturn/show',['as'=>'dnReturn.show','uses'=>'DnReturnController@show']);
+	Route::get('dnReturn/edit',['as'=>'dnReturn.edit','uses'=>'DnReturnController@edit']);
+	Route::post('dnReturn/update',['as'=>'dnReturn.update','uses'=>'DnReturnController@update']);
+	Route::post('dnReturn/delete',['as'=>'dnReturn.destroy','uses'=>'DnReturnController@destroy']);
+	Route::post('dnReturn/close',['as'=>'dnReturn.close','uses'=>'DnReturnController@closed']);
+	Route::get('dnReturn/print',['as'=>'dnReturn.print','uses'=>'DnReturnController@print']);
+	Route::post('dnReturn/get/article',['as'=>'dnReturn.get.article','uses'=>'DnReturnController@getArticle']);
+
 	Route::get('stockTake',['as'=>'stockTake.index','uses'=>'StockTake\StockTakeController@index']);
 	Route::post('stockTake/import',['as'=>'stockTake.import','uses'=>'StockTake\StockTakeController@import']);
 	Route::get('stockTake/export',['as'=>'stockTake.export','uses'=>'StockTake\StockTakeController@export']);
