@@ -206,6 +206,7 @@
               </a>
             </li>
             @endcan
+
             <li class="{{ \Request::is(['deliveryInstruction']) ? 'active' : '' }}">
               <a class="d-flex align-items-center" href="{{ route('deliveryInstruction.index') }} ">
                 <i data-feather="circle"></i>
@@ -329,7 +330,7 @@
           </ul>
         </li> --}}
 
-        <li class=" {{ in_array(\Request::segment(1), ['delivery','dnReceipt','deliveryReport']) ? 'active' : '' }} nav-item">
+        <li class=" {{ in_array(\Request::segment(1), ['delivery','dnReceipt','deliveryReport','suratJalanSementara']) ? 'active' : '' }} nav-item">
           <a class="d-flex align-items-center" href="javascript:void(0);">
             <i data-feather='truck'></i>
             <span class="menu-title text-truncate" data-i18n="Form Elements">Delivery
@@ -342,6 +343,15 @@
               <a class="d-flex align-items-center" href="{{ route('delivery.index') }}">
                 <i data-feather="circle"></i>
                 <span class="menu-item text-truncate" data-i18n="Delivery Note">Delivery Note</span>
+              </a>
+            </li>
+            @endcan
+
+            @can('delivery-index')
+            <li class="{{ \Request::segment(1) == 'suratJalanSementara' ? 'active' : '' }} " >
+              <a class="d-flex align-items-center" href="{{ route('suratJalanSementara.index') }}">
+                <i data-feather="circle"></i>
+                <span class="menu-item text-truncate" data-i18n="Temporary DN">Temporary DN</span>
               </a>
             </li>
             @endcan
