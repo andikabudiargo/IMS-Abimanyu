@@ -583,16 +583,55 @@ class TemporaryDnController extends Controller
     {
         $id=Crypt::decryptString($request->id);
         $username =  Auth::user()->username;       
-        $tDnNumber = DB::table('temporary_dn_hdr')->where('id',$id)->where('status','1')->value('tdn_number');
-        $rowAffected = DB::table('temporary_dn_hdr')->where('id',$id)->delete();
-        if($rowAffected>0){
-            DB::table('temporary_dn_det')->where('tdn_number',$tDnNumber)->delete();
-            $title ="Delete $this->title";
-            $alert  ="success";
-            $message  = "$title $tDnNumber Successfully Deleted";
-            \LogActivity::addToLog($title,"username: $username Status $message");
-            return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);  
-        }else{
+        $tDnHdr = DB::table('temporary_dn_hdr')->where('id',$id)->first();
+
+        $tDnNumber = $tDnHdr->tdn_number;
+        $soNumber = $tDnHdr->so_number;
+
+        DB::beginTransaction();
+        try {
+                $rowAffected=DB::table('temporary_dn_hdr')
+                ->where('id',$id)
+                ->update(
+                    [
+                        'status' => '4',
+                        'tdn_number' => $tDnNumber."(C)",
+                        'so_number' => $soNumber."(C)",
+                        'origin_tdn_number' => $tDnNumber."(C)",
+                        'reason' => "Cancel",
+                        'updated_by' => Auth::user()->username,
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]
+                );
+
+                if($rowAffected>0){
+                    DB::table('temporary_dn_det')
+                    ->where('tdn_number',$tDnNumber)
+                    ->update(
+                    [
+                        'tdn_number' => $tDnNumber."(C)",
+                        'updated_by' => Auth::user()->username,
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]
+                    );
+                    DB::commit();
+                    $title ="Delete $this->title";
+                    $alert  ="success";
+                    $message  = "$title $tDnNumber Successfully Delete";
+                    \LogActivity::addToLog($title,"username: $username Status $message");
+                    return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);
+                }else{
+                    DB::rollBack();
+                    $title ="Delete $this->title";
+                    $alert  ="warning";
+                    $message  = "$title $tDnNumber Failed to Delete";
+                    \LogActivity::addToLog($title,"username: $username Status $message");
+                    return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);
+
+                }
+
+        } catch (Exception $e) {
+            DB::rollBack();
             $title ="Delete $this->title";
             $alert  ="warning";
             $message  = "$title $tDnNumber Failed to Delete";
@@ -711,7 +750,7 @@ class TemporaryDnController extends Controller
                             Detail
                          </a>';
                 
-            if ($data->status == '1') {
+            // if ($data->status == '1') {
                 $buttons .= "<a href='javascript:;'
                                 class='dropdown-item' 
                                 data-size='sm'
@@ -722,9 +761,9 @@ class TemporaryDnController extends Controller
                                 id='deleteButton'
                                 data-url='". route('suratJalanSementara.destroy', ['id'=>Crypt::encryptString($data->id)]) ."'>
                                 <i data-feather='trash-2' class='feather-14-red'></i>
-                                <span>". __('Delete') ."</span>
+                                <span>". __('Cancel') ."</span>
                             </a>";
-            }
+            // }
             
             if ( $data->status == '2' ){
                 // if (Auth::user()->can('purchaseOrder-delete')) {
@@ -865,12 +904,6 @@ class TemporaryDnController extends Controller
         // $pdf = PDF::loadView('temporaryDn.print');
         // return $pdf->stream("TDN_$tDnNumber.pdf");
 
-    }
-
-    public function warning(Request $request)
-    {
-        $data['warning']="No TSO:$request->tsoCode Belum di approve";
-        return view('temporaryDn.warning', $data);
     }
 
     public function getArticle(Request $request){

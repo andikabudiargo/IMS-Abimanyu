@@ -1216,7 +1216,8 @@ class InvoiceController extends Controller
                 ->where('invoice_number','<>',$invNumber);
             })
             ->orderBy("delivery_date")
-            ->select("delivery_hdr.delivery_number","so_number","po_number","delivery_hdr.delivery_date")
+            ->orderBy("delivery_hdr.delivery_number")
+            ->select("delivery_hdr.delivery_date","delivery_hdr.delivery_number","so_number","po_number")
             ->get();
         }else{
             $data= DB::table("delivery_hdr") 
@@ -1231,7 +1232,8 @@ class InvoiceController extends Controller
                 ->from('invoice_det');
             })
             ->orderBy("delivery_date")
-            ->select("delivery_hdr.delivery_number","so_number","po_number","delivery_hdr.delivery_date")
+            ->orderBy("delivery_hdr.delivery_number")
+            ->select("delivery_hdr.delivery_date","delivery_hdr.delivery_number","so_number","po_number")
             ->get();
         }
 

@@ -665,6 +665,7 @@
                         <td>${i+1}</td>
                         <td>${data[i].po_number}</td>
                         <td>${data[i].po_date}</td>
+                        <td>${data[i].updated_at}</td>
                         <td class="text-right">
                             <a href='javascript:;' type="button" class='btn btn-outline-primary btn-block btn-sm waves-effect text-right' onclick="definePrice('${idNya}','${data[i].price}');">${humanizeNumber(parseFloat(data[i].price).toFixed(2))}</a>
                         </td>

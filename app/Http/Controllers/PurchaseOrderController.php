@@ -1145,14 +1145,23 @@ class PurchaseOrderController extends Controller
     public function priceList(Request $request)
     {
         $articleCode = $request -> article;
-        $listArticle = DB::table('purchase_order_det')
-        ->leftJoin('purchase_order_hdr','purchase_order_hdr.po_number','purchase_order_det.po_number')
-        ->where('article_code',$articleCode)
-        ->select('purchase_order_det.po_number','po_date','price', 'purchase_order_hdr.created_at')
-        ->orderBy('po_date','desc')
-        ->where('status','<>','7')
-        ->limit(10)
-        ->get();
+        // $listArticle = DB::table('purchase_order_det')
+        // ->leftJoin('purchase_order_hdr','purchase_order_hdr.po_number','purchase_order_det.po_number')
+        // ->where('article_code',$articleCode)
+        // ->select('purchase_order_det.po_number','po_date','price', 'purchase_order_hdr.created_at', 'purchase_order_hdr.updated_at')
+        // ->orderBy(db::raw("TO_DATE(po_date,'dd-mm-yyyy')"),'asc')
+        // ->where('status','<>','7')
+        // ->limit(10)
+        // ->get();
+
+        $listArticle = DB::select("SELECT * from 
+            (select purchase_order_det.po_number, po_date, price, purchase_order_hdr.created_at, to_char(purchase_order_hdr.updated_at,'dd-mm-yyyy') as updated_at 
+            from purchase_order_det 
+            left join purchase_order_hdr on purchase_order_hdr.po_number = purchase_order_det.po_number 
+            where article_code = '$articleCode' 
+            and status <> '7' 
+            order by TO_DATE(po_date,'dd-mm-yyyy') desc limit 10) oki
+            order by TO_DATE(po_date,'dd-mm-yyyy') asc");
 
         return Response()->json($listArticle);
 
@@ -1604,7 +1613,7 @@ class PurchaseOrderController extends Controller
             ,'group_materials.name as group'
             ,'uom.uom_group'
             // ,'purchase_request_det.qty'
-            ,DB::raw("(SELECT price as last_price from purchase_order_det where article_code = purchase_request_det.article_code order by updated_at,created_at desc limit 1) as last_price")
+            ,DB::raw("(SELECT price as last_price from purchase_order_det where article_code = purchase_request_det.article_code and updated_at is not null order by updated_at desc limit 1) as last_price")
             ,DB::raw("(select coalesce(sum(qty),0) from purchase_order_det 
                 where article_code = purchase_request_det.article_code 
                 and pr_number = purchase_request_det.pr_number
@@ -1618,7 +1627,7 @@ class PurchaseOrderController extends Controller
                 ) as qty")
             )
             ->get();
-            
+
         return response()->json(array('data' => $data));
 
     }

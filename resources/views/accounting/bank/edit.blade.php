@@ -82,9 +82,11 @@
                     <div>
                         @include('accounting.bank.tableHeader')
                     </div>      
-                    <div class="" id="item_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px">
-                        <input type="text" id ="last_row_number" class="d-none" value="0">
-                    </div>
+                    <form id="frmAddAcc" name="frmAddAcc" autocomplete="off"> 
+                        <div class="" id="item_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px">
+                            <input type="text" id ="last_row_number" class="d-none" value="0">
+                        </div>
+                    </form>
                     <table class="table-bordered" style="width: 98%;table-layout: fixed;">
                         <tbody>
                             <tr>
@@ -244,9 +246,10 @@
     
     $(document).ready(function(){
         let recFrom = $('#recFrom').val();
+        let voucherNumber = $('#voucherNumber').val();
         validateFormToast('frmAdd');
         isiCoa('list_coa');
-        isiInv('list_inv',recFrom);
+        isiInv('list_inv',recFrom,voucherNumber);
 
         setTimeout(function () {
             $(".loading-spinner-container").addClass("-show");
@@ -257,7 +260,7 @@
 
     let detail = {!! $details !!};
     function checkVariable() {
-        if ((listCoa.length > 0)) {
+        if ((listCoa.length > 0) && (listInv.length > 0) ) {
             clearInterval(timerId);
             isiData(detail);
         }
@@ -534,13 +537,14 @@
         })
     }
 
-    function isiInv(dependent,nilai) {
+    function isiInv(dependent,nilai,voucherNumber) {
         $.ajax({
             url:"{{route('dynamic.dependent')}}",
             method:"POST",
             data:{
                 dependent:dependent,
-                nilai:nilai
+                nilai:nilai,
+                ref:voucherNumber
             },
             success:function(result){
                 listInv = result;

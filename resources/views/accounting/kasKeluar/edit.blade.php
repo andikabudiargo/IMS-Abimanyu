@@ -431,7 +431,7 @@
         if(account == coa){
             let paidTo = $('#paidTo').val();
             if(ref){
-                invList('reference','vcRef'+ cloneCount,paidTo,ref);
+                invList('referenceApEdit','vcRef'+ cloneCount,paidTo,ref);
             }
         }
         
@@ -474,7 +474,7 @@
                 // if (accountNumber =='2000.11'){
                 if ((accountNumber == coa)){
                     if(paidTo){
-                        invList('reference',objSupp,paidTo,ref);
+                        invList('referenceApEdit',objSupp,paidTo,ref);
                     }else{
                         objAccount.eq(objIndex).val('').trigger('change');
                         Swal.fire('Warning..','Kolom bayar ke /supplier code masih kosong','warning');
@@ -504,7 +504,8 @@
         method:"POST",
         data:{
             dependent:dependent,
-            value:value
+            value:value,
+            ref:ref
         },
         success:function(result){
             $('#'+obj).html(result);
@@ -595,7 +596,7 @@
                 let objSupp = "vcRef"+(i+1);
                 if ($this.val()){
                     if ($this.val() =='2000.11'){
-                        invList('reference',objSupp,paidTo);
+                        invList('referenceApEdit',objSupp,paidTo);
                         objVcDebit.eq(i).val("");
                         objVcCredit.eq(i).val("");
                         objVcRef.empty().trigger('change');

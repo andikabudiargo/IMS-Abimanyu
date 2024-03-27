@@ -15,7 +15,8 @@
                             <tr>
                                 <th style="width:5%">No</th>
                                 <th>PO Number</th>
-                                <th>Date</th>
+                                <th>PO Date</th>
+                                <th>Last Updated Date</th>
                                 <th class="text-right">Price</th>
                             </tr>
                         </thead>

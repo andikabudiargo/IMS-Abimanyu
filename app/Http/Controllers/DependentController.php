@@ -18,6 +18,7 @@ class DependentController extends Controller
         $type= $request->type;
         $nilai= $request->nilai;
         $dependent=$request->dependent;
+        $ref=$request->ref;
         $akhusus='';
 
         switch ($dependent) { 
@@ -261,6 +262,15 @@ class DependentController extends Controller
                 $defaulttxt='Choose Wos';
                 break;
             case 'reference': 
+                $table='ap_invoice';
+                $field ='supplier_id';
+                $order ='ap_number';
+                $value = $code;
+                $name  ='ap_number';
+                $default='';
+                $defaulttxt='Choose invoice';
+                break;
+            case 'referenceApEdit': 
                 $table='ap_invoice';
                 $field ='supplier_id';
                 $order ='ap_number';
@@ -602,20 +612,35 @@ class DependentController extends Controller
             ->orderBy($order)
             ->get();
         }elseif($dependent =='list_inv'){
+            /*
+                27/3/2024
+                list invoice untuk Edit BM dan KM 
+                Status 3 dan 6 (Approved + Paid)
+                Datanya di keluarkan tapi hanya yang bersangkutan dengan nomor voucher saja
+                Kalau untuk yang Create pakenya yang eferenceAr
+
+            */
             $customerId = DB::table('third_party')->where('account',$nilai)->value('kode');
+            $listReferensi = DB::table('kas_det')->where('voucher_number',$ref)->where('reference','!=','')->pluck('reference');
+            // dd($listReferensi);
             $data= DB::table($table) 
             ->where('customer_id',$customerId)
-            ->whereIn('status',['3','6']) //approved
-            ->whereNotIn(DB::raw("invoice_number"), function($query) {
+            ->whereIn('status',['3','6']) //approved + paid
+            ->whereNotIn(DB::raw("invoice_number"), function($query) use($listReferensi) {
                 $query->select(DB::raw("reference"))
                 ->from('kas_det') 
                 ->leftJoin('kas_hdr','kas_hdr.voucher_number','kas_det.voucher_number')
                 ->where('kas_hdr.status','<>','5')
-                ->where('kas_det.voucher_number','like','BM%')
-                ->where('kas_det.voucher_number','like','KM%');
+                ->where('kas_det.reference','<>','')
+                ->whereNotIn('invoice_number',$listReferensi)
+                ->whereIn('kas_hdr.voucher_type',['BM','KM']);
+                // ->where('kas_det.voucher_number','like','BM%')
+                // ->where('kas_det.voucher_number','like','KM%');
             })
             ->orderBy($order)
             ->get();
+
+            // dd($data);
         }elseif($dependent =='tsoArticle'){
             $data= DB::table($table)
             ->leftJoin('uom','uom.code','=',$table.'.uom')
@@ -667,21 +692,56 @@ class DependentController extends Controller
                 4:Posted
                 6:Paid
 
+                update 27-03-2024
+                yang statusnya sudah paid tidak dikeluarkan di reference
+                Tapi kalau posisi edit itu tetap keluar
             */
 
             $data= DB::table($table)
             ->where($field,$code)
-            ->whereIn('status',['4','6']) //POSTED
-            ->whereNotIn(DB::raw("ap_number"), function($query) {
+            ->whereIn('status',['4']) //POSTED
+            ->whereNotIn(DB::raw("inv_number"), function($query) {
                 $query->select(DB::raw("reference"))
                 ->from('kas_det') 
                 ->leftJoin('kas_hdr','kas_hdr.voucher_number','kas_det.voucher_number')
                 ->where('kas_hdr.status','<>','5')
-                ->where('kas_det.voucher_number','like','BK%')
-                ->where('kas_det.voucher_number','like','KK%');
+                ->where('kas_det.reference','<>','')
+                ->whereIn('kas_hdr.voucher_type',['BK','KK']);
+                // ->where('kas_det.voucher_number','like','BK%')
+                // ->where('kas_det.voucher_number','like','KK%');
             })
             ->orderBy($order)
             ->get();
+
+        }elseif($dependent =='referenceApEdit'){
+            
+            /*
+                status:
+                4:Posted
+                6:Paid
+
+                update 27-03-2024
+                yang statusnya sudah paid tidak dikeluarkan di reference
+                Tapi kalau posisi edit itu tetap keluar
+            */
+
+            $data= DB::table($table)
+            ->where($field,$code)
+            ->whereIn('status',['4','6']) //POSTED + PAID
+            ->whereNotIn(DB::raw("inv_number"), function($query) use ($ref) {
+                $query->select(DB::raw("reference"))
+                ->from('kas_det') 
+                ->leftJoin('kas_hdr','kas_hdr.voucher_number','kas_det.voucher_number')
+                ->where('kas_hdr.status','<>','5')
+                ->where('kas_det.reference','<>','')
+                ->where('inv_number','<>',$ref)
+                ->whereIn('kas_hdr.voucher_type',['BK','KK']);
+                // ->where('kas_det.voucher_number','like','BK%')
+                // ->where('kas_det.voucher_number','like','KK%');
+            })
+            ->orderBy($order)
+            ->get();
+            
         }elseif($dependent =='referenceAr'){
             $customerId = DB::table('third_party')->where('account',$code)->value('kode');
             $data= DB::table($table)
@@ -692,8 +752,10 @@ class DependentController extends Controller
                 ->from('kas_det') 
                 ->leftJoin('kas_hdr','kas_hdr.voucher_number','kas_det.voucher_number')
                 ->where('kas_hdr.status','<>','5')
-                ->where('kas_det.voucher_number','like','BM%')
-                ->where('kas_det.voucher_number','like','KM%');
+                ->where('kas_det.reference','<>','')
+                ->whereIn('kas_hdr.voucher_type',['BM','KM']);
+                // ->where('kas_det.voucher_number','like','BM%')
+                // ->where('kas_det.voucher_number','like','KM%');
             })
             ->orderBy($order)
             ->get();
@@ -710,8 +772,10 @@ class DependentController extends Controller
                 ->from('kas_det') 
                 ->leftJoin('kas_hdr','kas_hdr.voucher_number','kas_det.voucher_number')
                 ->where('kas_hdr.status','<>','5')
-                ->where('kas_det.voucher_number','like','BM%')
-                ->where('kas_det.voucher_number','like','KM%');
+                ->where('kas_det.reference','<>','')
+                ->whereIn('kas_hdr.voucher_type',['BM','KM']);
+                // ->where('kas_det.voucher_number','like','BM%')
+                // ->where('kas_det.voucher_number','like','KM%');
             })
             ->orderBy($order)
             ->get();           
@@ -803,6 +867,8 @@ class DependentController extends Controller
             }elseif($dependent =='listArtilcleAp'){
                 $output .="<option value='$row->article_code' data-uom ='$row->uom' data-cost-price ='$row->costprice' >$row->article_alternative_code - $row->article_desc</option>";
             }elseif($dependent =='reference'){
+                $output .="<option value='$row->inv_number'>$row->inv_number</option>";
+            }elseif($dependent =='referenceApEdit'){
                 $output .="<option value='$row->inv_number'>$row->inv_number</option>";
             }elseif($dependent =='referenceAr'){
                 $output .="<option value='$row->invoice_number'>$row->invoice_number</option>";

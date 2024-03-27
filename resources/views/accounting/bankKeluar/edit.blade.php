@@ -82,9 +82,11 @@
                     <div>
                         @include('accounting.bankKeluar.tableHeader')
                     </div>      
-                    <div class="" id="item_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px">
-                        <input type="text" id ="last_row_number" class="d-none" value="0">
-                    </div>
+                    <form id="frmAddAcc" name="frmAddAcc" autocomplete="off">   
+                        <div class="" id="item_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px">
+                            <input type="text" id ="last_row_number" class="d-none" value="0">
+                        </div>
+                    </form>
                     <table class="table-bordered" style="width: 98%;table-layout: fixed;">
                         <tbody>
                             <tr>
@@ -430,7 +432,7 @@
         if(account == coa){
             let paidTo = $('#paidTo').val();
             if(ref){
-                invList('reference','vcRef'+ cloneCount,paidTo,ref);
+                invList('referenceApEdit','vcRef'+ cloneCount,paidTo,ref);
             }
         }
         
@@ -502,7 +504,8 @@
         method:"POST",
         data:{
             dependent:dependent,
-            value:value
+            value:value,
+            ref:ref
         },
         success:function(result){
             $('#'+obj).html(result);
