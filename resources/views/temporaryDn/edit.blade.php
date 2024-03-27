@@ -65,7 +65,7 @@
                 </div>
                 <div class="card-body">
                     <div style="padding-right:10px">
-                        @include("purchaseRequest.headerColumn")
+                        @include("suratJalanSementara.headerColumn")
                     </div>
                     <div class="" id="article_row" style="max-height: 30rem;overflow-x: hidden;scrollbar-width:thin;margin-top:7px;padding-right:10px">
                     </div>
@@ -81,7 +81,7 @@
                         <div class="col-md-12">
                             <div class="form-row">
                                 <div class="col-md-12">
-                                    <a href="{{ route('purchaseRequests.index') }}" class="btn btn-light">Back</a>
+                                    <a href="{{ route('suratJalanSementara.index') }}" class="btn btn-light">Back</a>
                                     <button class="btn btn-primary" type="button" id="cmdUpdate" name="cmdUpdate" >Update</button>
                                 </div>
                             </div>

@@ -110,7 +110,7 @@
                         <div class="col-md-12">
                             <div class="form-row">
                                 <div class="col-md-12">
-                                    <a href="{{ route('purchaseRequests.index') }}" class="btn btn-light">Back</a>
+                                    <a href="{{ route('suratJalanSementara.index') }}" class="btn btn-light">Back</a>
                                     <button class="btn btn-primary" type="button" id="cmdUpdate" name="cmdUpdate" >Update</button>
                                 </div>
                             </div>
