@@ -1034,7 +1034,7 @@ class ArticleController extends Controller
         try {
 
             $articleDesc=db::table('article_request')->where('id',$id)->value('article_desc');
-            
+
             $row_affected=DB::table('article_request')
             ->where('id',$id)->delete();
 
