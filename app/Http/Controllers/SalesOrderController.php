@@ -693,6 +693,21 @@ class SalesOrderController extends Controller
                     );
                 }
 
+                /*
+                    Kalau ada penambahan article, status nya akan kosong, jadi harus di update statusnya jadi open (1)
+                */
+
+                DB::table('sales_order_det')
+                ->where('so_code',$orderNumber)
+                ->where('status',null)
+                ->update(
+                    [
+                        'status' => "1",
+                        'created_by' => Auth::user()->username,
+                        'created_at' => date('Y-m-d H:i:s')                    
+                    ]
+                );
+
                 if ( $statusSimpan == 'approve' ){
                     DB::table('approval_history')->insert([
                         'module_code' => $modulCode,
