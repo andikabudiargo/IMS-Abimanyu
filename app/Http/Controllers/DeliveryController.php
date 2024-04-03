@@ -1267,7 +1267,11 @@ class DeliveryController extends Controller
         ->where('id',$id)
         ->first();
 
-        $dnNumber=$dnHdr -> delivery_number;
+        $dnNumber=$dnHdr->delivery_number;
+        $jamKirim = strtotime($dnHdr->created_at);
+
+        $data['timeDelivery']=date('H:i:s', $jamKirim);
+
         $data['dnNumberQr'] = strtr(base64_encode($dnNumber), '+/=', '-_,');
         $data['dnNumberQr1'] = base64_decode(strtr($data['dnNumberQr'], '-_,', '+/='));
              

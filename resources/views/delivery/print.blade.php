@@ -235,7 +235,7 @@
                                             <td class="tanpa-padding">Tanggal</td><td class="tanpa-padding">: {{ $dnHdr->delivery_date }}</td>
                                         </tr>
                                         <tr>
-                                            <td class="tanpa-padding">Jam</td><td class="tanpa-padding">: {{ date('H:i:s') }}</td>
+                                            <td class="tanpa-padding">Jam</td><td class="tanpa-padding">: {{ $timeDelivery }}</td>
                                         </tr>
                                         <tr>
                                             <td class="tanpa-padding">No mobil</td><td class="tanpa-padding">:</td>
