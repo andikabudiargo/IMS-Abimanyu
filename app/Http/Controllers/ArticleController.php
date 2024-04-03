@@ -1445,8 +1445,7 @@ class ArticleController extends Controller
                                 </a>';
 
             if (Auth::user()->can('article-request-delete')) {
-
-                if ($data->bisa_approve > 0 && $data->status_approve == '1' &&  $data->status_approve == '2' ) {
+                if ($data->status_approve == '1') {
                     $buttons .=         '<a href="javascript:;"
                                             id="deleteButton"
                                             class="dropdown-item"
