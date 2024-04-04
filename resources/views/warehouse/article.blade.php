@@ -15,7 +15,7 @@
             <form class="needs-validation" novalidate>
                 <div class="form-row">
                     <div class="form-group col-md-4"> 
-                      <label for="seachCode">Kode</label>
+                      <label for="seachCode">Article Code</label>
                       <input type="text" class="form-control text-uppercase" id="seachCode" name="seachCode" placeholder=""  />
                     </div>
                     <div class="form-group col-md-4"> 

@@ -65,7 +65,7 @@
                 </div>
                 <div class="card-body">
                     <div style="padding-right:10px">
-                        @include("suratJalanSementara.headerColumn")
+                        @include("temporaryDn.headerColumn")
                     </div>
                     <div class="" id="article_row" style="max-height: 30rem;overflow-x: hidden;scrollbar-width:thin;margin-top:7px;padding-right:10px">
                     </div>

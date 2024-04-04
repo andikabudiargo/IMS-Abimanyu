@@ -31,11 +31,12 @@ class TemporaryDnController extends Controller
         $kolom=
         [
             ['data'=>'action','name'=>'action','title'=>'action','orderable'=>false,'searchable'=>false],
-            ['data'=>'tdn_number','name'=>'tdn_number','title'=>'Delivery Number'],
-            ['data'=>'so_number','name'=>'so_number','title'=>'SO Number'],
-            // ['data'=>'customer_id','name'=>'customer_id','title'=>'Customer'],
-            ['data'=>'customer_name','name'=>'customer_name','title'=>'Customer'],
+            ['data'=>'tdn_number','name'=>'tdn_number','title'=>'Number'],
             ['data'=>'status','name'=>'status','title'=>'Status'],
+            ['data'=>'so_number','name'=>'so_number','title'=>'SO Number'],
+            ['data'=>'delivery_number','name'=>'delivery_number','title'=>'DN Number'],
+            ['data'=>'delivery_date','name'=>'delivery_date','title'=>'Delivery Date'],
+            ['data'=>'customer_name','name'=>'customer_name','title'=>'Customer'],
             ['data'=>'perihal','name'=>'perihal','title'=>'Perihal'],
             ['data'=>'note','name'=>'note','title'=>'Note'],
             ['data'=>'updated_so_by','name'=>'updated_so_by','title'=>'Update SO By'],
@@ -53,6 +54,8 @@ class TemporaryDnController extends Controller
         [
             ['data'=>'tdn_number','name'=>'tdn_number','title'=>'Delivery Number'],
             ['data'=>'so_number','name'=>'so_number','title'=>'SO Number'],
+            ['data'=>'delivery_number','name'=>'delivery_number','title'=>'DN Number'],
+            ['data'=>'delivery_date','name'=>'delivery_date','title'=>'Delivery Date'],
             // ['data'=>'customer_id','name'=>'customer_id','title'=>'Customer'],
             ['data'=>'customer_name','name'=>'customer_name','title'=>'Customer'],
             ['data'=>'article_alternative_code','name'=>'article_alternative_code','title'=>'Article Code'],
@@ -676,6 +679,200 @@ class TemporaryDnController extends Controller
         }
     }
 
+    public function createDn(Request $request)
+    {
+
+        /*
+            pada saat pembuatan DN dari temporary cek dulu QTY SO nya apakah sudah sesuai atau belum
+            dengan kedaan pasa saat DN dibuat
+            Cek apakah article yang ada di temporary semua ada di SO ?
+            Cek apakah qty temporary melebihi sisa SO
+
+        */
+
+        $username =  Auth::user()->username;       
+        $id=Crypt::decryptString($request->id);
+        $tDnHeader = DB::table('temporary_dn_hdr')->where('id',$id)->first();
+        $tDnNumber = $tDnHeader->tdn_number; 
+        $dnDate = $tDnHeader->delivery_date;
+        $soNumber = $tDnHeader->so_number;
+        $poNumber = db::table('sales_order_hdr')->where('so_code',$soNumber)->value('po_number');
+        $dnNew ="";
+        $pesan ="";
+        $hasilPosting = "";
+        $idDelivery = "";
+
+        /*
+            Cek apakah article yang ada di temporary semua ada di SO ?
+        */
+
+        $cekArticle = DB::table('temporary_dn_det as a')
+        ->leftJoin('temporary_dn_hdr as b','a.tdn_number','b.tdn_number')
+        ->leftJoin('sales_order_det as c', function ($join) {
+            $join->on('c.so_code', '=', 'b.so_number');
+            $join->on('c.article_code', '=', 'a.article_code');
+        })
+        ->where('a.tdn_number',$tDnNumber)
+        ->where('c.article_code','=',null)
+        ->count();
+
+        /*
+            Cek apakah qty SO masih ada atau sudah kosong
+        */
+
+        $cekSelisihQuery = DB::select("SELECT count(*) as jumlah from
+        (select *, 
+        (select coalesce((select qty from sales_order_det where so_code = b.so_number and article_code = a.article_code),0)) as qty_so,
+        coalesce((select sum(qty) as qty_delivery from delivery_det where delivery_number in (select delivery_number from delivery_hdr where so_number = b.so_number) and article_code = a.article_code group by article_code),0) as qty_delivery,
+        (select coalesce((select qty from sales_order_det where so_code = b.so_number and article_code = a.article_code),0)-
+        coalesce((select sum(qty) as qty_delivery from delivery_det where delivery_number in (select delivery_number from delivery_hdr where so_number = b.so_number) and article_code = a.article_code group by article_code),0)) as qty_selisih
+        from temporary_dn_det a
+        left join temporary_dn_hdr b on a.tdn_number = b.tdn_number
+        where a.tdn_number = '$tDnNumber'
+        ) as oki
+        where qty_selisih <= 0
+        ");
+
+        $adaSelisih = $cekSelisihQuery[0]->jumlah;
+
+        if ($cekArticle > 0 ){
+            $pesan .= ", Article tidak DN tidak ada di SO";
+        }
+
+        if ($adaSelisih > 0 ){
+            $pesan .= ", QTY SO sudah habis";
+        }
+
+        // dd($pesan);
+
+        if($pesan == ''){
+
+            $periodNomor=(int)explode('-', $dnDate)[1];
+            $dnNew = app('App\Http\Controllers\DeliveryController')->getLastCode('DN',$periodNomor);
+            
+            DB::beginTransaction();
+            try {
+                $sqlHdr = "INSERT into delivery_hdr 
+                (
+                    delivery_number,
+                    origin_delivery_number,
+                    delivery_date,
+                    customer_id,
+                    so_number,
+                    po_number,
+                    status,
+                    note,
+                    created_by,
+                    updated_by,
+                    created_at,
+                    updated_at
+                )
+                select 
+                '$dnNew',
+                '$dnNew',
+                delivery_date,
+                customer_id,
+                so_number,
+                '$poNumber',
+                '1',
+                note,
+                '$username',
+                '$username',
+                '".date('Y-m-d H:i:s')."',
+                '".date('Y-m-d H:i:s')."'
+                from temporary_dn_hdr where tdn_number = '$tDnNumber'";
+            
+                $sqlDet="INSERT into delivery_det
+                (
+                    delivery_number,
+                    article_code,
+                    so_number,
+                    po_number,
+                    qty,
+                    uom,
+                    created_by,
+                    created_at,
+                    qty_so
+                )
+                select 
+                    '$dnNew',
+                    article_code,
+                    '$soNumber',
+                    '$poNumber',
+                    qty,
+                    uom,
+                    '$username',
+                    '".date('Y-m-d H:i:s')."',
+                    (select coalesce((select qty from sales_order_det where so_code = b.so_number and article_code = a.article_code),0)-
+                    coalesce((select sum(qty) as qty_delivery from delivery_det where delivery_number in (select delivery_number from delivery_hdr where so_number = b.so_number) and article_code = a.article_code group by article_code),0)) as qty_so
+                from temporary_dn_det a
+                left join temporary_dn_hdr b on b.tdn_number = a.tdn_number
+                where a.tdn_number = '$tDnNumber'";
+
+                $rowAffected =  DB::select($sqlHdr);
+                if ($rowAffected){
+                    DB::select($sqlDet);
+                    $row_affected=DB::table('temporary_dn_hdr')
+                    ->where('tdn_number',$tDnNumber)
+                    ->update(
+                        [
+                            'status' => '3',
+                            'delivery_number' => $dnNew,
+                            'updated_by' => Auth::user()->username,
+                            'updated_at' => date('Y-m-d H:i:s')
+                        ]
+                    );
+
+                    $idDelivery = db::table('delivery_hdr')->where('delivery_number',$dnNew)->value('id');
+
+                    $idKu = Crypt::encryptString($idDelivery);
+
+                    $hasilPosting = app('App\Http\Controllers\DeliveryController')->postingFromOther($idDelivery);
+                    
+                    DB::commit();
+                    $title ="Create DN $this->title";
+                    $alert  ="success";
+                    $message  = "$title $dnNew from $tDnNumber Successfully Create DN";
+                    \LogActivity::addToLog($title,"username: $username Status $message");
+                    return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message,'hasilPosting'=>$hasilPosting,'idDelivery' => $idKu]);
+                }else{
+                    DB::rollBack();
+                    // 'DN/ASN/24/04/2379
+                    $noAkhirDn = explode('/', $dnNew)[4];
+                    $row_affected=DB::table('master_code')
+                    ->where('code_key','DN')
+                    ->where('code_number',$noAkhirDn)
+                    ->update(
+                        [
+                            'code_number' => $noAkhirDn-1,
+                            'updated_by' => Auth::user()->username,
+                            'updated_at' => date('Y-m-d H:i:s')
+                        ]
+                    );
+
+                    $title ="Create DN $this->title";
+                    $alert  ="warning";
+                    $message  = "$title $dnNew from $tDnNumber Failed Create DN Insert to HDR";
+                    \LogActivity::addToLog($title,"username: $username Status $message");
+                    return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message,'hasil'=>$hasilPosting,'idDelivery' => $idKu]);
+                }
+            } catch (Exception $e) {
+                DB::rollBack();
+                $title ="Create DN $this->title";
+                $alert  ="warning";
+                $message  = "$title $dnNew from $tDnNumber Failed2 Create DN Error Query";
+                \LogActivity::addToLog($title,"username: $username Status $message");
+                return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message,'hasil'=>$hasilPosting,'idDelivery' => $idKu]);
+            }
+        }else{
+            $title ="Create DN $this->title";
+            $alert  ="warning";
+            $message  = "$title $dnNew from $tDnNumber Failed3 Create DN Warning message";
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message.$pesan,'hasil'=>$hasilPosting,'idDelivery' => $idKu]);
+        }
+    }
+
     public function list(Request $request)
     {
         // status:
@@ -749,8 +946,25 @@ class TemporaryDnController extends Controller
                             <i data-feather="list"></i>
                             Detail
                          </a>';
+
+            if ( $data->status == '2' ){
+            // if (Auth::user()->can('purchaseOrder-delete')) {
+                $buttons .="<a href='javascript:;'
+                class='dropdown-item' 
+                data-size='sm'
+                data-ajax-delete='true'
+                data-confirm='Are You Sure want to Create Delivery Note?' 
+                data-confirm-yes='document.getElementById(\""."delete-form-".$data->id."\").submit();'
+                data-modal-id='".$data->id."'
+                id='deleteButton'
+                data-url='". route('suratJalanSementara.createDn', ['id'=>Crypt::encryptString($data->id)]) ."'>
+                <i data-feather='file-text'></i>
+                <span>". __('Create DN') ."</span>
+                </a>";
+            // }
+            }
                 
-            // if ($data->status == '1') {
+            if ($data->status != '3') {
                 $buttons .= "<a href='javascript:;'
                                 class='dropdown-item' 
                                 data-size='sm'
@@ -763,24 +977,24 @@ class TemporaryDnController extends Controller
                                 <i data-feather='trash-2' class='feather-14-red'></i>
                                 <span>". __('Cancel') ."</span>
                             </a>";
-            // }
-            
-            if ( $data->status == '2' ){
-                // if (Auth::user()->can('purchaseOrder-delete')) {
-                    $buttons .="<a href='javascript:;'
-                    class='dropdown-item' 
-                    data-size='sm'
-                    data-ajax-delete='true'
-                    data-confirm='Are You Sure want to Close?|This action can not be undone. Do you want to continue?' 
-                    data-confirm-yes='document.getElementById(\""."delete-form-".$data->id."\").submit();'
-                    data-modal-id='".$data->id."'
-                    id='deleteButton'
-                    data-url='". route('suratJalanSementara.close', ['id'=>Crypt::encryptString($data->id)]) ."'>
-                    <i data-feather='x' class='feather-14-red'></i>
-                    <span>". __('Close') ."</span>
-                    </a>";
-                // }
             }
+            
+            // if ( $data->status == '2' ){
+            //     // if (Auth::user()->can('purchaseOrder-delete')) {
+            //         $buttons .="<a href='javascript:;'
+            //         class='dropdown-item' 
+            //         data-size='sm'
+            //         data-ajax-delete='true'
+            //         data-confirm='Are You Sure want to Close?|This action can not be undone. Do you want to continue?' 
+            //         data-confirm-yes='document.getElementById(\""."delete-form-".$data->id."\").submit();'
+            //         data-modal-id='".$data->id."'
+            //         id='deleteButton'
+            //         data-url='". route('suratJalanSementara.close', ['id'=>Crypt::encryptString($data->id)]) ."'>
+            //         <i data-feather='x' class='feather-14-red'></i>
+            //         <span>". __('Close') ."</span>
+            //         </a>";
+            //     // }
+            // }
 
             $buttons .=     '</div>
                         </div>';
@@ -838,6 +1052,8 @@ class TemporaryDnController extends Controller
             ,'temporary_dn_hdr.updated_so_by'
             ,'temporary_dn_hdr.updated_so_at'
             ,'temporary_dn_hdr.so_number'
+            ,'temporary_dn_hdr.delivery_number'
+            ,'temporary_dn_hdr.delivery_date'
             ,'third_party.nama as customer_name'    
         )
         ->orderBy('id')

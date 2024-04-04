@@ -104,7 +104,7 @@
   let rangePickr = document.querySelector('.flatpickr-range');
   let btnSummary = document.querySelector('#btnSummary');
   let btnDetail = document.querySelector('#btnDetail');
-
+  
   document.addEventListener("DOMContentLoaded", function(event) {
     btnSummary.style.display = "none";
     btnDetail.style.display = "none";
@@ -153,7 +153,7 @@
       tableId:"detailedTable",
       route:"{{ route("suratJalanSementara.list") }}",
       kolom:{!! $kolom !!},
-      arrColPrint:[1,2,3,4,5,6,7,8,9,10,11,12],
+      arrColPrint:[1,2,3,4,5,6,7,8,9,10,11,12,13,14],
       columnDefs :[
         { width: '5%', targets: 0 },
       ],
@@ -179,10 +179,13 @@
       tableId:"detailedTable",
       route:"{{ route('suratJalanSementara.list.detail') }}",
       kolom:{!! $kolomDetail !!},
-      arrColPrint:[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15],
+      arrColPrint:[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17],
       columnDefs :[
         { width: '5%', targets: 0 },
-        { className: 'text-right','targets': [5] },
+        { 
+          className: 'text-right','targets': [7],
+          render: $.fn.dataTable.render.number(',', '.',2, ''),
+        },
       ],
       dataSearch:  {
         searchDn:searchDn,
@@ -212,4 +215,15 @@
   
     
 </script>
+@if ($alert = Session::get('hasilPosting'))
+    <script>
+      if("{{ $alert }}" == 'success' ){
+        // alert("{{ Session::get('idDelivery') }}");
+        let id = "{{ Session::get('idDelivery') }}";
+        let url = "{{ route('delivery.print', ['id'=>':id']) }}";
+        url = url.replace('%3Aid', id);
+        window.open(url, '_blank');
+      }
+    </script>
+@endif
 @endsection

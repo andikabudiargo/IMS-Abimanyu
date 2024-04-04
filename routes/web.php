@@ -828,6 +828,7 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('temporaryDn/get/article',['as'=>'suratJalanSementara.get.article','uses'=>'TemporaryDnController@getArticle']);
 	Route::get('temporaryDn/update/so',['as'=>'suratJalanSementara.updateSo','uses'=>'TemporaryDnController@updateSo']);
 	Route::post('temporaryDn/update/so/update',['as'=>'suratJalanSementara.updateSo.update','uses'=>'TemporaryDnController@updateSoUpdate']);
+	Route::post('temporaryDn/createDn',['as'=>'suratJalanSementara.createDn','uses'=>'TemporaryDnController@createDn']);
 
 	Route::get('dnReturn',['as'=>'dnReturn.index','uses'=>'DnReturnController@index']);
 	Route::get('dnReturn/create',['as'=>'dnReturn.create','uses'=>'DnReturnController@create']);
