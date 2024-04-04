@@ -497,7 +497,8 @@
                             $('#addNewRow').attr('disabled','disabled');
                             $('#poNumber').val(data.poNumber);
                             $('.disabled-el').attr('disabled','disabled');
-                            window.location.reload();
+                            // window.location.reload();
+                            location.replace(location.href);
                         }
                     },
                     error: function(error) {
