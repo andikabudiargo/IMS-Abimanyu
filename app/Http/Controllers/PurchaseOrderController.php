@@ -777,6 +777,10 @@ class PurchaseOrderController extends Controller
                         ]
                     );
 
+                    /*
+                        update PR supaya isi PO nya di kosongkan dulu
+                    */
+
                     $dataset=[];
                     foreach ($articles as $val) {
                         $dataSet[] = [
@@ -822,7 +826,7 @@ class PurchaseOrderController extends Controller
                             'article_code' => $val->article_code,
                             'qty' => $val->qty,
                             'uom' => $val->uom,
-                            'old_price' => $val->price,
+                            // 'old_price' => $val->price,
                             'price' => $val->newPrice,
                             'ppn' => round(($val->qty*$val->newPrice)*($ppn/100)),
                             'pph22' => $totalPph,
@@ -846,7 +850,7 @@ class PurchaseOrderController extends Controller
                         );
 
                         /*
-                        PR nya berubah status jadi sudah dibikin PO
+                            PR nya berubah status jadi sudah dibikin PO
                         */
 
                         DB::table('purchase_request_hdr')
@@ -1613,7 +1617,7 @@ class PurchaseOrderController extends Controller
             ,'group_materials.name as group'
             ,'uom.uom_group'
             // ,'purchase_request_det.qty'
-            ,DB::raw("(SELECT price as last_price from purchase_order_det where article_code = purchase_request_det.article_code and updated_at is not null order by updated_at desc limit 1) as last_price")
+            ,DB::raw("(SELECT price as last_price from purchase_order_det where article_code = purchase_request_det.article_code and updated_at is not null and po_number not like '%-R%' order by updated_at desc limit 1) as last_price")
             ,DB::raw("(select coalesce(sum(qty),0) from purchase_order_det 
                 where article_code = purchase_request_det.article_code 
                 and pr_number = purchase_request_det.pr_number

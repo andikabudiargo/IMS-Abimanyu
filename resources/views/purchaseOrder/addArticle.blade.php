@@ -438,6 +438,7 @@
                 pesan +="Articles must be filled in completely <br>"; 
                 flag=1;
             }
+            console.log(articles);
 
             if (flag==0){
                 let orderDate = $('#orderDate').val();
@@ -604,6 +605,7 @@
                     prNumber:prNumber
                 },
                 success:function(result){
+                    console.log(result.data)
                     for(let i=0;i<result.data.length;i++){
                         // tampilkan kalo qty nya lebih dari 0
                         if (result.data[i].qty*1 > 0){
