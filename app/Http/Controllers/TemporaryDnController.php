@@ -701,6 +701,7 @@ class TemporaryDnController extends Controller
         $pesan ="";
         $hasilPosting = "";
         $idDelivery = "";
+        $idKu = "";
 
         /*
             Cek apakah article yang ada di temporary semua ada di SO ?
