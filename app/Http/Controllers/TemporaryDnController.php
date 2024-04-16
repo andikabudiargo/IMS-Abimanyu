@@ -496,14 +496,23 @@ class TemporaryDnController extends Controller
         ->orderBy('nama')
         ->get();
 
+        /*
+            16/4/2024
+            kalo begini tidak bisa pak, karena SO yng sudah dibuat DN tapi belum close juga kan masih bisa di pakai pak jadi harus muncul.
+            yang jangan muncul itu yang status SO nya sudah close semua
+
+            1 SO Boleh ada di beberapa Temporary DN
+
+        */
+
         $data['soNumbers'] = DB::table('sales_order_hdr')
         ->where ('customer_id','=',$custCode)
-        ->whereNotIn('so_code', function($query) use ($custCode,$soNumber) {
-            $query->select(db::raw("coalesce(so_number,'')"))
-            ->from('temporary_dn_hdr') 
-            ->where('customer_id',$custCode)
-            ->where('so_number','<>',$soNumber);
-        })
+        // ->whereNotIn('so_code', function($query) use ($custCode,$soNumber) {
+        //     $query->select(db::raw("coalesce(so_number,'')"))
+        //     ->from('temporary_dn_hdr') 
+        //     ->where('customer_id',$custCode)
+        //     ->where('so_number','<>',$soNumber);
+        // })
         ->whereIn("status",['2','3'])
         ->where(db::raw("(SELECT count(*) from sales_order_det where so_code = sales_order_hdr.so_code and status = '1')"),">",0)
         ->orderBy('id')
@@ -512,7 +521,6 @@ class TemporaryDnController extends Controller
         $status = ['OPEN','SALES ORDER','CLOSED','CANCELED'];
         $data['status'] = $status[$data['header']->status-1];
 
-        
         return view("temporaryDn.updateSo",$data);
         
     }
@@ -740,7 +748,7 @@ class TemporaryDnController extends Controller
         $adaSelisih = $cekSelisihQuery[0]->jumlah;
 
         if ($cekArticle > 0 ){
-            $pesan .= ", Article tidak DN tidak ada di SO";
+            $pesan .= ", Article di DN tidak ada di SO";
         }
 
         if ($adaSelisih > 0 ){
