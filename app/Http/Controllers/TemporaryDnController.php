@@ -567,7 +567,7 @@ class TemporaryDnController extends Controller
 
                 $title ="Update SO $this->title";
                 $alert ="success";
-                $message = "$title $tDnNumber is successfully updated";
+                $message = "$title $tDnNumber, $soNumber is successfully updated";
                 \LogActivity::addToLog($title,"username: $username Status $message");
                 return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'tDnNumber'=>$tDnNumber));
 
@@ -576,7 +576,7 @@ class TemporaryDnController extends Controller
                 DB::rollBack();
                 $title ="Update SO $this->title";
                 $alert  ="warning";
-                $message  = "$title $tDnNumber is failed to updated";
+                $message  = "$title $tDnNumber, $soNumber is failed to updated";
                 \LogActivity::addToLog($title,"username: $username Status $message");
                 return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'tDnNumber'=>$tDnNumber));
             }
