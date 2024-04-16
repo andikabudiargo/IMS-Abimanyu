@@ -459,6 +459,7 @@ class TemporaryDnController extends Controller
     
         $tDnNumber = $data['header']->tdn_number;
         $custCode = $data['header']->customer_id;
+        $soNumber = $data['header']->so_number;
 
         $data['details'] = DB::table('temporary_dn_det')
         ->leftJoin('article','article.article_code','=','temporary_dn_det.article_code')
@@ -488,7 +489,6 @@ class TemporaryDnController extends Controller
             $output .='<option value="'.$row->article_code.'" data-uom="'.$row->uom.'">'.$row->article_alternative_code.'-'. $row->article_desc.'</option>';
         }
 
-
         $data['articles'] = $output;
 
         $data['customers'] = DB::table('third_party')
@@ -498,10 +498,11 @@ class TemporaryDnController extends Controller
 
         $data['soNumbers'] = DB::table('sales_order_hdr')
         ->where ('customer_id','=',$custCode)
-        ->whereNotIn('so_code', function($query) use ($custCode) {
+        ->whereNotIn('so_code', function($query) use ($custCode,$soNumber) {
             $query->select(db::raw("coalesce(so_number,'')"))
             ->from('temporary_dn_hdr') 
-            ->where('customer_id',$custCode);
+            ->where('customer_id',$custCode)
+            ->where('so_number','<>',$soNumber);
         })
         ->orderBy('id')
         ->get();
@@ -931,7 +932,7 @@ class TemporaryDnController extends Controller
                         </a>';
             }
 
-            if ($data->status == '1') {
+            if ($data->status == '1' || $data->status == '2') {
                 $buttons .= '<a href="'. route('suratJalanSementara.updateSo', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                 <i data-feather="file-text"></i>
                                    Update SO

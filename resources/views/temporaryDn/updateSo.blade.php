@@ -36,7 +36,7 @@
                                     <select class="select2 form-control" id="soNumber" name="soNumber" required>
                                         <option value="">Choose SO</option>
                                         @foreach($soNumbers as $val)
-                                            <option value="{{$val->so_code}}" >{{$val->so_code}} - {{$val->po_number}}</option>
+                                            <option value="{{$val->so_code}}" {{$val->so_code == $header->so_number ? "selected" : ""}} >{{$val->so_code}} - {{$val->po_number}}</option>
                                         @endforeach
                                     </select>
                                 </div>
