@@ -504,6 +504,8 @@ class TemporaryDnController extends Controller
             ->where('customer_id',$custCode)
             ->where('so_number','<>',$soNumber);
         })
+        ->whereIn("status",['2','3'])
+        ->where(db::raw("(SELECT count(*) from sales_order_det where so_code = sales_order_hdr.so_code and status = '1')"),">",0)
         ->orderBy('id')
         ->get();
 
