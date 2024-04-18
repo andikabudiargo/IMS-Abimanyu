@@ -843,6 +843,26 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('dnReturn/print',['as'=>'dnReturn.print','uses'=>'DnReturnController@print']);
 	Route::post('dnReturn/get/article',['as'=>'dnReturn.get.article','uses'=>'DnReturnController@getArticle']);
 
+
+
+	Route::get('dnReplace',['as'=>'dnReplace.index','uses'=>'DnReplaceController@index']);
+	Route::get('dnReplace/create',['as'=>'dnReplace.create','uses'=>'DnReplaceController@create']);
+	Route::get('dnReplace/search',['as'=>'dnReplace.search','uses'=>'DnReplaceController@search']);
+	Route::get('dnReplace/list/return',['as'=>'dnReplace.list.return','uses'=>'DnReplaceController@listReturn']);
+	Route::get('dnReplace/return/det',['as'=>'dnReplace.return.det','uses'=>'DnReplaceController@returnDetail']);
+	Route::post('dnReplace/store',['as'=>'dnReplace.store','uses'=>'DnReplaceController@store']);
+	Route::get('dnReplace/list',['as'=>'dnReplace.list','uses'=>'DnReplaceController@list']);
+	Route::post('dnReplace/list/detail',['as'=>'dnReplace.list.detail','uses'=>'DnReplaceController@listDetail']);
+	Route::get('dnReplace/show',['as'=>'dnReplace.show','uses'=>'DnReplaceController@show']);
+	Route::get('dnReplace/edit',['as'=>'dnReplace.edit','uses'=>'DnReplaceController@edit']);
+	Route::post('dnReplace/update',['as'=>'dnReplace.update','uses'=>'DnReplaceController@update']);
+	Route::post('dnReplace/delete',['as'=>'dnReplace.destroy','uses'=>'DnReplaceController@destroy']);
+	Route::get('dnReplace/print',['as'=>'dnReplace.print','uses'=>'DnReplaceController@print']);
+	Route::post('dnReplace/posting',['as'=>'dnReplace.posting','uses'=>'DnReplaceController@posting']);
+	Route::post('dnReplace/cancel',['as'=>'dnReplace.cancel','uses'=>'DnReplaceController@cancel']);
+	Route::post('dnReplace/revision',['as'=>'dnReplace.revision','uses'=>'DnReplaceController@revision']);
+	
+
 	Route::get('stockTake',['as'=>'stockTake.index','uses'=>'StockTake\StockTakeController@index']);
 	Route::post('stockTake/import',['as'=>'stockTake.import','uses'=>'StockTake\StockTakeController@import']);
 	Route::get('stockTake/export',['as'=>'stockTake.export','uses'=>'StockTake\StockTakeController@export']);

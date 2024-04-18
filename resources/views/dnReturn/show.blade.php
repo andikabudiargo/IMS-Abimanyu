@@ -39,7 +39,7 @@
                                         <input type="text" id="article" name="article" hidden>
                                         <div class="form-row">
                                             <div class="form-group col-md-3">
-                                                <label for="returnNumber">Request Number</label> <small class="text-muted"> automatic</small>
+                                                <label for="returnNumber">DN Return Number</label>
                                                 <input type="text" id="returnNumber" name="returnNumber" class="form-control disabled-el" value="{{ $header2->return_number }}" disabled />
                                             </div>
                                             <div class="form-group col-md-2">
@@ -56,6 +56,12 @@
                                                         <option value="{{$val->kode}}" {{$val->kode == $header2->customer_id ? "selected" : ""}} >{{$val->kode}} - {{$val->nama}}</option>
                                                     @endforeach
                                                 </select>
+                                            </div>
+                                        </div>
+                                        <div class="form-row">
+                                            <div class="form-group col-md-3">
+                                                <label for="dnNumber">Customer DN Number</label>
+                                                <input type="text" id="dnNumber" name="dnNumber" class="form-control disabled-el" value="{{ $header->dn_number }}" disabled />
                                             </div>
                                         </div>
                                         <div class="form-row">

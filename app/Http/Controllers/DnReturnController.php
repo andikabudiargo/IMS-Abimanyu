@@ -128,6 +128,7 @@ class DnReturnController extends Controller
         $articles = json_decode($request -> articles);
         $customerId = $request->customerId;
         $returnDate = $request->returnDate;
+        $dnNumber = $request->dnNumber;
         $note = $request->note;
         $status = '1';
         $returnNumber ='';
@@ -177,6 +178,7 @@ class DnReturnController extends Controller
                     'updated_by' => Auth::user()->username,
                     'created_at' => date('Y-m-d H:i:s'),
                     'updated_at' => date('Y-m-d H:i:s'),
+                    'dn_number' => $dnNumber
                 ]);
 
                 $dataSet = [];
@@ -324,6 +326,7 @@ class DnReturnController extends Controller
         $username =  Auth::user()->username;
         $articles = json_decode($request -> articles);
         $returnNumber = $request->returnNumber;
+        $dnNumber = $request->dnNumber;
         $customerId = $request->customerId;
         $returnDate = $request->returnDate;
         $note = $request->note;
@@ -367,7 +370,8 @@ class DnReturnController extends Controller
                         'return_date' => $returnDate,
                         'note' => $note,
                         'updated_by' => Auth::user()->username,
-                        'updated_at' => date('Y-m-d H:i:s')
+                        'updated_at' => date('Y-m-d H:i:s'),
+                        'dn_number' => $dnNumber
                     ]
                 );
 
@@ -579,10 +583,10 @@ class DnReturnController extends Controller
             }
 
             
-            $buttons .= '<a href="'. route('dnReturn.print', ['id'=>Crypt::encryptString($data->id)]) .'" target="_blank" class="dropdown-item">
-                            <i data-feather="printer"></i>
-                            Print
-                        </a>';
+            // $buttons .= '<a href="'. route('dnReturn.print', ['id'=>Crypt::encryptString($data->id)]) .'" target="_blank" class="dropdown-item">
+            //                 <i data-feather="printer"></i>
+            //                 Print
+            //             </a>';
 
             $buttons .= '<a href="'. route('dnReturn.show', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                             <i data-feather="list"></i>

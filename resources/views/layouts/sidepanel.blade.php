@@ -330,7 +330,7 @@
           </ul>
         </li> --}}
 
-        <li class=" {{ in_array(\Request::segment(1), ['delivery','dnReceipt','deliveryReport','suratJalanSementara']) ? 'active' : '' }} nav-item">
+        <li class=" {{ in_array(\Request::segment(1), ['delivery','dnReceipt','deliveryReport','suratJalanSementara','dnReturn','dnReplace','temporaryDn']) ? 'active' : '' }} nav-item">
           <a class="d-flex align-items-center" href="javascript:void(0);">
             <i data-feather='truck'></i>
             <span class="menu-title text-truncate" data-i18n="Form Elements">Delivery
@@ -361,6 +361,15 @@
               <a class="d-flex align-items-center" href="{{ route('dnReturn.index') }}">
                 <i data-feather="circle"></i>
                 <span class="menu-item text-truncate" data-i18n="DN Return">DN Return</span>
+              </a>
+            </li>
+            @endcan
+
+            @can('delivery-index')
+            <li class="{{ \Request::segment(1) == 'dnReplace' ? 'active' : '' }} " >
+              <a class="d-flex align-items-center" href="{{ route('dnReplace.index') }}">
+                <i data-feather="circle"></i>
+                <span class="menu-item text-truncate" data-i18n="DN Replace">DN Replace</span>
               </a>
             </li>
             @endcan

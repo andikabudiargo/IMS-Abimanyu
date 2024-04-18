@@ -219,7 +219,7 @@
                             <table style="border-left: thin solid var(--line-color);border-right: thin solid var(--line-color);padding-left:10px" class="font-13 tanpa-padding">
                                 <tr>
                                     <td colspan="4" align="center" class="font-16 huruf-tebal">
-                                        SURAT JALAN SEMENTARA
+                                        SURAT JALAN REPLACEMENT
                                     </td>
                                 </tr>
                                 <tr>
@@ -239,13 +239,13 @@
                                     <td width="40%" valign="top">
                                         <table>
                                             <tr>
-                                                <td width="30%" valign="top" class="tanpa-padding">Nomor</td><td class="tanpa-padding">: {{ $tDnHdr->tdn_number }}</td>
+                                                <td width="30%" valign="top" class="tanpa-padding">Nomor</td><td class="tanpa-padding">: {{ $replaceHdr->replace_number }}</td>
                                             </tr>
                                             <tr>
-                                                <td width="25%" valign="top" class="tanpa-padding">Tanggal Kirim</td><td class="tanpa-padding">: {{ $tDnHdr->delivery_date }}</td>
+                                                <td width="25%" valign="top" class="tanpa-padding">Tanggal Kirim</td><td class="tanpa-padding">: {{ $replaceHdr->replace_date }}</td>
                                             </tr>
                                             <tr>
-                                                <td width="25%" valign="top" class="tanpa-padding">Hal</td><td class="tanpa-padding">: {{ $tDnHdr->perihal }} </td>
+                                                <td width="25%" valign="top" class="tanpa-padding">DN</td><td class="tanpa-padding">: {{ $replaceHdr->dn_number }} </td>
                                             </tr>
                                         </table>
                                     </td>

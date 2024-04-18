@@ -21,7 +21,7 @@
                             <input type="text" id="article" name="article" hidden>
                             <div class="form-row">
                                 <div class="form-group col-md-3">
-                                    <label for="returnNumber">Temporary DN Number</label> <small class="text-muted"> automatic</small>
+                                    <label for="returnNumber">DN Return Number</label> <small class="text-muted"> automatic</small>
                                     <input type="text" id="returnNumber" name="returnNumber" class="form-control disabled-el"  disabled />
                                 </div>
                                 <div class="form-group col-md-2">
@@ -30,7 +30,7 @@
                                 </div>
                             </div>
                             <div class="form-row">
-                                <div class="form-group col-md-7">
+                                <div class="form-group col-md-5">
                                     <label class="form-label" for="cust">Customer*</label>
                                     <select class="select2 form-control" id="cust" name="cust" required>
                                         <option value="">Choose Customer</option>
@@ -41,7 +41,13 @@
                                 </div>
                             </div>
                             <div class="form-row">
-                                <div class="form-group col-md-7">
+                                <div class="form-group col-md-3">
+                                    <label for="dnNumber">Customer DN Number</label>
+                                    <input type="text" id="dnNumber" name="dnNumber" class="form-control disabled-el" />
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group col-md-5">
                                     <label class="form-label" for="note">Notes</label>
                                     <textarea type="text" id="note" name="note" class="form-control" rows="1" ></textarea>
                                 </div>
@@ -146,6 +152,7 @@
             if (flag==0){
                 let returnDate = $('#returnDate').val();
                 let customerId = $('#cust').val();
+                let dnNumber = $('#dnNumber').val();
                 let note = $('#note').val();
 
                 $.ajax({
@@ -155,7 +162,8 @@
                         articles:JSON.stringify(articles),
                         returnDate:returnDate,
                         customerId:customerId,
-                        note:note
+                        note:note,
+                        dnNumber:dnNumber
                     },
                     dataType: "json",
                     success: function(data) {
