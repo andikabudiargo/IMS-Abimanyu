@@ -32,6 +32,7 @@ class DnReturnController extends Controller
         [
             ['data'=>'action','name'=>'action','title'=>'action','orderable'=>false,'searchable'=>false],
             ['data'=>'return_number','name'=>'return_number','title'=>'Return Number'],
+            ['data'=>'customer_id','name'=>'customer_id','title'=>'Customer Code'],
             ['data'=>'customer_name','name'=>'customer_name','title'=>'Customer'],
             ['data'=>'status','name'=>'status','title'=>'Status'],
             ['data'=>'note','name'=>'note','title'=>'Note'],
@@ -47,6 +48,7 @@ class DnReturnController extends Controller
         $kolom=
         [
             ['data'=>'return_number','name'=>'return_number','title'=>'Return Number'],
+            ['data'=>'customer_id','name'=>'customer_id','title'=>'Customer Code'],
             ['data'=>'customer_name','name'=>'customer_name','title'=>'Customer'],
             ['data'=>'article_alternative_code','name'=>'article_alternative_code','title'=>'Article Code'],
             ['data'=>'article_desc','name'=>'article_desc','title'=>'Description'],
@@ -563,7 +565,10 @@ class DnReturnController extends Controller
             $searchCustomer ? $query->where('dn_return_hdr.customer_id',$searchCustomer) : '';
         })
         ->where('dn_return_hdr.status','!=','4')
-        ->select('dn_return_hdr.*',DB::raw("concat(kode,'-',nama) as customer_name"))
+        ->select('dn_return_hdr.*'
+        // ,DB::raw("concat(kode,'-',nama) as customer_name")
+        ,'nama as customer_name'
+        )
         ->orderBy('id')
         ->get(); 
              
@@ -677,7 +682,8 @@ class DnReturnController extends Controller
             ,'dn_return_hdr.status'
             ,'dn_return_hdr.return_date'
             ,'dn_return_hdr.note'
-            ,'third_party.nama as customer_name'    
+            ,'dn_return_hdr.customer_id'
+            ,'third_party.nama as customer_name'
         )
         ->orderBy('id')
         ->orderBy('return_number')

@@ -38,7 +38,7 @@
                 <label for="replaceDate">Replace Date</label>
                 <input type="text" id="replaceDate" name="replaceDate" class="form-control flatpickr-range" placeholder="YYYY-MM-DD to YYYY-MM-DD" />
               </div>
-              <div class="form-group col-md-2"> 
+              <div class="form-group col-md-2 d-none"> 
                 <label class="form-label" for="replaceStatus">Replace Status</label>
                 <select class="select2 form-control" id="replaceStatus" name="replaceStatus">
                     <option value="">All</option>
@@ -174,7 +174,7 @@
         searchStatus:searchStatus,
         replaceDate:replaceDate
       },
-      orderColumn:[[ 8, 'desc' ]],
+      orderColumn:[[ 1, 'asc' ]],
       excelFileName:'dn_repalce'
     });
   }
@@ -191,7 +191,7 @@
       route:"{{ route('dnReplace.list.detail') }}",
       kolom:{!! $kolomDetail !!},
       type:'POST',
-      arrColPrint:[0,1,2,3,4,5,6,7,8,9,10,11,12],
+      arrColPrint:[0,1,2,3,4,5,6,7,8,9,10,11],
       columnDefs :[
         { width: '5%', targets: 0 },
         {
@@ -208,7 +208,7 @@
         searchStatus:searchStatus,
         replaceDate:replaceDate
       },
-      orderColumn:[[ 12, 'asc' ]],
+      orderColumn:[[ 1, 'asc' ]],
       excelFileName:'dn_replace_detail'
     });
   }

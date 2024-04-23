@@ -78,11 +78,12 @@ class DnReplaceController extends Controller
             ['data'=>'replace_number','name'=>'replace_number','title'=>'Rec Number'],
             ['data'=>'return_number','name'=>'return_number','title'=>'Return Number'],
             ['data'=>'tanggal_replace','name'=>'tanggal_replace','title'=>'Replace Date'],
+            ['data'=>'customer_id','name'=>'customer_id','title'=>'Customer Code'],
             ['data'=>'customer_name','name'=>'customer_name','title'=>'Customer'],
-            ['data'=>'status','name'=>'status','title'=>'Status'],
+            // ['data'=>'status','name'=>'status','title'=>'Status'],
             ['data'=>'note','name'=>'note','title'=>'Note'],
             ['data'=>'created_by','name'=>'created_by','title'=>'Created By'],
-            ['data'=>'created_at','name'=>'created_at','title'=>'Created At', 'visible'=>false]
+            ['data'=>'created_at','name'=>'created_at','title'=>'Created At']
         ];
         return json_encode($kolom, true);
     }
@@ -93,13 +94,13 @@ class DnReplaceController extends Controller
             ['data'=>'replace_number','name'=>'replace_number','title'=>'Rec Number'],
             ['data'=>'return_number','name'=>'return_number','title'=>'Return Number'],
             ['data'=>'tanggal_replace','name'=>'tanggal_replace','title'=>'Replace Date'],
+            ['data'=>'customer_id','name'=>'customer_id','title'=>'Customer Code'],
             ['data'=>'customer_name','name'=>'customer_name','title'=>'Customer'],
-            ['data'=>'status','name'=>'status','title'=>'Status'],
+            // ['data'=>'status','name'=>'status','title'=>'Status'],
             ['data'=>'article_alternative_code','name'=>'article_alternative_code','title'=>'Article Code'],
             ['data'=>'article_desc','name'=>'article_desc','title'=>'Article Desc'],
             ['data'=>'qty','name'=>'qty','title'=>'qty'],
             ['data'=>'uom','name'=>'uom','title'=>'uom'],
-            ['data'=>'status','name'=>'status','title'=>'Status'],
             ['data'=>'note','name'=>'note','title'=>'Note'],
             ['data'=>'created_by_1','name'=>'created_by_1','title'=>'Created By'],
             ['data'=>'created_at_1','name'=>'created_at_1','title'=>'Created By'],
@@ -118,7 +119,7 @@ class DnReplaceController extends Controller
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED','10'=>'REVISI'];
         //  ['NEW','VALIDATE','APPROVED','POSTED','CANCELED','','','','','REVISI']; 
 
-        $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','10'=>'REVISI'];
+        $data['status'] = ['1'=>'OPEN','2'=>'CLOSED','3'=>'CANCELED'];
         $data['kolom'] = $this->getTableColoumn();
         $data['kolomDetail'] = $this->getTableColoumnDetail();
 
