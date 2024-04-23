@@ -750,12 +750,12 @@ class DnReturnController extends Controller
         
         $custCode = $request->custCode;
         $data= DB::table('article') 
-        ->whereIn('article.article_code', function($query) use ($custCode) {
-            $query->select('article_code')
-            ->from('bom_hdr') 
-            ->where('status','3')
-            ->where('customer',$custCode);
-        })
+        // ->whereIn('article.article_code', function($query) use ($custCode) {
+        //     $query->select('article_code')
+        //     ->from('bom_hdr') 
+        //     ->where('status','3')
+        //     ->where('customer',$custCode);
+        // })
         ->where('third_party',$custCode)
         ->where('article_type','FG')
         ->orderBy('article_desc')
