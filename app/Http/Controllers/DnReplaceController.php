@@ -262,7 +262,7 @@ class DnReplaceController extends Controller
                         DB::table('dn_return_hdr')
                         ->where('return_number',$returnNumber)
                         ->update([
-                            'status' => '2',
+                            'status' => '1',
                         ]);
                     }
 

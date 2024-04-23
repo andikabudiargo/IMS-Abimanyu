@@ -258,7 +258,7 @@ class DnReturnController extends Controller
         ->orderBy('nama')
         ->get();
 
-        $status = ['OPEN','SALES ORDER','CLOSED','CANCELED'];
+        $status = ['OPEN','','CLOSED','CANCELED'];
         $data['status'] = $status[$data['headers'][0]->status-1];
 
         return view("dnReturn.show",$data);
@@ -314,7 +314,7 @@ class DnReturnController extends Controller
         // dd($data['customers']);
         // dd($data['title']);
 
-        $status = ['OPEN','SALES ORDER','CLOSED','CANCELED'];
+        $status = ['OPEN','','CLOSED','CANCELED'];
         $data['status'] = $status[$data['header']->status-1];
 
         
@@ -692,7 +692,7 @@ class DnReturnController extends Controller
         return Datatables::of($data)
         ->addColumn('status', function ($data) {
             $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-secondary'];
-            $statusPr = ['OPEN','SO','CLOSED','CANCELED'];
+            $statusPr = ['OPEN','','CLOSED','CANCELED'];
             return "<div class='badge ".$badges[$data->status - 1]."'>".$statusPr[$data->status - 1]."</div>";
         })
         ->rawColumns(['status'])
