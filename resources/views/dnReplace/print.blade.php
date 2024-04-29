@@ -58,7 +58,7 @@
         }
 
         .header, .header-space{
-                height: 210px;
+                height: 216px;
         }
 
         .footer, .footer-space {
@@ -113,11 +113,11 @@
         }
         
         * {
-            font-family: Calibri,Arial, Helvetica, sans-serif;
+            font-family: "Times New Roman",Calibri,Arial, Helvetica, sans-serif;
         }
 
         table{
-            font-family: Calibri,Arial, Helvetica, sans-serif;
+            font-family: "Times New Roman",Calibri,Arial, Helvetica, sans-serif;
         }
         
         table {
@@ -161,7 +161,7 @@
             font-size: medium;
         }
 
-        .font-13{
+        .font-11{
             font-size:11pt;
             /* font-size: medium; */
         }
@@ -174,6 +174,10 @@
         .font-20{
             font-size:20pt;
             /* font-size: medium; */
+        }
+
+        .font-10{
+            font-size:10pt;
         }
 
         .font-small{
@@ -221,7 +225,7 @@
                                     </td>
                                 </tr>
                             </table>
-                            <table style="border-left: thin solid var(--line-color);border-right: thin solid var(--line-color);padding-left:10px" class="font-13 tanpa-padding">
+                            <table style="border-left: thin solid var(--line-color);border-right: thin solid var(--line-color);padding-left:10px" class="font-11 tanpa-padding">
                                 <tr>
                                     <td colspan="4" align="center" class="font-20 huruf-tebal">
                                         SURAT JALAN REPLACEMENT
@@ -231,26 +235,26 @@
                                     <td width="60%" valign="top">
                                         <table>
                                             <tr>
-                                                <td width="15%" valign="top" class="tanpa-padding">Kepada</td><td class="tanpa-padding">: {{ $customers ? $customers->nama : '' }}</td>
+                                                <td width="15%" valign="top" class="tanpa-padding font-10">Kepada</td><td class="tanpa-padding font-10">: {{ $customers ? $customers->nama : '' }}</td>
                                             </tr>
                                             <tr>
-                                                <td width="15%" valign="top" class="tanpa-padding">Alamat</td><td class="tanpa-padding">: {{ $customers ? $customers->alamat_kirim_1 : '' }}</td>
+                                                <td width="15%" valign="top" class="tanpa-padding font-10">Alamat</td><td class="tanpa-padding font-10">: {{ $customers ? $customers->alamat_kirim_1 : '' }}</td>
                                             </tr>
                                             <tr>
-                                                <td width="15%" valign="top" class="tanpa-padding">No.Polisi</td><td class="tanpa-padding">: </td>
+                                                <td width="15%" valign="top" class="tanpa-padding font-10">No.Polisi</td><td class="tanpa-padding">: </td>
                                             </tr>
                                         </table>
                                     </td>
                                     <td width="40%" valign="top">
                                         <table>
                                             <tr>
-                                                <td width="30%" valign="top" class="tanpa-padding">Nomor</td><td class="tanpa-padding">: {{ $replaceHdr->replace_number }}</td>
+                                                <td width="30%" valign="top" class="tanpa-padding font-10">Nomor</td><td class="tanpa-padding font-10">: {{ $replaceHdr->replace_number }}</td>
                                             </tr>
                                             <tr>
-                                                <td width="25%" valign="top" class="tanpa-padding">Tanggal Kirim</td><td class="tanpa-padding">: {{ $replaceHdr->replace_date }}</td>
+                                                <td width="25%" valign="top" class="tanpa-padding font-10">Tanggal Kirim</td><td class="tanpa-padding font-10">: {{ $replaceHdr->replace_date }}</td>
                                             </tr>
                                             <tr>
-                                                <td width="25%" valign="top" class="tanpa-padding">DN Return Customer</td><td class="tanpa-padding" valign="top">: {{ $replaceHdr->dn_number }} </td>
+                                                <td width="25%" valign="top" class="tanpa-padding font-10">DN Return Customer</td><td class="tanpa-padding font-10" valign="top">: {{ $replaceHdr->dn_number }} </td>
                                             </tr>
                                         </table>
                                     </td>
@@ -264,7 +268,7 @@
                 <tr>
                     <td>
                         <div class="content">
-                            <table id="tblContent" class="font-14">
+                            <table id="tblContent" class="font-11">
                                 <thead>
                                     <tr>
                                         <td width="5%" align="center">No</td>

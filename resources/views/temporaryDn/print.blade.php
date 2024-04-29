@@ -113,11 +113,11 @@
         }
         
         * {
-            font-family: Calibri,Arial, Helvetica, sans-serif;
+            font-family: "Times New Roman",Calibri,Arial, Helvetica, sans-serif;
         }
 
         table{
-            font-family: Calibri,Arial, Helvetica, sans-serif;
+            font-family: "Times New Roman",Calibri,Arial, Helvetica, sans-serif;
         }
         
         table {
@@ -162,6 +162,15 @@
         }
 
         .font-13{
+            font-size:13pt;
+            /* font-size: medium; */
+        }
+
+        .font-10{
+            font-size:10pt;
+        }
+
+        .font-11{
             font-size:11pt;
             /* font-size: medium; */
         }
@@ -221,7 +230,7 @@
                                     </td>
                                 </tr>
                             </table>
-                            <table style="border-left: thin solid var(--line-color);border-right: thin solid var(--line-color);padding-left:10px" class="font-13 tanpa-padding">
+                            <table style="border-left: thin solid var(--line-color);border-right: thin solid var(--line-color);padding-left:10px" class="font-10 tanpa-padding">
                                 <tr>
                                     <td colspan="4" align="center" class="font-20 huruf-tebal">
                                         SURAT JALAN SEMENTARA
@@ -264,7 +273,7 @@
                 <tr>
                     <td>
                         <div class="content">
-                            <table id="tblContent" class="font-14">
+                            <table id="tblContent" class="font-11">
                                 <thead>
                                     <tr>
                                         <td width="5%" align="center">No</td>
