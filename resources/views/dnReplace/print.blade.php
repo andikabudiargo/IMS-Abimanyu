@@ -58,7 +58,7 @@
         }
 
         .header, .header-space{
-                height: 240px;
+                height: 210px;
         }
 
         .footer, .footer-space {
@@ -171,6 +171,11 @@
             /* font-size: medium; */
         }
 
+        .font-20{
+            font-size:20pt;
+            /* font-size: medium; */
+        }
+
         .font-small{
             font-size: small;
         }
@@ -202,11 +207,11 @@
                             <br>
                             <table width="100%" style="border: thin solid var(--line-color);padding-left:10px">
                                 <tr>
-                                    <td width="30%">
+                                    <td width="20%">
                                         <img src="{{ asset('app-assets/images/logo/logo_po.png') }}" alt="logo" style="width: 100%;"> 
                                     </td>
                                     <td width="5%">
-                                    <td width="40%" align="center">
+                                        <td width="50%" align="center" class="font-small">
                                         PT. ABIMANYU SEKAR NUSANTARA<br>
                                         Kp. Karang Mulya RT.014/005<br>
                                         Desa Cikopo, Bungursari Purwakarta
@@ -218,7 +223,7 @@
                             </table>
                             <table style="border-left: thin solid var(--line-color);border-right: thin solid var(--line-color);padding-left:10px" class="font-13 tanpa-padding">
                                 <tr>
-                                    <td colspan="4" align="center" class="font-16 huruf-tebal">
+                                    <td colspan="4" align="center" class="font-20 huruf-tebal">
                                         SURAT JALAN REPLACEMENT
                                     </td>
                                 </tr>
@@ -284,9 +289,9 @@
                                     @endforeach      
                                                         
                                     @if((count($details))>4)
-                                        <?php $totalBaris = 19 ?>
+                                        <?php $totalBaris = 21 ?>
                                     @else
-                                        <?php $totalBaris = 4 ?>
+                                        <?php $totalBaris = 6 ?>
                                     @endif
 
                                     @for ($i=1;$i<= $totalBaris-(count($details));$i++)
@@ -310,8 +315,8 @@
                                     <td align="center">Created By</td>
                                     <td align="center">Checked By</td>
                                     <td align="center">Shipped By</td>
-                                    <td align="center">Received By</td>
                                     <td align="center">Security</td>
+                                    <td align="center">Received By</td>
                                 </tr>
                                 <tr>
                                     <td align="center" height="25"></td>

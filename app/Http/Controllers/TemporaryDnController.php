@@ -1084,8 +1084,8 @@ class TemporaryDnController extends Controller
 
     public function print(Request $request)
     {
-        $data['title'] = "Print $this->title";
-        $data['subtitle'] = "Print $this->title";
+        // $data['title'] = "Print $this->title";
+        // $data['subtitle'] = "Print $this->title";
         $id=Crypt::decryptString($request->id);
                 
         $tDnHdr=DB::table('temporary_dn_hdr')
@@ -1124,6 +1124,8 @@ class TemporaryDnController extends Controller
         ->where('kode',$tDnHdr->customer_id)
         ->orderBy('nama')
         ->first();
+
+        $data['title'] =$tDnNumber;
 
         return view('temporaryDn.print',$data);
        
