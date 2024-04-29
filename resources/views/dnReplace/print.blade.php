@@ -250,7 +250,7 @@
                                                 <td width="25%" valign="top" class="tanpa-padding">Tanggal Kirim</td><td class="tanpa-padding">: {{ $replaceHdr->replace_date }}</td>
                                             </tr>
                                             <tr>
-                                                <td width="25%" valign="top" class="tanpa-padding">DN</td><td class="tanpa-padding">: {{ $replaceHdr->dn_number }} </td>
+                                                <td width="25%" valign="top" class="tanpa-padding">DN Return Customer</td><td class="tanpa-padding" valign="top">: {{ $replaceHdr->dn_number }} </td>
                                             </tr>
                                         </table>
                                     </td>
