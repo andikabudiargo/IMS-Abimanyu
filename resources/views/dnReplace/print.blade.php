@@ -238,7 +238,9 @@
                                                 <td width="15%" valign="top" class="tanpa-padding font-10">Kepada</td><td class="tanpa-padding font-10">: {{ $customers ? $customers->nama : '' }}</td>
                                             </tr>
                                             <tr>
-                                                <td width="15%" valign="top" class="tanpa-padding font-10">Alamat</td><td class="tanpa-padding font-10">: {{ $customers ? $customers->alamat_kirim_1 : '' }}</td>
+                                                <td width="15%" valign="top" class="tanpa-padding font-10">
+                                                    <div style="height:40px;display: table-cell;vertical-align: top;">Alamat</div>
+                                                </td><td class="tanpa-padding font-10">: {{ $customers ? $customers->alamat_kirim_1 : '' }}</td>
                                             </tr>
                                             <tr>
                                                 <td width="15%" valign="top" class="tanpa-padding font-10">No.Polisi</td><td class="tanpa-padding">: </td>

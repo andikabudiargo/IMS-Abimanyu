@@ -58,7 +58,7 @@
         }
 
         .header, .header-space{
-                height: 210px;
+                height: 216px;
         }
 
         .footer, .footer-space {
@@ -243,7 +243,8 @@
                                                 <td width="15%" valign="top" class="tanpa-padding">Kepada</td><td class="tanpa-padding">: {{ $customers ? $customers->nama : '' }}</td>
                                             </tr>
                                             <tr>
-                                                <td width="15%" valign="top" class="tanpa-padding">Alamat</td><td class="tanpa-padding">: {{ $customers ? $customers->alamat_kirim_1 : '' }}</td>
+                                                <td width="15%" valign="top" class="tanpa-padding">
+                                                    <div style="height:40px;display: table-cell;vertical-align: top;">Alamat</div></td><td class="tanpa-padding">: {{ $customers ? $customers->alamat_kirim_1 : '' }}</td>
                                             </tr>
                                             <tr>
                                                 <td width="15%" valign="top" class="tanpa-padding">No.Polisi</td><td class="tanpa-padding">: </td>
