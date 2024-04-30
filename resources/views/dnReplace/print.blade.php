@@ -295,9 +295,9 @@
                                     @endforeach      
                                                         
                                     @if((count($details))>4)
-                                        <?php $totalBaris = 21 ?>
+                                        <?php $totalBaris = 20 ?>
                                     @else
-                                        <?php $totalBaris = 6 ?>
+                                        <?php $totalBaris = 5 ?>
                                     @endif
 
                                     @for ($i=1;$i<= $totalBaris-(count($details));$i++)
