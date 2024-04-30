@@ -1051,7 +1051,9 @@ class InvoiceController extends Controller
         // dd(count($jumlahData));
         $jumlahData = count($jumlahData);
 
-        $limits = $jumlahData <= 20 ? $jumlahData : 24;
+        $limits = $jumlahData <= 24 ? $jumlahData : 30;
+
+        $data['duaHalaman'] = $jumlahData <= 24 ? 'no' : 'yes';
 
         // dd($jumlahData);
        

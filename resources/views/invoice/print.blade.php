@@ -272,7 +272,7 @@
         .sub_div2 {
             position: absolute;
             /* margin-right: 8mm; */
-            bottom: 65px;
+            bottom: 55px;
             background-color:white;
             width  : 803px;
             margin-left : 1.4mm;
@@ -281,7 +281,7 @@
         .sub_div3 {
             position: absolute;
             /* margin-right: 8mm; */
-            bottom: 18px;
+            bottom: 0px;
             background-color:white;
             width  : 803px;
             margin-left : 1.4mm;
@@ -398,7 +398,7 @@
                             <td  style="border-right: 1px solid black;padding:0 3px 0 3px" align="right">{{ number_format(($val->qty*$val->price_service),2) }}</td>
                         </tr>
                     @endforeach
-                    <?php $totalBaris = 34 ?>
+                    <?php $totalBaris = 40 ?>
                     @for ($i=1;$i< $totalBaris-(count($details));$i++)
                         {{-- @if(count($details)> 19)
                             <tr style="height:23px">
@@ -418,7 +418,8 @@
                 </tbody>
             </table>
         </div>
-        @if(count($details2)==0)
+        {{-- @if(count($details2)==0) --}}
+        @if($duaHalaman=='no')
             <div class="sub_div">
                 <table id="tblContent2" style="table-layout:fixed;">
                     <tbody>
@@ -496,7 +497,6 @@
                                     </td>
                                 </tr>
                             </table>
-                            
                         </tr>
                     </tbody>
                 </table>
@@ -523,14 +523,15 @@
                 </table>
                 <table>
                     <tr>
-                        <td align="right" width="10%" height="25"> </td>
+                        <td align="right" width="10%" height="45"> </td>
                     </tr>
                 </table>
             </div>
         @endif
     </div>
 
-    @if(count($details2)>0)
+    {{-- @if(count($details2)>0) --}}
+    @if($duaHalaman=='yes')
         <div class="sheet" style="padding:5mm 8mm 5mm 8mm">
             <table>
                 <thead>
