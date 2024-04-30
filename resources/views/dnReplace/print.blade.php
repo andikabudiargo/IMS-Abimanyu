@@ -58,7 +58,7 @@
         }
 
         .header, .header-space{
-                height: 216px;
+                height: 232px;
         }
 
         .footer, .footer-space {
@@ -113,11 +113,11 @@
         }
         
         * {
-            font-family: "Times New Roman",Calibri,Arial, Helvetica, sans-serif;
+            font-family: Calibri,Arial, Helvetica, sans-serif;
         }
 
         table{
-            font-family: "Times New Roman",Calibri,Arial, Helvetica, sans-serif;
+            font-family: Calibri,Arial, Helvetica, sans-serif;
         }
         
         table {
@@ -232,31 +232,31 @@
                                     </td>
                                 </tr>
                                 <tr>
-                                    <td width="60%" valign="top">
+                                    <td width="50%" valign="top">
                                         <table>
                                             <tr>
-                                                <td width="15%" valign="top" class="tanpa-padding font-10">Kepada</td><td class="tanpa-padding font-10">: {{ $customers ? $customers->nama : '' }}</td>
+                                                <td width="15%" valign="top" class="tanpa-padding font-14">Kepada</td><td class="tanpa-padding font-14">: {{ $customers ? $customers->nama : '' }}</td>
                                             </tr>
                                             <tr>
-                                                <td width="15%" valign="top" class="tanpa-padding font-10">
-                                                    <div style="height:40px;display: table-cell;vertical-align: top;">Alamat</div>
-                                                </td><td class="tanpa-padding font-10">: {{ $customers ? $customers->alamat_kirim_1 : '' }}</td>
+                                                <td width="15%" valign="top" class="tanpa-padding font-14">
+                                                    <div style="height:48px;display: table-cell;vertical-align: top;">Alamat</div>
+                                                </td><td class="tanpa-padding font-14">: {{ $customers ? $customers->alamat_kirim_1 : '' }}</td>
                                             </tr>
                                             <tr>
-                                                <td width="15%" valign="top" class="tanpa-padding font-10">No.Polisi</td><td class="tanpa-padding">: </td>
+                                                <td width="15%" valign="top" class="tanpa-padding font-14">No.Polisi</td><td class="tanpa-padding">: </td>
                                             </tr>
                                         </table>
                                     </td>
                                     <td width="40%" valign="top">
                                         <table>
                                             <tr>
-                                                <td width="30%" valign="top" class="tanpa-padding font-10">Nomor</td><td class="tanpa-padding font-10">: {{ $replaceHdr->replace_number }}</td>
+                                                <td width="30%" valign="top" class="tanpa-padding font-14">Nomor</td><td class="tanpa-padding font-14">: {{ $replaceHdr->replace_number }}</td>
                                             </tr>
                                             <tr>
-                                                <td width="25%" valign="top" class="tanpa-padding font-10">Tanggal Kirim</td><td class="tanpa-padding font-10">: {{ $replaceHdr->replace_date }}</td>
+                                                <td width="25%" valign="top" class="tanpa-padding font-14">Tanggal Kirim</td><td class="tanpa-padding font-14">: {{ $replaceHdr->replace_date }}</td>
                                             </tr>
                                             <tr>
-                                                <td width="25%" valign="top" class="tanpa-padding font-10">DN Return Customer</td><td class="tanpa-padding font-10" valign="top">: {{ $replaceHdr->dn_number }} </td>
+                                                <td width="25%" valign="top" class="tanpa-padding font-14">DN Return Customer</td><td class="tanpa-padding font-14" valign="top">: {{ $replaceHdr->dn_number }} </td>
                                             </tr>
                                         </table>
                                     </td>
@@ -283,7 +283,7 @@
                                 <tbody>
                                     @foreach ($details as $val )
                                         <tr >
-                                            <td align="center"><div style="height:30px;display: table-cell;
+                                            <td align="center"><div style="height:25px;display: table-cell;
                                                 vertical-align: middle;
                                                 text-align: center;">{{ ++$no }}</div></td>
                                             <td align="left">{{ $val->article_alternative_code }}</td>
@@ -294,7 +294,7 @@
                                         
                                     @endforeach      
                                                         
-                                    @if((count($details))>4)
+                                    @if((count($details))>5)
                                         <?php $totalBaris = 20 ?>
                                     @else
                                         <?php $totalBaris = 5 ?>
@@ -302,7 +302,7 @@
 
                                     @for ($i=1;$i<= $totalBaris-(count($details));$i++)
                                         <tr >
-                                            <td align="right" class="putih"><div style="height:30px;"></div></td>
+                                            <td align="right" class="putih"><div style="height:25px;"></div></td>
                                             <td align="left"></td>
                                             <td align="left"></td>
                                             <td align="right"></td>
