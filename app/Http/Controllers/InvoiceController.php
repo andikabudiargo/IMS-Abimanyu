@@ -1051,7 +1051,9 @@ class InvoiceController extends Controller
         // dd(count($jumlahData));
         $jumlahData = count($jumlahData);
 
-        $limits = $jumlahData <= 20 ? $jumlahData : 30;
+        $limits = $jumlahData <= 20 ? $jumlahData : 24;
+
+        // dd($jumlahData);
        
         $data['details']=DB::table('invoice_det')
         ->leftJoin('article','article.article_code','invoice_det.article_code')

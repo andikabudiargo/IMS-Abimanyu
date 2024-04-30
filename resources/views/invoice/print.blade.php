@@ -385,7 +385,7 @@
                     @foreach ($details as $val )
                         @if(count($details)>= 18)
                             {{-- <tr style="font-size: 11pt;height:23px"> --}}
-                            <tr style="font-size: 11pt;height:21px">
+                            <tr style="font-size: 11pt;height:19.5px">
                         @else
                             <tr style="font-size: 11pt;height:23px">
                         @endif
