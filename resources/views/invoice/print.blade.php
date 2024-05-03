@@ -383,10 +383,11 @@
                 </thead>
                 <tbody>
                     @foreach ($details as $val )
-                        @if(count($details)>= 18)
+                        @if(count($details)>= 15 && count($details)<= 24)
                             {{-- <tr style="font-size: 11pt;height:23px"> --}}
-                            <tr style="font-size: 11pt;height:19.5px">
+                            <tr style="font-size: 10pt;height:19.5px">
                         @else
+                            {{-- <tr style="font-size: 11pt;height:23px" class="isiTabel1"> --}}
                             <tr style="font-size: 11pt;height:23px">
                         @endif
                             <td style="border-right: 1px solid black;border-bottom: none;" align="center" scope="row" >{{ ++$no }}</td>
@@ -728,6 +729,16 @@
     @endif
     <script src="{{ asset('app-assets/vendors/js/vendors.min.js') }}"></script>
     <script>
+        let table = document.getElementById("tblContent");
+        // alert(table.offsetHeight);
+        // alert(table.clientHeight);
+        // if (table.offsetHeight >= 1300){
+        //     $('.isiTabel1').css({
+        //         'font-size' : '10pt',
+        //         'height' : '20px'
+        //     });
+        // }
+
         $("#cmdPrint").click(function(){ 
             window.print();
             window.onafterprint = function () {
