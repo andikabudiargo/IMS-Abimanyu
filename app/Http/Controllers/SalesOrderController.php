@@ -595,13 +595,18 @@ class SalesOrderController extends Controller
         // 6 = Closed
         // 7 = Paid
 
+        //satus simpan belum tahu untuk apa
         if($statusSimpan == 'approve'){
             $maxApproval = DB::table('approval_master')
             ->where('module_code',$modulCode)
             ->value('approval_number');
             $status = $maxApproval == $approveLevel ? '3': $status = '2';
         }else{
-            $status = '1';
+            $dataSo = DB::table('sales_order_hdr')
+            ->where('so_code',$orderNumber)
+            ->get()->first();
+
+            $status = $dataSo -> status;
         }
         
         $messages = [
