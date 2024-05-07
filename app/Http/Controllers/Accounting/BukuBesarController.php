@@ -172,16 +172,41 @@ class BukuBesarController extends Controller
         // ->orderBy('kas_det.account')
         // ->get(); 
 
+        $statusBaru = '';
+
+        $arrayPerkiraan1 = explode(".",$perkiraan1);
+        $arrayPerkiraan2 = explode(".",$perkiraan2);
+
+        $like1 = '';
+        for ($x = 0; $x < count($arrayPerkiraan1)-1; $x++) {
+            $like1.=$arrayPerkiraan1[$x].".";
+        }
+
+        $like2 = '';
+        for ($x = 0; $x < count($arrayPerkiraan2)-1; $x++) {
+            $like2.=$arrayPerkiraan2[$x].".";
+        }
+
+        if($like1 == $like2){
+            $perkiraan1= str_replace('.','',$perkiraan1);
+            $perkiraan2= str_replace('.','',$perkiraan2);
+            $like1 = substr($like1, 0, -1);
+            $adaPerkiraan = "";
+            $statusBaru = "kas_det.account like '$like1%' and replace(kas_det.account,'.','')::numeric between '$perkiraan1' and '$perkiraan2'";
+        }
+
+        
         $data = DB::table('kas_det')
         ->leftJoin('kas_hdr','kas_hdr.voucher_number','kas_det.voucher_number')
         ->leftJoin('accounts','accounts.account','kas_det.account')
         ->leftJoin('depts','depts.code','kas_det.cost_center')
-        ->where(function ($query) use ($vcDate,$fromDate,$toDate,$period1,$period2,$costCenter,$perkiraan1,$perkiraan2,$adaPerkiraan,$status) {
+        ->where(function ($query) use ($vcDate,$fromDate,$toDate,$period1,$period2,$costCenter,$perkiraan1,$perkiraan2,$adaPerkiraan,$status,$statusBaru) {
             $vcDate ? $query->whereBetween(DB::raw("to_date(voucher_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
             $period1 ? $query->whereBetween(db::raw("period::integer"), [$period1, $period2]) : '';
             $costCenter ? $query->whereIn('cost_center', $costCenter) : '';
             $adaPerkiraan ? $query->whereBetween('kas_det.account', [$perkiraan1, $perkiraan2]) : '';
             $status ? $query->where('kas_hdr.status',$status) : '';
+            $statusBaru ? $query->whereRaw($statusBaru) : '';
         })
         ->whereNotIn('kas_hdr.status',['5'])
         ->select(
@@ -199,7 +224,7 @@ class BukuBesarController extends Controller
             ,db::raw("(SELECT username FROM approval_history where module_number = kas_det.voucher_number order by approval_order desc limit 1) as approval_by")
             ,db::raw("(SELECT to_char(approval_date::date, 'DD-MM-YYYY') FROM approval_history where module_number = kas_det.voucher_number order by approval_order desc limit 1) as approval_at")
         )
-        ->orderBy('kas_det.account')
+        ->orderBy(db::raw("replace(kas_det.account,'.','')::numeric"))
         ->get(); 
        
         return Datatables::of($data)
