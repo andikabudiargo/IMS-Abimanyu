@@ -35,6 +35,7 @@ class BukuBesarController extends Controller
             ['data'=>'reference','name'=>'reference','title'=>'Reference'],
             ['data'=>'voucher_number','name'=>'voucher_number','title'=>'Voucher Number'],
             ['data'=>'description','name'=>'description','title'=>'Description'],
+            ['data'=>'voucher_date_2','name'=>'voucher_date_2','title'=>'Date 2', 'visible'=>false],
             ['data'=>'voucher_date','name'=>'voucher_date','title'=>'Date'],
             ['data'=>'debit','name'=>'debit','title'=>'Debet'],
             ['data'=>'credit','name'=>'credit','title'=>'Kredit'],
@@ -127,19 +128,54 @@ class BukuBesarController extends Controller
             }
         }
 
+        // $data = DB::table('kas_det')
+        // ->leftJoin('kas_hdr','kas_hdr.voucher_number','kas_det.voucher_number')
+        // ->leftJoin('accounts','accounts.account','kas_det.account')
+        // ->leftJoin('depts','depts.code','kas_det.cost_center')
+        // ->leftJoin(db::raw("(SELECT module_number,(select name from users where username = subq.username) as username,approval_date
+        //                     FROM (SELECT module_number
+        //                             ,username
+        //                             ,approval_date
+        //                                 ,approval_order
+        //                                 ,MAX(approval_order) OVER (partition by module_number) as max_value
+        //                         FROM approval_history) as subq
+        //                     WHERE subq.approval_order = subq.max_value) as u"),'u.module_number','kas_hdr.voucher_number')
+        // // ->leftJoin('third_party','third_party.kode','kas_hdr.paid_to')
+        // ->where(function ($query) use ($vcDate,$fromDate,$toDate,$period1,$period2,$costCenter,$perkiraan1,$perkiraan2,$adaPerkiraan,$status) {
+        //     $vcDate ? $query->whereBetween(DB::raw("to_date(voucher_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
+        //     $period1 ? $query->whereBetween(db::raw("period::integer"), [$period1, $period2]) : '';
+        //     $costCenter ? $query->whereIn('cost_center', $costCenter) : '';
+        //     $adaPerkiraan ? $query->whereBetween('kas_det.account', [$perkiraan1, $perkiraan2]) : '';
+        //     $status ? $query->where('kas_hdr.status',$status) : '';
+        // })
+        // ->whereNotIn('kas_hdr.status',['5'])
+        // // ->whereIn('kas_hdr.status',['3'])
+        // // ->where('kas_hdr.voucher_number','AP-ASN-2023-II-0111')
+        // ->select(
+        //     'depts.name as nama_dept'
+        //     ,'kas_det.account'
+        //     ,'accounts.description as nama_akun'
+        //     ,'reference'
+        //     ,'kas_det.voucher_number'
+        //     ,'kas_det.description'
+        //     ,'kas_hdr.voucher_date'
+        //     , DB::raw("to_date(voucher_date,'DD-MM-YYYY') as voucher_date_2 ")
+        //     ,'debit'
+        //     ,'credit'
+        //     ,'kas_hdr.status as statusku'
+        //     ,'u.username as approval_by'
+        //     ,db::raw("to_char(u.approval_date::date, 'DD-MM-YYYY') as approval_at")
+        //     // ,db::raw("(select (select name from users where username = z.username) from approval_history z where module_number = kas_hdr.voucher_number order by approval_order desc limit 1) as approval_by")
+        //     // ,db::raw("(select to_char(approval_date::date, 'DD-MM-YYYY') from approval_history z where module_number = kas_hdr.voucher_number order by approval_order desc limit 1) as approval_at")
+        // )
+        // // ->orderBy('kas_hdr.voucher_date')
+        // ->orderBy('kas_det.account')
+        // ->get(); 
+
         $data = DB::table('kas_det')
         ->leftJoin('kas_hdr','kas_hdr.voucher_number','kas_det.voucher_number')
         ->leftJoin('accounts','accounts.account','kas_det.account')
         ->leftJoin('depts','depts.code','kas_det.cost_center')
-        ->leftJoin(db::raw("(SELECT module_number,(select name from users where username = subq.username) as username,approval_date
-                            FROM (SELECT module_number
-                                    ,username
-                                    ,approval_date
-                                        ,approval_order
-                                        ,MAX(approval_order) OVER (partition by module_number) as max_value
-                                FROM approval_history) as subq
-                            WHERE subq.approval_order = subq.max_value) as u"),'u.module_number','kas_hdr.voucher_number')
-        // ->leftJoin('third_party','third_party.kode','kas_hdr.paid_to')
         ->where(function ($query) use ($vcDate,$fromDate,$toDate,$period1,$period2,$costCenter,$perkiraan1,$perkiraan2,$adaPerkiraan,$status) {
             $vcDate ? $query->whereBetween(DB::raw("to_date(voucher_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
             $period1 ? $query->whereBetween(db::raw("period::integer"), [$period1, $period2]) : '';
@@ -148,8 +184,6 @@ class BukuBesarController extends Controller
             $status ? $query->where('kas_hdr.status',$status) : '';
         })
         ->whereNotIn('kas_hdr.status',['5'])
-        // ->whereIn('kas_hdr.status',['3'])
-        // ->where('kas_hdr.voucher_number','AP-ASN-2023-II-0111')
         ->select(
             'depts.name as nama_dept'
             ,'kas_det.account'
@@ -158,15 +192,13 @@ class BukuBesarController extends Controller
             ,'kas_det.voucher_number'
             ,'kas_det.description'
             ,'kas_hdr.voucher_date'
+            , DB::raw("to_date(voucher_date,'DD-MM-YYYY') as voucher_date_2")
             ,'debit'
             ,'credit'
             ,'kas_hdr.status as statusku'
-            ,'u.username as approval_by'
-            ,db::raw("to_char(u.approval_date::date, 'DD-MM-YYYY') as approval_at")
-            // ,db::raw("(select (select name from users where username = z.username) from approval_history z where module_number = kas_hdr.voucher_number order by approval_order desc limit 1) as approval_by")
-            // ,db::raw("(select to_char(approval_date::date, 'DD-MM-YYYY') from approval_history z where module_number = kas_hdr.voucher_number order by approval_order desc limit 1) as approval_at")
+            ,db::raw("(SELECT username FROM approval_history where module_number = kas_det.voucher_number order by approval_order desc limit 1) as approval_by")
+            ,db::raw("(SELECT to_char(approval_date::date, 'DD-MM-YYYY') FROM approval_history where module_number = kas_det.voucher_number order by approval_order desc limit 1) as approval_at")
         )
-        // ->orderBy('kas_hdr.voucher_date')
         ->orderBy('kas_det.account')
         ->get(); 
        
