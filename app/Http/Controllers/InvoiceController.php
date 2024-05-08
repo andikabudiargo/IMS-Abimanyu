@@ -321,8 +321,8 @@ class InvoiceController extends Controller
     {
         $username =  Auth::user()->username;
         $id=Crypt::decryptString($request->id);
-        $data['title'] = "Edit $this->title";
-        $data['subtitle'] = "Edit $this->title";
+        $data['title'] = "Detail $this->title";
+        $data['subtitle'] = "Detail $this->title";
 
         $data['header'] = DB::table('invoice_hdr')
         ->where('id',$id)
