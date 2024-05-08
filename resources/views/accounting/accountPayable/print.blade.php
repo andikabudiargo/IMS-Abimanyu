@@ -198,176 +198,165 @@
 {{-- <body class="{{ (count($details) < 7) $jumlahBaris < 18 ? "A4A5" : "A4" }}"> --}}
 {{-- <body class="{{ $jumlahBaris < 18 ? "A4A5" : "A4" }}"> --}}
 <body class="{{ $ukuranKertas }}">
-    
-<div class="row hide-print" style="margin-left:20px;margin-top:20px">
-    <div class="col-md-12">
-        <button class="btn btn-primary" type="button" id="cmdPrint" name="cmdPrint">Print</button>
+    <div class="row hide-print" style="margin-left:20px;margin-top:20px">
+        <div class="col-md-12">
+            <button class="btn btn-primary" type="button" id="cmdPrint" name="cmdPrint">Print</button>
+        </div>
     </div>
-</div>
-<div class="sheet padding-5mm">
-    <table>
-        <thead>
-            <tr>
-                <td>
-                    <div class="header-space">
-                        <br>
-                        <table width="100%">
-                            <tr>
-                                <td style="vertical-align: bottom;">
-                                    <div class="huruf-tebal font-16" style="text-align:center">INVOICE SUPPLIER</div>
-                                    <div class="huruf-tebal font-14" style="text-align:center">{{ $apNumber }}</div>
-                                    <br>
-                                    <table width="100%">
-                                        <tr class="tanpa-padding">
-                                            <td class="tanpa-padding font-14" width="15%">Tanggal</td>
-                                            <td class="tanpa-padding font-14" width="40%">: {{ $invDate }}</td>
-                                            <td class="tanpa-padding font-14" >Supplier</td>
-                                            <td class="tanpa-padding font-14">: {{ $supplierName }}</td>
-                                        </tr>
-                                        <tr class="tanpa-padding">
-                                            <td class="tanpa-padding font-14" valign="top">Invoice Number</td>
-                                            <td class="tanpa-padding font-14">: {{ $invoiceNumber }}</td>
-                                            <td class="tanpa-padding font-14" >NO. PO</td>
-                                            <td class="tanpa-padding font-14">: {{ $noPo }}</td>
-                                        </tr>
-                                    </table>
-                                </td>
-                            </tr>
-                        </table>
-                    </div>
-                </td>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td>
-                    <div class="content">
-                        <table id="tblContent" class="font-small">
-                            <thead>
+    <div class="sheet padding-5mm">
+        <table>
+            <thead>
+                <tr>
+                    <td>
+                        <div class="header-space">
+                            <br>
+                            <table width="100%">
                                 <tr>
-                                    <th width="10%">No Account</th>
-                                    <th width="20%">Account Name</th>
-                                    <th width="20%">Referensi</th>
-                                    <th width="40%">Keterangan</th>
-                                    <th width="10%">Debet</th>
-                                    <th width="10%">Kredit</th>
+                                    <td style="vertical-align: bottom;">
+                                        <div class="huruf-tebal font-16" style="text-align:center">INVOICE SUPPLIER</div>
+                                        <div class="huruf-tebal font-14" style="text-align:center">{{ $apNumber }}</div>
+                                        <br>
+                                        <table width="100%">
+                                            <tr class="tanpa-padding">
+                                                <td class="tanpa-padding font-14" width="15%">Tanggal</td>
+                                                <td class="tanpa-padding font-14" width="40%">: {{ $invDate }}</td>
+                                                <td class="tanpa-padding font-14" >Supplier</td>
+                                                <td class="tanpa-padding font-14">: {{ $supplierName }}</td>
+                                            </tr>
+                                            <tr class="tanpa-padding">
+                                                <td class="tanpa-padding font-14" valign="top">Invoice Number</td>
+                                                <td class="tanpa-padding font-14">: {{ $invoiceNumber }}</td>
+                                                <td class="tanpa-padding font-14" >NO. PO</td>
+                                                <td class="tanpa-padding font-14">: {{ $noPo }}</td>
+                                            </tr>
+                                        </table>
+                                    </td>
                                 </tr>
-                            </thead>
-                            <tbody>
-                                @foreach ($details as $val )
+                            </table>
+                        </div>
+                    </td>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>
+                        <div class="content">
+                            <table id="tblContent" class="font-small">
+                                <thead>
                                     <tr>
-                                        <td align="left">{{ $val->account }}</td>
-                                        <td align="left">{{ $val->account_name }}</td>
-                                        {{-- <td align="left">{{ $val->ap_number }}</td> --}}
-                                        {{-- <td align="left" class="font-8">{{ count(explode(",",$val->list_rec)) }}</td> --}}
-                                        <td align="left" class="font-8">{{ $val->list_rec }}</td>
-                                        <td align="left">{{ $val->inv_number }}</td>
-                                        <td align="right">{{ number_format($val->debit,2) }}</td>
-                                        <td align="right">{{ number_format($val->credit,2) }}</td>
+                                        <th width="10%">No Account</th>
+                                        <th width="20%">Account Name</th>
+                                        <th width="35%">Referensi</th>
+                                        <th width="35%">Keterangan</th>
+                                        <th width="10%">Debet</th>
+                                        <th width="10%">Kredit</th>
                                     </tr>
-                                @endforeach      
-                                                    
-                                @if(count($details)>7)
-                                    <?php $totalBaris = 16 ?>
-                                @else
-                                    <?php $totalBaris = 7 ?>
-                                @endif
+                                </thead>
+                                <tbody>
+                                    @foreach ($details as $val )
+                                        <tr>
+                                            <td align="left">{{ $val->account }}</td>
+                                            <td align="left">{{ $val->account_name }}</td>
+                                            {{-- <td align="left">{{ $val->ap_number }}</td> --}}
+                                            {{-- <td align="left" class="font-8">{{ count(explode(",",$val->list_rec)) }}</td> --}}
+                                            <td align="left" class="font-8">{{ $val->list_rec }}</td>
+                                            <td align="left">{{ $val->inv_number }}</td>
+                                            <td align="right">{{ number_format($val->debit,2) }}</td>
+                                            <td align="right">{{ number_format($val->credit,2) }}</td>
+                                        </tr>
+                                    @endforeach      
+                                                        
+                                    @if(count($details)>7)
+                                        <?php $totalBaris = 16 ?>
+                                    @else
+                                        <?php $totalBaris = 7 ?>
+                                    @endif
 
-                                @for ($i=1;$i< $totalBaris-(count($details));$i++)
-                                    <tr >
-                                        <td align="right" class="putih" height="16"></td>
-                                        <td align="left"></td>
-                                        <td align="left"></td>
-                                        <td align="right"></td>
-                                        <td align="right"></td>
+                                    @for ($i=1;$i< $totalBaris-(count($details));$i++)
+                                        <tr >
+                                            <td align="right" class="putih"></td>
+                                            <td align="left"></td>
+                                            <td align="left"></td>
+                                            <td align="right"></td>
+                                            <td align="right"></td>
+                                        </tr>
+                                    @endfor
+                                    <tr>
+                                        <td align="left" class="border-atas" ></td>
+                                        <td align="left" class="border-atas" ></td>
+                                        <td align="left" class="border-atas" ></td>
+                                        <td align="left" class="border-atas" >Total</td>
+                                        <td align="right" class="border-atas" >{{ number_format($total->total_debit,2) }}</td>
+                                        <td align="right" class="border-atas" >{{ number_format($total->total_credit,2)}}</td>
                                     </tr>
-                                @endfor
+                                    <tr class="border-atas">
+                                        <td align="left" class="border-atas" colspan="5">Note: {{ $header->note }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <br>
+                            <table width="100%">
+                                {{-- <tr><td colspan="5" height="3"></td></tr> --}}
+                                <tr> 
+                                    <td align="center" width="20%">Dibuat oleh</td>
+                                    <td align="center" width="5%"></td>
+                                    <td align="center" width="20%">Diperiksa</td>
+                                    <td align="center" width="5%"></td>
+                                    <td align="center" width="20%">Mengetahui</td>
+                                    <td align="center" width="5%"></td>
+                                    <td align="center" width="20%">Menyetujui</td>
+                                    <td align="center" width="5%"></td>
+                                </tr>
                                 <tr>
-                                    <td  align="left" class="border-atas" ></td>
-                                    <td  align="left" class="border-atas" ></td>
-                                    <td  align="left" class="border-atas" ></td>
-                                    <td  align="left" class="border-atas" >Total</td>
-                                    <td  align="right" class="border-atas" >{{ number_format($total->total_debit,2) }}</td>
-                                    <td  align="right" class="border-atas" >{{ number_format($total->total_credit,2)}}</td>
+                                    <td align="center" height="40">{{ $approval1 ? 'Approval 1':'' }}</td>
+                                    <td align="center"></td>
+                                    <td align="center">{{ $approval2 ? 'Approval 2':'' }}</td>
+                                    <td align="center"></td>
+                                    <td align="center">{{ $approval3 ? 'Approval 3':'' }}</td>
+                                    <td align="center"></td>
+                                    <td align="center">{{ $approval4 ? 'Approval 4':'' }}</td>
+                                    <td align="center"></td>
                                 </tr>
-                                <tr class="border-atas">
-                                    <td  align="left" class="border-atas" colspan="5">Note: {{ $header->note }}</td>
+                                <tr>
+                                    <td align="center"  style="border-bottom: 1px solid black;">{{ $approval1 ? $approval1->name:'' }}</td>
+                                    <td align="center"></td>
+                                    <td align="center" style="border-bottom: 1px solid black;">  {{ $approval2 ? $approval2->name:'' }}  </td>
+                                    <td align="center"></td>
+                                    <td align="center" style="border-bottom: 1px solid black;">  {{ $approval3 ? $approval3->name:'' }}  </td>
+                                    <td align="center"></td>
+                                    <td align="center" style="border-bottom: 1px solid black;">  {{ $approval4 ? $approval4->name:'' }}  </td>
+                                    <td align="center"></td>
                                 </tr>
-                            </tbody>
-                        </table>
-                        <br><br>
-                        <table width="100%">
-                            {{-- <tr><td colspan="5" height="3"></td></tr> --}}
-                            <tr> 
-                                <td align="center" width="20%">Dibuat oleh</td>
-                                <td align="center" width="5%"></td>
-                                <td align="center" width="20%">Diperiksa</td>
-                                <td align="center" width="5%"></td>
-                                <td align="center" width="20%">Mengetahui</td>
-                                <td align="center" width="5%"></td>
-                                <td align="center" width="20%">Menyetujui</td>
-                                <td align="center" width="5%"></td>
-                            </tr>
-                            <tr>
-                                <td align="center" height="40">{{ $approval1 ? 'Approval 1':'' }}</td>
-                                <td align="center"></td>
-                                <td align="center">{{ $approval2 ? 'Approval 2':'' }}</td>
-                                <td align="center"></td>
-                                <td align="center">{{ $approval3 ? 'Approval 3':'' }}</td>
-                                <td align="center"></td>
-                                <td align="center">{{ $approval4 ? 'Approval 4':'' }}</td>
-                                <td align="center"></td>
-                            </tr>
-                            <tr>
-                                <td align="center"  style="border-bottom: 1px solid black;">{{ $approval1 ? $approval1->name:'' }}</td>
-                                <td align="center"></td>
-                                <td align="center" style="border-bottom: 1px solid black;">  {{ $approval2 ? $approval2->name:'' }}  </td>
-                                <td align="center"></td>
-                                <td align="center" style="border-bottom: 1px solid black;">  {{ $approval3 ? $approval3->name:'' }}  </td>
-                                <td align="center"></td>
-                                <td align="center" style="border-bottom: 1px solid black;">  {{ $approval4 ? $approval4->name:'' }}  </td>
-                                <td align="center"></td>
-                            </tr>
-                        </table>
-                    </div>
+                            </table>
+                        </div>
+                    </td>
+                </tr>
+            </tbody>
+            <tfoot>
+                <tr>
+                <td>
+                <div class="footer-space">
+                </div>
                 </td>
-            </tr>
-        </tbody>
-        <tfoot>
-            <tr>
-            <td>
-            <div class="footer-space">
-            </div>
-            </td>
-            </tr>
-        </tfoot>
-    </table>
-</div>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
 <script src="{{ asset('app-assets/vendors/js/vendors.min.js') }}"></script>
-<script>
+<script type="text/javascript">
 
-$("#cmdPrint").click(function(){ 
-    window.print();
-    window.onafterprint = function () {
-        window.close();
-    }
-    window.onfocus = function () { 
-        setTimeout(function () { 
-            window.close(); 
-        }, 200); 
-    }
-});
-// window.onload= function () {
-//     window.print();
-//     window.onafterprint = function () {
-//         window.close();
-//     }
-//     window.onfocus = function () { 
-//         setTimeout(function () { 
-//             window.close(); 
-//         }, 200); 
-//     }
-// }
+    $("#cmdPrint").click(function(){ 
+        window.print();
+        window.onafterprint = function () {
+            window.close();
+        }
+        window.onfocus = function () { 
+            setTimeout(function () { 
+                window.close(); 
+            }, 200); 
+        }
+    });
+
 </script>
 </body>
 </html>
