@@ -975,8 +975,9 @@ class InvoiceController extends Controller
 
             // }
             
-                
-            if (($data->status != '3') && ($data->status != '4')){
+            //bisa dihapus kalau belum dibayar atau diposting
+            // if (($data->status != '3') && ($data->status != '4')){
+            if (($data->status != '6') && ($data->status != '4')){
                 if (Auth::user()->can('receiving-delete')) {
                 $buttons .=         "<a href='javascript:;'
                                         id='deleteButton'
