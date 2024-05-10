@@ -161,14 +161,14 @@
                                             <div class="col-md-1 col-12 d-none">
                                                 <div class="form-group margin-nol">
                                                     <label for="price" class="d-block d-md-none">Price</label>
-                                                    <input type="text" class="form-control numeral-mask text-right" id= "price" name="price[]" value="{{ $item->old_price }}"  maxlength="11">
+                                                    <input type="text" class="form-control numeral-mask text-right" id= "price" name="price[]" value="{{ $item->old_price }}"  maxlength="18">
                                                 </div>
                                             </div>
                                             <div class="col-md-2 col-12" style="max-width: 12.66667%;padding-right:2px;padding-left:2px;">
                                                 <div class="form-group margin-nol">
                                                     <label for="price" class="d-block d-md-none">Price</label>
                                                     <div class="input-group input-group-merge">
-                                                        <input type="text" class="form-control numeral-mask-digit text-right" oninput='inputDecimal(this)' id="newPrice{{ $key }}" name="newPrice[]" value="{{ number_format((float) $item->price,2) }}"  maxlength="20">
+                                                        <input type="text" class="form-control numeral-mask-digit text-right" oninput='inputDecimal(this)' id="newPrice{{ $key }}" name="newPrice[]" value="{{ number_format((float) $item->price,2) }}"  maxlength="18">
                                                         <div class="input-group-append">
                                                             <span class="input-group-text cursor-pointer">
                                                                 <a onmouseover="this.style.cursor='pointer'" 
