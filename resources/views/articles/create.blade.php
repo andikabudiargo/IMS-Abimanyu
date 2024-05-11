@@ -85,7 +85,7 @@
                         <div class="form-row">
                             <div class="form-group col-md-6 d-none">
                                 <label for="price">Price</label>
-                                <input type="text" id="price" name="price" class="form-control numeral-mask text-right" value="{{ old('price') }}" maxlength="12"/>
+                                <input type="text" id="price" name="price" class="form-control numeral-mask text-right" value="{{ old('price') }}" maxlength="18"/>
                             </div>
                             <div class="form-group col-md-6">
                                 <label class="form-label" for="uom">Smallest Unit*</label>
