@@ -68,6 +68,7 @@ class AccountPayableController extends Controller
             ['data'=> 'action', 'name'=> 'action','title'=>'action', 'orderable'=> false, 'searchable'=> false],
             ['data'=> 'ap_number', 'name'=> 'ap_number','title'=>'AP Number'],
             ['data'=> 'ap_date', 'name'=> 'ap_date','title'=>'AP Date'],
+            ['data'=> 'period', 'name'=> 'period','title'=>'Period'],
             ['data'=> 'status', 'name'=> 'status','title'=>'Status'],
             ['data'=> 'voucher_date', 'name'=> 'voucher_date','title'=>'Paid Date'],
             ['data'=> 'voucher_number', 'name'=> 'voucher_number','title'=>'Voucher Number'],
