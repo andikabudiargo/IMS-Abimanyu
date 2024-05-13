@@ -734,7 +734,8 @@ class DependentController extends Controller
                 ->leftJoin('kas_hdr','kas_hdr.voucher_number','kas_det.voucher_number')
                 ->where('kas_hdr.status','<>','5')
                 ->where('kas_det.reference','<>','')
-                ->where('inv_number','<>',$ref)
+                // ->where('inv_number','<>',$ref)
+                ->where('reference','<>',$ref)
                 ->whereIn('kas_hdr.voucher_type',['BK','KK']);
                 // ->where('kas_det.voucher_number','like','BK%')
                 // ->where('kas_det.voucher_number','like','KK%');
