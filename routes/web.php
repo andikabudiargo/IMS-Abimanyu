@@ -784,11 +784,9 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('jurnalUmum/get/invoice/ammount',['as'=>'jurnalUmum.get.invoice.amount','uses'=>'Accounting\GeneralJournalController@getInvoiceAmount']);
 	Route::get('jurnalUmum/notif/approve',['as'=>'jurnalUmum.notif.approve','uses'=>'Accounting\GeneralJournalController@approve']);
 
-
 	Route::get('bukuBesar',['as'=>'bukuBesar.index','uses'=>'Accounting\BukuBesarController@index']);
 	Route::get('bukuBesar/list',['as'=>'bukuBesar.list','uses'=>'Accounting\BukuBesarController@list']);
 	
-
 	Route::get('forecastSales',['as'=>'forecastSales.index','uses'=>'Forecasting\ForcastingSalesController@index']);
 	Route::get('forecastSales/create',['as'=>'forecastSales.create','uses'=>'Forecasting\ForcastingSalesController@create']);
 	Route::post('forecastSales/store',['as'=>'forecastSales.store','uses'=>'Forecasting\ForcastingSalesController@store']);
@@ -861,8 +859,27 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('dnReplace/posting',['as'=>'dnReplace.posting','uses'=>'DnReplaceController@posting']);
 	Route::post('dnReplace/cancel',['as'=>'dnReplace.cancel','uses'=>'DnReplaceController@cancel']);
 	Route::post('dnReplace/revision',['as'=>'dnReplace.revision','uses'=>'DnReplaceController@revision']);
-	
 
+	Route::get('debitnote',['as'=>'debitNote.index','uses'=>'Accounting\DebitNoteController@index']);
+	Route::get('debitnote/create',['as'=>'debitNote.create','uses'=>'Accounting\DebitNoteController@create']);
+	Route::get('debitnote/search',['as'=>'debitNote.search','uses'=>'Accounting\DebitNoteController@search']);
+	Route::get('debitnote/list/so',['as'=>'debitNote.list.so','uses'=>'Accounting\DebitNoteController@listSo']);
+	Route::get('debitnote/list/dn',['as'=>'debitNote.list.dn','uses'=>'Accounting\DebitNoteController@listDn']);
+	Route::get('debitnote/list/uom',['as'=>'debitNote.list.uom','uses'=>'Accounting\DebitNoteController@listUom']);
+	Route::get('debitnote/dn/det',['as'=>'debitNote.dn.det','uses'=>'Accounting\DebitNoteController@dnDetail']);
+	Route::post('debitnote/store',['as'=>'debitNote.store','uses'=>'Accounting\DebitNoteController@store']);
+	Route::get('debitnote/list',['as'=>'debitNote.list','uses'=>'Accounting\DebitNoteController@list']);
+	Route::get('debitnote/show',['as'=>'debitNote.show','uses'=>'Accounting\DebitNoteController@show']);
+	Route::get('debitnote/edit',['as'=>'debitNote.edit','uses'=>'Accounting\DebitNoteController@edit']);
+	Route::post('debitnote/update',['as'=>'debitNote.update','uses'=>'Accounting\DebitNoteController@update']);
+	Route::post('debitnote/delete',['as'=>'debitNote.destroy','uses'=>'Accounting\DebitNoteController@destroy']);
+	Route::get('debitnote/code/create',['as'=>'debitNote.code.create','uses'=>'Accounting\DebitNoteController@articleCodeCreate']);
+	Route::get('debitnote/print',['as'=>'debitNote.print','uses'=>'Accounting\DebitNoteController@print']);
+	Route::post('debitnote/posting',['as'=>'debitNote.posting','uses'=>'Accounting\DebitNoteController@posting']);
+	Route::post('debitnote/approve',['as'=>'debitNote.approve','uses'=>'Accounting\DebitNoteController@approve']);
+	Route::get('debitnote/notif/approve',['as'=>'debitNote.notif.approve','uses'=>'Accounting\DebitNoteController@approve']);
+	Route::post('debitnote/get/article',['as'=>'debitNote.get.article','uses'=>'Accounting\DebitNoteController@getArticle']);
+	
 	Route::get('stockTake',['as'=>'stockTake.index','uses'=>'StockTake\StockTakeController@index']);
 	Route::post('stockTake/import',['as'=>'stockTake.import','uses'=>'StockTake\StockTakeController@import']);
 	Route::get('stockTake/export',['as'=>'stockTake.export','uses'=>'StockTake\StockTakeController@export']);

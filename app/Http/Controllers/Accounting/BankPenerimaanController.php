@@ -924,11 +924,18 @@ class BankPenerimaanController extends Controller
     public function getInvoiceAmount(Request $request)
     {
         $refNumber = $request->vRef;
-        $amount = db::table('invoice_hdr')
+        $amount1 = db::table('invoice_hdr')
         ->where('invoice_number',$refNumber)
         // ->select(db::raw("dpp+vat as amount"))
         ->select(db::raw("grand_total as amount"))
         ->value('amount');
+
+        $amount2 = db::table('debit_note_hdr')
+        ->where('dn_number',$refNumber)
+        ->select(db::raw("grand_total as amount"))
+        ->value('amount');
+
+        $amount = $amount1+$amount2; 
 
         return response()->json(array('amount' => $amount));
     }

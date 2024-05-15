@@ -163,7 +163,7 @@
             if(accountNumber){
                 if (accountNumber.substring(0,7) =='1100.40'){
                     // if(recFrom){
-                        invList('referenceAr',objCust,recFrom,'');
+                        invList('referenceAr',objCust,recFrom,'',objIndex);
                     // }else{
                     //     Swal.fire('Warning..','Kolom bayar ke /supplier code masih kosong','warning');
                     // }
@@ -177,19 +177,22 @@
         });
     }
 
-    function invList(dependent,obj,value,ref) {
-      $.ajax({
-        url:"{{route('dynamic.dependent')}}",
-        method:"POST",
-        data:{
-            dependent:dependent,
-            value:value
-        },
-        success:function(result){
-            $('#'+obj).html(result).select2();
-            $('#'+obj).val(ref).trigger('change');
-        }
-      })
+    function invList(dependent,obj,value,ref,objIndex) {
+        let objRef = $('#item_row select[name="vcRef[]"]');
+        $.ajax({
+            url:"{{route('dynamic.dependent')}}",
+            method:"POST",
+            data:{
+                dependent:dependent,
+                value:value
+            },
+            success:function(result){
+                objRef.eq(objIndex).html(result).select2();
+                objRef.eq(objIndex).val(ref).trigger('change');
+                // $('#'+obj).html(result).select2();
+                // $('#'+obj).val(ref).trigger('change');
+            }
+        })
     }
 
     function getAmount(){

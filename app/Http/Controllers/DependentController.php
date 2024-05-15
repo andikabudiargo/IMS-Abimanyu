@@ -745,7 +745,7 @@ class DependentController extends Controller
             
         }elseif($dependent =='referenceAr'){
             $customerId = DB::table('third_party')->where('account',$code)->value('kode');
-            $data= DB::table($table)
+            $data1= DB::table($table)
             ->where($field,$customerId)
             ->whereIn('status',['3']) //approved
             ->whereNotIn(DB::raw("invoice_number"), function($query) {
@@ -760,6 +760,34 @@ class DependentController extends Controller
             })
             ->orderBy($order)
             ->get();
+
+            // $table='invoice_hdr';
+            //     $field ='customer_id';
+            //     $order ='invoice_number';
+            //     $value = $code;
+            //     $name  ='invoice_number';
+            //     $default='';
+            //     $defaulttxt='Choose invoice';
+
+            $data2= DB::table('debit_note_hdr')
+            ->where('customer_id',$customerId)
+            ->whereIn('status',['3']) //approved
+            ->whereNotIn(DB::raw("dn_number"), function($query) {
+                $query->select(DB::raw("reference"))
+                ->from('kas_det') 
+                ->leftJoin('kas_hdr','kas_hdr.voucher_number','kas_det.voucher_number')
+                ->where('kas_hdr.status','<>','5')
+                ->where('kas_det.reference','<>','')
+                ->whereIn('kas_hdr.voucher_type',['BM','KM']);
+                // ->where('kas_det.voucher_number','like','BM%')
+                // ->where('kas_det.voucher_number','like','KM%');
+            })
+            ->select('dn_number as invoice_number')
+            ->orderBy('dn_number')
+            ->get();
+
+            $data =  $data1->merge($data2);
+
         }elseif($dependent =='referenceArEdit'){
             $customerId = DB::table('third_party')->where('account',$code)->value('kode');
             $data= DB::table($table)
