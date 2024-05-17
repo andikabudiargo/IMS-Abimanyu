@@ -170,6 +170,10 @@
             /* font-size: medium; */
         }
 
+        .font-9{
+            font-size:9pt;            /* font-size: medium; */
+        }
+
         .font-16{
             font-size:16pt;
             /* font-size: medium; */
@@ -245,9 +249,9 @@
                                 <thead>
                                     <tr>
                                         <th width="10%">No Account</th>
-                                        <th width="20%">Account Name</th>
+                                        <th width="24%">Account Name</th>
                                         <th width="35%">Referensi</th>
-                                        <th width="35%">Keterangan</th>
+                                        <th width="32%">Keterangan</th>
                                         <th width="10%">Debet</th>
                                         <th width="10%">Kredit</th>
                                     </tr>
@@ -256,7 +260,7 @@
                                     @foreach ($details as $val )
                                         <tr>
                                             <td align="left">{{ $val->account }}</td>
-                                            <td align="left">{{ $val->account_name }}</td>
+                                            <td align="left" class="font-9">{{ $val->account_name }}</td>
                                             {{-- <td align="left">{{ $val->ap_number }}</td> --}}
                                             {{-- <td align="left" class="font-8">{{ count(explode(",",$val->list_rec)) }}</td> --}}
                                             <td align="left" class="font-8">{{ $val->list_rec }}</td>
