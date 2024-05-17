@@ -1481,7 +1481,7 @@ class ReceivingController extends Controller
         ->leftJoin('article_types','article_types.code','article.article_type')
         ->leftJoin('uom','uom.code','receiving_det.uom_rec')
         ->where(function ($query) use ($searchRec,$searchPo,$searchInv,$searchSupplier,$searchStatus,$recDate,$fromDate,$toDate,$doDate,$fromDateDo,$toDateDo) {
-            $searchPo ? $query->where('po_number','ilike','%'.$searchPo.'%') : '';
+            $searchPo ? $query->where('receiving_hdr.po_number','ilike','%'.$searchPo.'%') : '';
             $searchInv ? $query->where('inv_number','ilike','%'.$searchInv.'%') : '';
             $searchSupplier ? $query->where('receiving_hdr.supplier_id','ilike','%'.$searchSupplier.'%') : '';
             $searchRec ? $query->where('receiving_det.rec_number','ilike','%'.$searchRec.'%') : '';
