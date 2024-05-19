@@ -86,8 +86,8 @@
                                 <table class="table table-bordered" id="listOfRec">
                                     <thead>
                                         <tr>
-                                            <th scope="col" width="20%">Article Code</th>
-                                            <th scope="col" width="40%">Desc</th>
+                                            <th scope="col" width="20%">Article</th>
+                                            {{-- <th scope="col" width="40%">Desc</th> --}}
                                             <th scope="col" width="10%">Qty</th>
                                             <th scope="col" width="10%">UOM</th>
                                             <th scope="col" width="10%">Material Price</th>
@@ -101,7 +101,7 @@
                                         @foreach($detail as $item)
                                         <tr>
                                             <td>{{ $item->article }}</td>
-                                            <td>{{ $item->desc }}</td>
+                                            {{-- <td>{{ $item->desc }}</td> --}}
                                             <td class="text-right">{{ number_format($item->qty) }}</td>
                                             <td>{{ $item->uom }}</td>
                                             <td class="text-right">{{ number_format($item->price,2) }}</td>

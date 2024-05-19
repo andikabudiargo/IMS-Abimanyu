@@ -21,6 +21,8 @@
                             @csrf
                             <input type="text" id="ppn" name="ppn" values="{{ $nilaiPPN }}" hidden>
                             <input type="text" id="pph23" name="ppn23" values="{{ $nilaiPPH }}" hidden>
+                            <datalist id="articlesList">
+                            </datalist>
                             <div class="row">
                                 <div class="col-md-6 col-12">
                                     <div class="form-row">
@@ -98,16 +100,16 @@
                     <div class="d-flex justify-content-between align-items-end mt-75">
                         <div class="col-md-4">
                             <div class="form-group row mb-03">
-                                <label for="totalRow" class="col-sm-4 col-form-label titik-dua tanpa-padding">Row(s)</label>
+                                {{-- <label for="totalRow" class="col-sm-4 col-form-label titik-dua tanpa-padding">Row(s)</label>
                                 <div class="col-sm-3">
                                     <input type="text" class="form-control text-right font-weight-bold" id="totalRow" disabled/>
-                                </div>
+                                </div> --}}
                             </div>
                             <div class="form-group row mb-03">
-                                <label for="totalQTY" class="col-sm-4 col-form-label titik-dua tanpa-padding">Total QTY</label>
+                                {{-- <label for="totalQTY" class="col-sm-4 col-form-label titik-dua tanpa-padding">Total QTY</label>
                                 <div class="col-sm-5">
                                     <input type="text" class="form-control text-right font-weight-bold" id="totalQTY" disabled/>
-                                </div>
+                                </div> --}}
                             </div>
                         </div>
                         <div class="col-md-4">
@@ -304,6 +306,7 @@
                 add_new_row_edit(article,articleCode,articleDesc,qtySo,uomGroup,uom,price,priceService);
                 if (i==(data.length-1)){
                     $(".loading-spinner-container").removeClass("-show");
+                    edit='false';
                 }
                 hitungTotal();
             }
@@ -370,28 +373,31 @@
         }else{ 
             $('.disabled-el').removeAttr('disabled');
             // ambil semua data article
-            let objArticle = $('#article_row select[name="articleId[]"]');
+            let objArticle = $('#article_row input[name="articleId[]"]');
             let objQty= $('#article_row input[name="qtyInv[]"]');
             let objPrice= $('#article_row input[name="price[]"]');
             let objPriceJasa= $('#article_row input[name="priceJasa[]"]');
             let objUom= $('#article_row input[name="uom[]"]'); 
+            let objSubTotal= $('#article_row input[name="subTotal[]"]'); 
             let articles = []; 
             let flag=0; 
             let pesan="";
 
-            $("#article_row select[name='articleId[]']").map(function(i) {  
+            $("#article_row input[name='articleId[]']").map(function(i) {  
                 let $this=$(this);
                 if ($this.val()){
                     let articleCode = objArticle.eq(i).val();
-                    let articleDesc = objArticle.eq(i).find(":selected").data("desc");
-                    let articleUom = objArticle.eq(i).find(":selected").data("uom");
+                    // let articleDesc = objArticle.eq(i).find(":selected").data("desc");
+                    // let articleUom = objArticle.eq(i).find(":selected").data("uom");
+                    let articleUom = objUom.val();
                     let articleSoCode = $('#soNumber').val();
                     let poNumber = $('#poNumber').val();
                     let qty=objQty.eq(i).val().replace(/,/gi, '') || 0;
                     let price=objPrice.eq(i).val().replace(/,/gi, '') || 0;
                     let priceJasa=objPriceJasa.eq(i).val().replace(/,/gi, '') || 0;
-                    
-                    if ((articleCode!=='') && (qty> 0)){
+                    let subTotal=objSubTotal.eq(i).val().replace(/,/gi, '') || 0;
+                                        
+                    if ((articleCode!=='') && (parseFloat(qty) > 0)){
                         articles.push({
                             "article_code":articleCode,
                             "qty":qty,
@@ -403,8 +409,13 @@
                         });
                     }
 
-                    if (qty == 0){
-                        pesan +="QTY of items "+ articleDesc +" cannot be 0 <br>"; 
+                    if (parseFloat(qty) == 0){
+                        pesan +="QTY  of items "+ articleCode +" cannot be 0 <br>"; 
+                        flag=1;
+                    }
+
+                    if (parseFloat(subTotal) == 0){
+                        pesan +="Price  of items "+ articleCode +" cannot be 0 <br>"; 
                         flag=1;
                     }
                 }

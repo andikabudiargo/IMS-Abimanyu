@@ -37,20 +37,19 @@
             <tbody>
                 <tr>
                     <td class="isian disabled" style="width: 34%">
-                        <select class="dynamicSelect form-control article-select" id="articleId" name="articleId[]" data-dependent="articleId">
-                        </select>
+                        <input type="text" class="form-control" list="articlesList" id="articleId" name="articleId[]" maxlength="100">
                     </td>
                     <td class="isian" style="width: 10%">
-                        <input type="text" class="form-control-plaintext text-hitam numeral-mask text-right" id = "qtyInv" name="qtyInv[]" maxlength="9">
+                        <input type="text" class="form-control-plaintext numeral-mask text-right recalculate" id = "qtyInv" name="qtyInv[]" maxlength="9">
                     </td>
-                    <td class="isian disabled" style="width: 5%">
-                        <input type="text" class="form-control-plaintext" id = "uom" name="uom[]" disabled>
-                    </td>
-                    <td class="isian" style="width: 10%">
-                        <input type="text" class="form-control-plaintext numeral-mask-digit text-right" id = "price" name="price[]"  oninput='inputDecimal(this)' maxlength="15">
+                    <td class="isian" style="width: 5%">
+                        <input type="text" class="form-control-plaintext" id = "uom" name="uom[]" value="PCS" maxlength="9">
                     </td>
                     <td class="isian" style="width: 10%">
-                        <input type="text" class="form-control-plaintext numeral-mask-digit text-right" id = "priceJasa" name="priceJasa[]"  oninput='inputDecimal(this)' maxlength="15">
+                        <input type="text" class="form-control-plaintext numeral-mask-digit text-right recalculate" id = "price" name="price[]"  oninput='inputDecimal(this)' maxlength="15">
+                    </td>
+                    <td class="isian" style="width: 10%">
+                        <input type="text" class="form-control-plaintext numeral-mask-digit text-right recalculate" id = "priceJasa" name="priceJasa[]"  oninput='inputDecimal(this)' maxlength="15">
                     </td>
                     <td class="isian disabled text-right" style="width: 10%">
                         <input type="text" class="form-control-plaintext numeral-mask-digit text-right" id = "totalLine" name="totalLine[]" disabled>
@@ -62,7 +61,8 @@
                         <input type="text" class="form-control-plaintext numeral-mask-digit text-right" id = "subTotal" name="subTotal[]" disabled>
                     </td>
                     <td class="isian text-right" style="width: 5%">
-                        <a onmouseover="this.style.cursor='pointer'" onclick="$(this).parents('.tanda-baris').remove();disabledEnabledSelect2();">
+                        {{-- <a onmouseover="this.style.cursor='pointer'" onclick="$(this).parents('.tanda-baris').remove();disabledEnabledSelect2();"> --}}
+                        <a onmouseover="this.style.cursor='pointer'" onclick="$(this).parents('.tanda-baris').remove();">
                             <i data-feather="trash-2" class="remove_button feather-24">
                             </i>
                         </a>
@@ -129,7 +129,8 @@
                 custCode:customerCode,
             },
             success:function(result){
-                dataArticle=result
+                dataArticle=result;
+                $('#articlesList').html(dataArticle);
             }
         })
     }
@@ -190,8 +191,6 @@
     }
 
     function hitungGrandTotal(){
-        let objArticle = $('#article_row input[name="articleId[]"]');
-        let objArticleSum = $('#articleRow input[name="articleId[]"]');
         let objQtyTiw= $('#article_row input[name="qtyInv[]"]');
         let objQTY= $('#article_row input[name="qtyInv[]"]');
         let objPrice= $('#article_row input[name="price[]"]');
@@ -222,7 +221,7 @@
             $("#nilaiPPH23").text(pph23+"%");
             $("#totalAmountJasa").val(humanizeNumber(totalAmountJasa.toFixed(2)));
 
-            if ($('#vatCheck').is(':checked')){
+            if ($('#vatCheck').is(':checked')){ 
                 $("#totalPPN").val(humanizeNumber(((parseFloat(ppn)*totalAmountMaterial)/100).toFixed(2)));
             }else{
                 $("#totalPPN").val(0);
@@ -240,13 +239,8 @@
         let tDpp =  totalAmount;
         let tPpn = $("#totalPPN").val().replace(/,/gi, '') || 0;
         let tPph = $("#totalPPH").val().replace(/,/gi, '') || 0;
-
         let totalNetto1 = (tDpp+parseFloat(tPpn))-parseFloat(tPph);
-
         $("#totalNetto").val(humanizeNumber(totalNetto1.toFixed(2)));
-
-        // jumlahDetail();
-
         mask_thousand_digit(2);
     }
 
@@ -305,10 +299,8 @@
     let cloneCount=0;
     function add_new_row(article,articleCode,articleDesc,qty,uomGroup,uom,price,priceJasa,soCode,dnNumber,poNumber) {
         if(dataArticle){
-
-            // $('#poNumberi').val(poNumber);
-            $("#article_row").append($("#new_row").clone().html());
             cloneCount++;
+            $("#article_row").append($("#new_row").clone().html());
             $("#article_row").find('#baru').attr('id', 'new_row'+ cloneCount);
             $("#new_row"+ cloneCount).find('#uom').attr('id', 'uom'+ cloneCount);
             $("#new_row"+ cloneCount).find('#qtyInv').attr('id', 'qtyInv'+ cloneCount);
@@ -319,8 +311,8 @@
             $("#new_row"+ cloneCount).find('#price').attr('id', 'price'+ cloneCount);
             $("#new_row"+ cloneCount).find('#priceJasa').attr('id', 'priceJasa'+cloneCount);
             $("#new_row"+ cloneCount).find('#dnNumber').attr('id', 'dnNumber'+cloneCount);
-            $('#articleId'+ cloneCount).html(dataArticle);
-            $("#articleId"+cloneCount).select2();
+            // $('#articleId'+ cloneCount).html(dataArticle);
+            // $("#articleId"+cloneCount).select2();
             $('#remove_button').tooltip();
     
             tombolPanah('qtyInv');
@@ -328,7 +320,7 @@
             hitungGrandTotal();
             mask_thousand();
             mask_thousand_digit(2);
-            disabledEnabledSelect2()
+            // disabledEnabledSelect2()
         }
         
     }
@@ -356,7 +348,6 @@
             $('#totalLine'+ cloneCount).val((qty*price).toFixed(2)).trigger('input');
             $('#totalJasa'+ cloneCount).val((qty*priceJasa).toFixed(2)).trigger('input');
             $('#subTotal'+ cloneCount).val(((qty*price)+(qty*priceJasa)).toFixed(2)).trigger('input');
-            // $("#articleId"+cloneCount).select2();
             $('#remove_button').tooltip();
     
             tombolPanah('qtyInv');
@@ -364,42 +355,42 @@
             hitungGrandTotal();
             mask_thousand();
             mask_thousand_digit(2);
-            disabledEnabledSelect2()
+            // disabledEnabledSelect2()
         // }
         
     }
 
-    $(document).on('change', '.article-select', function(e){
-        let objArticle = $('#article_row select[name="articleId[]"]');
-        let objUom= $('#article_row input[name="uom[]"]');
-        let $this=$(this);
-        if ($this.val()){
-            let objIndex = objArticle.index(this);
-            let uom = objArticle.eq(objIndex).find(":selected").data("uom");
-            objUom.eq(objIndex).val(uom);
-            $("#totalRow").val($(".article-select>option:not([value='']):selected").length);
-            disabledEnabledSelect2();
-        }
-    });
+    // $(document).on('change', '.article-select', function(e){
+    //     let objArticle = $('#article_row input[name="articleId[]"]');
+    //     let objUom= $('#article_row input[name="uom[]"]');
+    //     let $this=$(this);
+    //     if ($this.val()){
+    //         let objIndex = objArticle.index(this);
+    //         let uom = objArticle.eq(objIndex).find(":selected").data("uom");
+    //         objUom.eq(objIndex).val(uom);
+    //         $("#totalRow").val($(".article-select>option:not([value='']):selected").length);
+    //         disabledEnabledSelect2();
+    //     }
+    // });
 
-    function disabledEnabledSelect2(){
-        let records = $('.article-select').length-1;
-        if (records > 0){
-            objCustomer.attr('disabled','disabled');
-        }else{
-            objCustomer.removeAttr('disabled');
-            objCustomer.val('').trigger('change');;
-            objAccountPiutang.val('');
-            poNumber.val('');
-            soNumber.val('');
-            objTotalAmountJasa.val('');
-            objTotalQTY.val('');
-            objTotalAmount.val('');
-            objTotalPPN.val('');
-            objTotalPPH.val('');
-            objTotalNetto.val('');
-        }        
-    }
+    // function disabledEnabledSelect2(){
+    //     let records = $('.article-select').length-1;
+    //     if (records > 0){
+    //         objCustomer.attr('disabled','disabled');
+    //     }else{
+    //         objCustomer.removeAttr('disabled');
+    //         objCustomer.val('').trigger('change');;
+    //         objAccountPiutang.val('');
+    //         poNumber.val('');
+    //         soNumber.val('');
+    //         objTotalAmountJasa.val('');
+    //         objTotalQTY.val('');
+    //         objTotalAmount.val('');
+    //         objTotalPPN.val('');
+    //         objTotalPPH.val('');
+    //         objTotalNetto.val('');
+    //     }        
+    // }
 
     recordCount = () =>{
         let records = $('.article-select').length-1;
@@ -408,10 +399,16 @@
 
     function changeselectEdit(dependent,obj,article) {
         $('#'+obj).attr('disabled','disabled');
-        $('#'+obj).html(dataArticle);
-        $('#'+obj).select2();
-        $('#'+obj).val(article).trigger('change');
+        dataArticle =dataArticle+"<option>"+article+"</option>";
+        $('#articlesList').html(dataArticle);
+        $('#'+obj).val(article);
         $('#'+obj).removeAttr('disabled');
     }
+
+    $(document).on('keyup', '.recalculate', function(e){
+        hitungGrandTotal();
+    });
+
+    
 
 </script>

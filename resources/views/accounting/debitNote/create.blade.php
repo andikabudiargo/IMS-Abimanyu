@@ -21,6 +21,8 @@
                             @csrf
                             <input type="text" id="ppn" name="ppn" values="{{ $nilaiPPN }}" hidden>
                             <input type="text" id="pph23" name="ppn23" values="{{ $nilaiPPH }}" hidden>
+                            <datalist id="articlesList">
+                            </datalist>
                             <div class="form-group col-md-6">
                                 <div class="form-row">
                                     <div class="form-group col-md-6">
@@ -76,14 +78,7 @@
                 <div class="card-header">
                     <h4 class="card-title">Article</h4>
                 </div>
-                <div class="card-body" >
-                    {{-- @include('accounting.debitNote.headerColumn') --}}
-                    {{-- <input type="text" id ="last_row_number" class="d-none" value="0"> --}}
-                    {{-- <div class="" id="articleRow" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px">
-                    </div> --}}
-                    {{-- <div class="" id="article_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px">
-                    </div> --}}
-
+                <div class="card-body">
                     <div class="container-list-item">
                         <div class="lebar-list-item">
                             @include('accounting.debitNote.headerColumn')
@@ -104,16 +99,16 @@
                     <div class="d-flex justify-content-between align-items-end mt-75">
                         <div class="col-md-4">
                             <div class="form-group row mb-03">
-                                <label for="totalRow" class="col-sm-4 col-form-label titik-dua tanpa-padding">Row(s)</label>
+                                {{-- <label for="totalRow" class="col-sm-4 col-form-label titik-dua tanpa-padding">Row(s)</label>
                                 <div class="col-sm-3">
                                     <input type="text" class="form-control text-right font-weight-bold" id="totalRow" disabled/>
-                                </div>
+                                </div> --}}
                             </div>
                             <div class="form-group row mb-03">
-                                <label for="totalQTY" class="col-sm-4 col-form-label titik-dua tanpa-padding">Total QTY</label>
+                                {{-- <label for="totalQTY" class="col-sm-4 col-form-label titik-dua tanpa-padding">Total QTY</label>
                                 <div class="col-sm-5">
                                     <input type="text" class="form-control text-right font-weight-bold" id="totalQTY" disabled/>
-                                </div>
+                                </div> --}}
                             </div>
                         </div>
                         <div class="col-md-4">
@@ -176,7 +171,6 @@
 @endsection
 @section('styles')
 <style>
-
     textarea {
         resize: none;
     }
@@ -255,7 +249,7 @@
 @endsection
 @section('scripts')
 @include('accounting.debitNote.addArticle')
-<script type="text/javascript">
+<script type="text/javascript">    
     
     let currentDate = todayDate('dd-mm-yyyy');    
     $(document).ready(function(){
@@ -296,26 +290,28 @@
                 $('#cmdSave').attr('disabled','disabled');
                 $('.disabled-el').removeAttr('disabled');
                 // ambil semua data article
-                let objArticle = $('#article_row select[name="articleId[]"]');
+                let objArticle = $('#article_row input[name="articleId[]"]');
                 let objQty= $('#article_row input[name="qtyInv[]"]');
                 let objPrice= $('#article_row input[name="price[]"]');
                 let objPriceJasa= $('#article_row input[name="priceJasa[]"]');
                 let objUom= $('#article_row input[name="uom[]"]'); 
+                let objSubTotal= $('#article_row input[name="subTotal[]"]'); 
                 let articles = []; 
                 let flag=0; 
                 let pesan="";
     
-                $("#article_row select[name='articleId[]']").map(function(i) {  
+                $("#article_row input[name='articleId[]']").map(function(i) {  
                     let $this=$(this);
                     if ($this.val()){
                         let articleCode = $this.val();
-                        let articleDesc = $this.eq(i).find(":selected").data("desc");
-                        let articleUom = $this.eq(i).find(":selected").data("uom");
+                        // let articleDesc = $this.eq(i).find(":selected").data("desc");
+                        let articleUom = objUom.val();
                         let articleSoCode = $('#soNumber').val();
                         let poNumber = $('#poNumber').val();
                         let qty=objQty.eq(i).val().replace(/,/gi, '') || 0;
                         let price=objPrice.eq(i).val().replace(/,/gi, '') || 0;
                         let priceJasa=objPriceJasa.eq(i).val().replace(/,/gi, '') || 0;
+                        let subTotal=objSubTotal.eq(i).val().replace(/,/gi, '') || 0;
                         
                         if ((articleCode!=='') && (qty> 0)){
                             articles.push({
@@ -330,7 +326,12 @@
                         }
     
                         if (qty == 0){
-                            pesan +="QTY of items "+ articleDesc +" cannot be 0 <br>"; 
+                            pesan +="QTY of items "+ articleCode +" cannot be 0 <br>"; 
+                            flag=1;
+                        }
+
+                        if (parseFloat(subTotal) == 0){
+                            pesan +="Price  of items "+ articleCode +" cannot be 0 <br>"; 
                             flag=1;
                         }
                     }

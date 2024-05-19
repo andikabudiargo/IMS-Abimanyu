@@ -292,61 +292,26 @@ class DebitNoteController extends Controller
         ->where('id',$id)
         ->get()->first();
 
-        $invoiceNumber = $data['header']->dn_number;
-
-        /*
-        detail 
-        $data['detail'] = DB::table('debit_note_det')
-        ->leftJoin('article','article.article_code','=','debit_note_det.article_code')
-        ->leftJoin('uom','uom.code','debit_note_det.uom')
-        ->select('debit_note_det.*','article_alternative_code as article','article_desc as desc')
-        ->where('debit_note_det.dn_number',$invoiceNumber)
-        ->orderBy('debit_note_det.id')
-        ->get();
-        */
-
-        /*summary*/
+        $dnNumber = $data['header']->dn_number;
 
         $data['detail']=DB::table('debit_note_det')
-        ->leftJoin('article','article.article_code','debit_note_det.article_code')
-        ->select('article.article_alternative_code as article'
-        ,'article.article_desc as desc'
-        ,'debit_note_det.uom as uom'
-        ,db::raw('sum(qty) as qty')
+        ->select('article_code as article'
+        ,'uom'
+        ,'qty'
         ,'price'
         ,'price_service')
-        ->where('dn_number',$invoiceNumber)
-        ->groupBy(['article.article_code'
-        ,'article.article_desc'
-        ,'article.article_alternative_code'
-        ,'debit_note_det.uom'
-        // ,'qty'
-        ,'price'
-        ,'price_service'])
-        ->orderBy('article.article_code')
+        ->where('dn_number',$dnNumber)
+        ->orderBy('id')
         ->get();
 
-        
-
-        $data['delivery'] = DB::table('delivery_hdr')
-        ->whereIn('delivery_hdr.delivery_number', function($query) use ($invoiceNumber) {
-            $query->select('dn_number')
-            ->from('debit_note_det') 
-            ->where('dn_number',$invoiceNumber);
-        })
-        ->select('delivery_hdr.delivery_number'
-        ,'delivery_hdr.delivery_date'
-        ,DB::raw("(select po_number from sales_order_hdr where so_code = delivery_hdr.so_number) as po_number")
-        )
-        ->get();
 
         $data['customers'] = DB::table('third_party')
         ->where ('third_party_type','=','cust')
         ->orderBy('nama')
         ->get();
 
-        $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode,$invoiceNumber,$username);
-        $data['approveValidate'] = Approval::approveValidate($this->moduleCode,$invoiceNumber,$username);
+        $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode,$dnNumber,$username);
+        $data['approveValidate'] = Approval::approveValidate($this->moduleCode,$dnNumber,$username);
 
         // $data['status'] = ['1'=>'DRAFT','2'=>'VALIDATE','3'=>'APPROVED','6'=>'PAID','7'=>'REVISED'];
         $statusDn = ['DRAFT','VALIDATE','APPROVED','','','PAID','REVISED'];
@@ -374,41 +339,21 @@ class DebitNoteController extends Controller
 
         // dd($data['header']);
 
-        $invoiceNumber = $data['header']->dn_number;
+        $dnNumber = $data['header']->dn_number;
         $data['soNumber'] = $data['header']->so_number;
 
         $data['details'] = DB::table('debit_note_det')
-        ->leftJoin('article','article.article_code','=','debit_note_det.article_code')
-        ->leftJoin('uom','uom.code','debit_note_det.uom')
-        ->where('debit_note_det.dn_number',$invoiceNumber)
-        ->orderBy('debit_note_det.id')
+        ->where('dn_number',$dnNumber)
+        ->orderBy('id')
         ->get();
-
-        // $data['summary']=DB::table('debit_note_det')
-        // ->leftJoin('article','article.article_code','debit_note_det.article_code')
-        // ->select('article.article_alternative_code'
-        // ,'article.article_desc'
-        // ,'debit_note_det.uom as uom'
-        // ,db::raw('sum(qty) as qty')
-        // ,'price'
-        // ,'price_service')
-        // ->where('dn_number',$invoiceNumber)
-        // ->groupBy(['article.article_desc'
-        // ,'article.article_code'
-        // ,'article.article_alternative_code'
-        // ,'debit_note_det.uom'
-        // // ,'qty'
-        // ,'price'
-        // ,'price_service'])
-        // ->orderBy('article.article_code')
-        // ->get();
-
+        
         $data['customers'] = DB::table('third_party')
         ->where ('third_party_type','=','cust')
         ->orderBy('nama')
         ->get();
 
         $custCode = $data['header']->customer_id;
+
         $dataArticle= DB::table('article') 
         ->whereIn('article.article_code', function($query) use ($custCode) {
             $query->select('article_code')
@@ -422,16 +367,17 @@ class DebitNoteController extends Controller
         ->get();
 
         $output='';
-        $output .='<option value="">Choose article</option>';
+        // $output .='<option value="">Choose article</option>';
 
         foreach ($dataArticle as $row){
-            $output .='<option value="'.$row->article_code.'" data-uom="'.$row->uom.'" data-desc="'.$row->article_desc.'">'.$row->article_alternative_code.'-'. $row->article_desc.'</option>';
+            // $output .='<option value="'.$row->article_code.'" data-uom="'.$row->uom.'" data-desc="'.$row->article_desc.'">'.$row->article_alternative_code.'-'. $row->article_desc.'</option>';
+            $output .='<option>'.$row->article_desc.'</option>';
         }
 
         $data['articles'] = $output;
 
-        $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode,$invoiceNumber,$username);
-        $data['approveValidate'] = Approval::approveValidate($this->moduleCode,$invoiceNumber,$username);
+        $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode,$dnNumber,$username);
+        $data['approveValidate'] = Approval::approveValidate($this->moduleCode,$dnNumber,$username);
 
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','6'=>'PAID','7'=>'REVISED'];
         $status = ['DRAFT','VALIDATE','APPROVED','','','PAID','REVISED'];
@@ -1078,9 +1024,11 @@ class DebitNoteController extends Controller
         // $listpo=DB::select("SELECT string_agg(distinct po_number,',') as po_list from debit_note_det where dn_number = '$dnNumber'");
         /*revisi PO diambil langsung dari data SO */
 
-        $listpo=DB::select("SELECT string_agg(distinct (select po_number from sales_order_hdr where so_code = so_number),',') as po_list from debit_note_det where dn_number = '$dnNumber'");
+        // $listpo=DB::select("SELECT string_agg(distinct (select po_number from sales_order_hdr where so_code = so_number),',') as po_list from debit_note_det where dn_number = '$dnNumber'");
 
-        $data['listpo'] = $listpo[0]->po_list;
+        // $data['listpo'] = $listpo[0]->po_list;
+
+        $data['listpo'] = $header->po_number;
 
         $data['totals']=DB::select("SELECT total_ppn as ppn,
         total_material,
@@ -1688,10 +1636,11 @@ class DebitNoteController extends Controller
         ->get();
 
         $output='';
-        $output .='<option value="">Choose article</option>';
+        // $output .='<option value="">Choose article</option>';
 
         foreach ($data as $row){
-            $output .='<option value="'.$row->article_code.'" data-uom="'.$row->uom.'" data-desc="'.$row->article_desc.'">'.$row->article_alternative_code.'-'. $row->article_desc.'</option>';
+            // $output .='<option value="'.$row->article_code.'" data-uom="'.$row->uom.'" data-desc="'.$row->article_desc.'">'.$row->article_alternative_code.'-'. $row->article_desc.'</option>';
+            $output .='<option>'.$row->article_desc.'</option>';
         }
 
         return $output;
