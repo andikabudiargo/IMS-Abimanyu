@@ -1289,21 +1289,21 @@ class DebitNoteController extends Controller
                     ]
                 );
 
-                if($statusDn == '3'){
-                    // $this->prosesPosting($dnNumber);
-                    //posting AP ke kas
-                    DB::table('ap_invoice')
-                    ->where('ap_number',$dnNumber)
-                    ->update(
-                        [   
-                            'status' => '4',
-                            'authorized_by' => Auth::user()->username,
-                            'authorized_at' => date('Y-m-d H:i:s'),
-                            'updated_by' => Auth::user()->username,
-                            'updated_at' => date('Y-m-d H:i:s')
-                        ]
-                    );
-                }
+                // if($statusDn == '3'){
+                //     // $this->prosesPosting($dnNumber);
+                //     //posting AP ke kas
+                //     DB::table('debit_note_hdr')
+                //     ->where('dn_number',$dnNumber)
+                //     ->update(
+                //         [   
+                //             'status' => '4',
+                //             'authorized_by' => Auth::user()->username,
+                //             'authorized_at' => date('Y-m-d H:i:s'),
+                //             'updated_by' => Auth::user()->username,
+                //             'updated_at' => date('Y-m-d H:i:s')
+                //         ]
+                //     );
+                // }
                 
                 DB::commit();
                 $title ="Approve $this->title";

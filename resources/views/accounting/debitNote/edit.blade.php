@@ -41,7 +41,7 @@
                                             <select class="select2 form-control" id="customer" name="customer" required disabled>
                                                 <option value="">All</option>
                                                 @foreach($customers as $val)
-                                                    <option value="{{$val->kode}}" data-coa = "{{ $val->account }}" {{$val->kode == $header->customer_id ? "selected" : ""}} >{{$val->kode}} - {{$val->nama}}</option>
+                                                    <option value="{{$val->kode}}" data-coa="{{ $val->account }}" data-coa-penjualan = "{{ $val->coa_penjualan }}" {{$val->kode == $header->customer_id ? "selected" : ""}} >{{$val->kode}} - {{$val->nama}}</option>
                                                 @endforeach
                                             </select>
                                         </div>
@@ -50,6 +50,10 @@
                                         <div class="form-group col-md-6">
                                             <label for="accountPiutang">COA Piutang*</label>
                                             <input type="text" id="accountPiutang" name="accountPiutang" class="form-control disabled-el" value="{{ old('accountPiutang',$header->account_piutang) }}" disabled />
+                                        </div>
+                                        <div class="form-group col-md-6">
+                                            <label for="accountPenjualan">COA Penjualan*</label>
+                                            <input type="text" id="accountPenjualan" name="accountPenjualan" class="form-control disabled-el" value="{{ old('accountPenjualan',$header->account_penjualan) }}" disabled />
                                         </div> 
                                     </div>
                                     <div class="form-row">
@@ -478,6 +482,8 @@
                             $('#customer').attr('disabled','disabled');
                             $('#totalPPN').attr('disabled','disabled');
                             $('#totalPPH').attr('disabled','disabled');
+                            $('#accountPiutang').attr('disabled','disabled');
+                            $('#accountPenjualan').attr('disabled','disabled');
                             // $('#cmdSave').attr('disabled','disabled');
                         }
                     },

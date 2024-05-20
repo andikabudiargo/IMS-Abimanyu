@@ -40,7 +40,7 @@
                                         <select class="select2 form-control" id="customer" name="customer" required>
                                             <option value="">All</option>
                                             @foreach($customers as $val)
-                                                <option value="{{$val->kode}}" data-coa = "{{ $val->account }}" >{{$val->kode}} - {{$val->nama}}</option>
+                                                <option value="{{$val->kode}}" data-coa = "{{ $val->account }}" data-coa-penjualan = "{{ $val->coa_penjualan }}" >{{$val->kode}} - {{$val->nama}}</option>
                                             @endforeach
                                         </select>
                                     </div>
@@ -49,7 +49,11 @@
                                     <div class="form-group col-md-6">
                                         <label for="accountPiutang">COA Piutang*</label>
                                         <input type="text" id="accountPiutang" name="accountPiutang" class="form-control disabled-el" value="{{ old('accountPiutang') }}" disabled />
-                                    </div> 
+                                    </div>
+                                    <div class="form-group col-md-6">
+                                        <label for="accountPenjualan">COA Penjualan*</label>
+                                        <input type="text" id="accountPenjualan" name="accountPenjualan" class="form-control disabled-el" value="{{ old('accountPenjualan') }}" disabled />
+                                    </div>
                                 </div>
                                 <div class="form-row">
                                     <div class="form-group col-md-6">
@@ -342,7 +346,7 @@
                     flag=1;
                 }
 
-                console.log(articles);
+                // console.log(articles);
                 flag==1;
     
                 if (flag==0){
@@ -388,10 +392,14 @@
                             }else{
                                 show_msg(data.title, data.message, data.alert);
                                 $('#debitNnumber').val(data.debitNnumber);
+                                $('#totalAmount').attr('disabled','disabled');
                                 $('#debitNnumber').attr('disabled','disabled');
                                 $('#cmdSave').attr('disabled','disabled');
+                                $('#customer').attr('disabled','disabled');
                                 $('#totalPPN').attr('disabled','disabled');
                                 $('#totalPPH').attr('disabled','disabled');
+                                $('#accountPiutang').attr('disabled','disabled');
+                                $('#accountPenjualan').attr('disabled','disabled');
                             }                        
                         },
                         error: function(error) {

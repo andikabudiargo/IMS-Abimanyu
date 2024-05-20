@@ -111,12 +111,14 @@
             $('#accountPiutang').val("");
             $('#soNumber').empty();
             let coa = $(this).find(":selected").data("coa");
+            let coaPenjualan = $(this).find(":selected").data("coa-penjualan");
             let customerCode = $(this).val();
-            if(coa){
+            if(coa && coaPenjualan){
                 $('#accountPiutang').val(coa);
+                $('#accountPenjualan').val(coaPenjualan);
                 listArticle(customerCode);
             }else{
-                Swal.fire("Warning","Customer belum memiliki COA Piutang","warning"); 
+                Swal.fire("Warning","Customer belum memiliki COA Piutang atau COA Penjualan","warning"); 
             }
         }
     });
