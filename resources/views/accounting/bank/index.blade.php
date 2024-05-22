@@ -3,7 +3,6 @@
 @section('content')
 @include('layouts.breadcrumb')
 @include('partials.alert')
-
 <section id="article-index">
   <div class="card">
     <div class="card-header">  
@@ -69,7 +68,6 @@
     </div>
   </div>
 </section>
-
 <section id="table-article">
   <div class="card">
     <div class="card-header">
@@ -97,13 +95,10 @@
     </div>
   </div>
 </section>
-
 @include('partials.delete-modal')
-
 @endsection
 @section('styles')
 <style>
-
 td.wrapok {
     white-space:normal
 }
@@ -167,7 +162,7 @@ td.wrapok {
       columnDefs :[
         { width: '5%', targets: 0 },
         {
-          targets: [ 5 ],
+          targets: [ 6 ],
           render: $.fn.dataTable.render.number(',', '.',2, ''),
           className: "text-right"
         },
