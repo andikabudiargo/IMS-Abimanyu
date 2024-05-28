@@ -739,12 +739,14 @@ class InvoiceController extends Controller
             ->where('invoice_number',$invNumber)
             ->delete();
 
-            $kasDet = DB::table('kas_det')
-            ->where('reference',$invNumber)
-            // ->whereIn('voucher_type',['KM','BM'])
-            ->first();
+            // $kasDet = DB::table('kas_det')
+            // ->where('reference',$invNumber)
+            // // ->whereIn('voucher_type',['KM','BM'])
+            // ->first();
 
-            $voucherNumber=$kasDet->voucher_number;
+            // $voucherNumber=$kasDet->voucher_number;
+
+            $voucherNumber=$invNumber;
 
             if($voucherNumber){
                 DB::table('kas_hdr')
