@@ -300,7 +300,7 @@
                                 @endfor
                                                         
                                 <tr style="border: thin solid var(--line-color)">
-                                    <td colspan="5">Description: </td>
+                                    <td colspan="5">Description: {{ $dnHdr->note }} </td>
                                 </tr>
                             </tbody>
                         </table>
