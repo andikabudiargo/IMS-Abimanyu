@@ -100,7 +100,7 @@ class BukuBesarController extends Controller
         $perkiraan2 = $request->perkiraan2;
         $status =  $request->searchStatus;
 
-        $adaPerkiraan = "";
+        $adaPerkiraan = '';
 
         if ($perkiraan1 || $perkiraan2){
             $adaPerkiraan = "ada";
@@ -191,10 +191,13 @@ class BukuBesarController extends Controller
             $perkiraan1= str_replace('.','',$perkiraan1);
             $perkiraan2= str_replace('.','',$perkiraan2);
             $like1 = substr($like1, 0, -1);
-            $adaPerkiraan = "";
-            $statusBaru = "kas_det.account like '$like1%' and replace(kas_det.account,'.','')::numeric between '$perkiraan1' and '$perkiraan2'";
+            $adaPerkiraan = '';
+            if ($perkiraan1!='' || $perkiraan2!=''){
+                $statusBaru = "kas_det.account like '$like1%' and replace(kas_det.account,'.','')::numeric between '$perkiraan1' and '$perkiraan2'";
+            }
         }
 
+        // dd($adaPerkiraan);
         
         $data = DB::table('kas_det')
         ->leftJoin('kas_hdr','kas_hdr.voucher_number','kas_det.voucher_number')
