@@ -1270,9 +1270,12 @@ class PurchaseOrderController extends Controller
         $lockDateToDate = date('Y-m-d',strtotime($this->lockDate));
 
         // $poDate = date('Y-m-d', strtotime('04-01-2024'));
+        $bisaEdit = Auth::user()->can('purchaseOrder-edit');
+        $bisaDelete = Auth::user()->can('purchaseOrder-delete');
+        $bisaAuthorize = Auth::user()->can('purchaseOrder-authorize');
 
         return Datatables::of($data)
-        ->addColumn('action', function ($data) use($lockDateToDate) {
+        ->addColumn('action', function ($data) use($lockDateToDate,$bisaAuthorize,$bisaEdit,$bisaDelete) {
             $buttons = '<div class="d-inline-flex">
                             <a class="pr-1 dropdown-toggle hide-arrow" data-toggle="dropdown">
                                 <i data-feather="menu"></i>
@@ -1281,7 +1284,7 @@ class PurchaseOrderController extends Controller
             
             // if ( $data->statusku and ($data->status == '2' or $data->status == '1') ){
             if ( $data->status == '2' or $data->status == '1' ){
-                if (Auth::user()->can('purchaseOrder-authorize')) {
+                if ($bisaAuthorize) {
                 $buttons .=         '<a href="'. route('purchaseOrder.edit', ['id'=>Crypt::encryptString($data->idku)]) .'" class="dropdown-item">
                                         <i data-feather="check"></i>
                                         <span>'. __("Approve") .'</span>
@@ -1291,7 +1294,7 @@ class PurchaseOrderController extends Controller
             if ( $data->status == '1' or $data->status == '2' ){
                 $poDate = date('Y-m-d', strtotime($data->po_date));
                 if($poDate>=$lockDateToDate){
-                    if (Auth::user()->can('purchaseOrder-edit')) {
+                    if ($bisaEdit) {
                     $buttons .=         '<a href="'. route('purchaseOrder.edit', ['id'=>Crypt::encryptString($data->idku)]) .'" class="dropdown-item">
                                             <i data-feather="file-text"></i>
                                             <span>'. __("Edit") .'</span>
@@ -1344,7 +1347,7 @@ class PurchaseOrderController extends Controller
                                 </a>';
 
             if ( $data->status == '1' or $data->status == '2' or $data->status == '3' ){
-                if (Auth::user()->can('purchaseOrder-delete')) {
+                if ($bisaDelete) {
                     $buttons .="<a href='javascript:;'
                     class='dropdown-item' 
                     data-size='sm'
@@ -1363,7 +1366,7 @@ class PurchaseOrderController extends Controller
             if ( $data->status == '1' ){
                 $poDate = date('Y-m-d', strtotime($data->po_date));
                 if($poDate>$lockDateToDate){
-                    if (Auth::user()->can('purchaseOrder-delete')) {
+                    if ($bisaDelete) {
                         $buttons .=         "<a href='javascript:;'
                                             class='dropdown-item' 
                                             data-size='sm'
