@@ -1305,9 +1305,12 @@ class ReceivingController extends Controller
         // $recDate = strtotime($recDate); 
         // $recDate = date('Y/m/d', $recDate);
         // dd($recDate>$lockDateToDate);
-
+        $bisaEdit = Auth::user()->can('receiving-edit');
+        $bisaDelete = Auth::user()->can('receiving-delete');
+        $bisaApprove = Auth::user()->can('receiving-approve');
+        $bisaPosting = Auth::user()->can('receiving-posting');
         return Datatables::of($data)
-        ->addColumn('action', function ($data) use($lockDateToDate) {
+        ->addColumn('action', function ($data) use($lockDateToDate,$bisaEdit,$bisaDelete,$bisaPosting) {
             $buttons = '<div class="d-inline-flex">
                             <a class="pr-1 dropdown-toggle hide-arrow" data-toggle="dropdown">
                                 <i data-feather="menu"></i>
@@ -1318,7 +1321,7 @@ class ReceivingController extends Controller
             if ($data->status == '10'){
                 $recDate = date('Y-m-d', strtotime($data->rec_date));
                 if($recDate>=$lockDateToDate){
-                    if (Auth::user()->can('receiving-edit')) {
+                    if ($bisaEdit) {
                     $buttons .=         '<a href="'. route('receiving.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                             <i data-feather="file-text"></i>
                                             <span>'. __("Edit") .'</span>
@@ -1328,7 +1331,7 @@ class ReceivingController extends Controller
             }
 
             if ($data->status == '10') {
-                if (Auth::user()->can('receiving-approve')) {
+                if ($bisaApprove) {
                 $buttons .=         '<a href="'. route('receiving.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                         <i data-feather="file-text"></i>
                                         <span>'. __("Approve") .'</span>
@@ -1337,7 +1340,7 @@ class ReceivingController extends Controller
             }
 
             if ( $data->status == '1' || $data->status == '3' ) {                
-                if (Auth::user()->can('receiving-posting')) {
+                if ($bisaPosting) {
                     $buttons .="<a href='javascript:;'
                     class='dropdown-item' 
                     data-size='sm'
@@ -1385,7 +1388,7 @@ class ReceivingController extends Controller
             if ( $data->status == '4' ){
                 $recDate = date('Y-m-d', strtotime($data->rec_date));
                 if($recDate>=$lockDateToDate){
-                    if (Auth::user()->can('receiving-delete')) {
+                    if ($bisaDelete) {
                         $buttons .=         "<a href='javascript:;'
                                                 id='cancelReasonButton'
                                                 class='dropdown-item'
@@ -1402,7 +1405,7 @@ class ReceivingController extends Controller
             if ( $data->status != '4' and $data->status != '5' and $data->status != '7'){
                 $recDate = date('Y-m-d', strtotime($data->rec_date));
                 if($recDate>=$lockDateToDate){
-                    if (Auth::user()->can('receiving-delete')) {
+                    if ($bisaDelete) {
                         $buttons .=         "<a href='javascript:;'
                                             class='dropdown-item' 
                                             data-size='sm'
