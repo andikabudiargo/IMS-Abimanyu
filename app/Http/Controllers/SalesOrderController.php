@@ -886,8 +886,20 @@ class SalesOrderController extends Controller
 
         $data=DB::table('sales_order_hdr')
         ->select(
-            'sales_order_hdr.*'
+            'sales_order_hdr.id'
+            ,'sales_order_hdr.so_code'
+            ,'sales_order_hdr.po_number'
+            ,'sales_order_hdr.customer_id'
+            ,'sales_order_hdr.salesman_code'
+            ,'sales_order_hdr.so_date'
+            ,'sales_order_hdr.order_type'
+            ,'sales_order_hdr.status'
+            ,'sales_order_hdr.note'
+            ,'sales_order_hdr.num_revision'
+            ,'sales_order_hdr.created_at'
+            // 'sales_order_hdr.*'
             ,'sales_order_hdr.so_code as so_code_1'
+            ,'third_party.nama'
             ,'third_party.nama as cust_name'
 
          )
@@ -904,16 +916,19 @@ class SalesOrderController extends Controller
         })->get();
 
         $lockDateToDate = date('Y-m-d',strtotime($this->lockDate));
+        $bisaEdit = Auth::user()->can('salesOrder-edit');
+        $bisaDelete = Auth::user()->can('salesOrder-delete');
 
         return Datatables::of($data)
-        ->addColumn('action', function ($data) use($lockDateToDate){
+        ->addColumn('action', function ($data) use($lockDateToDate,$bisaDelete,$bisaEdit) {
             $buttons = '<div class="d-inline-flex">
                             <a class="pr-1 dropdown-toggle hide-arrow" data-toggle="dropdown">
                                 <i data-feather="menu"></i>
                             </a>';
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
             
-            if (Auth::user()->can('salesOrder-edit') and ($data->status == 1 or $data->status == 2)) {
+            // if (Auth::user()->can('salesOrder-edit') and ($data->status == 1 or $data->status == 2)) {
+            if ($bisaEdit and ($data->status == 1 or $data->status == 2)) {
             $buttons .=         '<a href="'. route('salesOrder.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                     <i data-feather="check"></i>
                                     <span>'. __("Approve") .'</span>
@@ -923,7 +938,8 @@ class SalesOrderController extends Controller
             // if (Auth::user()->can('salesOrder-edit') and ($data->status == 1 or $data->status == 2)) {
             // if (Auth::user()->can('salesOrder-edit') and ($data->status == 1)) {
             //dibukain dulu agar bisa di edit walaupun belum apporoved
-            if (Auth::user()->can('salesOrder-edit') and ($data->status == 1 or $data->status== 2)) {
+            // if (Auth::user()->can('salesOrder-edit') and ($data->status == 1 or $data->status== 2)) {
+            if ($bisaEdit and ($data->status == 1 or $data->status== 2)) {
                 $soDate = date('Y-m-d', strtotime($data->so_date));
                 if($soDate>$lockDateToDate){
                     $buttons .=         '<a href="'. route('salesOrder.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
@@ -961,7 +977,9 @@ class SalesOrderController extends Controller
                                     <span>'. __("Print") .'</span>
                                 </a>';
             }
-            if (Auth::user()->can('salesOrder-delete') and  ($data->status == 1 or $data->status == 2 or $data->status == 3)) {
+
+            // if (Auth::user()->can('salesOrder-delete') and  ($data->status == 1 or $data->status == 2 or $data->status == 3)) {
+            if ($bisaDelete and  ($data->status == 1 or $data->status == 2 or $data->status == 3)) {
                 $soDate = date('Y-m-d', strtotime($data->so_date));
                 if($soDate>$lockDateToDate){
                     $buttons .=         "<a href='javascript:;'
@@ -975,8 +993,7 @@ class SalesOrderController extends Controller
                                         </a>";
                 }
             }
-            if (Auth::user()->can('salesOrder-delete') ) {
-
+            if ($bisaDelete) {
                 $buttons .=     '<a href="'. route('salesOrder.close', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                     <i data-feather="x-circle"></i>
                                     <span>'. __("Close") .'</span>
@@ -1051,9 +1068,22 @@ class SalesOrderController extends Controller
         })
         ->where('sales_order_hdr.so_code','<>',null)
         ->whereNotIn('sales_order_hdr.status',['5','8'])
-        ->select('sales_order_det.*'
-        ,'sales_order_hdr.*'
+        ->select(
+        // 'sales_order_det.*'
+        // ,'sales_order_hdr.*'
+        'sales_order_det.qty'
+        ,'sales_order_det.uom'
+        ,'sales_order_det.price'
+        ,'sales_order_det.price_service'
         ,'sales_order_hdr.so_code as so_code_1'
+        ,'sales_order_hdr.po_number'
+        ,'sales_order_hdr.so_date'
+        ,'sales_order_hdr.ppn'
+        ,'sales_order_hdr.order_type'
+        ,'sales_order_hdr.created_by'
+        ,'sales_order_hdr.created_at'
+        ,'sales_order_hdr.updated_by'
+        ,'sales_order_hdr.updated_at'
         ,'article_alternative_code'
         ,'article.article_desc'
         ,'third_party.nama as customer'
@@ -1061,7 +1091,7 @@ class SalesOrderController extends Controller
         ,'employees.name as salesman'
         ,'sales_order_det.id as id_det'
         ,'sales_order_hdr.status as statusKu'
-        ,db::raw("to_date(so_date,'dd-mm-yyyy') as tanggal_so")
+        ,db::raw("to_date(sales_order_hdr.so_date,'dd-mm-yyyy') as tanggal_so")
         // ,'uom_group'
         // ,'qty_target'
         // ,'qty_forcast'
