@@ -73,6 +73,7 @@ class AccountPayableController extends Controller
             ['data'=> 'voucher_date', 'name'=> 'voucher_date','title'=>'Paid Date'],
             ['data'=> 'voucher_number', 'name'=> 'voucher_number','title'=>'Voucher Number'],
             ['data'=> 'voucher_amount', 'name'=> 'voucher_amount','title'=>'Amount Paid'],
+            ['data'=> 'balance', 'name'=> 'balance','title'=>'Balance'],
             ['data'=> 'num_revision', 'name'=> 'num_revision','title'=>'Rev.','visible'=>false],
             ['data'=> 'inv_number', 'name'=> 'inv_number','title'=>'Invoice Number'],
             ['data'=> 'proforma_inv_number', 'name'=> 'proforma_inv_number','title'=>'Proforma','visible'=>false],
@@ -2041,6 +2042,7 @@ class AccountPayableController extends Controller
             ,db::raw("case when ap_invoice.status = '6' then (select voucher_date from kas_hdr where voucher_number = (select voucher_number from kas_det where reference = ap_invoice.inv_number)) else '' end as voucher_date")
             ,db::raw("case when ap_invoice.status = '6' then (select voucher_number from kas_det where reference = ap_invoice.inv_number) else '' end as voucher_number")
             ,db::raw("case when ap_invoice.status = '6' then (select debit from kas_det where reference = ap_invoice.inv_number) else 0 end as voucher_amount")
+            ,db::raw("grand_total-coalesce((select debit from kas_det where reference = ap_invoice.inv_number),0) as balance")
         )
         ->orderBy('ap_invoice.id')
         ->get(); 
