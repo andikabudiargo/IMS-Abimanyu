@@ -1126,7 +1126,7 @@ class DeliveryController extends Controller
             $numRevision,
             '$username',
             '".date('Y-m-d H:i:s')."',
-            '$reason'
+            reason
         from delivery_hdr where delivery_number = '$dnOrigin'";
 
         $sqlDet="INSERT into delivery_det
@@ -1177,7 +1177,8 @@ class DeliveryController extends Controller
                     'num_revision' => $numRevision,
                     'status' => '10', //Revisi
                     'updated_by' => Auth::user()->username,
-                    'updated_at' => date('Y-m-d H:i:s')
+                    'updated_at' => date('Y-m-d H:i:s'),
+                    'reason' => $reason
                 ]
             );
 
@@ -1250,9 +1251,7 @@ class DeliveryController extends Controller
         ->select('delivery_hdr.*'
         ,'delivery_hdr.delivery_number as delivery_number_1'
         ,DB::raw("concat(kode,'-',nama) as customer_name")
-        ,DB::raw("(select count(*) from invoice_det a where a.dn_number = delivery_hdr.delivery_number
-        and invoice_number in (select invoice_number from invoice_hdr where status not in  ('5','7','10'))
-        ) as sudah_di_bayar")
+        // ,DB::raw("(select count(*) from invoice_det a where a.dn_number = delivery_hdr.delivery_number and invoice_number in (select invoice_number from invoice_hdr where status not in  ('5','7','10'))) as sudah_di_bayar")
         )
         ->where(db::raw("(select sum(qty) from delivery_det where delivery_number = delivery_hdr.delivery_number)"),">",0)
         ->orderBy('id')
@@ -1261,8 +1260,13 @@ class DeliveryController extends Controller
         // $lockDateToDate = $this->lockDate;
         $lockDateToDate = date('Y-m-d',strtotime($this->lockDate));
 
+        $bisaPosting = Auth::user()->can('delivery-posting');
+        $bisaDelete = Auth::user()->can('delivery-delete');
+        $bisaEdit = Auth::user()->can('delivery-edit');
+        
+
         return Datatables::of($data)
-        ->addColumn('action', function ($data) use($lockDateToDate)  {
+        ->addColumn('action', function ($data) use($lockDateToDate,$bisaPosting,$bisaDelete,$bisaEdit)  {
             $buttons = '<div class="d-inline-flex">
                             <a class="pr-1 dropdown-toggle hide-arrow" data-toggle="dropdown">
                                 <i data-feather="menu"></i>
@@ -1286,7 +1290,7 @@ class DeliveryController extends Controller
             // }
 
             if (($data->status == '10')){
-                if (Auth::user()->can('delivery-edit')) {
+                if ($bisaEdit) {
                 $buttons .=         '<a href="'. route('delivery.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                         <i data-feather="check"></i>
                                         Approve
@@ -1295,7 +1299,7 @@ class DeliveryController extends Controller
             }
 
             if ( $data->status == '1' || $data->status == '3' ) {                
-                if (Auth::user()->can('delivery-posting')) {
+                if ($bisaPosting) {
                     $buttons .="<a href='javascript:;'
                     class='dropdown-item' 
                     data-size='sm'
@@ -1340,7 +1344,7 @@ class DeliveryController extends Controller
                 
             // if (($data->status != '3') && ($data->status != '4') && ($data->status != '8') && ($data->status != '7')){
             if (($data->status != '3') && ($data->status != '10') && ($data->status != '8') && ($data->status != '7')){
-                if (Auth::user()->can('delivery-delete')) {
+                if ($bisaDelete) {
                     $dnDate = date('Y-m-d', strtotime($data->delivery_date));
                     if($dnDate>=$lockDateToDate){
                         $buttons .=         "<a href='javascript:;'

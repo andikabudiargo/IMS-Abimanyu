@@ -54,6 +54,12 @@
                                     <textarea type="text" id="note" name="note" class="form-control" rows="1" >{{ $header->note }}</textarea>
                                 </div>
                             </div>
+                            <div class="form-row">
+                                <div class="form-group col-md-9">
+                                    <label class="form-label" for="note">Revision reason</label>
+                                    <textarea type="text" id="note" name="note" class="form-control" rows="1" disabled>{{ $header->reason }}</textarea>
+                                </div>
+                            </div>
                         </form>
                     </div>
                 </div>
