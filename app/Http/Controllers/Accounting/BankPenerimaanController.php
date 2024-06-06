@@ -754,6 +754,7 @@ class BankPenerimaanController extends Controller
         ->where('kas_hdr.status','<>','5')
         ->select(
             'kas_hdr.*'
+            ,DB::raw("to_char(to_date(voucher_date, 'DD-MM-YYYY'), 'DD Month YYYY') as voucher_date")
             ,'kas_hdr.status as statusku'
             // ,db::raw("concat(accounts.account,'-',description) as receive_name")
             ,'description as receive_name'

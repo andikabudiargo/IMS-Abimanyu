@@ -729,6 +729,7 @@ class KasPenerimaanController extends Controller
         ->where('kas_hdr.status','<>','5')
         ->select(
             'kas_hdr.*'
+            ,DB::raw("to_char(to_date(voucher_date, 'DD-MM-YYYY'), 'DD Month YYYY') as voucher_date")
             ,'kas_hdr.status as statusku'
             // ,db::raw("concat(accounts.account,'-',description) as receive_name")
             ,'description as receive_name'
@@ -736,7 +737,7 @@ class KasPenerimaanController extends Controller
             ,db::raw("(select to_char(approval_date::date, 'DD-MM-YYYY') from approval_history z where module_number = kas_hdr.voucher_number order by approval_order desc limit 1) as approval_at")
         )
         ->orderBy('id')
-        ->get(); 
+        ->get();
        
         return Datatables::of($data)
         ->addColumn('action', function ($data) {

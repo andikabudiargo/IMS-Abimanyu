@@ -741,6 +741,7 @@ class BankKeluarController extends Controller
         ->where('kas_hdr.status','<>','5')
         ->select(
             'kas_hdr.*'
+            ,DB::raw("to_char(to_date(voucher_date, 'DD-MM-YYYY'), 'DD Month YYYY') as voucher_date")
             ,'kas_hdr.status as statusku'
             // ,db::raw("concat(third_party.kode,'-',third_party.nama) as supplier_name")
             ,db::raw("case when description != '' then kas_hdr.description else third_party.nama end as supplier_name")

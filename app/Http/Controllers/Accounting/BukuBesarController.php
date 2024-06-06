@@ -221,6 +221,7 @@ class BukuBesarController extends Controller
             ,'kas_det.description'
             ,'kas_hdr.voucher_date'
             , DB::raw("to_date(voucher_date,'DD-MM-YYYY') as voucher_date_2")
+            ,DB::raw("to_char(to_date(voucher_date, 'DD-MM-YYYY'), 'DD Month YYYY') as voucher_date")
             ,'debit'
             ,'credit'
             ,'kas_hdr.status as statusku'

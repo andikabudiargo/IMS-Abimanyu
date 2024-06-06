@@ -844,7 +844,8 @@ class DebitNoteController extends Controller
             // ,DB::raw("(select STRING_AGG ( a.rec_number,',' ORDER BY a.id) as list_rec from debit_note_hdr_detail a where ap_number = debit_note_hdr.ap_number) as list_rec")
             //,db::raw("concat(third_party.kode,'-',third_party.nama) as customer_name")
             // ,db::raw("(select STRING_AGG((select name from users where username = z.username), ' -> ' ORDER BY approval_order) AS main from approval_history z where module_number = debit_note_hdr.dn_number) as approval_by")
-            ,db::raw("replace(dn_date,'-','/') as dn_date")
+            // ,db::raw("replace(dn_date,'-','/') as dn_date")
+            ,DB::raw("to_char(to_date(debit_note_hdr.dn_date, 'DD-MM-YYYY'), 'DD Month YYYY') as dn_date")
             ,'third_party.nama as customer_name'
             ,db::raw("(select (select name from users where username = z.username) from approval_history z where module_number = debit_note_hdr.dn_number order by approval_order desc limit 1) as approval_by")
             ,db::raw("(select to_char(approval_date::date, 'DD-MM-YYYY') from approval_history z where module_number = debit_note_hdr.dn_number order by approval_order desc limit 1) as approval_at")
@@ -858,9 +859,12 @@ class DebitNoteController extends Controller
         )
         ->orderBy('debit_note_hdr.id')
         ->get(); 
+
+        $bisaEdit = Auth::user()->can('receiving-edit');
+        $bisaDelete = Auth::user()->can('ap-delete');
                 
         return Datatables::of($data)
-        ->addColumn('action', function ($data) {
+        ->addColumn('action', function ($data) use ($bisaEdit,$bisaDelete) {
             $buttons = '<div class="d-inline-flex">
                             <a class="pr-1 dropdown-toggle hide-arrow text-primary" data-toggle="dropdown">
                                 <i data-feather="menu"></i>
@@ -869,7 +873,7 @@ class DebitNoteController extends Controller
             
 
             if (($data->status != '3') && ($data->status != '4')){
-                if (Auth::user()->can('receiving-edit')) {
+                if ($bisaEdit) {
                 $buttons .=         '<a href="'. route('debitNote.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                         <i data-feather="check"></i>
                                         Approve
@@ -879,7 +883,7 @@ class DebitNoteController extends Controller
 
             //sibuka sementara dari pak leo 6-11-2023
             // if (($data->status != '3') && ($data->status != '4')){
-                if (Auth::user()->can('receiving-edit')) {
+                if ($bisaEdit) {
                     $buttons .=         '<a href="'. route('debitNote.edit',  ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                             <i data-feather="file-text"></i>
                                             Edit
@@ -902,7 +906,7 @@ class DebitNoteController extends Controller
             
                 
             if (($data->status != '3') && ($data->status != '4')){
-                if (Auth::user()->can('receiving-delete')) {
+                if ($bisaDelete) {
                 $buttons .=         "<a href='javascript:;'
                                         id='deleteButton'
                                         class='dropdown-item'

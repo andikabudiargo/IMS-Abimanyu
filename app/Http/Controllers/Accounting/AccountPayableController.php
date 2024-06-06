@@ -2030,6 +2030,7 @@ class AccountPayableController extends Controller
         ->whereNotIn('ap_invoice.status',['5'])
         ->select(
             'ap_invoice.*'
+            ,DB::raw("to_char(to_date(ap_invoice.ap_date, 'DD-MM-YYYY'), 'DD Month YYYY') as ap_date")
             ,DB::raw("(select STRING_AGG ( a.rec_number,',' ORDER BY a.id) as list_rec from ap_invoice_detail a where ap_number = ap_invoice.ap_number) as list_rec")
             ,'third_party.nama as supplier_name'
             ,db::raw("(select (select name from users where username = z.username) from approval_history z where module_number = ap_invoice.ap_number order by approval_order desc limit 1) as approval_by")
@@ -2043,9 +2044,12 @@ class AccountPayableController extends Controller
         )
         ->orderBy('ap_invoice.id')
         ->get(); 
+
+        $bisaEdit = Auth::user()->can('ap-edit');
+        $bisaDelete = Auth::user()->can('ap-delete');
         
         return Datatables::of($data)
-        ->addColumn('action', function ($data) {
+        ->addColumn('action', function ($data)  use ($bisaEdit,$bisaDelete){
             $buttons = '<div class="d-inline-flex">
                             <a class="pr-1 dropdown-toggle hide-arrow" data-toggle="dropdown">
                                 <i data-feather="menu"></i>
@@ -2065,7 +2069,7 @@ class AccountPayableController extends Controller
                 //sibuka sementara dari pak leo 6-11-2023
             if ($data->status != '5'){
             // if (($data->status != '4') && ($data->status != '5')){
-                if (Auth::user()->can('ap-edit')) {
+                if ($bisaEdit) {
                 $buttons .=         '<a href="'. route('accountPayable.edit',['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                         <i data-feather="file-text"></i>
                                         <span>'. __("Edit") .'</span>
@@ -2129,7 +2133,7 @@ class AccountPayableController extends Controller
             // }
 
             if (($data->status != '7')){
-                if (Auth::user()->can('ap-delete')) {
+                if ($bisaDelete) {
                 $buttons .=         "<a href='javascript:;'
                                         id='deleteButton'
                                         class='dropdown-item'
