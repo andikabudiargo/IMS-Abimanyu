@@ -764,15 +764,19 @@ class BomController extends Controller
         )
         ->orderBy('bom_code')
         ->get(); 
+
+        $bisaEdit = Auth::user()->can('bom-edit');
+        $bisaRevisi = Auth::user()->can('bom-revision');
+        $bisaDelete = Auth::user()->can('bom-delete');
        
         return Datatables::of($data)
-        ->addColumn('action', function ($data) {
+        ->addColumn('action', function ($data) use ($bisaDelete,$bisaEdit,$bisaRevisi) {
             $buttons = '<div class="d-inline-flex">
                             <a class="pr-1 dropdown-toggle hide-arrow" data-toggle="dropdown">
                                 <i data-feather="menu"></i>
                             </a>';
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
-            if (Auth::user()->can('bom-edit') && $data->status != '3' && $data->status != '5') {
+            if ($bisaEdit && $data->status != '3' && $data->status != '5') {
             $buttons .=         '<a href="'. route('bom.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                     <i data-feather="file-text"></i>
                                     Edit
@@ -795,7 +799,7 @@ class BomController extends Controller
                                     Detail
                                 </a>';
             if (($data->status == '2') || ($data->status == '3') ){
-                if (Auth::user()->can('bom-revision')) {
+                if ($bisaRevisi) {
 
                     $buttons .=     "<a href='javascript:;'
                                         id='revisionReasonButton'
@@ -814,7 +818,7 @@ class BomController extends Controller
                 }
             }
                 
-            if (Auth::user()->can('bom-delete')) {
+            if ($bisaDelete) {
                 if ( $data->status != '5' ){
                     $buttons .= "<a href='javascript:;'
                                     class='dropdown-item' 
