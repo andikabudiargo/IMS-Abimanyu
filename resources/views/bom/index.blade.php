@@ -100,6 +100,7 @@
     </div>
     <div class="card-content collapse show">
       <div class="card-body">
+        <button type="button" class="btn btn-info" id ="cmdExport" name="cmdExport"><i class="fa fa-download"></i>Downlod Details to Excel</button>
         <div class="row">
             <div class="col-sm-12">
               <div class="card-datatable table-responsive pt-0">
@@ -126,6 +127,11 @@
   let searchBom = $("#searchBom");
   let articleCode = $("#articleCode");
   let status = $("#status");
+  let btnExport = document.querySelector('#cmdExport');
+
+  document.addEventListener("DOMContentLoaded", function(event) {
+    btnExport.style.display = "none";
+  });
   
   $(document).ready(function(){    
 
@@ -133,10 +139,12 @@
 
   //refresh di cards
   $('a[data-action="reload"]').on('click', function () {
+    btnExport.style.display = "block";
     showList(searchBom.val(),articleCode.val(),status.val());
   });
 
   $("#btnSearch").click(function(e){
+    btnExport.style.display = "block";
     showList(searchBom.val(),articleCode.val(),status.val());
   });
 
@@ -167,9 +175,23 @@
 
   let href;
   $(document).on('click', '#revisionReasonButton', function(event) {
-      event.preventDefault();
-      href = $(this).data('href');
-      $('#modalReasonRevision').attr("action", href);
+    event.preventDefault();
+    href = $(this).data('href');
+    $('#modalReasonRevision').attr("action", href);
+  });
+
+  $("#cmdExport").click(function(){
+    let bom = searchBom.val();
+    let artCode = articleCode.val();
+    let statusKu = status.val();
+    let url = "{{ route('bom.export', ['searchBom'=>':searchBom','articleCode'=>':artCode','status'=>':status']) }}";
+    // http://localhost:8000/bom/export?searchBom=%3AsearchBom&amp;articleCode=%3AartCode&amp;status=%3Astatus
+    url = url.replace('%3AsearchBom', bom);
+    url = url.replace('%3AartCode', artCode);
+    url = url.replace('%3Astatus', statusKu);
+    url = url.replace(/\amp;/g,'');
+    console.log(url);
+    window.location.href = url;
   });
 
   $.ajaxSetup({

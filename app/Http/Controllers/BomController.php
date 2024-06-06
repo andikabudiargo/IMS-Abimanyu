@@ -14,6 +14,8 @@ use DB;
 use PDF;
 use AppHelpers;
 use Approval;
+use App\Exports\BomExport;
+use Maatwebsite\Excel\Facades\Excel;
 
 date_default_timezone_set('Asia/Bangkok');
 
@@ -1241,5 +1243,15 @@ class BomController extends Controller
             return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);
         }
         
+    }
+
+    public function exportBom(Request $request) 
+    {
+        $username =  Auth::user()->username;
+        $searchBom = strtolower($request->searchBom);
+        $articleCode = $request->articleCode;
+        $status = $request->status;
+        $filename = 'data_bom';
+        return Excel::download(new BomExport($searchBom,$articleCode,$status), $filename.'.xlsx');
     }
 }
