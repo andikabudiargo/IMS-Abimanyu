@@ -1251,7 +1251,7 @@ class DeliveryController extends Controller
         ->select('delivery_hdr.*'
         ,'delivery_hdr.delivery_number as delivery_number_1'
         ,DB::raw("concat(kode,'-',nama) as customer_name")
-        // ,DB::raw("(select count(*) from invoice_det a where a.dn_number = delivery_hdr.delivery_number and invoice_number in (select invoice_number from invoice_hdr where status not in  ('5','7','10'))) as sudah_di_bayar")
+        ,DB::raw("(select count(*) from invoice_det a where a.dn_number = delivery_hdr.delivery_number and invoice_number in (select invoice_number from invoice_hdr where status not in  ('5','7','10'))) as sudah_di_bayar")
         )
         ->where(db::raw("(select sum(qty) from delivery_det where delivery_number = delivery_hdr.delivery_number)"),">",0)
         ->orderBy('id')
@@ -1343,7 +1343,8 @@ class DeliveryController extends Controller
                                 </a>';
                 
             // if (($data->status != '3') && ($data->status != '4') && ($data->status != '8') && ($data->status != '7')){
-            if (($data->status != '3') && ($data->status != '10') && ($data->status != '8') && ($data->status != '7')){
+            // if (($data->status != '3') && ($data->status != '10') && ($data->status != '8') && ($data->status != '7') ){
+            if (($data->status != '3') && ($data->status != '10') && ($data->status != '8') && ($data->status != '7') && ($data->sudah_di_bayar == 0)){
                 if ($bisaDelete) {
                     $dnDate = date('Y-m-d', strtotime($data->delivery_date));
                     if($dnDate>=$lockDateToDate){
