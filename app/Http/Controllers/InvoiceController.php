@@ -45,6 +45,7 @@ class InvoiceController extends Controller
             ['data'=> 'invoice_number', 'name'=> 'invoice_number','title'=>'Inv. Number' ],
             ['data'=> 'status', 'name'=> 'status','title'=>'Status' ],
             ['data'=> 'invoice_date', 'name'=> 'invoice_date','title'=>'Date' ],
+            ['data'=> 'invoice_date_2', 'name'=> 'invoice_date_2','title'=>'Date' ],
             ['data'=> 'so_number', 'name'=> 'so_number','title'=>'SO Number' ],
             ['data'=> 'po_number', 'name'=> 'po_number','title'=>'PO Number' ],
             ['data'=> 'customer_name', 'name'=> 'customer_name','title'=>'Customer' ],
@@ -922,7 +923,8 @@ class InvoiceController extends Controller
             //,db::raw("concat(third_party.kode,'-',third_party.nama) as customer_name")
             // ,db::raw("(select STRING_AGG((select name from users where username = z.username), ' -> ' ORDER BY approval_order) AS main from approval_history z where module_number = invoice_hdr.invoice_number) as approval_by")
             // ,db::raw("replace(invoice_date,'-','/') as invoice_date")
-            ,DB::raw("to_char(to_date(invoice_hdr.invoice_date, 'DD-MM-YYYY'), 'DD Month YYYY') as invoice_date")
+            ,DB::raw("to_char(to_date(invoice_hdr.invoice_date, 'DD-MM-YYYY'), 'DD/MM/YYYY') as invoice_date")
+            ,DB::raw("to_date(invoice_hdr.invoice_date, 'DD-MM-YYYY') as invoice_date_2")
             ,'third_party.nama as customer_name'
             ,db::raw("(select (select name from users where username = z.username) from approval_history z where module_number = invoice_hdr.invoice_number order by approval_order desc limit 1) as approval_by")
             ,db::raw("(select to_char(approval_date::date, 'DD-MM-YYYY') from approval_history z where module_number = invoice_hdr.invoice_number order by approval_order desc limit 1) as approval_at")

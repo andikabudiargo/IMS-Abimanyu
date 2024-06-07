@@ -150,11 +150,11 @@
       tableId:"detailedTable",
       route:"{{ route('invoice.list') }}",
       kolom:{!! $kolom !!},
-      arrColPrint:[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19],
+      arrColPrint:[1,2,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20],
       columnDefs :[
         { width: '5%', targets: 0 },
         {
-          targets: [ 7,8,9,10,12,13 ],
+          targets: [ 8,9,10,12,13,14 ],
           render: $.fn.dataTable.render.number(',', '.', 2, ''),
           className: "text-right"
         },

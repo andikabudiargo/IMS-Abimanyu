@@ -154,7 +154,7 @@
       columnDefs :[
         { width: '5%', targets: 0 },
         {
-          targets: [ 7,8,18,19,20,21,22,23,24 ],
+          targets: [ 8,8,19,20,21,22,23,24,25 ],
           render: $.fn.dataTable.render.number(',', '.', 2, ''),
           className: "text-right"
         },
