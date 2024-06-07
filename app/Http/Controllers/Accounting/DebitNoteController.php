@@ -44,6 +44,7 @@ class DebitNoteController extends Controller
             ['data'=> 'dn_number', 'name'=> 'dn_number','title'=>'Inv. Number' ],
             ['data'=> 'status', 'name'=> 'status','title'=>'Status' ],
             ['data'=> 'dn_date', 'name'=> 'dn_date','title'=>'Date' ],
+            ['data'=> 'dn_date_2', 'name'=> 'dn_date_2','title'=>'Date','visible'=>false ],
             ['data'=> 'so_number', 'name'=> 'so_number','title'=>'SO Number' ],
             ['data'=> 'po_number', 'name'=> 'po_number','title'=>'PO Number' ],
             ['data'=> 'customer_name', 'name'=> 'customer_name','title'=>'Customer' ],
@@ -845,7 +846,8 @@ class DebitNoteController extends Controller
             //,db::raw("concat(third_party.kode,'-',third_party.nama) as customer_name")
             // ,db::raw("(select STRING_AGG((select name from users where username = z.username), ' -> ' ORDER BY approval_order) AS main from approval_history z where module_number = debit_note_hdr.dn_number) as approval_by")
             // ,db::raw("replace(dn_date,'-','/') as dn_date")
-            ,DB::raw("to_char(to_date(debit_note_hdr.dn_date, 'DD-MM-YYYY'), 'DD Month YYYY') as dn_date")
+            ,DB::raw("to_char(to_date(debit_note_hdr.dn_date, 'DD-MM-YYYY'), 'DD/MM/YYYY') as dn_date")
+            ,DB::raw("to_date(debit_note_hdr.dn_date, 'DD-MM-YYYY') as dn_date_2")
             ,'third_party.nama as customer_name'
             ,db::raw("(select (select name from users where username = z.username) from approval_history z where module_number = debit_note_hdr.dn_number order by approval_order desc limit 1) as approval_by")
             ,db::raw("(select to_char(approval_date::date, 'DD-MM-YYYY') from approval_history z where module_number = debit_note_hdr.dn_number order by approval_order desc limit 1) as approval_at")

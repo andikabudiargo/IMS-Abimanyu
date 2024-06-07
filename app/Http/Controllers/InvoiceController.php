@@ -45,7 +45,7 @@ class InvoiceController extends Controller
             ['data'=> 'invoice_number', 'name'=> 'invoice_number','title'=>'Inv. Number' ],
             ['data'=> 'status', 'name'=> 'status','title'=>'Status' ],
             ['data'=> 'invoice_date', 'name'=> 'invoice_date','title'=>'Date' ],
-            ['data'=> 'invoice_date_2', 'name'=> 'invoice_date_2','title'=>'Date' ],
+            ['data'=> 'invoice_date_2', 'name'=> 'invoice_date_2','title'=>'Date','visible'=>false ],
             ['data'=> 'so_number', 'name'=> 'so_number','title'=>'SO Number' ],
             ['data'=> 'po_number', 'name'=> 'po_number','title'=>'PO Number' ],
             ['data'=> 'customer_name', 'name'=> 'customer_name','title'=>'Customer' ],
