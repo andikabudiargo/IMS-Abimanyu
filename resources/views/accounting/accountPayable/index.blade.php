@@ -94,6 +94,7 @@
 <style>
 </style>
 @endsection
+
 @section('scripts')
 <script type="text/javascript">
   $(document).ready(function(){    
@@ -148,7 +149,8 @@
       tableId:"detailedTable",
       route:"{{ route('accountPayable.list') }}",
       kolom:{!! $kolom !!},
-      arrColPrint:[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29],
+      // arrColPrint:[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29],
+      arrColPrint:[1,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30],
       columnDefs :[
         { width: '5%', targets: 0 },
         {
@@ -165,7 +167,7 @@
         searchStatus:searchStatus,
         apDate:apDate
       },
-      orderColumn:[[ 29, 'desc' ]],
+      orderColumn:[[ 30, 'desc' ]],
       excelFileName:'invoice_supplier'
     });
   }
