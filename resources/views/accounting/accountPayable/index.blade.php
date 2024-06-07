@@ -149,12 +149,11 @@
       tableId:"detailedTable",
       route:"{{ route('accountPayable.list') }}",
       kolom:{!! $kolom !!},
-      // arrColPrint:[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29],
       arrColPrint:[1,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30],
       columnDefs :[
         { width: '5%', targets: 0 },
         {
-          targets: [ 8,8,19,20,21,22,23,24,25 ],
+          targets: [ 8,9,19,20,21,22,23,24,25 ],
           render: $.fn.dataTable.render.number(',', '.', 2, ''),
           className: "text-right"
         },
