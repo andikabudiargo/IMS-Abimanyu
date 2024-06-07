@@ -35,8 +35,8 @@ class BukuBesarController extends Controller
             ['data'=>'reference','name'=>'reference','title'=>'Reference'],
             ['data'=>'voucher_number','name'=>'voucher_number','title'=>'Voucher Number'],
             ['data'=>'description','name'=>'description','title'=>'Description'],
-            ['data'=>'voucher_date_2','name'=>'voucher_date_2','title'=>'Date 2', 'visible'=>false],
             ['data'=>'voucher_date','name'=>'voucher_date','title'=>'Date'],
+            ['data'=>'voucher_date_2','name'=>'voucher_date_2','title'=>'Date', 'visible'=>false],
             ['data'=>'debit','name'=>'debit','title'=>'Debet'],
             ['data'=>'credit','name'=>'credit','title'=>'Kredit'],
             ['data'=>'statusku','name'=>'statusku','title'=>'Status'],
@@ -220,8 +220,8 @@ class BukuBesarController extends Controller
             ,'kas_det.voucher_number'
             ,'kas_det.description'
             ,'kas_hdr.voucher_date'
-            , DB::raw("to_date(voucher_date,'DD-MM-YYYY') as voucher_date_2")
-            ,DB::raw("to_char(to_date(voucher_date, 'DD-MM-YYYY'), 'DD Month YYYY') as voucher_date")
+            ,DB::raw("to_date(voucher_date,'DD-MM-YYYY') as voucher_date_2")
+            ,DB::raw("to_char(to_date(voucher_date, 'DD-MM-YYYY'), 'DD/MM/YYYY') as voucher_date")
             ,'debit'
             ,'credit'
             ,'kas_hdr.status as statusku'

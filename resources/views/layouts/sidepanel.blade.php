@@ -406,7 +406,7 @@
         @can('accounting-menu')
           <li class=" navigation-header"><span data-i18n="Finance Accounting">Finance Accounting</span><i data-feather="more-horizontal"></i>
           </li>
-          <li class=" {{ in_array(\Request::segment(1), ['aps','banks','pettyCash','bankReceipt','invoice','kasPenerimaan','kasKeluar','bankPenerimaan','bankKeluar','deliveryReportAcc','deliveryReportSoAcc','jurnalUmum','accountPayable','debitNote']) ? 'active' : '' }} nav-item">
+          <li class=" {{ in_array(\Request::segment(1), ['aps','banks','pettyCash','bankReceipt','invoice','kasPenerimaan','kasKeluar','bankPenerimaan','bankKeluar','deliveryReportAcc','deliveryReportSoAcc','jurnalUmum','accountPayable','debitnote']) ? 'active' : '' }} nav-item">
             <a class="d-flex align-items-center" href="javascript:void(0);">
               <i data-feather="dollar-sign"></i>
               <span class="menu-title text-truncate" data-i18n="Form Elements">Finance & acc
@@ -423,7 +423,7 @@
                       </li> --}}
                       <li class="{{ \Request::segment(1) == 'invoice' ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('invoice.index') }}"><span class="menu-item text-truncate" data-i18n="Invoice customer">Invoice Customer</span></a>
                       </li>
-                      <li class="{{ \Request::segment(1) == 'debitNote' ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('debitNote.index') }}"><span class="menu-item text-truncate" data-i18n="Debit Note">Debit Note</span></a>
+                      <li class="{{ \Request::segment(1) == 'debitnote' ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('debitNote.index') }}"><span class="menu-item text-truncate" data-i18n="Debit Note">Debit Note</span></a>
                       </li>
                   </ul>
                 </li>

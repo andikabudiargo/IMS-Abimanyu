@@ -159,11 +159,11 @@
       tableId:"detailedTable",
       route:"{{ route('jurnalUmum.list') }}",
       kolom:{!! $kolom !!},
-      arrColPrint:[1,2,3,4,5,6,7,8,9,10,11],
+      arrColPrint:[1,3,4,5,6,7,8,9,10,11,12],
       columnDefs :[
         { width: '5%', targets: 0 },
         {
-          targets: [ 4 ],
+          targets: [ 5 ],
           render: $.fn.dataTable.render.number(',', '.', 2, ''),
           className: "text-right"
         },
@@ -175,8 +175,8 @@
         year:year,
         searchStatus:searchStatus
       },
-      orderColumn:[[ 9,'asc']],
-      excelFileName:'kas_pembayaran'
+      orderColumn:[[ 10,'asc']],
+      excelFileName:'jurnal_umum'
     });
   }
 

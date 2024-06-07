@@ -33,6 +33,7 @@ class BankPenerimaanController extends Controller
             ['data'=>'statusku','name'=>'statusku','title'=>'Status'],
             ['data'=>'voucher_number','name'=>'voucher_number','title'=>'Voucher Number'],
             ['data'=>'voucher_date','name'=>'voucher_date','title'=>'Date'],
+            ['data'=>'voucher_date_2','name'=>'voucher_date_2','title'=>'Date','visible'=>false],
             ['data'=>'receive_name','name'=>'receive_name','title'=>'Receive From'],
             ['data'=>'note','name'=>'note','title'=>'Note'],
             ['data'=>'amount','name'=>'amount','title'=>'Amount'],
@@ -754,7 +755,8 @@ class BankPenerimaanController extends Controller
         ->where('kas_hdr.status','<>','5')
         ->select(
             'kas_hdr.*'
-            ,DB::raw("to_char(to_date(voucher_date, 'DD-MM-YYYY'), 'DD Month YYYY') as voucher_date")
+            ,DB::raw("to_char(to_date(voucher_date, 'DD-MM-YYYY'), 'DD/MM/YYYY') as voucher_date")
+            ,DB::raw("to_date(voucher_date, 'DD-MM-YYYY') as voucher_date_2")
             ,'kas_hdr.status as statusku'
             // ,db::raw("concat(accounts.account,'-',description) as receive_name")
             ,'description as receive_name'

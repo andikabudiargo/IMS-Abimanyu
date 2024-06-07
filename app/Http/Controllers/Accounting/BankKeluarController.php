@@ -32,6 +32,7 @@ class BankKeluarController extends Controller
             ['data'=>'action','name'=>'action','title'=>'action','orderable'=> false,'searchable'=>false],
             ['data'=>'voucher_number','name'=>'voucher_number','title'=>'Voucher Number'],
             ['data'=>'voucher_date','name'=>'voucher_date','title'=>'Date'],
+            ['data'=>'voucher_date_2','name'=>'voucher_date_2','title'=>'Date', 'visible'=>false],
             ['data'=>'supplier_name','name'=>'supplier_name','title'=>'Paid To'],
             // ['data'=>'description','name'=>'description','title'=>'Paid To'],
             ['data'=>'amount','name'=>'amount','title'=>'Amount'],
@@ -741,7 +742,8 @@ class BankKeluarController extends Controller
         ->where('kas_hdr.status','<>','5')
         ->select(
             'kas_hdr.*'
-            ,DB::raw("to_char(to_date(voucher_date, 'DD-MM-YYYY'), 'DD Month YYYY') as voucher_date")
+            ,DB::raw("to_char(to_date(voucher_date, 'DD-MM-YYYY'), 'DD/MM/YYYY') as voucher_date")
+            ,DB::raw("to_date(voucher_date, 'DD-MM-YYYY') as voucher_date_2")
             ,'kas_hdr.status as statusku'
             // ,db::raw("concat(third_party.kode,'-',third_party.nama) as supplier_name")
             ,db::raw("case when description != '' then kas_hdr.description else third_party.nama end as supplier_name")
