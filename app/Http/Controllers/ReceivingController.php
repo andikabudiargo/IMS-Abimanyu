@@ -1310,7 +1310,7 @@ class ReceivingController extends Controller
         $bisaApprove = Auth::user()->can('receiving-approve');
         $bisaPosting = Auth::user()->can('receiving-posting');
         return Datatables::of($data)
-        ->addColumn('action', function ($data) use($lockDateToDate,$bisaEdit,$bisaDelete,$bisaPosting) {
+        ->addColumn('action', function ($data) use($lockDateToDate,$bisaEdit,$bisaDelete,$bisaPosting,$bisaApprove) {
             $buttons = '<div class="d-inline-flex">
                             <a class="pr-1 dropdown-toggle hide-arrow" data-toggle="dropdown">
                                 <i data-feather="menu"></i>
