@@ -2031,7 +2031,8 @@ class AccountPayableController extends Controller
         ->whereNotIn('ap_invoice.status',['5'])
         ->select(
             'ap_invoice.*'
-            ,DB::raw("to_char(to_date(ap_invoice.ap_date, 'DD-MM-YYYY'), 'DD Month YYYY') as ap_date")
+            // ,DB::raw("to_char(to_date(ap_invoice.ap_date, 'DD-MM-YYYY'), 'DD Month YYYY') as ap_date")
+            ,DB::raw("to_char(to_date(ap_invoice.ap_date, 'DD-MM-YYYY'), 'DD/MM/YYYY') as ap_date")
             ,DB::raw("(select STRING_AGG ( a.rec_number,',' ORDER BY a.id) as list_rec from ap_invoice_detail a where ap_number = ap_invoice.ap_number) as list_rec")
             ,'third_party.nama as supplier_name'
             ,db::raw("(select (select name from users where username = z.username) from approval_history z where module_number = ap_invoice.ap_number order by approval_order desc limit 1) as approval_by")
