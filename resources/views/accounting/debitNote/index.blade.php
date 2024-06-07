@@ -145,7 +145,7 @@
       tableId:"detailedTable",
       route:"{{ route('debitNote.list') }}",
       kolom:{!! $kolom !!},
-      arrColPrint:[1,2,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20],
+      arrColPrint:[1,2,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19],
       columnDefs :[
         { width: '5%', targets: 0 },
         {
