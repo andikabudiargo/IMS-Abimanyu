@@ -1575,6 +1575,113 @@
             <!--/ Company Table Card -->
         </div>
     @endif
+    @if( count($listDebNoteHome)>0 )
+        <div class="form-row">
+            <!-- Company Table Card -->
+            <div class="col-lg-12 col-12">
+                <div class="card">
+                    <div class="card-header"><strong>Debit Note needs to be approved <div class="badge badge-pill badge-info"> {{ count($listDebNoteHome) }}</div></strong></div>
+                    <div class="card-body">
+                        <div class="table-responsive" style="max-height:300px">
+                            <table class="table" width="100%">
+                                <thead>
+                                    <tr>
+                                        <th>No</th>
+                                        <th>DN Number</th>
+                                        <th>DN Date</th>
+                                        <th>PO Number</th>
+                                        <th>Note</th>
+                                        <th>Approved</th>
+                                        <th>Created_by</th>
+                                        <th>Status</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($listDebNoteHome as $key=>$val)
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div>
+                                                    <div class="font-weight-bolder">{{ $key+1 }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div>
+                                                    <div class="font-weight-bolder">{{ $val->dn_number }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div>
+                                                    <div class="font-weight-bolder">{{ $val->dn_date }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div>
+                                                    <div class="font-weight-bolder">{{ $val->po_number }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div>
+                                                    <div class="font-weight-bolder">{{ $val->note }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="text-right">
+                                            #Approved: {{ $val->current_level }} of {{ $val->max_level }}
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div>
+                                                    <div class="font-weight-bolder">{{ $val->created_by }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div>
+                                                    <div class="font-weight-bolder">{{ $val->status }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <a class="btn btn-outline-info btn-sm" 
+                                                id="cmdDetailDebitNoteHome{{ $key }}" 
+                                                name="cmdDetailDebitNoteHome{{ $key }}" 
+                                                href="{{ route('debitNote.edit', ['id'=>Crypt::encryptString($val->id)]) }}"> 
+                                                <i data-feather='list'></i>
+                                                Detail
+                                            </a>
+                                            <a href='javascript:;'
+                                                onclick="action(this)"
+                                                id = 'buttonDebitNoteHome{{ $key }}'
+                                                class="btn btn-outline-success btn-sm buttonAp-{{ $val->id }}"
+                                                data-id-class = "buttonAp-{{ $val->id }}"
+                                                data-doc-number='{{ $val->dn_number }}'
+                                                data-url='{{ route("debitNote.notif.approve", ["debitNnumber"=>$val->dn_number]) }}'>
+                                                <i data-feather='check-circle'></i>
+                                                Approve
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!--/ Company Table Card -->
+        </div>
+    @endif
    
 </section>
 @endsection
