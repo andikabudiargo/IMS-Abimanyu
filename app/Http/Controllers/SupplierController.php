@@ -321,6 +321,9 @@ class SupplierController extends Controller
         ->orderBy('description')
         ->get();
 
+        $data['customers'] = DB::table('third_party')
+        ->where('third_party_type','cust')
+        ->get();
 
         $data['edit'] = 1;
 
@@ -402,6 +405,7 @@ class SupplierController extends Controller
         $pkp = $request->pkp ? 'Y' : 'N';
         $account = $request->coaHutang;
         $coaPenjualan = $request->coaReturPembelian;
+        $otherCode = $request->otherCode;
     
         $messages = [
             'required' => 'The field is required.',
@@ -458,7 +462,8 @@ class SupplierController extends Controller
                         'updated_by' => Auth::user()->username,
                         'updated_at' => date('Y-m-d H:i:s'),
                         'account'=> $account,
-                        'coa_penjualan' => $coaPenjualan
+                        'coa_penjualan' => $coaPenjualan,
+                        'other_code' => $otherCode
                     ]
                 );
 

@@ -26,6 +26,14 @@
                             </div>
                         </div>
                         <div class="form-row">
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="otherCode">Customer Code</label>
+                                    <input type="text" id="otherCode" name="otherCode" class="form-control disabled-el" value="{{ old('kode',$suppliers->other_code) }}" required maxlength="20" autofocus disabled />
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-row">
                             <div class="form-group col-md-6">
                                 <label class="form-label" for="coaHutang">COA Hutang</label>
                                 <select class="select2 w-100" id="coaHutang" name="coaHutang" disabled>

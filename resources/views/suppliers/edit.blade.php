@@ -6,9 +6,6 @@
     <div class="form-row">
         <div class="col-md-8">
             <div class="card">
-                {{-- <div class="card-header">
-                    <h4 class="card-title">Suppliers</h4>
-                </div> --}}
                 <div class="card-body">
                     <form id="frmAdd" name="frmAdd" action="{{ route('supplier.update',['id'=> Crypt::encryptString($suppliers->id)]) }}"  method="post" autocomplete="off">
                         @csrf
@@ -22,6 +19,19 @@
                             <div class="form-group col-md-2">
                                 <label class="form-label" for="inisial">Initial*</label>
                                 <input type="text" id="inisial" name="inisial" class="form-control text-uppercase" value="{{ old('inisial',$suppliers->inisial) }}" required maxlength="3"/>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="otherCode">Customer Code</label>
+                                    <select class="select2 w-100" id="otherCode" name="otherCode">
+                                        <option value=""></option>
+                                        @foreach($customers as $val)
+                                            <option value="{{$val->kode}}" {{ $val->kode == old("otherCode",$suppliers->other_code) ? "selected" : ""}} >{{$val->kode}} | {{$val->nama}} </option>
+                                        @endforeach
+                                    </select>
+                                </div>
                             </div>
                         </div>
                         <div class="form-row">

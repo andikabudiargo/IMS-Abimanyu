@@ -286,6 +286,10 @@ class CustomerController extends Controller
         ->where('id',$id)
         ->get()->first();
 
+        $data['suppliers'] = DB::table('third_party')
+        ->where('third_party_type','supp')
+        ->get();
+
         $data['edit'] = 1;
 
         return view('customers.edit',$data);
@@ -336,6 +340,7 @@ class CustomerController extends Controller
         $blacklist = '0';
         $pkp = 'N';
         $coaPenjualan = $request->coaPenjualan;
+        $otherCode = $request->otherCode;
     
         $messages = [
             'required' => 'The field is required.',
@@ -411,7 +416,8 @@ class CustomerController extends Controller
                     'third_party_type'=> $third_party_type,
                     'updated_by' => Auth::user()->username,
                     'updated_at' => date('Y-m-d H:i:s'),
-                    'coa_penjualan' => $coaPenjualan
+                    'coa_penjualan' => $coaPenjualan,
+                    'other_code' => $otherCode
                     ]
                 );
 

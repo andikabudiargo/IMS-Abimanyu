@@ -55,6 +55,17 @@
                     </div>
                     <div class="form-row">
                         <div class="form-group col-md-6">
+                            <label class="form-label" for="otherCode">Kode Supplier</label>
+                            <select class="select2 w-100" id="otherCode" name="otherCode">
+                                <option value=""></option>
+                                @foreach($suppliers as $val)
+                                    <option value="{{$val->kode}}" {{ $val->kode == old("otherCode",$customers->other_code) ? "selected" : ""}} >{{$val->kode}} | {{$val->nama}} </option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
                             <label class="form-label" for="account">COA Piutang</label>
                             <select class="select2 w-100" id="account" name="account">
                                 <option value=""></option>
