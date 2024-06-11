@@ -44,7 +44,7 @@
                                     <select class="select2 form-control" id="paidTo" name="paidTo" required disabled>
                                         <option value=""></option>
                                         @foreach ($suppliers as $val)
-                                            <option value="{{ $val->kode }}" data-coa="{{ $val->account }}" {{$val->kode == $header->paid_to ? "selected" : ""}}>{{ $val->kode }} | {{ $val->nama }}</option>
+                                            <option value="{{ $val->kode }}" data-coa="{{ $val->account }}" data-other-code="{{ $val->other_code }}" data-coa-piutang="{{ $val->other_code }}" {{$val->kode == $header->paid_to ? "selected" : ""}}>{{ $val->kode }} | {{ $val->nama }}</option>
                                         @endforeach
                                         <option value="other" {{ $header->paid_to == 'other' ? "selected" : ""}} >Other</option>
                                     </select>
@@ -59,6 +59,20 @@
                                     <div class="form-group">
                                         <label for="totalAmount">Amount*</label>
                                         <input type="text" id="totalAmount" name="totalAmount" value="{{ number_format($header->amount,2) }}" class="form-control text-right numeral-mask-digit" oninput='inputDecimal(this)' maxlength="20" required/>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group col-md-3">
+                                    <div class="form-group">
+                                        <label for="coaHutang">Coa Hutang</label>
+                                        <input type="text" id="coaHutang" name="coaHutang" class="form-control" disabled/>
+                                    </div>
+                                </div>
+                                <div class="form-group col-md-3">
+                                    <div class="form-group">
+                                        <label for="otherCode">Customer Code</label>
+                                        <input type="text" id="otherCode" name="otherCode" class="form-control" disabled/>
                                     </div>
                                 </div>
                             </div>
@@ -242,7 +256,7 @@
     let currentDate = todayDate('dd-mm-yyyy');   
     let type = "{{ $type }}";
     let listCoa="";
-    
+        
     $(document).ready(function(){           
         validateFormToast('frmAdd');
         isiCoa('list_coa');
@@ -251,16 +265,11 @@
         }, 500);
         timerId= setInterval(() => checkVariable(), 1000);
 
-        // let detail = {!!  $details !!};
-        // for(let i=0;i<detail.length;i++){
-        //     vcAccount = detail[i].account;
-        //     vcDesc = detail[i].description;
-        //     vcRef = detail[i].reference;
-        //     vcCc = detail[i].cost_center;
-        //     vcDebit = detail[i].debit;
-        //     vcCredit = detail[i].credit;
-        //     add_new_row(vcAccount,vcDesc,vcRef,vcCc,vcDebit,vcCredit);
-        // }
+        let coa = $('#paidTo').find(":selected").data("coa");
+        let recFrom = $('#paidTo').find(":selected").data("other-code");
+        $("#coaHutang").val(coa);
+        $("#otherCode").val(recFrom);
+
     });
 
     let detail = {!! $details !!};
@@ -283,6 +292,7 @@
                 add_new_row(vcAccount,vcDesc,vcRef,vcCc,vcDebit,vcCredit);
                 if (i==(data.length-1)){
                     $(".loading-spinner-container").removeClass("-show");
+                    edit = 'false';
                 }
             }
             
@@ -428,11 +438,26 @@
         changeselect('account','account'+ cloneCount,account);
 
         let coa = $('#paidTo').find(":selected").data("coa");
+        let recFrom = $('#paidTo').find(":selected").data("other-code");
+        let paidTo = $('#paidTo').val();
         // if(account=='2000.11'){
-        if(account == coa){
-            let paidTo = $('#paidTo').val();
-            if(ref){
-                invList('referenceApEdit','vcRef'+ cloneCount,paidTo,ref);
+
+        if(account && ref){
+            showReference('vcRef'+ cloneCount,ref);
+        }
+        
+        if(account){
+            if(account == coa){
+                if(!ref && paidTo){
+                    invList('referenceApEdit','vcRef'+ cloneCount,paidTo,ref);
+                }
+            }
+
+            if (account.substring(0,7) =='1100.40'){
+                if(!ref && recFrom){
+                    let voucherNumber = $('#voucherNumber').val();
+                    invList('referenceAr','vcRef'+ cloneCount,recFrom,ref);
+                }
             }
         }
         
@@ -455,33 +480,53 @@
         
         // if(!account){
             getAmount();
-            findInvoice();
+            // findInvoice();
         // }
 
         $('[data-toggle="tooltip"]').tooltip();
     };
 
     function findInvoice(ref){
-        let objAccount = $('#item_row select[name="account[]"]');
-        if(objAccount){
-            objAccount.change(function(e){        
-                let objIndex = objAccount.index(this);
-                let accountNumber = objAccount.eq(objIndex).val();
-                let paidTo = $('#paidTo').val();
-                let objSupp = "vcRef"+(objIndex+1);
-                let coa = $('#paidTo').find(":selected").data("coa");
-                // console.log(objSupp);
-                // if (accountNumber =='2000.11'){
-                if ((accountNumber == coa)){
-                    if(paidTo){
-                        invList('reference',objSupp,paidTo,ref);
-                    }else{
-                        objAccount.eq(objIndex).val('').trigger('change');
-                        Swal.fire('Warning..','Kolom bayar ke /supplier code masih kosong','warning');
-                    }
-                }
-            });
-        }
+        // let objAccount = $('#item_row select[name="account[]"]');
+        // let objVcDebit= $('#item_row input[name="vcDebit[]"]');
+        // let objVcCredit= $('#item_row input[name="vcCredit[]"]');
+        // let objVcRef= $('#item_row select[name="vcRef[]"]');
+
+        // if(objAccount){
+        //     objAccount.change(function(e){        
+        //         let objIndex = objAccount.index(this);
+        //         let accountNumber = objAccount.eq(objIndex).val();
+        //         let paidTo = $('#paidTo').val();
+        //         let objSupp = "vcRef"+(objIndex+1);
+        //         let coa = $('#paidTo').find(":selected").data("coa");
+        //         let recFrom = $('#paidTo').find(":selected").data("other-code");
+                
+        //         // if (accountNumber =='2000.11'){
+        //         if(accountNumber){
+
+        //             objVcDebit.eq(objIndex).val("");
+        //             objVcCredit.eq(objIndex).val("");
+        //             objVcRef.eq(objIndex).empty().trigger('change');
+
+        //             if ((accountNumber == coa)){
+        //                 if(paidTo){
+        //                     invList('reference',objSupp,paidTo,ref);
+        //                 }else{
+        //                     objAccount.eq(objIndex).val('').trigger('change');
+        //                     Swal.fire('Warning..','Kolom bayar ke /supplier code masih kosong','warning');
+        //                 }
+        //             }
+        //             if (accountNumber.substring(0,7) =='1100.40'){
+        //                 if(recFrom){
+        //                     invList('referenceAr',objSupp,recFrom,ref,objIndex);
+        //                 }else{
+        //                     objAccount.eq(objIndex).val('').trigger('change');
+        //                     Swal.fire('Warning..','Data customer sebagai supplier masih kosing','warning');
+        //                 }
+        //             }
+        //         }
+        //     });
+        // }
     }
 
     function accList(dependent,obj,account) {
@@ -514,43 +559,65 @@
       })
     }
 
-    function getAmount(){
-        let objRef = $('#item_row select[name="vcRef[]"]');
-        if(objRef){
-            objRef.change(function(e){ 
-                let objIndex = objRef.index(this);
-                let vRef = objRef.eq(objIndex).val();
-                getAmountValue(vRef,objIndex);
-            });
-        }
-    }   
+    // function getAmount(){
+    //     let objRef = $('#item_row select[name="vcRef[]"]');
+    //     let objAccount = $('#item_row select[name="account[]"]');
 
-    function getAmountValue(vRef,objIndex) {
-        let objVcDebit= $('#item_row input[name="vcDebit[]"]');
-        let objVcCredit= $('#item_row input[name="vcCredit[]"]');
-        $.ajax({
-            type: "get",
-            url: "{{ route('bankKeluar.get.invoice.amount') }}",
-            data: {
-                vRef:vRef
-            },
-            dataType: "json",
-            success: function(data) {
-                objVcCredit.eq(objIndex).val('');
-                objVcDebit.eq(objIndex).val('');
+    //     if(objRef){
+    //         objRef.change(function(e){ 
+    //             let jenis = "hutang";
+    //             let objIndex = objRef.index(this);
+    //             let accountNumber = objAccount.eq(objIndex).val();
+    //             let vRef = objRef.eq(objIndex).val();
+    //             if(vRef){
+    //                 if (accountNumber.substring(0,7) =='1100.40'){
+    //                     jenis='piutang';
+    //                 }
+    //                 getAmountValue(vRef,objIndex,jenis);
+    //             }
+    //         });
+    //     }
+    // }   
 
-                if(data.amount){
-                    let fixAmount = parseFloat(data.amount).toFixed(2);
-                    objVcDebit.eq(objIndex).val(humanizeNumber(fixAmount));
-                    objVcCredit.eq(objIndex).val('');
-                    hitungGrandTotal();
-                }
-            },
-            error: function(error) {
-                console.log(error);
-            }
-        });
-    }
+    // function getAmountValue(vRef,objIndex,jenis) {
+    //     let objVcDebit= $('#item_row input[name="vcDebit[]"]');
+    //     let objVcCredit= $('#item_row input[name="vcCredit[]"]');
+    //     let url ="{{ route('bankKeluar.get.invoice.amount') }}"; 
+
+    //     if(jenis === 'piutang'){
+    //         url ="{{ route('bankPenerimaan.get.invoice.amount') }}"; 
+    //     }
+        
+    //     $.ajax({
+    //         type: "get",
+    //         url: url,
+    //         data: {
+    //             vRef:vRef
+    //         },
+    //         dataType: "json",
+    //         success: function(data) {
+    //             objVcCredit.eq(objIndex).val('');
+    //             objVcDebit.eq(objIndex).val('');
+
+    //             if(data.amount){
+    //                 let fixAmount = parseFloat(data.amount).toFixed(2);
+
+    //                 // console.log(jenis);
+    //                 if(jenis === 'piutang'){
+    //                     objVcCredit.eq(objIndex).val(humanizeNumber(fixAmount));
+    //                     objVcDebit.eq(objIndex).val('');
+    //                 }else{
+    //                     objVcDebit.eq(objIndex).val(humanizeNumber(fixAmount));
+    //                     objVcCredit.eq(objIndex).val('');
+    //                 }
+    //                 hitungGrandTotal();
+    //             }
+    //         },
+    //         error: function(error) {
+    //             console.log(error);
+    //         }
+    //     });
+    // }
 
     $("#cmdApprove").click(function(){    
         let vcNumber = $('#voucherNumber').val();
@@ -616,6 +683,21 @@
         $('#'+obj).html(listCoa);
         $('#'+obj).select2();
         $('#'+obj).val(article).trigger('change');
+        $('#'+obj).removeAttr('disabled');
+    }
+
+    $("#paidTo").on('change', function(){
+        let coa = $('#paidTo').find(":selected").data("coa");
+        let recFrom = $('#paidTo').find(":selected").data("other-code");
+        $("#coaHutang").val(coa);
+        $("#otherCode").val(recFrom);
+            
+    });
+
+    function showReference(obj,ref){
+        $('#'+obj).attr('disabled','disabled');
+        $('#'+obj).html(`<option value='${ref}'>${ref}</option>`);
+        $('#'+obj).select2();
         $('#'+obj).removeAttr('disabled');
     }
 

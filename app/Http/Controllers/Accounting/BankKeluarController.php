@@ -179,6 +179,8 @@ class BankKeluarController extends Controller
         ->orderBy('name')
         ->get();
 
+        $data['edit']='false';
+
         return view("accounting.bankKeluar.create",$data);
 
     }
@@ -375,6 +377,8 @@ class BankKeluarController extends Controller
         ->orderBy('name')
         ->get();
 
+        $data['edit']='true';
+
         $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode,$vcNumber,$username);
         $data['approveValidate'] = Approval::approveValidate($this->moduleCode,$vcNumber,$username);
 
@@ -494,6 +498,16 @@ class BankKeluarController extends Controller
                                 'updated_at' => date('Y-m-d H:i:s'),
                             ]
                         );
+
+                        DB::table('invoice_hdr')
+                        ->whereIn('invoice_number',$listInvoice)
+                        ->update(
+                            [   
+                                'status' =>'6',
+                                'updated_by' => Auth::user()->username,
+                                'updated_at' => date('Y-m-d H:i:s'),
+                            ]
+                        );
                     }
 
 
@@ -563,6 +577,16 @@ class BankKeluarController extends Controller
                     DB::table('ap_invoice')
                     // ->whereIn('ap_number',$listInvoice)
                     ->whereIn('inv_number',$listInvoice)
+                    ->update(
+                        [   
+                            'status' =>'6',
+                            'updated_by' => Auth::user()->username,
+                            'updated_at' => date('Y-m-d H:i:s'),
+                        ]
+                    );
+
+                    DB::table('invoice_hdr')
+                    ->whereIn('invoice_number',$listInvoice)
                     ->update(
                         [   
                             'status' =>'6',

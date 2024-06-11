@@ -45,7 +45,7 @@
                                         <option value=""></option>
                                         <option value="other">Other</option>
                                         @foreach ($suppliers as $val)
-                                            <option value="{{ $val->kode }}" data-coa="{{ $val->account }}">{{ $val->kode }} | {{ $val->nama }}</option>
+                                            <option value="{{ $val->kode }}" data-coa="{{ $val->account }}" data-other-code="{{ $val->other_code }}" data-coa-piutang="{{ $val->other_code }}">{{ $val->kode }} | {{ $val->nama }}</option>
                                         @endforeach
                                     </select>
                                 </div>
@@ -59,6 +59,20 @@
                                     <div class="form-group">
                                         <label for="totalAmount">Amount*</label>
                                         <input type="text" id="totalAmount" name="totalAmount" class="form-control text-right numeral-mask-digit" oninput='inputDecimal(this)' maxlength="20" required/>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group col-md-3">
+                                    <div class="form-group">
+                                        <label for="coaHutang">Coa Hutang</label>
+                                        <input type="text" id="coaHutang" name="coaHutang" class="form-control" disabled/>
+                                    </div>
+                                </div>
+                                <div class="form-group col-md-3">
+                                    <div class="form-group">
+                                        <label for="otherCode">Customer Code</label>
+                                        <input type="text" id="otherCode" name="otherCode" class="form-control" disabled/>
                                     </div>
                                 </div>
                             </div>
@@ -330,73 +344,108 @@
         mask_thousand_digit(2);
         hitungTotal();
         hitungGrandTotal();
-        findInvoice();
+        // findInvoice();
         getAmount();
         $('[data-toggle="tooltip"]').tooltip();
     };
 
     $('#paidTo').change(function(e){
+        let coa = "";
+        let otherCode = "";
         let objAccount = $('#item_row select[name="account[]"]');
         let objVcRef= $('#item_row select[name="vcRef[]"]');
         let objVcDebit= $('#item_row input[name="vcDebit[]"]');
         let objVcCredit= $('#item_row input[name="vcCredit[]"]');
 
         let paidTo = $('#paidTo').val();
-        let coa = $('#paidTo').find(":selected").data("coa");
+        coa = $('#paidTo').find(":selected").data("coa");
+        otherCode = $('#paidTo').find(":selected").data("other-code");
+        let recFrom = $('#paidTo').find(":selected").data("other-code");
+
+        $('#coaHutang').val(coa);
+        $('#otherCode').val(otherCode);
 
         if (paidTo){
             objAccount.map(function(i){
                 let $this=$(this);
                 let objSupp = "vcRef"+(i+1);
+
+                /*
+                    Kalau form account ada isinya dan coa nya sama dengan coa hutang customer maka datanya di keluarkan
+                    Cari account hutang usaha
+
+                */
+
                 if ($this.val()){
                     // if ($this.val() == '2000.11'){
                     // if ($this.val().includes("2000.11")){
                     // if (($this.val().substring(0,7) =='2000.11') && ($this.val()!='2000.11')){
                     if ($this.val() === coa){
-                        // console.log("oki");
-                        invList('reference',objSupp,paidTo);
-                        objVcDebit.eq(i).val("");
-                        objVcCredit.eq(i).val("");
-                        objVcRef.empty().trigger('change');
-                        hitungGrandTotal();
+                        //kalau sama COA nya di cari apakah ada list AP nya
+                        invList('reference',objSupp,paidTo);   
                     }
-                    
+
+                    if ($this.val().substring(0,7) =='1100.40'){
+                        if(recFrom){
+                            invList('referenceAr',objSupp,recFrom);
+                        }
+                    }
+                    objVcDebit.eq(i).val("");
+                    objVcCredit.eq(i).val("");
+                    objVcRef.empty().trigger('change');
+                    hitungGrandTotal();
                 }
             });
         }
     });
 
-    function findInvoice(){
-        let objAccount = $('#item_row select[name="account[]"]');
-        let objVcRef= $('#item_row select[name="vcRef[]"]');
-        let objVcDebit= $('#item_row input[name="vcDebit[]"]');
-        let objVcCredit= $('#item_row input[name="vcCredit[]"]');
+    function findInvoice(ref){
+        // let objAccount = $('#item_row select[name="account[]"]');
+        // let objVcRef= $('#item_row select[name="vcRef[]"]');
+        // let objVcDebit= $('#item_row input[name="vcDebit[]"]');
+        // let objVcCredit= $('#item_row input[name="vcCredit[]"]');
         
-        objAccount.change(function(e){        
-            let objIndex = objAccount.index(this);
-            let accountNumber = objAccount.eq(objIndex).val();
-            let paidTo = $('#paidTo').val();
-            let objSupp = "vcRef"+(objIndex+1);
-            let coa = $('#paidTo').find(":selected").data("coa");
-            if(accountNumber){
-                // if (accountNumber =='2000.11'){
-                // if ((accountNumber.substring(0,7) =='2000.11') && (accountNumber !='2000.11')){
-                if ((accountNumber == coa)){
-                    if(paidTo){
-                        invList('reference',objSupp,paidTo);
-                    }else{
-                        Swal.fire('Warning..','Kolom bayar ke /supplier code masih kosong','warning');
-                    }
-                }else{
-                    objVcDebit.eq(objIndex).val("");
-                    objVcCredit.eq(objIndex).val("");
-                    objVcRef.eq(objIndex).empty().trigger('change');
-                    hitungGrandTotal();
-                }
-            }
-        });
-    }
-    
+        // objAccount.change(function(e){       
+        //     console.log("find invoice"); 
+        //     let objIndex = objAccount.index(this);
+        //     let accountNumber = objAccount.eq(objIndex).val();
+        //     let paidTo = $('#paidTo').val();
+        //     let objSupp = "vcRef"+(objIndex+1);
+        //     let coa = $('#paidTo').find(":selected").data("coa");
+        //     let recFrom = $('#paidTo').find(":selected").data("other-code");
+
+        //     if(accountNumber){
+        //         // if (accountNumber =='2000.11'){
+        //         // if ((accountNumber.substring(0,7) =='2000.11') && (accountNumber !='2000.11')){
+        //         if ((accountNumber == coa)){
+        //             if(paidTo){
+        //                 invList('reference',objSupp,paidTo);
+        //             }else{
+        //                 Swal.fire('Warning..','Kolom bayar ke /supplier code masih kosong','warning');
+        //             }
+        //         }else{
+        //             objVcDebit.eq(objIndex).val("");
+        //             objVcCredit.eq(objIndex).val("");
+        //             objVcRef.eq(objIndex).empty().trigger('change');
+        //             hitungGrandTotal();
+        //         }
+
+        //         if (accountNumber.substring(0,7) =='1100.40'){
+        //             if(recFrom){
+        //                 invList('referenceAr',objSupp,recFrom,ref,objIndex);
+        //             }else{
+        //                 Swal.fire('Warning..','Data customer sebagai supplier masih kosing','warning');
+        //             }
+        //         }else{
+        //             objVcDebit.eq(objIndex).val("");
+        //             objVcCredit.eq(objIndex).val("");
+        //             objVcRef.eq(objIndex).empty().trigger('change');
+        //             hitungGrandTotal();
+        //         }
+        //     }
+
+        // });
+    }  
     
     function accList(dependent,obj) {
       $.ajax({
@@ -427,43 +476,62 @@
       })
     }
 
-    function getAmount(){
-        let objRef = $('#item_row select[name="vcRef[]"]');
-        objRef.change(function(e){ 
-            let objIndex = objRef.index(this);
-            let vRef = objRef.eq(objIndex).val();
-            if(vRef){
-                getAmountValue(vRef,objIndex);
-            }
-        });
-    }   
+    // function getAmount(){
+    //     let objRef = $('#item_row select[name="vcRef[]"]');
+    //     let objAccount = $('#item_row select[name="account[]"]');
+    //     objRef.change(function(e){ 
+    //         let jenis = "hutang";
+    //         let objIndex = objRef.index(this);
+    //         let accountNumber = objAccount.eq(objIndex).val();
+    //         let vRef = objRef.eq(objIndex).val();
+    //         if(vRef){
+    //             if (accountNumber.substring(0,7) =='1100.40'){
+    //                 jenis='piutang';
+    //             }
+    //             getAmountValue(vRef,objIndex,jenis);
+    //         }
+    //     });
+    // }   
 
-    function getAmountValue(vRef,objIndex) {
-        let objVcDebit= $('#item_row input[name="vcDebit[]"]');
-        let objVcCredit= $('#item_row input[name="vcCredit[]"]');
-        $.ajax({
-            type: "get",
-            url: "{{ route('bankKeluar.get.invoice.amount') }}",
-            data: {
-                vRef:vRef
-            },
-            dataType: "json",
-            success: function(data) {
-                objVcCredit.eq(objIndex).val('');
-                objVcDebit.eq(objIndex).val('');
+    // function getAmountValue(vRef,objIndex,jenis) {
+    //     let objVcDebit= $('#item_row input[name="vcDebit[]"]');
+    //     let objVcCredit= $('#item_row input[name="vcCredit[]"]');
+    //     let url ="{{ route('bankKeluar.get.invoice.amount') }}"; 
 
-                if(data.amount){
-                    let fixAmount = parseFloat(data.amount).toFixed(2);
-                    objVcDebit.eq(objIndex).val(humanizeNumber(fixAmount));
-                    objVcCredit.eq(objIndex).val('');
-                    hitungGrandTotal();
-                }
-            },
-            error: function(error) {
-                console.log(error);
-            }
-        });
-    }
+    //     if(jenis === 'piutang'){
+    //         url ="{{ route('bankPenerimaan.get.invoice.amount') }}"; 
+    //     }
+        
+    //     $.ajax({
+    //         type: "get",
+    //         url: url,
+    //         data: {
+    //             vRef:vRef
+    //         },
+    //         dataType: "json",
+    //         success: function(data) {
+    //             objVcCredit.eq(objIndex).val('');
+    //             objVcDebit.eq(objIndex).val('');
+
+    //             if(data.amount){
+    //                 let fixAmount = parseFloat(data.amount).toFixed(2);
+
+    //                 // console.log(jenis);
+    //                 if(jenis === 'piutang'){
+    //                     objVcCredit.eq(objIndex).val(humanizeNumber(fixAmount));
+    //                     objVcDebit.eq(objIndex).val('');
+    //                 }else{
+    //                     objVcDebit.eq(objIndex).val(humanizeNumber(fixAmount));
+    //                     objVcCredit.eq(objIndex).val('');
+    //                 }
+    //                 hitungGrandTotal();
+    //             }
+    //         },
+    //         error: function(error) {
+    //             console.log(error);
+    //         }
+    //     });
+    // }
 
     $("#cmdNew").click(function(){ 
         let objAccount= $('#item_row select[name="account[]"]');

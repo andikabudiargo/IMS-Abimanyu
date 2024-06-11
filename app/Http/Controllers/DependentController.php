@@ -744,7 +744,10 @@ class DependentController extends Controller
             ->get();
             
         }elseif($dependent =='referenceAr'){
+
             $customerId = DB::table('third_party')->where('account',$code)->value('kode');
+            $customerId =  $customerId ? $customerId : $code;
+            
             $data1= DB::table($table)
             ->where($field,$customerId)
             ->whereIn('status',['3']) //approved
@@ -789,25 +792,51 @@ class DependentController extends Controller
             $data =  $data1->merge($data2);
 
         }elseif($dependent =='referenceArEdit'){
+
+            //sementara tidak ada yang pakai
+            
             $customerId = DB::table('third_party')->where('account',$code)->value('kode');
-            $data= DB::table($table)
+            $customerId =  $customerId ? $customerId : $code;
+            $listReferensi = DB::table('kas_det')->where('voucher_number',$value)->where('reference','!=','')->pluck('reference');
+
+            $data1 = DB::table($table)
             ->where($field,$customerId)
-            ->whereIn('status',['3','6']) //approved
+            ->whereIn('status',['3']) //approved
             ->where(function($query) use ($nilai) {
                 $nilai ? $query->where('invoice_number','=',$nilai) : '';
             })
-            ->whereNotIn(DB::raw("invoice_number"), function($query) {
+            ->whereNotIn(DB::raw("invoice_number"), function($query) use($listReferensi) {
                 $query->select(DB::raw("reference"))
                 ->from('kas_det') 
                 ->leftJoin('kas_hdr','kas_hdr.voucher_number','kas_det.voucher_number')
                 ->where('kas_hdr.status','<>','5')
                 ->where('kas_det.reference','<>','')
+                ->whereNotIn('invoice_number',$listReferensi)
+                ->whereIn('kas_hdr.voucher_type',['BM','KM']);
+            })
+            ->orderBy($order)
+            ->get();
+
+            $data2 = DB::table('debit_note_hdr')
+            ->where('customer_id',$customerId)
+            ->whereIn('status',['3']) //approved
+            ->whereNotIn(DB::raw("dn_number"), function($query) use($listReferensi) {
+                $query->select(DB::raw("reference"))
+                ->from('kas_det') 
+                ->leftJoin('kas_hdr','kas_hdr.voucher_number','kas_det.voucher_number')
+                ->where('kas_hdr.status','<>','5')
+                ->where('kas_det.reference','<>','')
+                ->whereNotIn('dn_number',$listReferensi)
                 ->whereIn('kas_hdr.voucher_type',['BM','KM']);
                 // ->where('kas_det.voucher_number','like','BM%')
                 // ->where('kas_det.voucher_number','like','KM%');
             })
-            ->orderBy($order)
-            ->get();           
+            ->select('dn_number as invoice_number')
+            ->orderBy('dn_number')
+            ->get();
+
+            $data =  $data1->merge($data2);
+
         }elseif($dependent =='listPo'){
             $data= DB::table($table)
             ->where($field,$code)
