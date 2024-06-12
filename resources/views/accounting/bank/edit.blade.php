@@ -421,23 +421,28 @@
 
         // accList('account','account'+ cloneCount,account);
 
-        changeselect('account','account'+ cloneCount,account)
-        let coa = $('#recFrom').find(":selected").data("coa");
-        // if(account=='1100.40'){
-        // if(account == coa){
-        if(account){
-            if (account.substring(0,7) =='1100.40'){
-                let recFrom = $('#recFrom').val();
-                if(ref){
-                    changeselectInv('vcRef'+ cloneCount,ref);
-                    // invList('referenceAr','vcRef'+ cloneCount,account,ref);
-                    // invListEdit('referenceArEdit','vcRef'+ cloneCount,recFrom,ref);
-                    // invList('referenceAr','vcRef'+ cloneCount,recFrom,ref);
-                }else{
-                    changeselectInv('vcRef'+ cloneCount,'');
-                }
-            }
+        if(account && ref){
+            showReference('vcRef'+ cloneCount,ref);
         }
+
+        changeselect('account','account'+ cloneCount,account)
+
+        // let coa = $('#recFrom').find(":selected").data("coa");
+        // // if(account=='1100.40'){
+        // // if(account == coa){
+        // if(account){
+        //     if (account.substring(0,7) =='1100.40'){
+        //         let recFrom = $('#recFrom').val();
+        //         if(ref){
+        //             changeselectInv('vcRef'+ cloneCount,ref);
+        //             // invList('referenceAr','vcRef'+ cloneCount,account,ref);
+        //             // invListEdit('referenceArEdit','vcRef'+ cloneCount,recFrom,ref);
+        //             // invList('referenceAr','vcRef'+ cloneCount,recFrom,ref);
+        //         }else{
+        //             changeselectInv('vcRef'+ cloneCount,'');
+        //         }
+        //     }
+        // }
         
         $("#account"+cloneCount).select2();
         $("#vcCc"+cloneCount).select2();
@@ -565,6 +570,13 @@
         $('#'+obj).html(listInv);
         $('#'+obj).select2();
         $('#'+obj).val(ref).trigger('change');
+        $('#'+obj).removeAttr('disabled');
+    }
+
+    function showReference(obj,ref){
+        $('#'+obj).attr('disabled','disabled');
+        $('#'+obj).html(`<option value='${ref}'>${ref}</option>`);
+        $('#'+obj).select2();
         $('#'+obj).removeAttr('disabled');
     }
 
