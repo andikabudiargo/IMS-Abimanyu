@@ -382,7 +382,7 @@
                     // if (($this.val().substring(0,7) =='2000.11') && ($this.val()!='2000.11')){
                     if ($this.val() === coa){
                         //kalau sama COA nya di cari apakah ada list AP nya
-                        invList('reference',objSupp,paidTo);   
+                        invList('reference',objSupp,paidTo,coa);   
                     }
 
                     if ($this.val().substring(0,7) =='1100.40'){
@@ -461,20 +461,25 @@
       })
     }
 
-    function invList(dependent,obj,value) {
-      $.ajax({
-        url:"{{route('dynamic.dependent')}}",
-        method:"POST",
-        data:{
-            dependent:dependent,
-            value:value
-        },
-        success:function(result){
-            $('#'+obj).html(result);
-            $('#'+obj).val("").trigger('change');
-        }
-      })
-    }
+    // function invList(dependent,obj,value,value2,ref) {
+    //   $.ajax({
+    //     url:"{{route('dynamic.dependent')}}",
+    //     method:"POST",
+    //     data:{
+    //         dependent:dependent,
+    //         value:value,
+    //         value2:value2
+    //     },
+    //     success:function(result){
+    //         $('#'+obj).html(result);
+    //         if(ref){
+    //             $('#'+obj).val(ref).trigger('change');
+    //         }else{
+    //             $('#'+obj).val('').trigger('change');
+    //         }
+    //     }
+    //   })
+    // }
 
     // function getAmount(){
     //     let objRef = $('#item_row select[name="vcRef[]"]');

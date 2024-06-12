@@ -353,7 +353,7 @@
                 if ($this.val()){
                     // if ($this.val() =='2000.11'){
                     if ($this.val() === coa){
-                        invList('reference',objSupp,paidTo);
+                        invList('reference',objSupp,paidTo,coa);
                         objVcDebit.eq(i).val("");
                         objVcCredit.eq(i).val("");
                         objVcRef.empty().trigger('change');
@@ -381,7 +381,7 @@
                 // if (accountNumber =='2000.11'){
                 if ((accountNumber == coa)){
                     if(paidTo){
-                        invList('reference',objSupp,paidTo);
+                        invList('reference',objSupp,paidTo,coa);
                     }else{
                         Swal.fire('Warning..','Kolom bayar ke /supplier code masih kosong','warning');
                     }
@@ -394,8 +394,7 @@
             }
         });
     }
-    
-    
+     
     function accList(dependent,obj) {
       $.ajax({
         url:"{{route('dynamic.dependent')}}",
@@ -410,13 +409,14 @@
       })
     }
 
-    function invList(dependent,obj,value) {
+    function invList(dependent,obj,value,value2) {
       $.ajax({
         url:"{{route('dynamic.dependent')}}",
         method:"POST",
         data:{
             dependent:dependent,
-            value:value
+            value:value,
+            value2:value2
         },
         success:function(result){
             $('#'+obj).html(result);
@@ -439,11 +439,13 @@
     function getAmountValue(vRef,objIndex) {
         let objVcDebit= $('#item_row input[name="vcDebit[]"]');
         let objVcCredit= $('#item_row input[name="vcCredit[]"]');
+        let paidTo = $('#paidTo').val();
         $.ajax({
             type: "get",
             url: "{{ route('kasKeluar.get.invoice.amount') }}",
             data: {
-                vRef:vRef
+                vRef:vRef,
+                supplierCode:paidTo
             },
             dataType: "json",
             success: function(data) {

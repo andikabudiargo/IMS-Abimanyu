@@ -175,6 +175,7 @@
         let objVcDebit= $('#item_row input[name="vcDebit[]"]');
         let objVcCredit= $('#item_row input[name="vcCredit[]"]');
         let url ="{{ route('bankKeluar.get.invoice.amount') }}"; 
+        let paidTo = $('#paidTo').val();
 
         if(jenis === 'piutang'){
             url ="{{ route('bankPenerimaan.get.invoice.amount') }}"; 
@@ -184,7 +185,8 @@
             type: "get",
             url: url,
             data: {
-                vRef:vRef
+                vRef:vRef,
+                supplierCode:paidTo
             },
             dataType: "json",
             success: function(data) {
@@ -211,10 +213,28 @@
         });
     }
 
+    function invList(dependent,obj,value,value2,ref) {
+      $.ajax({
+        url:"{{route('dynamic.dependent')}}",
+        method:"POST",
+        data:{
+            dependent:dependent,
+            value:value,
+            value2:value2
+        },
+        success:function(result){
+            $('#'+obj).html(result);
+            if(ref){
+                $('#'+obj).val(ref).trigger('change');
+            }else{
+                $('#'+obj).val('').trigger('change');
+            }
+        }
+      })
+    }
+
     function aFindInvoice($this,ref){
-        console.log(edit);
         if($($this).val() && edit === 'false'){
-            console.log("jalan");
             let objAccount = $('#item_row select[name="account[]"]');
             let objVcRef= $('#item_row select[name="vcRef[]"]');
             let objVcDebit= $('#item_row input[name="vcDebit[]"]');
@@ -231,7 +251,7 @@
                 // if ((accountNumber.substring(0,7) =='2000.11') && (accountNumber !='2000.11')){
                 if ((accountNumber == coa)){
                     if(paidTo){
-                        invList('reference',objSupp,paidTo);
+                        invList('reference',objSupp,paidTo,coa,'');
                     }else{
                         Swal.fire('Warning..','Kolom bayar ke /supplier code masih kosong','warning');
                     }
@@ -244,7 +264,7 @@
     
                 if (accountNumber.substring(0,7) =='1100.40'){
                     if(recFrom){
-                        invList('referenceAr',objSupp,recFrom,ref,objIndex);
+                        invList('referenceAr',objSupp,recFrom,'',ref);
                     }else{
                         Swal.fire('Warning..','Data customer sebagai supplier masih kosing','warning');
                     }

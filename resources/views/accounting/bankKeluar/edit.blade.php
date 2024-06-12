@@ -449,14 +449,14 @@
         if(account){
             if(account == coa){
                 if(!ref && paidTo){
-                    invList('referenceApEdit','vcRef'+ cloneCount,paidTo,ref);
+                    invList('referenceApEdit','vcRef'+ cloneCount,paidTo,coa,ref);
                 }
             }
 
             if (account.substring(0,7) =='1100.40'){
                 if(!ref && recFrom){
                     let voucherNumber = $('#voucherNumber').val();
-                    invList('referenceAr','vcRef'+ cloneCount,recFrom,ref);
+                    invList('referenceAr','vcRef'+ cloneCount,recFrom,'',ref);
                 }
             }
         }
@@ -543,21 +543,24 @@
       })
     }
 
-    function invList(dependent,obj,value,ref) {
-      $.ajax({
-        url:"{{route('dynamic.dependent')}}",
-        method:"POST",
-        data:{
-            dependent:dependent,
-            value:value,
-            ref:ref
-        },
-        success:function(result){
-            $('#'+obj).html(result);
-            $('#'+obj).val(ref).trigger('change');
-        }
-      })
-    }
+    // function invList(dependent,obj,value,ref) {
+    //   $.ajax({
+    //     url:"{{route('dynamic.dependent')}}",
+    //     method:"POST",
+    //     data:{
+    //         dependent:dependent,
+    //         value:value,
+    //         ref:ref
+    //     },
+    //     success:function(result){
+    //         $('#'+obj).html(result);
+    //         console.log("oki"+ref+"oki")
+    //         if(ref){
+    //             $('#'+obj).val(ref).trigger('change');
+    //         }
+    //     }
+    //   })
+    // }
 
     // function getAmount(){
     //     let objRef = $('#item_row select[name="vcRef[]"]');

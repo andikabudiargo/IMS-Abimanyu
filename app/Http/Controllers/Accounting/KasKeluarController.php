@@ -885,8 +885,10 @@ class KasKeluarController extends Controller
     public function getInvoiceAmount(Request $request)
     {
         $refNumber = $request->vRef;
+        $supplierCode = $request->supplierCode;
         $amount = db::table('ap_invoice')
         ->where('inv_number',$refNumber)
+        ->where('supplier_id',$supplierCode)
         ->select(db::raw("grand_total as amount"))
         ->value('amount');
 

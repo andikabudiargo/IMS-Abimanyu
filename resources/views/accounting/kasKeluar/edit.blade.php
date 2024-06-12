@@ -431,7 +431,7 @@
         if(account == coa){
             let paidTo = $('#paidTo').val();
             if(ref){
-                invList('referenceApEdit','vcRef'+ cloneCount,paidTo,ref);
+                invList('referenceApEdit','vcRef'+ cloneCount,paidTo,ref,coa);
             }
         }
         
@@ -474,7 +474,8 @@
                 // if (accountNumber =='2000.11'){
                 if ((accountNumber == coa)){
                     if(paidTo){
-                        invList('referenceApEdit',objSupp,paidTo,ref);
+                        // invList('referenceApEdit',objSupp,paidTo,ref);
+                        invList('referenceApEdit',objSupp,paidTo,ref,coa);
                     }else{
                         objAccount.eq(objIndex).val('').trigger('change');
                         Swal.fire('Warning..','Kolom bayar ke /supplier code masih kosong','warning');
@@ -498,14 +499,15 @@
       })
     }
 
-    function invList(dependent,obj,value,ref) {
+    function invList(dependent,obj,value,ref,value2) {
       $.ajax({
         url:"{{route('dynamic.dependent')}}",
         method:"POST",
         data:{
             dependent:dependent,
             value:value,
-            ref:ref
+            ref:ref,
+            value2:value2
         },
         success:function(result){
             $('#'+obj).html(result);
@@ -528,11 +530,13 @@
     function getAmountValue(vRef,objIndex) {
         let objVcDebit= $('#item_row input[name="vcDebit[]"]');
         let objVcCredit= $('#item_row input[name="vcCredit[]"]');
+        let paidTo = $('#paidTo').val();
         $.ajax({
             type: "get",
             url: "{{ route('kasKeluar.get.invoice.amount') }}",
             data: {
-                vRef:vRef
+                vRef:vRef,
+                supplierCode:paidTo
             },
             dataType: "json",
             success: function(data) {
@@ -588,6 +592,7 @@
         let objVcRef= $('#item_row select[name="vcRef[]"]');
         let objVcDebit= $('#item_row input[name="vcDebit[]"]');
         let objVcCredit= $('#item_row input[name="vcCredit[]"]');
+        let coa = $('#paidTo').find(":selected").data("coa");
 
         let paidTo = $('#paidTo').val();
         if (paidTo){
@@ -596,7 +601,7 @@
                 let objSupp = "vcRef"+(i+1);
                 if ($this.val()){
                     if ($this.val() =='2000.11'){
-                        invList('referenceApEdit',objSupp,paidTo);
+                        invList('referenceApEdit',objSupp,paidTo,coa);
                         objVcDebit.eq(i).val("");
                         objVcCredit.eq(i).val("");
                         objVcRef.empty().trigger('change');

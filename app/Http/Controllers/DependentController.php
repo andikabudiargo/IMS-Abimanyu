@@ -20,6 +20,7 @@ class DependentController extends Controller
         $dependent=$request->dependent;
         $ref=$request->ref;
         $akhusus='';
+        $value2= $request->value2;
 
         switch ($dependent) { 
             case 'unitTo':
@@ -700,13 +701,14 @@ class DependentController extends Controller
             $data= DB::table($table)
             ->where($field,$code)
             ->whereIn('status',['4']) //POSTED
-            ->whereNotIn(DB::raw("inv_number"), function($query) {
+            ->whereNotIn(DB::raw("inv_number"), function($query) use($value2) {
                 $query->select(DB::raw("reference"))
                 ->from('kas_det') 
                 ->leftJoin('kas_hdr','kas_hdr.voucher_number','kas_det.voucher_number')
                 ->where('kas_hdr.status','<>','5')
                 ->where('kas_det.reference','<>','')
-                ->whereIn('kas_hdr.voucher_type',['BK','KK']);
+                ->whereIn('kas_hdr.voucher_type',['BK','KK'])
+                ->where('account',$value2);
                 // ->where('kas_det.voucher_number','like','BK%')
                 // ->where('kas_det.voucher_number','like','KK%');
             })
@@ -728,7 +730,7 @@ class DependentController extends Controller
             $data= DB::table($table)
             ->where($field,$code)
             ->whereIn('status',['4','6']) //POSTED + PAID
-            ->whereNotIn(DB::raw("inv_number"), function($query) use ($ref) {
+            ->whereNotIn(DB::raw("inv_number"), function($query) use ($ref,$value2) {
                 $query->select(DB::raw("reference"))
                 ->from('kas_det') 
                 ->leftJoin('kas_hdr','kas_hdr.voucher_number','kas_det.voucher_number')
@@ -736,7 +738,8 @@ class DependentController extends Controller
                 ->where('kas_det.reference','<>','')
                 // ->where('inv_number','<>',$ref)
                 ->where('reference','<>',$ref)
-                ->whereIn('kas_hdr.voucher_type',['BK','KK']);
+                ->whereIn('kas_hdr.voucher_type',['BK','KK'])
+                ->where('account',$value2);
                 // ->where('kas_det.voucher_number','like','BK%')
                 // ->where('kas_det.voucher_number','like','KK%');
             })
