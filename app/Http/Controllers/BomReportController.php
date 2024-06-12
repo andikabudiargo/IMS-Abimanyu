@@ -34,6 +34,8 @@ class BomReportController extends Controller
             ['data'=>'customer_code','name'=>'customer_code','title'=>'Customer'],
             ['data'=>'article_fg','name'=>'article_fg','title'=>'Article FG'],
             ['data'=>'article_des','name'=>'article_des','title'=>'Article FG Desc'],
+            ['data'=>'article_rm','name'=>'article_rm','title'=>'Article RM'],
+            ['data'=>'article_rm_desc','name'=>'article_rm_desc','title'=>'Article RM Desc'],
             ['data'=>'article_ch','name'=>'article_ch','title'=>'Article Chemical'],
             ['data'=>'article_des_det','name'=>'article_des_det','title'=>'Article Chemical Desc'],
             ['data'=>'qty','name'=>'qty','title'=>'QTY Bom'],
@@ -90,6 +92,7 @@ class BomReportController extends Controller
         ->leftJoin('bom_hdr','bom_hdr.bom_code','bom_det.bom_code')
         ->leftJoin('article','article.article_code','bom_hdr.article_code')
         ->leftJoin('article as b','b.article_code','bom_det.article_code')
+        ->leftJoin('article as c','c.article_code','bom_hdr.article_code_rm')
         ->where(function ($query) use ($searchBom,$articleCode,$articleMaterial) {
             $searchBom ? $query->where('bom_det.bom_code','ilike','%'.$searchBom.'%') : '';
             $articleCode ? $query->where('bom_hdr.article_code','ilike','%'.$articleCode.'%') : '';
@@ -100,6 +103,8 @@ class BomReportController extends Controller
         ,'bom_hdr.status as statusku'
         ,'bom_det.uom as uom_bom'
         ,'article.article_alternative_code as article_fg'
+        ,'c.article_alternative_code as article_rm'
+        ,'c.article_desc as article_rm_desc'
         ,'b.article_alternative_code as article_ch'
         ,'article.article_desc as article_des'
         ,'b.article_desc as article_des_det'
