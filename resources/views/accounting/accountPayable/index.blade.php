@@ -157,6 +157,13 @@
           render: $.fn.dataTable.render.number(',', '.', 2, ''),
           className: "text-right"
         },
+        {
+          targets: [ 11 ],
+          render: function ( data, type, full, meta ) {
+            return '\u200C'+data;
+          }
+        }
+        
       ],
       type:"POST",
       dataSearch:  {
