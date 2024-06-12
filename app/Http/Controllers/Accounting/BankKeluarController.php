@@ -668,6 +668,16 @@ class BankKeluarController extends Controller
                             'updated_at' => date('Y-m-d H:i:s'),
                         ]
                     );
+
+                    DB::table('invoice_hdr')
+                    ->whereIn('invoice_number',$listInvoice)
+                    ->update(
+                        [   
+                            'status' =>'6',
+                            'updated_by' => Auth::user()->username,
+                            'updated_at' => date('Y-m-d H:i:s'),
+                        ]
+                    );
                 }
                 
                 DB::commit();

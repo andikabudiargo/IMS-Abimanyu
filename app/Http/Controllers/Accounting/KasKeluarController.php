@@ -542,12 +542,15 @@ class KasKeluarController extends Controller
                 $listInvoice=DB::table('kas_det')
                 ->where('voucher_number',$vcNumber)
                 ->pluck('reference')->toArray();
+
+                $supplierId = DB::table('kas_hdr')->where('voucher_number',$vcNumber)->value('paid_to');
                 
                 //update invoice jadi paid
                 // ['1'=>'DRAFT','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','6'=>'CLOSED','6'=>'PAID'];
                 if($status == '3'){
                     DB::table('ap_invoice')
                     ->whereIn('inv_number',$listInvoice)
+                    ->where('supplier_id',$supplierId)
                     ->update(
                         [   
                             'status' =>'6',
@@ -622,12 +625,15 @@ class KasKeluarController extends Controller
                 $listInvoice=DB::table('kas_det')
                 ->where('voucher_number',$vcNumber)
                 ->pluck('reference')->toArray();
+
+                $supplierId = DB::table('kas_hdr')->where('voucher_number',$vcNumber)->value('paid_to');
                 
                 //update invoice jadi paid
                 // ['1'=>'DRAFT','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','6'=>'CLOSED','6'=>'PAID'];
                 if($status == '3'){
                     DB::table('ap_invoice')
                     ->whereIn('ap_number',$listInvoice)
+                    ->where('supplier_id',$supplierId)
                     ->update(
                         [   
                             'status' =>'6',
