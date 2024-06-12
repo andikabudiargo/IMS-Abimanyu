@@ -452,11 +452,11 @@
         hitungTotal();
         hitungGrandTotal();
         
-        if(!account){
-            console.log("oki");
+        // if(!account){
+        //     console.log("oki");
             getAmount();
             findInvoice();
-        }
+        // }
 
         $('[data-toggle="tooltip"]').tooltip();
     };
