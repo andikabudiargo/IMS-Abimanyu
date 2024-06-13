@@ -158,9 +158,13 @@ class BankPenerimaanController extends Controller
         $data['subtitle'] = "Create $this->title";
         $data['type'] = 'penerimaan';
 
-        $data['accounts'] =db::select("select account,description from accounts where acc_header <> 'HEADER'
+        $data['accounts'] =db::select("SELECT account,description
+        ,(select account from third_party where kode =(select other_code from third_party where account = accounts.account)) as supp_coa
+        ,(select other_code from third_party where account = accounts.account) as supplier_code
+        from accounts 
+        where acc_header <> 'HEADER'
         union
-        select kode as account,nama description from third_party where third_party_type = 'supp' order by account");
+        select kode as account,nama description,'a' as a,'b' as b from third_party where third_party_type = 'supp' order by account");
         
         // $suppliers = DB::table('third_party')
         // ->select('kode as account','nama as description')
@@ -180,6 +184,8 @@ class BankPenerimaanController extends Controller
         $data['depts'] = DB::table('depts')
         ->orderBy('name')
         ->get();
+
+        $data['edit'] = 'false';
 
         return view("accounting.bank.create",$data);
 
@@ -374,9 +380,13 @@ class BankPenerimaanController extends Controller
         // ->orderBy('account')
         // ->get();
 
-        $data['accounts'] =db::select("select account,description from accounts where acc_header <> 'HEADER'
+        $data['accounts'] =db::select("SELECT account,description
+        ,(select account from third_party where kode =(select other_code from third_party where account = accounts.account)) as supp_coa
+        ,(select other_code from third_party where account = accounts.account) as supplier_code
+        from accounts 
+        where acc_header <> 'HEADER'
         union
-        select kode as account,nama description from third_party where third_party_type = 'supp' order by account");
+        select kode as account,nama description,'a' as a,'b' as b from third_party where third_party_type = 'supp' order by account");
 
         $data['depts'] = DB::table('depts')
         ->orderBy('name')
@@ -388,6 +398,8 @@ class BankPenerimaanController extends Controller
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATED','3'=>'APPROVED','4'=>'','5'=>'DELETED','6'=>'CLOSED'];
         $status = ['NEW','VALIDATED','APPROVED','','DELETED','CLOSED'];
         $data['status'] = $status[$data['header']->status-1];
+
+        $data['edit'] = 'true';
 
         return view("accounting.bank.edit",$data);
         
@@ -482,24 +494,29 @@ class BankPenerimaanController extends Controller
                     //update invoice jadi paid
                     // ['1'=>'DRAFT','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','6'=>'CLOSED','6'=>'PAID'];
 
-                    $listInvoice=DB::table('kas_det')
-                    ->where('voucher_number',$vcNumber)
-                    ->pluck('reference')->toArray();
+                    // $listInvoice=DB::table('kas_det')
+                    // ->where('voucher_number',$vcNumber)
+                    // ->pluck('reference')->toArray();
 
                     $status=DB::table('kas_hdr')
                     ->where('voucher_number',$vcNumber)
                     ->value('status');
+
+                    // $customerAccount = DB::table('kas_hdr')->where('voucher_number',$vcNumber)->value('account');
              
                     if($status == '3'){
-                        DB::table('invoice_hdr')
-                        ->whereIn('invoice_number',$listInvoice)
-                        ->update(
-                            [   
-                                'status' =>'6',
-                                'updated_by' => Auth::user()->username,
-                                'updated_at' => date('Y-m-d H:i:s'),
-                            ]
-                        );
+
+                        $this->paidTransaction($vcNumber);
+
+                        // DB::table('invoice_hdr')
+                        // ->whereIn('invoice_number',$listInvoice)
+                        // ->update(
+                        //     [   
+                        //         'status' =>'6',
+                        //         'updated_by' => Auth::user()->username,
+                        //         'updated_at' => date('Y-m-d H:i:s'),
+                        //     ]
+                        // );
                     }
 
                     DB::commit();
@@ -558,22 +575,25 @@ class BankPenerimaanController extends Controller
                     ]);
                 }
 
-                $listInvoice=DB::table('kas_det')
-                ->where('voucher_number',$vcNumber)
-                ->pluck('reference')->toArray();
+                // $listInvoice=DB::table('kas_det')
+                // ->where('voucher_number',$vcNumber)
+                // ->pluck('reference')->toArray();
                 
                 //update invoice jadi paid
                 // ['1'=>'DRAFT','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','6'=>'CLOSED','6'=>'PAID'];
                 if($status == '3'){
-                    DB::table('invoice_hdr')
-                    ->whereIn('invoice_number',$listInvoice)
-                    ->update(
-                        [   
-                            'status' =>'6',
-                            'updated_by' => Auth::user()->username,
-                            'updated_at' => date('Y-m-d H:i:s'),
-                        ]
-                    );
+
+                    $this->paidTransaction($vcNumber);
+
+                    // DB::table('invoice_hdr')
+                    // ->whereIn('invoice_number',$listInvoice)
+                    // ->update(
+                    //     [   
+                    //         'status' =>'6',
+                    //         'updated_by' => Auth::user()->username,
+                    //         'updated_at' => date('Y-m-d H:i:s'),
+                    //     ]
+                    // );
                 }
                 
                 /*
@@ -637,23 +657,11 @@ class BankPenerimaanController extends Controller
                         'updated_at' => date('Y-m-d H:i:s')
                     ]);
                 }
-
-                $listInvoice=DB::table('kas_det')
-                ->where('voucher_number',$vcNumber)
-                ->pluck('reference')->toArray();
                 
                 //update invoice jadi paid
                 // ['1'=>'DRAFT','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','6'=>'CLOSED','6'=>'PAID'];
                 if($status == '3'){
-                    DB::table('invoice_hdr')
-                    ->whereIn('invoice_number',$listInvoice)
-                    ->update(
-                        [   
-                            'status' =>'6',
-                            'updated_by' => $username,
-                            'updated_at' => date('Y-m-d H:i:s'),
-                        ]
-                    );
+                    $this->paidTransaction($vcNumber);
                 }
                 
                 DB::commit();
@@ -941,6 +949,54 @@ class BankPenerimaanController extends Controller
         $amount = $amount1+$amount2; 
 
         return response()->json(array('amount' => $amount));
+    }
+
+    public function paidTransaction($vcNumber)
+    {
+
+        $supplierCode = DB::table('third_party')
+        ->where('account', function($query) use ($vcNumber) {
+            $query->select('receive_from')
+            ->from('kas_hdr') 
+            ->where('voucher_number',$vcNumber)
+            ->value('receive_from');
+        })->value('other_code');
+
+        $listInvoice=DB::table('kas_det')
+        ->where('voucher_number',$vcNumber)
+        ->where('reference','<>',null)
+        ->pluck('reference')->toArray();
+        
+        DB::table('ap_invoice')
+        ->whereIn('inv_number',$listInvoice)
+        ->where('supplier_id',$supplierCode)
+        ->update(
+            [   
+                'status' =>'6',
+                'updated_by' => Auth::user()->username,
+                'updated_at' => date('Y-m-d H:i:s'),
+            ]
+        );
+
+        DB::table('invoice_hdr')
+        ->whereIn('invoice_number',$listInvoice)
+        ->update(
+            [   
+                'status' =>'6',
+                'updated_by' => Auth::user()->username,
+                'updated_at' => date('Y-m-d H:i:s'),
+            ]
+        );
+
+        DB::table('debit_note_hdr')
+        ->whereIn('dn_number',$listInvoice)
+        ->update(
+            [   
+                'status' =>'6',
+                'updated_by' => Auth::user()->username,
+                'updated_at' => date('Y-m-d H:i:s'),
+            ]
+        );
     }
 
 }

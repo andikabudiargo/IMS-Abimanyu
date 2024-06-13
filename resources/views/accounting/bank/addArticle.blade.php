@@ -37,7 +37,7 @@
             <tbody>
                 <tr>
                     <td class="isian" style="width: 20%">
-                        <select class="dynamicSelect form-control" id="account" name="account[]">
+                        <select class="dynamicSelect form-control" id="account" name="account[]" onchange="aFindInvoice(this)">
                         </select>
                     </td>
                     <td class="isian" style="width: 25%">
@@ -89,8 +89,9 @@
 </div>
 {{-- \.table row --}} 
 <script type="text/javascript">
-
     let delayTimer;
+    let edit = "{{ $edit }}";
+
     function inputDecimal(ele) {
         clearTimeout(delayTimer);
         delayTimer = setTimeout(function() {
@@ -151,19 +152,68 @@
     }
 
     function findInvoice(ref){
-        let objAccount = $('#item_row select[name="account[]"]');
-        let objVcRef= $('#item_row select[name="vcRef[]"]');
-        let objVcDebit= $('#item_row input[name="vcDebit[]"]');
-        let objVcCredit= $('#item_row input[name="vcCredit[]"]');
+        // let objAccount = $('#item_row select[name="account[]"]');
+        // let objVcRef= $('#item_row select[name="vcRef[]"]');
+        // let objVcDebit= $('#item_row input[name="vcDebit[]"]');
+        // let objVcCredit= $('#item_row input[name="vcCredit[]"]');
         
-        objAccount.change(function(e){        
-            let objIndex = objAccount.index(this);
+        // objAccount.change(function(e){        
+        //     let objIndex = objAccount.index(this);
+        //     let accountNumber = objAccount.eq(objIndex).val();
+        //     let objCust = "vcRef"+(objIndex+1);
+        //     let recFrom = $("#recFrom").val();
+            
+        //     let coa = $('#recFrom').find(":selected").data("coa");
+        //     let paidTo = $('#recFrom').find(":selected").data("other-code");
+
+        //     if(accountNumber){
+        //         if (accountNumber.substring(0,7) =='1100.40'){
+        //             if(recFrom){
+        //                 invList('referenceAr',objCust,recFrom,ref,objIndex);
+        //             }else{
+        //                 Swal.fire('Warning..','Kolom terima dari supplier code masih kosong','warning');
+        //             }
+        //         }else{
+        //             objVcDebit.eq(objIndex).val("");
+        //             objVcCredit.eq(objIndex).val("");
+        //             objVcRef.eq(objIndex).empty().trigger('change');
+        //             hitungGrandTotal();
+        //         }
+
+        //         if ((accountNumber == coa)){
+        //             if(paidTo){
+        //                 invList('reference',objCust,paidTo,ref,objIndex);
+        //             }else{
+        //                 Swal.fire('Warning..','Supplier code masih kosong','warning');
+        //             }
+        //         }else{
+        //             objVcDebit.eq(objIndex).val("");
+        //             objVcCredit.eq(objIndex).val("");
+        //             objVcRef.eq(objIndex).empty().trigger('change');
+        //             hitungGrandTotal();
+        //         }
+        //     }
+        // });
+    }
+
+    function aFindInvoice($this,ref){
+        if($($this).val() && edit === 'false'){
+            let objAccount = $('#item_row select[name="account[]"]');
+            let objVcRef= $('#item_row select[name="vcRef[]"]');
+            let objVcDebit= $('#item_row input[name="vcDebit[]"]');
+            let objVcCredit= $('#item_row input[name="vcCredit[]"]');
+            let objIndex = objAccount.index($this);
             let accountNumber = objAccount.eq(objIndex).val();
             let objCust = "vcRef"+(objIndex+1);
             let recFrom = $("#recFrom").val();
+            
+            let coa = $('#recFrom').find(":selected").data("coa");
+            let paidTo = $('#recFrom').find(":selected").data("other-code");
+
             if(accountNumber){
                 if (accountNumber.substring(0,7) =='1100.40'){
                     if(recFrom){
+                        console.log('piutang')
                         invList('referenceAr',objCust,recFrom,ref,objIndex);
                     }else{
                         Swal.fire('Warning..','Kolom terima dari supplier code masih kosong','warning');
@@ -174,8 +224,22 @@
                     objVcRef.eq(objIndex).empty().trigger('change');
                     hitungGrandTotal();
                 }
+
+                if ((accountNumber == coa)){
+                    if(paidTo){
+                        invList('reference',objCust,paidTo,ref,objIndex);
+                    }else{
+                        Swal.fire('Warning..','Supplier code masih kosong','warning');
+                    }
+                }else{
+                    objVcDebit.eq(objIndex).val("");
+                    objVcCredit.eq(objIndex).val("");
+                    objVcRef.eq(objIndex).empty().trigger('change');
+                    hitungGrandTotal();
+                }
             }
-        });
+            
+        }
     }
 
     function invList(dependent,obj,value,ref,objIndex) {
@@ -217,23 +281,39 @@
     
     function getAmount(){
         let objRef = $('#item_row select[name="vcRef[]"]');
-        objRef.change(function(e){ 
-            let objIndex = objRef.index(this);
-            let vRef = objRef.eq(objIndex).val();
-            if(vRef){
-                getAmountValue(vRef,objIndex); 
-            }
-        });
+        let objAccount = $('#item_row select[name="account[]"]');
+        if(objRef){
+            objRef.change(function(e){ 
+                let jenis = "hutang";
+                let objIndex = objRef.index(this);
+                let accountNumber = objAccount.eq(objIndex).val();
+                let vRef = objRef.eq(objIndex).val();
+                if(vRef){
+                    if (accountNumber.substring(0,7) =='1100.40'){
+                        jenis='piutang';
+                    }
+                    getAmountValue(vRef,objIndex,jenis);
+                }
+            });
+        }
     }   
 
-    function getAmountValue(vRef,objIndex) {
+    function getAmountValue(vRef,objIndex, jenis) {
         let objVcDebit= $('#item_row input[name="vcDebit[]"]');
         let objVcCredit= $('#item_row input[name="vcCredit[]"]');
+        let url ="{{ route('bankKeluar.get.invoice.amount') }}"; 
+        let supplierCode = $('#recFrom').find(":selected").data("other-code");
+
+        if(jenis === 'piutang'){
+            url ="{{ route('bankPenerimaan.get.invoice.amount') }}"; 
+        }
+
         $.ajax({
             type: "get",
-            url: "{{ route('bankPenerimaan.get.invoice.amount') }}",
+            url: url,
             data: {
-                vRef:vRef
+                vRef:vRef,
+                supplierCode:supplierCode
             },
             dataType: "json",
             success: function(data) {
@@ -241,8 +321,13 @@
                 objVcDebit.eq(objIndex).val('');
                 if(data.amount){
                     let fixAmount = parseFloat(data.amount).toFixed(2);
-                    objVcDebit.eq(objIndex).val('');
-                    objVcCredit.eq(objIndex).val(humanizeNumber(fixAmount));
+                    if(jenis === 'piutang'){
+                        objVcCredit.eq(objIndex).val(humanizeNumber(fixAmount));
+                        objVcDebit.eq(objIndex).val('');
+                    }else{
+                        objVcDebit.eq(objIndex).val(humanizeNumber(fixAmount));
+                        objVcCredit.eq(objIndex).val('');
+                    }
                     hitungGrandTotal();
                 }
             },
@@ -251,4 +336,5 @@
             }
         });
     }
+
 </script>

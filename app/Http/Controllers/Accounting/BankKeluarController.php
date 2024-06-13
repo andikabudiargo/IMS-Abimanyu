@@ -894,6 +894,7 @@ class BankKeluarController extends Controller
 
         $listInvoice=DB::table('kas_det')
         ->where('voucher_number',$vcNumber)
+        ->where('reference','<>',null)
         ->pluck('reference')->toArray();
 
         DB::table('ap_invoice')

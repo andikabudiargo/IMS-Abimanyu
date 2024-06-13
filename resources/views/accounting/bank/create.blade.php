@@ -20,7 +20,7 @@
                             @csrf
                             <input type="text" id="article" name="article" hidden>
                             <div class="form-row">
-                                <div class="form-group col-md-4">
+                                <div class="form-group col-md-3">
                                     <label for="voucherNumber">Voucher Number</label>
                                     <input type="text" id="voucherNumber" name="voucherNumber" class="form-control" disabled/>
                                 </div>
@@ -39,13 +39,13 @@
                                 </div>
                             </div>
                             <div class="form-row">
-                                <div class="form-group col-md-4">
+                                <div class="form-group col-md-6">
                                     <label for="recFrom">Received From*</label>
                                     <select class="select2 form-control" id="recFrom" name="recFrom" required>
                                         <option value=""></option>
                                         <option value="other">Other</option>
                                         @foreach ($accounts as $val)
-                                            <option value="{{ $val->account }}">{{ $val->account }} | {{ $val->description }}</option>
+                                            <option value="{{ $val->account }}" data-coa="{{ $val->supp_coa }}" data-other-code="{{ $val->supplier_code }}">{{ $val->account }} | {{ $val->description }}</option>
                                         @endforeach
                                     </select>
                                 </div>
@@ -59,6 +59,20 @@
                                     <div class="form-group">
                                         <label for="totalAmount">Amount*</label>
                                         <input type="text" id="totalAmount" name="totalAmount" class="form-control text-right numeral-mask-digit" oninput='inputDecimal(this)' maxlength="20" required/>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group col-md-3">
+                                    <div class="form-group">
+                                        <label for="coaPiutang">Coa Hutang</label>
+                                        <input type="text" id="coaPiutang" name="coaPiutang" class="form-control" disabled/>
+                                    </div>
+                                </div>
+                                <div class="form-group col-md-3">
+                                    <div class="form-group">
+                                        <label for="otherCode">Supplier Code</label>
+                                        <input type="text" id="otherCode" name="otherCode" class="form-control" disabled/>
                                     </div>
                                 </div>
                             </div>
@@ -337,7 +351,7 @@
         mask_thousand_digit(2);
         hitungTotal();
         hitungGrandTotal();
-        findInvoice();
+        // findInvoice();
         getAmount();
         $('[data-toggle="tooltip"]').tooltip();
         
@@ -397,6 +411,14 @@
     $("#recFrom").on('select2:close', function(){
         let content = this.value;
         let contentText = $("#recFrom").select2('data')[0].text;
+
+        let coa = $('#recFrom').find(":selected").data("coa");
+        let otherCode = $('#recFrom').find(":selected").data("other-code");
+        let paidTo = $('#recFrom').find(":selected").data("other-code");
+
+        $('#coaPiutang').val(coa);
+        $('#otherCode').val(otherCode);
+
         if(content =='other'){
             $(".other-desc").removeClass("d-none");
             $("#recFromDesc").val("");
