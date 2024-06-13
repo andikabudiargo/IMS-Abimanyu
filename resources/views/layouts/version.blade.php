@@ -1,1 +1,1 @@
-<span class="d-sm-inline-block"></span> V.7.2.0.0 </span>
+<span class="d-sm-inline-block"></span> V.8.0.0.0 </span>
