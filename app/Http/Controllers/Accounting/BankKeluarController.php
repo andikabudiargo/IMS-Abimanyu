@@ -479,37 +479,18 @@ class BankKeluarController extends Controller
                     //update invoice jadi paid
                     // ['1'=>'DRAFT','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','6'=>'CLOSED','6'=>'PAID'];
 
-                    $listInvoice=DB::table('kas_det')
-                    ->where('voucher_number',$vcNumber)
-                    ->pluck('reference')->toArray();
+                    // $listInvoice=DB::table('kas_det')
+                    // ->where('voucher_number',$vcNumber)
+                    // ->pluck('reference')->toArray();
     
                     $status=DB::table('kas_hdr')
                     ->where('voucher_number',$vcNumber)
                     ->value('status');
 
+                    $supplierId = $paidTo;
                     if($status == '3'){
-                        DB::table('ap_invoice')
-                        // ->whereIn('ap_number',$listInvoice)
-                        ->whereIn('inv_number',$listInvoice)
-                        ->update(
-                            [   
-                                'status' =>'6',
-                                'updated_by' => Auth::user()->username,
-                                'updated_at' => date('Y-m-d H:i:s'),
-                            ]
-                        );
-
-                        DB::table('invoice_hdr')
-                        ->whereIn('invoice_number',$listInvoice)
-                        ->update(
-                            [   
-                                'status' =>'6',
-                                'updated_by' => Auth::user()->username,
-                                'updated_at' => date('Y-m-d H:i:s'),
-                            ]
-                        );
+                        $this->paidTransaction($supplierId,$vcNumber);
                     }
-
 
                     DB::commit();
                     $title ="Update $this->title";
@@ -567,33 +548,17 @@ class BankKeluarController extends Controller
                     ]);
                 }
 
-                $listInvoice=DB::table('kas_det')
-                ->where('voucher_number',$vcNumber)
-                ->pluck('reference')->toArray();
+                // $listInvoice=DB::table('kas_det')
+                // ->where('voucher_number',$vcNumber)
+                // ->pluck('reference')->toArray();
+
+                $supplierId = DB::table('kas_hdr')->where('voucher_number',$vcNumber)->value('paid_to');
                 
                 //update invoice jadi paid
                 // ['1'=>'DRAFT','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','6'=>'CLOSED','6'=>'PAID'];
-                if($status == '3'){
-                    DB::table('ap_invoice')
-                    // ->whereIn('ap_number',$listInvoice)
-                    ->whereIn('inv_number',$listInvoice)
-                    ->update(
-                        [   
-                            'status' =>'6',
-                            'updated_by' => Auth::user()->username,
-                            'updated_at' => date('Y-m-d H:i:s'),
-                        ]
-                    );
 
-                    DB::table('invoice_hdr')
-                    ->whereIn('invoice_number',$listInvoice)
-                    ->update(
-                        [   
-                            'status' =>'6',
-                            'updated_by' => Auth::user()->username,
-                            'updated_at' => date('Y-m-d H:i:s'),
-                        ]
-                    );
+                if($status == '3'){
+                    $this->paidTransaction($supplierId,$vcNumber);
                 }
 
                 // if( $nextLevel == ($maxLevel-1) ){
@@ -652,32 +617,16 @@ class BankKeluarController extends Controller
                     ]);
                 }
 
-                $listInvoice=DB::table('kas_det')
-                ->where('voucher_number',$vcNumber)
-                ->pluck('reference')->toArray();
-                
+                // $listInvoice=DB::table('kas_det')
+                // ->where('voucher_number',$vcNumber)
+                // ->pluck('reference')->toArray();
+
+                $supplierId = DB::table('kas_hdr')->where('voucher_number',$vcNumber)->value('paid_to');
+
                 //update invoice supplier jadi paid kalau status approved terakhir
                 // ['1'=>'DRAFT','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','6'=>'CLOSED','6'=>'PAID'];
                 if($status == '3'){
-                    DB::table('ap_invoice')
-                    ->whereIn('ap_number',$listInvoice)
-                    ->update(
-                        [   
-                            'status' =>'6',
-                            'updated_by' => Auth::user()->username,
-                            'updated_at' => date('Y-m-d H:i:s'),
-                        ]
-                    );
-
-                    DB::table('invoice_hdr')
-                    ->whereIn('invoice_number',$listInvoice)
-                    ->update(
-                        [   
-                            'status' =>'6',
-                            'updated_by' => Auth::user()->username,
-                            'updated_at' => date('Y-m-d H:i:s'),
-                        ]
-                    );
+                    $this->paidTransaction($supplierId,$vcNumber);                    
                 }
                 
                 DB::commit();
@@ -938,6 +887,45 @@ class BankKeluarController extends Controller
         ->value('amount');
 
         return response()->json(array('amount' => $amount));
+    }
+
+    public function paidTransaction($supplierCode,$vcNumber)
+    {
+
+        $listInvoice=DB::table('kas_det')
+        ->where('voucher_number',$vcNumber)
+        ->pluck('reference')->toArray();
+
+        DB::table('ap_invoice')
+        ->whereIn('inv_number',$listInvoice)
+        ->where('supplier_id',$supplierCode)
+        ->update(
+            [   
+                'status' =>'6',
+                'updated_by' => Auth::user()->username,
+                'updated_at' => date('Y-m-d H:i:s'),
+            ]
+        );
+
+        DB::table('invoice_hdr')
+        ->whereIn('invoice_number',$listInvoice)
+        ->update(
+            [   
+                'status' =>'6',
+                'updated_by' => Auth::user()->username,
+                'updated_at' => date('Y-m-d H:i:s'),
+            ]
+        );
+
+        DB::table('debit_note_hdr')
+        ->whereIn('dn_number',$listInvoice)
+        ->update(
+            [   
+                'status' =>'6',
+                'updated_by' => Auth::user()->username,
+                'updated_at' => date('Y-m-d H:i:s'),
+            ]
+        );
     }
 
 }
