@@ -100,13 +100,13 @@
         tableId:"detailedTable",
         route:"{{ route('account.list') }}",
         kolom:{!! $kolom !!},
-        arrColPrint:[1,2,3,4,5,6,7,8,9],
+        arrColPrint:[1,2,3,4,5,6,7,8,9,10],
         columnDefs :[
           { width: '5%', targets: 0 }
         ],
         columnDefs :[
           {
-              targets: [ 3 ],
+              targets: [ 4 ],
               render: $.fn.dataTable.render.number(',','.',2,''),
               className: "text-right"
           },

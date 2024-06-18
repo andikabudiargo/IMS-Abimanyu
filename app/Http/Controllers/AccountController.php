@@ -28,6 +28,7 @@ class AccountController extends Controller
         [
             ['data'=> 'action', 'name'=>'action','title'=>'action', 'orderable'=> false, 'searchable'=> false ],
             ['data'=> 'account', 'name'=>'account','title'=>'Account' ],
+            ['data'=> 'type_code', 'name'=>'type_code','title'=>'Account Type' ],
             ['data'=> 'description', 'name'=>'description','title'=>'Description' ],
             ['data'=> 'opening_balance', 'name'=>'opening_balance','title'=>'Opening Balance' ],
             ['data'=> 'acc_header', 'name'=>'acc_header','title'=>'Header' ],
