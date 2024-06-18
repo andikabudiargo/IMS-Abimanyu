@@ -45,7 +45,7 @@
               </div>
             </div>
             <div class="form-row">
-              <div class="form-group col-md-2"> 
+              <div class="form-group col-md-3"> 
                 <label class="form-label" for="searchStatus">Status</label>
                 <select class="select2 form-control" id="searchStatus" name="searchStatus">
                     <option value="">All</option>
@@ -53,6 +53,16 @@
                         <option value="{{ $index }}">{{ $val }}</option>
                     @endforeach
                 </select>
+              </div>
+              <div class="form-group col-md-6">
+                  <label for="recFrom">Received From*</label>
+                  <select class="select2 form-control" id="recFrom" name="recFrom" required>
+                      <option value=""></option>
+                      <option value="other">Other</option>
+                      @foreach ($accounts as $val)
+                          <option value="{{ $val->account }}" >{{ $val->account }} | {{ $val->description }}</option>
+                      @endforeach
+                  </select>
               </div>
             </div>
             <div class="form-row">
@@ -126,7 +136,13 @@
 
   //refresh di cards
   $('a[data-action="reload"]').on('click', function () {
-      showList();
+    let seachVc = $("#seachVc").val();
+    let vcDate = $("#vcDate").val();
+    let period = $("#period").val();
+    let year = $("#year").val();
+    let searchStatus = $("#searchStatus").val();
+    let searchRecFrom = $("#recFrom").val();
+    showList(seachVc,vcDate,period,year,searchStatus,searchRecFrom);
   });
 
   rangePickr = $('.flatpickr-range');
@@ -143,11 +159,11 @@
     let period = $("#period").val();
     let year = $("#year").val();
     let searchStatus = $("#searchStatus").val();
-    showList(seachVc,vcDate,period,year,searchStatus);
-
+    let searchRecFrom = $("#recFrom").val();
+    showList(seachVc,vcDate,period,year,searchStatus,searchRecFrom);
   });
 
-  const showList = (seachVc,vcDate,period,year,searchStatus) => {
+  const showList = (seachVc,vcDate,period,year,searchStatus,searchRecFrom) => {
     if ($('#detailedTable tr').length >0){
         let table= $('#detailedTable').DataTable();
         table.destroy();
@@ -173,7 +189,8 @@
         vcDate:vcDate,
         period:period,
         year:year,
-        searchStatus:searchStatus
+        searchStatus:searchStatus,
+        searchRecFrom:searchRecFrom
       },
       orderColumn:[[ 11, 'desc' ]],
       excelFileName:'kas_penerimaan'
