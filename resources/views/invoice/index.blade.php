@@ -150,11 +150,11 @@
       tableId:"detailedTable",
       route:"{{ route('invoice.list') }}",
       kolom:{!! $kolom !!},
-      arrColPrint:[1,2,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20],
+      arrColPrint:[1,2,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21],
       columnDefs :[
         { width: '5%', targets: 0 },
         {
-          targets: [ 8,9,10,11,13,14 ],
+          targets: [ 9,10,11,12,14,15 ],
           render: $.fn.dataTable.render.number(',', '.', 2, ''),
           className: "text-right"
         },
@@ -166,7 +166,7 @@
         searchStatus:searchStatus,
         recDate:recDate
       },
-      orderColumn:[[ 19, 'desc' ]],
+      orderColumn:[[ 20, 'desc' ]],
       excelFileName:'invoice_customer'
     });
   }

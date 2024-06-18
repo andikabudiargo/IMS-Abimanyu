@@ -46,13 +46,23 @@
               </div>
             </div>
             <div class="form-row">
-              <div class="form-group col-md-2"> 
+              <div class="form-group col-md-3"> 
                 <label class="form-label" for="searchStatus">Status</label>
                 <select class="select2 form-control" id="searchStatus" name="searchStatus">
                     <option value="">All</option>
                     @foreach($status as $index=>$val)
                         <option value="{{ $index }}">{{ $val }}</option>
                     @endforeach
+                </select>
+              </div>
+              <div class="form-group col-md-6">
+                <label for="paidTo">Bayar Ke*</label>
+                <select class="select2 form-control" id="paidTo" name="paidTo" required>
+                    <option value=""></option>
+                    @foreach ($suppliers as $val)
+                        <option value="{{ $val->kode }}" data-coa="{{ $val->account }}">{{ $val->kode }} | {{ $val->nama }}</option>
+                    @endforeach
+                    <option value="other">Other</option>
                 </select>
               </div>
             </div>
@@ -119,7 +129,6 @@
   let showAlert = "{{ Session::get('alert') }}";
 
   if ( showAlert ){
-    // showList();
     $("#alert-message-alert").fadeTo(5000, 500).slideUp(500, function(){
       $("#alert-message-alert").slideUp(500);
     });
@@ -127,7 +136,13 @@
 
   //refresh di cards
   $('a[data-action="reload"]').on('click', function () {
-      showList();
+    let seachVc = $("#seachVc").val();
+    let vcDate = $("#vcDate").val();
+    let period = $("#period").val();
+    let year = $("#year").val();
+    let searchStatus = $("#searchStatus").val();
+    let searchPaidTo = $("#paidTo").val();
+    showList(seachVc,vcDate,period,year,searchStatus,searchPaidTo);
   });
 
   rangePickr = $('.flatpickr-range');
@@ -144,11 +159,12 @@
     let period = $("#period").val();
     let year = $("#year").val();
     let searchStatus = $("#searchStatus").val();
-    showList(seachVc,vcDate,period,year,searchStatus);
+    let searchPaidTo = $("#paidTo").val();
+    showList(seachVc,vcDate,period,year,searchStatus,searchPaidTo);
 
   });
 
-  const showList = (seachVc,vcDate,period,year,searchStatus) => {
+  const showList = (seachVc,vcDate,period,year,searchStatus,searchPaidTo) => {
     if ($('#detailedTable tr').length >0){
         let table= $('#detailedTable').DataTable();
         table.destroy();
@@ -173,7 +189,8 @@
         vcDate:vcDate,
         period:period,
         year:year,
-        searchStatus:searchStatus
+        searchStatus:searchStatus,
+        searchPaidTo:searchPaidTo
       },
       orderColumn:[[ 12, 'desc' ]],
       excelFileName:'kas_pembayaran'

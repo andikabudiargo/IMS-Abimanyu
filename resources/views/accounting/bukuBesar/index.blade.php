@@ -37,14 +37,14 @@
                     @endfor
                 </select>
               </div>
-              <div class="form-group col-md-2">
+              {{-- <div class="form-group col-md-2">
                 <label class="form-label" for="periodTahun">Tahun</label>
                 <select class="select2 form-control" id="periodTahun" name="periodTahun" >
                     @for ($i = 2023; $i <= 2100; $i++)
                         <option value="{{ $i }}">{{ $i }}</option>
                     @endfor
                 </select>
-              </div>
+              </div> --}}
             </div>
             <div class="form-row">
               <div class="form-group col-md-4">
@@ -171,11 +171,11 @@
       tableId:"detailedTable",
       route:"{{ route('bukuBesar.list') }}",
       kolom:{!! $kolom !!},
-      arrColPrint:[0,1,2,3,4,5,7,8,9,10,11,12],
+      arrColPrint:[0,1,2,3,4,5,7,8,9,10,11,12,13],
       columnDefs :[
         { width: '5%', targets: 0 },
         {
-          targets: [ 8,9 ],
+          targets: [ 9,10 ],
           render: $.fn.dataTable.render.number(',', '.', 2, ''),
           className: "text-right"
         },
@@ -189,7 +189,7 @@
         perkiraan2:perkiraan2,
         searchStatus:searchStatus
       },
-      orderColumn:[[ 1,'asc'],[ 6,'asc']],
+      orderColumn:[[ 1,'asc'],[ 7,'asc']],
       excelFileName:'buku_besar'
     });
   }

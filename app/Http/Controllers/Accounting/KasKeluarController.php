@@ -148,6 +148,11 @@ class KasKeluarController extends Controller
         $data['kolom'] = $this->getTableColoumn();
         $data['kolomDetail'] = $this->getTableColoumnDetail();
 
+        $data['suppliers'] = DB::table('third_party')
+        // ->where('third_party_type','supp')
+        ->orderBy('nama')
+        ->get();
+
         $status = ['NEW','VALIDATED','APPROVED','','DELETED','CLOSED'];
         $data['status'] = ['1'=>'NEW','2'=>'VALIDATED','3'=>'APPROVED'];
     
@@ -713,6 +718,7 @@ class KasKeluarController extends Controller
         $fromDate = "";
         $toDate = "";
         $searchStatus=$request->searchStatus;
+        $paidTo = $request->searchPaidTo;
 
         if ($vcDate){
             $date = explode("to",$vcDate);
@@ -729,12 +735,13 @@ class KasKeluarController extends Controller
 
         $data = DB::table('kas_hdr')
         ->leftJoin('third_party','third_party.kode','kas_hdr.paid_to')
-        ->where(function ($query) use ($seachVc,$vcDate,$fromDate,$toDate,$period,$year,$searchStatus) {
+        ->where(function ($query) use ($seachVc,$vcDate,$fromDate,$toDate,$period,$year,$searchStatus,$paidTo) {
             $seachVc ? $query->where('voucher_number','ilike','%'.$seachVc.'%') : '';
             $vcDate ? $query->whereBetween(DB::raw("to_date(voucher_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
             $period ? $query->where('period', $period) : '';
             $year ? $query->where('year', $year) : '';
             $searchStatus ? $query->where('kas_hdr.status', $searchStatus) : '';
+            $paidTo ? $query->where('kas_hdr.paid_to', $paidTo) : '';
         })
         ->where('voucher_type',$vcType)
         ->where('kas_hdr.status','<>','5')

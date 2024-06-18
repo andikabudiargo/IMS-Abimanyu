@@ -37,6 +37,7 @@ class BukuBesarController extends Controller
             ['data'=>'description','name'=>'description','title'=>'Description'],
             ['data'=>'voucher_date','name'=>'voucher_date','title'=>'Date'],
             ['data'=>'voucher_date_2','name'=>'voucher_date_2','title'=>'Date', 'visible'=>false],
+            ['data'=>'period','name'=>'period','title'=>'Period'],
             ['data'=>'debit','name'=>'debit','title'=>'Debet'],
             ['data'=>'credit','name'=>'credit','title'=>'Kredit'],
             ['data'=>'statusku','name'=>'statusku','title'=>'Status'],
@@ -215,6 +216,7 @@ class BukuBesarController extends Controller
         ->select(
             'depts.name as nama_dept'
             ,'kas_det.account'
+            ,'kas_hdr.period'
             ,'accounts.description as nama_akun'
             ,'reference'
             ,'kas_det.voucher_number'

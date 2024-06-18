@@ -31,6 +31,7 @@ class BankKeluarController extends Controller
         [
             ['data'=>'action','name'=>'action','title'=>'action','orderable'=> false,'searchable'=>false],
             ['data'=>'voucher_number','name'=>'voucher_number','title'=>'Voucher Number'],
+            ['data'=>'statusku','name'=>'statusku','title'=>'Status'],
             ['data'=>'voucher_date','name'=>'voucher_date','title'=>'Date'],
             ['data'=>'voucher_date_2','name'=>'voucher_date_2','title'=>'Date', 'visible'=>false],
             ['data'=>'supplier_name','name'=>'supplier_name','title'=>'Paid To'],
@@ -38,7 +39,7 @@ class BankKeluarController extends Controller
             ['data'=>'amount','name'=>'amount','title'=>'Amount'],
             ['data'=>'period','name'=>'period','title'=>'Period'],
             ['data'=>'note','name'=>'note','title'=>'Note'],
-            ['data'=>'statusku','name'=>'statusku','title'=>'Status'],
+            // ['data'=>'statusku','name'=>'statusku','title'=>'Status'],
             ['data'=> 'approval_by','name'=> 'approval_by','title'=>'Approved By'],
             ['data'=> 'approval_at','name'=> 'approval_at','title'=>'Approved At'],
             ['data'=>'created_by','name'=>'created_by','title'=>'Created By'],
@@ -157,6 +158,11 @@ class BankKeluarController extends Controller
 
         $data['kolom'] = $this->getTableColoumn();
         $data['kolomDetail'] = $this->getTableColoumnDetail();
+
+        $data['suppliers'] = DB::table('third_party')
+        // ->where('third_party_type','supp')
+        ->orderBy('nama')
+        ->get();
 
         $status = ['NEW','VALIDATED','APPROVED','','DELETED','CLOSED'];
         $data['status'] = ['1'=>'NEW','2'=>'VALIDATED','3'=>'APPROVED'];
@@ -697,6 +703,7 @@ class BankKeluarController extends Controller
         $fromDate = "";
         $toDate = "";
         $searchStatus=$request->searchStatus;
+        $paidTo = $request->searchPaidTo;
 
         if ($vcDate){
             $date = explode("to",$vcDate);
@@ -714,12 +721,13 @@ class BankKeluarController extends Controller
 
         $data = DB::table('kas_hdr')
         ->leftJoin('third_party','third_party.kode','kas_hdr.paid_to')
-        ->where(function ($query) use ($seachVc,$vcDate,$fromDate,$toDate,$period,$year,$searchStatus) {
+        ->where(function ($query) use ($seachVc,$vcDate,$fromDate,$toDate,$period,$year,$searchStatus,$paidTo) {
             $seachVc ? $query->where('voucher_number','ilike','%'.$seachVc.'%') : '';
             $vcDate ? $query->whereBetween(DB::raw("to_date(voucher_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
             $period ? $query->where('period', $period) : '';
             $year ? $query->where('year', $year) : '';
             $searchStatus ? $query->where('kas_hdr.status', $searchStatus) : '';
+            $paidTo ? $query->where('kas_hdr.paid_to', $paidTo) : '';
         })
         ->where('voucher_type',$vcType)
         ->where('kas_hdr.status','<>','5')

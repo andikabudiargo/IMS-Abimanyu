@@ -30,8 +30,8 @@ class BankPenerimaanController extends Controller
         $kolom=
         [
             ['data'=>'action','name'=>'action','title'=>'action','orderable'=> false,'searchable'=>false],
-            ['data'=>'statusku','name'=>'statusku','title'=>'Status'],
             ['data'=>'voucher_number','name'=>'voucher_number','title'=>'Voucher Number'],
+            ['data'=>'statusku','name'=>'statusku','title'=>'Status'],
             ['data'=>'voucher_date','name'=>'voucher_date','title'=>'Date'],
             ['data'=>'voucher_date_2','name'=>'voucher_date_2','title'=>'Date','visible'=>false],
             ['data'=>'receive_name','name'=>'receive_name','title'=>'Receive From'],
