@@ -10,14 +10,17 @@
 function show_msg(title, message, status) {
     toastr[status](message, title,{
         closeButton: true,
-        tapToDismiss: false
+        tapToDismiss: false,
+        timeOut: 10000,
+        
     })
 }
 
 function show_msg_error(title, message, status) {
     toastr[status](message, title,{
         closeButton: true,
-        tapToDismiss: false
+        tapToDismiss: false,
+        timeOut: 10000,
     })
 }
 
