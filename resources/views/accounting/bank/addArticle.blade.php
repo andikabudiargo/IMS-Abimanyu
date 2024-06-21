@@ -212,11 +212,15 @@
 
             if(accountNumber){
                 if (accountNumber.substring(0,7) =='1100.40'){
-                    if(recFrom){
-                        console.log('piutang')
+                    if(recFrom == accountNumber){
                         invList('referenceAr',objCust,recFrom,ref,objIndex);
                     }else{
-                        Swal.fire('Warning..','Kolom terima dari supplier code masih kosong','warning');
+                        // Swal.fire('Warning..','Kolom terima dari supplier code masih kosong','warning');
+                        Swal.fire('Warning..','Account Receive From dan Account piutang tidak sama','warning');
+                        objVcDebit.eq(objIndex).val("");
+                        objVcCredit.eq(objIndex).val("");
+                        objVcRef.eq(objIndex).empty().trigger('change');
+                        hitungGrandTotal();
                     }
                 }else{
                     objVcDebit.eq(objIndex).val("");

@@ -76,6 +76,8 @@ let showDataTables = (opt) => {
         [ 10, 25, 50, -1 ],
         [ '10', '25', '50', 'all' ]
       ],
+      excelCustomize:"",
+      excelMessageBottom:""
     }, opt);
     let button = opt.buttons == true ? 'B' : '';
     $(function(){
@@ -130,7 +132,9 @@ let showDataTables = (opt) => {
                   exportOptions: { columns: opt.arrColPrint },
                   action: newExportAction,
                   title:null,
-                  filename:opt.excelFileName
+                  filename:opt.excelFileName,
+                  customize:opt.excelCustomize,
+                  messageBottom:opt.excelMessageBottom
                 },
                 // {
                 //   extend: 'pdf',

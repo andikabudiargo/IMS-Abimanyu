@@ -46,7 +46,7 @@
                         data-nama-el-kiri='account'
                         data-type-el-kanan='select'
                         data-nama-el-kanan='vcCc' --}}
-                        id="vcDesc" name="vcDesc[]" />
+                        id="vcDesc" name="vcDesc[]" autocomplete="off"/>
                     </td>
                     <td class="isian" style="">
                         <select class="form-control tombol-panah" id="vcRef" name="vcRef[]">                            
@@ -162,11 +162,16 @@
             let objCust = "vcRef"+(objIndex+1);
             if(accountNumber){
                 if (accountNumber.substring(0,7) =='1100.40'){
-                    // if(recFrom){
+                    if(recFrom == accountNumber){
                         invList('referenceAr',objCust,recFrom,'',objIndex);
-                    // }else{
-                    //     Swal.fire('Warning..','Kolom bayar ke /supplier code masih kosong','warning');
-                    // }
+                    }else{
+                        // Swal.fire('Warning..','Kolom bayar ke /supplier code masih kosong','warning');
+                        Swal.fire('Warning..','Account Receive From dan Account piutang tidak sama','warning');
+                        objVcDebit.eq(objIndex).val("");
+                        objVcCredit.eq(objIndex).val("");
+                        objVcRef.eq(objIndex).empty().trigger('change');
+                        hitungGrandTotal();
+                    }
                 }else{
                     objVcDebit.eq(objIndex).val("");
                     objVcCredit.eq(objIndex).val("");

@@ -42,7 +42,7 @@
                     </td>
                     <td class="isian" style="width: 25%">
                         <input type="text" class="form-control-plaintext" 
-                        id="vcDesc" name="vcDesc[]" />
+                        id="vcDesc" name="vcDesc[]" autocomplete="off"/>
                     </td>
                     <td class="isian" style="">
                         <select class="form-control tombol-panah" id="vcRef" name="vcRef[]">                            

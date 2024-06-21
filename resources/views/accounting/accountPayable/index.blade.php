@@ -97,6 +97,7 @@
 
 @section('scripts')
 <script type="text/javascript">
+  let currentDate = todayDate('dd-mm-yyyy');  
   $(document).ready(function(){    
     let href;
     $(document).on('click', '#deleteButton', function(event) {
@@ -166,6 +167,11 @@
         
       ],
       type:"POST",
+      excelCustomize:function(xlsx) {
+        let sheet = xlsx.xl.worksheets['sheet1.xml'];
+        $('row:last c', sheet).attr('s','50');
+      },
+      excelMessageBottom:function () { return "Tanggal export : "+currentDate },
       dataSearch:  {
         searchPo:searchPo,
         searchAp:searchAp,
