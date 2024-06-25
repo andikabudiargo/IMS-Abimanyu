@@ -1234,6 +1234,7 @@ class SalesOrderController extends Controller
             ['data'=>'qty','name'=>'qty','title'=>'Qty SO'],
             ['data'=>'qty_kirim','name'=>'qty_kirim','title'=>'Pengiriman'],
             ['data'=>'balance','name'=>'balance','title'=>'Sisa Order'],
+            ['data'=>'note','name'=>'note','title'=>'Note'],
             ['data'=>'date_period','name'=>'date_period','title'=>'date_period','visible'=>false],
             ['data'=>'detail','name'=>'detail','title'=>'Detail'],
         ];
@@ -1331,6 +1332,7 @@ class SalesOrderController extends Controller
         // ,DB::raw("case when uom_group = 'PIECE' then TO_CHAR(qty_target,'999,999,999') when uom_group <> 'PIECE' then TO_CHAR(qty_target,'999,999,999.999') end as qty_target")
         //,DB::raw("case when uom_group = 'PIECE' then TO_CHAR(qty_forcast,'999,999,999') when uom_group <> 'PIECE' then TO_CHAR(qty_forcast,'999,999,999.999') end as qty_forcast")
         ,DB::RAW("to_date(so_date,'dd-mm-yyyy') as date_period")
+        ,'sales_order_hdr.note'
         )
         ->where(db::raw("case when sales_order_det.status = '0' then 0 else (coalesce((select sum(qty) from delivery_det a
         left join delivery_hdr b on a.delivery_number=b.delivery_number 

@@ -145,7 +145,7 @@
       tableId:"detailedTable",
       route:"{{ route('salesOrder.list.report') }}",
       kolom:{!! $kolom !!},
-      arrColPrint:[0,1,2,3,4,5,6,7,8,9,10],
+      arrColPrint:[0,1,2,3,4,5,6,7,8,9,10,11],
       columnDefs :[
         {
             targets: [ 7,8,9 ],
@@ -159,8 +159,8 @@
         searchCustomer:searchCustomer,
         orderDate:orderDate
       },
-      orderColumn:[[ 10, 'asc' ],[ 4, 'asc' ]],
-      excelFileName:'os_sales_order'
+      orderColumn:[[ 11, 'asc' ],[ 4, 'asc' ]],
+      excelFileName:'report_sales_order'
     });
   }
 
