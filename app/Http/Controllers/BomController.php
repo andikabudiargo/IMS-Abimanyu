@@ -81,6 +81,11 @@ class BomController extends Controller
        
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'RECEIVED','5'=>'DELETED','6'=>'CLOSED','7'=>'REVISED'];
         $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','5'=>'DELETED'];
+
+        $data['custs'] = DB::table('third_party')
+        ->where ('third_party_type','=','cust')
+        ->orderBy('nama')
+        ->get();
                         
         return view("bom.index",$data);
     }
@@ -739,13 +744,15 @@ class BomController extends Controller
         $searchBom = strtolower($request->searchBom);
         $articleCode = $request->articleCode;
         $status = $request->status;
+        $cust = $request->cust;
 
         $data = DB::table('bom_hdr')
         ->leftJoin('article','article.article_code','bom_hdr.article_code')
-        ->where(function ($query) use ($searchBom,$articleCode,$status) {
+        ->where(function ($query) use ($searchBom,$articleCode,$status,$cust) {
             $searchBom ? $query->where('bom_code','ilike','%'.$searchBom.'%') : '';
             $articleCode ? $query->where('bom_hdr.article_code','ilike','%'.$articleCode.'%') : '';
             $status ? $query->where('bom_hdr.status','=',$status) : '';
+            $cust ? $query->where('bom_hdr.customer','=',$cust) : '';
         })
         ->where('bom_hdr.status','<>','7')
         ->select('bom_hdr.*'

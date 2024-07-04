@@ -64,6 +64,15 @@
                     @endforeach
                 </select>
               </div>
+              <div class="form-group col-md-6">
+                <label class="form-label" for="cust">Customer*</label>
+                <select class="select2 form-control" id="cust" name="cust" required>
+                    <option value="">Choose Customer</option>
+                    @foreach($custs as $val)
+                        <option value="{{$val->kode}}" >{{$val->kode}} - {{$val->nama}}</option>
+                    @endforeach
+                </select>
+              </div>
               <div class="form-group col-md-3">
                 <label class="form-label" for="status">Status</label>
                 <select class="select2 form-control" id="status" name="status">
@@ -126,6 +135,7 @@
 <script type="text/javascript">
   let searchBom = $("#searchBom");
   let articleCode = $("#articleCode");
+  let searchCust = $("#cust");
   let status = $("#status");
   let btnExport = document.querySelector('#cmdExport');
 
@@ -140,15 +150,15 @@
   //refresh di cards
   $('a[data-action="reload"]').on('click', function () {
     btnExport.style.display = "block";
-    showList(searchBom.val(),articleCode.val(),status.val());
+    showList(searchBom.val(),articleCode.val(),status.val(),searchCust.val());
   });
 
   $("#btnSearch").click(function(e){
     btnExport.style.display = "block";
-    showList(searchBom.val(),articleCode.val(),status.val());
+    showList(searchBom.val(),articleCode.val(),status.val(),searchCust.val());
   });
 
-  const showList = (searchBom,articleCode,status) => {
+  const showList = (searchBom,articleCode,status,cust) => {
     if ($('#detailedTable tr').length >0){
         let table= $('#detailedTable').DataTable();
         table.destroy();
@@ -166,7 +176,8 @@
       dataSearch:  {
         searchBom:searchBom,
         articleCode:articleCode,
-        status:status
+        status:status,
+        cust:cust
       },
       orderColumn:[[ 1, 'desc' ]],
       excelFileName:'bom'
