@@ -352,7 +352,7 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('invoice/list/uom',['as'=>'invoice.list.uom','uses'=>'InvoiceController@listUom']);
 	Route::get('invoice/dn/det',['as'=>'invoice.dn.det','uses'=>'InvoiceController@dnDetail']);
 	Route::post('invoice/store',['as'=>'invoice.store','uses'=>'InvoiceController@store']);
-	Route::get('invoice/list',['as'=>'invoice.list','uses'=>'InvoiceController@list']);
+	Route::post('invoice/list',['as'=>'invoice.list','uses'=>'InvoiceController@list']);
 	Route::get('invoice/show',['as'=>'invoice.show','uses'=>'InvoiceController@show']);
 	Route::get('invoice/edit',['as'=>'invoice.edit','uses'=>'InvoiceController@edit']);
 	Route::post('invoice/update',['as'=>'invoice.update','uses'=>'InvoiceController@update']);

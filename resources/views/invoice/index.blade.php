@@ -207,6 +207,7 @@
           className: "text-right"
         },
       ],
+      type:"POST",
       excelCustomize:function(xlsx) {
         let sheet = xlsx.xl.worksheets['sheet1.xml'];
         $('row:last c', sheet).attr('s','50');
