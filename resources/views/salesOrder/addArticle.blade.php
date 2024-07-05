@@ -251,7 +251,7 @@
         let totalAmountMaterial=0
 
         let arr = objQtyTiw.map(function (i) {
-            let qty = parseInt(objQTY.eq(i).val().replace(/,/gi, '')) || 0;
+            let qty = parseFloat(objQTY.eq(i).val().replace(/,/gi, '')) || 0;
             let price = parseFloat(objPrice.eq(i).val().replace(/,/gi, '')) || 0;
             let priceJasa = parseFloat(objPriceJasa.eq(i).val().replace(/,/gi, '')) || 0;
             totalQty+= qty;
