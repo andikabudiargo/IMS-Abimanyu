@@ -354,7 +354,7 @@
                         @endif
                             <td   align="center" scope="row" >{{ ++$no }}</td>
                             <td   align="left">{{ $val->article_desc }}</td>
-                            <td   align="center">{{ number_format($val->qty) }}</td>
+                            <td   align="center">{{ number_format($val->qty,2) }}</td>
                             @if($printType=='1')
                             <td   align="right">{{ number_format($val->price,2) }}</td>
                             <td   align="right">{{ number_format(($val->qty*$val->price),2) }}</td>

@@ -21,7 +21,7 @@
                 <div class="form-group margin-nol">
                     <label for="qty_order" class="d-block d-md-none">QTY Order</label>
                     <div class="input-group">
-                        <input type="text" class="form-control numeral-mask text-right" id = "qty_order" name="qty_order[]" maxlength="9" />
+                        <input type="text" class="form-control numeral-mask-digit text-right" id = "qty_order" oninput='inputDecimal(this)' name="qty_order[]" maxlength="9" />
                         <div class="input-group-append">
                             <span class="input-group-text padding-nol" id ="uom" name="uom[]"></span>
                         </div>
@@ -264,7 +264,7 @@
         $("#totalRow").val(objArticle.length);
         $("#nilaiPPN").text(ppn+"%");
         $("#nilaiPPH23").text(pph23+"%");
-        $("#totalQTY").val(humanizeNumber(totalQty));
+        $("#totalQTY").val(humanizeNumber(parseFloat(totalQty).toFixed(2)));
         $("#totalAmount").val(humanizeNumber(parseFloat(totalAmount).toFixed(2)));
         $("#totalPPN").val(humanizeNumber(parseFloat(((parseInt(ppn)*totalAmountMaterial)/100)).toFixed(2)));
         $("#totalPPH").val(humanizeNumber(parseFloat(((pph23*totalAmountJasa)/100)).toFixed(2)));

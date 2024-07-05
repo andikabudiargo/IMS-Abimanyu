@@ -44,7 +44,7 @@
                         <input type="text" class="form-control-plaintext text-hitam numeral-mask-digit text-right" id = "qty_po" name="qty_po[]" disabled>
                     </td> --}}
                     <td class="isian" style="width: 5%">
-                        <input type="text" class="form-control-plaintext text-hitam numeral-mask text-right" id = "qtyInv" name="qtyInv[]" maxlength="9">
+                        <input type="text" class="form-control-plaintext text-hitam numeral-mask-digit text-right" id = "qtyInv" name="qtyInv[]" maxlength="9">
                     </td>
                     <td class="isian" style="width: 5%">
                         <input type="text" class="form-control-plaintext" id = "uom" name="uom[]" disabled>

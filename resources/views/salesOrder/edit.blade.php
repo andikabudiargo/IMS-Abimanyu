@@ -136,7 +136,7 @@
                                                 <div class="form-group margin-nol">
                                                     <label for="qty_order" class="d-block d-md-none">QTY Order</label>
                                                     <div class="input-group">
-                                                        <input type="text" class="form-control numeral-mask text-right" id = "qty_order" name="qty_order[]" value="{{ $item->qty }}" maxlength="9" />
+                                                        <input type="text" class="form-control numeral-mask-digit text-right" id = "qty_order" name="qty_order[]" oninput='inputDecimal(this)' value="{{ number_format($item->qty,2) }}" maxlength="9" />
                                                         <div class="input-group-append">
                                                             <span class="input-group-text padding-nol" id ="uom" name="uom[]">{{ $item->uom }}</span>
                                                         </div>

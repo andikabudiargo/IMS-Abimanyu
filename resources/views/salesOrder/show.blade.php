@@ -160,7 +160,7 @@
                                                         <td >{{ $item->status_detail == '1' ? "Open": "Closed" }}</td>
                                                         <td >{{ $item->article }}</td>
                                                         <td class="text-right">{{ $item->uom_group =='PIECE' ? number_format($item->qty_stock ==0 ? 0 :$item->qty_stock) : number_format($item->qty_stock ==0 ? 0 :$item->qty_stock,$decimalPlaces) }}</td>
-                                                        <td class="text-right">{{ $item->uom_group =='PIECE' ? number_format($item->qty) : number_format($item->qty,$decimalPlaces) }} {{ $item->uom }}</td>
+                                                        <td class="text-right">{{ $item->uom_group =='PIECE' ? number_format($item->qty,2) : number_format($item->qty,$decimalPlaces) }} {{ $item->uom }}</td>
                                                         <td class="text-right">{{ number_format($item->price,2) }}</td>
                                                         <td class="text-right">{{ number_format($item->price_service,2) }}</td>
                                                         <td class="text-right">{{ number_format(($item->qty * $item->price),2) }}</td>
@@ -199,7 +199,7 @@
                                     <div class="d-flex justify-content-between align-items-end mt-75">
                                         <div class="col-md-4">
                                             <span>ROW : {{ number_format($header2->sum_row) }}</span> <br>
-                                            <span>QTY(s) : {{ number_format($header2->sum_qty) }}</span>
+                                            <span>QTY(s) : {{ number_format($header2->sum_qty,2) }}</span>
                                         </div>
                                         <div class="col-md-4">
                                             <div class="table">

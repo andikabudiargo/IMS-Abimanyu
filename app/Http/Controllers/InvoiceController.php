@@ -54,7 +54,10 @@ class InvoiceController extends Controller
             ['data'=> 'total_ppn', 'name'=> 'total_ppn','title'=>'PPN' ],
             ['data'=> 'total_pph', 'name'=> 'total_pph','title'=>'PPH' ],
             ['data'=> 'grand_total', 'name'=> 'grand_total','title'=>'Total' ],
+            ['data'=> 'jatuh_tempo', 'name'=> 'jatuh_tempo','title'=>'Jatuh Tempo' ],
+            ['data'=> 'jatuh_tempo_2', 'name'=> 'jatuh_tempo_2','title'=>'Jatuh Tempo' ],
             ['data'=> 'voucher_date', 'name'=> 'voucher_date','title'=>'Paid Date'],
+            ['data'=> 'voucher_date_2', 'name'=> 'voucher_date_2','title'=>'Paid Date','visible'=>false ],
             ['data'=> 'voucher_amount', 'name'=> 'voucher_amount','title'=>'Amount Paid'],
             ['data'=> 'balance', 'name'=> 'balance','title'=>'Balance'],
             ['data'=> 'voucher_number', 'name'=> 'voucher_number','title'=>'Voucher Number'],
@@ -80,6 +83,16 @@ class InvoiceController extends Controller
 
         $data['kolom'] = $this->getTableColoumn();
 
+        $statistic = db::select("SELECT sum(grand_total) as grand_total
+        ,sum(case when invoice_hdr.status = '6' then (select credit from kas_det where reference = invoice_hdr.invoice_number) else 0 end) as total_paid 
+        ,sum(grand_total) - sum(case when invoice_hdr.status = '6' then (select credit from kas_det where reference = invoice_hdr.invoice_number) else 0 end) as balance
+        from invoice_hdr
+        WHERE date_part('year', to_date(invoice_date,'dd-mm-yyyy')) = date_part('year', CURRENT_DATE)");
+
+        $data['totalAll'] = $statistic[0]->grand_total;
+        $data['totalPaid'] = $statistic[0]->total_paid;
+        $data['totalBalance'] = $statistic[0]->balance;
+    
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','6'=>'PAID','7'=>'REVISED'];
         $data['status'] = ['1'=>'DRAFT','2'=>'VALIDATE','3'=>'APPROVED','6'=>'PAID'];
                     
@@ -927,16 +940,19 @@ class InvoiceController extends Controller
             ,DB::raw("to_char(to_date(invoice_hdr.invoice_date, 'DD-MM-YYYY'), 'DD/MM/YYYY') as invoice_date")
             ,DB::raw("to_date(invoice_hdr.invoice_date, 'DD-MM-YYYY') as invoice_date_2")
             ,'third_party.nama as customer_name'
-            ,db::raw("(select (select name from users where username = z.username) from approval_history z where module_number = invoice_hdr.invoice_number order by approval_order desc limit 1) as approval_by")
-            ,db::raw("(select to_char(approval_date::date, 'DD-MM-YYYY') from approval_history z where module_number = invoice_hdr.invoice_number order by approval_order desc limit 1) as approval_at")
+            ,DB::raw("(select (select name from users where username = z.username) from approval_history z where module_number = invoice_hdr.invoice_number order by approval_order desc limit 1) as approval_by")
+            ,DB::raw("(select to_char(approval_date::date, 'DD-MM-YYYY') from approval_history z where module_number = invoice_hdr.invoice_number order by approval_order desc limit 1) as approval_at")
             // ,DB::raw("(select STRING_AGG ( distinct a.po_number,', ' ORDER BY a.po_number) as po_number from invoice_det a where invoice_number = invoice_hdr.invoice_number) as po_number")
             ,DB::raw("(select STRING_AGG ( distinct (select po_number from sales_order_hdr where so_code = so_number),',') as po_number from invoice_det a where invoice_number = invoice_hdr.invoice_number) as po_number")
             ,DB::raw("(select STRING_AGG ( distinct a.dn_number,', ' ORDER BY a.dn_number) as dn_number from invoice_det a where invoice_number = invoice_hdr.invoice_number) as dn_number")
-            ,db::raw("case when invoice_hdr.status = '6' then (select voucher_date from kas_hdr where voucher_number = (select voucher_number from kas_det where reference = invoice_hdr.invoice_number)) else '' end as voucher_date")
-            ,db::raw("case when invoice_hdr.status = '6' then (select voucher_number from kas_det where reference = invoice_hdr.invoice_number) else '' end as voucher_number")
-            ,db::raw("case when invoice_hdr.status = '6' then (select credit from kas_det where reference = invoice_hdr.invoice_number) else 0 end as voucher_amount")
+            ,DB::raw("case when invoice_hdr.status = '6' then (select voucher_date from kas_hdr where voucher_number = (select voucher_number from kas_det where reference = invoice_hdr.invoice_number)) else '' end as voucher_date")
+            ,DB::raw("case when invoice_hdr.status = '6' then (select to_date(voucher_date, 'DD-MM-YYYY') from kas_hdr where voucher_number = (select voucher_number from kas_det where reference = invoice_hdr.invoice_number)) else null end as voucher_date_2")
+            ,DB::raw("case when invoice_hdr.status = '6' then (select voucher_number from kas_det where reference = invoice_hdr.invoice_number) else '' end as voucher_number")
+            ,DB::raw("case when invoice_hdr.status = '6' then (select credit from kas_det where reference = invoice_hdr.invoice_number) else 0 end as voucher_amount")
             // ,db::raw("case when invoice_hdr.status = '6' then grand_total-(select credit from kas_det where reference = invoice_hdr.invoice_number) else 0 end as balance")
-            ,db::raw("grand_total-coalesce((select credit from kas_det where reference = invoice_hdr.invoice_number),0) as balance")
+            ,DB::raw("grand_total-coalesce((select credit from kas_det where reference = invoice_hdr.invoice_number),0) as balance")
+            ,DB::raw("to_char(to_date(invoice_hdr.invoice_date,'dd-mm-yyyy') + INTERVAL '1 day' *coalesce((select top_batas_1 from third_party where kode = invoice_hdr.customer_id),0), 'dd/mm/yyyy') as jatuh_tempo")
+            ,DB::raw("to_date(to_char(to_date(invoice_hdr.invoice_date,'dd-mm-yyyy') + INTERVAL '1 day' *coalesce((select top_batas_1 from third_party where kode = invoice_hdr.customer_id),0), 'dd/mm/yyyy'),'dd/mm/yyyy') as jatuh_tempo_2")
         )
         ->orderBy('invoice_hdr.id')
         ->get(); 
@@ -1005,12 +1021,11 @@ class InvoiceController extends Controller
 
             return $buttons;
         })
-
-        // ->addColumn('invoice_number', function ($data) {
-        //     $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-danger'];            
-            
-        //     return '<span style="display: none;">'.$data->invoice_number.'</span><a class="text-left badge d-block '.$badges[$data->status - 1].'" name="'.$data->invoice_number.'" href="'. route('invoice.show', ['id'=>Crypt::encryptString($data->id)]) .'" ><span>'.$data->invoice_number.'</span></a>';
-        // })
+        ->addColumn('invoice_number', function ($data) {
+            return '<a href="'. route('invoice.print', ['id'=>Crypt::encryptString($data->id)]) .'" target="_blank" class="dropdown-item" style="padding:0px">
+                '.$data->invoice_number.'
+            </a>';
+        })
         ->addColumn('status', function ($data) {
             $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-danger'];            
             // $data['status'] = ['1'=>'DRAFT','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','6'=>'PAID'];

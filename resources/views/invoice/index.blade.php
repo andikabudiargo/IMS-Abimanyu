@@ -3,7 +3,54 @@
 @section('content')
 @include('layouts.breadcrumb')
 @include('partials.alert')
-<section id="article-index">
+<section id="invoice-index">
+  {{-- <div class="row match-height">
+    <div class="col-lg-4 col-md-4 col-6">
+        <div class="card">
+          <div class="card-body">
+            <div class="card-header flex-column align-items-start pb-0">
+                <div class="avatar bg-light-success p-50 m-0">
+                    <div class="avatar-content">
+                        <i data-feather="package" class="font-medium-5"></i>
+                    </div>
+                </div>
+                <h2 class="font-weight-bolder mt-1">{{ number_format($totalAll,2) }}</h2>
+                <p class="card-text">Total Piutang</p>
+            </div>
+          </div>
+        </div>
+    </div>
+    <div class="col-lg-4 col-md-4 col-6">
+        <div class="card card-tiny-line-stats">
+          <div class="card-body">
+            <div class="card-header flex-column align-items-start pb-0">
+                <div class="avatar bg-light-primary p-50 m-0">
+                    <div class="avatar-content">
+                        <i data-feather="credit-card" class="font-medium-5"></i>
+                    </div>
+                </div>
+                <h2 class="font-weight-bolder mt-1">{{ number_format($totalPaid,2) }}</h2>
+                <p class="card-text">Total Bayar</p>
+            </div>
+          </div>
+        </div>
+    </div>
+    <div class="col-lg-4 col-md-4 col-6">
+      <div class="card card-tiny-line-stats">
+        <div class="card-body">
+          <div class="card-header flex-column align-items-start pb-0">
+              <div class="avatar bg-light-warning p-50 m-0">
+                  <div class="avatar-content">
+                      <i data-feather="minus-square" class="font-medium-5"></i>
+                  </div>
+              </div>
+              <h2 class="font-weight-bolder mt-1">{{ number_format($totalBalance,2) }}</h2>
+              <p class="card-text">Balance</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div> --}}
   <div class="card">
     <div class="card-header">  
       <h4 class="card-title">Filter</h4>
@@ -98,6 +145,7 @@
 @endsection
 @section('scripts')
 <script type="text/javascript">
+  let currentDate = todayDate('dd-mm-yyyy');  
   $(document).ready(function(){    
     let href;
     $(document).on('click', '#deleteButton', function(event) {
@@ -150,15 +198,20 @@
       tableId:"detailedTable",
       route:"{{ route('invoice.list') }}",
       kolom:{!! $kolom !!},
-      arrColPrint:[1,2,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21],
+      arrColPrint:[1,2,4,5,6,7,8,9,10,11,12,14,16,17,18,19,20,24],
       columnDefs :[
         { width: '5%', targets: 0 },
         {
-          targets: [ 9,10,11,12,14,15 ],
+          targets: [ 9,10,11,12,17,18 ],
           render: $.fn.dataTable.render.number(',', '.', 2, ''),
           className: "text-right"
         },
       ],
+      excelCustomize:function(xlsx) {
+        let sheet = xlsx.xl.worksheets['sheet1.xml'];
+        $('row:last c', sheet).attr('s','50');
+      },
+      excelMessageBottom:function () { return "Tanggal export : "+currentDate },
       dataSearch:  {
         searchInv:searchInv,
         searchSo:searchSo,
@@ -166,7 +219,7 @@
         searchStatus:searchStatus,
         recDate:recDate
       },
-      orderColumn:[[ 20, 'desc' ]],
+      orderColumn:[[ 23, 'desc' ]],
       excelFileName:'invoice_customer'
     });
   }

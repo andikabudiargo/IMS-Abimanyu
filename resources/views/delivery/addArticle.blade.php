@@ -44,10 +44,10 @@
                         <input type="text" class="form-control-plaintext text-hitam" id = "articleId" name="articleId[]" data-code="" data-uom=""  data-price="" data-po-number="" disabled>
                     </td>
                     <td class="isian disabled" style="width: 5%">
-                        <input type="text" class="form-control-plaintext text-hitam numeral-mask text-right" id = "qtySo" name="qtySo[]" disabled>
+                        <input type="text" class="form-control-plaintext text-hitam numeral-mask-digit text-right" id = "qtySo" name="qtySo[]" disabled>
                     </td>
                     <td class="isian" style="width: 5%">
-                        <input type="text" class="form-control-plaintext text-hitam numeral-mask text-right" id = "qtyInv" name="qtyInv[]" maxlength="9">
+                        <input type="text" class="form-control-plaintext text-hitam numeral-mask-digit text-right" id = "qtyInv" name="qtyInv[]" maxlength="9">
                     </td>
                     <td class="isian" style="width: 5%">
                         <input type="text" class="form-control-plaintext" id = "uom" name="uom[]" disabled>
@@ -108,9 +108,7 @@
     }
 
     function searchSoDet(value) {
-        
         if(value && (fromEdit == 'false')){
-            
             $.ajax({
                 url:"{{ route('delivery.so.det') }}",
                 method:"GET",
@@ -173,9 +171,10 @@
         $('#articleId'+ cloneCount).attr('data-so-qty', qtySo);
         $('#articleId'+ cloneCount).val(articleCode+'-'+articleDesc);
         $('#uom'+ cloneCount).val(uom);
-        $('#qtySo'+ cloneCount).val(qtySo*1);
+        $('#qtySo'+ cloneCount).val(qtySo);
         tombolPanah('qtyInv');
         mask_thousand();
+        mask_thousand_digit(2);
         hitungTotal();
         cekQty();
     }
@@ -224,7 +223,8 @@
         let objQTY= $('#article_row input[name="qtyInv[]"]');
         let totalQty=0;
         var arr = objQtyTiw.map(function (i) {
-            let qty = parseInt(objQTY.eq(i).val().replace(/,/gi, '')) || 0;
+            // let qty = parseInt(objQTY.eq(i).val().replace(/,/gi, '')) || 0;
+            let qty = parseFloat(objQTY.eq(i).val().replace(/,/gi, '')) || 0;
             totalQty+= qty;
         }).get();
         
@@ -238,7 +238,8 @@
         let objQTY= $('#article_row input[name="qtyInv[]"]');
         let totalQty=0;
         var arr = objQtyTiw.map(function (i) {
-            let qty = parseInt(objQTY.eq(i).val().replace(/,/gi, '')) || 0;
+            // let qty = parseInt(objQTY.eq(i).val().replace(/,/gi, '')) || 0;
+            let qty = parseFloat(objQTY.eq(i).val().replace(/,/gi, '')) || 0;
             totalQty+= qty;
         }).get();
         

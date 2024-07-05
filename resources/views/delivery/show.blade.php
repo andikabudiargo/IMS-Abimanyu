@@ -113,8 +113,8 @@
                                                     <tr>
                                                         <td class="text-right"></td>
                                                         <td >{{ $item->article }}</td>
-                                                        <td class="text-right">{{ number_format($item->qty_so) }} </td>
-                                                        <td class="text-right">{{ number_format($item->qty) }} </td>
+                                                        <td class="text-right">{{ number_format($item->qty_so,2) }} </td>
+                                                        <td class="text-right">{{ number_format($item->qty,2) }} </td>
                                                         <td>{{ $item->uom }}</td>
                                                         {{-- <td class="text-left">{{ $item->notes }}</td> --}}
                                                         @php
@@ -124,7 +124,7 @@
                                                             @foreach( $headers as $key1 => $oki )
                                                                 @if ($key1 < $key and $key1!= 0)
                                                                     @if( $key1 < count($histori) )
-                                                                        <td class="text-right">{{ number_format(intval($histori[$key1])) }}</td>
+                                                                        <td class="text-right">{{ number_format($histori[$key1],2) }}</td>
                                                                     @else
                                                                         <td class="text-right"></td>
                                                                     @endif
@@ -134,7 +134,7 @@
                                                             @foreach( $headers as $key1 => $oki )
                                                                 @if ($key1 > $key and $key1!= 0)
                                                                     @if( $key1 < count($histori) )
-                                                                        <td class="text-right">{{ number_format(intval($histori[$key1])) }}</td>
+                                                                        <td class="text-right">{{ number_format($histori[$key1],2) }}</td>
                                                                     @else
                                                                         <td class="text-right"></td>
                                                                     @endif

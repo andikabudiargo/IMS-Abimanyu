@@ -365,7 +365,8 @@ class SalesOrderController extends Controller
         })
         ->select('sales_order_det'.'.*'
         ,'sales_order_det.status as status_detail'
-        ,DB::raw('round(sales_order_det.qty) as qty')
+        // ,DB::raw('round(sales_order_det.qty) as qty')
+        ,DB::raw('sales_order_det.qty as qty')
         ,'article_stock.article_qty as qty_stock'
         ,'uom.uom_group'
         , DB::raw('(SELECT name from group_materials where code = group_of_material) as group')
@@ -459,7 +460,11 @@ class SalesOrderController extends Controller
         ->leftJoin('article','article.article_code','=','sales_order_det.article_code')
         ->leftJoin('article_stock','article_stock.article_code','=','sales_order_det.article_code')
         ->where('so_code',$data['header']->so_code)
-        ->select('sales_order_det'.'.*',DB::raw('round(sales_order_det.qty) as qty'),'article_stock.article_qty as qty_stock', DB::raw('(SELECT name from group_materials where code = group_of_material) as group'))
+        ->select('sales_order_det'.'.*'
+        // ,DB::raw('round(sales_order_det.qty) as qty')
+        ,DB::raw('sales_order_det.qty as qty')
+        ,'article_stock.article_qty as qty_stock'
+        , DB::raw('(SELECT name from group_materials where code = group_of_material) as group'))
         ->orderBy('id')
         ->get();       
 
