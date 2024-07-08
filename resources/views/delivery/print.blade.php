@@ -275,7 +275,7 @@
                                             text-align: center;">{{ ++$no }}</div></td>
                                         <td align="left">{{ $val->article_alternative_code }}</td>
                                         <td align="left">{{ $val->article_desc }}</td>
-                                        <td align="right">{{ number_format($val->qty,2) }}</td>
+                                        <td align="right">{{ fmod($val->qty, 1) !== 0.0 ? number_format($val->qty,2) : number_format($val->qty) }}</td>
                                         <td align="left">{{ $val->uom }}</td>
                                     </tr>
                                     
