@@ -1122,6 +1122,7 @@ class AccountPayableController extends Controller
                     [   
                         'inv_date' => $invoiceDate,
                         'po_number' => $poNumber,
+                        'supplier_id' => $suppCode,
                         'currency' => $currency,
                         'kurs' => $rate,
                         'basis_amount' => $basisAmount,
