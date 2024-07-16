@@ -2007,6 +2007,7 @@ class AccountPayableController extends Controller
         $apDate = $request->apDate;
         $fromDate = "";
         $toDate = "";
+        $apPeriod = $request->apPeriod;
 
         // dd($searchStatus);
        
@@ -2023,12 +2024,13 @@ class AccountPayableController extends Controller
 
         $data = DB::table('ap_invoice')
         ->leftJoin('third_party','third_party.kode','ap_invoice.supplier_id')
-        ->where(function ($query) use ($searchAp,$searchPo,$searchSupplier,$searchStatus,$apDate,$fromDate,$toDate) {
+        ->where(function ($query) use ($searchAp,$searchPo,$searchSupplier,$searchStatus,$apDate,$fromDate,$toDate,$apPeriod) {
             $searchPo ? $query->where('po_number','ilike','%'.$searchPo.'%') : '';
             $searchAp ? $query->where('ap_number','ilike','%'.$searchAp.'%') : '';
             $searchSupplier ? $query->where('supplier_id','ilike','%'.$searchSupplier.'%') : '';
             $searchStatus ? $query->where('ap_invoice.status','=',$searchStatus) : '';
             $apDate ? $query->whereBetween(DB::raw("to_date(ap_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
+            $apPeriod ? $query->where('period',$apPeriod) : '';
         })
         ->whereNotIn('ap_invoice.status',['5'])
         ->select(

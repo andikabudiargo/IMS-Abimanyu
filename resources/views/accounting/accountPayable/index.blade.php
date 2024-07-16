@@ -38,6 +38,15 @@
                 <label for="apDate">Ap Date</label>
                 <input type="text" id="apDate" name="apDate" class="form-control flatpickr-range" placeholder="YYYY-MM-DD to YYYY-MM-DD" />
               </div>
+              <div class="form-group col-md-3">
+                <label class="form-label" for="period">Period</label>
+                <select class="select2 form-control" id="period" name="period" >
+                    <option value=""></option>
+                    @for ($i = 1; $i <= 12; $i++)
+                        <option value="{{ $i }}">{{ $i }}</option>
+                    @endfor
+                </select>
+              </div>
               <div class="form-group col-md-2"> 
                 <label class="form-label" for="searchStatus">Invoice Status</label>
                 <select class="select2 form-control" id="searchStatus" name="searchStatus">
@@ -135,11 +144,13 @@
     let searchSupplier = $("#searchSupplier").val(); 
     let searchStatus = $("#searchStatus").val();
     let apDate = $("#apDate").val();
-    showList(searchPo,searchAp,searchSupplier,searchStatus,apDate);
+    let aPeriod = $("#period").val();
+    
+    showList(searchPo,searchAp,searchSupplier,searchStatus,apDate,aPeriod);
 
   });
 
-  const showList = (searchPo,searchAp,searchSupplier,searchStatus,apDate) => {
+  const showList = (searchPo,searchAp,searchSupplier,searchStatus,apDate,aPeriod) => {
     if ($('#detailedTable tr').length >0){
         let table= $('#detailedTable').DataTable();
         table.destroy();
@@ -177,7 +188,8 @@
         searchAp:searchAp,
         searchSupplier:searchSupplier,
         searchStatus:searchStatus,
-        apDate:apDate
+        apDate:apDate,
+        apPeriod:aPeriod
       },
       orderColumn:[[ 30, 'desc' ]],
       excelFileName:'invoice_supplier'
