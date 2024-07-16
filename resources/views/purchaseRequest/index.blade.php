@@ -221,6 +221,12 @@
       $('#modalReasonRevisionTso').attr("action", href);
   });
 
+  $(document).on('click', '#rejectReasonButton', function(event) {
+      event.preventDefault();
+      href = $(this).data('href');
+      $('#modalReasonReject').attr("action", href);
+  });
+
   // $('#reasonModalRevisionTso').on('shown.bs.modal', function(e) {
   //   if ($('#mdlStockDate').length) {
   //     $('#mdlStockDate').flatpickr({

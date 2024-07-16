@@ -503,6 +503,7 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('purchaseRequests/revision',['as'=>'purchaseRequest.revision','uses'=>'PurchaseRequestController@revision']);
 	// Route::get('purchaseRequests/revision/tso',['as'=>'purchaseRequest.revision.tso','uses'=>'PurchaseRequestController@revisionFromTso']);
 	Route::get('purchaseRequests/warning',['as'=>'purchaseRequest.warning','uses'=>'PurchaseRequestController@warning']);
+	Route::post('purchaseRequests/reject',['as'=>'purchaseRequest.reject','uses'=>'PurchaseRequestController@reject']);
 
 	Route::get('boms',['as'=>'boms.index','uses'=>'BomController@index','middleware' => ['permission:bom-index']]);
 	Route::get('boms/create',['as'=>'bom.create','uses'=>'BomController@create','middleware' => ['permission:bom-create']]);
@@ -588,6 +589,9 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('actualLoading/wos/detail',['as'=>'production.actualLoading.wos.detail','uses'=>'Production\ActualLoadingController@wosDetail']);
 	Route::post('actualLoading/approve',['as'=>'production.actualLoading.approve','uses'=>'Production\ActualLoadingController@approve']);
 	Route::get('actualLoading/revision',['as'=>'production.actualLoading.revision','uses'=>'Production\ActualLoadingController@revision','middleware' => ['permission:actualLoading-revision']]);
+
+	// Route::get('actualLoading/export-excel',['as'=>'actualLoading.export.excel','uses'=>'Production\ActualLoadingController@export']);
+	// Route::post('actualLoading/import-excel',['as'=>'actualLoading.import.excel','uses'=>'Production\ActualLoadingController@importExcel']);
 
 	Route::get('actualFinishGoods',['as'=>'production.actualFinishGoods.index','uses'=>'Production\ActualFinishGoodsController@index','middleware' => ['permission:actualFinishGoods-index']]);
 	Route::get('actualFinishGoods/list',['as'=>'production.actualFinishGoods.list','uses'=>'Production\ActualFinishGoodsController@list']);

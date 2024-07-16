@@ -78,7 +78,7 @@ class PurchaseRequestController extends Controller
         $data['title'] = "$this->title";
         $data['kolom'] = $this->getTableColoumn();
         $data['kolomDetail'] = $this->getTableColoumnDetail();
-        $data['status'] = ['1'=>'NEW','2'=>'VALIDATED','3'=>'APPROVED','7'=>'PO'];
+        $data['status'] = ['1'=>'NEW','2'=>'VALIDATED','3'=>'APPROVED','7'=>'PO','9'=>'REJECTED'];
 
         $deptPurcashing = db::table('user_dept')
         ->where('username',$username)
@@ -344,7 +344,6 @@ class PurchaseRequestController extends Controller
         and a.module_code = '$moduleCode'
         order by a.approval_order,module_number");
 
-
         $data['approveValidate'] = DB::select("SELECT username= '$username' as validate,current_level + 1 as next_level,* from (
             select username,approval_order,
             (select max(approval_number) from approval_master where module_code = a.module_code ) as max_level,
@@ -359,7 +358,7 @@ class PurchaseRequestController extends Controller
 
 
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATED','3'=>'APPROVED','4'=>'RECEIVED','5'=>'CANCELED','6'=>"CLOSE",'7'=>'PO'];
-        $statusPr = ['NEW','VALIDATED','APPROVED','RECEIVED','CANCELED','CLOSED','PO'];
+        $statusPr = ['NEW','VALIDATED','APPROVED','RECEIVED','CANCELED','CLOSED','PO','REVISED','REJECTED'];
         $data['statusPr'] = $statusPr[$data['headers'][0]->status-1];
 
         return view("purchaseRequest.show",$data);
@@ -754,6 +753,79 @@ class PurchaseRequestController extends Controller
 
     }
 
+    public function reject(Request $request)
+    {
+
+        /*
+            16/7/2024
+            Fasilitas Reject PR dari level SPV - BOD (Board of Director)
+            Kalau sudah jadi PO atau status nya approve tidak bisa di reject
+            Yang bisa di reject kalau statusnya sudah validated
+
+        */
+
+        $reasonRequest = $request->reason;
+        $id=Crypt::decryptString($request->id);
+        $username =  Auth::user()->username;       
+
+        $prNumber = DB::table('purchase_request_hdr')->where('id',$id)->value('pr_number');
+
+        $statusLevelApproval = Approval::approvalLevelPosition($this->moduleCode,$prNumber,$username);        
+        $nextLevel = $statusLevelApproval[0]->next_level;
+
+        $sudahJadiPo = DB::table('purchase_order_det')
+        ->leftJoin('purchase_order_hdr','purchase_order_det.po_number','purchase_order_hdr.po_number')
+        ->where('pr_number',$prNumber)
+        ->whereNotIn('purchase_order_hdr.status',['5','6','8'])
+        ->count();
+
+        if ( $sudahJadiPo) {
+            $title ="Reject $this->title";
+            $alert  ="Warning";
+            $message  = "PR Number : $prNumber Sudah jadi PO, Reject Failed";
+            return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);  
+        } else{
+            $row_affected = DB::table('purchase_request_hdr')->where('pr_number',$prNumber)
+            ->update(
+                [
+                    'status' => '9',
+                    'reject_reason' => $reasonRequest,
+                    'rejected_at' => date('Y-m-d H:i:s'),
+                    'rejected_by' => $username
+                ]
+            );
+
+            DB::table('target_order_hdr')->where('pr_number',$prNumber)
+            ->update(
+                [
+                    'pr_number' => null
+                ]
+            );
+
+            if ($row_affected){
+                DB::table('approval_history')->insert([
+                    'module_code' => $this->moduleCode,
+                    'module_number' => $prNumber,
+                    'username' => Auth::user()->username,
+                    'approval_order' => $nextLevel,
+                    'approval_date' => date('Y-m-d'),
+                    'status' => 0,
+                    'created_by' => Auth::user()->username,
+                    'updated_by' => Auth::user()->username,
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s')
+                ]);
+            }
+
+            $title ="Reject $this->title";
+            $alert  ="success";
+            $message  = "$title $prNumber Successfully Rejected";
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);  
+        }   
+
+    }
+
     public function list(Request $request)
     {
         // status:
@@ -765,6 +837,7 @@ class PurchaseRequestController extends Controller
         // 6 = closed
         // 7 = po
         // 8 = revised   
+        // 9 = rejected   
 
         $username =  Auth::user()->username;
         $searchPr = strtolower($request->searchPr);
@@ -838,6 +911,18 @@ class PurchaseRequestController extends Controller
                                 </a>';
                 }
             }
+            
+            if (Auth::user()->can('purchaseRequest-delete') && ( $data->status =='2' )) {
+                $buttons .= "<a href='javascript:void(0);'
+                                        id='rejectReasonButton'
+                                        class='dropdown-item'
+                                        data-toggle='modal'
+                                        data-target='#reasonModalReject'
+                                        data-href='". route("purchaseRequest.reject", ["id"=>Crypt::encryptString($data->id)]) ."'>
+                                        <i data-feather='x-square' class='feather-14-red'></i>
+                                        <span>". __('Reject') ."</span>
+                                    </a>";
+            }
 
             // if (Auth::user()->can('purchaseRequest-edit') and ( $data->status_pr == '2' or $data->status_pr == '1')) {
             //yang bisa di edit hanya posis status masih new atau 1
@@ -857,7 +942,7 @@ class PurchaseRequestController extends Controller
                                     data-ajax-popup='true'
                                     data-title='Warning'
                                     class='dropdown-item'>
-                                    <i data-feather='corner-down-left' class='feather-14-red'></i>
+                                    <i data-feather='corner-down-left'></i>
                                     <span>". __('Revision') ."</span>
                                 </a>";
                 }else{
@@ -868,7 +953,7 @@ class PurchaseRequestController extends Controller
                                         data-toggle='modal'
                                         data-target='#reasonModalRevisionTso'
                                         data-href='". route("purchaseRequest.revision", ["id"=>Crypt::encryptString($data->id),"nR"=>$data->num_revision]) ."'>
-                                        <i data-feather='corner-down-left' class='feather-14-red'></i>
+                                        <i data-feather='corner-down-left'></i>
                                         <span>". __('Revision') ."</span>
                                     </a>";
                     }else{
@@ -878,7 +963,7 @@ class PurchaseRequestController extends Controller
                                         data-toggle='modal'
                                         data-target='#reasonModalRevision'
                                         data-href='". route("purchaseRequest.revision", ["id"=>Crypt::encryptString($data->id),"nR"=>$data->num_revision]) ."'>
-                                        <i data-feather='corner-down-left' class='feather-14-red'></i>
+                                        <i data-feather='corner-down-left'></i>
                                         <span>". __('Revision') ."</span>
                                     </a>";
                     }
@@ -916,8 +1001,8 @@ class PurchaseRequestController extends Controller
             return $buttons;
         })
         ->addColumn('status_pr', function ($data) {
-            $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-secondary'];
-            $statusPr = ['NEW','VALIDATED','APPROVED','RECEIVED','CANCELED','CLOSED','PO','REVISED'];
+            $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-secondary','badge-danger'];
+            $statusPr = ['NEW','VALIDATED','APPROVED','RECEIVED','CANCELED','CLOSED','PO','REVISED','REJECTED'];
             return "<div class='badge ".$badges[$data->status_pr - 1]."'>".$statusPr[$data->status_pr - 1]."</div>";
         })
         ->addColumn('order_type', function ($data) {
@@ -943,7 +1028,8 @@ class PurchaseRequestController extends Controller
             } 
         })
         ->addColumn('pr_number', function ($data) {
-            $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-danger'];            
+            // $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-danger'];            
+            $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-secondary','badge-danger'];
             return '<span style="display: none;">'.$data->id.'</span><a class="badge d-block '.$badges[$data->status - 1].'" name="'.$data->pr_number.'" href="'. route('purchaseRequest.show', ['id'=>Crypt::encryptString($data->id)]) .'" ><span>'.$data->pr_number.'</span></a>';
             // return '<a href="'. route('purchaseRequest.show', ['id'=>Crypt::encryptString($data->id)]) .'" ><span>'.$data->pr_number.'</span></a>';
         })
@@ -1050,6 +1136,7 @@ class PurchaseRequestController extends Controller
                 
         $prHdr=DB::table('purchase_request_hdr')
         ->leftJoin('depts','depts.code','purchase_request_hdr.dept')
+        ->select('purchase_request_hdr.*','depts.name')
         ->where('purchase_request_hdr.id',$id)
         ->first();
 
@@ -1080,7 +1167,7 @@ class PurchaseRequestController extends Controller
         $data['prNote'] =$prHdr->note;
         $data['prRequest'] =$prHdr->name;
 
-        $statusPr = ['NEW','VALIDATED','APPROVED','RECEIVED','CANCELED','CLOSED','PO'];
+        $statusPr = ['NEW','VALIDATED','APPROVED','RECEIVED','CANCELED','CLOSED','PO','REVISED','REJECTED'];
         $data['prStatus'] = $statusPr[$prHdr->status-1];
 
         $data['no'] =0;
@@ -1756,6 +1843,12 @@ class PurchaseRequestController extends Controller
                 - Hitung ulang tso, lalu bandingkan dengan data sebelum nya
                 - Kalau qty hitung baru lebih kecil dari qty yang sudah diinput sebelumnya akan ambil qty hitung
                 - Kalau qty hitung baru lebih besar dari sebelum nya maka akan ambil qry sebelumnya
+
+                Revisi: 
+                Permintaan dari bu Lupi dan team purchasing 
+                tanggal 16 Juli 2024
+                Apabila di revisi maka yang keluar datanya adalah hasil hitung
+                baik itu yang di revisi manual akan ter replace dengan qty hasil hitung
             */
 
             $sqlDetInsert ="INSERT into purchase_request_det
@@ -1774,7 +1867,7 @@ class PurchaseRequestController extends Controller
                 --z.alternative
                 z.pr_number
                 ,z.article_code
-                --,z.qty
+                -- ,z.qty
                 ,case when (z.qty<coalesce(y.qty,0)) or (coalesce(y.qty,0)=0) then z.qty else y.qty end as qty_baru
                 ,z.uom
                 ,z.supp_code

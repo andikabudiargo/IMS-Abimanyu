@@ -88,11 +88,20 @@
                                         @if($key!=0)
                                         <div class="form-row">
                                             <div class="form-group col-md-7">
-                                                <label class="form-label" for="note">Revision reason</label>
+                                                <label class="form-label" for="rReason">Revision reason</label>
                                                 <textarea type="text" id="rReason" name="rReason" class="form-control" rows="1" disabled >{{ $header2->reason }}</textarea>
                                             </div>
                                         </div>
                                         @endif
+                                        @if($header2->reject_reason)
+                                        <div class="form-row">
+                                            <div class="form-group col-md-7">
+                                                <label class="form-label" for="rejectReason">Reject Info</label>
+                                                <textarea type="text" id="rejectReason" name="rejectReason" class="form-control" rows="1" disabled >Rejected By: {{ $header2->rejected_by }} | Rejected At:{{ $header2->rejected_at }} | Reason: {{ $header2->reject_reason }}</textarea>
+                                            </div>
+                                        </div>
+                                        @endif
+                                        
                                     </form>
                                     <hr>
                                     <div class="table-responsive main-table">
@@ -195,15 +204,27 @@
                                     <div class="statistics-body">
                                         <div class="col-xl-3 col-sm-6 col-12 mb-2 mb-xl-0">
                                             <div class="media">
-                                                <div class="avatar bg-light-success mr-2">
-                                                    <div class="avatar-content">
-                                                        <i data-feather="check" class="avatar-icon"></i>
+                                                @if($val->statusapprove == '0')
+                                                    <div class="avatar bg-light-danger mr-2">
+                                                        <div class="avatar-content">
+                                                            <i data-feather="check" class="avatar-icon"></i>
+                                                        </div>
                                                     </div>
-                                                </div>
-                                                <div class="media-body my-auto">
-                                                    <h4 class="font-weight-bolder mb-0">Approve-{{ $val->approval_order }}</h4>
-                                                    <p class="card-text mb-0">{{ $val->name }}</p>
-                                                </div>
+                                                    <div class="media-body my-auto">
+                                                        <h4 class="font-weight-bolder mb-0">Rejected</h4>
+                                                        <p class="card-text mb-0">{{ $val->name }}</p>
+                                                    </div>
+                                                @else
+                                                    <div class="avatar bg-light-success mr-2">
+                                                        <div class="avatar-content">
+                                                            <i data-feather="check" class="avatar-icon"></i>
+                                                        </div>
+                                                    </div>
+                                                    <div class="media-body my-auto">
+                                                        <h4 class="font-weight-bolder mb-0">Approve-{{ $val->approval_order }}</h4>
+                                                        <p class="card-text mb-0">{{ $val->name }}</p>
+                                                    </div>
+                                                @endif
                                             </div>
                                         </div>
                                     </div>
