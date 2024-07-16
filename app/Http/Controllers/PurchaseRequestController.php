@@ -1867,8 +1867,8 @@ class PurchaseRequestController extends Controller
                 --z.alternative
                 z.pr_number
                 ,z.article_code
-                -- ,z.qty
-                ,case when (z.qty<coalesce(y.qty,0)) or (coalesce(y.qty,0)=0) then z.qty else y.qty end as qty_baru
+                ,z.qty
+                -- ,case when (z.qty<coalesce(y.qty,0)) or (coalesce(y.qty,0)=0) then z.qty else y.qty end as qty_baru
                 ,z.uom
                 ,z.supp_code
                 ,z.qty_hitung
