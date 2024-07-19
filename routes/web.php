@@ -590,8 +590,8 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('actualLoading/approve',['as'=>'production.actualLoading.approve','uses'=>'Production\ActualLoadingController@approve']);
 	Route::get('actualLoading/revision',['as'=>'production.actualLoading.revision','uses'=>'Production\ActualLoadingController@revision','middleware' => ['permission:actualLoading-revision']]);
 
-	// Route::get('actualLoading/export-excel',['as'=>'actualLoading.export.excel','uses'=>'Production\ActualLoadingController@export']);
-	// Route::post('actualLoading/import-excel',['as'=>'actualLoading.import.excel','uses'=>'Production\ActualLoadingController@importExcel']);
+	Route::get('actualLoading/export-excel',['as'=>'actualLoading.export.excel','uses'=>'Production\ActualLoadingController@export']);
+	Route::post('actualLoading/import-excel',['as'=>'actualLoading.import.excel','uses'=>'Production\ActualLoadingController@importExcel']);
 
 	Route::get('actualFinishGoods',['as'=>'production.actualFinishGoods.index','uses'=>'Production\ActualFinishGoodsController@index','middleware' => ['permission:actualFinishGoods-index']]);
 	Route::get('actualFinishGoods/list',['as'=>'production.actualFinishGoods.list','uses'=>'Production\ActualFinishGoodsController@list']);

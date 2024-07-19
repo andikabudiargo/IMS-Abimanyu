@@ -185,7 +185,7 @@
         sumData();
     };
 
-    function add_new_row_edit(noSo,noArticle,noArticleId,noArticleRm,qtySo,qtySoUom,qtyProd,qtyRepaint,waktu,tag,tagAsli,tone) {
+    function add_new_row_edit(noSo,noArticle,noArticleId,noArticleRm,qtySo,qtySoUom,qtyProd,qtyRepaint,waktu,tag,tagAsli,tone,urutan) {
         let waktuAwal = $('#wosTime').val()+":00";
         $("#article_row").append($("#new_row").clone().html());
         cloneCountEdit++;
@@ -206,7 +206,11 @@
         $("#new_row"+ cloneCountEdit).find('#waktuAct').attr('id', 'waktuAct'+ cloneCountEdit);
         $("#new_row"+ cloneCountEdit).find('#tagAct').attr('id', 'tagAct'+ cloneCountEdit);
         $("#new_row"+ cloneCountEdit).find('#tone').attr('id', 'tone'+ cloneCountEdit);
-        $('#urutan'+ cloneCountEdit).val(cloneCountEdit);
+        if(urutan){
+            $('#urutan'+ cloneCountEdit).val(urutan);
+        }else{
+            $('#urutan'+ cloneCountEdit).val(cloneCountEdit);
+        }
         $('#qtyOrder'+ cloneCountEdit).val(qtySo);
         $('#qtyProd'+ cloneCountEdit).val(qtyProd);
         $('#qtyRepaint'+ cloneCountEdit).val(qtyRepaint);
@@ -217,6 +221,62 @@
         $('#qtyRepaintAct'+ cloneCountEdit).val(qtyRepaint);
         $('#tagAct'+ cloneCountEdit).val(nilaiTag);
         $('#tagAct'+ cloneCountEdit).attr('disabled','disabled');
+        $('#tone'+ cloneCountEdit).val(tone);
+
+        if(noSo =='other'){
+            $('#qtyRepaintAct'+ cloneCountEdit).attr('disabled','disabled');
+        }
+        $('#tagAsli'+ cloneCountEdit).val(tagAsli);
+        $('#articleRm'+ cloneCountEdit).val(noArticleRm);
+        $('#articleName'+ cloneCountEdit).val(noArticle);
+        $('#articleId'+ cloneCountEdit).val(noArticleId);
+        $('#salesOrder'+ cloneCountEdit).val(noSo);
+        $('#tone'+ cloneCountEdit).select2();
+
+        tombolPanah('qtyProdAct');
+        tombolPanah('qtyRepaintAct');
+        mask_thousand_satuan();
+        hitungWaktu(); 
+        // updatQty();
+        sumData();
+    };
+
+    function add_new_row_edit_import(noSo,noArticle,noArticleId,noArticleRm,qtySo,qtySoUom,qtyProd,qtyRepaint,waktu,tag,tagAsli,tone,urutan) {
+        let waktuAwal = $('#wosTime').val()+":00";
+        $("#article_row").append($("#new_row").clone().html());
+        cloneCountEdit++;
+        $("#article_row").find('#baru').attr('id', 'new_row'+ cloneCountEdit);
+        $("#new_row"+ cloneCountEdit).find('#urutan').attr('id', 'urutan'+ cloneCountEdit);
+        $("#new_row"+ cloneCountEdit).find('#salesOrder').attr('id', 'salesOrder'+ cloneCountEdit);
+        $("#new_row"+ cloneCountEdit).find('#articleName').attr('id', 'articleName'+ cloneCountEdit);
+        $("#new_row"+ cloneCountEdit).find('#articleId').attr('id', 'articleId'+ cloneCountEdit);
+        $("#new_row"+ cloneCountEdit).find('#articleRm').attr('id', 'articleRm'+ cloneCountEdit);
+        $("#new_row"+ cloneCountEdit).find('#qtyOrder').attr('id', 'qtyOrder'+ cloneCountEdit);
+        $("#new_row"+ cloneCountEdit).find('#qtyProd').attr('id', 'qtyProd'+ cloneCountEdit);
+        $("#new_row"+ cloneCountEdit).find('#qtyRepaint').attr('id', 'qtyRepaint'+ cloneCountEdit);
+        $("#new_row"+ cloneCountEdit).find('#qtyProdAct').attr('id', 'qtyProdAct'+ cloneCountEdit);
+        $("#new_row"+ cloneCountEdit).find('#qtyRepaintAct').attr('id', 'qtyRepaintAct'+ cloneCountEdit);
+        $("#new_row"+ cloneCountEdit).find('#waktu').attr('id', 'waktu'+ cloneCountEdit);
+        $("#new_row"+ cloneCountEdit).find('#tag').attr('id', 'tag'+ cloneCountEdit);
+        $("#new_row"+ cloneCountEdit).find('#tagAsli').attr('id', 'tagAsli'+ cloneCountEdit);
+        $("#new_row"+ cloneCountEdit).find('#waktuAct').attr('id', 'waktuAct'+ cloneCountEdit);
+        $("#new_row"+ cloneCountEdit).find('#tagAct').attr('id', 'tagAct'+ cloneCountEdit);
+        $("#new_row"+ cloneCountEdit).find('#tone').attr('id', 'tone'+ cloneCountEdit);
+        if(urutan){
+            $('#urutan'+ cloneCountEdit).val(urutan);
+        }else{
+            $('#urutan'+ cloneCountEdit).val(cloneCountEdit);
+        }
+        $('#qtyOrder'+ cloneCountEdit).val(qtySo);
+        $('#qtyProd'+ cloneCountEdit).val(qtyProd);
+        $('#qtyRepaint'+ cloneCountEdit).val(qtyRepaint);
+        $('#waktu'+ cloneCountEdit).val(waktuAwal);
+        $('#tag'+ cloneCountEdit).val(parseFloat(tagAsli)*(parseInt(qtyProd)+parseInt(qtyRepaint)));
+        let nilaiTag = ((parseInt(qtyProd)+parseInt(qtyRepaint))*parseFloat(tagAsli));
+        $('#qtyProdAct'+ cloneCountEdit).val(qtyProd);
+        $('#qtyRepaintAct'+ cloneCountEdit).val(qtyRepaint);
+        $('#tagAct'+ cloneCountEdit).val(nilaiTag);
+        // $('#tagAct'+ cloneCountEdit).attr('disabled','disabled');
         $('#tone'+ cloneCountEdit).val(tone);
 
         if(noSo =='other'){

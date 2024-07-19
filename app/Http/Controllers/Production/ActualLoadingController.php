@@ -14,6 +14,9 @@ use DB;
 use PDF;
 use AppHelpers;
 use Approval;
+use App\Exports\ActualLoadingExport;
+use App\Imports\ActualLoadingImport;
+use Maatwebsite\Excel\Facades\Excel;
 
 class ActualLoadingController extends Controller
 {
@@ -574,17 +577,23 @@ class ActualLoadingController extends Controller
     public function wosDetail(Request $request)
     {
         $woCode = $request->wosNumber;
-        $data = DB::table('wo_det')
-        ->leftJoin('article','article.article_code','=','wo_det.article_code')
-        ->where('wo_code',$woCode)
-        // ->where('tone',db::raw("(select max(tone) from bom_det where article_code = wo_det.article_code)"))
-        // ->where('so_code','<>','other')
-        ->select('wo_det'.'.*'
-        ,DB::raw("case when so_code ='other' then wo_det.article_code else concat(article.article_alternative_code,' - ',article.article_desc) end as article")
-        , 'article.article_alternative_code'
-        ,'article.article_desc')
-        ->orderBy('urutan')
-        ->get();
+        $dariExcel = $request->dariExcel;
+
+        if ($dariExcel == "true") {
+            
+        }else{
+            $data = DB::table('wo_det')
+            ->leftJoin('article','article.article_code','=','wo_det.article_code')
+            ->where('wo_code',$woCode)
+            // ->where('tone',db::raw("(select max(tone) from bom_det where article_code = wo_det.article_code)"))
+            // ->where('so_code','<>','other')
+            ->select('wo_det'.'.*'
+            ,DB::raw("case when so_code ='other' then wo_det.article_code else concat(article.article_alternative_code,' - ',article.article_desc) end as article")
+            , 'article.article_alternative_code'
+            ,'article.article_desc')
+            ->orderBy('urutan')
+            ->get();
+        }
 
         return response()->json($data);
 
@@ -1190,5 +1199,110 @@ class ActualLoadingController extends Controller
             \LogActivity::addToLog($title,"username: $username Status $message");
             return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);
         }
+    }
+
+    public function export(Request $request)
+    {
+		$wosNumber = $request->wos_number;
+        $filename = str_replace('/','_', $wosNumber);
+        return Excel::download(new ActualLoadingExport($wosNumber), $filename.'.xlsx');
+	}
+
+    public function importExcel(Request $request)
+    {
+
+        $wosNumber = $request->aWosNumber;
+
+        // validasi
+		$this->validate($request, [
+			'file' => 'required|mimes:xls,xlsx'
+		]);
+ 
+		// menangkap file excel
+		$file = $request->file('file');
+ 
+		// // membuat nama file unik
+		$namaFile = rand().$file->getClientOriginalName();
+ 
+		// // upload ke folder file_siswa di dalam folder public
+		// $file->move('file_siswa',$namaFile);
+		// import data
+		// Excel::import(new SiswaImport, public_path('/file_siswa/'.$namaFile));
+
+        $data['filename']=$namaFile;
+        db::table('import_actual_loading_tmp')->delete();
+        Excel::import(new ActualLoadingImport($data), $file);
+
+        $dataValidasi = DB::table('import_actual_loading_tmp')
+        ->leftJoin('article','article.article_alternative_code','import_actual_loading_tmp.article_code')
+        ->select('import_actual_loading_tmp.article_code'
+        ,'article_desc'
+        ,'qty_fresh'
+        ,'qty_repaint'
+        ,'qty_tag'
+        // ,DB::RAW("concat(
+        //     case when import_actual_loading_tmp.qty_fresh::text ~ '^[0-9.]+$' = false then concat('Urutan ',row_number() over(),': Qty Actual Fresh salah : ',qty_fresh,'<br>') end,
+        //     case when import_actual_loading_tmp.qty_repaint::text ~ '^[0-9.]+$' = false then concat('Urutan ',row_number() over(),': Qty Actual Repaint salah : ',qty_repaint,'<br>') end,
+        //     case when import_actual_loading_tmp.qty_tag::text ~ '^[0-9.]+$' = false then concat('Urutan ',row_number() over(),': Qty Actual Tag salah : ',qty_tag,'<br>') end,
+        //     case when article_desc is null and import_actual_loading_tmp.article_code <> 'gantiwarna' and import_actual_loading_tmp.article_code <> 'istirahat' then concat('Urutan ',row_number() over(),': Article Code:',import_actual_loading_tmp.article_code, ' tidak terdaftar <br>') end,
+        //     case when import_actual_loading_tmp.wo_code != '$wosNumber' then concat('Urutan ',row_number() over(),': WOS Code:',import_actual_loading_tmp.wo_code, ' tidak sesuai <br>Seharusnya $wosNumber') end
+        //     ) as notes")
+        // )
+        ,DB::RAW("concat(
+            case when import_actual_loading_tmp.qty_fresh::text ~ '^[0-9.]+$' = false then concat('Urutan ',row_number() over(),': Qty Actual Fresh salah : ',qty_fresh,'<br>') end,
+            case when import_actual_loading_tmp.qty_repaint::text ~ '^[0-9.]+$' = false then concat('Urutan ',row_number() over(),': Qty Actual Repaint salah : ',qty_repaint,'<br>') end,
+            case when article_desc is null and import_actual_loading_tmp.article_code <> 'gantiwarna' and import_actual_loading_tmp.article_code <> 'istirahat' then concat('Urutan ',row_number() over(),': Article Code:',import_actual_loading_tmp.article_code, ' tidak terdaftar <br>') end,
+            case when import_actual_loading_tmp.wo_code != '$wosNumber' then concat('Urutan ',row_number() over(),': WOS Code:',import_actual_loading_tmp.wo_code, ' tidak sesuai <br>Seharusnya $wosNumber') end
+            ) as notes")
+        )
+        ->where('file_name', $namaFile)
+        ->get();        
+
+        $dataNotes=[];
+        foreach ($dataValidasi as $val) {
+            if($val->notes){
+                $dataNotes[]= [$val->notes];
+            }
+        } 
+
+        $title ="Import $this->title";
+        $pesan="";
+
+        if (count($dataNotes) > 0 ){
+            $pesan .='Ada error pada data yang diupload, silahkan cek notes error!';
+            $status = 0;
+            $alert = "error";
+            $message = $dataNotes;
+            $data = "";
+
+        }else{
+
+            $data = DB::table('wo_det')
+            ->leftJoin('import_actual_loading_tmp', function ($join) {
+                $join->on('import_actual_loading_tmp.wo_code', '=', 'wo_det.wo_code');
+                $join->on('import_actual_loading_tmp.urutan', '=', 'wo_det.urutan');
+            })
+            ->leftJoin('article','article.article_code','=','wo_det.article_code')
+            ->where('wo_det.wo_code',$wosNumber)
+            ->select('wo_det'.'.*'
+            ,DB::raw("case when so_code ='other' then wo_det.article_code else concat(article.article_alternative_code,' - ',article.article_desc) end as article")
+            , 'article.article_alternative_code'
+            ,'article.article_desc'
+            ,'import_actual_loading_tmp.qty_fresh as qty_fresh_x'
+            ,'import_actual_loading_tmp.qty_repaint as qty_repaint_x'
+            ,'import_actual_loading_tmp.qty_tag as qty_tag_x'
+            )
+            ->orderBy('wo_det.urutan')
+            ->get();
+
+            $status = 1;
+            $alert = "success";
+            $message  = "$title is successfully imported";
+
+            db::table('import_actual_loading_tmp')->where('file_name', $namaFile)->delete();
+
+        }
+                  
+        return response()->json(array('status' => $status,'title' => $title, 'message' => $message,'alert' =>$alert,'dataDetail'=>$data,'pesan'=>$pesan));
     }
 }
