@@ -2015,7 +2015,7 @@ class DeliveryController extends Controller
         DB::table('dn_receipt')->insert([
             'dr_number' => $drNumber,
             'dr_date' => $receiveAt,
-            'delivery_number' => 'DN/ASN/23/1/1718',
+            'delivery_number' => 'DN/ASN/23/1/17181',
             'delivery_date' => $dnDate ,
             'submitted_at' => $receiveAt,
             // 'submitted_by' => $submitBy,
