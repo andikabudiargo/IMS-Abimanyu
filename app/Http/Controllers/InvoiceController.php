@@ -464,7 +464,8 @@ class InvoiceController extends Controller
         $status = ['DRAFT','VALIDATE','APPROVED','','','PAID','REVISED'];
         $data['status'] = $status[$data['header']->status-1];
 
-        $data['nilaiPPN'] = $this->nilaiPpn;
+        // $data['nilaiPPN'] = $this->nilaiPpn;
+        $data['nilaiPPN'] = $data['header']->ppn;        
         $data['nilaiPPH'] = $this->nilaiPph23;
 
         return view("invoice.edit",$data);
@@ -1317,12 +1318,12 @@ class InvoiceController extends Controller
             ->where('status','8'); // sudah di invoice receive
         })
         ->orderBy("so_code")
-        ->select("so_code","po_number")
+        ->select("so_code","po_number","ppn","pph23")
         ->get();          
 
         $output .='<option value=""></option>';            
         foreach ($data as $row){
-            $output .='<option value="'.$row->so_code.'" data-po-number="'.$row->po_number.'">'.$row->so_code. ' - ' .$row->po_number.'</option>';            
+            $output .='<option value="'.$row->so_code.'" data-po-number="'.$row->po_number.'" data-ppn="'.$row->ppn.'" data-pph23="'.$row->pph23.'">'.$row->so_code. ' - ' .$row->po_number.'</option>';            
         }        
         
         return $output;

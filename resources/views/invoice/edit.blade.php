@@ -400,6 +400,9 @@
         showDetail='false';
         let soNumber = '{{ $soNumber }}';
         searchDn(soNumber);
+        $("#nilaiPPN").text(sNilaiPPN+'%');
+        $("#nilaiPPH").text(sNilaiPPH+'%');
+
     });
 
     const approveBtn = document.querySelector('#cmdApprove');

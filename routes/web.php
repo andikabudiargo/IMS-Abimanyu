@@ -326,6 +326,8 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('delivery/revision',['as'=>'delivery.revision','uses'=>'DeliveryController@revision']);
 	Route::get('delivery/notif/approve',['as'=>'delivery.notif.approve','uses'=>'DeliveryController@approve']);
 
+	Route::get('delivery/postingAllData',['as'=>'delivery.postingAllData','uses'=>'DeliveryController@postingAllData']);	
+
 	Route::get('deliveryReport',['as'=>'delivery.report','uses'=>'DeliveryController@report','middleware' => ['permission:delivery-report']]);
 	Route::post('eliveryReport/list/report',['as'=>'delivery.list.report','uses'=>'DeliveryController@listReport']);
 	Route::get('deliveryReportAcc',['as'=>'delivery.report.acc','uses'=>'DeliveryController@reportAcc','middleware' => ['permission:delivery-report-acc']]);

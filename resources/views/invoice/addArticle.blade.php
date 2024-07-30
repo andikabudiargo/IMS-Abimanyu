@@ -172,6 +172,10 @@
     }
 
     soNumber.change(function(){
+        let ppn = $(this).find(":selected").data("ppn");
+        $('#ppn').val(ppn);
+        sNilaiPPN=ppn;
+        console.log(ppn);
         searchDn($(this).val());
     })
 
@@ -243,7 +247,7 @@
         let objPrice= $('#article_row input[name="price[]"]');
         let objPriceJasa= $('#article_row input[name="priceJasa[]"]');
         let ppn= sNilaiPPN;
-        let pph23= sNilaiPPN;
+        let pph23= sNilaiPPH;
         let totalQty= 0;
         let totalAmount=0
         let totalAmountJasa=0
