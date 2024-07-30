@@ -1841,10 +1841,15 @@ class DeliveryController extends Controller
 
     public function postingAllData(Request $request)
     {
-
-        $dnTemp = DB::table('delivery_hdr_tmp')->get();
+        $jumlahData = $request->jumlah;
+        // dd($jumlahData);
+        // $dnTemp = DB::table('delivery_hdr_tmp')->get();
+        $dnTemp = DB::select("select * from delivery_hdr_tmp where delivery_number not in (select delivery_number from delivery_hdr where status ='8') limit $jumlahData");
+        
         $jumlahPosting = 0;
         $jumlahData = 0;
+        $reason ="";
+        $username =  ""; 
         foreach($dnTemp as $val){
             $jumlahData++;
             $dnNumber = $val->delivery_number;
