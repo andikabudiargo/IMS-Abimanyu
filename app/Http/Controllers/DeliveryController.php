@@ -1844,189 +1844,170 @@ class DeliveryController extends Controller
         $jumlahData = $request->jumlah;
         // dd($jumlahData);
         // $dnTemp = DB::table('delivery_hdr_tmp')->get();
-        // $dnTemp = DB::select("select * from delivery_hdr_tmp where delivery_number not in (select delivery_number from delivery_hdr where status ='8') limit $jumlahData");
-        $dnTemp = DB::select("select * from delivery_hdr_tmp where delivery_number not in (select delivery_number from delivery_hdr where status ='8')");
+        $dnTemp = DB::select("select * from delivery_hdr_tmp where delivery_number not in (select delivery_number from delivery_hdr where status ='8') limit $jumlahData");
+        //$dnTemp = DB::select("select * from delivery_hdr_tmp where delivery_number not in (select delivery_number from delivery_hdr where status ='8')");
         
         $jumlahPosting = 0;
         $jumlahData = 0;
         $reason ="";
         $username =  ""; 
-        // foreach($dnTemp as $val){
-        //     $jumlahData++;
-        //     $dnNumber = $val->delivery_number;
-        //     $reason = $val->reason;
-        //     // $username =  Auth::user()->username; 
-        //     $username =  'system'; 
-        //     $recType = "NORMAL";
-        //     $siteCode = 'HO';
-        //     $location ='WH';
-        //     $status = '4';
-        //     $moduleCode = $this->moduleCode;
-        //     $todayDate = date('Y-m-d');
-        //     $dariNew = 'true';
-        //     $movementDate = date("d-m-Y");
+        foreach($dnTemp as $val){
+            $jumlahData++;
+            $dnNumber = $val->delivery_number;
+            $reason = $val->reason;
+            // $username =  Auth::user()->username; 
+            $username =  'system'; 
+            $recType = "NORMAL";
+            $siteCode = 'HO';
+            $location ='WH';
+            $status = '4';
+            $moduleCode = $this->moduleCode;
+            $todayDate = date('Y-m-d');
+            $dariNew = 'true';
+            $movementDate = date("d-m-Y");
 
-        //     $dnDate = $val->delivery_date;
-        //     $dnNote = $val->reason;
+            $dnDate = $val->delivery_date;
+            $dnNote = $val->reason;
 
-        //     $belumStatusPosting = DB::table('delivery_hdr')
-        //     ->where('delivery_number',$dnNumber)
-        //     ->where('status','=','4')
-        //     ->count();
+            $belumStatusPosting = DB::table('delivery_hdr')
+            ->where('delivery_number',$dnNumber)
+            ->where('status','=','4')
+            ->count();
 
-        //     if($belumStatusPosting == 0){
+            if($belumStatusPosting == 0){
                    
-        //         $data = DB::table('delivery_det')
-        //         ->leftJoin('delivery_hdr','delivery_hdr.delivery_number','delivery_det.delivery_number')
-        //         ->leftJoin('article','article.article_code','delivery_det.article_code')
-        //         ->where('delivery_det.delivery_number',$dnNumber)
-        //         // ->where('delivery_hdr.status','3')
-        //         // ->where('delivery_hdr.status','1')
-        //         ->select('delivery_det.*'
-        //         ,'article.article_type'
-        //         ,'article.uom as uom_article'
-        //         ,DB::RAW("(delivery_det.qty*uom_conversion(delivery_det.uom,article.uom)) as total_qty")
-        //         )->get();
+                $data = DB::table('delivery_det')
+                ->leftJoin('delivery_hdr','delivery_hdr.delivery_number','delivery_det.delivery_number')
+                ->leftJoin('article','article.article_code','delivery_det.article_code')
+                ->where('delivery_det.delivery_number',$dnNumber)
+                // ->where('delivery_hdr.status','3')
+                // ->where('delivery_hdr.status','1')
+                ->select('delivery_det.*'
+                ,'article.article_type'
+                ,'article.uom as uom_article'
+                ,DB::RAW("(delivery_det.qty*uom_conversion(delivery_det.uom,article.uom)) as total_qty")
+                )->get();
 
-        //         foreach($data as $val0){
-        //             //insert article code kalo belum ada di tabel item_stock
-        //             DB::table('article_stock')
-        //             ->updateOrInsert(
-        //                 [ 'site_code' =>$siteCode,
-        //                 'article_code' => $val0->article_code,
-        //                 'location_number'=> $location
-        //                 ],
-        //                 [
-        //                 'dept_code'=>$val0->article_type,
-        //                 'uom'=>$val0->uom_article,
-        //                 ]
-        //             );
+                foreach($data as $val0){
+                    //insert article code kalo belum ada di tabel item_stock
+                    DB::table('article_stock')
+                    ->updateOrInsert(
+                        [ 'site_code' =>$siteCode,
+                        'article_code' => $val0->article_code,
+                        'location_number'=> $location
+                        ],
+                        [
+                        'dept_code'=>$val0->article_type,
+                        'uom'=>$val0->uom_article,
+                        ]
+                    );
 
-        //             //update qty nya ditambahkan dengan qty baru
-        //             DB::table('article_stock')
-        //             ->where('site_code',$siteCode)
-        //             ->where('article_code',$val0->article_code)
-        //             ->where('location_number',$location)
-        //             ->update([
-        //                 'article_qty' => DB::raw('coalesce(article_qty,0) - '.$val0->total_qty)
-        //             ]);
-        //         }
+                    //update qty nya ditambahkan dengan qty baru
+                    DB::table('article_stock')
+                    ->where('site_code',$siteCode)
+                    ->where('article_code',$val0->article_code)
+                    ->where('location_number',$location)
+                    ->update([
+                        'article_qty' => DB::raw('coalesce(article_qty,0) - '.$val0->total_qty)
+                    ]);
+                }
                         
                 
-        //         $rowAffected = DB::table('delivery_hdr')
-        //         ->where('delivery_number',$dnNumber)
-        //         ->update(
-        //             [   
-        //                 'status' => $status,
-        //                 'updated_by' => $username,
-        //                 'updated_at' => date('Y-m-d H:i:s')
-        //             ]
-        //         );
+                $rowAffected = DB::table('delivery_hdr')
+                ->where('delivery_number',$dnNumber)
+                ->update(
+                    [   
+                        'status' => $status,
+                        'updated_by' => $username,
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]
+                );
                 
-        //         if ($rowAffected > 0){
-        //             $movements = DB::table('delivery_det')
-        //             ->leftJoin('delivery_hdr','delivery_hdr.delivery_number','delivery_det.delivery_number')
-        //             ->leftJoin('article','article.article_code','delivery_det.article_code')
-        //             ->where('delivery_det.delivery_number',$dnNumber)
-        //             ->where('delivery_hdr.status','4')
-        //             ->where('qty', '<>', 0)
-        //             ->select(
-        //                 DB::RAW("'$movementDate' as movement_date")
-        //                 // 'delivery_hdr.delivery_date as movement_date'
-        //                 ,'delivery_det.article_code'
-        //                 ,'article.article_desc'
-        //                 ,DB::raw("0 as movement_plus")
-        //                 ,DB::RAW("(uom_conversion(delivery_det.uom,article.uom)*delivery_det.qty) as movement_min")
-        //                 ,DB::raw("0 as movement_price ")
-        //                 ,'delivery_hdr.delivery_number as movement_transnno'
-        //                 ,DB::raw("'$moduleCode' as movement_type")
-        //                 ,'delivery_hdr.delivery_number as movement_desc'
-        //             )
-        //             ->get();
+                if ($rowAffected > 0){
+                    $movements = DB::table('delivery_det')
+                    ->leftJoin('delivery_hdr','delivery_hdr.delivery_number','delivery_det.delivery_number')
+                    ->leftJoin('article','article.article_code','delivery_det.article_code')
+                    ->where('delivery_det.delivery_number',$dnNumber)
+                    ->where('delivery_hdr.status','4')
+                    ->where('qty', '<>', 0)
+                    ->select(
+                        DB::RAW("'$movementDate' as movement_date")
+                        // 'delivery_hdr.delivery_date as movement_date'
+                        ,'delivery_det.article_code'
+                        ,'article.article_desc'
+                        ,DB::raw("0 as movement_plus")
+                        ,DB::RAW("(uom_conversion(delivery_det.uom,article.uom)*delivery_det.qty) as movement_min")
+                        ,DB::raw("0 as movement_price ")
+                        ,'delivery_hdr.delivery_number as movement_transnno'
+                        ,DB::raw("'$moduleCode' as movement_type")
+                        ,'delivery_hdr.delivery_number as movement_desc'
+                    )
+                    ->get();
                     
-        //             $dataSetMovement = [];
-        //             foreach ($movements as $val1) {
-        //                 $dataSetMovement[] = [
-        //                     'movement_date' => $val1->movement_date,
-        //                     'artikel_code' => $val1->article_code,
-        //                     'artikel_desc' => $val1->article_desc,
-        //                     'movement_min' => $val1->movement_min,
-        //                     'movement_plus' => $val1->movement_plus,
-        //                     'movement_price' => $val1->movement_price,
-        //                     'movement_transnno' => $val1->movement_transnno,
-        //                     'movement_type' => $val1->movement_type,
-        //                     'movement_desc' => $val1->movement_desc,
-        //                     'created_by' => $username,
-        //                     'created_at' => date('Y-m-d H:i:s'),
-        //                     'site_code' => $siteCode,
-        //                     'location_number' => $location,
-        //                     'last_qty' => DB::raw("get_last_qty('$val1->article_code','$todayDate','$siteCode','$location') - ($val1->movement_min+$val1->movement_plus)")
-        //                 ];
-        //             }
+                    $dataSetMovement = [];
+                    foreach ($movements as $val1) {
+                        $dataSetMovement[] = [
+                            'movement_date' => $val1->movement_date,
+                            'artikel_code' => $val1->article_code,
+                            'artikel_desc' => $val1->article_desc,
+                            'movement_min' => $val1->movement_min,
+                            'movement_plus' => $val1->movement_plus,
+                            'movement_price' => $val1->movement_price,
+                            'movement_transnno' => $val1->movement_transnno,
+                            'movement_type' => $val1->movement_type,
+                            'movement_desc' => $val1->movement_desc,
+                            'created_by' => $username,
+                            'created_at' => date('Y-m-d H:i:s'),
+                            'site_code' => $siteCode,
+                            'location_number' => $location,
+                            'last_qty' => DB::raw("get_last_qty('$val1->article_code','$todayDate','$siteCode','$location') - ($val1->movement_min+$val1->movement_plus)")
+                        ];
+                    }
 
-        //             DB::table('movement')->insert($dataSetMovement);
+                    DB::table('movement')->insert($dataSetMovement);
                 
-        //             // $idKu = Crypt::encryptString($id);
+                    // $idKu = Crypt::encryptString($id);
 
-        //             DB::commit();
+                    DB::commit();
                     
-        //         }
+                }
 
-        //         /* Sekalian di Dn Receiept */
+                /* Sekalian di Dn Receiept */
 
                 
-        //         $drNumber = $this->getLastCodeDr('DR');
-        //         $receiveAt = date('Y-m-d', strtotime($dnDate));
+                $drNumber = $this->getLastCodeDr('DR');
+                $receiveAt = date('Y-m-d', strtotime($dnDate));
 
-        //         DB::table('dn_receipt')->insert([
-        //             'dr_number' => $drNumber,
-        //             'dr_date' => $receiveAt,
-        //             'delivery_number' => $dnNumber,
-        //             'delivery_date' => $dnDate ,
-        //             'submitted_at' => $receiveAt,
-        //             // 'submitted_by' => $submitBy,
-        //             // 'received_by' => $receiveBy,
-        //             'status' => '2',
-        //             'note' => $dnNote,
-        //             // 'created_by' => Auth::user()->username,
-        //             // 'updated_by' => Auth::user()->username,
-        //             'created_at' => date('Y-m-d H:i:s'),
-        //             'updated_at' => date('Y-m-d H:i:s')
-        //         ]);
+                DB::table('dn_receipt')->insert([
+                    'dr_number' => $drNumber,
+                    'dr_date' => $receiveAt,
+                    'delivery_number' => $dnNumber,
+                    'delivery_date' => $dnDate ,
+                    'submitted_at' => $receiveAt,
+                    // 'submitted_by' => $submitBy,
+                    // 'received_by' => $receiveBy,
+                    'status' => '2',
+                    'note' => $dnNote,
+                    // 'created_by' => Auth::user()->username,
+                    // 'updated_by' => Auth::user()->username,
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s')
+                ]);
 
-        //         DB::table('delivery_hdr')
-        //         ->where('delivery_number',$dnNumber)
-        //         ->update(
-        //             [
-        //                 'status'=> '8',
-        //                 'updated_by' => $username,
-        //                 'updated_at' => date('Y-m-d H:i:s')
-        //             ]
-        //         );
+                DB::table('delivery_hdr')
+                ->where('delivery_number',$dnNumber)
+                ->update(
+                    [
+                        'status'=> '8',
+                        'updated_by' => $username,
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]
+                );
 
-        //         $jumlahPosting++;
-        //     }
-        // }
-
-        $dnDate = '26-01-2023';
-        $drNumber = $this->getLastCodeDr('DR');
-        $receiveAt = date('Y-m-d', strtotime($dnDate));
-
-        DB::table('dn_receipt')->insert([
-            'dr_number' => $drNumber,
-            'dr_date' => $receiveAt,
-            'delivery_number' => 'DN/ASN/23/1/17181',
-            'delivery_date' => $dnDate ,
-            'submitted_at' => $receiveAt,
-            // 'submitted_by' => $submitBy,
-            // 'received_by' => $receiveBy,
-            'status' => '2',
-            'note' => 'upload 29-07-2024',
-            // 'created_by' => Auth::user()->username,
-            // 'updated_by' => Auth::user()->username,
-            'created_at' => date('Y-m-d H:i:s'),
-            'updated_at' => date('Y-m-d H:i:s')
-        ]);
+                $jumlahPosting++;
+            }
+        }
+        
 
         $title ="Posting All data from file excel";
         $alert  ="success";
