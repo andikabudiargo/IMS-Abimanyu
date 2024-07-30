@@ -1844,7 +1844,8 @@ class DeliveryController extends Controller
         $jumlahData = $request->jumlah;
         // dd($jumlahData);
         // $dnTemp = DB::table('delivery_hdr_tmp')->get();
-        $dnTemp = DB::select("select * from delivery_hdr_tmp where delivery_number not in (select delivery_number from delivery_hdr where status ='8') limit $jumlahData");
+        // $dnTemp = DB::select("select * from delivery_hdr_tmp where delivery_number not in (select delivery_number from delivery_hdr where status ='8') limit $jumlahData");
+        $dnTemp = DB::select("select * from delivery_hdr_tmp where delivery_number not in (select delivery_number from delivery_hdr where status ='8')");
         
         $jumlahPosting = 0;
         $jumlahData = 0;
