@@ -176,6 +176,8 @@ class InvoiceController extends Controller
         where invoice_number like '%$basicCode1%' or  invoice_number like '%$basicCode2%' and status <> '5' order by  id) as oki
         order by missing_code limit 1");
 
+        // dd($getMissingCode);
+
         if(count($getMissingCode) > 0){
             /*
                 ini karena di tahun 2024 ada data yang kehapus yaitu nomor 516
@@ -183,7 +185,7 @@ class InvoiceController extends Controller
             
             */
 
-            if($year = '24'){
+            if($year == '24'){
                 $newCode = ($getLastCode*1)+1;
             }else{
                 $newCode = $getMissingCode[0]->missing_code;
@@ -362,7 +364,7 @@ class InvoiceController extends Controller
             // $hasilUpdate = AppHelpers::resetCode($this->moduleCode);
             $inputYear = substr($invDate,-2);
             $invCode = $this->getLastCode($this->moduleCode,$periodNomor,$inputYear);
-            
+            dd($invCode);
             DB::beginTransaction();
             try {
                 DB::table('invoice_hdr')->insert([
