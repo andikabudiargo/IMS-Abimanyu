@@ -364,7 +364,6 @@ class InvoiceController extends Controller
             // $hasilUpdate = AppHelpers::resetCode($this->moduleCode);
             $inputYear = substr($invDate,-2);
             $invCode = $this->getLastCode($this->moduleCode,$periodNomor,$inputYear);
-            dd($invCode);
             DB::beginTransaction();
             try {
                 DB::table('invoice_hdr')->insert([
