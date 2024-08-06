@@ -134,7 +134,8 @@
                                                             @foreach( $headers as $key1 => $oki )
                                                                 @if ($key1 > $key and $key1!= 0)
                                                                     @if( $key1 < count($histori) )
-                                                                        <td class="text-right">{{ $histori[$key1] ? number_format($histori[$key1],2) : '' }}</td>
+                                                                        {{-- <td class="text-right">{{ $histori[$key1] ? number_format($histori[$key1],2) : '' }}</td> --}}
+                                                                        <td class="text-right">{{ $histori[$key1] }}</td>
                                                                     @else
                                                                         <td class="text-right"></td>
                                                                     @endif
