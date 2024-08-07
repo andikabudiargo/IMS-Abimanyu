@@ -508,7 +508,12 @@ class InvoiceController extends Controller
         $statusInv = ['DRAFT','VALIDATE','APPROVED','','','PAID','REVISED'];
         $data['statusInv'] = $statusInv[$data['header']->status-1];
 
-        $data['nilaiPPN'] = $this->nilaiPpn;
+        $ppn = DB::table('sales_order_hdr')
+        ->where ('so_code','=',$data['header'] -> so_number)
+        ->value('ppn');
+
+        $data['nilaiPPN'] = $data['header']->ppn ? $data['header']->ppn :$ppn;        
+        // $data['nilaiPPN'] = $this->nilaiPpn;
         $data['nilaiPPH'] = $this->nilaiPph23;
 
         return view("invoice.show",$data);
@@ -569,8 +574,13 @@ class InvoiceController extends Controller
         $status = ['DRAFT','VALIDATE','APPROVED','','','PAID','REVISED'];
         $data['status'] = $status[$data['header']->status-1];
 
+        $ppn = DB::table('sales_order_hdr')
+        ->where ('so_code','=',$data['soNumber'])
+        ->value('ppn');
+
         // $data['nilaiPPN'] = $this->nilaiPpn;
-        $data['nilaiPPN'] = $data['header']->ppn;        
+        $data['nilaiPPN'] = $data['header']->ppn ? $data['header']->ppn : $ppn;        
+        // $data['nilaiPPN'] = $data['header']->ppn;        
         $data['nilaiPPH'] = $this->nilaiPph23;
 
         return view("invoice.edit",$data);
@@ -1164,6 +1174,7 @@ class InvoiceController extends Controller
         ->where('id',$id)
         ->first();
 
+    
         $data['recHdr']=DB::table('invoice_hdr')
         ->where('id',$id)
         ->first();
@@ -1267,8 +1278,17 @@ class InvoiceController extends Controller
         $data['status'] ='1';
         $data['no'] = 0 ;
 
-        $data['nilaiPPN'] = $this->nilaiPpn;
+        $ppn = DB::table('sales_order_hdr')
+        ->where ('so_code','=',$invHdr->so_number)
+        ->value('ppn');
+
+        // $data['nilaiPPN'] = $this->nilaiPpn;
+        $data['nilaiPPN'] = $invHdr->ppn ? $invHdr->ppn : $ppn;        
+        // $data['nilaiPPN'] = $data['header']->ppn;        
         $data['nilaiPPH'] = $this->nilaiPph23;
+
+        // $data['nilaiPPN'] = $this->nilaiPpn;
+        // $data['nilaiPPH'] = $this->nilaiPph23;
         // $data['totalPpn'] = $header->total_ppn;
         // $data['totalPph'] = $header->total_pph;
 

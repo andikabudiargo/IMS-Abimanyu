@@ -178,13 +178,13 @@
                                 </div>
                             </div>
                             <div class="form-group row mb-03">
-                                <label for="totalPPN" class="col-sm-4 col-form-label titik-dua tanpa-padding">PPN <span id="nilaiPPN"></span> </label>
+                                <label for="totalPPN" class="col-sm-4 col-form-label titik-dua tanpa-padding">PPN <span id="nilaiPPN">{{ $nilaiPPN }}%</span> </label>
                                 <div class="col-sm-6">
                                     <input type="text" class="form-control text-right font-weight-bold" id="totalPPN" value="{{ number_format($header->total_ppn,2) }}"  disabled/>
                                 </div>
                             </div>
                             <div class="form-group row mb-03">
-                                <label for="totalPPH" class="col-sm-4 col-form-label titik-dua tanpa-padding">PPH23 <span id="nilaiPPH23"></span> </label>
+                                <label for="totalPPH" class="col-sm-4 col-form-label titik-dua tanpa-padding">PPH23 <span id="nilaiPPH23">{{ $nilaiPPH }}%</span> </label>
                                 <div class="col-sm-6">
                                     <input type="text" class="form-control text-right font-weight-bold" id="totalPPH" value="{{ number_format($header->total_pph,2) }}" disabled/>
                                 </div>
