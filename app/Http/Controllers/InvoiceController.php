@@ -94,8 +94,8 @@ class InvoiceController extends Controller
         $data['totalBalance'] = $statistic[0]->balance;
     
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','6'=>'PAID','7'=>'REVISED'];
-        $data['status'] = ['1'=>'DRAFT','2'=>'VALIDATE','3'=>'APPROVED','6'=>'PAID'];
-                    
+        $data['status'] = ['1'=>'DRAFT','2'=>'VALIDATE','3'=>'APPROVED','5'=>'CANCELED','6'=>'PAID'];
+
         return view("invoice.index",$data);
     }
 
@@ -504,8 +504,9 @@ class InvoiceController extends Controller
         $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode,$invoiceNumber,$username);
         $data['approveValidate'] = Approval::approveValidate($this->moduleCode,$invoiceNumber,$username);
 
-        // $data['status'] = ['1'=>'DRAFT','2'=>'VALIDATE','3'=>'APPROVED','6'=>'PAID','7'=>'REVISED'];
-        $statusInv = ['DRAFT','VALIDATE','APPROVED','','','PAID','REVISED'];
+        // $data['status'] = ['1'=>'DRAFT','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','6'=>'PAID'];
+
+        $statusInv = ['DRAFT','VALIDATED','APPROVED','','CANCELED','PAID'];
         $data['statusInv'] = $statusInv[$data['header']->status-1];
 
         $ppn = DB::table('sales_order_hdr')
@@ -613,7 +614,7 @@ class InvoiceController extends Controller
         $accountPenjualan = DB::table('third_party')->where('kode',$customer)->value('coa_penjualan');
         $accountPiutang = DB::table('third_party')->where('kode',$customer)->value('account');
 
-        // $data['status'] = ['1'=>'DRAFT','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','6'=>'CLOSED','6'=>'PAID'];
+        // $data['status'] = ['1'=>'DRAFT','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','6'=>'PAID'];
 
         $customMessages = [
             'required' => 'The field is required.',
@@ -829,6 +830,140 @@ class InvoiceController extends Controller
 
     public function destroy(Request $request)
     {
+        // $data['status'] = ['1'=>'DRAFT','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','6'=>'PAID'];
+        
+        $username =  Auth::user()->username;       
+        $id=Crypt::decryptString($request->id);
+        $reason = $request->reason;
+        $title ="";
+
+        /*
+            CR dari accounting 5/8/2024
+            pak Leo
+            Kalau statusnya sudah di approve minimal 1 kali maka disebut cancel dan harus
+            ada reason
+            Jadi kalau status != 1
+            Kalau status masih 1 masih new maka itu akan di delete
+
+        */
+        
+        $data= DB::table('invoice_hdr')
+        ->where('id',$id)
+        ->first();
+
+        $invStatus = $data->status;
+        $invNumber = $data->invoice_number;
+        $note = $data->note;
+
+        if ($invStatus == '1'){
+        
+            $rowAffected = DB::table('invoice_hdr')
+            ->where('invoice_number',$invNumber)
+            ->delete();
+
+            if($rowAffected){
+
+                DB::table('invoice_det')
+                ->where('invoice_number',$invNumber)
+                ->delete();
+    
+                $voucherNumber=$invNumber;
+    
+                if($voucherNumber){
+                    DB::table('kas_hdr')
+                    ->where('voucher_number',$voucherNumber)
+                    ->delete();
+        
+                    DB::table('kas_det')
+                    ->where('voucher_number',$voucherNumber)
+                    ->delete();
+                }
+    
+                DB::table('approval_history')
+                ->where('module_number',$invNumber)
+                ->where('module_code',$this->moduleCode)
+                ->delete();
+                
+                $title ="Delete $this->title";
+            }
+
+        }else{
+            $status = "5";
+            $rowAffected=DB::table('invoice_hdr')
+            ->where('invoice_number',$invNumber)
+            ->update(
+                [   
+                    'invoice_number' => $invNumber."(C)",
+                    'so_number' => $invNumber."(C)",
+                    'status' => $status,
+                    'note' => $note." (Cancel)".$reason,
+                    'updated_by' => Auth::user()->username,
+                    'updated_at' => date('Y-m-d H:i:s')
+                ]
+            );
+
+            if($rowAffected){
+
+                DB::table('invoice_det')
+                ->where('invoice_number',$invNumber)
+                ->update(
+                    [   
+                        'invoice_number' => $invNumber."(C)",
+                        'updated_by' => Auth::user()->username,
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]
+                );
+
+                $voucherNumber=$invNumber;
+                if($voucherNumber){
+                    DB::table('kas_hdr')
+                    ->where('voucher_number',$voucherNumber)
+                    ->delete();
+        
+                    DB::table('kas_det')
+                    ->where('voucher_number',$voucherNumber)
+                    ->delete();
+                }
+
+                DB::table('approval_history')
+                ->where('module_number',$invNumber)
+                ->where('module_code',$this->moduleCode)
+                ->update(
+                    [   
+                        'module_number' => $invNumber."(C)",
+                        'updated_by' => Auth::user()->username,
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]
+                );
+            }
+
+            $title ="Cancel $this->title";
+        }
+        
+
+        if($rowAffected){
+            $alert  ="success";
+            $message  = "$title $invNumber Successfully Deleted";
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return redirect()->back()->with(['alert'=>$alert,'title' => $title,'message'=> $message]);   
+        }else{
+            $title ="Cancel $this->title";
+            $alert  ="warning";
+            $message  = "$title $invNumber Failed to Delete";
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return redirect()->back()->with(['alert'=>$alert,'title' => $title,'message'=> $message]);
+        }
+    }
+
+    public function cancel(Request $request)
+    {
+
+        /*
+            Kalau statusnya sudah di approve minimal 1 kali maka disebut cancel dan harus
+            ada reason
+            Jadi kalau status != 1
+        */
+
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','6'=>'PAID','7'=>'REVISED'];
         $username =  Auth::user()->username;       
         $id=Crypt::decryptString($request->id);
@@ -1119,7 +1254,7 @@ class InvoiceController extends Controller
             
             //bisa dihapus kalau belum dibayar atau diposting
             // if (($data->status != '3') && ($data->status != '4')){
-            if (($data->status != '6') && ($data->status != '4')){
+            if (($data->status != '6') && ($data->status != '4') && ($data->status == '1')){
                 if ($bisaDelete) {
                 $buttons .=         "<a href='javascript:;'
                                         id='deleteButton'
@@ -1132,6 +1267,20 @@ class InvoiceController extends Controller
                                     </a>";
                 }
             }
+
+            // if (Auth::user()->can('invoice-delete') && ( $data->status =='2' )) {
+            if (($data->status != '6') && ($data->status != '4') && ($data->status == '2' || $data->status == '3')){
+                $buttons .= "<a href='javascript:void(0);'
+                                        id='cancelReasonButton'
+                                        class='dropdown-item'
+                                        data-toggle='modal'
+                                        data-target='#reasonModalCancel'
+                                        data-href='". route("invoice.destroy", ["id"=>Crypt::encryptString($data->id)]) ."'>
+                                        <i data-feather='x-square' class='feather-14-red'></i>
+                                        <span>". __('Cancel') ."</span>
+                                    </a>";
+            }
+
             $buttons .=     '</div>
                         </div>';
 
@@ -1145,7 +1294,7 @@ class InvoiceController extends Controller
         ->addColumn('status', function ($data) {
             $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-danger'];            
             // $data['status'] = ['1'=>'DRAFT','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','6'=>'PAID'];
-            $statusInv = ['DRAFT','VALIDATE','APPROVED','POSTED','DELETED','PAID'];
+            $statusInv = ['DRAFT','VALIDATE','APPROVED','POSTED','CANCELED','PAID'];
             return "<div class='badge ".$badges[$data->status - 1]."'>".$statusInv[$data->status - 1]."</div>";
         })
         ->rawColumns(['action','status','invoice_number'])

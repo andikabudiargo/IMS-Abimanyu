@@ -158,7 +158,7 @@
   let showAlert = "{{ Session::get('alert') }}";
 
   if ( showAlert ){
-    showList();
+    // showList();
     $("#alert-message-alert").fadeTo(5000, 500).slideUp(500, function(){
       $("#alert-message-alert").slideUp(500);
     });
@@ -224,6 +224,17 @@
       excelFileName:'invoice_customer'
     });
   }
+
+  $('body').on('shown.bs.modal', '#reasonModalCancel', function () {
+    $('input:visible:enabled:first', this).focus();
+  })
+
+  let href;
+  $(document).on('click', '#cancelReasonButton', function(event) {
+      event.preventDefault();
+      href = $(this).data('href');
+      $('#modalReasonCancel').attr("action", href);
+  });
 
   $.ajaxSetup({
     headers: {

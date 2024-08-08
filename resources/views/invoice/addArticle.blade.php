@@ -172,11 +172,13 @@
     }
 
     soNumber.change(function(){
-        let ppn = $(this).find(":selected").data("ppn");
-        $('#ppn').val(ppn);
-        sNilaiPPN=ppn;
-        console.log(ppn);
-        searchDn($(this).val());
+        if($(this).val()){
+            let ppn = $(this).find(":selected").data("ppn");
+            $('#ppn').val(ppn);
+            sNilaiPPN=ppn;
+            console.log(ppn);
+            searchDn($(this).val());
+        }
     })
 
     dnNumber.change(function(){
