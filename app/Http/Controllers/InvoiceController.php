@@ -164,7 +164,7 @@ class InvoiceController extends Controller
         ->where('invoice_number','like',$basicCode1.'%')
         ->orWhere('invoice_number','like',$basicCode2.'%')
         ->where('status','<>','5')
-        ->orderBy('id','desc')
+        ->orderBy(DB::raw("right(invoice_number,4)::numeric"),'desc')
         ->select(DB::raw("right(invoice_number,4) as last_code"))
         ->value('last_code');
 
@@ -175,8 +175,6 @@ class InvoiceController extends Controller
         select invoice_number::integer from (select right(invoice_number,4) as invoice_number from invoice_hdr 
         where invoice_number like '%$basicCode1%' or  invoice_number like '%$basicCode2%' and status <> '5' order by  id) as oki
         order by missing_code limit 1");
-
-        // dd($getMissingCode);
 
         if(count($getMissingCode) > 0){
             /*
@@ -194,6 +192,8 @@ class InvoiceController extends Controller
         }else{
             $newCode = ($getLastCode*1)+1;
         }
+
+        // dd($getLastCode);
 
         $newCode = str_pad($newCode,4,"0",STR_PAD_LEFT);
         $months = ['I', 'II', 'III','IV','V', 'VI', 'VII', 'VIII','IX','X','XI','XII'];
