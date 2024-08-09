@@ -2221,15 +2221,42 @@ class AccountPayableController extends Controller
             $jumlahBaris += count(explode(",",$val->list_rec));
         }
 
-        if (count($data['details']) < 7){
-            if ($jumlahBaris < 18){
-                $ukuranKertas = "A4A5";
-            }else{
-                $ukuranKertas = "A4";
-            }
-        }else{
+        // dd($jumlahBaris);
+
+        if ($jumlahBaris < 56){
             $ukuranKertas = "A4";
+        }else if(($jumlahBaris > 56) && ($jumlahBaris < 140)){
+            $ukuranKertas = "A42page";
+        }else if (($jumlahBaris > 140) && ($jumlahBaris < 200) ){
+            $ukuranKertas = "A43page";
+        }else if ($jumlahBaris > 200 ){
+            $ukuranKertas = "A44page";
         }
+
+        if ($jumlahBaris < 18){
+            $ukuranKertas = "A4A5";
+        }
+
+        // if (count($data['details']) < 7){
+        //     if ($jumlahBaris < 18){
+        //         $ukuranKertas = "A4A5";
+        //     }else{
+        //         $ukuranKertas = "A4";
+        //     }
+        // }else{
+        //     if ($jumlahBaris > 56){
+        //         $ukuranKertas = "A42page";
+        //     }
+
+        //     if ($jumlahBaris > 70){
+        //         $ukuranKertas = "A43page";
+        //     }
+        //     // else{
+        //     //     $ukuranKertas = "A4";
+        //     // }
+        // }
+
+        // dd($ukuranKertas);
 
         // dd($jumlahBaris);
 
@@ -2284,6 +2311,11 @@ class AccountPayableController extends Controller
         $data['noPo'] = $apInvoice->po_number;
 
         return view('accounting.accountPayable.print',$data);
+
+        // view()->share($data);
+
+        // $pdf = PDF::loadView('accounting.accountPayable.print')->setPaper([0, 0, 595.28, 841.89], 'portrait');
+        // return $pdf->stream("ap_$apNumber.pdf");
 
     }
 

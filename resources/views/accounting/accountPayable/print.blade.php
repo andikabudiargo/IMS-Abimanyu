@@ -23,6 +23,9 @@
         body.A4.landscape .sheet { width: 297mm; height: 209mm }
         body.A5           .sheet { width: 148mm; height: 209mm }
         body.A5.landscape .sheet { width: 210mm; height: 147mm }
+        body.A42page      .sheet { width: 210mm; height: 592mm }
+        body.A43page      .sheet { width: 210mm; height: 888mm }
+        body.A44page      .sheet { width: 210mm; height: 1184mm }
 
         /** Padding area **/
         .sheet.padding-10mm { padding: 10mm }
