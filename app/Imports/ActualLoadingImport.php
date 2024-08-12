@@ -25,7 +25,7 @@ class ActualLoadingImport implements ToModel, WithStartRow,WithHeadingRow
             'article_code' => $row['article_code'],
             'qty_fresh' => $row['actual_qty_fresh'],
             'qty_repaint' => $row['actual_qty_repaint'],
-            // 'qty_tag' => $row['actual_qty_tag']
+            'qty_tag' => $row['actual_qty_tag']
         ]);
     }
 

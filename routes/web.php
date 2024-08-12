@@ -608,6 +608,9 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('actualFinishGoods/approve',['as'=>'production.actualFinishGoods.approve','uses'=>'Production\ActualFinishGoodsController@approve']);
 	Route::get('actualFinishGoods/revision',['as'=>'production.actualFinishGoods.revision','uses'=>'Production\ActualFinishGoodsController@revision','middleware' => ['permission:actualFinishGoods-revision']]);
 
+	Route::get('actualFinishGood/export-excel',['as'=>'actualFinishGood.export.excel','uses'=>'Production\ActualFinishGoodsController@export']);
+	Route::post('actualFinishGood/import-excel',['as'=>'actualFinishGood.import.excel','uses'=>'Production\ActualFinishGoodsController@importExcel']);
+
 	Route::get('pettyCashs',['as'=>'pettyCashs.index','uses'=>'PettyCashController@index']);
 	Route::get('pettyCashs/create',['as'=>'pettyCash.create','uses'=>'PettyCashController@create','middleware' => ['permission:pettyCash-create']]);
 	Route::post('pettyCashs/store',['as'=>'pettyCash.store','uses'=>'PettyCashController@store']);

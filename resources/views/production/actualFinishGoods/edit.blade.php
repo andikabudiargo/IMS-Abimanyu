@@ -77,6 +77,34 @@
                                 </div>
                             </div>
                         </form>
+                        <form id="frmExcel" name="frmExcel" method="POST" enctype="multipart/form-data">
+                            @csrf
+                            <input type="hidden" id="aprdNumber" name="aprdNumber" value="oki"/>
+                            <div class="form-row">
+                                <div class="col-lg-3 col-md-12">
+                                    <div class="form-group">
+                                        <button type="button" class="btn btn-info" id ="cmdDownloadTemplate" name="cmdDownloadTemplate"><i data-feather="download"></i> Downlod Template</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="col-lg-3 col-md-12">
+                                    <div class="form-group">
+                                        <div>
+                                            <input type="file" class="custom-file-input" name="file" id="file" required/>
+                                            <label class="custom-file-label" for="file">Choose file</label>
+                                        </div>
+                                        
+                                    </div>
+                                </div>
+                                <div class="col-lg-6 col-md-12">
+                                    <button type="button" class="btn btn-primary">
+                                        <i data-feather="upload" class="align-middle mr-sm-25 mr-0"></i>
+                                        <span class="align-middle d-sm-inline-block d-none" id="uploadExcel">Upload Excel</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
                     </div>
                 </div>
             </div>
@@ -181,15 +209,16 @@
 @section('scripts')
 @include('production.actualFinishGoods.addArticle')
 <script type="text/javascript">
-    const dWosNumber=$('#wosNumber');
-    const dWosDate=$('#wosDate');
-    const dShift=$('#shift');
-    const dGroup=$('#group');
-    const dWosTime=$('#wosTime');
-    const dWorkingHour=$('#workingHour');
-    const dEfficiency=$('#efficiency');
-    const dNote=$('#note');
+    const dWosNumber = $('#wosNumber');
+    const dWosDate = $('#wosDate');
+    const dShift = $('#shift');
+    const dGroup = $('#group');
+    const dWosTime = $('#wosTime');
+    const dWorkingHour = $('#workingHour');
+    const dEfficiency = $('#efficiency');
+    const dNote = $('#note');
     const approveBtn = document.querySelector('#cmdApprove');
+    const dPrdNumber = $('#prdNumber');
 
     if (approveBtn) {
         approveBtn.addEventListener('click',() =>{
@@ -219,6 +248,159 @@
             add_new_row_edit(soCode,articleCode,articleId,articleRm,qtySo,uom,planQtyFresh,planQtyRepaint,planTime,planTag,originTag,qtyFg,urutan,tone);
         }
     });   
+
+
+    $("#cmdDownloadTemplate").click(function(){
+        let id = dWosNumber.val();
+        let prdNumber = dPrdNumber.val();
+        console.log(prdNumber);
+        if(id){
+            let url = "{{ route('actualFinishGood.export.excel', ['wos_number'=>':id','prd_number'=>':prdNumber']) }}";
+            url = url.replace('%3Aid', id);
+            url = url.replace('%3AprdNumber', prdNumber);
+            url = url.replace('&amp;','&');  
+            window.location.href = url;
+        }else{
+            Swal.fire("Warning","Pilih dulu WOS number","warning");
+        }
+
+    });
+
+    $("#uploadExcel").click(function(){
+        if (!$("#frmExcel")[0].checkValidity()){
+            $("#frmExcel").submit();
+        }else{
+            $(".loading-spinner-container").addClass("-show");
+            $("#uploadExcel").attr('disabled','disabled');
+            $('.disabled-el').removeAttr('disabled');
+            $("#frmExcel").submit();
+        }
+    });
+
+    $('#frmExcel').on('submit', function(event){
+        $('#message').html('');
+        $('#article_row').empty();
+        event.preventDefault();
+        $('#aprdNumber').val($('#prdNumber').val());
+        $.ajax({
+            url:"{{ route('actualFinishGood.import.excel') }}",
+            method:"POST",
+            data: new FormData(this),
+            dataType:"json",
+            contentType:false,
+            cache:false,
+            processData:false,
+            beforeSend:function(){
+                $('#uploadExcel').attr('disabled','disabled');
+            },
+            success:function(data){
+                // console.log(data.dataDetail);
+                // console.log(data.status);
+                if(data.status == 1){
+                    Swal.fire({
+                        title: "Proses validasi...",
+                        icon: "warning",
+                        showConfirmButton: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        },
+                    })
+
+                    let timerId = setInterval(() => checkVariable(), 1000);
+                    function checkVariable() {
+                        if (data.dataDetail.length > 0) {
+                            clearInterval(timerId);
+                            for(let i=0;i<data.dataDetail.length;i++){
+                                soCode = data.dataDetail[i].so_code;
+                                articleId= data.dataDetail[i].article_code;
+                                articleCode = data.dataDetail[i].article;
+                                articleRm = data.dataDetail[i].article_rm_code;
+                                qtySo = data.dataDetail[i].so_qty; //belum ada
+                                uom = 'PCS';
+                                planQtyFresh = data.dataDetail[i].act_qty_fresh;
+                                planQtyRepaint = data.dataDetail[i].act_qty_repaint;
+                                planTime = data.dataDetail[i].act_time;
+                                planTag = data.dataDetail[i].act_tag;
+                                originTag = data.dataDetail[i].origin_tag;
+                                // qtyFg=data.dataDetail[i].act_finish_goods;
+                                urutan = data.dataDetail[i].urutan;
+                                tone = data.dataDetail[i].tone;
+                                qtyFg = data.dataDetail[i].qty_finish_goods;
+                                
+                                if(soCode == 'other'){
+                                    planQtyRepaint = 0;
+                                    planTag = 0;
+                                }
+
+                                add_new_row_edit(soCode,articleCode,articleId,articleRm,qtySo,uom,planQtyFresh,planQtyRepaint,planTime,planTag,originTag,qtyFg,urutan,tone);
+                                if (i==(data.dataDetail.length-1)){
+                                        $("#uploadExcel").removeAttr('disabled');
+                                        show_msg(data.title, data.message, data.alert);
+                                        $(".loading-spinner-container").removeClass("-show");
+                                        swal.close();
+                                        sumData();
+                                }
+                            }
+                        }else{
+                            swal.fire("warning","Data Kosong","warning");
+                            $(".loading-spinner-container").removeClass("-show");        
+                        }
+                    }
+
+                }
+
+                if(data.status == 0){
+                    for(let i = 0; i < data.message.length; i++) {
+                        show_msg(data.title, data.message[i], data.alert);
+                    }
+                    swal.fire("warning",data.pesan,"warning");
+                    $(".loading-spinner-container").removeClass("-show");
+                }
+            },
+            error: function(xhr, status, error) {
+                let err = JSON.parse(xhr.responseText);
+                // Swal.fire('Error..',err.errors.file[0],'error');
+                Swal.fire('Error..',err.message,'error');
+                $(".loading-spinner-container").removeClass("-show");
+            }
+        })
+    });
+
+    isiDariExcel=()=>{
+        let awosNumber= dWosNumber.val();
+        let aprdNumber= dPrdNumber.val();
+        let dariExcel ='true';
+        $.ajax({
+            url:"{{ route('production.actualLoading.wos.detail') }}",
+            method:"GET",
+            data:{
+                wosNumber:awosNumber,
+                dariExcel:dariExcel
+            },
+            success:function(result){                
+                if(result.length > 0 ){
+                    for(let i=0;i< detail.length;i++){
+                        soCode = detail[i].so_code;
+                        articleId= detail[i].article_code;
+                        articleCode = detail[i].article;
+                        articleRm = detail[i].article_rm_code;
+                        qtySo = detail[i].so_qty; //belum ada
+                        uom = 'PCS';
+                        planQtyFresh = detail[i].act_qty_fresh;
+                        planQtyRepaint = detail[i].act_qty_repaint;
+                        planTime = detail[i].act_time;
+                        planTag = detail[i].act_tag;
+                        originTag = detail[i].origin_tag;
+                        tone = detail[i].tone;
+                        add_new_row_edit(soCode,articleCode,articleId,articleRm,qtySo,uom,planQtyFresh,planQtyRepaint,planTime,planTag,originTag,tone);
+                    }
+                }
+            },
+            error: function (response) {
+                Swal.fire("Warning","Get detail PO failed","warning");
+            }
+        })
+    }
 
     $.ajaxSetup({
         headers: {

@@ -14,6 +14,9 @@ use DB;
 use PDF;
 use AppHelpers;
 use Approval;
+use App\Exports\ActualFinishGoodsExport;
+use App\Imports\ActualFinishGoodsImport;
+use Maatwebsite\Excel\Facades\Excel;
 
 class ActualFinishGoodsController extends Controller
 {
@@ -910,5 +913,99 @@ class ActualFinishGoodsController extends Controller
             \LogActivity::addToLog($title,"username: $username Status $message");
             return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);
         }
+    }
+
+    public function export(Request $request)
+    {
+		$wosNumber = $request->wos_number;
+        $prdNumber = $request->prd_number;
+        $filename = str_replace('/','_', $prdNumber);
+        return Excel::download(new ActualFinishGoodsExport($wosNumber,$prdNumber), $filename.'.xlsx');
+	}
+
+    public function importExcel(Request $request)
+    {
+
+        $prdNumber = $request->aprdNumber;
+
+        // validasi
+		$this->validate($request, [
+			'file' => 'required|mimes:xls,xlsx'
+		]);
+ 
+		// menangkap file excel
+		$file = $request->file('file');
+ 
+		// // membuat nama file unik
+		$namaFile = rand().$file->getClientOriginalName();
+ 
+		// // upload ke folder file_siswa di dalam folder public
+		// $file->move('file_siswa',$namaFile);
+		// import data
+		// Excel::import(new SiswaImport, public_path('/file_siswa/'.$namaFile));
+
+        $data['filename']=$namaFile;
+        db::table('import_actual_finish_goods_tmp')->delete();
+        Excel::import(new ActualFinishGoodsImport($data), $file);
+
+        $dataValidasi = DB::table('import_actual_finish_goods_tmp')
+        ->leftJoin('article','article.article_alternative_code','import_actual_finish_goods_tmp.article_code')
+        ->select('import_actual_finish_goods_tmp.article_code'
+        ,'article_desc'
+        ,'qty_finish_goods'
+        ,DB::RAW("concat(
+            case when import_actual_finish_goods_tmp.qty_finish_goods::text ~ '^[0-9.]+$' = false then concat('Urutan ',row_number() over(),': Qty Actual Finish Goods salah : ',qty_finish_goods,'<br>') end,
+            case when article_desc is null and import_actual_finish_goods_tmp.article_code <> 'gantiwarna' and import_actual_finish_goods_tmp.article_code <> 'istirahat' then concat('Urutan ',row_number() over(),': Article Code:',import_actual_finish_goods_tmp.article_code, ' tidak terdaftar <br>') end,
+            case when import_actual_finish_goods_tmp.prod_code != '$prdNumber' then concat('Urutan ',row_number() over(),': Production Number:',import_actual_finish_goods_tmp.prod_code, ' tidak sesuai <br>Seharusnya $prdNumber') end
+            ) as notes")
+        )
+        ->where('file_name', $namaFile)
+        ->get();        
+
+        $dataNotes=[];
+        foreach ($dataValidasi as $val) {
+            if($val->notes){
+                $dataNotes[]= [$val->notes];
+            }
+        } 
+
+        $title ="Import $this->title";
+        $pesan="";
+
+        if (count($dataNotes) > 0 ){
+            $pesan .='Ada error pada data yang diupload, silahkan cek notes error!';
+            $status = 0;
+            $alert = "error";
+            $message = $dataNotes;
+            $data = "";
+
+        }else{
+
+            $data = DB::table('production_det')
+            ->leftJoin('import_actual_finish_goods_tmp', function ($join) {
+                $join->on('import_actual_finish_goods_tmp.prod_code', '=', 'production_det.prod_code');
+                $join->on('import_actual_finish_goods_tmp.urutan', '=', 'production_det.urutan');
+                $join->on('import_actual_finish_goods_tmp.article_code_1', '=', 'production_det.article_code');
+            })
+            ->leftJoin('article','article.article_code','=','production_det.article_code')
+            ->where('production_det.prod_code',$prdNumber)
+            ->where('production_det.so_code','!=','other')
+            ->select('production_det.*'
+            ,DB::RAW("concat(article.article_alternative_code,article.article_desc) as article")
+            ,'article.article_alternative_code'
+            ,'article.article_desc'
+            ,'import_actual_finish_goods_tmp.qty_finish_goods as qty_finish_goods')
+            ->orderBy('id')
+            ->get();
+
+            $status = 1;
+            $alert = "success";
+            $message  = "$title is successfully imported";
+
+            db::table('import_actual_finish_goods_tmp')->where('file_name', $namaFile)->delete();
+
+        }
+                  
+        return response()->json(array('status' => $status,'title' => $title, 'message' => $message,'alert' =>$alert,'dataDetail'=>$data,'pesan'=>$pesan));
     }
 }
