@@ -2,12 +2,13 @@
 
 namespace App\Imports;
 
-use App\Models\ImportActualLoading;
+use App\Models\ImportActualFinishGoods;
 use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\WithStartRow;
+use DB;
  
-class ActualLoadingImport implements ToModel, WithStartRow,WithHeadingRow
+class ActualFinishGoodsImport implements ToModel, WithStartRow,WithHeadingRow
 {
     private $data;
 
@@ -18,14 +19,14 @@ class ActualLoadingImport implements ToModel, WithStartRow,WithHeadingRow
 
     public function model(array $row)
     {
-        return new ImportActualLoading([
+        return new ImportActualFinishGoods([
             'file_name' => $this->data['filename'],
             'urutan' => $row['no'],
-            'wo_code' => $row['wos'],
+            'prod_code' => $row['prod_code'],
+            'so_code' => $row['sales_order'],
             'article_code' => $row['article_code'],
-            'qty_fresh' => $row['actual_qty_fresh'],
-            'qty_repaint' => $row['actual_qty_repaint'],
-            // 'qty_tag' => $row['actual_qty_tag']
+            'article_code_1' => db::table('article')->where('article_alternative_code',$row['article_code'])->value('article_code'),
+            'qty_finish_goods' => $row['qty_finish_goods']
         ]);
     }
 
