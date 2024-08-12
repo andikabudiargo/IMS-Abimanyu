@@ -310,6 +310,9 @@ class ActualFinishGoodsController extends Controller
         ->orderBy('urutan')
         ->get();
 
+        $data['arrTone'] = ['t1'=>'Tone 1','t2'=>'Tone 2','t3'=>'Tone 3','t4'=>'Tone 4'];
+        $data['arrSprayBooth'] = ['sb1'=>'Spray Booth 1','sb2'=>'Spray Booth 2','sb3'=>'Spray Booth 3','sb4'=>'Spray Booth 4'];
+
         $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode,$prdNumber,$username);
         $data['approveValidate'] = Approval::approveValidate($this->moduleCode,$prdNumber,$username);
 
