@@ -904,15 +904,15 @@ class InvoiceController extends Controller
 
             if($rowAffected){
 
-                DB::table('invoice_det')
-                ->where('invoice_number',$invNumber)
-                ->update(
-                    [   
-                        'invoice_number' => $invNumber."(C)",
-                        'updated_by' => Auth::user()->username,
-                        'updated_at' => date('Y-m-d H:i:s')
-                    ]
-                );
+                // DB::table('invoice_det')
+                // ->where('invoice_number',$invNumber)
+                // ->update(
+                //     [   
+                //         'invoice_number' => $invNumber."(C)",
+                //         'updated_by' => Auth::user()->username,
+                //         'updated_at' => date('Y-m-d H:i:s')
+                //     ]
+                // );
 
                 $voucherNumber=$invNumber;
                 if($voucherNumber){
