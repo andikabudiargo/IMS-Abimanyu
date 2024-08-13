@@ -7,10 +7,9 @@
     <div class="row">
       <div class="col-12">
         <div class="card">
-          {{-- <div class="card-header">  
-            <div class="card-title">@yield('title')
-            </div>
-          </div> --}}
+          <div class="card-header">  
+            <h4 class="card-title">Filter</h4>
+          </div>
           <div class="card-body">
             <form class="needs-validation" novalidate>
                 <div class="form-row">
