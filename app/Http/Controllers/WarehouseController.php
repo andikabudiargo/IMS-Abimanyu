@@ -65,6 +65,7 @@ class WarehouseController extends Controller
             ['data'=>'action','name'=>'action','title'=>'action','orderable'=>false, 'searchable'=>false],
             ['data'=>'location_number','name'=>'location_number','title'=>'Location'],
             ['data'=>'article_alternative_code','name'=>'article_alternative_code','title'=>'Code'],
+            ['data'=>'critical_stock','name'=>'critical_stock','title'=>'Critical Stock'],
             ['data'=>'desc','name'=>'article_desc','title'=>'Name'],
             ['data'=>'cust','name'=>'third_party.nama','title'=>'Custs/Supp'],
             ['data'=>'costprice','name'=>'costprice','title'=>'Price'],
@@ -1127,6 +1128,7 @@ class WarehouseController extends Controller
         $group = strtolower($request->group);
         $supp = strtolower($request->supp);
         $type = strtolower($request->type);
+        $status = $request->status;
         $qty = $request->qty;
         $operator = $request->opr;
        
@@ -1147,20 +1149,25 @@ class WarehouseController extends Controller
         ,'min_package'
         ,'uom.uom_group'
         ,'location_number'
-        ,DB::raw("last_rec_date(article.article_code) as last_rec_date")        
+        ,DB::raw("last_rec_date(article.article_code) as last_rec_date")     
         // ,DB::raw("case when uom.uom_group = 'PIECE' then TO_CHAR(article_stock.article_qty,'999,999,999') else TO_CHAR(article_stock.article_qty,'999,999,999.99') end as article_qty"))
         )
         ->leftJoin('group_materials', 'group_materials.code', '=', 'article.group_of_material')
         ->leftJoin('third_party', 'third_party.kode', '=', 'article.third_party')
         ->leftJoin('article_stock', 'article_stock.article_code', '=', 'article.article_code')
         ->leftJoin('uom','uom.code','article.uom')
-        ->where(function ($query) use ($code,$name,$group,$supp,$type,$operator,$qty) {
+        ->where(function ($query) use ($code,$name,$group,$supp,$type,$operator,$qty,$status) {
             $code ? $query->where('article_alternative_code','ilike','%'.$code.'%') :'';
             $name ? $query->where('article_desc','ilike','%'.$name.'%') :'';
             $group ? $query->where('group_of_material','ilike','%'.$group.'%') :'';
             $supp ? $query->where('third_party','ilike','%'.$supp.'%') :'';
             $type ? $query->where('article_alternative_code','ilike',$type.'%') :'';
             $operator ? $query->where('article_stock.article_qty',$operator,(float)$qty) :'';
+            if($status == 'critical'){
+                $query->where('article_stock.article_qty','<',db::raw("safety_stock"));
+            }else if ($status == 'save'){
+                $query->where('article_stock.article_qty','>',db::raw("safety_stock"));
+            }
         })->orderBy('article_desc')->get();
        
         return Datatables::of($data)
@@ -1195,7 +1202,15 @@ class WarehouseController extends Controller
             $statusCode = ['Freeze','Active'];
             return "<div class='badge badge-pill ".$badges[$data->status]."'>".$statusCode[$data->status]."</div>";
         })
-        ->rawColumns(['action','status','article_qty'])
+        ->addColumn('critical_stock', function ($data) {
+
+            if ($data->article_qty < $data->safety_stock){
+                return "<div class='badge badge-pill badge-light-danger'>Critical</div>";
+            }else{
+                return "<div class='badge badge-pill badge-light-primary'>Save</div>";
+            }
+        })
+        ->rawColumns(['action','status','article_qty','critical_stock'])
         ->make(true);
     }
 

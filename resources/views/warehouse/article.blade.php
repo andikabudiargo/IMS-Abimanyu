@@ -41,6 +41,14 @@
                       </select>
                     </div>
                     <div class="form-group col-md-4"> 
+                      <label class="form-label" for="searchStatus">Status Stock</label>
+                      <select class="select2 form-control" id="searchStatus" name="searchStatus">
+                          <option value="">All</option>
+                          <option value="critical">Critical</option>
+                          <option value="save">Save</option>
+                      </select>
+                    </div>
+                    {{-- <div class="form-group col-md-4"> 
                       <label class="form-label" for="searchType">Article Type</label>
                       <select class="select2 form-control" id="searchType" name="searchType">
                           <option value="">All</option>
@@ -48,7 +56,7 @@
                             <option value="{{$val->code}}" >{{$val->code}} - {{$val->name}}</option>
                           @endforeach
                       </select>
-                    </div>
+                    </div> --}}
                     <div class="col-md-4 col-12 mb-1">
                       <label for="searchQty">QTY</label>
                       {{-- <fieldset> --}}
@@ -66,15 +74,30 @@
                       {{-- </fieldset> --}}
                   </div>
                 </div>
+                <hr>
                 <div class="form-row">
-                    <div class="col-12"> 
-                        <button type="button" class="btn btn-primary" id ="btnSearch" name="btnSearch">Search</button>
-                        <a href="{{ route('stockTake.export') }}" class="btn btn-info"><i class="fa fa-download"></i> Downlod Stock</a>
+                    <div class="col-md-12"> 
+                      <label for="">Article Type</label>
+                      <div class="demo-inline-spacing">
+                        @foreach($types as $key => $val)
+                          {{-- <a href="{{ route('article.create') }}" class="btn btn-success"> {{ $val->name }}</a> --}}
+                          <button type="button" class="btn btn-primary btnSearch" id ="btnSearch{{$val->code}}" name="btnSearch{{$val->code}}" data-type="{{$val->code}}">{{ $val->name }}</button>
+                        @endforeach
+                          <button type="button" class="btn btn-primary btnSearch" id ="btnSearchAll" name="btnSearchAll" data-type="">All Article</button>
+                      </div>
+                        {{-- <button type="button" class="btn btn-primary" id ="btnSearch" name="btnSearch">{{ $val->name }}</button> --}}
                         {{-- @can('article-create')
                         <a href="{{ route('article.create') }}" class="btn btn-info"><i class="fa fa-plus"></i> Create</a>
                         @endcan --}}
                     </div>
                 </div>
+                <hr>
+                
+                <div class="form-row">
+                  <div class="col-12"> 
+                      <a href="{{ route('stockTake.export') }}" class="btn btn-info"><i class="fa fa-download"></i> Downlod  All Stock</a>
+                  </div>
+              </div>
             </form>
           </div>
         </div>
@@ -143,7 +166,7 @@
   let type = $("#searchType");
   let opr = $("#searchOperator");
   let qty = $("#searchQty");
-
+  let searchStatus = $("#searchStatus");
 
   $(document).ready(function(){
     $(document).on('click', '#deleteButton', function(event) {
@@ -156,11 +179,13 @@
 
   //refresh di cards
   $('a[data-action="reload"]').on('click', function () {
-    showList(name.val(),code.val(),group.val(),supp.val(),type.val(),opr.val(),qty.val());
+    // showList(name.val(),code.val(),group.val(),supp.val(),type.val(),opr.val(),qty.val());
   });
 
-  $("#btnSearch").click(function(e){
-      showList(name.val(),code.val(),group.val(),supp.val(),type.val(),opr.val(),qty.val());
+  $(".btnSearch").click(function(e){
+      // console.log($(this).data('type'));
+      let type = $(this).data('type');
+      showList(name.val(),code.val(),group.val(),supp.val(),type,opr.val(),qty.val(),searchStatus.val());
   });
 
 
@@ -168,7 +193,7 @@
     qty.focus();
   });
 
-  const showList = (name,code,group,supp,type,opr,qty) => {
+  const showList = (name,code,group,supp,type,opr,qty,status) => {
     if ($('#detailedTable tr').length >0){
         let table= $('#detailedTable').DataTable();
         table.destroy();
@@ -179,11 +204,12 @@
       tableId:"detailedTable",
       route:"{{ route('warehouse.article.list') }}",
       kolom:{!! $kolom !!},
-      arrColPrint:[1,2,3,4,5,6,7,8,9,10],
+      arrColPrint:[1,2,3,4,5,6,7,8,9,10,11,12,13,14],
       columnDefs :[
         { width: '5%', targets: 0 },
-        { className: 'text-right','targets': [6,8,9]},
+        { className: 'text-right','targets': [7,9,10]},
       ],
+      
       dataSearch:  {
         name:name,
         code:code,
@@ -191,7 +217,8 @@
         supp:supp,
         type:type,
         opr:opr,
-        qty:qty
+        qty:qty,
+        status:status
       },
       orderColumn:[[ 1, 'asc' ],[ 2, 'asc' ]],
       excelFileName:'article_stock'
