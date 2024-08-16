@@ -52,7 +52,7 @@
                                             </div>                               
                                         </div>
                                         <div class="form-row">
-                                            <div class="form-group col-md-5">
+                                            <div class="form-group col-md-3">
                                                 <label class="form-label" for="customer">Customer</label>
                                                 <select class="select2 form-control" id="customer" name="customer" disabled>
                                                     <option value=""></option>
@@ -64,6 +64,10 @@
                                             <div class="form-group col-md-3">
                                                 <label class="form-label" for="soNumber">SO Number*</label>
                                                 <input type="text" id="soNumber" name="soNumber" class="form-control" value="{{ $header2->so_number }}" disabled />
+                                            </div>
+                                            <div class="form-group col-md-2">
+                                                <label class="form-label" for="osNumber">OS/JTC</label>
+                                                <input type="text" id="osNumber" name="osNumber" class="form-control" value="{{ $header2->os_number }}" disabled/>
                                             </div>
                                         </div>
                                         <div class="form-row">

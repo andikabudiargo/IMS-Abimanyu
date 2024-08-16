@@ -35,7 +35,7 @@
                                 </div>                          
                             </div>
                             <div class="form-row">
-                                <div class="form-group col-md-5">
+                                <div class="form-group col-md-3">
                                     <label class="form-label" for="customer">Customer*</label>
                                     <select class="select2 form-control" id="customer" name="customer" required>
                                         <option value=""></option>
@@ -44,11 +44,15 @@
                                         @endforeach
                                     </select>
                                 </div>
-                                <div class="form-group col-md-4">
+                                <div class="form-group col-md-3">
                                     <label class="form-label" for="soNumber">SO Number*</label>
                                     <select class="select2 form-control" id="soNumber" name="soNumber" required>
                                     </select>
                                 </div>
+                                <div class="form-group col-md-3">
+                                    <label class="form-label" for="osNumber">OS/JTC</label>
+                                    <input type="text" id="osNumber" name="osNumber" class="form-control" />
+                                </div>  
                             </div>
                             <div class="form-row">
                                 <div class="form-group col-md-9">
@@ -251,6 +255,7 @@
                 let soNumber = $('#soNumber').val();
                 let poNumber = $('#soNumber').find(":selected").data("po-number");
                 let note = $('#note').val();
+                let osNumber = $('#osNumber').val();
 
                 $.ajax({
                     type: "post",
@@ -261,7 +266,9 @@
                         customer:customer,
                         soNumber:soNumber,
                         poNumber:poNumber,
-                        note:note
+                        note:note,
+                        osNumber:osNumber
+
                     },
                     dataType: "json",
                     success: function(data) {

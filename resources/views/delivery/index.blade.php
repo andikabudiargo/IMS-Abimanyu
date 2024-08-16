@@ -154,7 +154,7 @@
       tableId:"detailedTable",
       route:"{{ route('delivery.list') }}",
       kolom:{!! $kolom !!},
-      arrColPrint:[2,3,4,5,6,7,8,9,10,11],
+      arrColPrint:[2,3,4,5,6,7,8,9,10,11,12],
       columnDefs :[
         { width: '5%', targets: 0 },
       ],
@@ -165,7 +165,7 @@
         searchStatus:searchStatus,
         dnDate:dnDate
       },
-      orderColumn:[[ 11, 'desc' ],[ 1, 'asc' ]],
+      orderColumn:[[ 12, 'desc' ],[ 1, 'asc' ]],
       excelFileName:'delivery_note'
     });
   }

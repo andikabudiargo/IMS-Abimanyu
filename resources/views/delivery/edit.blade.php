@@ -33,7 +33,7 @@
                                 </div>                            
                             </div>
                             <div class="form-row">
-                                <div class="form-group col-md-5">
+                                <div class="form-group col-md-3">
                                     <label class="form-label" for="customer">Customer*</label>
                                     <select class="select2 form-control" id="customer" name="customer" required>
                                         @foreach($customers as $val)
@@ -41,11 +41,15 @@
                                         @endforeach
                                     </select>
                                 </div>
-                                <div class="form-group col-md-4">
+                                <div class="form-group col-md-3">
                                     <label class="form-label" for="soNumber">SO Number*</label>
                                     <select class="select2 form-control" id="soNumber" name="soNumber" required>
                                     </select>
                                     {{-- <input type="text" id="soNumber" name="soNumber" class="form-control" value="{{ $header->so_number }}" data-po-number="{{ $header->po_number }}" required disabled/> --}}
+                                </div>
+                                <div class="form-group col-md-3">
+                                    <label class="form-label" for="osNumber">OS/JTC</label>
+                                    <input type="text" id="osNumber" name="osNumber" class="form-control" value="{{ $header->os_number }}"/>
                                 </div>
                             </div>
                             <div class="form-row">
@@ -375,6 +379,7 @@
                 // let poNumber = $('#poNumberHdr').val();
                 let note = $('#note').val();
                 let dnNumber = $('#dnNumber').val();
+                let osNumber = $('#osNumber').val();
 
                 $.ajax({
                     type: "post",
@@ -386,7 +391,8 @@
                         soNumber:soNumber,
                         poNumber:poNumber,
                         dnNumber:dnNumber,
-                        note:note
+                        note:note,
+                        osNumber:osNumber
                     },
                     dataType: "json",
                     success: function(data) {
