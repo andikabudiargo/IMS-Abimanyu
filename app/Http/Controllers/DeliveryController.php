@@ -82,6 +82,7 @@ class DeliveryController extends Controller
             ['data'=> 'customer_name', 'name'=> 'customer_name','title'=>'Customer'],
             ['data'=> 'num_revision', 'name'=> 'num_revision','title'=>'Revision'],            
             ['data'=> 'note', 'name'=> 'note','title'=>'Note'],
+            ['data'=> 'os_number', 'name'=> 'os_number','title'=>'OS Number'],
             ['data'=> 'created_by', 'name'=> 'created_by','title'=>'Created By'],
             ['data'=> 'created_at', 'name'=> 'created_at','title'=>'Created At']
             
@@ -243,6 +244,7 @@ class DeliveryController extends Controller
         $status = '1';
         $gudang = 'false';
         $kurs = 1;
+        $osNumber = $request->osNumber;
 
         $periodNomor=(int)explode('-', $dnDate)[1];
 
@@ -294,7 +296,8 @@ class DeliveryController extends Controller
                         'created_by' => Auth::user()->username,
                         'updated_by' => Auth::user()->username,
                         'created_at' => date('Y-m-d H:i:s'),
-                        'updated_at' => date('Y-m-d H:i:s')
+                        'updated_at' => date('Y-m-d H:i:s'),
+                        'os_number' => $osNumber
                     ]);
 
                     $dataSet = [];
@@ -471,6 +474,7 @@ class DeliveryController extends Controller
         $poNumber = $request->poNumber;
         $dnNumber=$request->dnNumber;
         $note=$request->note;
+        $osNumber = $request->osNumber;
         // $status = '2';
         // status
         // 1. Draft
@@ -523,7 +527,8 @@ class DeliveryController extends Controller
                         // 'status' => $status,
                         'note' =>  $note,
                         'updated_by' => Auth::user()->username,
-                        'updated_at' => date('Y-m-d H:i:s')
+                        'updated_at' => date('Y-m-d H:i:s'),
+                        'os_number' => $osNumber
                         ]
                     );
 
@@ -1106,7 +1111,8 @@ class DeliveryController extends Controller
             num_revision,
             revised_by,
             revised_at,
-            reason
+            reason,
+            os_number
         )
         select 
             '$dnNew',
@@ -1126,7 +1132,8 @@ class DeliveryController extends Controller
             $numRevision,
             '$username',
             '".date('Y-m-d H:i:s')."',
-            reason
+            reason,
+            os_number
         from delivery_hdr where delivery_number = '$dnOrigin'";
 
         $sqlDet="INSERT into delivery_det
@@ -1506,6 +1513,7 @@ class DeliveryController extends Controller
             ['data'=>'article_desc','name'=>'article_desc','title'=>'Article desc'],
             ['data'=>'qty','name'=>'qty','title'=>'Delivery Qty'],
             ['data'=>'date_period','name'=>'date_period','title'=>'date_period','visible'=>false],
+            ['data'=> 'os_number', 'name'=> 'os_number','title'=>'OS Number'],
         ];
         return json_encode($kolom, true);
     }
@@ -1527,6 +1535,7 @@ class DeliveryController extends Controller
             ['data'=>'price_service','name'=>'price_service','title'=>'Service Price'],
             ['data'=>'grand_total','name'=>'grand_total','title'=>'Grand Total'],
             ['data'=>'invoice_number','name'=>'invoice_number','title'=>'Invoice Number'],
+            ['data'=> 'so_number', 'name'=> 'so_number','title'=>'So Number'],
         ];
         return json_encode($kolom, true);
     }
@@ -1618,6 +1627,7 @@ class DeliveryController extends Controller
         ,'delivery_det.qty'
         ,'delivery_det.so_number'
         ,'delivery_det.po_number'
+        ,'delivery_hdr.os_number'
         ,'third_party.nama as customer_name'
         ,DB::RAW("to_date(delivery_date,'dd-mm-yyyy') as date_period")
         )
@@ -1672,6 +1682,7 @@ class DeliveryController extends Controller
         ,'delivery_det.qty'
         ,'delivery_det.so_number'
         ,'delivery_det.po_number'
+        ,'delivery_hdr.os_number'
         ,'third_party.nama as customer_name'
         // ,'invoice_hdr.invoice_number'
         ,DB::RAW("(Select invoice_number from invoice_det a where a.dn_number = delivery_det.delivery_number and a.article_code = delivery_det.article_code) as invoice_number")
