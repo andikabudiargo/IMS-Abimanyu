@@ -376,8 +376,8 @@
                         <th width="50%" >Description</th>
                         <th width="10%" align="center">Qty</th>
                         <th width="12%">Material Price</th>
-                        <th width="12%">Service Price</th>
-                        <th width="15%">Total Material</th>
+                        <th width="10.5%">Service Price</th>
+                        <th width="16.5%">Total Material</th>
                         <th width="15%">Total Service</th>
                     </tr>
                 </thead>
@@ -426,7 +426,7 @@
                     <tbody>
                         @foreach ($totals as $val )   
                             <tr style="height:25px">
-                                <td width="59%" colspan="4" rowspan="5" style="border-bottom: 1px solid black;">
+                                <td width="58.8%" colspan="4" rowspan="5" style="border-bottom: 1px solid black;">
                                     <table style="table-layout:fixed;">
                                         <tr>
                                             <td style="border-right: none;border-left: none;padding-right:0px" width="15%" valign="top"><b>Terbilang : </b></td>
@@ -434,8 +434,8 @@
                                         </tr>
                                     </table>
                                 </td>
-                                <td width="7.2%" colspan="" style="border: 1px solid #0c0c0c;">Subtotal</td>
-                                <td width="9.5%" colspan="" align="right" style="border: 1px solid #0c0c0c;">{{ number_format($val->total_material,2) }}</td>
+                                <td width="6.1%" colspan="" style="border: 1px solid #0c0c0c;">Subtotal</td>
+                                <td width="10.5%" colspan="" align="right" style="border: 1px solid #0c0c0c;">{{ number_format($val->total_material,2) }}</td>
                                 <td width="9.4%" colspan="" align="right" style="border: 1px solid #0c0c0c;">{{ number_format($val->total_service,2) }}</td>
                             </tr>
                             <tr style="height:25px">
@@ -605,8 +605,8 @@
                             <th width="50%" >Description</th>
                             <th width="10%" align="center">Qty</th>
                             <th width="12%">Material Price</th>
-                            <th width="12%">Service Price</th>
-                            <th width="15%">Total Material</th>
+                            <th width="10.5%">Service Price</th>
+                            <th width="16.5%">Total Material</th>
                             <th width="15%">Total Service</th>
                         </tr>
                     </thead>
@@ -655,7 +655,7 @@
                     <tbody>
                         @foreach ($totals as $val )   
                             <tr style="height:25px">
-                                <td width="59%" colspan="4" rowspan="5" style="border-bottom: 1px solid black;">
+                                <td width="58.8%" colspan="4" rowspan="5" style="border-bottom: 1px solid black;">
                                     <table style="table-layout:fixed;">
                                         <tr>
                                             <td style="border-right: none;border-left: none;padding-right:0px" width="15%" valign="top"><b>Terbilang : </b></td>
@@ -663,8 +663,8 @@
                                         </tr>
                                     </table>
                                 </td>
-                                <td width="7.2%" colspan="" style="border: 1px solid #0c0c0c;">Subtotal</td>
-                                <td width="9.5%" colspan="" align="right" style="border: 1px solid #0c0c0c;">{{ number_format($val->total_material,2) }}</td>
+                                <td width="6.1%" colspan="" style="border: 1px solid #0c0c0c;">Subtotal</td>
+                                <td width="10.5%" colspan="" align="right" style="border: 1px solid #0c0c0c;">{{ number_format($val->total_material,2) }}</td>
                                 <td width="9.4%" colspan="" align="right" style="border: 1px solid #0c0c0c;">{{ number_format($val->total_service,2) }}</td>
                             </tr>
                             <tr style="height:25px">
