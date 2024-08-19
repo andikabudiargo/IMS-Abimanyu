@@ -376,9 +376,9 @@
                         <th width="50%" >Description</th>
                         <th width="10%" align="center">Qty</th>
                         <th width="12%">Material Price</th>
-                        <th width="12%">Service Price</th>
-                        <th width="15%">Total Material</th>
-                        <th width="15%">Total Service</th>
+                        <th width="10.2%">Service Price</th>
+                        <th width="16.9%">Total Material</th>
+                        <th width="14.8%">Total Service</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -426,7 +426,7 @@
                     <tbody>
                         @foreach ($totals as $val )   
                             <tr style="height:25px">
-                                <td width="59%" colspan="4" rowspan="5" style="border-bottom: 1px solid black;">
+                                <td width="59.5%" colspan="4" rowspan="5" style="border-bottom: 1px solid black;">
                                     <table style="table-layout:fixed;">
                                         <tr>
                                             <td style="border-right: none;border-left: none;padding-right:0px" width="15%" valign="top"><b>Terbilang : </b></td>
@@ -434,12 +434,12 @@
                                         </tr>
                                     </table>
                                 </td>
-                                <td width="7.2%" colspan="" style="border: 1px solid #0c0c0c;">Subtotal</td>
-                                <td width="9.5%" colspan="" align="right" style="border: 1px solid #0c0c0c;">{{ number_format($val->total_material,2) }}</td>
+                                <td width="6%" colspan="" style="border: 1px solid #0c0c0c;">Subtotal</td>
+                                <td width="11%" colspan="" align="right" style="border: 1px solid #0c0c0c;">{{ number_format($val->total_material,2) }}</td>
                                 <td width="9.4%" colspan="" align="right" style="border: 1px solid #0c0c0c;">{{ number_format($val->total_service,2) }}</td>
                             </tr>
                             <tr style="height:25px">
-                                <td width="6.7%" colspan="" style="border: 1px solid #0c0c0c;">DPP</td>
+                                <td width="5%" colspan="" style="border: 1px solid #0c0c0c;">DPP</td>
                                 <td width="23.3%" colspan="2" align="right" style="border: 1px solid #0c0c0c;">{{ number_format($val->sub_total,2) }}</td>
                             </tr>
                             <tr style="height:25px">
