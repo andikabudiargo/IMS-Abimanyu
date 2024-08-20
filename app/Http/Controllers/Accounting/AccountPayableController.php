@@ -2234,9 +2234,9 @@ class AccountPayableController extends Controller
         }
 
         /*20/8/2024 - semua standarnya jadi besar (A4) aja*/
-        // if ($jumlahBaris < 18){
-        //     $ukuranKertas = "A4A5";
-        // }
+        if (($jumlahBaris < 18) && count($data['details']) < 7){
+            $ukuranKertas = "A4A5";
+        }
 
         // if (count($data['details']) < 7){
         //     if ($jumlahBaris < 18){
