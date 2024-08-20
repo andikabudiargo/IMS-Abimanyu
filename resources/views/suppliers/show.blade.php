@@ -227,7 +227,7 @@
                                     <option value="">Choose Category...</option>
                                     <option value="raw_material" {{ old("category",$suppliers->category) == "raw_material" ? "selected" : ""}} >Raw Material</option>
                                     <option value="consumable" {{ old("category",$suppliers->category) == "consumable" ? "selected" : ""}} >Consumable</option>
-                                    <option value="lainlain" {{ old("category",$suppliers->category) =="lainlain" ? "selected" : ""}} >Lain-lain</option>
+                                    <option value="lain_lain" {{ old("category",$suppliers->category) =="lainlain" ? "selected" : ""}} >Lain-lain</option>
                                 </select>
                             </div>
                         </div>
