@@ -32,7 +32,9 @@ class SupplierController extends Controller
             ['data'=>'fax','name'=>'fax','title'=>'Fax'],
             ['data'=>'alamat_tagih','name'=>'alamat_tagih','title'=>'Alamat'],
             ['data'=>'top_batas_1','name'=>'top_batas_1','title'=>'TOP'],
-            ['data'=>'pkp','name'=>'pkp','title'=>'PKP']
+            ['data'=>'pkp','name'=>'pkp','title'=>'PKP'],
+            ['data'=>'category','name'=>'category','title'=>'Category'],
+            ['data'=>'join_date','name'=>'join_date','title'=>'Join Date']
         ];
         return json_encode($kolom, true);
     }
@@ -176,6 +178,8 @@ class SupplierController extends Controller
         $pkp = $request->pkp ? 'Y' : 'N';
         $account = $request->coaHutang;
         $coaPenjualan = $request->coaReturPembelian;
+        $category = $request->category;
+        $joinDate = $request->joinDate;
                 
         $messages = [
             'required' => 'The field is required.',
@@ -231,7 +235,9 @@ class SupplierController extends Controller
                     'created_at' => date('Y-m-d H:i:s'),
                     'updated_at' => date('Y-m-d H:i:s'),
                     'account'=> $account,
-                    'coa_penjualan' => $coaPenjualan
+                    'coa_penjualan' => $coaPenjualan,
+                    'join_date' =>$joinDate,
+                    'category' => $category
                 ]);
 
                 //kalo supplier jadi supplier juga
@@ -375,29 +381,29 @@ class SupplierController extends Controller
     {
         $username = Auth::user()->username;
         $id=Crypt::decryptString($request->id);
-        $kode = $request->input('kode');
-        $inisial = strtoupper($request->input('inisial'));
-        $nama = $request->input('nama');
-        $alamat = $request->input('alamat');
-        $provinsi = $request->input('provinsi');
-        $kota = $request->input('kota');
-        $kelurahan = $request->input('kelurahan');
-        $kecamatan = $request->input('kecamatan');
-        $kodePos = $request->input('kodePos');
-        $telepon = $request->input('telepon');
-        $fax = $request->input('fax');
-        $hp = $request->input('hp');
-        $kontak = $request->input('kontak');
-        $email = $request->input('email');
-        $termin = $request->input('termin');
-        $npwp = $request->input('npwp');
-        $alamatNpwp = $request->input('alamatNpwp');
-        $kotaNpwp = $request->input('kotaNpwp');
+        $kode = $request->kode;
+        $inisial = strtoupper($request->inisial);
+        $nama = $request->nama;
+        $alamat = $request->alamat;
+        $provinsi = $request->provinsi;
+        $kota = $request->kota;
+        $kelurahan = $request->kelurahan;
+        $kecamatan = $request->kecamatan;
+        $kodePos = $request->kodePos;
+        $telepon = $request->telepon;
+        $fax = $request->fax;
+        $hp = $request->hp;
+        $kontak = $request->kontak;
+        $email = $request->email;
+        $termin = $request->termin;
+        $npwp = $request->npwp;
+        $alamatNpwp = $request->alamatNpwp;
+        $kotaNpwp = $request->kotaNpwp;
         $third_party_type='supp';
-        $bankType = $request->input('bankType');
-        $bankName = $request->input('bankName');
-        $accNumber = $request->input('accNumber');
-        $branch = $request->input('branch');
+        $bankType = $request->bankType;
+        $bankName = $request->bankName;
+        $accNumber = $request->accNumber;
+        $branch = $request->branch;
         // $bankBca = $request->input('bankBca') ? 'yes' : 'no';
         $aktif = '1';
         $blacklist = '0';
@@ -406,6 +412,8 @@ class SupplierController extends Controller
         $account = $request->coaHutang;
         $coaPenjualan = $request->coaReturPembelian;
         $otherCode = $request->otherCode;
+        $category = $request->category;
+        $joinDate = $request->joinDate;
     
         $messages = [
             'required' => 'The field is required.',
@@ -463,7 +471,9 @@ class SupplierController extends Controller
                         'updated_at' => date('Y-m-d H:i:s'),
                         'account'=> $account,
                         'coa_penjualan' => $coaPenjualan,
-                        'other_code' => $otherCode
+                        'other_code' => $otherCode,
+                        'join_date' =>$joinDate,
+                        'category' => $category
                     ]
                 );
 

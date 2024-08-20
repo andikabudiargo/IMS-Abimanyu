@@ -185,8 +185,8 @@
                         </div>
                         <div class="row">
                             <div class="form-group col-md-6">
+                                <label for="bankName">Bank name</label>
                                 <select class="select2 form-control" id="bankName" name="bankName">
-                                    <label for="bankName">Bank name</label>
                                     <option value="">Choose bank</option>
                                     @foreach($banks as $val)
                                         <option value="{{ $val->bank_name }}" {{ $val->bank_name == old("bankName") ? "selected" : ""}} required >{{ $val->bank_name }} </option>
@@ -214,6 +214,25 @@
                                 </div>
                             </div>
                         </div> --}}
+
+                        
+                        <div class="row">
+                            <div class="form-group col-md-6">
+                                <label for="category">Category</label>
+                                <select class="select2 form-control" id="category" name="category">
+                                    <option value="">Choose Category...</option>
+                                    <option value="raw_material" {{ old("category") == "raw_material" ? "selected" : ""}} >Raw Material</option>
+                                    <option value="consumable" {{ old("category") == "consumable" ? "selected" : ""}} >Consumable</option>
+                                    <option value="lainlain" {{ old("category") =="lainlain" ? "selected" : ""}} >Lain-lain</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="form-group col-md-3">
+                                <label for="joinDate">Join Date</label>
+                                <input type="text" id="joinDate" name="joinDate" class="form-control" value="{{ old('joinDate') }}" placeholder="DD-MM-YYYY" />
+                            </div> 
+                        </div>
                         <div class="form-row">
                             <div class="col-12">
                                 <button class="btn btn-success" type="reset" id="cmdCancel" name="cmdCancel">New</button>
@@ -364,6 +383,13 @@
     $('#bankType').change(function(e) {
         $(this).val()=='BCA' ? $('#bankName').val('BANK CENTRAL ASIA Tbk').trigger('change')  : $('#bankName').val('').trigger('change');
     });
+
+    let joinDate = $('#joinDate');
+    if (joinDate.length) {
+        joinDate.flatpickr({
+            dateFormat: "d-m-Y"
+        });
+    }
 
     $.ajaxSetup({
         headers: {

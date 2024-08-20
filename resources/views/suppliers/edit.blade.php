@@ -222,6 +222,23 @@
                                 </div>
                             </div>
                         </div> --}}
+                        <div class="row">
+                            <div class="form-group col-md-6">
+                                <label for="category">Category</label>
+                                <select class="select2 form-control" id="category" name="category">
+                                    <option value="">Choose Category...</option>
+                                    <option value="raw_material" {{ old("category",$suppliers->category) == "raw_material" ? "selected" : ""}} >Raw Material</option>
+                                    <option value="consumable" {{ old("category",$suppliers->category) == "consumable" ? "selected" : ""}} >Consumable</option>
+                                    <option value="lainlain" {{ old("category",$suppliers->category) =="lainlain" ? "selected" : ""}} >Lain-lain</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="form-group col-md-3">
+                                <label for="joinDate">Join Date</label>
+                                <input type="text" id="joinDate" name="joinDate" class="form-control" value="{{ old('joinDate',$suppliers->join_date) }}" placeholder="DD-MM-YYYY" />
+                            </div> 
+                        </div>
                         <div class="form-row">
                             <div class="col-12">
                                 <a href="{{ route('suppliers.index') }}" class="btn btn-success">
