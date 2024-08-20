@@ -119,6 +119,7 @@
                                                 <div class="form-group margin-nol">
                                                     <label for="article_id" class="d-block d-md-none">Article Code</label>
                                                     <select class="form-control dynamicSelect sku-select-system" id="article_id{{ $key }}" name="article_id[]" data-dependent="article_id">
+                                                        <option value="" >Choose Article ...</option>
                                                         @foreach($articles as $val)
                                                             <option value="{{$val->article_code}}|{{$val->group}}|{{$val->qty}}|{{$val->uom1}}" {{$val->article_code ==$item->article_code ? "selected" : ""}}>{{$val->article_alternative_code}}-{{$val->article_desc}}</option>
                                                         @endforeach
