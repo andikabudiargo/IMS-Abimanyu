@@ -226,7 +226,7 @@
                                         <table width="100%">
                                             <tr class="tanpa-padding">
                                                 <td class="tanpa-padding font-14" width="15%">Tanggal</td>
-                                                <td class="tanpa-padding font-14" width="40%">: {{ $invDate }}</td>
+                                                <td class="tanpa-padding font-14" width="30%">: {{ $invDate }}</td>
                                                 <td class="tanpa-padding font-14" >Supplier</td>
                                                 <td class="tanpa-padding font-14">: {{ $supplierName }}</td>
                                             </tr>
