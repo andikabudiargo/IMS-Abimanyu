@@ -2222,7 +2222,7 @@ class AccountPayableController extends Controller
         }
 
         // dd($jumlahBaris);
-
+        $ukuranKertas = "A4";
         if ($jumlahBaris < 56){
             $ukuranKertas = "A4";
         }else if(($jumlahBaris > 56) && ($jumlahBaris < 140)){
