@@ -29,42 +29,64 @@ class ForcastingSalesController extends Controller
     {
         $kolom=
         [
-            ['data'=>'action','name'=>'action','title'=>'action','orderable'=> false,'searchable'=>false],
-            ['data'=>'voucher_number','name'=>'voucher_number','title'=>'Voucher Number'],
-            ['data'=>'voucher_date','name'=>'voucher_date','title'=>'Date'],
-            // ['data'=>'supplier_name','name'=>'supplier_name','title'=>'Paid To'],
-            ['data'=>'description','name'=>'description','title'=>'Paid To'],
-            ['data'=>'amount','name'=>'amount','title'=>'Amount'],
-            ['data'=>'period','name'=>'period','title'=>'Period'],
+            ['data'=>'action','name'=>'action','title'=>'Action','orderable'=> false,'searchable'=>false],
+            ['data'=>'forcast_number','name'=>'forcast_number','title'=>'Nomor Forcasting'],
+            ['data'=>'forcast_name','name'=>'forcast_name','title'=>'Forcasting Name'],
+            ['data'=>'year','name'=>'year','title'=>'Year'],
+            ['data'=>'month_start','name'=>'month_start','title'=>'Month Start'],
+            ['data'=>'month_end','name'=>'month_end','title'=>'Month End'],
             ['data'=>'note','name'=>'note','title'=>'Note'],
-            ['data'=>'statusku','name'=>'statusku','title'=>'Status'],
             ['data'=>'created_by','name'=>'created_by','title'=>'Created By'],
             ['data'=>'created_at','name'=>'created_at','title'=>'Created At']
         ];
         return json_encode($kolom, true);
     }
-
-    public function getLastCode($key)
+    public function getLastCode()
     {
-        DB::table('master_code')
-        ->where('code_key',$key)
-        ->update([
-            'code_number' => DB::raw('code_number + 1'),
-            'updated_by' => Auth::user()->username,
-            'updated_at' => date('Y-m-d H:i:s')
-        ]);
+         /* 
+            Kode forcast yang diinginkan
+            FRCST/ASN/24/VIII/0001
+        */
 
-        $newCode = DB::table('master_code')
-        ->where('code_key',$key)
-        ->value('code_number'); 
+        $getCurrentYear = date('Y');
+        $getCurrentMonth = date('m');
+        $key = "FRCST";
+        $inputYear = $getCurrentYear;
+        $basicCode = "FRCST/ASN/$inputYear";
+
+        $getResetRule = 'YEAR';
+
+        if($getResetRule == 'YEAR'){
+            $getLastNumber = DB::table('forecasting_sales_hdr')
+            ->where('forcast_number','like',$basicCode.'%')
+            // ->where('status','<>','5')
+            ->orderBy('id','desc')
+            ->first();
+        }else{
+            $getLastNumber = DB::table('forecasting_sales_hdr')
+            // ->where('status','<>','5')
+            ->orderBy('id','desc')
+            ->first();
+        }       
+
+        if ($getLastNumber){
+            $getYear = explode('/',$getLastNumber->forcast_number)[2];
+            $getLastCode = explode('/',$getLastNumber->forcast_number)[4];
+            $newCode = ((int)$getLastCode*1)+1;
+        }else{
+            $getYear = $getCurrentYear;
+            $newCode = 1;
+        }
 
         $newCode = str_pad($newCode,4,"0",STR_PAD_LEFT);
-        $month = str_pad(date('n'),2,"0",STR_PAD_LEFT);
-        $year = date('y');
-        $code="$key/$month/$year/$newCode";
+        $months = ['I', 'II', 'III','IV','V', 'VI', 'VII', 'VIII','IX','X','XI','XII'];
+        $month = $months[(int)$getCurrentMonth-1];
+        $year = $inputYear;
+        $code="$key/ASN/$year/$month/$newCode";
+        
         return $code;
     }
-
+   
     public function index(Request $request)
     {
         $data['title'] = $this->title;
@@ -90,6 +112,45 @@ class ForcastingSalesController extends Controller
         ->orderBy('nama')
         ->get();
 
+        $data['forcastNumber'] = "";
+        $data['forcastName'] = "";
+        $data['note'] = "";
+        $data['year'] = "";
+        $data['bulanAwal'] = "";
+        $data['bulanAkhir'] = "";
+        
+
+        $data['bulan'] = ['1'=>"Januari",'2'=>"Februari",'3'=>"Maret",'4'=>"April",'5'=>"Mei",'6'=>"Juni",'7'=>"Juli",'8'=>"Agustus",'9'=>"September",'10'=>"Oktober",'11'=>"November",'12'=>"Desember"];
+
+        return view("forecasting.sales.create",$data);
+
+    }
+
+    public function edit(Request $request)
+    {
+
+        $id=Crypt::decryptString($request->id);
+        $username =  Auth::user()->username;
+
+        $data['title'] = "Edit $this->title";
+        $data['subtitle'] = "Edit $this->title";
+                
+        $data['customers'] = DB::table('third_party')
+        ->where('third_party_type','cust')
+        ->orderBy('nama')
+        ->get();
+
+        $header = DB::table('forecasting_sales_hdr')
+        ->where('id',$id)
+        ->first();
+
+        $data['forcastNumber'] = $header->forcast_number;
+        $data['forcastName'] = $header->forcast_name;
+        $data['note'] = $header->note;
+        $data['year'] = $header->year;
+        $data['bulanAwal'] = $header->month_start;
+        $data['bulanAkhir'] = $header->month_end;
+
         $data['bulan'] = ['1'=>"Januari",'2'=>"Februari",'3'=>"Maret",'4'=>"April",'5'=>"Mei",'6'=>"Juni",'7'=>"Juli",'8'=>"Agustus",'9'=>"September",'10'=>"Oktober",'11'=>"November",'12'=>"Desember"];
 
         return view("forecasting.sales.create",$data);
@@ -100,17 +161,15 @@ class ForcastingSalesController extends Controller
     {
         $username =  Auth::user()->username;
         $details = json_decode($request->details);
-        $vcDate = $request->vcDate;
-        $period = $request->period;
+        $bulanAwal = $request->bulanAwal;
+        $bulanAkhir = $request->bulanAkhir;
+        $year = $request->year;
         $note = $request->note;
         $totalAmount= $request->totalAmount;
-        $paidTo = $request->paidTo;
         $status = '1';
-        $leadCode =$this->moduleCode;
-        $paidToDesc = $request->paidToDesc;
-
-        // dd($details);
-        
+        $fcNumber = $request->fcNumber;
+        $forcastName = $request->forcastName;
+                
         $messages = [
             'required' => 'The field is required.',
             'unique' => 'The code has already been taken', 
@@ -140,50 +199,63 @@ class ForcastingSalesController extends Controller
             $alert ="error";
             return response()->json(array('status' => 0,'title' => $title, 'message' => $error_array,'alert' =>$alert));
         }else{
-            $hasilUpdate = AppHelpers::resetCode($leadCode);
-            $vcNumber = $this->getLastCode($leadCode);
+            
             DB::beginTransaction();
             try {
-                    // DB::table('forecasting_sales_hdr')->insert([
-                    //     'created_by' => Auth::user()->username,
-                    //     'updated_by' => Auth::user()->username,
-                    //     'created_at' => date('Y-m-d H:i:s'),
-                    //     'updated_at' => date('Y-m-d H:i:s')
-                    // ]);
+
+                if (!$fcNumber){
+                    $fcNumber = $this->getLastCode();
+                    DB::table('forecasting_sales_hdr')->insert([
+                        'forcast_number' => $fcNumber,
+                        'year' => $year,
+                        'month_start' => $bulanAwal,
+                        'month_end' => $bulanAkhir,
+                        'forcast_name' => $forcastName,
+                        'note' => $note,
+                        'created_by' => Auth::user()->username,
+                        'updated_by' => Auth::user()->username,
+                        'created_at' => date('Y-m-d H:i:s'),
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]);
+                }
                     
-                    $listCode =[];
-                    $dataSet = [];
-                    foreach ($details as $val) {
-                        $dataSet[] = [
-                            'fc_code' => $val->fc_code.$val->article_code,
-                            'customer_id' =>$val->customer_id,
-                            'article_code' =>$val->article_code,
-                            'qty' =>is_null($val->qty) ? 0 : preg_replace('/[^0-9.]+/', '', $val->qty),
-                            'year' =>$val->year,
-                            'month' =>$val->month,
-                            'created_by' => Auth::user()->username,
-                            'updated_by' => Auth::user()->username,
-                            'created_at' => date('Y-m-d H:i:s'),
-                            'updated_at' => date('Y-m-d H:i:s')
-                        ];
+                $listCode =[];
+                $dataSet = [];
+                foreach ($details as $val) {
+                    $dataSet[] = [
+                        'fc_code' => $val->fc_code.$val->article_code,
+                        'customer_id' =>$val->customer_id,
+                        'article_code' =>$val->article_code,
+                        'qty' =>is_null($val->qty) ? 0 : preg_replace('/[^0-9.]+/', '', $val->qty),
+                        'year' =>$val->year,
+                        'month' =>$val->month,
+                        'created_by' => Auth::user()->username,
+                        'updated_by' => Auth::user()->username,
+                        'created_at' => date('Y-m-d H:i:s'),
+                        'updated_at' => date('Y-m-d H:i:s'),
+                        'forcasting_name' => $val->forcasting_name,
+                        'forcast_number' => $fcNumber
+                    ];
 
-                        $listCode[]=[$val->fc_code.$val->article_code]; 
-                        $fcNumber=$val->fc_code;
-                    }
+                    $listCode[]=[$val->fc_code.$val->article_code]; 
+                    // $fcNumber=$val->fc_code;
+                }
 
-                    // $rowAffected = 
-                    DB::table('forecasting_sales')->whereIn('fc_code',$listCode)->delete();
+                // $rowAffected = 
+                DB::table('forecasting_sales')
+                ->whereIn('fc_code',$listCode)
+                ->where('forcast_number',$fcNumber)
+                ->delete();
+                // if ($rowAffected){
+                DB::table('forecasting_sales')->insert($dataSet);
+                // }
 
-                    // if ($rowAffected){
-                        DB::table('forecasting_sales')->insert($dataSet);
-                    // }
-
-                    DB::commit();
-                    $title ="Save $this->title";
-                    $alert  ="success";
-                    $message  = "$title $fcNumber is successfully saved";
-                    \LogActivity::addToLog($title,"username: $username Status $message");
-                    return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'fcNumber'=>$fcNumber));
+                DB::commit();
+                $title ="Save $this->title";
+                $alert  ="success";
+                $message  = "$title $fcNumber is successfully saved";
+                \LogActivity::addToLog($title,"username: $username Status $message");
+                return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'fcNumber'=>$fcNumber));
             } catch (Exception $e) {
                 DB::rollBack();
                 $title ="Save $this->title";
@@ -194,257 +266,6 @@ class ForcastingSalesController extends Controller
             }
         }
     }
-
-    public function show(Request $request)
-    {
-        $id=Crypt::decryptString($request->id);
-        $username =  Auth::user()->username;
-        $data['title'] = "Detail $this->title";
-        $data['subtitle'] = "Detail $this->title";
-
-        $data['header'] = DB::table('kas_hdr')
-        // ->leftJoin('third_party','third_party.kode','kas_hdr.paid_to')
-        ->select('kas_hdr.*'
-        ,'description as supplier_name'
-        // ,db::raw("concat(third_party.kode,'-',third_party.nama) as supplier_name")
-        )
-        ->where('kas_hdr.id',$id)
-        ->get()->first();
-
-        $vcNumber = $data['header']->voucher_number;
-            
-        $data['details'] = DB::table('kas_det')
-        ->leftJoin('accounts','accounts.account','kas_det.account')
-        ->leftJoin('depts','depts.code','kas_det.cost_center')
-        ->select('kas_det'.'.*'
-            ,db::raw("concat(accounts.account,'-',accounts.description) as account_name")
-            ,'depts.name as cost_center_name'
-        )
-        ->where('voucher_number',$vcNumber)
-        ->orderBy('id')
-        ->get();
-
-        $data['total']=DB::table('kas_det')
-        ->select(DB::raw("sum(credit) as total_credit"),DB::raw("sum(debit) as total_debit"))
-        ->where('voucher_number',$vcNumber)
-        ->first();
-
-        $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode,$vcNumber,$username);
-        $data['approveValidate'] = Approval::approveValidate($this->moduleCode,$vcNumber,$username);
-
-        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATED','3'=>'APPROVED','4'=>'','5'=>'DELETED','6'=>'CLOSED'];
-        $status = ['NEW','VALIDATED','APPROVED','','DELETED','CLOSED'];
-        $data['status'] = $status[$data['header']->status-1];
-
-        return view("forecasting.sales.show",$data);
-        
-    }
-
-    public function edit(Request $request)
-    {
-        $id=Crypt::decryptString($request->id);
-        $username =  Auth::user()->username;
-        $data['title'] = "Detail $this->title";
-        $data['subtitle'] = "Detail $this->title";
-        $data['type'] = 'pembayaran';
-
-        $data['header'] = DB::table('kas_hdr')
-        // ->leftJoin('third_party','third_party.kode','kas_hdr.paid_to')
-        // ->select('kas_hdr.*',db::raw("concat(third_party.kode,'-',third_party.nama) as supplier_name"))
-        ->where('kas_hdr.id',$id)
-        ->get()->first();
-
-        $vcNumber = $data['header']->voucher_number;
-            
-        $data['details'] = DB::table('kas_det')
-        ->leftJoin('accounts','accounts.account','kas_det.account')
-        ->leftJoin('depts','depts.code','kas_det.cost_center')
-        ->select('kas_det'.'.*'
-            ,db::raw("concat(accounts.account,'-',accounts.description) as account_name")
-            ,'depts.name as cost_center_name'
-        )
-        ->where('voucher_number',$vcNumber)
-        ->orderBy('id')
-        ->get();
-
-        $data['suppliers'] = DB::table('third_party')
-        ->where('third_party_type','supp')
-        ->orderBy('nama')
-        ->get();
-
-        $data['depts'] = DB::table('depts')
-        ->orderBy('name')
-        ->get();
-
-        $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode,$vcNumber,$username);
-        $data['approveValidate'] = Approval::approveValidate($this->moduleCode,$vcNumber,$username);
-
-        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATED','3'=>'APPROVED','4'=>'','5'=>'CANCELED','6'=>'CLOSED'];
-        $status = ['NEW','VALIDATED','APPROVED','','CANCELED','CLOSED'];
-        $data['status'] = $status[$data['header']->status-1];
-
-        return view("forecasting.sales.edit",$data);
-        
-    }
-
-    public function update(Request $request)
-    {
-        $username =  Auth::user()->username;
-        $details = json_decode($request->details);
-        $vcNumber = $request->vcNumber;
-        $vcDate = $request->vcDate;
-        $period = $request->period;
-        $note = $request->note;
-        $totalAmount= $request->totalAmount;
-        $paidTo = $request->paidTo;
-        $status = '1';
-        $leadCode =$this->moduleCode;
-        $paidToDesc = $request->paidToDesc;
-        
-        $messages = [
-            'required' => 'The field is required.',
-            'unique' => 'The code has already been taken', 
-            // 'iunique' => "KM Number has already been taken",
-        ];
-        
-        Validator::extend('iunique', function ($attribute, $value, $parameters, $validator) {
-            $query = DB::table($parameters[0]);
-            $column = $query->getGrammar()->wrap($parameters[1]);
-            return !$query->whereRaw("lower({$column}) = lower(?)", [$value])->count();
-        });
-
-        $validation = Validator::make($request->all(),$messages = [
-            // 'poNumber'=>'required|unique:purchase_order_hdr,po_number',
-            // 'pcNumber'  => 'required',
-            'period'  => 'required'
-        ]);
-        
-        $error_array = array();
-        $success_output = '';
-        // return $validation;
-        if ($validation->fails()){
-            foreach ($validation->messages()->getMessages() as $field_name => $messages){
-                $error_array[] = $messages;
-            }
-            $title="Save $this->title";
-            $alert ="error";
-            return response()->json(array('status' => 0,'title' => $title, 'message' => $error_array,'alert' =>$alert));
-        }else{
-                        
-            DB::beginTransaction();
-            try {
-
-                    $row_affected=DB::table('kas_hdr')
-                    ->where('voucher_number',$vcNumber)
-                    ->update(
-                        [
-                            'voucher_date' =>$vcDate,
-                            // 'receive_from' =>$recFrom,
-                            'paid_to' =>$paidTo,
-                            'description' =>$paidToDesc,
-                            'amount' =>$totalAmount,
-                            'period' =>$period,
-                            'note' => $note,
-                            'updated_by' => Auth::user()->username,
-                            'updated_at' => date('Y-m-d H:i:s')
-                        ]
-                    );
-
-                    DB::table('kas_det')
-                        ->where('voucher_number',$vcNumber)
-                        ->delete();
-
-                    $dataSet = [];
-                    foreach ($details as $val) {
-                        $dataSet[] = [
-                            'voucher_number' => $vcNumber,
-                            'account' => $val->account,
-                            'description' => $val->description,
-                            'cost_center' => $val->cc,
-                            'debit' => $val->debit,
-                            'credit' => $val->credit,
-                            'reference' => $val->reference,
-                            'created_by' => Auth::user()->username,
-                            'updated_by' => Auth::user()->username,
-                            'created_at' => date('Y-m-d H:i:s'),
-                            'updated_at' => date('Y-m-d H:i:s')
-                        ];
-                    }
-
-                    DB::table('kas_det')->insert($dataSet);
-
-                    DB::commit();
-                    $title ="Update $this->title";
-                    $alert  ="success";
-                    $message  = "$title $vcNumber is successfully updated";
-                    \LogActivity::addToLog($title,"username: $username Status $message");
-                    return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'vcNumber'=>$vcNumber));
-            } catch (Exception $e) {
-                DB::rollBack();
-                $title ="Update $this->title";
-                $alert  ="warning";
-                $message  = "$vcNumber is failed update";
-                \LogActivity::addToLog($title,"username: $username Status $message");
-                return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'pcNumber'=>$vcNumber));
-            }
-        }
-
-    }
-
-    public function approve(Request $request)
-    {
-        $username =  Auth::user()->username;
-        $vcNumber = $request->vcNumber;
-        $statusLevelApproval = Approval::approvalLevelPosition($this->moduleCode,$vcNumber,$username);        
-        $nextLevel = $statusLevelApproval[0]->next_level;
-        $status = $statusLevelApproval[0]->next_level == $statusLevelApproval[0]->max_level ? '3' :'2';
-
-        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATED','3'=>'APPROVED','4'=>'','5'=>'DELETED','6'=>"CLOSED"];
-                
-        DB::beginTransaction();
-        try {
-                $row_affected=DB::table('kas_hdr')
-                ->where('voucher_number',$vcNumber)
-                ->update(
-                    [
-                        'status' => $status,
-                        'updated_by' => Auth::user()->username,
-                        'updated_at' => date('Y-m-d H:i:s')
-                    ]
-                );
-
-                if ($row_affected){
-                    DB::table('approval_history')->insert([
-                        'module_code' => $this->moduleCode,
-                        'module_number' => $vcNumber,
-                        'username' => Auth::user()->username,
-                        'approval_order' => $nextLevel,
-                        'approval_date' => date('Y-m-d'),
-                        'status' => 1,
-                        'created_by' => Auth::user()->username,
-                        'updated_by' => Auth::user()->username,
-                        'created_at' => date('Y-m-d H:i:s'),
-                        'updated_at' => date('Y-m-d H:i:s')
-                    ]);
-                }
-                
-                DB::commit();
-                $title ="Approve $this->title";
-                $alert  ="success";
-                $message  = "$title $vcNumber is successfully Approve-".$nextLevel;
-                \LogActivity::addToLog($title,"username: $username Status $message");
-                return response()->json(array('status' => $status,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'$vcNumber'=>$vcNumber));
-
-        } catch (Exception $e) {
-            DB::rollBack();
-            $title ="Approve $this->title";
-            $alert  ="warning";
-            $message  = "$title $vcNumber is failed to Approve-".$nextLevel;
-            \LogActivity::addToLog($title,"username: $username Status $message");
-            return response()->json(array('status' => $status,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'$vcNumber'=>$vcNumber));
-        }
-    }
-
     public function destroy(Request $request)
     {
         $username =  Auth::user()->username;    
@@ -452,8 +273,10 @@ class ForcastingSalesController extends Controller
         $articleCode=$request->articleCode;
         $year=$request->year;
         $articleDesc=$request->articleDesc;
+        $fcNumber=$request->uFcNumber;
 
         $rowAffected=DB::table('forecasting_sales')
+        ->where('forcast_number',$fcNumber)
         ->where('customer_id',$customerId)
         ->where('article_code',$articleCode)
         ->where('year',$year)
@@ -462,57 +285,35 @@ class ForcastingSalesController extends Controller
         if($rowAffected>0){
             $title ="Delete $this->title";
             $alert  ="success";
-            $message  = "$articleDesc Successfully Deleted";
+            $message  = "$fcNumber $articleDesc Successfully Deleted";
             \LogActivity::addToLog('FC Sales ',"username: $username Status $message");
-            return response()->json(array('status'=>"1",'message'=>$message,'alert'=>$alert));
+            return response()->json(array('status'=>"1",'message'=>$message,'alert'=>$alert,'fcNumber'=>$fcNumber));
         }else{
             $title ="Delete $this->title";
             $alert  ="warning";
-            $message  = "$articleDesc Failed to Delete";
+            $message  = "$fcNumber $articleDesc Failed to Delete";
             \LogActivity::addToLog('FC Sales delete ',"username: $username Status $message");
-            return response()->json(array('status'=>"0",'message'=>$message,'alert'=>$alert));
+            return response()->json(array('status'=>"0",'message'=>$message,'alert'=>$alert,'fcNumber'=>$fcNumber));
         }
     }
 
     public function list(Request $request)
     {
-        $seachVc = strtolower($request->seachVc);
-        $vcDate = $request->vcDate;
-        $period = $request->period;
+        $bulanAwal = $request->bulanAwal;
+        $bulanAkhir = $request->bulanAkhir;
         $year = $request->year;
-        $vcType = $this->moduleCode;
-        $fromDate = "";
-        $toDate = "";
+        $customer = $request->customer;
+        $forcastingName = $request->forcastName;
 
-        if ($vcDate){
-            $date = explode("to",$vcDate);
-            $fromDate = trim($date[0]);
-            $toDate = trim($date[1]);
-
-            // if(count($date)>1){
-            //     $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
-            //     $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
-            // }else{
-            //     $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
-            //     $toDate = $fromDate; 
-            // }
-        }
-
-        $data = DB::table('kas_hdr')
-        ->leftJoin('third_party','third_party.kode','kas_hdr.paid_to')
-        ->where(function ($query) use ($seachVc,$vcDate,$fromDate,$toDate,$period,$year) {
-            $seachVc ? $query->where('voucher_number','ilike','%'.$seachVc.'%') : '';
-            $vcDate ? $query->whereBetween('voucher_date', [$fromDate, $toDate]) : '';
-            $period ? $query->where('period', $period) : '';
-            $year ? $query->where('year', $year) : '';
+        $data = DB::table('forecasting_sales_hdr')
+        ->where(function ($query) use ($bulanAwal,$bulanAkhir,$year,$customer,$forcastingName) {
+            $year ? $query->where('year',$year) : '';
+            $forcastingName ? $query->where('forcast_name','ilike','%'.$forcastingName.'%') : '';
+            // $customer ?  ? $query->where('forcast_name','ilike','%'.$forcastingName.'%') : '';
+            // $vcDate ? $query->whereBetween('voucher_date', [$fromDate, $toDate]) : '';
+            // $period ? $query->where('period', $period) : '';
+            // $year ? $query->where('year', $year) : '';
         })
-        ->where('voucher_type',$vcType)
-        ->where('kas_hdr.status','<>','5')
-        ->select(
-            'kas_hdr.*'
-            ,'kas_hdr.status as statusku'
-            ,db::raw("concat(third_party.kode,'-',third_party.nama) as supplier_name")
-        )
         ->orderBy('id')
         ->get(); 
        
@@ -523,126 +324,41 @@ class ForcastingSalesController extends Controller
                                 <i data-feather="menu"></i>
                             </a>';
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
-
-            if ( $data->statusku == '2' or $data->statusku == '1') {
-                // if (Auth::user()->can('bankKeluar-approve')) {
-                $buttons .=     '<a href="'. route('bankKeluar.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
-                                    <i data-feather="check"></i>
-                                    <span>'. __("Approve") .'</span>
-                                </a>';
-                // }
-            }
             
             // if (Auth::user()->can('bankKeluar-edit')) {
-                if ( $data->statusku == '2' or $data->statusku == '1') {
-                $buttons .=     '<a href="'. route('bankKeluar.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+                // if ( $data->statusku == '2' or $data->statusku == '1') {
+                $buttons .=     '<a href="'. route('forecastSales.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                     <i data-feather="file-text"></i>
                                     Edit
                                 </a>';
-                }
-            // }
-
-            $buttons .=         '<a href="'. route('bankKeluar.show', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
-                                    <i data-feather="list"></i>
-                                    Detail
-                                </a>';
-                        
-            $buttons .=         '<a href="'. route('bankKeluar.print', ['id'=>Crypt::encryptString($data->id)]) .'" target="_blank" class="dropdown-item">
-                                    <i data-feather="printer"></i>
-                                    Print
-                                </a>';
-            
+                // }
+            // }            
             
             // if (Auth::user()->can('bankKeluar-delete')) {
-            if ($data->statusku != '5') {
-                $buttons .=         "<a href='javascript:;'
-                                    id='deleteButton'
-                                    class='dropdown-item'
-                                    data-toggle='modal'
-                                    data-target='#smallModal'
-                                    data-href='". route("bankKeluar.destroy", ['id'=>Crypt::encryptString($data->id)]) ."'>
-                                    <i data-feather='trash-2' class='feather-14-red'></i>
-                                    Delete
-                                </a>";
-            }
+            // if ($data->statusku != '5') {
+            //     $buttons .=         "<a href='javascript:;'
+            //                         id='deleteButton'
+            //                         class='dropdown-item'
+            //                         data-toggle='modal'
+            //                         data-target='#smallModal'
+            //                         data-href='". route("bankKeluar.destroy", ['id'=>Crypt::encryptString($data->id)]) ."'>
+            //                         <i data-feather='trash-2' class='feather-14-red'></i>
+            //                         Delete
+            //                     </a>";
+            // }
 
             $buttons .=     '</div>
                         </div>';
 
             return $buttons;
         })
-        ->addColumn('statusku', function ($data) {
-            $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-secondary'];
-            $status = ['NEW','VALIDATED','APPROVED','','DELETED','CLOSED'];
-            return "<div class='badge ".$badges[$data->status - 1]."'>".$status[$data->status - 1]."</div>";
-        })
-        ->rawColumns(['action','statusku'])
+        // ->addColumn('statusku', function ($data) {
+        //     $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-secondary'];
+        //     $status = ['NEW','VALIDATED','APPROVED','','DELETED','CLOSED'];
+        //     return "<div class='badge ".$badges[$data->status - 1]."'>".$status[$data->status - 1]."</div>";
+        // })
+        ->rawColumns(['action'])
         ->make(true);
-    }
-
-    public function print(Request $request)
-    {
-        $id=Crypt::decryptString($request->id);
-
-        $data['title'] ='Kas Keluar';
-        
-        $data['header'] = DB::table('kas_hdr')
-        // ->leftJoin('third_party','third_party.kode','kas_hdr.paid_to')
-        ->select('kas_hdr.*'
-        ,'description as supplier_name'
-        // ,db::raw("concat(third_party.kode,'-',third_party.nama) as supplier_name")
-        )
-        ->where('kas_hdr.id',$id)
-        ->get()->first();
-
-
-        $vcNumber=$data['header']->voucher_number;
-       
-        $data['details']=DB::table('kas_det')
-        ->leftJoin('accounts','accounts.account','kas_det.account')
-        ->select('kas_det.*','accounts.description as account_name')
-        ->where('voucher_number',$vcNumber)
-        ->get();
-
-        $data['total']=DB::table('kas_det')
-        ->select(DB::raw("sum(credit) as total_credit"),DB::raw("sum(debit) as total_debit"))
-        ->where('voucher_number',$vcNumber)
-        ->first();
-
-        $data['costCenter']=DB::table('kas_det')
-        ->leftJoin('depts','depts.code','kas_det.cost_center')
-        ->where('voucher_number',$vcNumber)
-        ->distinct('depts.name')
-        ->pluck('depts.name')->implode(',');
-
-        $data['approval1']=DB::table('approval_history')
-        ->leftJoin('users','users.username','approval_history.username')
-        ->where('module_code',$this->moduleCode)
-        ->where('module_number',$vcNumber)
-        ->where('approval_order',1)
-        ->first();
-
-        $data['approval2']=DB::table('approval_history')
-        ->leftJoin('users','users.username','approval_history.username')
-        ->where('module_code',$this->moduleCode)
-        ->where('module_number',$vcNumber)
-        ->where('approval_order',2)
-        ->first();
-
-        $data['approval3']=DB::table('approval_history')
-        ->leftJoin('users','users.username','approval_history.username')
-        ->where('module_code',$this->moduleCode)
-        ->where('module_number',$vcNumber)
-        ->where('approval_order',3)
-        ->first();
-
-        return view('forecasting.sales.print',$data);
-
-        // view()->share($data);
-
-        // $pdf = PDF::loadView('forecasting.sales.print');
-        // return $pdf->stream("$vcNumber.pdf");
-
     }
 
     public function getArticle(Request $request)
@@ -680,10 +396,12 @@ class ForcastingSalesController extends Controller
         $article = $request->article;
         $year = $request->year;
         $articleId = $request->articleId;
+        $fcNumber = $request->fcNumber;
 
         $data= DB::table('forecasting_sales') 
         ->where('customer_id',$customerCode)
         ->where('year',$year)
+        ->where('forcast_number',$fcNumber)
         ->where('article_code',$articleId)
         ->get();
         
@@ -694,14 +412,19 @@ class ForcastingSalesController extends Controller
     public function getListArticle(Request $request)
     {
         $customerCode = $request->customerCode;
+        $forcastingName = $request->forcastName;
         $year = $request->year;
         $bulanAwal = $request->bulanAwal;
         $bulanAkhir = $request->bulanAkhir;
+        $fcNumber = $request->fcnumber;
 
         $data= DB::table('forecasting_sales') 
-        ->where('customer_id',$customerCode)
+        // ->leftJoin('third_party','third_party.code','=','forecasting_sales.customer_id')
+        // ->where('customer_id',$customerCode)
+        ->where('forcast_number',$fcNumber)
         ->where('year',$year)
         ->get();
+        
         $namaBulan="";
         $conversi = ['satu','satu','dua','tiga','empat','lima','enam','tujuh','delapan','sembilan','sepuluh','sebelas','duabelas'];
 
@@ -712,9 +435,10 @@ class ForcastingSalesController extends Controller
 
             $namaBulan=substr($namaBulan ,0,-1);
 
-            $filter = $customerCode ? "and a.customer_id = '$customerCode'" :'';
+            // $filter = $customerCode ? "and a.customer_id = '$customerCode'" :'';
+            $filter = $forcastingName ? "and a.forcasting_name = '$forcastingName'" :'';
 
-            $data = db::select("SELECT a.customer_id,c.nama,a.article_code,b.article_alternative_code,b.article_desc,a.year,
+            $data = db::select("SELECT a.forcasting_name,a.customer_id,c.nama,c.nama,a.article_code,b.article_alternative_code,b.article_desc,a.year,
             $namaBulan
             -- sum(case when month = '1' then qty end) as satu,
             -- sum(case when month = '2' then qty end) as dua,
@@ -734,7 +458,7 @@ class ForcastingSalesController extends Controller
             where a.year = '$year'
             $filter
             -- and a.customer_id = '$customerCode'
-            group by a.customer_id, a.article_code,b.article_desc,b.article_alternative_code,a.year,c.nama
+            group by a.forcasting_name,a.customer_id,c.nama, a.article_code,b.article_desc,b.article_alternative_code,a.year,c.nama
             order by article_alternative_code");
         }
 
