@@ -57,7 +57,7 @@
         let list  = "";
         let year=$('#year').val().slice(-2);
         $("#tabelBaru td").remove();
-        list=`<td class="nopadding" style="width: 30%">
+        list=`<td class="isian" style="width: 30%">
                 <select class="form-control tombol-panah" id="articleId" name="articleId" required>
                 </select>
               </td>`
@@ -78,10 +78,9 @@
                     maxlength="6" />
                 </td>`; 
         }
-
         activate_angka();
         mask_thousand();
-        
+        // console.log(list);
         return list;
     }
 
@@ -89,15 +88,11 @@
         let judul = "";
         let year=$('#year').val().slice(-2);
         let bulan=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Okt','Nov','Dec'];
-        // $("#judulTabel th").remove();
-        // $("#judulListTabel th").remove();
-        
-        judul = `<th class="isian" style="width: 5%">
-                 <label>Article Code</label>
-                 </th>
-                <th class="isian" style="width: 30%">
+
+        judul = `<th class="isian" style="width: 30%">
                  <label>Article</label>
-                 </th>`;
+                 </th>
+                 `;
 
         for(i=parseInt(startMonth);i<=parseInt(endMonth);i++){
             let namaBulan = bulan[i-1];
@@ -106,6 +101,8 @@
                     </th>`;
 
         }
+
+        // console.log(judul);
 
         return judul;
     }
@@ -192,4 +189,5 @@
             }
         })
     }
+    
 </script>

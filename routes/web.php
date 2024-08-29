@@ -796,18 +796,21 @@ Route::group( ['middleware' => ['auth']], function() {
 
 	Route::get('bukuBesar',['as'=>'bukuBesar.index','uses'=>'Accounting\BukuBesarController@index']);
 	Route::get('bukuBesar/list',['as'=>'bukuBesar.list','uses'=>'Accounting\BukuBesarController@list']);
+		
 	
+	// Route::get('forecastSales/show',['as'=>'forecastSales.show','uses'=>'Forecasting\ForcastingSalesController@show']);
+	// Route::get('forecastSales/edit',['as'=>'forecastSales.edit','uses'=>'Forecasting\ForcastingSalesController@edit']);
+	// Route::post('forecastSales/update',['as'=>'forecastSales.update','uses'=>'Forecasting\ForcastingSalesController@update']);
+	// Route::post('forecastSales/delete',['as'=>'forecastSales.destroy','uses'=>'Forecasting\ForcastingSalesController@destroy']);
+	// Route::get('forecastSales/print',['as'=>'forecastSales.print','uses'=>'Forecasting\ForcastingSalesController@print']);
+	// Route::get('forecastSales/approve',['as'=>'forecastSales.approve','uses'=>'Forecasting\ForcastingSalesController@approve']);
+
 	Route::get('forecastSales',['as'=>'forecastSales.index','uses'=>'Forecasting\ForcastingSalesController@index']);
 	Route::get('forecastSales/create',['as'=>'forecastSales.create','uses'=>'Forecasting\ForcastingSalesController@create']);
-	Route::post('forecastSales/store',['as'=>'forecastSales.store','uses'=>'Forecasting\ForcastingSalesController@store']);
-	Route::get('forecastSales/list',['as'=>'forecastSales.list','uses'=>'Forecasting\ForcastingSalesController@list']);
-	Route::get('forecastSales/show',['as'=>'forecastSales.show','uses'=>'Forecasting\ForcastingSalesController@show']);
 	Route::get('forecastSales/edit',['as'=>'forecastSales.edit','uses'=>'Forecasting\ForcastingSalesController@edit']);
-	Route::post('forecastSales/update',['as'=>'forecastSales.update','uses'=>'Forecasting\ForcastingSalesController@update']);
+	Route::post('forecastSales/store',['as'=>'forecastSales.store','uses'=>'Forecasting\ForcastingSalesController@store']);
 	Route::post('forecastSales/delete',['as'=>'forecastSales.destroy','uses'=>'Forecasting\ForcastingSalesController@destroy']);
-	Route::get('forecastSales/print',['as'=>'forecastSales.print','uses'=>'Forecasting\ForcastingSalesController@print']);
-	Route::get('forecastSales/approve',['as'=>'forecastSales.approve','uses'=>'Forecasting\ForcastingSalesController@approve']);
-
+	Route::post('forecastSales/list',['as'=>'forecastSales.list','uses'=>'Forecasting\ForcastingSalesController@list']);
 	Route::post('forecastSales/get/article',['as'=>'forecastSales.get.article','uses'=>'Forecasting\ForcastingSalesController@getArticle']);
 	Route::post('forecastSales/get/qty/article',['as'=>'forecastSales.get.qty.article','uses'=>'Forecasting\ForcastingSalesController@getQtyArticle']);
 	Route::post('forecastSales/get/list/article',['as'=>'forecastSales.get.list.article','uses'=>'Forecasting\ForcastingSalesController@getListArticle']);
