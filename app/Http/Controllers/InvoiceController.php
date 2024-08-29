@@ -161,8 +161,12 @@ class InvoiceController extends Controller
         $basicCode2 = "_______/$inputYear";
 
         $getLastCode = DB::table('invoice_hdr')
-        ->where('invoice_number','like',$basicCode1.'%')
-        ->orWhere('invoice_number','like',$basicCode2.'%')
+        ->where(function($query) use ($basicCode1,$basicCode2){
+            $query->where('invoice_number','like',$basicCode1.'%');
+            $query->orWhere('invoice_number','like',$basicCode2.'%');
+        })
+        // ->where('invoice_number','like',$basicCode1.'%')
+        // ->orWhere('invoice_number','like',$basicCode2.'%')
         ->where('status','<>','5')
         ->orderBy(DB::raw("right(invoice_number,4)::numeric"),'desc')
         ->select(DB::raw("right(invoice_number,4) as last_code"))
