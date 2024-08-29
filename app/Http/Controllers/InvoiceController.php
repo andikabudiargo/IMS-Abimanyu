@@ -173,7 +173,7 @@ class InvoiceController extends Controller
         $getMissingCode = DB::SELECT("SELECT generate_series(0001, $getLastCode) as missing_code
         except
         select invoice_number::integer from (select right(invoice_number,4) as invoice_number from invoice_hdr 
-        where invoice_number like '%$basicCode1%' or  invoice_number like '%$basicCode2%' and status <> '5' order by  id) as oki
+        where (invoice_number like '%$basicCode1%' or  invoice_number like '%$basicCode2%') and status <> '5' order by  id) as oki
         order by missing_code limit 1");
 
         if(count($getMissingCode) > 0){
