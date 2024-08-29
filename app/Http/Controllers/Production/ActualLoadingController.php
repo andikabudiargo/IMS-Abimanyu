@@ -340,6 +340,7 @@ class ActualLoadingController extends Controller
         $moduleCode = $this->moduleCode;
         $todayDate = date('Y-m-d');
         $movementDate = date("d-m-Y");
+        $rowAffectedRm = "";
 
         // $status = ['NEW','VALIDATED','APPROVED','POSTED','CANCELED','CLOSED','REVISED','INPUT FG','POSTED FG'];
         
@@ -358,7 +359,7 @@ class ActualLoadingController extends Controller
             ,DB::raw("production_det.act_qty_fresh + production_det.act_qty_repaint as total_qty") //dari bu lupi qty yang potong RM adalah act_fresh + act_repaint
             )
             ->get();
-
+            
             foreach($data as $val){
                 //insert article code kalo belum ada di tabel item_stock
                 DB::table('article_stock')
