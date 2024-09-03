@@ -337,6 +337,132 @@ class DeliveryController extends Controller
         }
     }
 
+    public function preStore(Request $request)
+    {
+        $username =  Auth::user()->username;
+        $articles = json_decode($request -> articles);
+        // $dnDate = $request->dnDate;
+        // $customer = $request->customer;
+        // $soNumber = $request->soNumber;
+        // $poNumber = $request->poNumber;
+        // $gudang = 'false';
+        // $osNumber = $request->osNumber;
+        $dnCode="";
+        $id = "";
+
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED','8'=>'RECEIVED','10'=>'REVISI'];
+
+        $messages = [
+            'required' => 'The field is required.',
+            'unique' => 'The code has already been taken', 
+            // 'iunique' => "PO Number has already been taken",
+        ];
+        
+        Validator::extend('iunique', function ($attribute, $value, $parameters, $validator) {
+            $query = DB::table($parameters[0]);
+            $column = $query->getGrammar()->wrap($parameters[1]);
+            return !$query->whereRaw("lower({$column}) = lower(?)", [$value])->count();
+        });
+
+        $validation = Validator::make($request->all(),$messages = [
+            // 'poNumber'=>'required|unique:sales_order_hdr,po_number',
+            // 'dnNumber' => 'required',
+            // 'dnDate'  => 'required',
+            // 'customer'  => 'required',
+        ]);
+        
+        $error_array = array();
+        $success_output = '';
+        // return $validation;
+        if ($validation->fails()){
+            foreach ($validation->messages()->getMessages() as $field_name => $messages){
+                $error_array[] = $messages;
+            }
+            $title="Save  $this->title";
+            $alert ="error";
+            return response()->json(array('status' => 0,'title' => $title, 'message' => $error_array,'alert' =>$alert));
+        }else{
+            DB::beginTransaction();
+            try {
+                    /*
+                        Cek apakah ada article di SObelumnya yang statusnya tidak 0 
+                   */
+
+                    $articleArray =array();
+                    foreach ($articles as $val) {
+                        array_push($articleArray,$val->article_code);
+                    }
+                    // $articleArray = implode( ',', $articleArray);
+                    $articleArray = implode(",", preg_replace('/^|$/', "'", $articleArray));
+                    // $articleArray =  implode(',', array_map('add_quotes', $articleArray));
+
+                    $listSoNotValid = DB::select("SELECT * from (
+                    select 
+                    so_code,
+                    article_code,
+                    (select article_desc from article where article_code = a.article_code) as article_desc,
+                    created_at,
+                    qty as qty_so ,
+                    (coalesce((select sum(qty) as qty_delivery from delivery_det where delivery_number in (select delivery_number from delivery_hdr where so_number = a.so_code and status not in ('5','7')) and article_code = a.article_code group by article_code),0)) as qty_delivery
+                    ,(a.qty - coalesce((select sum(qty) as qty_delivery from delivery_det where delivery_number in (select delivery_number from delivery_hdr where so_number = a.so_code and status not in ('5','7')) and article_code = a.article_code group by article_code),0)) as qty_sisa
+                    from sales_order_det a where article_code in ($articleArray)
+                    and so_code not like '%R%' and status = '1'
+                    ) as oki
+                    where qty_sisa > 0
+                    order by article_code,created_at");
+
+                    $table="";
+                    if (count($listSoNotValid) > 0) {
+                        
+                        $table .= "<table id='table-so' class='table table-bordered table-responsive' border=1>
+                        <thead>
+                            <tr>
+                                <th>So Code</th>
+                                <th>Article</th>
+                                <th>Qty SO</th>
+                                <th>Qty Delivery</th>
+                                <th>Qty Sisa</th>
+                            </tr>
+                        </thead>
+                        <tbody>";
+
+                        foreach ($listSoNotValid as $key => $value) {
+                            $aSoCode = $value->so_code;
+                            $aArticleCode = $value->article_desc;
+                            $aQtySo = $value->qty_so;
+                            $aQtyDelivery = $value->qty_delivery;
+                            $aQtySisa = $value->qty_sisa;
+
+                            $table.=" <tr>
+                                <td>$aSoCode</td>
+                                <td class='text-left'>$aArticleCode</td>
+                                <td>".number_format($aQtySo)."</td>
+                                <td>".number_format($aQtyDelivery)."</td>
+                                <td>".number_format($aQtySisa)."</td>
+                            </tr>";
+                        }
+
+                        $table .= "</tbody>
+                        </table>";
+                    }
+                    // dd($listSoNotValid);
+                    
+                    DB::commit();
+                    $title ="Validate Save $this->title";
+                    $alert  ="success";
+                    $message  = "$title $dnCode is successfully Validate";
+                    return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'table'=>$table));
+
+            } catch (Exception $e) {
+                DB::rollBack();
+                $title ="Validate Save $this->title";
+                $alert  ="warning";
+                $message  = "$title $dnCode is failed to Validate";
+                return response()->json(array('status' => 0,'title' => $title, 'message' => $message,'alert'=>$alert,'table'=>$table));
+            }
+        }
+    }
+
     public function show(Request $request)
     {
         $username =  Auth::user()->username; 

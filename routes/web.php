@@ -325,6 +325,7 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('delivery/approve',['as'=>'delivery.approve','uses'=>'DeliveryController@approve']);
 	Route::post('delivery/revision',['as'=>'delivery.revision','uses'=>'DeliveryController@revision']);
 	Route::get('delivery/notif/approve',['as'=>'delivery.notif.approve','uses'=>'DeliveryController@approve']);
+	Route::post('delivery/preStore',['as'=>'delivery.preStore','uses'=>'DeliveryController@preStore']);
 
 	Route::get('delivery/postingAllData',['as'=>'delivery.postingAllData','uses'=>'DeliveryController@postingAllData']);	
 

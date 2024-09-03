@@ -811,6 +811,12 @@ class SalesOrderController extends Controller
         $orderNumber = $request->orderNumber;
         $articles = json_decode($request -> articles);
 
+        /*
+            status : 
+            1 : Open
+            0 : Closed
+        */
+
         DB::beginTransaction();
         try {
         

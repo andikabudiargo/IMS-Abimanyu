@@ -199,8 +199,128 @@
         reloadPage();
     });
 
-    $("#cmdSave").click(function(){
+    checkBeforeSave = () => {
+        if (!$("#frmAdd")[0].checkValidity()){
+            $("#frmAdd").submit();
+        }else{ 
+            $("#cmdSave").attr('disabled','disabled');
+            $('.disabled-el').removeAttr('disabled');
+            let objQtySo= $('#article_row input[name="qtySo[]"]');
+            let objQty= $('#article_row input[name="qtyInv[]"]');
+            let objUom= $('#article_row span[name="uom[]"]'); 
+            let articles = []; 
+            let flag=0; 
+            let pesan="";
 
+            $("#article_row input[name='articleId[]']").map(function(i) {  
+                let $this=$(this);
+                if ($this.val()){
+                    let articleCode = $this.data("code");
+                    let articleDesc = $this.data("desc");
+                    let articleUom = $this.data("uom");
+                    let articleSoCode = $this.data("so-code");
+                    let poNumber = $this.data("po-number");
+                    let qty=objQty.eq(i).val().replace(/,/gi, '') || 0;
+                    let qtySo=objQtySo.eq(i).val().replace(/,/gi, '') || 0;
+                    
+                    if ((articleCode!=='') && (qty> 0)){
+                        articles.push({
+                            "article_code":articleCode,
+                            // "qty":qty,
+                            // "uom":articleUom,
+                            // "so_number":articleSoCode,
+                            // "po_number":poNumber,
+                            // "qty_so":qtySo
+                        });
+                    }
+
+                    if (parseInt(qty) > parseInt(qtySo)){
+                        pesan +="Items "+ articleDesc +"-"+qty+"-"+qtySo+" QTY Delivery is higher than QTY SO<br>"; 
+                        flag=1;
+                    }
+                    
+                }
+            });
+
+            if (articles.length == 0){
+                pesan +="Articles must be filled in completely <br>"; 
+                flag=1;
+            }
+
+            if (flag==0){
+
+                // let dnDate = $('#dnDate').val();
+                // let customer = $('#customer').val();
+                // let soNumber = $('#soNumber').val();
+                // let poNumber = $('#soNumber').find(":selected").data("po-number");
+                // let note = $('#note').val();
+                // let osNumber = $('#osNumber').val();
+
+                $.ajax({
+                    type: "post",
+                    url: "{{ route('delivery.preStore') }}",
+                    data: {
+                        articles:JSON.stringify(articles),
+                        // dnDate:dnDate,
+                        // customer:customer,
+                        // soNumber:soNumber,
+                        // poNumber:poNumber,
+                        // note:note,
+                        // osNumber:osNumber
+
+                    },
+                    dataType: "json",
+                    success: function(data) {
+                        if (data.status == 0 ){
+                            for(let i = 0; i < data.message.length; i++) {
+                                show_msg(data.title, data.message[i], data.alert);
+                            }
+                            $('#dnNumber').attr('disabled','disabled');
+                            $('#cmdSave').removeAttr('disabled');
+                        }else{
+
+                            Swal.fire({
+                                width: 1050,
+                                title: '<strong>Terdapat Article serupa yang belum dikirim di SO Berikut:</strong>',
+                                icon: 'info',
+                                html: data.table,
+                                showDenyButton: true,
+                                denyButtonText: 'Batal',
+                                confirmButtonText: 'Lanjutkan Save',
+                            }).then((result) => {
+                                if (result.isConfirmed) {
+                                    saveData();
+                                    // Swal.fire('Saved!', '', 'success')
+                                } else if (result.isDenied) {
+                                    $('#cmdSave').removeAttr('disabled');
+                                    // Swal.fire('Changes are not saved', '', 'info')
+                                }
+                            })
+                            
+                            // show_msg(data.title, data.message, data.alert);
+                            // $('#dnNumber').val(data.dnNumber);
+                            // $('#statusText').val('NEW');
+                            // $('#idDn').val(data.id);
+                            // $('#dnNumber').attr('disabled','disabled');
+                            // // $('#cmdSave').attr('disabled','disabled');
+                            // $('#cmdSave').hide();
+                            // $('#cmdPrint').show();
+                        }
+                    },
+                    error: function(error) {
+                        console.log(error);
+                    }
+                });
+
+            }else{
+                $('#cmdSave').removeAttr('disabled');
+                $('#cmdPrint').hide();
+                Swal.fire('Warning..',pesan,'warning');
+            }
+        }
+    }
+
+    saveData = () => {
         if (!$("#frmAdd")[0].checkValidity()){
             $("#frmAdd").submit();
         }else{ 
@@ -300,6 +420,112 @@
                 Swal.fire('Warning..',pesan,'warning');
             }
         }
+    }
+
+    $("#cmdSave").click(function(){
+
+        checkBeforeSave();
+
+        // if (!$("#frmAdd")[0].checkValidity()){
+        //     $("#frmAdd").submit();
+        // }else{ 
+        //     $("#cmdSave").attr('disabled','disabled');
+        //     $('.disabled-el').removeAttr('disabled');
+        //     let objQtySo= $('#article_row input[name="qtySo[]"]');
+        //     let objQty= $('#article_row input[name="qtyInv[]"]');
+        //     let objUom= $('#article_row span[name="uom[]"]'); 
+        //     let articles = []; 
+        //     let flag=0; 
+        //     let pesan="";
+
+        //     $("#article_row input[name='articleId[]']").map(function(i) {  
+        //         let $this=$(this);
+        //         if ($this.val()){
+        //             let articleCode = $this.data("code");
+        //             let articleDesc = $this.data("desc");
+        //             let articleUom = $this.data("uom");
+        //             let articleSoCode = $this.data("so-code");
+        //             let poNumber = $this.data("po-number");
+        //             let qty=objQty.eq(i).val().replace(/,/gi, '') || 0;
+        //             let qtySo=objQtySo.eq(i).val().replace(/,/gi, '') || 0;
+                    
+        //             if ((articleCode!=='') && (qty> 0)){
+        //                 articles.push({
+        //                     "article_code":articleCode,
+        //                     "qty":qty,
+        //                     "uom":articleUom,
+        //                     "so_number":articleSoCode,
+        //                     "po_number":poNumber,
+        //                     "qty_so":qtySo
+        //                 });
+        //             }
+
+        //             if (parseInt(qty) > parseInt(qtySo)){
+        //                 pesan +="Items "+ articleDesc +"-"+qty+"-"+qtySo+" QTY Delivery is higher than QTY SO<br>"; 
+        //                 flag=1;
+        //             }
+                    
+        //         }
+        //     });
+
+        //     if (articles.length == 0){
+        //         pesan +="Articles must be filled in completely <br>"; 
+        //         flag=1;
+        //     }
+
+        //     if (flag==0){
+
+        //         let dnDate = $('#dnDate').val();
+        //         let customer = $('#customer').val();
+        //         let soNumber = $('#soNumber').val();
+        //         let poNumber = $('#soNumber').find(":selected").data("po-number");
+        //         let note = $('#note').val();
+        //         let osNumber = $('#osNumber').val();
+
+        //         $.ajax({
+        //             type: "post",
+        //             url: "{{ route('delivery.store') }}",
+        //             data: {
+        //                 articles:JSON.stringify(articles),
+        //                 dnDate:dnDate,
+        //                 customer:customer,
+        //                 soNumber:soNumber,
+        //                 poNumber:poNumber,
+        //                 note:note,
+        //                 osNumber:osNumber
+
+        //             },
+        //             dataType: "json",
+        //             success: function(data) {
+        //                 if (data.status == 0 ){
+        //                     for(let i = 0; i < data.message.length; i++) {
+        //                         show_msg(data.title, data.message[i], data.alert);
+        //                     }
+        //                     $('#dnNumber').attr('disabled','disabled');
+        //                     $('#cmdSave').removeAttr('disabled');
+        //                 }else{
+        //                     show_msg(data.title, data.message, data.alert);
+        //                     $('#dnNumber').val(data.dnNumber);
+        //                     $('#statusText').val('NEW');
+        //                     $('#idDn').val(data.id);
+        //                     $('#dnNumber').attr('disabled','disabled');
+        //                     // $('#cmdSave').attr('disabled','disabled');
+        //                     $('#cmdSave').hide();
+        //                     $('#cmdPrint').show();
+        //                 }
+        //             },
+        //             error: function(error) {
+        //                 console.log(error);
+        //             }
+        //         });
+
+        //     }else{
+        //         $('#cmdSave').removeAttr('disabled');
+        //         $('#cmdPrint').hide();
+        //         Swal.fire('Warning..',pesan,'warning');
+        //     }
+        // }
+
     });
 
     $("#cmdPrint").click(function(){
