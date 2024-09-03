@@ -1473,6 +1473,7 @@ class InvoiceController extends Controller
         // $data['tanggalHariIni']= date('d').' '.($bulan[date('m')]).' '.date('Y');
 
         // $data['tanggalHariIni']=date("d F Y");
+        $printType='12';
 
         if ($data['totals'][0]->total_material > 0 and $data['totals'][0]->total_service > 0){
             $printType = '12';  
