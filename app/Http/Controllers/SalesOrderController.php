@@ -468,10 +468,15 @@ class SalesOrderController extends Controller
         ->orderBy('id')
         ->get();       
 
+        $customerId=$data['header']->customer_id;
+
         $data['articles']= DB::table('article') 
         ->leftJoin('article_stock','article_stock.article_code','=','article.article_code')
         ->leftJoin('group_materials','group_materials.code','=','article.group_of_material')
-        ->where('third_party',$data['header']->customer_id)
+        ->whereIn('article.article_code', function($query) use ($customerId){
+            $query->select('article_supplier.article_code')->from('article_supplier')->where('article_supplier.supplier_code', $customerId);
+        })
+        // ->where('third_party',$data['header']->customer_id)
         ->orderBy('article_desc')
         ->select('article'.'.*', 'article_stock.article_qty as qty','article.uom as uom1','group_materials.name as group')
         ->get();   
