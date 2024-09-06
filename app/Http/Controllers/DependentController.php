@@ -360,18 +360,36 @@ class DependentController extends Controller
         }
 
         if($dependent =='article_id'){
-            //cari finish goods yang sudah memilki BOM baru bisa di bikin SO
+            /*
+                cari finish goods yang sudah memilki BOM baru bisa di bikin SO
+                revisi tanggal 9/6/2024
+                Ada masalah kalau 1 article FG dimiliki oleh lebih dari 1 Customer
+                Revisi:
+                1. Cari article tersebut apakah milik customer yang diinput di tabel article_supplier
+                2. Cek apakah sudah jadi BOM dan sudah berstatus 3 di BOM nya
+            */
             $data= DB::table($table) 
             ->leftJoin('article_stock','article_stock.article_code','=',$table.'.article_code')
             ->leftJoin('group_materials','group_materials.code','=',$table.'.group_of_material')
             ->leftJoin('uom','uom.code','=',$table.'.uom')
-            ->whereIn($table.'.article_code', function($query) use ($code) {
-                $query->select('article_code')
-                ->from('bom_hdr') 
-                ->where('status','3')
-                ->where('customer',$code);
+            ->whereIn('article.article_code', function($query) use ($code){
+                $query->select('article_supplier.article_code')
+                ->from('article_supplier')
+                ->where('article_supplier.supplier_code', $code)
+                ->whereIn('article_supplier.article_code', function($query) {
+                    $query->select('article_code')
+                    ->from('bom_hdr') 
+                    ->where('status','3');
+                    // ->where('customer',$code);
+                });
             })
-            ->where($field,$code)
+            // ->whereIn($table.'.article_code', function($query) use ($code) {
+            //     $query->select('article_code')
+            //     ->from('bom_hdr') 
+            //     ->where('status','3')
+            //     ->where('customer',$code);
+            // })
+            // ->where($field,$code)
             ->where($field2,$type)
             ->orderBy($order)
             ->select($table.'.*', 'article_stock.article_qty as qty','article.uom as uom1','group_materials.name as group','uom.uom_group')
