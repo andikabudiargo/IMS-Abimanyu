@@ -22,6 +22,8 @@ class InvoiceController extends Controller
     private $moduleCode;
     private $nilaiPpn;
     private $nilaiPph23;
+    private $lockDate;
+    private $lockDateIndex;
 
     public function __construct()
     {
@@ -35,6 +37,28 @@ class InvoiceController extends Controller
         $this->nilaiPph23 = DB::table('attributes')
         ->where('attr_id','mainpph23')
         ->value('attr_value');
+
+        $lockDate1 = DB::table('application_lock')
+        ->where('code_key',$this->moduleCode)
+        ->where('status','1')
+        ->value('lock_date');
+
+        $todayDate = date('d-m-Y');
+        $lockDateHere = $lockDate1 ? $lockDate1 : '2023-01-01' ;
+        $lockDateAt = date('d-m-Y', strtotime("+1 day", strtotime($lockDateHere)));
+
+        if ($todayDate < $lockDateAt ){
+            $firstDatePrevMonth = date('1-m-Y', strtotime("-1 months",strtotime($lockDateHere)));
+            $lockDateAt = $firstDatePrevMonth;
+        }else{
+            $lockDateAt = date('1-m-Y', strtotime($lockDateAt));
+        }
+
+        $this->lockDate = $lockDateAt;
+
+        $lockDateHereIndex = $lockDate1 ? $lockDate1 : '2023-01-01' ;
+        $lockDateAtIndex = date('d-m-Y', strtotime($lockDateHere));
+        $this->lockDateIndex = $lockDateAtIndex;
     }
 
     public function getTableColoumn()
@@ -95,6 +119,8 @@ class InvoiceController extends Controller
     
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','6'=>'PAID','7'=>'REVISED'];
         $data['status'] = ['1'=>'DRAFT','2'=>'VALIDATE','3'=>'APPROVED','5'=>'CANCELED','6'=>'PAID'];
+
+        $data['lockDate'] = $this->lockDateIndex;
 
         return view("invoice.index",$data);
     }
@@ -1212,11 +1238,13 @@ class InvoiceController extends Controller
         ->orderBy('invoice_hdr.id')
         ->get(); 
 
+        $lockDateToDate = date('Y-m-d',strtotime($this->lockDate));
+
         $bisaEdit = Auth::user()->can('receiving-edit');
         $bisaDelete = Auth::user()->can('ap-delete');
                 
         return Datatables::of($data)
-        ->addColumn('action', function ($data)  use ($bisaEdit,$bisaDelete) {
+        ->addColumn('action', function ($data)  use ($lockDateToDate,$bisaEdit,$bisaDelete) {
             $buttons = '<div class="d-inline-flex">
                             <a class="pr-1 dropdown-toggle hide-arrow text-primary" data-toggle="dropdown">
                                 <i data-feather="menu"></i>
@@ -1235,12 +1263,15 @@ class InvoiceController extends Controller
 
             //sibuka sementara dari pak leo 6-11-2023
             // if (($data->status != '3') && ($data->status != '4')){
-                if ($bisaEdit) {
-                    $buttons .=         '<a href="'. route('invoice.edit',  ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+                $invDate = date('Y-m-d', strtotime($data->invoice_date_2));
+                if($invDate>=$lockDateToDate){
+                    if ($bisaEdit) {
+                        $buttons .=         '<a href="'. route('invoice.edit',  ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                             <i data-feather="file-text"></i>
                                             Edit
                                         </a>';
                     }
+                }
                 // }
 
                 $buttons .=      '<a href="'. route('invoice.show', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
@@ -1259,30 +1290,36 @@ class InvoiceController extends Controller
             //bisa dihapus kalau belum dibayar atau diposting
             // if (($data->status != '3') && ($data->status != '4')){
             if (($data->status != '6') && ($data->status != '4') && ($data->status == '1')){
-                if ($bisaDelete) {
-                $buttons .=         "<a href='javascript:;'
-                                        id='deleteButton'
-                                        class='dropdown-item'
-                                        data-toggle='modal'
-                                        data-target='#smallModal'
-                                        data-href='". route("invoice.destroy", ['id'=>Crypt::encryptString($data->id)]) ."'>
-                                        <i data-feather='trash-2' class='feather-14-red'></i>
-                                        Delete
-                                    </a>";
+                $invDate = date('Y-m-d', strtotime($data->invoice_date_2));
+                if($invDate>=$lockDateToDate){
+                    if ($bisaDelete) {
+                    $buttons .=         "<a href='javascript:;'
+                                            id='deleteButton'
+                                            class='dropdown-item'
+                                            data-toggle='modal'
+                                            data-target='#smallModal'
+                                            data-href='". route("invoice.destroy", ['id'=>Crypt::encryptString($data->id)]) ."'>
+                                            <i data-feather='trash-2' class='feather-14-red'></i>
+                                            Delete
+                                        </a>";
+                    }
                 }
             }
 
             // if (Auth::user()->can('invoice-delete') && ( $data->status =='2' )) {
             if (($data->status != '6') && ($data->status != '4') && ($data->status == '2' || $data->status == '3')){
-                $buttons .= "<a href='javascript:void(0);'
-                                        id='cancelReasonButton'
-                                        class='dropdown-item'
-                                        data-toggle='modal'
-                                        data-target='#reasonModalCancel'
-                                        data-href='". route("invoice.destroy", ["id"=>Crypt::encryptString($data->id)]) ."'>
-                                        <i data-feather='x-square' class='feather-14-red'></i>
-                                        <span>". __('Cancel') ."</span>
-                                    </a>";
+                $invDate = date('Y-m-d', strtotime($data->invoice_date_2));
+                if($invDate>=$lockDateToDate){
+                    $buttons .= "<a href='javascript:void(0);'
+                                            id='cancelReasonButton'
+                                            class='dropdown-item'
+                                            data-toggle='modal'
+                                            data-target='#reasonModalCancel'
+                                            data-href='". route("invoice.destroy", ["id"=>Crypt::encryptString($data->id)]) ."'>
+                                            <i data-feather='x-square' class='feather-14-red'></i>
+                                            <span>". __('Cancel') ."</span>
+                                        </a>";
+                }
             }
 
             $buttons .=     '</div>

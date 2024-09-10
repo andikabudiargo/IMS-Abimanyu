@@ -19,10 +19,35 @@ class KasKeluarController extends Controller
 {
     private $title;
     private $moduleCode;
+    private $lockDate;
+    private $lockDateIndex;
+
     public function __construct()
     {
         $this->title = "Kas Pembayaran";
         $this->moduleCode = "KK";
+
+        $lockDate1 = DB::table('application_lock')
+        ->where('code_key',$this->moduleCode)
+        ->where('status','1')
+        ->value('lock_date');
+
+        $todayDate = date('Y-m-d');
+        $lockDateHere = $lockDate1 ? $lockDate1 : '2023-01-01' ;
+        $lockDateAt = date('Y-m-d', strtotime("+1 day", strtotime($lockDateHere)));
+
+        if ($todayDate < $lockDateAt ){
+            $firstDatePrevMonth = date('1-m-Y', strtotime("-1 months",strtotime($lockDateHere)));
+            $lockDateAt = $firstDatePrevMonth;
+        }else{
+            $lockDateAt = date('1-m-Y', strtotime($lockDateAt));
+        }
+
+        $this->lockDate = $lockDateAt;
+
+        $lockDateHereIndex = $lockDate1 ? $lockDate1 : '2023-01-01' ;
+        $lockDateAtIndex = date('d-m-Y', strtotime($lockDateHere));
+        $this->lockDateIndex = $lockDateAtIndex;
     }
 
     public function getTableColoumn()
@@ -155,6 +180,8 @@ class KasKeluarController extends Controller
 
         $status = ['NEW','VALIDATED','APPROVED','','DELETED','CLOSED'];
         $data['status'] = ['1'=>'NEW','2'=>'VALIDATED','3'=>'APPROVED'];
+
+        $data['lockDate'] = $this->lockDateIndex;
     
         return view("accounting.kasKeluar.index",$data);
     }
@@ -757,9 +784,11 @@ class KasKeluarController extends Controller
         )
         ->orderBy('id')
         ->get(); 
+
+        $lockDateToDate = date('Y-m-d',strtotime($this->lockDate));
        
         return Datatables::of($data)
-        ->addColumn('action', function ($data) {
+        ->addColumn('action', function ($data) use ($lockDateToDate) {
             $buttons = '<div class="d-inline-flex">
                             <a class="pr-1 dropdown-toggle hide-arrow text-primary" data-toggle="dropdown">
                                 <i data-feather="menu"></i>
@@ -778,10 +807,13 @@ class KasKeluarController extends Controller
             // if (Auth::user()->can('bankKeluar-edit')) {
                 //sibuka sementara dari pak leo 6-11-2023
                 // if ( $data->statusku == '2' or $data->statusku == '1') {
-                $buttons .=     '<a href="'. route('kasKeluar.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+                $kkDate = date('Y-m-d', strtotime($data->voucher_date_2));
+                if($kkDate>=$lockDateToDate){
+                    $buttons .=     '<a href="'. route('kasKeluar.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                     <i data-feather="file-text"></i>
                                     Edit
                                 </a>';
+                }
                 // }
             // }
 
@@ -798,7 +830,9 @@ class KasKeluarController extends Controller
             
             // if (Auth::user()->can('kasKeluar-delete')) {
             if ($data->statusku != '5') {
-                $buttons .=         "<a href='javascript:;'
+                $kkDate = date('Y-m-d', strtotime($data->voucher_date_2));
+                if($kkDate>=$lockDateToDate){
+                    $buttons .=         "<a href='javascript:;'
                                     id='deleteButton'
                                     class='dropdown-item'
                                     data-toggle='modal'
@@ -807,6 +841,7 @@ class KasKeluarController extends Controller
                                     <i data-feather='trash-2' class='feather-14-red'></i>
                                     Delete
                                 </a>";
+                }
             }
 
             $buttons .=     '</div>

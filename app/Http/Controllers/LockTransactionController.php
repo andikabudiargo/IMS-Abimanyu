@@ -33,7 +33,7 @@ class LockTransactionController extends Controller
         ,db::raw("to_char(lock_date, 'dd-mm-yyyy') as lock_date")
         ,db::raw("to_char(application_lock.created_at, 'dd-mm-yyyy hh:ss:mm') as created_at")
         )
-        ->orderBy('code_key')
+        ->orderBy('module_name')
         ->get();
 
         return view("lockTransaction.index",$data);

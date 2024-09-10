@@ -21,6 +21,8 @@ class DebitNoteController extends Controller
     private $moduleCode;
     private $nilaiPpn;
     private $nilaiPph23;
+    private $lockDate;
+    private $lockDateIndex;
 
     public function __construct()
     {
@@ -34,6 +36,28 @@ class DebitNoteController extends Controller
         $this->nilaiPph23 = DB::table('attributes')
         ->where('attr_id','mainpph23')
         ->value('attr_value');
+
+        $lockDate1 = DB::table('application_lock')
+        ->where('code_key',$this->moduleCode)
+        ->where('status','1')
+        ->value('lock_date');
+
+        $todayDate = date('Y-m-d');
+        $lockDateHere = $lockDate1 ? $lockDate1 : '2023-01-01' ;
+        $lockDateAt = date('Y-m-d', strtotime("+1 day", strtotime($lockDateHere)));
+
+        if ($todayDate < $lockDateAt ){
+            $firstDatePrevMonth = date('1-m-Y', strtotime("-1 months",strtotime($lockDateHere)));
+            $lockDateAt = $firstDatePrevMonth;
+        }else{
+            $lockDateAt = date('1-m-Y', strtotime($lockDateAt));
+        }
+
+        $this->lockDate = $lockDateAt;
+
+        $lockDateHereIndex = $lockDate1 ? $lockDate1 : '2023-01-01' ;
+        $lockDateAtIndex = date('d-m-Y', strtotime($lockDateHere));
+        $this->lockDateIndex = $lockDateAtIndex;
     }
 
     public function getTableColoumn()
@@ -77,6 +101,8 @@ class DebitNoteController extends Controller
 
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','6'=>'PAID','7'=>'REVISED'];
         $data['status'] = ['1'=>'DRAFT','2'=>'VALIDATE','3'=>'APPROVED','6'=>'PAID'];
+
+        $data['lockDate'] = $this->lockDateIndex;
                     
         return view("accounting.debitNote.index",$data);
     }
@@ -864,9 +890,10 @@ class DebitNoteController extends Controller
 
         $bisaEdit = Auth::user()->can('receiving-edit');
         $bisaDelete = Auth::user()->can('ap-delete');
+        $lockDateToDate = date('Y-m-d',strtotime($this->lockDate));
                 
         return Datatables::of($data)
-        ->addColumn('action', function ($data) use ($bisaEdit,$bisaDelete) {
+        ->addColumn('action', function ($data) use ($lockDateToDate,$bisaEdit,$bisaDelete) {
             $buttons = '<div class="d-inline-flex">
                             <a class="pr-1 dropdown-toggle hide-arrow text-primary" data-toggle="dropdown">
                                 <i data-feather="menu"></i>
@@ -885,12 +912,15 @@ class DebitNoteController extends Controller
 
             //sibuka sementara dari pak leo 6-11-2023
             // if (($data->status != '3') && ($data->status != '4')){
-                if ($bisaEdit) {
-                    $buttons .=         '<a href="'. route('debitNote.edit',  ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
-                                            <i data-feather="file-text"></i>
-                                            Edit
-                                        </a>';
-                    }
+                $dnDate = date('Y-m-d', strtotime($data->dn_date_2));
+                if($dnDate>=$lockDateToDate){
+                    if ($bisaEdit) {
+                        $buttons .=         '<a href="'. route('debitNote.edit',  ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+                                                <i data-feather="file-text"></i>
+                                                Edit
+                                            </a>';
+                        }
+                }
                 // }
 
                 $buttons .=      '<a href="'. route('debitNote.show', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
@@ -908,16 +938,19 @@ class DebitNoteController extends Controller
             
                 
             if (($data->status != '3') && ($data->status != '4')){
-                if ($bisaDelete) {
-                $buttons .=         "<a href='javascript:;'
-                                        id='deleteButton'
-                                        class='dropdown-item'
-                                        data-toggle='modal'
-                                        data-target='#smallModal'
-                                        data-href='". route("debitNote.destroy", ['id'=>Crypt::encryptString($data->id)]) ."'>
-                                        <i data-feather='trash-2' class='feather-14-red'></i>
-                                        Delete
-                                    </a>";
+                $dnDate = date('Y-m-d', strtotime($data->dn_date_2));
+                if($dnDate>=$lockDateToDate){
+                    if ($bisaDelete) {
+                    $buttons .=         "<a href='javascript:;'
+                                            id='deleteButton'
+                                            class='dropdown-item'
+                                            data-toggle='modal'
+                                            data-target='#smallModal'
+                                            data-href='". route("debitNote.destroy", ['id'=>Crypt::encryptString($data->id)]) ."'>
+                                            <i data-feather='trash-2' class='feather-14-red'></i>
+                                            Delete
+                                        </a>";
+                    }
                 }
             }
             $buttons .=     '</div>

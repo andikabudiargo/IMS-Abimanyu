@@ -35,6 +35,8 @@ class AccountPayableController extends Controller
     private $nilaiPph23;
     private $nilaiPph21;
     private $nilaiPph42;
+    private $lockDate;
+    private $lockDateIndex;
 
     public function __construct()
     {
@@ -58,6 +60,31 @@ class AccountPayableController extends Controller
         ->where('attr_id','mainpph42')
         ->value('attr_value');
 
+        $lockDate1 = DB::table('application_lock')
+        ->where('code_key',$this->moduleCode)
+        ->where('status','1')
+        ->value('lock_date');
+
+        // $todayDate = date('d-m-Y');
+        // $lockDateHere = $lockDate1 ? $lockDate1 : '2023-01-01' ;
+        // $lockDateAt = date('d-m-Y', strtotime("+1 day", strtotime($lockDateHere)));
+
+        $todayDate = date('Y-m-d');
+        $lockDateHere = $lockDate1 ? $lockDate1 : '2023-01-01' ;
+        $lockDateAt = date('Y-m-d', strtotime("+1 day", strtotime($lockDateHere)));
+
+        if ($todayDate < $lockDateAt ){
+            $firstDatePrevMonth = date('1-m-Y', strtotime("-1 months",strtotime($lockDateHere)));
+            $lockDateAt = $firstDatePrevMonth;
+        }else{
+            $lockDateAt = date('1-m-Y', strtotime($lockDateAt));
+        }
+
+        $this->lockDate = $lockDateAt;
+
+        $lockDateHereIndex = $lockDate1 ? $lockDate1 : '2023-01-01' ;
+        $lockDateAtIndex = date('d-m-Y', strtotime($lockDateHere));
+        $this->lockDateIndex = $lockDateAtIndex;
 
     }
 
@@ -113,6 +140,8 @@ class AccountPayableController extends Controller
 
         // $data['status'] = ['1'=>'DRAFT','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','6'=>'CLOSED','7'=>'PAID'];
         $data['status'] = ['1'=>'DRAFT','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','6'=>'PAID'];
+
+        $data['lockDate'] = $this->lockDateIndex;
             
         return view("accounting.accountPayable.index",$data);
     }
@@ -2053,11 +2082,13 @@ class AccountPayableController extends Controller
         ->orderBy('ap_invoice.id')
         ->get(); 
 
+        $lockDateToDate = date('Y-m-d',strtotime($this->lockDate));
+
         $bisaEdit = Auth::user()->can('ap-edit');
         $bisaDelete = Auth::user()->can('ap-delete');
         
         return Datatables::of($data)
-        ->addColumn('action', function ($data)  use ($bisaEdit,$bisaDelete){
+        ->addColumn('action', function ($data)  use ($lockDateToDate,$bisaEdit,$bisaDelete){
             $buttons = '<div class="d-inline-flex">
                             <a class="pr-1 dropdown-toggle hide-arrow" data-toggle="dropdown">
                                 <i data-feather="menu"></i>
@@ -2077,11 +2108,14 @@ class AccountPayableController extends Controller
                 //sibuka sementara dari pak leo 6-11-2023
             if ($data->status != '5'){
             // if (($data->status != '4') && ($data->status != '5')){
-                if ($bisaEdit) {
-                $buttons .=         '<a href="'. route('accountPayable.edit',['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
-                                        <i data-feather="file-text"></i>
-                                        <span>'. __("Edit") .'</span>
-                                    </a>';
+                $apDate = date('Y-m-d', strtotime($data->ap_date_2));
+                if($apDate>=$lockDateToDate){
+                    if ($bisaEdit) {
+                        $buttons .=         '<a href="'. route('accountPayable.edit',['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+                                            <i data-feather="file-text"></i>
+                                            <span>'.__("Edit") .'</span>
+                                        </a>';
+                    }
                 }
             }
 
@@ -2141,16 +2175,19 @@ class AccountPayableController extends Controller
             // }
 
             if (($data->status != '7')){
-                if ($bisaDelete) {
-                $buttons .=         "<a href='javascript:;'
-                                        id='deleteButton'
-                                        class='dropdown-item'
-                                        data-toggle='modal'
-                                        data-target='#smallModal'
-                                        data-href='". route("accountPayable.destroy", ["id"=>Crypt::encryptString($data->id)]) ."'>
-                                        <i data-feather='trash-2' class='feather-14-red'></i>
-                                        Delete
-                                    </a>";
+                $apDate = date('Y-m-d', strtotime($data->ap_date_2));
+                if($apDate>=$lockDateToDate){
+                    if ($bisaDelete) {
+                    $buttons .=         "<a href='javascript:;'
+                                            id='deleteButton'
+                                            class='dropdown-item'
+                                            data-toggle='modal'
+                                            data-target='#smallModal'
+                                            data-href='". route("accountPayable.destroy", ["id"=>Crypt::encryptString($data->id)]) ."'>
+                                            <i data-feather='trash-2' class='feather-14-red'></i>
+                                            Delete
+                                        </a>";
+                    }
                 }
             }
 
