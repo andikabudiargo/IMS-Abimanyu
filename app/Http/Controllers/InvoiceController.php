@@ -924,7 +924,7 @@ class InvoiceController extends Controller
             ->update(
                 [   
                     'invoice_number' => $invNumber."(C)",
-                    'so_number' => $invNumber."(C)",
+                    'so_number' => DB::raw("concat(so_number,'-(C)')"),
                     'status' => $status,
                     'note' => $note." (Cancel)".$reason,
                     'updated_by' => Auth::user()->username,
@@ -934,15 +934,18 @@ class InvoiceController extends Controller
 
             if($rowAffected){
 
-                // DB::table('invoice_det')
-                // ->where('invoice_number',$invNumber)
-                // ->update(
-                //     [   
-                //         'invoice_number' => $invNumber."(C)",
-                //         'updated_by' => Auth::user()->username,
-                //         'updated_at' => date('Y-m-d H:i:s')
-                //     ]
-                // );
+                DB::table('invoice_det')
+                ->where('invoice_number',$invNumber)
+                ->update(
+                    [   
+                        'invoice_number' => $invNumber."(C)",
+                        'so_number' => DB::raw("concat(so_number,'-(C)')"),
+                        'po_number' => DB::raw("concat(po_number,'-(C)')"),
+                        'dn_number' => DB::raw("concat(dn_number,'-(C)')"),
+                        'updated_by' => Auth::user()->username,
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]
+                );
 
                 $voucherNumber=$invNumber;
                 if($voucherNumber){
@@ -1252,7 +1255,7 @@ class InvoiceController extends Controller
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
             
 
-            if (($data->status != '3') && ($data->status != '4')){
+            if (($data->status == '1') || ($data->status == '2')){
                 if ($bisaEdit) {
                 $buttons .=         '<a href="'. route('invoice.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                         <i data-feather="check"></i>
@@ -1262,7 +1265,7 @@ class InvoiceController extends Controller
             }
 
             //sibuka sementara dari pak leo 6-11-2023
-            // if (($data->status != '3') && ($data->status != '4')){
+            if (($data->status != '5') && ($data->status != '6')){
                 $invDate = date('Y-m-d', strtotime($data->invoice_date_2));
                 if($invDate>=$lockDateToDate){
                     if ($bisaEdit) {
@@ -1272,7 +1275,7 @@ class InvoiceController extends Controller
                                         </a>';
                     }
                 }
-                // }
+            }
 
                 $buttons .=      '<a href="'. route('invoice.show', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                     <i data-feather="list"></i>
