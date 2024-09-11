@@ -1217,6 +1217,10 @@ class InvoiceController extends Controller
         // ->where('invoice_hdr.status','<>','6')
         ->select(
             'invoice_hdr.*'
+            ,DB::raw("case when invoice_hdr.status <> '5' then dpp else 0 end as dpp")
+            ,DB::raw("case when invoice_hdr.status <> '5' then total_ppn else 0 end as total_ppn")
+            ,DB::raw("case when invoice_hdr.status <> '5' then total_pph else 0 end as total_pph")
+            ,DB::raw("case when invoice_hdr.status <> '5' then grand_total else 0 end as grand_total")
             // ,DB::raw("(select STRING_AGG ( a.rec_number,',' ORDER BY a.id) as list_rec from invoice_hdr_detail a where ap_number = invoice_hdr.ap_number) as list_rec")
             //,db::raw("concat(third_party.kode,'-',third_party.nama) as customer_name")
             // ,db::raw("(select STRING_AGG((select name from users where username = z.username), ' -> ' ORDER BY approval_order) AS main from approval_history z where module_number = invoice_hdr.invoice_number) as approval_by")
@@ -1234,7 +1238,7 @@ class InvoiceController extends Controller
             ,DB::raw("case when invoice_hdr.status = '6' then (select voucher_number from kas_det where reference = invoice_hdr.invoice_number) else '' end as voucher_number")
             ,DB::raw("case when invoice_hdr.status = '6' then (select credit from kas_det where reference = invoice_hdr.invoice_number) else 0 end as voucher_amount")
             // ,db::raw("case when invoice_hdr.status = '6' then grand_total-(select credit from kas_det where reference = invoice_hdr.invoice_number) else 0 end as balance")
-            ,DB::raw("grand_total-coalesce((select credit from kas_det where reference = invoice_hdr.invoice_number),0) as balance")
+            ,DB::raw("case when invoice_hdr.status <> '5' then grand_total-coalesce((select credit from kas_det where reference = invoice_hdr.invoice_number),0) else 0 end as balance")
             ,DB::raw("to_char(to_date(invoice_hdr.invoice_date,'dd-mm-yyyy') + INTERVAL '1 day' *coalesce((select top_batas_1 from third_party where kode = invoice_hdr.customer_id),0), 'dd/mm/yyyy') as jatuh_tempo")
             ,DB::raw("to_date(to_char(to_date(invoice_hdr.invoice_date,'dd-mm-yyyy') + INTERVAL '1 day' *coalesce((select top_batas_1 from third_party where kode = invoice_hdr.customer_id),0), 'dd/mm/yyyy'),'dd/mm/yyyy') as jatuh_tempo_2")
         )
