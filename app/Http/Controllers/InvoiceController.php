@@ -1238,7 +1238,7 @@ class InvoiceController extends Controller
             ,DB::raw("case when invoice_hdr.status = '6' then (select voucher_number from kas_det where reference = invoice_hdr.invoice_number) else '' end as voucher_number")
             ,DB::raw("case when invoice_hdr.status = '6' then (select credit from kas_det where reference = invoice_hdr.invoice_number) else 0 end as voucher_amount")
             // ,db::raw("case when invoice_hdr.status = '6' then grand_total-(select credit from kas_det where reference = invoice_hdr.invoice_number) else 0 end as balance")
-            ,DB::raw("case when invoice_hdr.status <> '5' then grand_total-coalesce((select credit from kas_det where reference = invoice_hdr.invoice_number),0) else 0 end as balance")
+            ,DB::raw("case when invoice_hdr.status <> '5' then grand_total-coalesce((select credit from kas_det where reference = invoice_hdr.invoice_number and (select status from kas_hdr where voucher_number = kas_det.voucher_number) = '3'),0) else 0 end as balance")
             ,DB::raw("to_char(to_date(invoice_hdr.invoice_date,'dd-mm-yyyy') + INTERVAL '1 day' *coalesce((select top_batas_1 from third_party where kode = invoice_hdr.customer_id),0), 'dd/mm/yyyy') as jatuh_tempo")
             ,DB::raw("to_date(to_char(to_date(invoice_hdr.invoice_date,'dd-mm-yyyy') + INTERVAL '1 day' *coalesce((select top_batas_1 from third_party where kode = invoice_hdr.customer_id),0), 'dd/mm/yyyy'),'dd/mm/yyyy') as jatuh_tempo_2")
         )
