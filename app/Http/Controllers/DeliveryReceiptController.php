@@ -175,53 +175,65 @@ class DeliveryReceiptController extends Controller
             $alert ="error";
             return response()->json(array('status' => 0,'title' => $title, 'message' => $error_array,'alert' =>$alert));
         }else{
-            $hasilUpdate = AppHelpers::resetCode($this->moduleCode);
-            $drNumber = $this->getLastCode($this->moduleCode);
-            DB::beginTransaction();
-            try {
-                    $rowAffected = DB::table('dn_receipt')->insertGetId([
-                        'dr_number' => $drNumber,
-                        'dr_date' => $receiveAt,
-                        'delivery_number' => $dnNumber,
-                        'delivery_date' => $deliveryDate ,
-                        // 'submitted_at' => $submitAt,
-                        // 'submitted_by' => $submitBy,
-                        'received_by' => $receiveBy,
-                        'status' => $status,
-                        'note' => $note,
-                        'created_by' => Auth::user()->username,
-                        'updated_by' => Auth::user()->username,
-                        'created_at' => date('Y-m-d H:i:s'),
-                        'updated_at' => date('Y-m-d H:i:s')
-                    ]);
+            $isDnHasBeenReceived = db::table('dn_receipt')->where('delivery_number',$dnNumber)->where('status','1')->count();
+            if ($isDnHasBeenReceived > 0){
+                $title="Save  $this->title";
+                $alert ="error";
+                $message  = "$title $dnNumber has been Received";
+                return redirect()->route('dnReceipt.index')->with(['alert'=>$alert,'message'=> $message,'drNumber'=> $dnNumber]);
+            }else{
+                $hasilUpdate = AppHelpers::resetCode($this->moduleCode);
+                $drNumber = $this->getLastCode($this->moduleCode);
+                DB::beginTransaction();
+                try {
+                        $rowAffected = DB::table('dn_receipt')->insertGetId([
+                            'dr_number' => $drNumber,
+                            'dr_date' => $receiveAt,
+                            'delivery_number' => $dnNumber,
+                            'delivery_date' => $deliveryDate ,
+                            // 'submitted_at' => $submitAt,
+                            // 'submitted_by' => $submitBy,
+                            'received_by' => $receiveBy,
+                            'status' => $status,
+                            'note' => $note,
+                            'created_by' => Auth::user()->username,
+                            'updated_by' => Auth::user()->username,
+                            'created_at' => date('Y-m-d H:i:s'),
+                            'updated_at' => date('Y-m-d H:i:s')
+                        ]);
 
-                    if ($rowAffected){
-                        DB::table('delivery_hdr')
-                        ->where('delivery_number',$dnNumber)
-                        ->update(
-                            [
-                                'status'=> '8',
-                                'updated_by' => Auth::user()->username,
-                                'updated_at' => date('Y-m-d H:i:s')
-                            ]
-                        );
-                        \LogActivity::addToLog('Delivery update',"username: $username Status Delivery update by receipt $dnNumber $drNumber");
-                    }
+                        /*
+                            Setelah di received status DN nya jadi received
+                        */
 
-                    DB::commit();
+                        if ($rowAffected){
+                            DB::table('delivery_hdr')
+                            ->where('delivery_number',$dnNumber)
+                            ->update(
+                                [
+                                    'status'=> '8',
+                                    'updated_by' => Auth::user()->username,
+                                    'updated_at' => date('Y-m-d H:i:s')
+                                ]
+                            );
+                            \LogActivity::addToLog('Delivery update',"username: $username Status Delivery update by receipt $dnNumber $drNumber");
+                        }
+
+                        DB::commit();
+                        $title ="Save $this->title";
+                        $alert  ="success";
+                        $message  = "$title $drNumber is successfully saved";
+                        \LogActivity::addToLog($title,"username: $username Status $message");
+                        return redirect()->route('dnReceipt.index')->with(['alert'=>$alert,'message'=> $message,'drNumber'=> $drNumber]);
+                    
+                } catch (Exception $e) {
+                    DB::rollBack();
                     $title ="Save $this->title";
-                    $alert  ="success";
-                    $message  = "$title $drNumber is successfully saved";
+                    $alert  ="warning";
+                    $message  = "$title $drNumber is failed to save";
                     \LogActivity::addToLog($title,"username: $username Status $message");
                     return redirect()->route('dnReceipt.index')->with(['alert'=>$alert,'message'=> $message,'drNumber'=> $drNumber]);
-
-            } catch (Exception $e) {
-                DB::rollBack();
-                $title ="Save $this->title";
-                $alert  ="warning";
-                $message  = "$title $drNumber is failed to save";
-                \LogActivity::addToLog($title,"username: $username Status $message");
-                return redirect()->route('dnReceipt.index')->with(['alert'=>$alert,'message'=> $message,'drNumber'=> $drNumber]);
+                }
             }
         }
     }
@@ -306,6 +318,27 @@ class DeliveryReceiptController extends Controller
                         ]
                     );
 
+                    /*
+                        Tadinya mau diubah kalau sudah submit maka status DN nya berubah jadi received
+                        Tapi belum diimplementasikan
+                    */
+
+                    // $dnNumber = DB::table('dn_receipt')
+                    // ->where('dr_number',$drNumber)->value('delivery_number');
+
+                    // if ($rowAffected){
+                    //     DB::table('delivery_hdr')
+                    //     ->where('delivery_number',$dnNumber)
+                    //     ->update(
+                    //         [
+                    //             'status'=> '8',
+                    //             'updated_by' => Auth::user()->username,
+                    //             'updated_at' => date('Y-m-d H:i:s')
+                    //         ]
+                    //     );
+                    //     \LogActivity::addToLog('Delivery update',"username: $username Status Delivery update by receipt $dnNumber $drNumber");
+                    // }
+
                     DB::commit();
                     $title ="Submit $this->title";
                     $alert  ="success";
@@ -385,6 +418,7 @@ class DeliveryReceiptController extends Controller
 
         if($searchStatus == '0'){
             $searchStatusDn = '4';
+            $searchStatus = '';
         } 
 
         $fromDate ="";
@@ -456,7 +490,7 @@ class DeliveryReceiptController extends Controller
                             </a>';
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
 
-            if ( $data->status == '4') {
+            if ( $data->status == '4' and $data->statusKu =='') {
 
                 if (Auth::user()->can('dnReceipt-create')) {
                     // $buttons .= '<a href="'. route('dnReceipt.create', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
@@ -516,7 +550,6 @@ class DeliveryReceiptController extends Controller
             }else{
                 return "<div class='badge badge-primary'>POSTED</div>";
             }
-            
         })
         ->rawColumns(['action','statusKu'])
         ->make(true);
