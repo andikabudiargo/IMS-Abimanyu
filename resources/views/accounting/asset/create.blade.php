@@ -6,15 +6,15 @@
     <div class="row">
         <div class="col-xl-12 col-lg-12 col-md-12">
             <div class="card">
-                <div class="card-header">
+                {{-- <div class="card-header">
                     <h4 class="card-title"></h4>
                     <div class="heading-elements">
                         <ul class="list-inline mb-0">
                             <li><a data-action="collapse"><i data-feather="chevron-down"></i></a></li>
                         </ul>
                     </div>    
-                </div>
-                <div class="card-content collapse show">
+                </div> --}}
+                {{-- <div class="card-content collapse show"> --}}
                     <div class="card-body">
                         <form id="frmAdd" name="frmAdd" action="{{ route('asset.store') }}" method="post"  autocomplete="off" enctype="multipart/form-data" >
                             @csrf
@@ -184,7 +184,7 @@
                             </div>
                         </form>
                     </div>
-                </div>
+                {{-- </div> --}}
             </div>
         </div>
     </div>

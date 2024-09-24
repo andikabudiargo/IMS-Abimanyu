@@ -6,17 +6,17 @@
     <div class="row">
         <div class="col-xl-12 col-lg-12 col-md-12">
             <div class="card">
-                <div class="card-header">
+                {{-- <div class="card-header">
                     <h4 class="card-title"></h4>
                     <div class="heading-elements">
                         <ul class="list-inline mb-0">
                             <li><a data-action="collapse"><i data-feather="chevron-down"></i></a></li>
                         </ul>
                     </div>    
-                </div>
-                <div class="card-content collapse show">
+                </div> --}}
+                {{-- <div class="card-content collapse show"> --}}
                     <div class="card-body">
-                        <form id="frmAdd" name="frmAdd" action="{{ route('asset.update',['id'=> $header->id])}}" method="post" autocomplete="off" enctype="multipart/form-data">
+                        <form id="frmAdd" name="frmAdd" action="{{ route('asset.update',['id'=>Crypt::encryptString($header->id)])}}" method="post" autocomplete="off" enctype="multipart/form-data">
                             @csrf
                             <div class="row">
                                 <div class="col-md-8 col-12">
@@ -32,7 +32,7 @@
                                             <select class="select2 form-control" id="assetCoa" name="assetCoa" required>
                                                 <option value=""></option>
                                                 @foreach($accounts as $val)
-                                                    <option value="{{ $val->account }}" {{ old('assetCoa') == $val->account ? 'selected' : '' }} >{{$val->account}} - {{$val->description}}</option>
+                                                    <option value="{{ $val->account }}" {{ old('assetCoa',$header->coa_number) == $val->account ? 'selected' : '' }} >{{$val->account}} - {{$val->description}}</option>
                                                 @endforeach
                                             </select>
                                         </div>
@@ -68,8 +68,8 @@
                                             <label for="statusBeli">Status*</label>
                                             <select class="select2 form-control" id="statusBeli" name="statusBeli" required>
                                                 <option value=""></option>
-                                                <option value="baru">Baru</option>
-                                                <option value="bekas">Bekas</option>
+                                                <option value="baru" {{ old('statusBeli',$header->status_beli) == 'baru' ? 'selected' : '' }}>Baru</option>
+                                                <option value="bekas" {{ old('statusBeli',$header->status_beli) == 'bekas' ? 'selected' : '' }}>Bekas</option>
                                             </select>
                                         </div> 
                                     </div>
@@ -104,11 +104,11 @@
                                         </div> 
                                     </div>
                                     <div class="custom-control custom-checkbox">
-                                        <input type="checkbox" class="custom-control-input opsiPenyusutan" id="penyusutan" name="penyusutan" {{ old('penyusutan') == 't' ? 'checked' : '' }} disabled/>
+                                        <input type="checkbox" class="custom-control-input opsiPenyusutan" id="penyusutan" name="penyusutan" {{ old('penyusutan',$header->penyusutan) == '1' ? 'checked' : '' }} {{ $header->penyusutan == '1' ? '' : 'disabled' }} />
                                         <label class="custom-control-label" for="penyusutan">Dengan Penyusutan</label>
                                     </div>
                                     <br>
-                                    <div id="penyusutanForm" class="d-none">
+                                    <div id="penyusutanForm" class="{{ $header->penyusutan == '1' ? '' : 'd-none' }}">
                                         <div class="form-row">
                                             <div class="form-group col-md-6">
                                                 <label class="form-label" for="akunAkumulasiPenyusutan">Akun Akumulasi Penyusutan*</label>
@@ -144,21 +144,21 @@
                                             </div>
                                             <div class="form-group col-md-4">
                                                 <label for="nilaiPenyusutanPerTahun">Nilai Penyusutan/tahun</label>
-                                                <input type="text" id="nilaiPenyusutanPerTahun" name="nilaiPenyusutanPerTahun" value="{{ old('nilaiPenyusutanPerTahun') }}" class="form-control disabled-el numeral-mask-digit" disabled/>
+                                                <input type="text" id="nilaiPenyusutanPerTahun" name="nilaiPenyusutanPerTahun" value="{{ old('nilaiPenyusutanPerTahun',$header->nilai_penyusutan) }}" class="form-control disabled-el numeral-mask-digit" disabled/>
                                             </div>
                                             <div class="form-group col-md-4">
                                                 <label for="masaManfaat">Masa Manfaat(tahun)</label>
-                                                <input type="text" id="masaManfaat" name="masaManfaat" value="{{ old('masaManfaat') }}" class="form-control disabled-el numeral-mask" disabled/>
+                                                <input type="text" id="masaManfaat" name="masaManfaat" value="{{ old('masaManfaat',$header->masa_manfaat) }}" class="form-control disabled-el numeral-mask" disabled/>
                                             </div>
                                         </div>
                                         <div class="form-row">
                                             <div class="form-group col-md-4">
                                                 <label for="invoiceDate">Tanggal Invoice</label>
-                                                <input type="text" id="invoiceDate" name="invoiceDate" class="form-control tanggalInput disabled-el" placeholder="DD-MM-YYYY" value="" disabled/>
+                                                <input type="text" id="invoiceDate" name="invoiceDate" class="form-control tanggalInput disabled-el" placeholder="DD-MM-YYYY" value="{{ $header->tanggal_awal_penyusutan }}" disabled/>
                                             </div> 
                                             <div class="form-group col-md-4">
                                                 <label for="lastDate">Tanggal Akhir Penyusutan</label>
-                                                <input type="text" id="lastDate" name="lastDate" class="form-control tanggalInput disabled-el" placeholder="DD-MM-YYYY" value="" disabled/>
+                                                <input type="text" id="lastDate" name="lastDate" class="form-control tanggalInput disabled-el" placeholder="DD-MM-YYYY" value="{{ $header->tanggal_akhir_penyusutan }}" value="" disabled/>
                                             </div> 
                                         </div>
                                         <div class="form-row">
@@ -168,7 +168,7 @@
                                             </div> 
                                             <div class="form-group col-md-4">
                                                 <label for="akumulasiPenyusutan">Akumulasi Penyusutan</label>
-                                                <input type="text" id="akumulasiPenyusutan" name="akumulasiPenyusutan" class="form-control disabled-el numeral-mask-digit" value="" disabled/>
+                                                <input type="text" id="akumulasiPenyusutan" name="akumulasiPenyusutan" class="form-control disabled-el numeral-mask-digit" value="{{ $header->akumulai_penyusutan }}" disabled/>
                                             </div> 
                                         </div>
                                     </div>
@@ -184,7 +184,7 @@
                             </div>
                         </form>
                     </div>
-                </div>
+                {{-- </div> --}}
             </div>
         </div>
     </div>
@@ -199,10 +199,16 @@
 @endsection
 @section('scripts')
 <script type="text/javascript">    
+    let edit = "true";
+    let voucherNumber = "{{ $header->voucher_number }}";
+    let assetName = "{{ $header->asset_name }}";
+    let penyusutan = "{{ $header->penyusutan }}"
+    let kelompokPenyusutan = "{{ $header->kelompok_penyusutan }}"
     
     $(document).ready(function(){
         validateFormToast("frmAdd");
-        let opsiPenyusutan = $("input[name='opsiPenyusutan']:checked"). val();            
+        // let opsiPenyusutan = $("input[name='opsiPenyusutan']:checked"). val();    
+        $('#assetCoa').val({{ $header->coa_number }}).trigger('change');
     });
 
     $('#assetCoa').change(function(){
@@ -217,10 +223,14 @@
                 method:"GET",
                 data:{
                     value:value,
-                    edit:edit
+                    edit:edit,
+                    assetName:assetName
                 },
                 success:function(result){
                     $('#voucherNumber').html(result);
+                    if(voucherNumber){
+                        $('#voucherNumber').val(voucherNumber).trigger("change");
+                    }
                 },
                 error: function (response) {
                     Swal.fire("Warning","Get list AP failed","warning");
@@ -245,10 +255,14 @@
                 data:{
                     value:value,
                     account:account,
-                    edit:edit
+                    edit:edit,
+                    assetName:assetName
                 },
                 success:function(result){
                     $('#assetName').html(result);
+                    if(assetName){
+                        $('#assetName').val(assetName).trigger("change");
+                    }
                 },
                 error: function (response) {
                     Swal.fire("Warning","Get list AP failed","warning");
@@ -286,6 +300,12 @@
             $('#penyusutan').attr('disabled','disabled');
         }
 
+        if (penyusutan == '1'){
+            $('.opsiPenyusutan').trigger('click');
+            $('#kelompokPenyusutan').val(kelompokPenyusutan).trigger('change');
+            edit='false';
+        }
+
         mask_thousand();        
     });
 
@@ -303,23 +323,23 @@
         clearDataPenyusutan();
     }
 
-
     $('#kelompokPenyusutan').change(function(){
-        let nilaiPenyusutan = $(this).find(":selected").data("nilai-penyusutan");
-        let masaManfaat = $(this).find(":selected").data("masa-manfaat"); 
-        let tanggalPembelian = $('#tanggalPembelian').val(); 
-        $('#nilaiPenyusutanPerTahun').val(nilaiPenyusutan);
-        $('#masaManfaat').val(masaManfaat);
-        $('#invoiceDate').val(tanggalPembelian);
-
-        let dates = tanggalPembelian.split("-");
-        let dt = new Date(dates[1]+"-"+dates[0]+"-"+dates[2]);
-        let newYear = parseInt(dt.getFullYear())+parseInt(masaManfaat); 
-        let lastDate = dates[0]+"-"+dates[1]+"-"+ newYear; 
-        $('#lastDate').val(lastDate);
-        let hargaBeli = $('#hargaBeli').val().replace(/,/gi, '') || 0;
-        $('#akumulasiPenyusutan').val((hargaBeli/masaManfaat).toFixed(2));
-
+        if(edit=='false'){
+            let nilaiPenyusutan = $(this).find(":selected").data("nilai-penyusutan");
+            let masaManfaat = $(this).find(":selected").data("masa-manfaat"); 
+            let tanggalPembelian = $('#tanggalPembelian').val(); 
+            $('#nilaiPenyusutanPerTahun').val(nilaiPenyusutan);
+            $('#masaManfaat').val(masaManfaat);
+            $('#invoiceDate').val(tanggalPembelian);
+    
+            let dates = tanggalPembelian.split("-");
+            let dt = new Date(dates[1]+"-"+dates[0]+"-"+dates[2]);
+            let newYear = parseInt(dt.getFullYear())+parseInt(masaManfaat); 
+            let lastDate = dates[0]+"-"+dates[1]+"-"+ newYear; 
+            $('#lastDate').val(lastDate);
+            let hargaBeli = $('#hargaBeli').val().replace(/,/gi, '') || 0;
+            $('#akumulasiPenyusutan').val((hargaBeli/masaManfaat).toFixed(2));
+        }
         mask_thousand();       
         mask_thousand_digit(2);        
     });
@@ -347,15 +367,17 @@
     }
 
     clearDataPenyusutan = () => {
-        $('#akunAkumulasiPenyusutan').val('').trigger('change');
-        $('#akunPenyusutan').val('').trigger('change');
-        $('#kelompokPenyusutan').val() ? $('#kelompokPenyusutan').val('').trigger('change') : '';
-        $('#nilaiPenyusutanPerTahun').val('');
-        $('#masaManfaat').val('');
-        $('#invoiceDate').val('');
-        $('#lastDate').val('');
-        // $('#penyusutanForm').addClass('d-none');
-        $('#kelompokPenyusutan').removeAttr('required');
+        if(edit=='false'){
+            $('#akunAkumulasiPenyusutan').val('').trigger('change');
+            $('#akunPenyusutan').val('').trigger('change');
+            $('#kelompokPenyusutan').val() ? $('#kelompokPenyusutan').val('').trigger('change') : '';
+            $('#nilaiPenyusutanPerTahun').val('');
+            $('#masaManfaat').val('');
+            $('#invoiceDate').val('');
+            $('#lastDate').val('');
+            // $('#penyusutanForm').addClass('d-none');
+            $('#kelompokPenyusutan').removeAttr('required');
+        }
     }
 
     $('.opsiPenyusutan').click(function(){
@@ -364,19 +386,13 @@
             $('#penyusutanForm').removeClass('d-none');
             $('#kelompokPenyusutan').attr('required','required');
             getDetailPenyusutan();
+            edit = 'false';
         }else{
             $('#penyusutanForm').addClass('d-none');
             $('#kelompokPenyusutan').removeAttr('required');
             clearDataPenyusutan();
         }
     })
-
-    // apDate = $('.tanggalInput');
-    // if (apDate.length) {
-    //     apDate.flatpickr({
-    //         dateFormat: "d-m-Y"
-    //     });
-    // }
 
     $("#cmdSave").click(function(){  
         if (!$("#frmAdd")[0].checkValidity()){
@@ -388,6 +404,13 @@
             $("#frmAdd").submit();
         }
     })
+
+    // apDate = $('.tanggalInput');
+    // if (apDate.length) {
+    //     apDate.flatpickr({
+    //         dateFormat: "d-m-Y"
+    //     });
+    // }
     $.ajaxSetup({
         headers: {
             'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')

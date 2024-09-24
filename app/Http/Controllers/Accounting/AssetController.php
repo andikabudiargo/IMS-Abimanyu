@@ -173,9 +173,13 @@ class AssetController extends Controller
         // ->whereIn("ap_invoice.status",["3","6"])
         // ->orderBy("ap_invoice_det.id")
         // ->select("ap_invoice_det.id","ap_invoice_det.ap_number","description")
-        // ->get();          
+        // ->get();   
 
-        $assetList = db::table('assets')->select('asset_name')->pluck('asset_name');
+        $assetEdit = $request->assetName;
+        $assetList = db::table('assets')
+        ->where('asset_name','!=',$assetEdit)
+        ->select('asset_name')
+        ->pluck('asset_name');
         
         $data= DB::table("ap_invoice_det") 
         ->leftJoin('ap_invoice','ap_invoice_det.ap_number','ap_invoice.ap_number')
@@ -200,7 +204,11 @@ class AssetController extends Controller
         $account= $request->account;
         $output="";
 
-        $assetList = db::table('assets')->select('asset_name')->pluck('asset_name');
+        $assetEdit = $request->assetName;
+        $assetList = db::table('assets')
+        ->where('asset_name','!=',$assetEdit)
+        ->select('asset_name')
+        ->pluck('asset_name');
 
         $data= DB::table("ap_invoice_det") 
         ->leftJoin('ap_invoice','ap_invoice_det.ap_number','ap_invoice.ap_number')
@@ -465,8 +473,8 @@ class AssetController extends Controller
         $id=Crypt::decryptString($request->id);
         $username =  Auth::user()->username;
 
-        $data['title'] = "Detail $this->title";
-        $data['subtitle'] = "Detail $this->title";
+        $data['title'] = "Edit $this->title";
+        $data['subtitle'] = "Edit $this->title";
 
         $data['id']=$id;
 
@@ -525,102 +533,48 @@ class AssetController extends Controller
     {
         $username =  Auth::user()->username;
         $id=Crypt::decryptString($request->id);
-        $apNumber=$request->apNumber;
-        $suppCode = $request->supplier;
-        $poNumber = $request->poNumber;
-        $currency = $request->currency;
-        $rate = is_null($request->rate) ? 0 : preg_replace('/[^0-9.]+/', '', $request->rate);
-        $invoiceNumber= $request->invoiceNumber;
-        $invoiceDate= $request->invoiceDate;
-        $taxInvoiceNumber = $request->taxInvoiceNumber;
-        $basisAmount = is_null($request->basisAmount) ? 0 : preg_replace('/[^0-9.]+/', '', $request->basisAmount);
-        // $accountBasisA = $request->accountBasisA;
-        $otherDeduct = 0;
-        $account= $request->account;
-        $note=$request->note;
-        $period=$request->period;
-        $accountHutang = $request->accountHutang;
 
-        $details = json_decode($request->details);
-        $accountBasisA = ''; //untuk account basis amount akan diganti dengan account masing2 item
-
-        $apDate= $request->apDate;
-        $invoiceNumber=$request->invoiceNumber;
-        $taxInvoiceNumber=$request->taxInvoiceNumber;
-        $recNumberSave = explode(",",$request->recNumberSave);
-        $totalDiscount = is_null($request->totalDiscount) ? 0 : preg_replace('/[^0-9.]+/', '', $request->totalDiscount);
-        $grandTotal = is_null($request->grandTotal) ? 0 :  preg_replace('/[^0-9.]+/', '', $request->grandTotal);
-
-        $vat=is_null($request->totalPPN) ? 0 : preg_replace('/[^0-9.]+/', '', $request->totalPPN);
-        $pph23 = is_null($request->totalPPH23) ? 0 : preg_replace('/[^0-9.]+/', '', $request->totalPPH23);
-        $pph21 = is_null($request->totalPPH21) ? 0 : preg_replace('/[^0-9.]+/', '', $request->totalPPH21);
-        $pph42 = is_null($request->totalPPH42) ? 0 : preg_replace('/[^0-9.]+/', '', $request->totalPPH42);
-
-        $typePph ='';        
-        if($pph23 > 0 && $typePph==''){
-            $typePph='PPH23';
-        }
-
-        if($pph21 > 0 && $typePph==''){
-            $typePph='PPH21';
-        }
-
-        if($pph42 > 0 && $typePph==''){
-            $typePph='PPH42';
-        }
-
-        $nilaiPph=0;
-        if($pph23 > 0 && $nilaiPph ==0){
-            $nilaiPph=$pph23;
-        }
-
-        if($pph21 > 0 && $nilaiPph ==0){
-            $nilaiPph=$pph21;
-        }
-
-        if($pph42 > 0 && $nilaiPph ==0){
-            $nilaiPph=$pph42;
-        }
-                
-        $accountVat   ='1100.73';
-        // $acountTotal  ='2000.11';
-        $acountTotal  =  $accountHutang;
-        $accountPph23 ='2000.14.3';
-        $accountPph21 ='2000.14.2';
-        $accountPph42 ='2000.14.6';
-
-        $accountPph = '';
-        if($pph23 > 0 && $accountPph ==''){
-            $accountPph=$accountPph23;
-        }
-
-        if($pph21 > 0 && $accountPph ==''){
-            $accountPph=$accountPph21;
-        }
-
-        if($pph42 > 0 && $accountPph ==''){
-            $accountPph=$accountPph42;
-        }
-
-        $getLastStatus = DB::table('ap_invoice')->where('id',$id)->value('status');
-
-        $status = $getLastStatus;
+        $assetCoa  = $request->assetCoa;
+        $voucherId = $request->voucherId;
+        $voucherNumber = $request->voucherNumber;
+        $assetName = $request->assetName;
+        $assetDescription = $request->assetDescription;
+        $tanggalPembelian = $request->tanggalPembelian ? implode("-",array_reverse(explode("-",$request->tanggalPembelian))): null;
+        $hargaBeli = is_null($request->hargaBeli) ? 0 : preg_replace('/[^0-9.]+/', '', $request->hargaBeli);
+        $qtyBeli = is_null($request->qtyBeli) ? 0 : preg_replace('/[^0-9.]+/', '', $request->qtyBeli);
+        $statusBeli = $request->statusBeli;
+        $supplier = $request->supplier;
+        $departement = $request->departement;
+        $invoiceNumber = $request->invoiceNumber;
+        $akunAssetTetap = $request->akunAssetTetap;
+        $penyusutan = $request->penyusutan == 'on' ? '1' : '0';
+        $akunAkumulasiPenyusutan = $request->akunAkumulasiPenyusutan;
+        $akunPenyusutan = $request->akunPenyusutan;
+        $kelompokPenyusutan = $request->kelompokPenyusutan;
+        $nilaiPenyusutanPerTahun = $request->nilaiPenyusutanPerTahun;
+        $masaManfaat = $request->masaManfaat;
+        $invoiceDate = $request->invoiceDate ? implode("-",array_reverse(explode("-",$request->invoiceDate))): null;
+        $lastDate = $request->lastDate ? implode("-",array_reverse(explode("-",$request->lastDate))):null;
+        $metodePenyusutan = $request->metodePenyusutan;
+        $akumulasiPenyusutan = is_null($request->akumulasiPenyusutan) ? 0 : preg_replace('/[^0-9.]+/', '', $request->akumulasiPenyusutan);
+        $note ="";
+        $assetNumber="";
         
         // $data['status'] = ['1'=>'DRAFT','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','6'=>'CLOSED','6'=>'PAID'];
         
         $messages = [
             'required' => 'The field is required.',
             'unique' => 'The code has already been taken', 
-            'iunique' => "Invoice Number : $invoiceNumber on PO: $poNumber has already exist",
+            // 'iunique' => "Invoice Number : $invoiceNumber on PO: $poNumber has already exist",
         ];
         
-        Validator::extend('iunique', function ($attribute, $value, $parameters, $validator) use ($poNumber) {
-            $query = DB::table($parameters[0]);
-            $column = $query->getGrammar()->wrap($parameters[1]);
-            $column2 = $query->getGrammar()->wrap($parameters[2]);
-            return !$query->whereRaw("lower({$column}) = lower(?)", [$value])
-                          ->whereRaw("lower({$column2}) = lower(?)", [$poNumber])->count();
-        });
+        // Validator::extend('iunique', function ($attribute, $value, $parameters, $validator) use ($poNumber) {
+        //     $query = DB::table($parameters[0]);
+        //     $column = $query->getGrammar()->wrap($parameters[1]);
+        //     $column2 = $query->getGrammar()->wrap($parameters[2]);
+        //     return !$query->whereRaw("lower({$column}) = lower(?)", [$value])
+        //                   ->whereRaw("lower({$column2}) = lower(?)", [$poNumber])->count();
+        // });
 
         $rule = [
             // 'poNumberDet'  => 'required',
@@ -632,109 +586,87 @@ class AssetController extends Controller
         
         DB::beginTransaction();
         try {
-                $rowAffected=DB::table('ap_invoice')
+                $rowAffected=DB::table('assets')
                 ->where('id',$id)
                 ->update(
-                    [   
-                        'inv_date' => $invoiceDate,
-                        'po_number' => $poNumber,
-                        'supplier_id' => $suppCode,
-                        'currency' => $currency,
-                        'kurs' => $rate,
-                        'basis_amount' => $basisAmount,
-                        'total_discount' => $totalDiscount,
-                        'vat' => $vat,
-                        'other_deduction' => $otherDeduct,
-                        'pph23' => $nilaiPph,
-                        'pph23_type' => $typePph,
-                        'grand_total' => $grandTotal,
-                        'account_ba'=> $accountBasisA,
-                        'status' => $status,
-                        'note' => $note,
-                        'updated_by' => Auth::user()->username,
-                        'updated_at' => date('Y-m-d H:i:s'),
-                        'inv_number' => $invoiceNumber,
-                        'tax_inv_number' =>$taxInvoiceNumber,
-                        'ap_date' =>$apDate,
-                        'account_total' => $acountTotal,
-                        'account_vat' => $accountVat,
-                        'account_pph' => $accountPph,
-                        'period' => $period
+                    [
+                        'asset_name' => $assetName,
+                        'asset_desc' => $assetDescription,
+                        'coa_number' => $assetCoa,
+                        'voucher_id' => $voucherId,
+                        'voucher_number' => $voucherNumber,
+                        'buying_date' => $tanggalPembelian,
+                        'buying_price' => $hargaBeli,
+                        'qty' => $qtyBeli,
+                        'status_beli' => $statusBeli,
+                        'supplier' => $supplier,
+                        'departement' => $departement,
+                        'invoice_number' => $invoiceNumber,
+                        'akun_aset_tetap' => $akunAssetTetap,
+                        'penyusutan' => $penyusutan,
+                        'akun_akumulasi_penyusutan' => $akunAkumulasiPenyusutan,
+                        'akun_penyusutan' => $akunPenyusutan,
+                        'kelompok_penyusutan' => $kelompokPenyusutan,
+                        'nilai_penyusutan' => $nilaiPenyusutanPerTahun,
+                        'masa_manfaat' => $masaManfaat,
+                        'tanggal_awal_penyusutan' => $invoiceDate,
+                        'tanggal_akhir_penyusutan' => $lastDate,
+                        'metode_penyusutan' => $metodePenyusutan,
+                        'akumulai_penyusutan' => $akumulasiPenyusutan,
                     ]
                 );
 
-                if($rowAffected){
-                    $dataReceiving = [];
-                    foreach ($recNumberSave as $val) {
-                        $dataReceiving[] = [
-                            'ap_number' => $apNumber,
-                            'rec_number' => $val,
+                $assetNumber=db::table('assets')->where('id',$id)->value('asset_number');
+
+                if($rowAffected && $penyusutan == '1'){
+                    $simulasiManfaat = [];
+                    $tanggalAsset = $invoiceDate;
+                    $aNilaiAsset = $hargaBeli;
+                    $aPenyusutan = $akumulasiPenyusutan;
+                    $nilaiBuku = $hargaBeli;
+
+                    DB::table('asset_detail')->where('asset_number',$assetNumber)->delete();
+
+                    for($i=0;$i<$masaManfaat+1;$i++){
+                        $futureDate = $i != 0 ? date('Y-m-d', strtotime('+1 year', strtotime($futureDate))) : $tanggalAsset;
+                        $aPenyusutan = ($i != 0) ? $akumulasiPenyusutan : 0;
+                        $aNilaiAsset =  ($i > 1)  ? ($aNilaiAsset - $akumulasiPenyusutan) : $aNilaiAsset;
+                        $nilaiBuku =  $nilaiBuku - $aPenyusutan;
+                        $simulasiManfaat[] = [
+                            'asset_number' => $assetNumber,
+                            'tanggal_asset' => $futureDate,
+                            'nilai_asset' => $aNilaiAsset,
+                            'penyusutan' => $aPenyusutan,
+                            'nilai_buku' =>  $nilaiBuku,
                             'created_by' => Auth::user()->username,
+                            'updated_by' => Auth::user()->username,
                             'created_at' => date('Y-m-d H:i:s'),
+                            'updated_at' => date('Y-m-d H:i:s')
                         ];
                     }
-                    
-                    DB::table('ap_invoice_detail')->where('ap_number',$apNumber)->delete();
-                    DB::table('ap_invoice_detail')->insert($dataReceiving);
-
-                    $dataReceivingDetail = [];
-                    foreach ($details as $val) {
-                        $dataReceivingDetail[] = [
-                            'ap_number' => $apNumber,
-                            'account' => $val->account,
-                            'description' => $val->description,
-                            'cost_center' => $val->cc,
-                            'debit' => $val->debit,
-                            'credit' => $val->credit,
-                            'reference' => $val->reference,
-                            'created_by' => Auth::user()->username,
-                            'created_at' => date('Y-m-d H:i:s'),
-                        ];
-                    }
-                    DB::table('ap_invoice_det')->where('ap_number',$apNumber)->delete();
-                    DB::table('ap_invoice_det')->insert($dataReceivingDetail);
-
-                    $this->prosesUpdatePosting($apNumber);
+                    DB::table('asset_detail')->insert($simulasiManfaat);
                 }
-
-                // if($getLastStatus == '4'){
-
-                //     DB::table('kas_hdr')
-                //     ->where('voucher_number',$apNumber)
-                //     ->where('voucher_type','AP')
-                //     ->delete();
-            
-                //     DB::table('kas_det')
-                //     ->where('voucher_number',$apNumber)
-                //     ->delete();
-
-                //     $this->prosesPosting($apNumber);
-                // }
-                                                                            
+                                       
                 DB::commit();
 
-                $title ='Update AP Invoice';
+                $title ='Update Asset';
                 $alert  ="success";
-                $message  = "$title $apNumber is successfully updated";
+                $message  = "$title $assetNumber is successfully updated";
 
                 $data['title'] = $title;
                 $data['message'] = $message;
                 $data['alert'] = $alert;
 
                 \LogActivity::addToLog($title,"username: $username Status $message");
-                return response()->json(array('status' => 1, 'message' => $message,'alert'=>$alert,'apNumber'=>$apNumber));
-                // return redirect()->back()->with(array('title' => $title, 'message' => $message,'alert'=>$alert,'apNumber'=>$apNumber));
-                // return redirect()->route('ap.edit', ['id'=>Crypt::encryptString($id)])->with(array('title' => $title, 'message' => $message,'alert'=>$alert));
-                // return redirect()->back()->with($data);
+                return redirect()->back()->with(array('title' => $title, 'message' => $message,'alert'=>$alert,'assetNumber'=>$assetNumber));
 
         } catch (Exception $e) {
             DB::rollBack();
-            $title ='Update AP Invoice';
+            $title ='Update Asset';
             $alert  ="warning";
-            $message  = "Invoice $apNumber is failed to update";
+            $message  = "Invoice $assetNumber is failed to update";
             \LogActivity::addToLog($title,"username: $username Status $message");
-            return response()->json(array('status' => 0, 'message' => $message,'alert'=>$alert,'apNumber'=>$apNumber));
-            // return redirect()->back()->with(array('title' => $title, 'message' => $message,'alert'=>$alert,'apNumber'=>$apNumber));
+            return redirect()->back()->with(array('title' => $title, 'message' => $message,'alert'=>$alert,'assetNumber'=>$assetNumber));
         }
         
     }
@@ -825,14 +757,14 @@ class AssetController extends Controller
                             </a>';
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
 
-            // if ($data->status != '5'){
-            //     if ($bisaEdit) {
-            //         $buttons .= '<a href="'. route('asset.edit',['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
-            //                         <i data-feather="file-text"></i>
-            //                         <span>'.__("Edit") .'</span>
-            //                     </a>';
-            //     }
-            // }
+            if ($data->status != '5'){
+                if ($bisaEdit) {
+                    $buttons .= '<a href="'. route('asset.edit',['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+                                    <i data-feather="file-text"></i>
+                                    <span>'.__("Edit") .'</span>
+                                </a>';
+                }
+            }
 
             $buttons .= '<a href="'. route('asset.show', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                             <i data-feather="list"></i>
@@ -1019,215 +951,6 @@ class AssetController extends Controller
 
         // $pdf = PDF::loadView('accounting.accountPayable.print')->setPaper([0, 0, 595.28, 841.89], 'portrait');
         // return $pdf->stream("ap_$apNumber.pdf");
-
-    }
-
-    public function printDraft(Request $request)
-    {
-        $id=Crypt::decryptString($request->id);
-        $data['title'] ='Invoice Supplier';
-
-        $apNumber = DB::table('ap_invoice')->where('id',$id)->value('ap_number');
-
-        $data['apInvoice'] = DB::table('ap_invoice')
-        ->leftJoin('third_party','third_party.kode','ap_invoice.supplier_id')
-        ->select(
-            'ap_invoice.*'
-            ,DB::raw("(select STRING_AGG ( a.rec_number,',' ORDER BY a.id) as list_rec from ap_invoice_detail a where ap_number = ap_invoice.ap_number) as list_rec")
-            ,'third_party.nama as supplier_name'
-            ,DB::raw("(select description from accounts where account=ap_invoice.account_ba) as account_ba_name")
-            ,DB::raw("(select description from accounts where account=ap_invoice.account_total) as account_total_name")
-            ,DB::raw("(select description from accounts where account=ap_invoice.account_vat) as account_vat_name")
-            ,DB::raw("(select description from accounts where account=ap_invoice.account_pph) as account_pph_name")
-        )
-        ->where('ap_invoice.id',$id)->first();       
-
-        $data['approval1']=DB::table('approval_history')
-        ->leftJoin('users','users.username','approval_history.username')
-        ->where('module_code',$this->moduleCode)
-        ->where('module_number',$apNumber)
-        ->where('approval_order',1)
-        ->first();
-
-        $data['approval2']=DB::table('approval_history')
-        ->leftJoin('users','users.username','approval_history.username')
-        ->where('module_code',$this->moduleCode)
-        ->where('module_number',$apNumber)
-        ->where('approval_order',2)
-        ->first();
-
-        $data['approval3']=DB::table('approval_history')
-        ->leftJoin('users','users.username','approval_history.username')
-        ->where('module_code',$this->moduleCode)
-        ->where('module_number',$apNumber)
-        ->where('approval_order',3)
-        ->first();
-
-        $data['approval4']=DB::table('approval_history')
-        ->leftJoin('users','users.username','approval_history.username')
-        ->where('module_code',$this->moduleCode)
-        ->where('module_number',$apNumber)
-        ->where('approval_order',4)
-        ->first();
-
-        $data['apNumber'] =  $data['apInvoice']->ap_number;
-        $data['invoiceNumber'] = $data['apInvoice']->inv_number;
-        $data['supplierName'] = $data['apInvoice']->supplier_name;
-        $data['nomorLpb'] = $data['apInvoice']->list_rec;
-        // $data['apDate'] = $data['apInvoice']->ap_date ? $data['apInvoice']->inv_date : '';
-        // $data['apDate'] = $data['apInvoice']->ap_date;
-        $data['invDate'] = $data['apInvoice']->inv_date;
-        $data['noPo'] = $data['apInvoice']->po_number;
-
-        return view('accounting.accountPayable.printDraft',$data);
-
-    }
-
-    public function printSlipPembayaran(Request $request)
-    {
-        $id=Crypt::decryptString($request->id);
-
-        $apNumber = DB::table('ap_invoice')->where('id',$id)->value('ap_number');
-
-        $apInvoice = DB::table('ap_invoice')
-        ->leftJoin('third_party','third_party.kode','ap_invoice.supplier_id')
-        ->leftJoin('accounts','accounts.account','ap_invoice.account_ba')
-        ->select(
-            'ap_invoice.*'
-            ,DB::raw("(select STRING_AGG ( a.rec_number,',' ORDER BY a.id) as list_rec from ap_invoice_detail a where ap_number = ap_invoice.ap_number) as list_rec")
-            ,'third_party.nama as supplier_name',
-            'accounts.description as account_name'
-        )
-        ->where('ap_invoice.id',$id)->first();
-
-        $data['title'] ='Invoice Supplier';
-
-        // $data['header']=DB::table('kas_hdr')
-        // ->select('kas_hdr.*'
-        // ,'description as receive_name'
-        // )
-        // ->where('kas_hdr.description',$apNumber)
-        // ->first();
-
-        // $voucherNumber=$data['header']->voucher_number;
-       
-        // $data['details']=DB::table('kas_det')
-        // ->leftJoin('accounts','accounts.account','kas_det.account')
-        // ->select('kas_det.*','accounts.description as account_name')
-        // ->where('voucher_number',$voucherNumber)
-        // ->orderBy('id')
-        // ->get();
-
-        // $data['total']=DB::table('kas_det')
-        // ->select(DB::raw("sum(credit) as total_credit"),DB::raw("sum(debit) as total_debit"))
-        // ->where('voucher_number',$voucherNumber)
-        // ->first();
-
-        // $data['costCenter']=DB::table('kas_det')
-        // ->leftJoin('depts','depts.code','kas_det.cost_center')
-        // ->where('voucher_number',$voucherNumber)
-        // ->distinct('depts.name')
-        // ->pluck('depts.name')->implode(',');
-
-        $data['approval1']=DB::table('approval_history')
-        ->leftJoin('users','users.username','approval_history.username')
-        ->where('module_code',$this->moduleCode)
-        ->where('module_number',$apNumber)
-        ->where('approval_order',1)
-        ->first();
-
-        $data['approval2']=DB::table('approval_history')
-        ->leftJoin('users','users.username','approval_history.username')
-        ->where('module_code',$this->moduleCode)
-        ->where('module_number',$apNumber)
-        ->where('approval_order',2)
-        ->first();
-
-        $data['approval3']=DB::table('approval_history')
-        ->leftJoin('users','users.username','approval_history.username')
-        ->where('module_code',$this->moduleCode)
-        ->where('module_number',$apNumber)
-        ->where('approval_order',3)
-        ->first();
-
-        $data['approval4']=DB::table('approval_history')
-        ->leftJoin('users','users.username','approval_history.username')
-        ->where('module_code',$this->moduleCode)
-        ->where('module_number',$apNumber)
-        ->where('approval_order',4)
-        ->first();
-
-        $data['top']=DB::table('third_party')->where('kode',$apInvoice->supplier_id)->value('top_batas_1');
-        $data['apNumber'] =  $apInvoice->ap_number;
-        $data['invoiceNumber'] = $apInvoice->inv_number;
-        $data['supplierName'] = $apInvoice->supplier_name;
-        $data['nomorLpb'] = $apInvoice->list_rec;
-        // $data['apDate'] = $apInvoice->ap_date ? $apInvoice->inv_date : '';
-        // $data['invDate'] = $apInvoice->inv_date;
-        $data['apDate'] = $apInvoice->ap_date;
-        $data['noPo'] = $apInvoice->po_number;
-        $data['grandTotal'] = $apInvoice->grand_total;
-        $data['accountName'] = $apInvoice->account_name;
-        $data['accountBa'] = $apInvoice->account_ba;
-        $data['vat'] = $apInvoice->vat;
-        $data['basisAmount'] = $apInvoice->basis_amount;
-        $data['invNumber'] = $apInvoice->inv_number;
-        $data['notes'] = $apInvoice->note;
-        
-        return view('accounting.accountPayable.printSlipPembayaran',$data);
-
-    }
-
-    public function listUom(Request $request)
-    {
-        $uomGroup = $request->value;      
-        $output="";
-
-        $data= DB::table("uom") 
-        ->where("uom_group",$uomGroup)
-        ->orderBy("code")
-        ->select("code","name")
-        ->get();          
-
-        $output .='<option value=""></option>';            
-        foreach ($data as $row){
-            $output .='<option value="'.$row->code.'">'.$row->code.'</option>';            
-        }        
-        
-        return $output;
-    }
-
-    public function lisDept()
-    {
-        
-        $output="";
-        $data= DB::table("depts") 
-        ->orderBy("code")
-        ->select("code","name")
-        ->get();          
-
-        $output .='<option value=""></option>';            
-        foreach ($data as $row){
-            $output .='<option value="'.$row->code.'">'.$row->name.'</option>';            
-        }        
-        
-        return $output;
-    }
-
-    public function prosesAllPosting(){
-        $listAp = db::table('ap_invoice')
-        ->whereIn('status',['1','2','3'])
-        ->whereNotIn(DB::raw("ap_number"), function($query) {
-            $query->select('voucher_number')
-            ->from('kas_hdr');
-        })
-        ->get();
-
-        foreach($listAp as $val){
-            $this->prosesPosting($val->ap_number);
-        }
-
-        return "beres proses";
 
     }
 
