@@ -2,7 +2,6 @@
 @section('title', $title)
 @section('content')
 @include('layouts.breadcrumb')
-@include('partials.alert')
 <section id="article-index">
   <div class="card">
     <div class="card-header">  
@@ -115,15 +114,6 @@
         $('#modalConfirmation').attr("action", href);
     });
   });
-
-  let showAlert = "{{ Session::get('alert') }}";
-
-  if ( showAlert ){
-    // showList();
-    $("#alert-message-alert").fadeTo(5000, 500).slideUp(500, function(){
-      $("#alert-message-alert").slideUp(500);
-    });
-  }
 
   //refresh di cards
   $('a[data-action="reload"]').on('click', function () {
