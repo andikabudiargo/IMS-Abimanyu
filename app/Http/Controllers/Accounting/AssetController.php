@@ -771,10 +771,10 @@ class AssetController extends Controller
                             <span>'. __("Detail") .'</span>
                         </a>';               
 
-            // $buttons .=         '<a href="'. route('accountPayable.print', ['id'=>Crypt::encryptString($data->id)]) .'" target="_blank" class="dropdown-item">
-            //                         <i data-feather="printer"></i>
-            //                         <span>'. __("Print") .'</span>
-            //                     </a>';
+            $buttons .= '<a href="'. route('asset.print', ['id'=>Crypt::encryptString($data->id)]) .'" target="_blank" class="dropdown-item">
+                            <i data-feather="printer"></i>
+                            <span>'. __("Print") .'</span>
+                        </a>';
             
             // if (($data->status != '7')){
                     if ($bisaDelete) {
@@ -814,143 +814,58 @@ class AssetController extends Controller
     public function print(Request $request)
     {
         $id=Crypt::decryptString($request->id);
-        $data['title'] ='Invoice Supplier';
+        $username =  Auth::user()->username;
 
-        $apNumber = DB::table('ap_invoice')->where('id',$id)->value('ap_number');
+        $data['title'] = "Detail $this->title";
+        $data['subtitle'] = "Detail $this->title";
 
-        $apInvoice = DB::table('ap_invoice')
-        ->leftJoin('third_party','third_party.kode','ap_invoice.supplier_id')
-        ->select(
-            'ap_invoice.*'
-            ,DB::raw("(select STRING_AGG ( a.rec_number,',' ORDER BY a.id) as list_rec from ap_invoice_detail a where ap_number = ap_invoice.ap_number) as list_rec")
-            ,'third_party.nama as supplier_name'
+        $data['id']=$id;
+
+        $data['header'] = DB::table('assets')
+        ->leftJoin('depts','depts.code','assets.departement')
+        ->select('assets.*'
+        ,'depts.name as dept_name'
+        ,db::raw("(select nama from third_party where kode = supplier) as supplier_name")
+        ,db::raw("(select concat(account,' - ',description) from accounts where account = akun_aset_tetap) as akun_aset_tetap_name")
+        ,db::raw("(select concat(account,' - ',description) from accounts where account = akun_akumulasi_penyusutan) as akun_akumulasi_penyusutan_name")
         )
-        ->where('ap_invoice.id',$id)->first();       
+        ->where('assets.id',$id)
+        ->get()->first(); 
 
-        $data['header']=DB::table('kas_hdr')
-        ->select('kas_hdr.*'
-        ,'description as receive_name'
-        )
-        ->where('kas_hdr.description',$apNumber)
-        ->first();
+        $data['details'] = DB::table('asset_detail')
+        ->where('asset_number',$data['header']->asset_number)
+        ->get(); 
+                
+        // $data['status'] = ['1'=>'DRAFT','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','6'=>'PAID'];
+        $status = ['DRAFT','','','','','',''];
+        $data['status'] = $status[$data['header']->status-1];
 
-        $voucherNumber=$data['header']->voucher_number;
-       
-        $data['details']=DB::table('kas_det')
-        ->leftJoin('kas_hdr','kas_hdr.voucher_number','kas_det.voucher_number')
-        ->leftJoin('ap_invoice','ap_invoice.ap_number','kas_hdr.description')
-        ->leftJoin('accounts','accounts.account','kas_det.account')
-        ->select('kas_det.*'
-        ,'ap_invoice.ap_number'
-        ,'ap_invoice.inv_number'
-        ,'accounts.description as account_name'
-        ,DB::raw("(select STRING_AGG ( a.rec_number,', ' ORDER BY a.id) as list_rec from ap_invoice_detail a where ap_number = ap_invoice.ap_number) as list_rec")
-        )
-        ->where('kas_det.voucher_number',$voucherNumber)
-        ->orderBy('id')
-        ->get();
-
-        $jumlahBaris= 0;
-        foreach($data['details'] as $val){
-            $jumlahBaris += count(explode(",",$val->list_rec));
-        }
+        // $jumlahBaris= 0;
+        // foreach($data['details'] as $val){
+        //     $jumlahBaris += count(explode(",",$val->list_rec));
+        // }
 
         // dd($jumlahBaris);
         $ukuranKertas = "A4";
-        if ($jumlahBaris < 56){
-            $ukuranKertas = "A4";
-        }else if(($jumlahBaris > 56) && ($jumlahBaris < 140)){
-            $ukuranKertas = "A42page";
-        }else if (($jumlahBaris > 140) && ($jumlahBaris < 200) ){
-            $ukuranKertas = "A43page";
-        }else if ($jumlahBaris > 200 ){
-            $ukuranKertas = "A44page";
-        }
-
-        /*20/8/2024 - semua standarnya jadi besar (A4) aja*/
-        if (($jumlahBaris < 18) && count($data['details']) < 7){
-            $ukuranKertas = "A4A5";
-        }
-
-        // if (count($data['details']) < 7){
-        //     if ($jumlahBaris < 18){
-        //         $ukuranKertas = "A4A5";
-        //     }else{
-        //         $ukuranKertas = "A4";
-        //     }
-        // }else{
-        //     if ($jumlahBaris > 56){
-        //         $ukuranKertas = "A42page";
-        //     }
-
-        //     if ($jumlahBaris > 70){
-        //         $ukuranKertas = "A43page";
-        //     }
-        //     // else{
-        //     //     $ukuranKertas = "A4";
-        //     // }
+        // if ($jumlahBaris < 56){
+        //     $ukuranKertas = "A4";
+        // }else if(($jumlahBaris > 56) && ($jumlahBaris < 140)){
+        //     $ukuranKertas = "A42page";
+        // }else if (($jumlahBaris > 140) && ($jumlahBaris < 200) ){
+        //     $ukuranKertas = "A43page";
+        // }else if ($jumlahBaris > 200 ){
+        //     $ukuranKertas = "A44page";
         // }
 
-        // dd($ukuranKertas);
+        // if (($jumlahBaris < 18) && count($data['details']) < 7){
+        //     $ukuranKertas = "A4A5";
+        // }
 
-        // dd($jumlahBaris);
-
+        $jumlahBaris=0;
         $data['ukuranKertas'] = $ukuranKertas;
         $data['jumlahBaris'] = $jumlahBaris;
-        $data['total']=DB::table('kas_det')
-        ->select(DB::raw("sum(credit) as total_credit"),DB::raw("sum(debit) as total_debit"))
-        ->where('voucher_number',$voucherNumber)
-        ->first();
-
-        $data['costCenter']=DB::table('kas_det')
-        ->leftJoin('depts','depts.code','kas_det.cost_center')
-        ->where('voucher_number',$voucherNumber)
-        ->distinct('depts.name')
-        ->pluck('depts.name')->implode(',');
-
-        $data['approval1']=DB::table('approval_history')
-        ->leftJoin('users','users.username','approval_history.username')
-        ->where('module_code',$this->moduleCode)
-        ->where('module_number',$apNumber)
-        ->where('approval_order',1)
-        ->first();
-
-        $data['approval2']=DB::table('approval_history')
-        ->leftJoin('users','users.username','approval_history.username')
-        ->where('module_code',$this->moduleCode)
-        ->where('module_number',$apNumber)
-        ->where('approval_order',2)
-        ->first();
-
-        $data['approval3']=DB::table('approval_history')
-        ->leftJoin('users','users.username','approval_history.username')
-        ->where('module_code',$this->moduleCode)
-        ->where('module_number',$apNumber)
-        ->where('approval_order',3)
-        ->first();
-
-        $data['approval4']=DB::table('approval_history')
-        ->leftJoin('users','users.username','approval_history.username')
-        ->where('module_code',$this->moduleCode)
-        ->where('module_number',$apNumber)
-        ->where('approval_order',4)
-        ->first();
-
-        $data['apNumber'] =  $apInvoice->ap_number;
-        $data['invoiceNumber'] = $apInvoice->inv_number;
-        $data['supplierName'] = $apInvoice->supplier_name;
-        $data['nomorLpb'] = $apInvoice->list_rec;
-        // $data['apDate'] = $apInvoice->ap_date ? $apInvoice->inv_date : '';
-        // $data['apDate'] = $apInvoice->ap_date;
-        $data['invDate'] = $apInvoice->inv_date;
-        $data['noPo'] = $apInvoice->po_number;
-
-        return view('accounting.accountPayable.print',$data);
-
-        // view()->share($data);
-
-        // $pdf = PDF::loadView('accounting.accountPayable.print')->setPaper([0, 0, 595.28, 841.89], 'portrait');
-        // return $pdf->stream("ap_$apNumber.pdf");
+        
+        return view('accounting.asset.print',$data);
 
     }
 

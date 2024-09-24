@@ -17,36 +17,32 @@
                 </div>
                 <div class="card-content collapse show">
                     <div class="card-body">
-                        <table>
-                            <table class="table table-bordered" id="header" width="100%">
-                                <tbody>
-                                    <tr><td width="25%">Nama Asset</td><td >{{ $header->asset_desc }}</td></tr>
-                                    <tr><td >Nomor Asset</td><td >{{ $header->asset_number }}</td></tr>
-                                    <tr><td >Nomor Invoice</td><td >{{ $header->invoice_number }}</td></tr>
-                                    <tr><td >Harga Beli</td><td >{{ number_format($header->buying_price) }}</td></tr>
-                                    <tr><td >Qty</td><td >{{ $header->qty }}</td></tr>
-                                    <tr><td >Departement</td><td >{{ $header->dept_name }}</td></tr>
-                                    <tr><td >Supplier</td><td >{{ $header->supplier_name }}</td></tr>
-                                    <tr><td >Akun Asset Tetap</td><td >{{ $header->akun_aset_tetap_name }}</td></tr>
-                                    <tr><td >Status</td><td >{{ ucfirst($header->status_beli) }}</td></tr>
-                                </tbody>
-                            </table>
+                        <table class="table table-bordered" id="header" width="100%">
+                            <tbody>
+                                <tr><td width="25%">Nama Asset</td><td >{{ $header->asset_desc }}</td></tr>
+                                <tr><td >Nomor Asset</td><td >{{ $header->asset_number }}</td></tr>
+                                <tr><td >Nomor Invoice</td><td >{{ $header->invoice_number }}</td></tr>
+                                <tr><td >Harga Beli</td><td >{{ number_format($header->buying_price) }}</td></tr>
+                                <tr><td >Qty</td><td >{{ $header->qty }}</td></tr>
+                                <tr><td >Departement</td><td >{{ $header->dept_name }}</td></tr>
+                                <tr><td >Supplier</td><td >{{ $header->supplier_name }}</td></tr>
+                                <tr><td >Akun Asset Tetap</td><td >{{ $header->akun_aset_tetap_name }}</td></tr>
+                                <tr><td >Status</td><td >{{ ucfirst($header->status_beli) }}</td></tr>
+                            </tbody>
                         </table>
                         <br>
                         @if( $header->penyusutan == '1')
                             <h4 class="card-title">Penyusutan</h4>
-                            <table>
-                                <table class="table table-bordered" id="header1" width="100%">
-                                    <tbody>
-                                        <tr><td width="20%">Metode Penyusutan</td><td >{{ $header->metode_penyusutan }}</td></tr>
-                                        <tr><td >Nilai Penyusutan (Thn)</td><td >{{ $header->nilai_penyusutan }}%</td></tr>
-                                        <tr><td >Masa Manfaat</td><td >{{ $header->masa_manfaat }} Tahun</td></tr>
-                                        <tr><td >Tanggal Awal Penyusutan</td><td >{{ date("d F Y", strtotime($header->tanggal_awal_penyusutan)) }}</td></tr>
-                                        <tr><td >Tanggal Akhir Penyusutan</td><td >{{ date("d F Y", strtotime($header->tanggal_akhir_penyusutan))  }}</td></tr>
-                                        <tr><td >Penyusutan</td><td >{{ number_format($header->akumulai_penyusutan) }}</td></tr>
-                                        <tr><td >Akun Akumulasi Penyusutan</td><td >{{ $header->akun_akumulasi_penyusutan_name }}</td></tr>
-                                    </tbody>
-                                </table>
+                            <table class="table table-bordered" id="header1" width="100%">
+                                <tbody>
+                                    <tr><td width="20%">Metode Penyusutan</td><td >{{ $header->metode_penyusutan }}</td></tr>
+                                    <tr><td >Nilai Penyusutan (Thn)</td><td >{{ $header->nilai_penyusutan }}%</td></tr>
+                                    <tr><td >Masa Manfaat</td><td >{{ $header->masa_manfaat }} Tahun</td></tr>
+                                    <tr><td >Tanggal Awal Penyusutan</td><td >{{ date("d F Y", strtotime($header->tanggal_awal_penyusutan)) }}</td></tr>
+                                    <tr><td >Tanggal Akhir Penyusutan</td><td >{{ date("d F Y", strtotime($header->tanggal_akhir_penyusutan))  }}</td></tr>
+                                    <tr><td >Penyusutan</td><td >{{ number_format($header->akumulai_penyusutan) }}</td></tr>
+                                    <tr><td >Akun Akumulasi Penyusutan</td><td >{{ $header->akun_akumulasi_penyusutan_name }}</td></tr>
+                                </tbody>
                             </table>
                         @endif
                         {{-- <table>
@@ -86,27 +82,25 @@
                 <div class="card-content collapse show">
                     <div class="card-body">
                         <div class="form-row">
-                            <table>
-                                <table class="table table-bordered" id="details" width="100%">
-                                    <thead>
+                            <table class="table table-bordered" id="details" width="100%">
+                                <thead>
+                                    <tr>
+                                        <th>Tanggal</th>
+                                        <th>Nilai Asset</th>
+                                        <th>Penyusutan</th>
+                                        <th>Nilai Buku</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach ($details as $val )
                                         <tr>
-                                            <th>Tanggal</th>
-                                            <th>Nilai Asset</th>
-                                            <th>Penyusutan</th>
-                                            <th>Nilai Buku</th>
+                                            <td width="20%">{{ date("d-m-Y", strtotime($val->tanggal_asset)) }}</td>
+                                            <td >{{ number_format($val->nilai_asset) }}</td>
+                                            <td >{{ number_format($val->penyusutan) }}</td>
+                                            <td >{{ number_format($val->nilai_buku) }}</td>
                                         </tr>
-                                    </thead>
-                                    <tbody>
-                                        @foreach ($details as $val )
-                                            <tr>
-                                                <td width="20%">{{ date("d-m-Y", strtotime($val->tanggal_asset)) }}</td>
-                                                <td >{{ number_format($val->nilai_asset) }}</td>
-                                                <td >{{ number_format($val->penyusutan) }}</td>
-                                                <td >{{ number_format($val->nilai_buku) }}</td>
-                                            </tr>
-                                        @endforeach
-                                    </tbody>
-                                </table>
+                                    @endforeach
+                                </tbody>
                             </table>
                         </div>
                         <br>

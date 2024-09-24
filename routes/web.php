@@ -907,6 +907,7 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('asset/get/list/ap',['as'=>'get.list.ap','uses'=>'Accounting\AssetController@getListAp']);
 	Route::get('asset/get/list/asset',['as'=>'get.list.asset','uses'=>'Accounting\AssetController@getListAsset']);
 	Route::get('asset/get/akun/mapping',['as'=>'get.akun.mapping','uses'=>'Accounting\AssetController@getAkunMapping']);
+	Route::get('asset/print',['as'=>'asset.print','uses'=>'Accounting\AssetController@print']);
 		
 	Route::get('stockTake',['as'=>'stockTake.index','uses'=>'StockTake\StockTakeController@index']);
 	Route::post('stockTake/import',['as'=>'stockTake.import','uses'=>'StockTake\StockTakeController@import']);

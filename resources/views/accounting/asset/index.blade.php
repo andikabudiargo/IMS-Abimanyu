@@ -71,7 +71,6 @@
 <style>
 </style>
 @endsection
-
 @section('scripts')
 <script type="text/javascript">
   let currentDate = todayDate('dd-mm-yyyy');  
