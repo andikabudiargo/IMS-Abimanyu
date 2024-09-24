@@ -491,7 +491,7 @@
 
             </ul>
           </li>
-          <li class=" {{ in_array(\Request::segment(1), ['accounts','groups','accTypes','account']) ? 'active' : '' }} nav-item">
+          <li class=" {{ in_array(\Request::segment(1), ['accounts','groups','accTypes','account','asset']) ? 'active' : '' }} nav-item">
             <a class="d-flex align-items-center" href="javascript:void(0);">
               <i data-feather="book"></i>
               <span class="menu-title text-truncate" data-i18n="Form Elements">COA
@@ -504,6 +504,15 @@
                 <a class="d-flex align-items-center" href="{{ route('accounts.index') }}">
                   <i data-feather="circle"></i>
                   <span class="menu-item text-truncate" data-i18n="Input">Account</span>
+                </a>
+              </li>
+              @endcan
+
+              @can('accType-index')
+              <li class="{{ \Request::segment(1) == 'asset'  ? 'active' : '' }}">
+                <a class="d-flex align-items-center" href="{{ route('asset.index') }}">
+                  <i data-feather="circle"></i>
+                  <span class="menu-item text-truncate" data-i18n="Input">Assets</span>
                 </a>
               </li>
               @endcan

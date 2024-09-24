@@ -893,7 +893,21 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('debitnote/approve',['as'=>'debitNote.approve','uses'=>'Accounting\DebitNoteController@approve']);
 	Route::get('debitnote/notif/approve',['as'=>'debitNote.notif.approve','uses'=>'Accounting\DebitNoteController@approve']);
 	Route::post('debitnote/get/article',['as'=>'debitNote.get.article','uses'=>'Accounting\DebitNoteController@getArticle']);
-	
+
+	Route::get('asset',['as'=>'asset.index','uses'=>'Accounting\AssetController@index','middleware' => ['permission:article-index']]);
+	Route::get('asset/create',['as'=>'asset.create','uses'=>'Accounting\AssetController@create','middleware' => ['permission:article-create']]);
+	Route::post('asset/store',['as'=>'asset.store','uses'=>'Accounting\AssetController@store']);
+	Route::post('asset/image/store',['as'=>'asset.image.store','uses'=>'Accounting\AssetController@storeImage']);
+	Route::post('asset/list',['as'=>'asset.list','uses'=>'Accounting\AssetController@list']);
+	Route::get('asset/show',['as'=>'asset.show','uses'=>'Accounting\AssetController@show']);
+	Route::get('asset/edit',['as'=>'asset.edit','uses'=>'Accounting\AssetController@edit','middleware' => ['permission:article-edit']]);
+	Route::post('asset/update',['as'=>'asset.update','uses'=>'Accounting\AssetController@update']);
+	Route::post('asset/delete',['as'=>'asset.destroy','uses'=>'Accounting\AssetController@destroy']);
+	Route::get('asset/code/create',['as'=>'asset.code.create','uses'=>'Accounting\AssetController@articleCodeCreate']);
+	Route::get('asset/get/list/ap',['as'=>'get.list.ap','uses'=>'Accounting\AssetController@getListAp']);
+	Route::get('asset/get/list/asset',['as'=>'get.list.asset','uses'=>'Accounting\AssetController@getListAsset']);
+	Route::get('asset/get/akun/mapping',['as'=>'get.akun.mapping','uses'=>'Accounting\AssetController@getAkunMapping']);
+		
 	Route::get('stockTake',['as'=>'stockTake.index','uses'=>'StockTake\StockTakeController@index']);
 	Route::post('stockTake/import',['as'=>'stockTake.import','uses'=>'StockTake\StockTakeController@import']);
 	Route::get('stockTake/export',['as'=>'stockTake.export','uses'=>'StockTake\StockTakeController@export']);
