@@ -141,7 +141,7 @@
                                         <table class="table table-bordered" id="listOfRec">
                                             <thead>
                                                 <tr>
-                                                    <th scope="col" width="30%">Aaccount</th>
+                                                    <th scope="col" width="30%">Account</th>
                                                     <th scope="col" width="20%">Article Code</th>
                                                     <th scope="col" width="30%">Description</th>
                                                     <th scope="col" width="5%">Dept</th>
