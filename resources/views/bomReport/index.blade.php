@@ -120,7 +120,7 @@
         { width: '5%', targets: 0 },
         {
             targets: [ 8,11 ],
-            render: $.fn.dataTable.render.number('.', ',', 4,''),
+            render: $.fn.dataTable.render.number(',', '.', 4,''),
             className: "text-right"
         },
       ],
