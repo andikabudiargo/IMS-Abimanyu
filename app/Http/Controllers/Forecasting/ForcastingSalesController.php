@@ -112,6 +112,12 @@ class ForcastingSalesController extends Controller
         ->orderBy('nama')
         ->get();
 
+        $data['articles'] = DB::table('article')
+        ->where('status','1')
+        ->where('article_type','FG')
+        ->orderBy('article_alternative_code','asc')
+        ->get();
+
         $data['forcastNumber'] = "";
         $data['forcastName'] = "";
         $data['note'] = "";
@@ -143,6 +149,12 @@ class ForcastingSalesController extends Controller
         $header = DB::table('forecasting_sales_hdr')
         ->where('id',$id)
         ->first();
+
+        $data['articles'] = DB::table('article')
+        ->where('status','1')
+        ->where('article_type','FG')
+        ->orderBy('article_alternative_code','asc')
+        ->get();
 
         $data['forcastNumber'] = $header->forcast_number;
         $data['forcastName'] = $header->forcast_name;
@@ -266,6 +278,95 @@ class ForcastingSalesController extends Controller
             }
         }
     }
+
+    public function update(Request $request)
+    {
+        $username =  Auth::user()->username;
+        $forcastNumber = $request->fcNumber;
+        $forcastName=$request->forcastName;      
+        $note = $request->note;
+        
+        $messages = [
+            'required' => 'The field is required.',
+            'unique' => 'The code has already been taken', 
+            'iunique' => "KM Number has already been taken",
+        ];
+
+        Validator::extend('iunique', function ($attribute, $value, $parameters, $validator) {
+            $query = DB::table($parameters[0]);
+            $column = $query->getGrammar()->wrap($parameters[1]);
+            return !$query->whereRaw("lower({$column}) = lower(?)", [$value])->count();
+        });
+        
+        $validation = Validator::make($request->all(),$messages = [
+            // 'poNumber'=>'required|unique:purchase_order_hdr,po_number',
+            // 'orderDate'  => 'required',
+            'forcastName'=>'required|unique:forecasting_sales_hdr,forcast_name',
+            // 'supplier'  => 'required',
+        ]);
+        
+        $error_array = array();
+        $success_output = '';
+        
+        if ($validation->fails()){
+            foreach ($validation->messages()->getMessages() as $field_name => $messages){
+                $error_array[] = $messages;
+            }
+           
+            $title="Save $this->title";
+            $alert ="error";
+            return response()->json(array('status' => 0,'title' => $title, 'message' => $error_array,'alert' =>$alert));
+        }
+        
+        DB::beginTransaction();
+        try {
+                $rowAffected=DB::table('forecasting_sales_hdr')
+                ->where('forcast_number',$forcastNumber)
+                ->update(
+                    [   
+                        'forcast_name' => $forcastName,
+                        'note' => $note,
+                        'updated_by' => Auth::user()->username,
+                        'updated_at' => date('Y-m-d H:i:s'),
+                    ]
+                );
+
+                if($rowAffected){
+                                        
+                    DB::table('forecasting_sales')
+                    ->where('forcast_number',$forcastNumber)
+                    ->update(
+                        [   
+                            'forcasting_name' => $forcastName
+                        ]
+                    );
+
+                    DB::commit();
+                    $title ="Update $this->title";
+                    $alert  ="success";
+                    $message  = "$title $forcastName is successfully updated";
+
+                    $data['title'] = $title;
+                    $data['message'] = $message;
+                    $data['alert'] = $alert;
+
+                    \LogActivity::addToLog($title,"username: $username Status $message");
+                    return response()->json(array('status' => 1, 'message' => $message,'alert'=>$alert,'forcastName'=>$forcastName));
+                    // return redirect()->back()->with(array('title' => $title, 'message' => $message,'alert'=>$alert,'forcastName'=>$forcastName));
+                }
+
+        } catch (Exception $e) {
+            DB::rollBack();
+            $title ="Update $this->title";
+            $alert  ="warning";
+            $message  = "Invoice $forcastName is failed to update";
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return response()->json(array('status' => 1, 'message' => $message,'alert'=>$alert,'forcastName'=>$forcastName));
+            // return redirect()->back()->with(array('title' => $title, 'message' => $message,'alert'=>$alert,'forcastName'=>$forcastName));
+        }
+        
+    }
+    
     public function destroy(Request $request)
     {
         $username =  Auth::user()->username;    
@@ -295,6 +396,42 @@ class ForcastingSalesController extends Controller
             \LogActivity::addToLog('FC Sales delete ',"username: $username Status $message");
             return response()->json(array('status'=>"0",'message'=>$message,'alert'=>$alert,'fcNumber'=>$fcNumber));
         }
+    }
+    public function show(Request $request)
+    {
+
+        $id=Crypt::decryptString($request->id);
+        $username =  Auth::user()->username;
+
+        $data['title'] = "Edit $this->title";
+        $data['subtitle'] = "Edit $this->title";
+                
+        $data['customers'] = DB::table('third_party')
+        ->where('third_party_type','cust')
+        ->orderBy('nama')
+        ->get();
+
+        $header = DB::table('forecasting_sales_hdr')
+        ->where('id',$id)
+        ->first();
+
+        $data['articles'] = DB::table('article')
+        ->where('status','1')
+        ->where('article_type','FG')
+        ->orderBy('article_alternative_code','asc')
+        ->get();
+
+        $data['forcastNumber'] = $header->forcast_number;
+        $data['forcastName'] = $header->forcast_name;
+        $data['note'] = $header->note;
+        $data['year'] = $header->year;
+        $data['bulanAwal'] = $header->month_start;
+        $data['bulanAkhir'] = $header->month_end;
+
+        $data['bulan'] = ['1'=>"Januari",'2'=>"Februari",'3'=>"Maret",'4'=>"April",'5'=>"Mei",'6'=>"Juni",'7'=>"Juli",'8'=>"Agustus",'9'=>"September",'10'=>"Oktober",'11'=>"November",'12'=>"Desember"];
+
+        return view("forecasting.sales.show",$data);
+
     }
 
     public function list(Request $request)
@@ -331,6 +468,10 @@ class ForcastingSalesController extends Controller
                                     <i data-feather="file-text"></i>
                                     Edit
                                 </a>';
+                $buttons .=     '<a href="'. route('forecastSales.show', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+                                <i data-feather="list"></i>
+                                Detail
+                            </a>';
                 // }
             // }            
             
@@ -436,7 +577,9 @@ class ForcastingSalesController extends Controller
             $namaBulan=substr($namaBulan ,0,-1);
 
             // $filter = $customerCode ? "and a.customer_id = '$customerCode'" :'';
-            $filter = $forcastingName ? "and a.forcasting_name = '$forcastingName'" :'';
+            // $filter = $forcastingName ? "and a.forcasting_name = '$forcastingName'" :'';
+            $filter = $forcastingName ? "and a.forcast_number = '$fcNumber'" :'';
+            
 
             $data = db::select("SELECT a.forcasting_name,a.customer_id,c.nama,c.nama,a.article_code,b.article_alternative_code,b.article_desc,a.year,
             $namaBulan
@@ -461,9 +604,28 @@ class ForcastingSalesController extends Controller
             group by a.forcasting_name,a.customer_id,c.nama, a.article_code,b.article_desc,b.article_alternative_code,a.year,c.nama
             order by article_alternative_code");
         }
-
         return response()->json(array('data'=>$data));
-
     }
+
+    public function getSelectArticle(Request $request)
+    {
+        $searchTerm = $request->q;
+        if (empty($searchTerm)) {
+            return response()->json([]);
+        }
+
+        $data= DB::table('article') 
+        ->where('article_desc','ilike','%'.$searchTerm.'%')
+        ->where('article_type','FG')
+        ->get();
+
+        $formattedArts = [];
+        foreach ($data as $art) {
+            $formattedArts[] = ['id' => $art->article_code,'alt' => $art->article_alternative_code,'articleDesc' => $art->article_desc,'customer'=>$art->third_party,'articleCode'=>$art->article_code];
+        }
+        return response()->json($formattedArts);
+    }
+
+    
 
 }

@@ -33,7 +33,7 @@
 {{-- table row untuk di clone--}}  
 <div id="new_row" name="new_row[]" class="d-none">
     <div id="baru" class="tanda-baris" >
-        <table class="table-bordered"  style="width: 98%;table-layout: fixed;">
+        <table class="table-bordered" style="width: 98%;table-layout: fixed;">
             <tbody>
                 <tr id="tabelBaru">
                 </tr>
@@ -53,11 +53,66 @@
         $("#cmdSave").hide();
     }
 
+    add_month_add =(startMonth,endMonth,urutan)=>{
+        let list  = "";
+        let year=$('#year').val().slice(-2);
+        $("#tabelBaru td").remove();
+        // list=`<td class="isian" style="width: 30%">
+        //         <select class="form-control tombol-panah" id="articleId" name="articleId" required>
+        //         </select>
+        //       </td>`
+        list="";
+
+        for(i=parseInt(startMonth);i<=parseInt(endMonth);i++){
+            
+            list+= `<td class="isian" style="">
+                    <input type="text" data-urutan="${urutan}" class="form-control-plaintext tombol-panah numeral-mask text-right data-bulan" 
+                    data-type-el-kiri="input" 
+                    data-nama-el-kiri='month${i-1}'
+                    data-type-el-kanan='input'
+                    data-nama-el-kanan='month${i+1}'
+                    data-month='${i}'
+                    data-year='${year}'
+                    id="${year}${i}" 
+                    name="month${i}[]"  
+                    value="0"
+                    maxlength="6" />
+                </td>`; 
+        }
+        activate_angka();
+        mask_thousand();
+        // console.log(list);
+        return list;
+    }
+
+    add_judul_add =(startMonth,endMonth)=>{
+        let judul = "";
+        let year=$('#year').val().slice(-2);
+        let bulan=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Okt','Nov','Dec'];
+
+        // judul = `<th class="isian" style="width: 30%">
+        //          <label>Article</label>
+        //          </th>
+        //          `;
+        
+        for(i=parseInt(startMonth);i<=parseInt(endMonth);i++){
+            let namaBulan = bulan[i-1];
+            judul+=`<th class="isian text-center" >
+                        <label>${namaBulan}${year}</label>
+                    </th>`;
+
+        }
+
+        // console.log(judul);
+
+        return judul;
+    }
+
     add_month =(startMonth,endMonth,urutan)=>{
         let list  = "";
         let year=$('#year').val().slice(-2);
         $("#tabelBaru td").remove();
-        list=`<td class="isian" style="width: 30%">
+        list =`<td class="isian" style="width: 30%">
                 <select class="form-control tombol-panah" id="articleId" name="articleId" required>
                 </select>
               </td>`
@@ -93,7 +148,7 @@
                  <label>Article</label>
                  </th>
                  `;
-
+        
         for(i=parseInt(startMonth);i<=parseInt(endMonth);i++){
             let namaBulan = bulan[i-1];
             judul+=`<th class="isian text-center" >
@@ -101,8 +156,6 @@
                     </th>`;
 
         }
-
-        // console.log(judul);
 
         return judul;
     }
@@ -141,6 +194,31 @@
             // })
         }
         
+    }
+
+    listDetailBulan2 = (customerCode,articleCode) =>{
+        emptyList();
+        let customer = customerCode;
+        let bulanAwal = $('#bulanAwal').val();
+        let bulanAkhir = $('#bulanAkhir').val();
+        let year = $('#year').val();
+        
+        if ((parseInt(bulanAkhir)-parseInt(bulanAwal) >= 0) && year && customer){
+            let cloneCount=1;        
+            let listJudul = add_judul_add(bulanAwal,bulanAkhir);
+            $("#judulTabel").append(listJudul);
+            let isiBulan = add_month_add(bulanAwal,bulanAkhir,cloneCount);            
+            $("#item_row").append($("#new_row").clone().html());
+            $("#tabelBaru").append(isiBulan);
+            showData(customer,articleCode);
+            // articleList(customer,articleCode);
+            $('#customerId').select2();
+            activate_angka();
+            mask_thousand();
+            $("#cmdSave").show();
+        }else{
+            emptyList();
+        }
     }
 
     function articleList(customer) {

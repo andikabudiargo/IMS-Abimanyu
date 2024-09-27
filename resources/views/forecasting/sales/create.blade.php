@@ -7,12 +7,12 @@
         <div class="col-md-12">
             <div class="card">
                 <div class="card-header">
-                    {{-- <h4 class="card-title">Status: New</h4>
+                    <h4 class="card-title"></h4>
                     <div class="heading-elements">
                         <ul class="list-inline mb-0">
                             <li><a data-action="collapse"><i data-feather="chevron-down"></i></a></li>
                         </ul>
-                    </div>     --}}
+                    </div>    
                 </div>
                 <div class="card-content collapse show">
                     <div class="card-body">
@@ -66,8 +66,11 @@
                                     <textarea type="text" id="note" name="note" class="form-control" rows="1" ></textarea>
                                 </div>
                             </div>
+                            <button class="btn btn-success" type="button" id="cmdUpdateHeader" name="cmdUpdateHeader">
+                                Update Header
+                            </button>
                             <hr>
-                            <div class="form-row">
+                            {{-- <div class="form-row">
                                 <div class="form-group col-md-4">
                                     <label for="customerCode">Customer</label>
                                     <select class="select2 form-control" id="customerCode" name="customerCode">
@@ -77,26 +80,48 @@
                                         @endforeach
                                     </select>
                                 </div>
-                            </div>
+                            </div> --}}
                             <div class="form-row">
-                                <div>
-                                    <table id="detailTable" style="width:98%;table-layout: fixed;">
-                                        <tbody>
-                                            <tr id="judulTabel">
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </div>      
-                                <div class="" id="item_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px">
+                                <div class="form-group col-md-6">
+                                    <label for="articleId">Article FG</label>
+                                    <select class="select2 form-control" id="articleId" name="articleId">
+                                        <option value=""></option>
+                                        @foreach($articles as $data)
+                                            <option value="{{ $data->article_code }}" data-customer-code="{{ $data->third_party }}">{{ $data->article_alternative_code }} | {{ $data->article_desc }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="form-group col-md-4">
+                                    <label for="customerCode">Customer</label>
+                                    <select class="select2 form-control disabled-el" id="customerCode" name="customerCode" disabled>
+                                        <option value=""></option>
+                                        @foreach($customers as $val)
+                                        <option value="{{ $val->kode }}">{{ $val->nama }}</option>
+                                        @endforeach
+                                    </select>
                                 </div>
                             </div>
-                            <br>
                             <div class="form-row">
-                                <div class="col-md-12">    
+                                <div class="col-md-6">
+                                    <div>
+                                        <table id="detailTable" style="width:98%;table-layout: fixed;">
+                                            <tbody>
+                                                <tr id="judulTabel">
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>      
+                                    <div class="" id="item_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px">
+                                    </div>
+                                </div>
+                            </div>
+                            <hr>
+                            <div class="form-row">
+                                <div class="col-md-12">
                                     <a href="{{ route('forecastSales.index') }}" class="btn btn-light">< Back</a>
-                                    <button class="btn btn-success" type="button" id="cmdNew" name="cmdNew">
+                                    {{-- <button class="btn btn-success" type="button" id="cmdNew" name="cmdNew">
                                         <span class="align-middle d-sm-inline-block d-none">New</span>
-                                    </button>
+                                    </button> --}}
                                     <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">
                                         <i data-feather="plus" class="align-middle mr-sm-25 mr-0"></i>
                                         <span class="align-middle d-sm-inline-block d-none">Add</span>
@@ -197,10 +222,13 @@
     let vBulanAkhir = $('#bulanAkhir');
     let vForcastName = $('#forcastName');
     let vNote = $('#note');
+    let inEdit = 'false';
 
     $(document).ready(function(){           
         validateFormToast('frmAdd');
         $("#cmdSave").hide();
+        $("#cmdUpdateHeader").hide();
+
         feather.replace({
             width: 14,
             height: 14
@@ -217,74 +245,8 @@
             vBulanAwal.attr('disabled','disabled');
             vBulanAkhir.attr('disabled','disabled');
             listDataAll("{{ $forcastNumber }}");
+            $("#cmdUpdateHeader").show();
         }
-
-    });
-
-    // $('#customerCode,#year,#bulanAwal,#bulanAkhir').change(function(e){
-    $('#customerCode').change(function(e){
-        let $this= $(this);
-        let idku= $this.attr('id');
-        if ($this.val()){
-            $("#judulTabel th").remove();
-            listDetailBulan();
-        }
-
-        // if ($('#customerCode').val()){            
-        //     let bulanAwal = vBulanAwal.val();
-        //     let bulanAkhir = vBulanAkhir.val();
-        //     let year = vYear.val().slice(-2);;
-        //     let listJudul = add_judul(bulanAwal,bulanAkhir);
-        //     let customer = $('#customerCode').val();
-        //     let forcastName = $('#forcastName').val();
-        //     let zFcnumber = vFcNumber.val();
-            
-        //     if ($('#listTable tr').length >0){
-        //         console.log("ada");
-        //         let table= $('#listTable').DataTable();
-        //         table.destroy();
-        //         $('#listTable tbody > tr').remove();
-        //         $("#listTable thead > tr").remove();
-        //     }
-
-        //     $('#listTable thead').append("<tr><th>Action</th><th>Forcast Name</th><th>Article Code</th>"+listJudul+"</tr>");
-
-        //     $.ajax({
-        //         url:"{{route('forecastSales.get.list.article')}}",
-        //         method:"POST",
-        //         data:{
-        //             customerCode:customer,
-        //             year:year,
-        //             bulanAwal:bulanAwal,
-        //             bulanAkhir:bulanAkhir,
-        //             forcastName:forcastName
-        //         },
-        //         success:function(result){
-        //             let conversi = ['satu','satu','dua','tiga','empat','lima','enam','tujuh','delapan','sembilan','sepuluh','sebelas','duabelas'];
-        //             for(i=0;i< result.data.length;i++){
-        //                 list=`<td>
-        //                     <button class="btn btn-danger btn-sm" type="button" onclick="deleteArticle('${result.data[i].customer_id}','${result.data[i].article_code}','${result.data[i].year}','${result.data[i].article_desc}')" id="cmdEdit" name="cmdEdit" >Delete</button> 
-        //                     <button class="btn btn-success btn-sm" type="button" onclick="editArticle('${result.data[i].article_code}')" id="cmdEdit" name="cmdEdit" >Edit</button>
-        //                     </td>`
-        //                 list+=`<td >${result.data[i].forcasting_name}</td>`
-        //                 list+=`<td >${result.data[i].article_alternative_code}</td>`
-        //                 list+=`<td >${result.data[i].article_desc}</td>`
-        //                 for(a=parseInt(bulanAwal);a<=parseInt(bulanAkhir);a++){
-        //                     z=conversi[a];
-        //                     let qty = result.data[i][z];
-        //                     list+= `<td class="text-right"> ${qty ? humanizeNumber(qty) : 0} </td>`; 
-        //                 }
-        //                 $('#listTable tbody').append("<tr>"+list+"</tr>");
-        //             }
-
-        //             $('#listTable').DataTable({
-        //                 bDestroy: true, //pakai ini supaya bisa di load berulang2
-        //                 scrollX: true,
-        //             });
-                    
-        //         }
-        //     })
-        // }
 
     });
 
@@ -385,7 +347,7 @@
                 
             }
         })
-    }
+    }   
  
     $('body').on('change', '#articleId', function() {
         let $this= $(this);
@@ -393,9 +355,31 @@
         let uBulanAwal = vBulanAwal.val();
         let uBulanAkhir = vBulanAkhir.val();
         let uFcNumber = vFcNumber.val();
+        let uCustomer = $this.find(":selected").data("customer-code");
+        let articleId = $('#articleId').val();
+        $('#customerCode').val(uCustomer).trigger('change');
+        listDetailBulan2(uCustomer,articleId);
 
-        if ($this.val()){
+        if (!$('#bulanAwal').val() || !$('#bulanAkhir').val()|| !$('#year').val()){
+            Swal.fire({
+                icon: 'warning',
+                title: "Warning!",
+                text: "Tahun dan bulan harus dipilih dulu",
+                confirmButtonText: 'OK',
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $('#customerCode').val('').trigger('change');
+                    selectorArtikelSelect2.val(null).trigger('change.select2');
+                }
+            })
+        }else{
+                
+        // if ($this.val()){
 
+            if(inEdit == 'false'){
+                $("#cmdSave").text('Add');
+            }
+        
             for(i=parseInt(uBulanAwal);i<=parseInt(uBulanAkhir);i++){
                 $('#'+uYear+i).val(0);
             }
@@ -425,11 +409,26 @@
         }
     });
 
+    $('#year,#bulanAwal,#bulanAkhir').change(function(e){
+        let $this= $(this);
+        let idku= $this.attr('id');
+        let customer = $('#customerCode').val();
+        let articleId = $('#articleId').val();
+        if ($this.val() && customer && articleId){
+            $("#judulTabel th").remove();
+            listDetailBulan2(customer,articleId);
+        }
+    });
+
     editArticle = (articleCode,customerCode) =>{
         $('#customerCode').val(customerCode).trigger('change');
+        $("#cmdSave").text('Update');
+        inEdit = 'true';
+        $("#cmdUpdateHeader").show();
         setTimeout(function () {
             $('#articleId').val(articleCode).trigger('change');    
         }, 500);
+        
     }
 
     deleteArticle = (customerId,articleCode,year,articleDesc) =>{
@@ -553,13 +552,16 @@
                     }else{
                         show_msg(data.title, data.message, data.alert);
                         emptyList();
-                        $('#customerCode').val(customerCodeIni).trigger('change');
-                        vForcastName.attr('disabled','disabled');
+                        // $('#customerCode').val(customerCodeIni).trigger('change');
+                        // vForcastName.attr('disabled','disabled');
+                         $('#articleId').val('').trigger('change');
                         vYear.attr('disabled','disabled');
                         vBulanAwal.attr('disabled','disabled');
                         vBulanAkhir.attr('disabled','disabled');
                         vFcNumber.val(data.fcNumber);
                         listDataAll(data.fcNumber);
+                        inEdit = 'false';
+                        $("#cmdUpdateHeader").show();
                     }
                 },
                 error: function(error) {
@@ -571,9 +573,80 @@
         }
     })
 
-    $("#cmdNew").click(function(){
-        window.location.reload();
-    });
+    $("#cmdUpdateHeader").click(function(){
+        let flag = 0;
+        let pesan ='';
+        let aFcNumber = vFcNumber.val();
+        let forcastName = vForcastName.val(); 
+        let aNote = vNote.val();
+
+        if (forcastName == ''){
+            pesan +="Forcasting name harus diisi<br>";
+            flag = '1';
+        }
+
+        if (flag == 0){
+            $.ajax({
+                type: "post",
+                url: "{{ route('forecastSales.update') }}",
+                data: {
+                    fcNumber:aFcNumber,
+                    forcastName:forcastName,
+                    note:aNote
+                },
+                dataType: "json",
+                success: function(data) {
+                    if (data.status == 0 ){
+                        let message="";
+                        for(let i = 0; i < data.message.length; i++) {
+                            show_msg(data.title, data.message[i], data.alert);
+                        }
+                    }else{
+                        show_msg(data.title, data.message, data.alert);
+                    }
+                },
+                error: function(error) {
+                    console.log(error);
+                }
+            });
+        }else{
+            Swal.fire('Warning..',pesan,'warning');
+        }
+    })
+    
+    showData =(uCustomer,articleId)=>{
+        let uYear=$('#year').val().slice(-2);
+        let uBulanAwal = vBulanAwal.val();
+        let uBulanAkhir = vBulanAkhir.val();
+        let uFcNumber = vFcNumber.val();
+
+        for(i=parseInt(uBulanAwal);i<=parseInt(uBulanAkhir);i++){
+            $('#'+uYear+i).val(0);
+        }
+        
+        $.ajax({
+            url:"{{route('forecastSales.get.qty.article')}}",
+            method:"POST",
+            data:{
+                customerCode:uCustomer,
+                // article:uArticle,
+                year:uYear,
+                articleId:articleId,
+                fcNumber:uFcNumber
+            },
+            success:function(result){
+                for(i=0;i< result.data.length;i++){
+                    $('#'+result.data[i].year+result.data[i].month).val(result.data[i].qty).trigger('input');
+                }
+                activate_angka();
+                mask_thousand();
+            }
+        })
+    }
+
+    // $("#cmdNew").click(function(){
+    //     window.location.reload();
+    // });
     
     $.ajaxSetup({
         headers: {

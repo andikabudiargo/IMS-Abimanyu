@@ -119,7 +119,7 @@
             </li>
             @endcan
 
-            <li class="{{ \Request::is(['forecastSales','forecastSales/create','forecastSales/edit']) ? 'active' : '' }}">
+            <li class="{{ \Request::is(['forecastSales','forecastSales/create','forecastSales/edit','forecastSales/show']) ? 'active' : '' }}">
               <a class="d-flex align-items-center" href="{{ route('forecastSales.index') }} ">
                 <i data-feather="circle"></i>
                 <span class="menu-item text-truncate" data-i18n="Input">Forecasting</span>

@@ -811,12 +811,14 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('forecastSales/edit',['as'=>'forecastSales.edit','uses'=>'Forecasting\ForcastingSalesController@edit']);
 	Route::post('forecastSales/store',['as'=>'forecastSales.store','uses'=>'Forecasting\ForcastingSalesController@store']);
 	Route::post('forecastSales/delete',['as'=>'forecastSales.destroy','uses'=>'Forecasting\ForcastingSalesController@destroy']);
+	Route::get('forecastSales/show',['as'=>'forecastSales.show','uses'=>'Forecasting\ForcastingSalesController@show']);
 	Route::post('forecastSales/list',['as'=>'forecastSales.list','uses'=>'Forecasting\ForcastingSalesController@list']);
 	Route::post('forecastSales/get/article',['as'=>'forecastSales.get.article','uses'=>'Forecasting\ForcastingSalesController@getArticle']);
 	Route::post('forecastSales/get/qty/article',['as'=>'forecastSales.get.qty.article','uses'=>'Forecasting\ForcastingSalesController@getQtyArticle']);
 	Route::post('forecastSales/get/list/article',['as'=>'forecastSales.get.list.article','uses'=>'Forecasting\ForcastingSalesController@getListArticle']);
-
-
+	Route::get('forecastSales/get/select/article',['as'=>'forecastSales.get.select.article','uses'=>'Forecasting\ForcastingSalesController@getSelectArticle']);
+	Route::post('forecastSales/update',['as'=>'forecastSales.update','uses'=>'Forecasting\ForcastingSalesController@update']);
+	
 	Route::get('forecastPurchase',['as'=>'forecastPurchase.index','uses'=>'Forecasting\ForcastingPurchaseController@index']);
 	Route::get('forecastPurchase/create',['as'=>'forecastPurchase.create','uses'=>'Forecasting\ForcastingPurchaseController@create']);
 	Route::post('forecastPurchase/store',['as'=>'forecastPurchase.store','uses'=>'Forecasting\ForcastingPurchaseController@store']);
@@ -824,7 +826,7 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('forecastPurchase/print',['as'=>'forecastPurchase.print','uses'=>'Forecasting\ForcastingPurchaseController@print']);
 	Route::post('forecastPurchase/get/article',['as'=>'forecastPurchase.get.article','uses'=>'Forecasting\ForcastingPurchaseController@getArticle']);
 	Route::post('forecastPurchase/get/qty/article',['as'=>'forecastPurchase.get.qty.article','uses'=>'Forecasting\ForcastingPurchaseController@getQtyArticle']);
-	Route::post('forecastPurchase/get/list/article',['as'=>'forecastPurchase.get.list.article','uses'=>'Forecasting\ForcastingPurchaseController@getListArticle']);
+	Route::get('forecastPurchase/get/list/article',['as'=>'forecastPurchase.get.list.article','uses'=>'Forecasting\ForcastingPurchaseController@getListArticle']);
 
 	Route::get('temporaryDn',['as'=>'suratJalanSementara.index','uses'=>'TemporaryDnController@index']);
 	Route::get('temporaryDn/create',['as'=>'suratJalanSementara.create','uses'=>'TemporaryDnController@create']);

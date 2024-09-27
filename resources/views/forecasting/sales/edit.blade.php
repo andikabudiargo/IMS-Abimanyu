@@ -7,12 +7,12 @@
         <div class="col-md-12">
             <div class="card">
                 <div class="card-header">
-                    <h4 class="card-title">Status: {{ $status }}</h4>
+                    {{-- <h4 class="card-title">Status: New</h4>
                     <div class="heading-elements">
                         <ul class="list-inline mb-0">
                             <li><a data-action="collapse"><i data-feather="chevron-down"></i></a></li>
                         </ul>
-                    </div>    
+                    </div>     --}}
                 </div>
                 <div class="card-content collapse show">
                     <div class="card-body">
@@ -21,51 +21,93 @@
                             <input type="text" id="article" name="article" hidden>
                             <div class="form-row">
                                 <div class="form-group col-md-4">
-                                    <label for="voucherNumber">Voucher Number</label>
-                                    <input type="text" id="voucherNumber" name="voucherNumber" value="{{ $header->voucher_number }}" class="form-control" disabled/>
+                                    <label for="fcNumber">Forcasting Number</label>
+                                    <input type="text" id="fcNumber" name="fcNumber" class="form-control" disabled/>
                                 </div>
-                                <div class="form-group col-md-3">
-                                    <label for="vcDate">Date*</label>
-                                    <input type="text" id="vcDate" name="vcDate" value="{{ $header->voucher_date }}" class="form-control" placeholder="DD-MM-YYYY" required />
-                                </div>
-                                <div class="form-group col-md-3">
-                                    <label class="form-label" for="period">Period*</label>
-                                    <select class="select2 form-control" id="period" name="period" required>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group col-md-2">
+                                    <label class="form-label" for="year">Tahun*</label>
+                                    <select class="select2 form-control" id="year" name="year" required>
                                         <option value=""></option>
-                                        @for ($i = 1; $i <= 12; $i++)
-                                            <option value="{{ $i }}" {{$i == $header->period ? "selected" : ""}}>{{ $i }}</option>
+                                        @for ($i = 2022; $i <= 2050; $i++)
+                                            <option value="{{ $i }}">{{ $i }}</option>
                                         @endfor
                                     </select>
                                 </div>
-                            </div>
-                            <div class="form-row">
-                                <div class="form-group col-md-4">
-                                    <label for="recFrom">Received From*</label>
-                                    <select class="select2 form-control" id="recFrom" name="recFrom" required>
+                                <div class="form-group col-md-2">
+                                    <label class="form-label" for="bulanAwal">Bulan Awal*</label>
+                                    <select class="select2 form-control" id="bulanAwal" name="bulanAwal" required>
                                         <option value=""></option>
-                                        @foreach ($accounts as $val)
-                                            <option value="{{ $val->account }}" {{$val->account == $header->receive_from ? "selected" : ""}} >{{ $val->account }}|{{ $val->description }}</option>
+                                        @foreach ($bulan as $key=>$val)
+                                            <option value="{{ $key }}">{{ $val }}</option>
                                         @endforeach
-                                        <option value="other" {{ $header->receive_from == 'other' ? "selected" : ""}} >Other</option>
                                     </select>
                                 </div>
-                                <div class="form-group col-md-3 {{ $header->receive_from =='other' ? '' : 'd-none' }} other-desc">
-                                    <div class="form-group">
-                                        <label for="recFromDesc">Other Received From Desc*</label>
-                                        <input type="text" id="recFromDesc" name="recFromDesc" value="{{ $header->description }}" class="form-control" required/>
-                                    </div>
-                                </div>
-                                <div class="form-group col-md-3">
-                                    <div class="form-group">
-                                        <label for="totalAmount">Amount*</label>
-                                        <input type="text" id="totalAmount" name="totalAmount" value="{{ $header->amount }}" class="form-control text-right numeral-mask" maxlength="12" required/>
-                                    </div>
+                                <div class="form-group col-md-2">
+                                    <label class="form-label" for="bulanAkhir">Bulan Akhir*</label>
+                                    <select class="select2 form-control" id="bulanAkhir" name="bulanAkhir" required>
+                                        <option value=""></option>
+                                        @foreach ($bulan as $key=>$val)
+                                            <option value="{{ $key }}">{{ $val }}</option>
+                                        @endforeach
+                                    </select>
                                 </div>
                             </div>
                             <div class="form-row">
-                                <div class="form-group col-md-10">
+                                <div class="form-group col-md-6">
+                                    <label for="forcastName">Forcasting Name</label>
+                                    <input type="text" id="forcastName" name="forcastName" class="form-control"  required/>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group col-md-6">
                                     <label class="form-label" for="note">Notes</label>
-                                    <textarea type="text" id="note" name="note" class="form-control" rows="1" >{{ $header->note }}</textarea>
+                                    <textarea type="text" id="note" name="note" class="form-control" rows="1" ></textarea>
+                                </div>
+                            </div>
+                            <hr>
+                            <div class="form-row">
+                                <div class="form-group col-md-4">
+                                    <label for="customerCode">Customer</label>
+                                    <select class="select2 form-control" id="customerCode" name="customerCode">
+                                        <option value="">Choose Customer</option>
+                                        @foreach($customers as $val)
+                                        <option value="{{ $val->kode }}">{{ $val->nama }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+                            {{-- <div class="form-row">
+                                <div class="form-group col-md-6">
+                                    <label for="articleId">Article FG</label>
+                                    <select class="select2 form-control" id="articleId" name="articleId">
+                                    </select>
+                                </div>
+                            </div> --}}
+                            <div class="form-row">
+                                <div>
+                                    <table id="detailTable" style="width:98%;table-layout: fixed;">
+                                        <tbody>
+                                            <tr id="judulTabel">
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>      
+                                <div class="" id="item_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px">
+                                </div>
+                            </div>
+                            <br>
+                            <div class="form-row">
+                                <div class="col-md-12">    
+                                    <a href="{{ route('forecastSales.index') }}" class="btn btn-light">< Back</a>
+                                    <button class="btn btn-success" type="button" id="cmdNew" name="cmdNew">
+                                        <span class="align-middle d-sm-inline-block d-none">New</span>
+                                    </button>
+                                    <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">
+                                        <i data-feather="plus" class="align-middle mr-sm-25 mr-0"></i>
+                                        <span class="align-middle d-sm-inline-block d-none">Update</span>
+                                    </button>
                                 </div>
                             </div>
                         </form>
@@ -79,125 +121,22 @@
                     <h4 class="card-title">Detail data</h4>
                 </div>
                 <div class="card-body" >
-                    <div>
-                        <table class="" style="width:98%;table-layout: fixed;">
-                            <tbody>
-                                <tr>
-                                    <td class="isian" style="width: 30%">
-                                        <label>Account</label>
-                                    </td>
-                                    <td class="isian" style="">
-                                        <label>Description</label>
-                                    </td>
-                                    <td class="isian" style="">
-                                        <label>CC</label>
-                                    </td>
-                                    <td class="isian" style="width: 10%">
-                                        <label>Debit</label>
-                                    </td>
-                                    <td class="isian" style="width: 10%">
-                                        <label>Credit</label>
-                                    </td>
-                                    <td class="isian" style="width: 5%">
-                                        <label>-</label>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>      
-                    <div class="" id="item_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px">
-                        <input type="text" id ="last_row_number" class="d-none" value="0">
-                    </div>
-                    <table class="" style="width: 98%;table-layout: fixed;">
-                        <tbody>
-                            <tr>
-                                <td class="isian" style="width: 30%">
-                                    <label>Total</label>
-                                </td>
-                                <td class="isian" style="">
-                                </td>
-                                <td class="isian" style="">
-                                </td>
-                                <td class="isian" style="width: 10%">
-                                    <input type="text" class="form-control-plaintext numeral-mask text-right" id="vcTotalDebit" disabled />
-                                </td>
-                                <td class="isian" style="width: 10%">
-                                    <input type="text" class="form-control-plaintext numeral-mask text-right" id= "vcTotalCredit" disabled />
-                                </td>
-                                <td class="isian text-center" style="width: 5%">
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                    <div class="d-flex justify-content-between align-items-end mt-75 ml-75">
-                        <button class="btn btn-primary btn-prev" type="button" id="addNewRow" onclick="add_new_row();">
-                            <i data-feather="plus" class="align-middle mr-sm-25 mr-0"></i>
-                            <span class="align-middle d-sm-inline-block d-none">Add row</span>
-                        </button>
-                    </div>
-                    <hr>
-                    <div class="form-row">
-                        <div class="col-md-12">
-                            <a href="{{ route('bankPenerimaan.index') }}" class="btn btn-light">Back</a>
-                            @if( $approveValidate ? $approveValidate[0]->validate : '')
-                                <input type="text" id ="approveLevel" name ="approveLevel" class="d-none" value="{{ $approveValidate[0]->next_level }}">
-                                <input type="text" id ="maxLevel" name ="maxLevel" class="d-none" value="{{ $approveValidate[0]->max_level }}">
-                                <button class="btn btn-success" type="button" id="cmdApprove" name="cmdApprove">Approve</button>
-                            @if( $status =='NEW')
-                                <button class="btn btn-primary" type="button" id="cmdUpdate" name="cmdUpdate" >Update</button>
-                            @endif
-                            @else
-                                @if( !$approveValidate && $status =='NEW')
-                                    <button class="btn btn-primary" type="button" id="cmdUpdate" name="cmdUpdate" >Update</button>
-                                @endif
-                            @endif
+                    <div class="col-12">
+                        <div class="card-datatable table-responsive pt-0">
+                            <table id="listTable" class="display" style="width:100%">
+                                <thead>
+                                </thead>
+                                <tbody>
+                                </tbody>
+                            </table>
                         </div>
-                    </div>
-                    <hr>
-                    <div class="form-row card-statistics">
-                        @foreach($approvalHistory as $val)
-                            @if($val->status == true)
-                                <div class="statistics-body">
-                                    <div class="col-xl-3 col-sm-6 col-12 mb-2 mb-xl-0">
-                                        <div class="media">
-                                            <div class="avatar bg-light-success mr-2">
-                                                <div class="avatar-content">
-                                                    <i data-feather="check" class="avatar-icon"></i>
-                                                </div>
-                                            </div>
-                                            <div class="media-body my-auto">
-                                                <h4 class="font-weight-bolder mb-0">Approve-{{ $val->approval_order }}</h4>
-                                                <p class="card-text mb-0">{{ $val->name }}</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            @else
-                                <div class="statistics-body">
-                                    <div class="col-xl-3 col-sm-6 col-12 mb-2 mb-xl-0">
-                                        <div class="media">
-                                            <div class="avatar bg-light-danger mr-2">
-                                                <div class="avatar-content">
-                                                    <i data-feather="x" class="avatar-icon"></i>
-                                                </div>
-                                            </div>
-                                            <div class="media-body my-auto">
-                                                <h4 class="font-weight-bolder mb-0">Approve-{{ $val->approval_order }}</h4>
-                                                <p class="card-text mb-0">{{ $val->petugas }}</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            @endif
-                        @endforeach
                     </div>
                 </div>
             </div>
         </div>
     </div>
 </section>
-
-@include('accounting.kas.addArticle')
+@include('forecasting.sales.addArticle')
 @endsection
 @section('styles')
 <link rel="stylesheet" type="text/css" href="{{ asset('assets/css/jquery-ui.css') }}">
@@ -220,6 +159,11 @@
     td.isian{
         padding-right:10px;
         padding-left:10px;
+    }
+
+    td.nopadding{
+        padding-right:0px;
+        padding-left:0px;
     }
 
     td.isian-satu{
@@ -253,22 +197,233 @@
 @section('scripts')
 <script src="{{ asset('assets/js/ui.1.13.0.jquery-ui.js') }}"></script>
 <script type="text/javascript">
-    let currentDate = todayDate('dd-mm-yyyy');   
-    let type = "{{ $type }}";
-    
+    let currentDate = todayDate('dd-mm-yyyy'); 
+    let vFcNumber = $('#fcNumber'); 
+    let vYear = $('#year');
+    let vBulanAwal = $('#bulanAwal');
+    let vBulanAkhir = $('#bulanAkhir');
+    let vForcastName = $('#forcastName');
+    let vNote = $('#note');
+
     $(document).ready(function(){           
         validateFormToast('frmAdd');
+        $("#cmdSave").hide();
+        feather.replace({
+            width: 14,
+            height: 14
+        });    
 
-        let detail = {!!  $details !!};
-        for(let i=0;i<detail.length;i++){
-            vcAccount = detail[i].account;
-            vcDesc = detail[i].description;
-            vcCc = detail[i].cost_center;
-            vcDebit = detail[i].debit;
-            vcCredit = detail[i].credit;
-            add_new_row(vcAccount,vcDesc,vcCc,vcDebit,vcCredit);
+        if("{{ $forcastNumber }}"){
+            vYear.val("{{ $year }}").trigger('change');
+            vBulanAwal.val("{{ $bulanAwal }}").trigger('change');
+            vBulanAkhir.val("{{ $bulanAkhir }}").trigger('change');
+            vFcNumber.val("{{ $forcastNumber }}");
+            vForcastName.val("{{ $forcastName }}");
+            vNote.val("{{ $note }}");
+            vYear.attr('disabled','disabled');
+            vBulanAwal.attr('disabled','disabled');
+            vBulanAkhir.attr('disabled','disabled');
+            listDataAll("{{ $forcastNumber }}");
+        }
+
+    });
+
+    $('#customerCode').change(function(e){
+        let $this= $(this);
+        let idku= $this.attr('id');
+        if ($this.val()){
+            $("#judulTabel th").remove();
+            listDetailBulan();
         }
     });
+
+    listDataAll =(fcNumber)=>{
+        let bulanAwal = vBulanAwal.val();
+        let bulanAkhir = vBulanAkhir.val();
+        let year = vYear.val().slice(-2);;
+        let listJudul = add_judul(bulanAwal,bulanAkhir);
+        let customer = $('#customerCode').val();
+        let forcastName = $('#forcastName').val();
+        let zFcnumber = fcNumber;
+
+        let jumlahBulan = parseInt(bulanAkhir)-parseInt(bulanAwal);
+        
+        let kolomPrint = [1,2,3];
+        for(i=1;i<=jumlahBulan+1;i++){
+          kolomPrint.push(i+3);
+        }
+        
+        if ($('#listTable tr').length >0){
+            // console.log("ada");
+            let table= $('#listTable').DataTable();
+            table.destroy();
+            $('#listTable tbody > tr').remove();
+            $("#listTable thead > tr").remove();
+        }
+
+        $('#listTable thead').append("<tr><th>Action</th><th>Customer</th><th>Article Code</th>"+listJudul+"</tr>");
+
+        $.ajax({
+            url:"{{route('forecastSales.get.list.article')}}",
+            method:"POST",
+            data:{
+                customerCode:customer,
+                year:year,
+                bulanAwal:bulanAwal,
+                bulanAkhir:bulanAkhir,
+                forcastName:forcastName,
+                fcnumber:zFcnumber
+            },
+            success:function(result){
+                let conversi = ['satu','satu','dua','tiga','empat','lima','enam','tujuh','delapan','sembilan','sepuluh','sebelas','duabelas'];
+                for(i=0;i< result.data.length;i++){
+                    list=`<td>
+                        <button class="btn btn-danger btn-sm" type="button" onclick="deleteArticle('${result.data[i].customer_id}','${result.data[i].article_code}','${result.data[i].year}','${result.data[i].article_desc}')" id="cmdEdit" name="cmdEdit" >Delete</button> 
+                        <button class="btn btn-success btn-sm" type="button" onclick="editArticle('${result.data[i].article_code}','${result.data[i].customer_id}')" id="cmdEdit" name="cmdEdit" >Edit</button>
+                        </td>`
+                    // list+=`<td >${result.data[i].forcasting_name}</td>`
+                    list+=`<td >${result.data[i].nama}</td>`
+                    list+=`<td >${result.data[i].article_alternative_code}</td>`
+                    list+=`<td >${result.data[i].article_desc}</td>`
+                    for(a=parseInt(bulanAwal);a<=parseInt(bulanAkhir);a++){
+                        z=conversi[a];
+                        let qty = result.data[i][z];
+                        list+= `<td class="text-right"> ${qty ? humanizeNumber(qty) : 0} </td>`; 
+                    }
+                    $('#listTable tbody').append("<tr>"+list+"</tr>");
+                }
+
+                $('#listTable').DataTable({
+                    bDestroy: true, //pakai ini supaya bisa di load berulang2
+                    scrollX: true,
+                    buttons: true,
+                    dom:` <"d-flex justify-content-between align-items-center header-actions mx-1 row mt-75"<"col-lg-12 col-xl-6" l><"col-lg-12 col-xl-6 pl-xl-75 pl-0"<"dt-action-buttons text-xl-right text-lg-left text-md-right text-left d-flex align-items-center justify-content-lg-end align-items-center flex-sm-nowrap flex-wrap mr-1"<"mr-1" f>'B'>>>t<"d-flex justify-content-between mx-2 row mb-1"<"col-sm-12 col-md-6"i><"col-sm-12 col-md-6"p>>`,
+                    buttons: [
+                    {
+                      extend: 'collection',
+                      className: 'btn btn-outline-secondary dropdown-toggle mt-07',
+                      text: feather.icons['share'].toSvg({ class: 'font-small-4 mr-50' }) + 'Export',
+                      buttons: [
+                        {
+                          extend: 'csv',
+                          text: feather.icons['file-text'].toSvg({ class: 'font-small-4 mr-50' }) + 'Csv',
+                          className: 'dropdown-item',
+                          exportOptions: { columns: kolomPrint }
+                        },
+                        {
+                          extend: 'excel',
+                          text: feather.icons['file'].toSvg({ class: 'font-small-4 mr-50' }) + 'Excel',
+                          className: 'dropdown-item',
+                          exportOptions: { columns: kolomPrint },
+                          // action: newExportAction,
+                          title:null,
+                          filename:'fc_sales'
+                        },
+                        
+                      ],
+                      init: function (api, node, config) {
+                        $(node).removeClass('btn-secondary');
+                        $(node).parent().removeClass('btn-group');
+                        setTimeout(function () {
+                          $(node).closest('.dt-buttons').removeClass('btn-group').addClass('d-inline-flex');
+                        }, 50);
+                      }
+                    },
+                    ],
+                });
+                
+            }
+        })
+    }
+ 
+    $('body').on('change', '#articleId', function() {
+        let $this= $(this);
+        let uYear=$('#year').val().slice(-2);
+        let uBulanAwal = vBulanAwal.val();
+        let uBulanAkhir = vBulanAkhir.val();
+        let uFcNumber = vFcNumber.val();
+
+        if ($this.val()){
+
+            for(i=parseInt(uBulanAwal);i<=parseInt(uBulanAkhir);i++){
+                $('#'+uYear+i).val(0);
+            }
+
+            let uArticle = $this.val();
+            let uCustomer = $('#customerCode').val();
+            let articleId = $('#articleId').val();
+
+            $.ajax({
+                url:"{{route('forecastSales.get.qty.article')}}",
+                method:"POST",
+                data:{
+                    customerCode:uCustomer,
+                    article:uArticle,
+                    year:uYear,
+                    articleId:articleId,
+                    fcNumber:uFcNumber
+                },
+                success:function(result){
+                    for(i=0;i< result.data.length;i++){
+                        $('#'+result.data[i].year+result.data[i].month).val(result.data[i].qty).trigger('input');
+                    }
+                    activate_angka();
+                    mask_thousand();
+                }
+            })
+        }
+    });
+
+    editArticle = (articleCode,customerCode) =>{
+        $('#customerCode').val(customerCode).trigger('change');
+        setTimeout(function () {
+            $('#articleId').val(articleCode).trigger('change');    
+        }, 500);
+    }
+
+    deleteArticle = (customerId,articleCode,year,articleDesc) =>{
+        let uFcNumber = vFcNumber.val();
+        let customerCodeIni= $('#customerCode').val();
+        Swal.fire({
+            icon: 'warning',
+            title: `Do you want to delete the article <br> ${articleDesc}?`,
+            showCancelButton: true,
+            confirmButtonText: 'Yes',
+            cancelButtonText: 'Cancel',
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url:"{{route('forecastSales.destroy')}}",
+                    method:"POST",
+                    data:{
+                        customerId:customerId,
+                        articleCode:articleCode,
+                        year:year,
+                        articleDesc:articleDesc,
+                        uFcNumber:uFcNumber
+                    },
+                    success:function(result){
+                        // $('#customerCode').val(customerId).trigger('change');
+                        Swal.fire(result.message, '', result.alert);
+                        emptyList();
+                        $('#customerCode').val(customerCodeIni).trigger('change');
+                        vForcastName.attr('disabled','disabled');
+                        vYear.attr('disabled','disabled');
+                        vBulanAwal.attr('disabled','disabled');
+                        vBulanAkhir.attr('disabled','disabled');
+                        vFcNumber.val(result.fcNumber);
+                        listDataAll(result.fcNumber);
+                        
+                    }
+                })
+                
+            } else if (result.isDenied) {
+                // Swal.fire('Changes are not saved', '', 'info')
+            }
+        })
+    }
     
     vcDate = $('#vcDate');
     if (vcDate.length) {
@@ -276,210 +431,189 @@
             dateFormat: "d-m-Y",
         });
     }
-    
-    function reloadPage(){
-        window.location.reload();
-    }
 
-    $("#cmdCancel").click(function(){
-        reloadPage();
-    });
+    $("#cmdSave").click(function(){
+        let details = [];
+        let flag = 0;
+        let pesan ='';
+        let customerCode= $('#customerCode').val();
+        let articleId= $('#articleId').val();
+        let aFcNumber = vFcNumber.val();
+        let forcastName = vForcastName.val(); 
+        let aYear = vYear.val();
+        let aBulanAwal = vBulanAwal.val();
+        let aBulanAkhir = vBulanAkhir.val();
+        let aNote = vNote.val();
+
+        if (forcastName == ''){
+            pesan +="Forcasting name harus diisi<br>";
+            flag = '1';
+        }
+
+        if (articleId == ''){
+            pesan +="Article harus diisi<br>";
+            flag = '1';
+        }
+
+        if (customerCode== ''){
+            pesan +="Customer harus diisi<br>";
+            flag = '1';
+        }
+
+        $(".data-bulan").map(function(i) {  
+            let $this=$(this);
+            let urutan= $this.data("urutan");
+            let month= $this.data("month");
+            let year= $this.data("year");  
+            
+            details.push({
+                "forcasting_name": forcastName,
+                "fc_code": customerCode+year+month,
+                "customer_id": customerCode,
+                "article_code": articleId,
+                "qty": $this.val(),
+                "year": year,
+                "month": month
+            });
+        });
+
+        if (flag == 0){
+            let customerCodeIni= $('#customerCode').val();
+            $.ajax({
+                type: "post",
+                url: "{{ route('forecastSales.store') }}",
+                data: {
+                    details:JSON.stringify(details),
+                    fcNumber:aFcNumber,
+                    year:aYear,
+                    bulanAwal:aBulanAwal,
+                    bulanAkhir:aBulanAkhir,
+                    note:aNote,
+                    forcastName:forcastName
+                    
+                },
+                dataType: "json",
+                success: function(data) {
+                    if (data.status == 0 ){
+                        let message="";
+                        for(let i = 0; i < data.message.length; i++) {
+                            show_msg(data.title, data.message[i], data.alert);
+                        }
+                    }else{
+                        show_msg(data.title, data.message, data.alert);
+                        emptyList();
+                        $('#customerCode').val(customerCodeIni).trigger('change');
+                        vForcastName.attr('disabled','disabled');
+                        vYear.attr('disabled','disabled');
+                        vBulanAwal.attr('disabled','disabled');
+                        vBulanAkhir.attr('disabled','disabled');
+                        vFcNumber.val(data.fcNumber);
+                        listDataAll(data.fcNumber);
+                    }
+                },
+                error: function(error) {
+                    console.log(error);
+                }
+            });
+        }else{
+            Swal.fire('Warning..',pesan,'warning');
+        }
+    })
 
     $("#cmdNew").click(function(){
-        reloadPage();
+        window.location.reload();
     });
 
-    $("#cmdUpdate").click(function(){  
-        let objTotalVcDebit= $('#vcTotalDebit').val().replace(/,/gi, '') || 0;
-        let objTotalVcCredit= $('#vcTotalCredit').val().replace(/,/gi, '') || 0;
-        let vcDate = $('#vcDate').val();
-        let period = $('#period').val();
-        let totalAmount = $('#totalAmount').val().replace(/,/gi, '') || 0;
-        let note = $('#note').val();
-        let recFrom = $('#recFrom').val();
-        let vcNumber = $('#voucherNumber').val();
-        let recFromDesc = $('#recFromDesc').val();
-    
-        if (((parseInt(objTotalVcDebit)-parseInt(objTotalVcCredit)) == 0) && (parseInt(objTotalVcCredit)==parseInt(totalAmount))){
-            if (!$("#frmAdd")[0].checkValidity()){
-                $("#frmAdd").submit();
-            }else{   
-                $('.disabled-el').removeAttr('disabled');
-                // ambil semua data article
-                let objvcDesc= $('#item_row input[name="vcDesc[]"]');
-                let objVcCc= $('#item_row select[name="vcCc[]"]');
-                let objVcDebit= $('#item_row input[name="vcDebit[]"]');
-                let objVcCredit= $('#item_row input[name="vcCredit[]"]');
-                let objAccount= $('#item_row select[name="account[]"]');
-                let details = []; 
-                let flag=0; 
-                let pesan="";
-                let cekIsi=0;
-
-                objAccount.map(function(i) {  
-                    let $this=$(this);
-                    if ($this.val()){
-                        let sAccount=$this.val();
-                        let sDesc=objvcDesc.eq(i).val();
-                        let sCc=objVcCc.eq(i).val();
-                        let sDebit=objVcDebit.eq(i).val().replace(/,/gi, '') || 0;
-                        let sCredit=objVcCredit.eq(i).val().replace(/,/gi, '') || 0;
-
-                        if ((sDesc!=='') && ((sDebit + sCredit) > 0) && (sAccount!=='') && (sCc!=='')){
-                            details.push({
-                                "account":sAccount,
-                                "description":sDesc,
-                                "cc":sCc,
-                                "debit":sDebit,
-                                "credit":sCredit,
-                            });
-                        }
-
-                        if ((sDesc =='') || (sCc =='') || ((sDebit + sCredit) == 0)){
-                            cekIsi++;
-                        }
-                    }
-                });
-
-                if ((details.length == 0) || (cekIsi >0)){
-                    pesan +="Detail must be filled Out completely <br>"; 
-                    flag=1;
-                }
-
-                if (flag == 0){
-                    $.ajax({
-                        type: "post",
-                        url: "{{ route('bankPenerimaan.update') }}",
-                        data: {
-                            details:JSON.stringify(details),
-                            vcDate:vcDate,
-                            period:period,
-                            note:note,
-                            totalAmount:totalAmount,
-                            recFrom:recFrom,
-                            vcNumber:vcNumber,
-                            recFromDesc:recFromDesc
-                        },
-                        dataType: "json",
-                        success: function(data) {
-                            if (data.status == 0 ){
-                                let message="";
-                                for(let i = 0; i < data.message.length; i++) {
-                                    show_msg(data.title, data.message[i], data.alert);
-                                }                        
-                                $('#voucherNumber').attr('disabled','disabled');
-                            }else{
-                                show_msg(data.title, data.message, data.alert);
-                                $('#voucherNumber').val(data.vcNumber);
-                                $('#voucherNumber').attr('disabled','disabled');
-                                // $('#cmdUpdate').attr('disabled','disabled');
-                                // $('#addNewRow').attr('disabled','disabled');
-                            }
-                        },
-                        error: function(error) {
-                            console.log(error);
-                        }
-                    });
-
-                }else{
-                    Swal.fire('Warning..',pesan,'warning');
-                }
-            }
-        }else{
-            Swal.fire('Warning..',"Data belum balance",'warning');
-        }
-    });
-
-    let cloneCount=1;
-    function add_new_row(account,desc,cc,debit,credit) {
-        $("#item_row").append($("#new_row").clone().html());
-        cloneCount++;
-        $("#item_row").find('#baru').attr('id', 'new_row'+ cloneCount);
-        $("#new_row"+ cloneCount).find('#vcDesc').attr('id', 'vcDesc'+ cloneCount);
-        $("#new_row"+ cloneCount).find('#account').attr('id', 'account'+ cloneCount);
-        $("#new_row"+ cloneCount).find('#vcCc').attr('id', 'vcCc'+ cloneCount);
-        $("#new_row"+ cloneCount).find('#vcDebit').attr('id', 'vcDebit'+ cloneCount);
-        $("#new_row"+ cloneCount).find('#vcCredit').attr('id', 'vcCredit'+ cloneCount);
-
-        accList('account','account'+ cloneCount,account);
-        
-        $("#account"+cloneCount).select2();
-        $("#vcCc"+cloneCount).select2();
-
-        // $("#account"+cloneCount).val(account).trigger('change');;
-        $("#vcCc"+cloneCount).val(cc).trigger('change');;
-        $("#vcDesc"+cloneCount).val(desc);
-        $("#vcDebit"+cloneCount).val(debit != 0 ? debit : '');
-        $("#vcCredit"+cloneCount).val(credit != 0 ? credit : '');
-
-        $('#remove_button').tooltip();
-        activate_angka();
-        mask_thousand();
-        hitungTotal();
-        hitungGrandTotal();
-        $('[data-toggle="tooltip"]').tooltip();
-    };
-
-    function accList(dependent,obj,account) {
-      $.ajax({
-        url:"{{route('dynamic.dependent')}}",
-        method:"POST",
-        data:{
-            dependent:dependent
+    let selectorArtikelSelect2 = $('#articleId');
+    selectorArtikelSelect2.select2({
+        minimumInputLength: 2,
+        ajax: {
+            url:'{{ route("forecastSales.get.select.article") }}',
+            dataType: 'json',
+            delay: 250,
+            data: function (params) {
+                return {
+                    q: $.trim(params.term)
+                };
+            },
+            processResults: function (data) {
+                return {
+                    results: data
+                };
+            },
+            cache: true
         },
-        success:function(result){
-            $('#'+obj).html(result);
-            $('#'+obj).val(account).trigger('change');
-        }
-      })
+        escapeMarkup: function (markup) { return markup; },
+        minimumInputLength: 2,
+        templateResult: formatResult,
+        templateSelection: formatSelect
+    });
+
+    function formatResult (product) {
+        if (!product.id) { return product.articleDesc; }
+        let $products = $(
+            `<h5 class="text-primary">${product.id}</h5><span><b>${product.articleDesc}</b></span>`
+        );
+        return $products;
     }
 
-    $("#cmdApprove").click(function(){    
-        let vcNumber = $('#voucherNumber').val();
+    function formatSelect(product) {
+        if(!product.id) {
+            return "Cari Artikel ...";
+        }
+        let markup = "";
+        markup = product.articleDesc;
+        return markup;
+    }
+
+    selectorArtikelSelect2.on("select2:select", function(e) {
+        let id = $(this).find("option:selected").val();
+        let customerCode = selectorArtikelSelect2.select2('data')[0]['customer'];
+        let articleCode = selectorArtikelSelect2.select2('data')[0]['articleCode'];
+        $('#customerCode').val(customerCode).trigger('change');
+        listDetailBulan2(customerCode,articleCode);
+        // var desc = selectorArtikelSelect2.select2('data')[0]['desc'];
+        // var uom = selectorArtikelSelect2.select2('data')[0]['uom'];
+        // var hbeli = selectorArtikelSelect2.select2('data')[0]['cost'];
+        // $(".satuan").text(uom);
+        //selectorArtikelSelect2.val(null).trigger('change.select2');
+    });
+
+
+    showData =(uCustomer,articleId)=>{
+        let uYear=$('#year').val().slice(-2);
+        let uBulanAwal = vBulanAwal.val();
+        let uBulanAkhir = vBulanAkhir.val();
+        let uFcNumber = vFcNumber.val();
+
+        for(i=parseInt(uBulanAwal);i<=parseInt(uBulanAkhir);i++){
+            $('#'+uYear+i).val(0);
+        }
+
+        // let uArticle = $this.val();
+        // let uCustomer = $('#customerCode').val();
+        // let articleId = $('#articleId').val();
+
         $.ajax({
-            type: "get",
-            url: "{{ route('bankPenerimaan.approve') }}",
-            data: {
-                vcNumber:vcNumber
+            url:"{{route('forecastSales.get.qty.article')}}",
+            method:"POST",
+            data:{
+                customerCode:uCustomer,
+                // article:uArticle,
+                year:uYear,
+                articleId:articleId,
+                fcNumber:uFcNumber
             },
-            dataType: "json",
-            success: function(data) {
-                if (data.status == 0 ){
-                    let message="";
-                    for(let i = 0; i < data.message.length; i++) {
-                        show_msg(data.title, data.message[i], data.alert);
-                    }
-                    $('#voucherNumber').attr('disabled','disabled');
-
-                }else{
-                    show_msg(data.title, data.message, data.alert);
-                    $('#voucherNumber').attr('disabled','disabled');
-                    $('#cmdApprove').attr('disabled','disabled');
-                    $('#addNewRow').attr('disabled','disabled');  
-                    $('#cmdUpdate').attr('disabled','disabled');
-                    location.reload();       
+            success:function(result){
+                for(i=0;i< result.data.length;i++){
+                    $('#'+result.data[i].year+result.data[i].month).val(result.data[i].qty).trigger('input');
                 }
-            },
-            error: function(error) {
-                console.log(error);
+                activate_angka();
+                mask_thousand();
             }
-        });
-    });
-
-    $("#recFrom").on('select2:close', function(){
-        let content = this.value;
-        let contentText = $("#recFrom").select2('data')[0].text;
-        if(content =='other'){
-            $(".other-desc").removeClass("d-none");
-            $("#recFromDesc").val("");
-            $("#recFromDesc").focus();
-        }else{
-            $(".other-desc").addClass("d-none");
-            contentText = contentText.split("|");
-            $("#recFromDesc").val(contentText[1].trim());
-        }    
-    });
-
+        })
+    }
+    
     $.ajaxSetup({
         headers: {
             'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
