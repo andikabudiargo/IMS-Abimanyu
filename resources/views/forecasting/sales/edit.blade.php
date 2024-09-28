@@ -21,7 +21,7 @@
                             <input type="text" id="article" name="article" hidden>
                             <div class="form-row">
                                 <div class="form-group col-md-4">
-                                    <label for="fcNumber">Forcasting Number</label>
+                                    <label for="fcNumber">Forecasting Number</label>
                                     <input type="text" id="fcNumber" name="fcNumber" class="form-control" disabled/>
                                 </div>
                             </div>
@@ -56,7 +56,7 @@
                             </div>
                             <div class="form-row">
                                 <div class="form-group col-md-6">
-                                    <label for="forcastName">Forcasting Name</label>
+                                    <label for="forcastName">Forecasting Name</label>
                                     <input type="text" id="forcastName" name="forcastName" class="form-control"  required/>
                                 </div>
                             </div>
@@ -67,7 +67,7 @@
                                 </div>
                             </div>
                             <hr>
-                            <div class="form-row">
+                            {{-- <div class="form-row">
                                 <div class="form-group col-md-4">
                                     <label for="customerCode">Customer</label>
                                     <select class="select2 form-control" id="customerCode" name="customerCode">
@@ -77,14 +77,23 @@
                                         @endforeach
                                     </select>
                                 </div>
-                            </div>
-                            {{-- <div class="form-row">
+                            </div> --}}
+                            <div class="form-row">
                                 <div class="form-group col-md-6">
                                     <label for="articleId">Article FG</label>
                                     <select class="select2 form-control" id="articleId" name="articleId">
                                     </select>
                                 </div>
-                            </div> --}}
+                                <div class="form-group col-md-4">
+                                    <label for="customerCode">Customer</label>
+                                    <select class="select2 form-control disabled-el" id="customerCode" name="customerCode" disabled>
+                                        <option value=""></option>
+                                        @foreach($customers as $val)
+                                        <option value="{{ $val->kode }}">{{ $val->nama }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
                             <div class="form-row">
                                 <div>
                                     <table id="detailTable" style="width:98%;table-layout: fixed;">
@@ -106,7 +115,7 @@
                                     </button>
                                     <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">
                                         <i data-feather="plus" class="align-middle mr-sm-25 mr-0"></i>
-                                        <span class="align-middle d-sm-inline-block d-none">Update</span>
+                                        <span class="align-middle d-sm-inline-block d-none">Add</span>
                                     </button>
                                 </div>
                             </div>
@@ -228,14 +237,15 @@
 
     });
 
-    $('#customerCode').change(function(e){
-        let $this= $(this);
-        let idku= $this.attr('id');
-        if ($this.val()){
-            $("#judulTabel th").remove();
-            listDetailBulan();
-        }
-    });
+    // $('#customerCode,#year,#bulanAwal,#bulanAkhir').change(function(e){
+    // $('#customerCode').change(function(e){
+    //     let $this= $(this);
+    //     let idku= $this.attr('id');
+    //     if ($this.val()){
+    //         $("#judulTabel th").remove();
+    //         listDetailBulan();
+    //     }
+    // });
 
     listDataAll =(fcNumber)=>{
         let bulanAwal = vBulanAwal.val();
@@ -279,7 +289,7 @@
                 for(i=0;i< result.data.length;i++){
                     list=`<td>
                         <button class="btn btn-danger btn-sm" type="button" onclick="deleteArticle('${result.data[i].customer_id}','${result.data[i].article_code}','${result.data[i].year}','${result.data[i].article_desc}')" id="cmdEdit" name="cmdEdit" >Delete</button> 
-                        <button class="btn btn-success btn-sm" type="button" onclick="editArticle('${result.data[i].article_code}','${result.data[i].customer_id}')" id="cmdEdit" name="cmdEdit" >Edit</button>
+                        <button class="btn btn-success btn-sm" type="button" onclick="editArticle('${result.data[i].article_desc}','${result.data[i].customer_id}')" id="cmdEdit" name="cmdEdit" >Edit</button>
                         </td>`
                     // list+=`<td >${result.data[i].forcasting_name}</td>`
                     list+=`<td >${result.data[i].nama}</td>`
@@ -374,11 +384,33 @@
         }
     });
 
+    // editArticle = (articleCode,customerCode) =>{
+    //     $('#customerCode').val(customerCode).trigger('change');
+    //     setTimeout(function () {
+    //         $('#articleId').val(articleCode).trigger('change');    
+    //     }, 500);
+    // }
+
     editArticle = (articleCode,customerCode) =>{
-        $('#customerCode').val(customerCode).trigger('change');
-        setTimeout(function () {
-            $('#articleId').val(articleCode).trigger('change');    
-        }, 500);
+
+
+        // $('#articleId').append('<option value="@Model.PersonalID">@ViewBag.PersonalInfo</option>');
+        // $('#articleId').val('@Model.PersonalID').trigger('change');
+
+        // data = {'id' : '1003828','alt': articleCode,'articleDesc' : articleCode,'customer' : articleCode,'articleCode':articleCode};
+    
+        // listDetailBulan2(customerCode,articleCode);
+        // $('#customerCode').val(customerCode).trigger('change');
+        // setTimeout(function () {
+            console.log(articleCode);
+            $('#articleId').select2('open');
+            // $('#articleId').val("PANEL FRONT SIDE RH PAINTING (ARC WHITE)").trigger('change');
+            
+            // $('#articleId').val(articleCode).trigger('change.select2');
+            // $('#articleId').val("FR").trigger('change');
+            // $('#articleId').val('1003828').trigger('change');
+            // $('#articleId').val(articleCode);    
+        // }, 500);
     }
 
     deleteArticle = (customerId,articleCode,year,articleDesc) =>{
@@ -446,7 +478,7 @@
         let aNote = vNote.val();
 
         if (forcastName == ''){
-            pesan +="Forcasting name harus diisi<br>";
+            pesan +="Forecasting name harus diisi<br>";
             flag = '1';
         }
 
@@ -526,7 +558,6 @@
 
     let selectorArtikelSelect2 = $('#articleId');
     selectorArtikelSelect2.select2({
-        minimumInputLength: 2,
         ajax: {
             url:'{{ route("forecastSales.get.select.article") }}',
             dataType: 'json',
@@ -536,7 +567,11 @@
                     q: $.trim(params.term)
                 };
             },
-            processResults: function (data) {
+            processResults: function (data) {       
+
+                // data = {'id' : '1003828','alt': articleCode,'articleDesc' : articleCode,'customer' : articleCode,'articleCode':articleCode};
+                // let option = new Option('1003828', '123445', true, true);
+                // selectorArtikelSelect2.append(option).trigger('change');  
                 return {
                     results: data
                 };
@@ -544,22 +579,25 @@
             cache: true
         },
         escapeMarkup: function (markup) { return markup; },
+        placeholder: "Choose Article ...",
         minimumInputLength: 2,
         templateResult: formatResult,
         templateSelection: formatSelect
     });
 
     function formatResult (product) {
-        if (!product.id) { return product.articleDesc; }
+        if (!product.id) { 
+            return 'Searching ...'; 
+        }
         let $products = $(
-            `<h5 class="text-primary">${product.id}</h5><span><b>${product.articleDesc}</b></span>`
+            `<h5 class="text-primary">${product.alt}</h5><span><b>${product.articleDesc}</b></span>`
         );
         return $products;
     }
 
     function formatSelect(product) {
         if(!product.id) {
-            return "Cari Artikel ...";
+            return "Choose Article ...";
         }
         let markup = "";
         markup = product.articleDesc;
@@ -571,14 +609,24 @@
         let customerCode = selectorArtikelSelect2.select2('data')[0]['customer'];
         let articleCode = selectorArtikelSelect2.select2('data')[0]['articleCode'];
         $('#customerCode').val(customerCode).trigger('change');
+        // selectorArtikelSelect2.val(null).trigger('change.select2');
+        // selectorArtikelSelect2.val('oki').trigger('change');
         listDetailBulan2(customerCode,articleCode);
-        // var desc = selectorArtikelSelect2.select2('data')[0]['desc'];
-        // var uom = selectorArtikelSelect2.select2('data')[0]['uom'];
-        // var hbeli = selectorArtikelSelect2.select2('data')[0]['cost'];
-        // $(".satuan").text(uom);
-        //selectorArtikelSelect2.val(null).trigger('change.select2');
-    });
 
+        if (!$('#bulanAwal').val() || !$('#bulanAkhir').val()|| !$('#year').val()){
+            Swal.fire({
+                icon: 'warning',
+                title: "Warning!",
+                text: "Tahun dan bulan harus dipilih dulu",
+                confirmButtonText: 'OK',
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $('#customerCode').val('').trigger('change');
+                    selectorArtikelSelect2.val(null).trigger('change.select2');
+                }
+            })
+        }
+    });
 
     showData =(uCustomer,articleId)=>{
         let uYear=$('#year').val().slice(-2);

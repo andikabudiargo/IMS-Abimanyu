@@ -21,7 +21,7 @@
                             <input type="text" id="article" name="article" hidden>
                             <div class="form-row">
                                 <div class="form-group col-md-4">
-                                    <label for="fcNumber">Forcasting Number</label>
+                                    <label for="fcNumber">Forecasting Number</label>
                                     <input type="text" id="fcNumber" name="fcNumber" class="form-control" disabled/>
                                 </div>
                             </div>
@@ -56,7 +56,7 @@
                             </div>
                             <div class="form-row">
                                 <div class="form-group col-md-6">
-                                    <label for="forcastName">Forcasting Name</label>
+                                    <label for="forcastName">Forecasting Name</label>
                                     <input type="text" id="forcastName" name="forcastName" class="form-control"  required/>
                                 </div>
                             </div>
@@ -294,7 +294,6 @@
                         <button class="btn btn-danger btn-sm" type="button" onclick="deleteArticle('${result.data[i].customer_id}','${result.data[i].article_code}','${result.data[i].year}','${result.data[i].article_desc}')" id="cmdEdit" name="cmdEdit" >Delete</button> 
                         <button class="btn btn-success btn-sm" type="button" onclick="editArticle('${result.data[i].article_code}','${result.data[i].customer_id}')" id="cmdEdit" name="cmdEdit" >Edit</button>
                         </td>`
-                    // list+=`<td >${result.data[i].forcasting_name}</td>`
                     list+=`<td >${result.data[i].nama}</td>`
                     list+=`<td >${result.data[i].article_alternative_code}</td>`
                     list+=`<td >${result.data[i].article_desc}</td>`
@@ -496,7 +495,7 @@
         let aNote = vNote.val();
 
         if (forcastName == ''){
-            pesan +="Forcasting name harus diisi<br>";
+            pesan +="Forecasting name harus diisi<br>";
             flag = '1';
         }
 
@@ -581,7 +580,7 @@
         let aNote = vNote.val();
 
         if (forcastName == ''){
-            pesan +="Forcasting name harus diisi<br>";
+            pesan +="Forecasting name harus diisi<br>";
             flag = '1';
         }
 

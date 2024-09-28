@@ -21,7 +21,7 @@ class ForcastingSalesController extends Controller
     private $moduleCode;
     public function __construct()
     {
-        $this->title = "Forcasting Sales";
+        $this->title = "Forecasting Sales";
         $this->moduleCode = "FCS";
     }
 
@@ -30,8 +30,8 @@ class ForcastingSalesController extends Controller
         $kolom=
         [
             ['data'=>'action','name'=>'action','title'=>'Action','orderable'=> false,'searchable'=>false],
-            ['data'=>'forcast_number','name'=>'forcast_number','title'=>'Nomor Forcasting'],
-            ['data'=>'forcast_name','name'=>'forcast_name','title'=>'Forcasting Name'],
+            ['data'=>'forcast_number','name'=>'forcast_number','title'=>'Nomor Forecasting'],
+            ['data'=>'forcast_name','name'=>'forcast_name','title'=>'Forecasting Name'],
             ['data'=>'year','name'=>'year','title'=>'Year'],
             ['data'=>'month_start','name'=>'month_start','title'=>'Month Start'],
             ['data'=>'month_end','name'=>'month_end','title'=>'Month End'],
