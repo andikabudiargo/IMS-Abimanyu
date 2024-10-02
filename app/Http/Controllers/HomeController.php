@@ -64,7 +64,7 @@ class HomeController extends Controller
         $lists['jumlahDebitNote'] = 0;
 
         $username =  Auth::user()->username;
-        $data['tanggal'] = Carbon::now()->format('l').','.Carbon::now()->format('M Y');
+        $data['tanggal'] = Carbon::now()->format('l').','.Carbon::now()->format('d M Y');
 
         // if (in_array("PO", $adaModule)){
             $data['listPoHome'] = DB::select("SELECT * from (
