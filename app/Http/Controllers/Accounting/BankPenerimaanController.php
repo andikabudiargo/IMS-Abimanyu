@@ -122,6 +122,89 @@ class BankPenerimaanController extends Controller
             // $code="$key/$month/$year/$newCode";
         */
 
+         /*
+            CR - 2-8-2024
+            Request: Diharapkan nomor invoice setiap tahunnya dapat mulai lagi dari awal. 
+            Misal jika user menginputkan data tahun 2022, 
+            maka sistem akan mengecek terlebih dahulu apakah ada invoice di tahun tersebut, 
+            Jika di tahun tersebut nomor invoice terakhir yang diinputkan adalah: INV-ASN-22-VII-005, 
+            maka data yang diinputkan akan otomatis menjadi INV-ASN-22-VII-006. 
+            Begitupun ketika user menginputkan data di tahun 2025, 
+            maka nomor invoicenya menjadi INV-ASN-25-I-001 dan seterusnya. 
+            Serta, 
+            sistem harus dapat mengecek nomor terkecil terlebih dahulu, 
+            misal pada tahun 2022, nomor invoice terakhir adalah: INV-ASN-22-VII-002 
+            namun ternyata tidak ada Invoice dengan nomor INV-ASN-22-VII-001, 
+            maka invoice terbaru di tahun 2022 otomatis menjadi INV-ASN-22-VII-001
+        */
+
+        $getCurrentYear = date('y');
+        $inputYear = $year;
+        $basicCode1 = "$key-ASN-$inputYear";
+        $basicCode2 = "$key/__/$inputYear";
+        $getLastCode = DB::table('kas_hdr')
+        ->where(function($query) use ($basicCode1,$basicCode2){
+            $query->where('voucher_number','like',$basicCode1.'%');
+            $query->orWhere('voucher_number','like',$basicCode2.'%');
+        })
+        // ->where('invoice_number','like',$basicCode1.'%')
+        // ->orWhere('invoice_number','like',$basicCode2.'%')
+        ->where('status','<>','5')
+        ->where('voucher_type',$key)
+        ->orderBy(DB::raw("right(voucher_number,4)::numeric"),'desc')
+        ->select(DB::raw("right(voucher_number,4) as last_code"))
+        ->value('last_code');
+
+        $getLastCode = $getLastCode ? $getLastCode : 1;
+
+        $getMissingCode = DB::SELECT("SELECT generate_series(0001, $getLastCode) as missing_code
+        except
+        select voucher_number::integer from (select right(voucher_number,4) as voucher_number from kas_hdr 
+        where (voucher_number like '$basicCode1%' or  voucher_number like '$basicCode2%') and (status <> '5') and (voucher_type = '$key') order by  id) as oki
+        order by missing_code limit 1");
+
+        if(count($getMissingCode) > 0){
+            $newCode = $getMissingCode[0]->missing_code;
+        }else{
+            $newCode = ($getLastCode*1)+1;
+        }
+        
+        $newCode = str_pad($newCode,4,"0",STR_PAD_LEFT);
+        $months = ['I', 'II', 'III','IV','V', 'VI', 'VII', 'VIII','IX','X','XI','XII'];
+        $month = $months[$period-1];
+        $year = $inputYear;
+        $code="$key-ASN-$year-$month-$newCode";
+
+        return $code;
+    }
+
+    public function getLastCode_old($key,$period,$year)
+    {
+        /*
+            old ways
+            DB::table('master_code')
+            ->where('code_key',$key)
+            ->update([
+                'code_number' => DB::raw('code_number + 1'),
+                'updated_by' => Auth::user()->username,
+                'updated_at' => date('Y-m-d H:i:s')
+            ]);
+
+            $newCode = DB::table('master_code')
+            ->where('code_key',$key)
+            ->value('code_number'); 
+
+            $newCode = str_pad($newCode,4,"0",STR_PAD_LEFT);
+            $months = ['I', 'II', 'III','IV','V', 'VI', 'VII', 'VIII','IX','X','XI','XII'];
+            $month = $months[$period-1];
+            // $month = str_pad(date('n'),2,"0",STR_PAD_LEFT);
+            // $month = str_pad($period,2,"0",STR_PAD_LEFT);
+            $year = date('y');
+            // BM-ASN-23-X-0001
+            $code="$key-ASN-$year-$month-$newCode";
+            // $code="$key/$month/$year/$newCode";
+        */
+
         $getCurrentYear = date('y');
         $inputYear = $year;
         $basicCode = "______-$inputYear";
@@ -728,11 +811,20 @@ class BankPenerimaanController extends Controller
         */
 
         $vcNumber = DB::table('kas_hdr')->where('id',$id)->where('status','<>','6')->value('voucher_number');
-
+        $newVcNumber =  $vcNumber."(D)";
+        for ($i=0;$i<10;$i++){
+            $sudahPernahDelete  = DB::table('kas_hdr')->where('voucher_number',$newVcNumber)->count();
+            $newVcNumber = $sudahPernahDelete == 0 ? $newVcNumber : $newVcNumber."(D)";
+            if ($sudahPernahDelete == 0){
+                break;
+            }
+        }
+        
         $rowAffected=DB::table('kas_hdr')
         ->where('voucher_number',$vcNumber)
         ->update(
             [
+                'voucher_number' => $newVcNumber,
                 'status' =>$status,
                 'updated_by' => Auth::user()->username,
                 'updated_at' => date('Y-m-d H:i:s')
@@ -742,18 +834,39 @@ class BankPenerimaanController extends Controller
         // $rowAffected = DB::table('kas_hdr')->where('id',$id)->delete();
 
         if($rowAffected>0){
-            // DB::table('kas_det')->where('voucher_number',$vcNumber)->delete();
+
+            $rowAffected=DB::table('kas_det')
+            ->where('voucher_number',$vcNumber)
+            ->update(
+                [
+                    'voucher_number' => $newVcNumber,
+                    'updated_by' => Auth::user()->username,
+                    'updated_at' => date('Y-m-d H:i:s')
+                ]
+            );
+
+            DB::table('approval_history')
+            ->where('module_number',$vcNumber)
+            ->where('module_code',$this->moduleCode)
+            ->update(
+                [   
+                    'module_number' => $newVcNumber,
+                    'updated_by' => Auth::user()->username,
+                    'updated_at' => date('Y-m-d H:i:s')
+                ]
+            );
+            
             $title ="Delete $this->title";
             $alert  ="success";
             $message  = "$vcNumber Successfully Deleted";
-            \LogActivity::addToLog('KM delete ',"username: $username Status $message");
+            \LogActivity::addToLog("$this->moduleCode delete ","username: $username Status $message");
             // return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);  
             return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);
         }else{
             $title ="Delete $this->title";
             $alert  ="warning";
             $message  = "$vcNumber Failed to Delete";
-            \LogActivity::addToLog('KM delete ',"username: $username Status $message");
+            \LogActivity::addToLog("$this->moduleCode delete ","username: $username Status $message");
             // return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);
             return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);
         }
@@ -858,7 +971,7 @@ class BankPenerimaanController extends Controller
             if ($data->statusku != '5') {
                 $bmDate = date('Y-m-d', strtotime($data->voucher_date_2));
                 if($bmDate>=$lockDateToDate){
-                    $buttons .=         "<a href='javascript:;'
+                    $buttons .=  "<a href='javascript:;'
                                     id='deleteButton'
                                     class='dropdown-item'
                                     data-toggle='modal'

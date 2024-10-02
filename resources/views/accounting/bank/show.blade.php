@@ -2,7 +2,6 @@
 @section('title', $title)
 @section('content')
 @include('layouts.breadcrumb')
-@include('partials.alert')
 <section id="show">
     <div class="form-row">
         <div class="col-md-12">
@@ -234,6 +233,5 @@
 @endsection
 @section('scripts')
 <script type="text/javascript">
-    
 </script>
 @endsection
