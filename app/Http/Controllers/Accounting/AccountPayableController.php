@@ -2051,6 +2051,37 @@ class AccountPayableController extends Controller
             }
         }
 
+        // $data = DB::table('ap_invoice')
+        // ->leftJoin('third_party','third_party.kode','ap_invoice.supplier_id')
+        // ->where(function ($query) use ($searchAp,$searchPo,$searchSupplier,$searchStatus,$apDate,$fromDate,$toDate,$apPeriod) {
+        //     $searchPo ? $query->where('po_number','ilike','%'.$searchPo.'%') : '';
+        //     $searchAp ? $query->where('ap_number','ilike','%'.$searchAp.'%') : '';
+        //     $searchSupplier ? $query->where('supplier_id','ilike','%'.$searchSupplier.'%') : '';
+        //     $searchStatus ? $query->where('ap_invoice.status','=',$searchStatus) : '';
+        //     $apDate ? $query->whereBetween(DB::raw("to_date(ap_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
+        //     $apPeriod ? $query->where('period',$apPeriod) : '';
+        // })
+        // ->whereNotIn('ap_invoice.status',['5'])
+        // ->select(
+        //     'ap_invoice.*'
+        //     // ,DB::raw("to_char(to_date(ap_invoice.ap_date, 'DD-MM-YYYY'), 'DD Month YYYY') as ap_date")
+        //     ,DB::raw("to_char(to_date(ap_invoice.ap_date, 'DD-MM-YYYY'), 'DD/MM/YYYY') as ap_date")
+        //     ,DB::raw("to_date(ap_invoice.ap_date, 'DD-MM-YYYY') as ap_date_2")
+        //     ,DB::raw("(select STRING_AGG ( a.rec_number,',' ORDER BY a.id) as list_rec from ap_invoice_detail a where ap_number = ap_invoice.ap_number) as list_rec")
+        //     ,'third_party.nama as supplier_name'
+        //     ,db::raw("(select (select name from users where username = z.username) from approval_history z where module_number = ap_invoice.ap_number order by approval_order desc limit 1) as approval_by")
+        //     ,db::raw("(select to_char(approval_date::date, 'DD-MM-YYYY') from approval_history z where module_number = ap_invoice.ap_number order by approval_order desc limit 1) as approval_at")
+        //     ,db::raw("case when pph23_type = 'PPH21' then pph23 else 0 end as pph21")
+        //     ,db::raw("case when pph23_type = 'PPH23' then pph23 else 0 end as pph23")
+        //     ,db::raw("case when pph23_type = 'PPH42' then pph23 else 0 end as pph42")
+        //     ,db::raw("case when ap_invoice.status = '6' then (select voucher_date from kas_hdr where voucher_number = (select voucher_number from kas_det where reference = ap_invoice.inv_number and account = third_party.account)) else '' end as voucher_date")
+        //     ,db::raw("case when ap_invoice.status = '6' then (select voucher_number from kas_det where reference = ap_invoice.inv_number and account = third_party.account) else '' end as voucher_number")
+        //     ,db::raw("case when ap_invoice.status = '6' then (select debit from kas_det where reference = ap_invoice.inv_number and account = third_party.account) else 0 end as voucher_amount")
+        //     ,db::raw("grand_total-coalesce((select debit from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status not in ('5','6') and reference = ap_invoice.inv_number and account = third_party.account),0) as balance")            
+        // )
+        // ->orderBy('ap_invoice.id')
+        // ->get(); 
+
         $data = DB::table('ap_invoice')
         ->leftJoin('third_party','third_party.kode','ap_invoice.supplier_id')
         ->where(function ($query) use ($searchAp,$searchPo,$searchSupplier,$searchStatus,$apDate,$fromDate,$toDate,$apPeriod) {
@@ -2074,9 +2105,9 @@ class AccountPayableController extends Controller
             ,db::raw("case when pph23_type = 'PPH21' then pph23 else 0 end as pph21")
             ,db::raw("case when pph23_type = 'PPH23' then pph23 else 0 end as pph23")
             ,db::raw("case when pph23_type = 'PPH42' then pph23 else 0 end as pph42")
-            ,db::raw("case when ap_invoice.status = '6' then (select voucher_date from kas_hdr where voucher_number = (select voucher_number from kas_det where reference = ap_invoice.inv_number and account = third_party.account)) else '' end as voucher_date")
-            ,db::raw("case when ap_invoice.status = '6' then (select voucher_number from kas_det where reference = ap_invoice.inv_number and account = third_party.account) else '' end as voucher_number")
-            ,db::raw("case when ap_invoice.status = '6' then (select debit from kas_det where reference = ap_invoice.inv_number and account = third_party.account) else 0 end as voucher_amount")
+            ,db::raw("case when ap_invoice.status = '6' then (select voucher_date from kas_hdr where voucher_number = (select kas_det.voucher_number from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status not in ('5','6') and reference = ap_invoice.inv_number and account = third_party.account)) else '' end as voucher_date")
+            ,db::raw("case when ap_invoice.status = '6' then (select kas_det.voucher_number from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status not in ('5','6') and reference = ap_invoice.inv_number and account = third_party.account) else '' end as voucher_number")
+            ,db::raw("case when ap_invoice.status = '6' then (select debit from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status not in ('5','6') and reference = ap_invoice.inv_number and account = third_party.account) else 0 end as voucher_amount")
             ,db::raw("grand_total-coalesce((select debit from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status not in ('5','6') and reference = ap_invoice.inv_number and account = third_party.account),0) as balance")            
         )
         ->orderBy('ap_invoice.id')
