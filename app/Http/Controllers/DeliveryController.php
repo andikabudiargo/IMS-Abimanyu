@@ -1983,7 +1983,7 @@ class DeliveryController extends Controller
 
             kalau tidak ada jumlah limit maka akan error- hal ini di sengaja supaya tidak kebablasan
             Di kawatirkan ada upload lebih dari 1000 baris, maka proses akan kena timeout
-            
+
             posting dengan jumlah record tertentu
             https://abimanyugreats.com/delivery/postingAllData/delivery/postingAllData?jumlah=100
 
