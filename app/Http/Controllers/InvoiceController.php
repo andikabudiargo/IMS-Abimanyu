@@ -1233,17 +1233,23 @@ class InvoiceController extends Controller
             // ,DB::raw("(select STRING_AGG ( distinct a.po_number,', ' ORDER BY a.po_number) as po_number from invoice_det a where invoice_number = invoice_hdr.invoice_number) as po_number")
             ,DB::raw("(select STRING_AGG ( distinct (select po_number from sales_order_hdr where so_code = so_number),',') as po_number from invoice_det a where invoice_number = invoice_hdr.invoice_number) as po_number")
             ,DB::raw("(select STRING_AGG ( distinct a.dn_number,', ' ORDER BY a.dn_number) as dn_number from invoice_det a where invoice_number = invoice_hdr.invoice_number) as dn_number")
-            ,DB::raw("case when invoice_hdr.status = '6' then (select voucher_date from kas_hdr where voucher_number = (select voucher_number from kas_det where reference = invoice_hdr.invoice_number)) else '' end as voucher_date")
-            ,DB::raw("case when invoice_hdr.status = '6' then (select to_date(voucher_date, 'DD-MM-YYYY') from kas_hdr where voucher_number = (select voucher_number from kas_det where reference = invoice_hdr.invoice_number)) else null end as voucher_date_2")
-            ,DB::raw("case when invoice_hdr.status = '6' then (select voucher_number from kas_det where reference = invoice_hdr.invoice_number) else '' end as voucher_number")
-            ,DB::raw("case when invoice_hdr.status = '6' then (select credit from kas_det where reference = invoice_hdr.invoice_number) else 0 end as voucher_amount")
+            ,DB::raw("case when invoice_hdr.status = '6' then (select voucher_date from kas_hdr where voucher_number = (select kas_det.voucher_number from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status not in ('5','6') and reference = invoice_hdr.invoice_number)) else '' end as voucher_date")
+            ,DB::raw("case when invoice_hdr.status = '6' then (select to_date(voucher_date, 'DD-MM-YYYY') from kas_hdr where voucher_number = (select kas_det.voucher_number from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status not in ('5','6') and reference = invoice_hdr.invoice_number)) else null end as voucher_date_2")
+            ,DB::raw("case when invoice_hdr.status = '6' then (select kas_det.voucher_number from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status not in ('5','6') and reference = invoice_hdr.invoice_number) else '' end as voucher_number")
+            ,DB::raw("case when invoice_hdr.status = '6' then (select credit from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status not in ('5','6') and reference = invoice_hdr.invoice_number) else 0 end as voucher_amount")
+            ,DB::raw("case when invoice_hdr.status <> '5' then grand_total-coalesce((select credit from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status not in ('5','6') and reference = invoice_hdr.invoice_number and (select status from kas_hdr where voucher_number = kas_det.voucher_number) = '3'),0) else 0 end as balance")
             // ,db::raw("case when invoice_hdr.status = '6' then grand_total-(select credit from kas_det where reference = invoice_hdr.invoice_number) else 0 end as balance")
-            ,DB::raw("case when invoice_hdr.status <> '5' then grand_total-coalesce((select credit from kas_det where reference = invoice_hdr.invoice_number and (select status from kas_hdr where voucher_number = kas_det.voucher_number) = '3'),0) else 0 end as balance")
             ,DB::raw("to_char(to_date(invoice_hdr.invoice_date,'dd-mm-yyyy') + INTERVAL '1 day' *coalesce((select top_batas_1 from third_party where kode = invoice_hdr.customer_id),0), 'dd/mm/yyyy') as jatuh_tempo")
             ,DB::raw("to_date(to_char(to_date(invoice_hdr.invoice_date,'dd-mm-yyyy') + INTERVAL '1 day' *coalesce((select top_batas_1 from third_party where kode = invoice_hdr.customer_id),0), 'dd/mm/yyyy'),'dd/mm/yyyy') as jatuh_tempo_2")
         )
         ->orderBy('invoice_hdr.id')
         ->get(); 
+
+        // ,DB::raw("case when invoice_hdr.status = '6' then (select voucher_date from kas_hdr where voucher_number = (select voucher_number from kas_det where reference = invoice_hdr.invoice_number)) else '' end as voucher_date")
+        // ,DB::raw("case when invoice_hdr.status = '6' then (select to_date(voucher_date, 'DD-MM-YYYY') from kas_hdr where voucher_number = (select voucher_number from kas_det where reference = invoice_hdr.invoice_number)) else null end as voucher_date_2")
+        // ,DB::raw("case when invoice_hdr.status = '6' then (select voucher_number from kas_det where reference = invoice_hdr.invoice_number) else '' end as voucher_number")
+        // ,DB::raw("case when invoice_hdr.status = '6' then (select credit from kas_det where reference = invoice_hdr.invoice_number) else 0 end as voucher_amount")
+        // ,DB::raw("case when invoice_hdr.status <> '5' then grand_total-coalesce((select credit from kas_det where reference = invoice_hdr.invoice_number and (select status from kas_hdr where voucher_number = kas_det.voucher_number) = '3'),0) else 0 end as balance")
 
         $lockDateToDate = date('Y-m-d',strtotime($this->lockDate));
 
