@@ -102,7 +102,7 @@
                                         <tr>
                                             <td>{{ $item->article }}</td>
                                             {{-- <td>{{ $item->desc }}</td> --}}
-                                            <td class="text-right">{{ number_format($item->qty) }}</td>
+                                            <td class="text-right">{{ number_format($item->qty,2) }}</td>
                                             <td>{{ $item->uom }}</td>
                                             <td class="text-right">{{ number_format($item->price,2) }}</td>
                                             <td class="text-right">{{ number_format($item->price_service,2) }}</td>

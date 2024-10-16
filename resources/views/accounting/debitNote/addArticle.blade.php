@@ -40,7 +40,7 @@
                         <input type="text" class="form-control" list="articlesList" id="articleId" name="articleId[]" maxlength="100">
                     </td>
                     <td class="isian" style="width: 10%">
-                        <input type="text" class="form-control-plaintext numeral-mask text-right recalculate" id = "qtyInv" name="qtyInv[]" maxlength="9">
+                        <input type="text" class="form-control-plaintext numeral-mask-digit text-right recalculate" id = "qtyInv" name="qtyInv[]" maxlength="9">
                     </td>
                     <td class="isian" style="width: 5%">
                         <input type="text" class="form-control-plaintext" id = "uom" name="uom[]" value="PCS" maxlength="9">
