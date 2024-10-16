@@ -857,8 +857,6 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('dnReturn/print',['as'=>'dnReturn.print','uses'=>'DnReturnController@print']);
 	Route::post('dnReturn/get/article',['as'=>'dnReturn.get.article','uses'=>'DnReturnController@getArticle']);
 
-
-
 	Route::get('dnReplace',['as'=>'dnReplace.index','uses'=>'DnReplaceController@index']);
 	Route::get('dnReplace/create',['as'=>'dnReplace.create','uses'=>'DnReplaceController@create']);
 	Route::get('dnReplace/search',['as'=>'dnReplace.search','uses'=>'DnReplaceController@search']);
@@ -910,6 +908,21 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('asset/get/list/asset',['as'=>'get.list.asset','uses'=>'Accounting\AssetController@getListAsset']);
 	Route::get('asset/get/akun/mapping',['as'=>'get.akun.mapping','uses'=>'Accounting\AssetController@getAkunMapping']);
 	Route::get('asset/print',['as'=>'asset.print','uses'=>'Accounting\AssetController@print']);
+
+	// Route::get('conversion',['as'=>'conversion.index','uses'=>'Forecasting\ConversionController@index']);
+	// Route::get('conversion/create',['as'=>'conversion.create','uses'=>'Forecasting\ConversionController@create']);
+	// Route::get('conversion/edit',['as'=>'conversion.edit','uses'=>'Forecasting\ConversionController@edit']);
+	// Route::post('conversion/store',['as'=>'conversion.store','uses'=>'Forecasting\ConversionController@store']);
+	// Route::post('conversion/delete',['as'=>'conversion.destroy','uses'=>'Forecasting\ConversionController@destroy']);
+	// Route::get('conversion/show',['as'=>'conversion.show','uses'=>'Forecasting\ConversionController@show']);
+	// Route::post('conversion/list',['as'=>'conversion.list','uses'=>'Forecasting\ConversionController@list']);
+	// Route::post('conversion/get/article',['as'=>'conversion.get.article','uses'=>'Forecasting\ConversionController@getArticle']);
+	// Route::post('conversion/get/qty/article',['as'=>'conversion.get.qty.article','uses'=>'Forecasting\ConversionController@getQtyArticle']);
+	// Route::post('conversion/get/list/article',['as'=>'conversion.get.list.article','uses'=>'Forecasting\ConversionController@getListArticle']);
+	// Route::get('conversion/get/select/article',['as'=>'conversion.get.select.article','uses'=>'Forecasting\ConversionController@getSelectArticle']);
+	// Route::post('conversion/update',['as'=>'conversion.update','uses'=>'Forecasting\ConversionController@update']);
+
+	Route::get('balanceSheet',['as'=>'balanceSheet.index','uses'=>'Accounting\BalanceSheetController@index']);
 		
 	Route::get('stockTake',['as'=>'stockTake.index','uses'=>'StockTake\StockTakeController@index']);
 	Route::post('stockTake/import',['as'=>'stockTake.import','uses'=>'StockTake\StockTakeController@import']);
