@@ -140,14 +140,18 @@ class BalanceSheetController extends Controller
             $qTotalPersediaan = db::select("select sum(saldo) as jumlah from ($queries) as oki where group_code = 'activalancar' and sub_group = 'persediaan' group by group_code");
             $qTotalKewajibanLancar = db::select("select sum(saldo) as jumlah from ($queries) as oki where group_code = 'kewajiban' group by group_code");
             $qTotalModal = db::select("select sum(saldo) as jumlah from ($queries) as oki where group_code = 'modal' group by group_code");
-            $qTotalAsset = db::select("select sum(saldo) as jumlah from ($queries) as oki where main = 'asset' group by group_code");
+            $qTotalAsset = db::select("select sum(saldo) as jumlah from ($queries) as oki where main = 'asset' group by main");
 
-            // dd($qTotalActivaLancar[0]->jumlah);
+            $totalActivaLancar = count($qTotalActivaLancar) > 0 ? $qTotalActivaLancar[0]->jumlah : 0;
+            $totalPersediaan = count($qTotalPersediaan) > 0 ? $qTotalPersediaan[0]->jumlah : 0;
+            $totalKewajibanLancar = count($qTotalKewajibanLancar) > 0 ? $qTotalKewajibanLancar[0]->jumlah : 1;
+            $totalModal = count($qTotalModal) > 0 ? $qTotalModal[0]->jumlah : 1;
+            $totalAsset = count($qTotalAsset) > 0 ? $qTotalAsset[0]->jumlah : 1;
 
-            $data['quickRatio'] = number_format(($qTotalActivaLancar[0]->jumlah-$qTotalPersediaan[0]->jumlah)/$qTotalKewajibanLancar[0]->jumlah,2);
-            $data['currentRatio'] = number_format($qTotalActivaLancar[0]->jumlah/$qTotalKewajibanLancar[0]->jumlah,2);
-            $data['debtEquityRatio'] = number_format($qTotalKewajibanLancar[0]->jumlah/$qTotalModal[0]->jumlah,2);
-            $data['equityRatio'] = number_format($qTotalModal[0]->jumlah/$qTotalAsset[0]->jumlah,2);
+            $data['quickRatio'] = number_format(($totalActivaLancar-$totalPersediaan)/$totalKewajibanLancar,2);
+            $data['currentRatio'] = number_format($totalActivaLancar/$totalKewajibanLancar,2);
+            $data['debtEquityRatio'] = number_format($totalKewajibanLancar/$totalModal,2);
+            $data['equityRatio'] = number_format($totalModal/$totalAsset,2);
             
             return view("accounting.balanceSheet.index",$data);
         }else{
