@@ -66,7 +66,7 @@
                                                 </div>
                                             </div>
                                         </td>
-                                        <td class="text-right">{{ $val->customer }}</td>
+                                        <td class="">{{ $val->customer }}</td>
                                         <td>
                                             <div class="d-flex align-items-center">
                                                 <div>

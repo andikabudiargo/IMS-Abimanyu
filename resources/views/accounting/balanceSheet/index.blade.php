@@ -14,7 +14,7 @@
     </div>
     <div class="card-content collapse show">
       <div class="card-body">
-        <form id="frmFilter" name="frmFilter" action="{{ route('balanceSheet.index') }}" method="get" autocomplete="off">
+        <form id="frmFilter" name="frmFilter" method="get" autocomplete="off">
             <div class="form-row">
               <div class="form-group col-md-3">
                 <label class="form-label" for="bsDate">Date *</label>
@@ -24,6 +24,9 @@
             <div class="form-row">
                 <div class="col-12"> 
                     <button type="button" class="btn btn-primary" id ="btnSearch" name="btnSearch">Search</button>
+                    @if($start == false)
+                    <button type="button" class="btn btn-success" id ="btnPrint" name="btnPrint">Print</button>
+                    @endif
                 </div>
             </div>
         </form>
@@ -265,8 +268,9 @@
 @section('scripts')
 <script type="text/javascript">
   let currentDate = todayDate('dd-mm-yyyy');  
+  $(".loading-spinner-container").addClass("-show");
   $(document).ready(function(){  
-    validateFormToast("frmFilter");  
+    validateFormToast("frmFilter");    
   });
 
   const rangePickr = $('.flatpickr-range');
@@ -326,16 +330,41 @@
   $("#btnSearch").click(function(e){
     e.preventDefault();
     if (!$("#frmFilter")[0].checkValidity()){
-        $("#frmAdd").submit();
+        $("#frmFilter").submit();
     }else{
+        href = "{{ route('balanceSheet.index') }}";
+        $('#frmFilter').attr("action", href);
         $('.disabled-el').removeAttr('disabled');
         $('#tampilData1').hide();
         $('#tampilData2').hide();
+        $("#btnPrint").hide();
         $("#frmFilter").submit();
     }
   });
 
-   $.ajaxSetup({
+  $("#btnPrint").click(function(e){
+
+    let currentURL = window.location.href.slice(window.location.href.indexOf('?') + 1);
+    let oki = currentURL.split('=');
+    let iko = oki[1].replace(/\+/g,'');
+
+    if((oki[0] === 'bsDate') && (oki.length> 0)){
+      e.preventDefault();
+      if (!$("#frmFilter")[0].checkValidity()){
+          $("#frmFilter").submit();
+      }else{
+          let id = iko;
+          let url = "{{ route('balanceSheet.print', ['bsDate'=>':id']) }}";
+          url = url.replace('%3Aid', id);
+          window.open(url, '_blank');
+      }
+    }else{
+      swal.fire("Warning", "Isi periode dulu, lalu tekan search ....","warning");
+    }
+
+  });
+
+  $.ajaxSetup({
     headers: {
         'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
     }
