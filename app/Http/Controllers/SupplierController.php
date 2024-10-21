@@ -280,7 +280,7 @@ class SupplierController extends Controller
                 DB::commit();
                 $title = $this->title;
                 $alert  ="success";
-                $message  = "$title $kode is successfully saved";
+                $message  = "$title Code:$kode Name:$nama  is successfully saved";
                 \LogActivity::addToLog('Supplier save ',"username: $username Status $message");
                 return redirect()->back()->with(['alert'=>$alert,'title'=>$title,'message'=> $message]);  
 
@@ -414,6 +414,10 @@ class SupplierController extends Controller
         $otherCode = $request->otherCode;
         $category = $request->category;
         $joinDate = $request->joinDate;
+
+        $supplierBefore = DB::table('third_party')
+        ->where('id',$id)
+        ->value('nama');
     
         $messages = [
             'required' => 'The field is required.',
@@ -482,7 +486,7 @@ class SupplierController extends Controller
                 if($row_affected>0){
                     $title = $this->title;
                     $alert  ="success";
-                    $message  = "$title Successfully updated";
+                    $message  = "$title Code : $kode, Name: $supplierBefore to $nama Successfully updated";
                     \LogActivity::addToLog('Supplier update ',"username: $username Status $message");
                     return redirect()->back()->with(['alert'=>$alert,'title'=>$title,'message'=> $message]);  
                 }else{
@@ -507,6 +511,15 @@ class SupplierController extends Controller
     {
         $username =  Auth::user()->username;
         $id=Crypt::decryptString($request->id);
+        $supplierCode = "";
+        $supplierNama = "";
+
+        $supplier = DB::table('third_party')
+        ->where('id',$id)
+        ->first();
+
+        $supplierCode = $supplier->kode;
+        $supplierNama = $supplier->nama;
 
         $row_affected = DB::table('third_party')
         ->where('id',$id)
@@ -515,13 +528,13 @@ class SupplierController extends Controller
         if($row_affected>0){
             $title = $this->title;
             $alert  ="success";
-            $message  = "$title successfully Deleted";
+            $message  = "$title code: $supplierCode, Name:$supplierNama successfully Deleted";
             \LogActivity::addToLog('Supplier delete ',"username: $username Status $message");
             return redirect()->back()->with(['alert'=>$alert,'title'=>$title,'message'=> $message]);  
         }else{
             $title = $this->title;
             $alert  ="warning";
-            $message  = "$title failed to Delete";
+            $message  = "$title id:$id failed to Delete";
             \LogActivity::addToLog('Supplier delete ',"username: $username Status $message");
             return redirect()->back()->with(['alert'=>$alert,'title'=>$title,'message'=> $message]);
         }
