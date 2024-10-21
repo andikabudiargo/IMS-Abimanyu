@@ -34,7 +34,7 @@
                 </select>
               </div>
               <div class="col-md-3 form-group">
-                <label for="apDate">Ap Date</label>
+                <label for="apDate">Ap Date (Created At)</label>
                 <input type="text" id="apDate" name="apDate" class="form-control flatpickr-range" placeholder="YYYY-MM-DD to YYYY-MM-DD" />
               </div>
               <div class="form-group col-md-3">
@@ -151,16 +151,16 @@
       tableId:"detailedTable",
       route:"{{ route('accountPayable.list') }}",
       kolom:{!! $kolom !!},
-      arrColPrint:[1,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30],
+      arrColPrint:[1,2,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33],
       columnDefs :[
         { width: '5%', targets: 0 },
         {
-          targets: [ 8,9,19,20,21,22,23,24,25 ],
+          targets: [ 18,19,20,21,22,23,24,25,27,28 ],
           render: $.fn.dataTable.render.number(',', '.', 2, ''),
           className: "text-right"
         },
         {
-          targets: [ 11 ],
+          targets: [ 12 ],
           render: function ( data, type, full, meta ) {
             return '\u200C'+data;
           }
@@ -181,7 +181,7 @@
         apDate:apDate,
         apPeriod:aPeriod
       },
-      orderColumn:[[ 30, 'desc' ]],
+      orderColumn:[[ 33, 'desc' ]],
       excelFileName:'invoice_supplier'
     });
   }

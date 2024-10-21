@@ -94,23 +94,25 @@ class AccountPayableController extends Controller
         [
             ['data'=> 'action', 'name'=> 'action','title'=>'action', 'orderable'=> false, 'searchable'=> false],
             ['data'=> 'ap_number', 'name'=> 'ap_number','title'=>'AP Number'],
-            ['data'=> 'ap_date', 'name'=> 'ap_date','title'=>'AP Date'],
+            // ['data'=> 'ap_date', 'name'=> 'ap_date','title'=>'AP Date'],
+            ['data'=> 'ap_date_1', 'name'=> 'ap_date_1','title'=>'AP Date'],
             ['data'=> 'ap_date_2', 'name'=> 'ap_date_2','title'=>'AP Date','visible'=>false],
             ['data'=> 'period', 'name'=> 'period','title'=>'Period'],
             ['data'=> 'status', 'name'=> 'status','title'=>'Status'],
-            ['data'=> 'voucher_date', 'name'=> 'voucher_date','title'=>'Paid Date'],
-            ['data'=> 'voucher_number', 'name'=> 'voucher_number','title'=>'Voucher Number'],
-            ['data'=> 'voucher_amount', 'name'=> 'voucher_amount','title'=>'Amount Paid'],
-            ['data'=> 'balance', 'name'=> 'balance','title'=>'Balance'],
+            ['data'=> 'kode', 'name'=> 'kode','title'=>'Supplier Code'],
+            ['data'=> 'supplier_name', 'name'=> 'supplier_name','title'=>'Supplier'],
+            ['data'=> 'po_number', 'name'=> 'po_number','title'=>'PO Number'],
+            ['data'=> 'list_rec', 'name'=> 'list_rec','title'=>'Rec Number'],
+            ['data'=> 'rec_date', 'name'=> 'rec_date','title'=>'Rec Date','visible'=>false],
             ['data'=> 'num_revision', 'name'=> 'num_revision','title'=>'Rev.','visible'=>false],
             ['data'=> 'inv_number', 'name'=> 'inv_number','title'=>'Invoice Number'],
             ['data'=> 'proforma_inv_number', 'name'=> 'proforma_inv_number','title'=>'Proforma','visible'=>false],
             ['data'=> 'tax_inv_number', 'name'=> 'tax_inv_number','title'=>'Tax Inv Number'],
             ['data'=> 'inv_date', 'name'=> 'inv_date','title'=>'Inv Date'],
-            ['data'=> 'supplier_name', 'name'=> 'supplier_name','title'=>'Supplier'],
-            ['data'=> 'po_number', 'name'=> 'po_number','title'=>'PO Number'],
-            ['data'=> 'list_rec', 'name'=> 'list_rec','title'=>'Rec Number'],
-            ['data'=> 'rec_date', 'name'=> 'rec_date','title'=>'Rec Date','visible'=>false],
+
+            ['data'=> 'ap_date', 'name'=> 'ap_date','title'=>'Receive AP'],
+            ['data'=> 'due_date', 'name'=> 'due_date','title'=>'Due date'],
+
             ['data'=> 'basis_amount', 'name'=> 'basis_amount','title'=>'DPP'],
             ['data'=> 'vat', 'name'=> 'vat','title'=>'VAT'],
             ['data'=> 'pph21', 'name'=> 'pph21','title'=>'PPH21'],
@@ -118,6 +120,10 @@ class AccountPayableController extends Controller
             ['data'=> 'pph42', 'name'=> 'pph42','title'=>'PPH4(2)'],
             ['data'=> 'total_discount', 'name'=> 'total_discount','title'=>'Discount'],
             ['data'=> 'grand_total', 'name'=> 'grand_total','title'=>'Grand Total'],
+            ['data'=> 'voucher_date', 'name'=> 'voucher_date','title'=>'Paid Date'],
+            ['data'=> 'voucher_number', 'name'=> 'voucher_number','title'=>'Voucher Number'],
+            ['data'=> 'voucher_amount', 'name'=> 'voucher_amount','title'=>'Amount Paid'],
+            ['data'=> 'balance', 'name'=> 'balance','title'=>'Balance'],
             ['data'=> 'note', 'name'=> 'note','title'=>'Note'],
             ['data'=> 'approval_by','name'=> 'approval_by','title'=>'Approved By'],
             ['data'=> 'approval_at','name'=> 'approval_at','title'=>'Approved At'],
@@ -2082,6 +2088,13 @@ class AccountPayableController extends Controller
         // ->orderBy('ap_invoice.id')
         // ->get(); 
 
+        /*
+            21/10/2024
+            Perubahan pencarian berdasarkan tanggal
+            sebelum : Berdasarkan kolom ap_date
+            Setelah : Berdasarkan kolom created_at
+        */
+
         $data = DB::table('ap_invoice')
         ->leftJoin('third_party','third_party.kode','ap_invoice.supplier_id')
         ->where(function ($query) use ($searchAp,$searchPo,$searchSupplier,$searchStatus,$apDate,$fromDate,$toDate,$apPeriod) {
@@ -2089,15 +2102,18 @@ class AccountPayableController extends Controller
             $searchAp ? $query->where('ap_number','ilike','%'.$searchAp.'%') : '';
             $searchSupplier ? $query->where('supplier_id','ilike','%'.$searchSupplier.'%') : '';
             $searchStatus ? $query->where('ap_invoice.status','=',$searchStatus) : '';
-            $apDate ? $query->whereBetween(DB::raw("to_date(ap_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
+            // $apDate ? $query->whereBetween(DB::raw("to_date(ap_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
+            $apDate ? $query->whereBetween('ap_invoice.created_at', [$fromDate, $toDate]) : '';
             $apPeriod ? $query->where('period',$apPeriod) : '';
         })
         ->whereNotIn('ap_invoice.status',['5'])
         ->select(
             'ap_invoice.*'
+            ,'third_party.kode'
             // ,DB::raw("to_char(to_date(ap_invoice.ap_date, 'DD-MM-YYYY'), 'DD Month YYYY') as ap_date")
             ,DB::raw("to_char(to_date(ap_invoice.ap_date, 'DD-MM-YYYY'), 'DD/MM/YYYY') as ap_date")
             ,DB::raw("to_date(ap_invoice.ap_date, 'DD-MM-YYYY') as ap_date_2")
+            ,DB::raw("to_char(ap_invoice.created_at, 'DD/MM/YYYY') as ap_date_1")
             ,DB::raw("(select STRING_AGG ( a.rec_number,',' ORDER BY a.id) as list_rec from ap_invoice_detail a where ap_number = ap_invoice.ap_number) as list_rec")
             ,'third_party.nama as supplier_name'
             ,db::raw("(select (select name from users where username = z.username) from approval_history z where module_number = ap_invoice.ap_number order by approval_order desc limit 1) as approval_by")
@@ -2109,6 +2125,7 @@ class AccountPayableController extends Controller
             ,db::raw("case when ap_invoice.status = '6' then (select kas_det.voucher_number from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status not in ('5','6') and reference = ap_invoice.inv_number and account = third_party.account) else '' end as voucher_number")
             ,db::raw("case when ap_invoice.status = '6' then (select debit from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status not in ('5','6') and reference = ap_invoice.inv_number and account = third_party.account) else 0 end as voucher_amount")
             ,db::raw("grand_total-coalesce((select debit from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status not in ('5','6') and reference = ap_invoice.inv_number and account = third_party.account),0) as balance")            
+            ,db::raw("to_char(to_date(ap_date,'dd-mm-yyyy') + (interval '1 day' * top_batas_1), 'DD/MM/YYYY')  as due_date")
         )
         ->orderBy('ap_invoice.id')
         ->get(); 
