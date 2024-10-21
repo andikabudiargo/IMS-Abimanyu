@@ -353,7 +353,8 @@
                             <tr style="font-size: 11pt;height:23px">
                         @endif
                             <td   align="center" scope="row" >{{ ++$no }}</td>
-                            <td   align="left">{{ $val->article_desc }}</td>
+                            {{-- <td   align="left">{{ $val->article_desc }}</td> --}}
+                            <td   align="left">{{ $val->article_code }}</td>
                             <td   align="center">{{ number_format($val->qty) }}</td>
                             @if($printType=='1')
                             <td   align="right">{{ number_format($val->price,2) }}</td>

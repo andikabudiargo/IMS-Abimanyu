@@ -390,7 +390,8 @@
                             <tr style="font-size: 11pt;height:23px">
                         @endif
                             <td style="border-right: 1px solid black;border-bottom: none;" align="center" scope="row" >{{ ++$no }}</td>
-                            <td  style="border-right: 1px solid black;" align="left">{{ $val->article_desc }}</td>
+                            {{-- <td  style="border-right: 1px solid black;" align="left">{{ $val->article_desc }}</td> --}}
+                            <td  style="border-right: 1px solid black;" align="left">{{ $val->article_code }}</td>
                             <td  style="border-right: 1px solid black;" align="center">{{ number_format($val->qty,2) }}</td>
                             <td  style="border-right: 1px solid black;padding:0 3px 0 3px" align="right">{{ number_format($val->price,2) }}</td>
                             <td  style="border-right: 1px solid black;padding:0 3px 0 3px" align="right">{{ number_format($val->price_service,2) }}</td>
@@ -616,7 +617,8 @@
                                 <tr style="font-size: 11pt;height:23px">
                             @endif
                                 <td style="border-right: 1px solid black;border-bottom: none;" align="center" scope="row" >{{ ++$no }}</td>
-                                <td  style="border-right: 1px solid black;" align="left">{{ $val->article_desc }}</td>
+                                {{-- <td  style="border-right: 1px solid black;" align="left">{{ $val->article_desc }}</td> --}}
+                                <td  style="border-right: 1px solid black;" align="left">{{ $val->article_code }}</td>
                                 <td  style="border-right: 1px solid black;" align="center">{{ number_format($val->qty) }}</td>
                                 <td  style="border-right: 1px solid black;padding:0 3px 0 3px" align="right">{{ number_format($val->price,2) }}</td>
                                 <td  style="border-right: 1px solid black;padding:0 3px 0 3px" align="right">{{ number_format($val->price_service,2) }}</td>
