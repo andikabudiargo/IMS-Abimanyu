@@ -1039,20 +1039,23 @@ class DebitNoteController extends Controller
         ->get();
 
         $data['details2']=DB::table('debit_note_det')
-        ->leftJoin('article','article.article_code','debit_note_det.article_code')
-        ->select('article.article_desc'
+        // ->leftJoin('article','article.article_code','debit_note_det.article_code')
+        // ->select('article.article_desc'
+        ->select('article_code'
         ,db::raw('sum(qty) as qty')
         ,'price'
         ,'price_service')
         ->where('dn_number',$dnNumber)
         ->groupBy([
-            'article.article_code'
-            ,'article.article_desc'
+            // 'article.article_code'
+            // ,'article.article_desc'
             // ,'qty'
+            'article_code'
             ,'price'
             ,'price_service'
         ])
-        ->orderBy('article.article_code')
+        // ->orderBy('article.article_code')
+        ->orderBy('article_code')
         ->offset($limits)
         ->get();
 
