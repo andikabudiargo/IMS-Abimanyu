@@ -21,6 +21,7 @@ class DependentController extends Controller
         $ref=$request->ref;
         $akhusus='';
         $value2= $request->value2;
+        $dbRequestName ='';
 
         switch ($dependent) { 
             case 'unitTo':
@@ -334,15 +335,6 @@ class DependentController extends Controller
                 $default='';
                 $defaulttxt='Choose Account';
                 break;
-            case 'pRequest': 
-                $table='purchase_request_det';
-                $field ='supp_code';
-                $order ='pr_number';
-                $value ='pr_number';
-                $name  ='pr_number';
-                $default='';
-                $defaulttxt='Choose PR';
-                break;
             case 'listArtilcleAp': 
                 $table='';
                 $field ='';
@@ -352,8 +344,6 @@ class DependentController extends Controller
                 $default='';
                 $defaulttxt='Choose Article';
                 break;
-
-                
             break;
                 default:
                     $table='';
@@ -567,6 +557,14 @@ class DependentController extends Controller
 
             /* Ambil data PR kalau qty nya lebih dari qty PO*/
             
+            /* 
+                ada masalah pada saat load data PR lama karena datanya banyak jadi di akalin dengan membuat table sementara 
+                table ini akan terhapus secara otomatis kalau session ganti
+                nama table pakai random string
+            */
+
+            
+            /*
             $data=db::select("SELECT 
             distinct on (pr_number) pr_number,qty,
             --purchase_request_det.*, 
@@ -593,6 +591,29 @@ class DependentController extends Controller
                                           and po_number in (select po_number from purchase_order_hdr where status not in ('5','6','7','8'))
                 )> 0
             order by pr_number asc");
+
+            */
+
+            $dbRequestName = substr(str_shuffle("abcdefghijklmnopqrstuvwxyz"), 0, 8);
+            db::statement("drop table if exists $dbRequestName");
+
+            db::statement("CREATE TEMP TABLE $dbRequestName AS
+                select 
+                pr_number
+                ,qty
+                ,purchase_request_det.qty- (select coalesce(sum(qty),0) 
+                            from purchase_order_det 
+                            where article_code = purchase_request_det.article_code 
+                            and  pr_number = purchase_request_det.pr_number
+                            and po_number in (select po_number from purchase_order_hdr where status not in ('5','6','7','8'))
+                )  as sisa_qty 
+                from purchase_request_det
+                where pr_number in 
+                (select pr_number from purchase_request_hdr where order_type in ('std', 'tso', 'rm') and status in ('3','7')) 
+                and purchase_request_det.article_code in (select article_code from article_supplier where supplier_code = '$code')"
+            );
+
+            $data=db::select("SELECT distinct on (pr_number) pr_number from $dbRequestName where sisa_qty > 0 order by pr_number");
 
         }elseif($dependent =='pRequest_sub'){
             $data= DB::table($table) 
@@ -716,8 +737,8 @@ class DependentController extends Controller
                 Tapi kalau posisi edit itu tetap keluar
             */
 
-            $data= DB::table($table)
-            ->where($field,$code)
+            $data= DB::table('ap_invoice')
+            ->where('supplier_id',$code)
             ->whereIn('status',['4']) //POSTED
             ->whereNotIn(DB::raw("inv_number"), function($query) use($value2) {
                 $query->select(DB::raw("reference"))
@@ -959,6 +980,12 @@ class DependentController extends Controller
                 $output .='<option value="'.$row->$value.'">'.$row->$name.'</option>';
             }
         }        
+
+        if($dependent =='pRequest'){
+            if($dbRequestName){
+                db::statement("drop table if exists $dbRequestName");
+            }
+        }
         
         return $output;
     }
