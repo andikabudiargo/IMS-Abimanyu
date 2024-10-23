@@ -189,8 +189,6 @@
     $("#nilaiPPH").text("{{ $pph23Value }}%");
     let lockedAt = "{{ $lockDate }}";
 
-    console.log(lockedAt);
-
     let delayTimer;
     function inputDecimal(ele) {
         clearTimeout(delayTimer);
@@ -438,8 +436,7 @@
                 pesan +="Articles must be filled in completely <br>"; 
                 flag=1;
             }
-            console.log(articles);
-
+            
             if (flag==0){
                 let orderDate = $('#orderDate').val();
                 let poType = $('#poType').val();
@@ -606,7 +603,7 @@
                     prNumber:prNumber
                 },
                 success:function(result){
-                    console.log(result.data)
+                    // console.log(result.data)
                     for(let i=0;i<result.data.length;i++){
                         // tampilkan kalo qty nya lebih dari 0
                         if (result.data[i].qty*1 > 0){
@@ -638,6 +635,8 @@
     }
 
     function changeselect(dependent,obj,value,type) {
+      $('#'+obj).empty();
+      $('#'+obj).attr('disabled','disabled');
       $.ajax({
         url:"{{route('dynamic.dependent')}}",
         method:"POST",
@@ -648,6 +647,7 @@
         },
         success:function(result){
             $('#'+obj).html(result);
+            $('#'+obj).removeAttr('disabled');
             // $('#'+obj).val('').trigger('change');
         }
       })
@@ -732,10 +732,6 @@
         
         totalQty = sumFromArray(qty);
         totalAmount = sumFromArray(qty,price);
-
-        console.log(totalAmount)
-
-        // console.log(totalAmount);
 
         // mask_thousand_digit(2);
 

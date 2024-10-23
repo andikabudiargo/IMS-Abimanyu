@@ -47,41 +47,10 @@ class PurchaseOrderController extends Controller
         ->where('attr_id','mainpph42')
         ->value('attr_value');
 
-        /*
-
-        $lastDatePrevMonth = date('t-m-Y', strtotime('-1 months'));
-        $lastDatePrevMonth = date('t-m-Y', strtotime('-1 months',strtotime('05-11-2023')));
-        $firstDayCurrentMonth = date('1-m-Y');
-        $firstDayCurrentMonth = date('1-m-Y', strtotime('05-11-2023'));
-        $prevmonth = date('M Y 1', strtotime('-1 months'));
+        $lockDateHelper = AppHelpers::lockDate($this->moduleCode);
+        $this->lockDate = $lockDateHelper[0];
+        $this->lockDateIndex = $lockDateHelper[1];
         
-        jika tanggal hari ini lebih kecil dari lockdate maka
-        min date nya adalah tanggal akhir dari bulan sebelumnya
-        kalau tanggal hari ini lebi besar dari lockdate maka 
-        tanggal minimum nya adalah tanngal awal di bulan ini
-        */
-
-        $lockDate1 = DB::table('application_lock')
-        ->where('code_key',$this->moduleCode)
-        ->where('status','1')
-        ->value('lock_date');
-
-        $todayDate = date('d-m-Y');
-        $lockDateHere = $lockDate1 ? $lockDate1 : '2023-01-01' ;
-        $lockDateAt = date('d-m-Y', strtotime("+1 day", strtotime($lockDateHere)));
-
-        if ($todayDate < $lockDateAt ){
-            $firstDatePrevMonth = date('1-m-Y', strtotime("-1 months",strtotime($lockDateHere)));
-            $lockDateAt = $firstDatePrevMonth;
-        }else{
-            $lockDateAt = date('1-m-Y', strtotime($lockDateAt));
-        }
-
-        $this->lockDate = $lockDateAt;
-
-        $lockDateHereIndex = $lockDate1 ? $lockDate1 : '2023-01-01' ;
-        $lockDateAtIndex = date('d-m-Y', strtotime($lockDateHere));
-        $this->lockDateIndex = $lockDateAtIndex;
     }
 
     public function getTableColoumn(){
@@ -163,6 +132,8 @@ class PurchaseOrderController extends Controller
         $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'RECEIVED','5'=>'CANCELED','6'=>'CLOSED','8'=>'DECLINE'];
 
         $data['lockDate'] = $this->lockDateIndex;
+
+        
             
         return view("purchaseOrder.index",$data);
     }
