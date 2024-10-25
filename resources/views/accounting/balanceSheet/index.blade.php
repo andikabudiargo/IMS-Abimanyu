@@ -110,7 +110,7 @@
                 <div class="card-header flex-column align-items-start pb-0">
                     <div class="avatar bg-light-success p-50 m-0">
                         <div class="avatar-content">
-                            <i data-feather="package" class="font-medium-5"></i>
+                            <i data-feather="bar-chart" class="font-medium-5"></i>
                         </div>
                     </div>
                     <h2 class="font-weight-bolder mt-1">{{ number_format($quickRatio,2) }}</h2>
@@ -125,7 +125,7 @@
                 <div class="card-header flex-column align-items-start pb-0">
                     <div class="avatar bg-light-primary p-50 m-0">
                         <div class="avatar-content">
-                            <i data-feather="credit-card" class="font-medium-5"></i>
+                            <i data-feather="bar-chart" class="font-medium-5"></i>
                         </div>
                     </div>
                     <h2 class="font-weight-bolder mt-1">{{ number_format($currentRatio,2) }}</h2>
@@ -140,7 +140,7 @@
               <div class="card-header flex-column align-items-start pb-0">
                   <div class="avatar bg-light-warning p-50 m-0">
                       <div class="avatar-content">
-                          <i data-feather="minus-square" class="font-medium-5"></i>
+                          <i data-feather="bar-chart" class="font-medium-5"></i>
                       </div>
                   </div>
                   <h2 class="font-weight-bolder mt-1">{{ number_format($debtEquityRatio,2) }}</h2>
@@ -153,9 +153,9 @@
           <div class="card card-tiny-line-stats">
             <div class="card-body">
               <div class="card-header flex-column align-items-start pb-0">
-                  <div class="avatar bg-light-warning p-50 m-0">
+                  <div class="avatar bg-light-secondary p-50 m-0">
                       <div class="avatar-content">
-                          <i data-feather="minus-square" class="font-medium-5"></i>
+                          <i data-feather="bar-chart" class="font-medium-5"></i>
                       </div>
                   </div>
                   <h2 class="font-weight-bolder mt-1">{{ number_format($equityRatio,2) }}</h2>
