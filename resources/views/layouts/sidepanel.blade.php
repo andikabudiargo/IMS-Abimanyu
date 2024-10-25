@@ -406,7 +406,7 @@
         @can('accounting-menu')
           <li class=" navigation-header"><span data-i18n="Finance Accounting">Finance Accounting</span><i data-feather="more-horizontal"></i>
           </li>
-          <li class=" {{ in_array(\Request::segment(1), ['aps','balanceSheet','invoice','kasPenerimaan','kasKeluar','bankPenerimaan','bankKeluar','deliveryReportAcc','deliveryReportSoAcc','jurnalUmum','accountPayable','debitnote']) ? 'active' : '' }} nav-item">
+          <li class=" {{ in_array(\Request::segment(1), ['aps','balanceSheet','labaRugi','invoice','kasPenerimaan','kasKeluar','bankPenerimaan','bankKeluar','deliveryReportAcc','deliveryReportSoAcc','jurnalUmum','accountPayable','debitnote']) ? 'active' : '' }} nav-item">
             <a class="d-flex align-items-center" href="javascript:void(0);">
               <i data-feather="dollar-sign"></i>
               <span class="menu-title text-truncate" data-i18n="Form Elements">Finance & acc
@@ -494,6 +494,15 @@
                 <a class="d-flex align-items-center" href="{{ route('balanceSheet.index') }}">
                   <i data-feather="circle"></i>
                   <span class="menu-item text-truncate" data-i18n="Input">Neraca</span>
+                </a>
+              </li>
+              @endcan
+
+              @can('ap-index')
+              <li class="{{ \Request::segment(1) == 'labaRugi'  ? 'active' : '' }}">
+                <a class="d-flex align-items-center" href="{{ route('labaRugi.index') }}">
+                  <i data-feather="circle"></i>
+                  <span class="menu-item text-truncate" data-i18n="Input">Laba Rugi</span>
                 </a>
               </li>
               @endcan

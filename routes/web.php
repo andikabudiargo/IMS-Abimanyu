@@ -924,6 +924,10 @@ Route::group( ['middleware' => ['auth']], function() {
 
 	Route::get('balanceSheet',['as'=>'balanceSheet.index','uses'=>'Accounting\BalanceSheetController@index']);
 	Route::get('balanceSheet/print',['as'=>'balanceSheet.print','uses'=>'Accounting\BalanceSheetController@print']);
+
+	Route::get('labaRugi',['as'=>'labaRugi.index','uses'=>'Accounting\LabaRugiController@index']);
+	Route::get('labaRugi/print',['as'=>'labaRugi.print','uses'=>'Accounting\LabaRugiController@print']);
+	Route::get('labaRugi/export-excel',['as'=>'labaRugi.export.excel','uses'=>'Accounting\LabaRugiController@export']);
 		
 	Route::get('stockTake',['as'=>'stockTake.index','uses'=>'StockTake\StockTakeController@index']);
 	Route::post('stockTake/import',['as'=>'stockTake.import','uses'=>'StockTake\StockTakeController@import']);
