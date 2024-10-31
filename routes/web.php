@@ -928,6 +928,10 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('labaRugi',['as'=>'labaRugi.index','uses'=>'Accounting\LabaRugiController@index']);
 	Route::get('labaRugi/print',['as'=>'labaRugi.print','uses'=>'Accounting\LabaRugiController@print']);
 	Route::get('labaRugi/export-excel',['as'=>'labaRugi.export.excel','uses'=>'Accounting\LabaRugiController@export']);
+
+	Route::get('trialBalance',['as'=>'trialBalance.index','uses'=>'Accounting\TrialBalanceController@index']);
+	Route::get('trialBalance/print',['as'=>'trialBalance.print','uses'=>'Accounting\TrialBalanceController@print']);
+	Route::get('trialBalance/export-excel',['as'=>'trialBalance.export.excel','uses'=>'Accounting\TrialBalanceController@export']);
 		
 	Route::get('stockTake',['as'=>'stockTake.index','uses'=>'StockTake\StockTakeController@index']);
 	Route::post('stockTake/import',['as'=>'stockTake.import','uses'=>'StockTake\StockTakeController@import']);

@@ -213,7 +213,7 @@ class LabaRugiController extends Controller
             ,$hitung as saldo 
             from kas_det 
             where account in (select account from master_neraca_detail_lr where sub_group = '$value->sub_group')
-            and voucher_number in (select voucher_number from kas_hdr where to_date(voucher_date,'dd-mm-yyyy') between '$startDate' and '$endDate' $filter)";
+            and voucher_number in (select voucher_number from kas_hdr where to_date(voucher_date,'dd-mm-yyyy') between '$startDate' and '$endDate' and status = '3' $filter)";
         }
 
         // dd($queries);
