@@ -49,6 +49,10 @@
                                             <label for="accountPiutang">COA Piutang*</label>
                                             <input type="text" id="accountPiutang" name="accountPiutang" class="form-control disabled-el" value="{{ old('accountPiutang',$header->account_piutang) }}" disabled />
                                         </div> 
+                                        <div class="form-group col-md-6">
+                                            <label for="sendingDate">Sending Date</label>
+                                            <input type="text" id="sendingDate" name="sendingDate" class="form-control" value="{{ old('sendingDate',$header->sending_date) }}" placeholder="DD-MM-YYYY" disabled/>
+                                        </div>
                                     </div>
                                     <div class="form-row">
                                         <div class="form-group col-md-12">

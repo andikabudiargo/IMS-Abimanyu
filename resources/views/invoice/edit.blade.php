@@ -49,6 +49,10 @@
                                             <label for="accountPiutang">COA Piutang*</label>
                                             <input type="text" id="accountPiutang" name="accountPiutang" class="form-control disabled-el" value="{{ old('accountPiutang',$header->account_piutang) }}" disabled />
                                         </div> 
+                                        <div class="form-group col-md-6">
+                                            <label for="sendingDate">Sending Date</label>
+                                            <input type="text" id="sendingDate" name="sendingDate" class="form-control" value="{{ old('sendingDate',$header->sending_date) }}" placeholder="DD-MM-YYYY"/>
+                                        </div>
                                     </div>
                                     <div class="form-row">
                                         <div class="form-group col-md-12">
@@ -444,7 +448,7 @@
         });
     }
 
-    invDate = $('#invDate');
+    const invDate = $('#invDate');
     if (invDate.length) {
         invDate.flatpickr({
             dateFormat: "d-m-Y",
@@ -452,11 +456,11 @@
         });
     }
 
-    recDate = $('#recDate');
-    if (recDate.length) {
-        recDate.flatpickr({
+    const sendingDate = $('#sendingDate');
+    if (sendingDate.length) {
+        sendingDate.flatpickr({
             dateFormat: "d-m-Y",
-            maxDate: "today"
+            // maxDate: "today"
         });
     }
 
@@ -539,6 +543,7 @@
                 let fakturPajak =$('#fakturPajak').val();
                 let totalAmount = $('#totalAmount').val().replace(/,/gi, '') || 0;
                 let grandTotal = $('#totalNetto').val().replace(/,/gi, '') || 0;
+                let sendingDate = $('#sendingDate').val();
 
                 $.ajax({
                     type: "post",
@@ -557,7 +562,8 @@
                         dnNumber:dnNumber,
                         fakturPajak:fakturPajak,
                         totalAmount:totalAmount,
-                        grandTotal:grandTotal
+                        grandTotal:grandTotal,
+                        sendingDate:sendingDate
                     },
                     dataType: "json",
                     success: function(data) {

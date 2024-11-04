@@ -357,6 +357,8 @@ class InvoiceController extends Controller
         $accountPenjualan = DB::table('third_party')->where('kode',$customer)->value('coa_penjualan');
         $accountPiutang = DB::table('third_party')->where('kode',$customer)->value('account');
 
+        $sendingDate = $request->sendingDate;
+
        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','6'=>'PAID','7'=>'REVISED'];
 
         $messages = [
@@ -424,7 +426,8 @@ class InvoiceController extends Controller
                     'total_pph' =>$totalPph,
                     'period'=> $period,
                     'account_piutang' =>$accountPiutang,
-                    'account_penjualan' =>$accountPenjualan
+                    'account_penjualan' =>$accountPenjualan,
+                    'sending_date' => $sendingDate
                 ]);
 
                 $dataSet = [];
@@ -644,6 +647,8 @@ class InvoiceController extends Controller
         $accountPenjualan = DB::table('third_party')->where('kode',$customer)->value('coa_penjualan');
         $accountPiutang = DB::table('third_party')->where('kode',$customer)->value('account');
 
+        $sendingDate = $request->sendingDate;
+
         // $data['status'] = ['1'=>'DRAFT','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','6'=>'PAID'];
 
         $customMessages = [
@@ -708,7 +713,8 @@ class InvoiceController extends Controller
                             'total_pph' =>$totalPph,
                             'period' =>$period,
                             'account_piutang' =>$accountPiutang,
-                            'account_penjualan' =>$accountPenjualan
+                            'account_penjualan' =>$accountPenjualan,
+                            'sending_date' => $sendingDate
                         ]
                     );
 

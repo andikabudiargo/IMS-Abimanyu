@@ -50,6 +50,10 @@
                                             <label for="accountPiutang">COA Piutang*</label>
                                             <input type="text" id="accountPiutang" name="accountPiutang" class="form-control disabled-el" value="{{ old('accountPiutang') }}" disabled />
                                         </div> 
+                                        <div class="form-group col-md-6">
+                                            <label for="sendingDate">Sending Date</label>
+                                            <input type="text" id="sendingDate" name="sendingDate" class="form-control" placeholder="DD-MM-YYYY"/>
+                                        </div>
                                     </div>
                                     <div class="form-row">
                                         <div class="form-group col-md-12">
@@ -270,11 +274,19 @@
         edit='false';
     });
 
-    invDate = $('#invDate');
+    const invDate = $('#invDate');
     if (invDate.length) {
         invDate.flatpickr({
             dateFormat: "d-m-Y",
             maxDate: "today"
+        });
+    }
+
+    const sendingDate = $('#sendingDate');
+    if (sendingDate.length) {
+        sendingDate.flatpickr({
+            dateFormat: "d-m-Y",
+            // maxDate: "today"
         });
     }
 
@@ -361,6 +373,7 @@
                     let fakturPajak =$('#fakturPajak').val();
                     let totalAmount = $('#totalAmount').val().replace(/,/gi, '') || 0;
                     let grandTotal = $('#totalNetto').val().replace(/,/gi, '') || 0;
+                    let sendingDate = $('#sendingDate').val();
     
                     $.ajax({
                         type: "post",
@@ -379,7 +392,8 @@
                             poNumber:poNumber,
                             fakturPajak:fakturPajak,
                             totalAmount:totalAmount,
-                            grandTotal:grandTotal
+                            grandTotal:grandTotal,
+                            sendingDate:sendingDate
                         },
                         dataType: "json",
                         success: function(data) {
