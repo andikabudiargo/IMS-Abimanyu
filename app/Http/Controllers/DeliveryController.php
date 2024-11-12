@@ -85,7 +85,7 @@ class DeliveryController extends Controller
             ['data'=> 'os_number', 'name'=> 'os_number','title'=>'OS Number'],
             ['data'=> 'created_by', 'name'=> 'created_by','title'=>'Created By'],
             ['data'=> 'created_at', 'name'=> 'created_at','title'=>'Created At'],
-            ['data'=> 'cancel_reason', 'name'=> 'cancel_reason','title'=>'Revisi Reason'],
+            ['data'=> 'reason', 'name'=> 'reason','title'=>'Revisi Reason'],
             
         ];
         return json_encode($kolom, true);
@@ -1386,7 +1386,7 @@ class DeliveryController extends Controller
         ,'delivery_hdr.delivery_number as delivery_number_1'
         ,DB::raw("concat(kode,'-',nama) as customer_name")
         ,DB::raw("(select count(*) from invoice_det a where a.dn_number = delivery_hdr.delivery_number and invoice_number in (select invoice_number from invoice_hdr where status not in  ('5','7','10'))) as sudah_di_bayar")
-        ,DB::raw("(select reason from delivery_hdr a where a.origin_delivery_number = delivery_hdr.delivery_number and status ='7' order by id desc limit 1) as cancel_reason")
+        // ,DB::raw("(select reason from delivery_hdr a where a.origin_delivery_number = delivery_hdr.delivery_number and status ='7' order by id desc limit 1) as cancel_reason")
         )
         ->where(db::raw("(select sum(qty) from delivery_det where delivery_number = delivery_hdr.delivery_number)"),">",0)
         ->orderBy('id')
