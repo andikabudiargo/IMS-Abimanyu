@@ -79,9 +79,11 @@ class InvoiceController extends Controller
             ['data'=> 'total_pph', 'name'=> 'total_pph','title'=>'PPH' ],
             ['data'=> 'grand_total', 'name'=> 'grand_total','title'=>'Total' ],
             ['data'=> 'jatuh_tempo', 'name'=> 'jatuh_tempo','title'=>'Jatuh Tempo' ],
-            ['data'=> 'jatuh_tempo_2', 'name'=> 'jatuh_tempo_2','title'=>'Jatuh Tempo' ],
+            ['data'=> 'jatuh_tempo_2', 'name'=> 'jatuh_tempo_2','title'=>'Jatuh Tempo','visible'=>false ],  
             ['data'=> 'voucher_date', 'name'=> 'voucher_date','title'=>'Paid Date'],
             ['data'=> 'voucher_date_2', 'name'=> 'voucher_date_2','title'=>'Paid Date','visible'=>false ],
+            ['data'=> 'sending_date', 'name'=> 'sending_date','title'=>'Sending Date'],
+            ['data'=> 'sending_date_2', 'name'=> 'sending_date_2','title'=>'Sending Date','visible'=>false ],
             ['data'=> 'voucher_amount', 'name'=> 'voucher_amount','title'=>'Amount Paid'],
             ['data'=> 'balance', 'name'=> 'balance','title'=>'Balance'],
             ['data'=> 'voucher_number', 'name'=> 'voucher_number','title'=>'Voucher Number'],
@@ -1245,8 +1247,11 @@ class InvoiceController extends Controller
             ,DB::raw("case when invoice_hdr.status = '6' then (select credit from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status not in ('5','6') and reference = invoice_hdr.invoice_number) else 0 end as voucher_amount")
             ,DB::raw("case when invoice_hdr.status <> '5' then grand_total-coalesce((select credit from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status not in ('5','6') and reference = invoice_hdr.invoice_number and (select status from kas_hdr where voucher_number = kas_det.voucher_number) = '3'),0) else 0 end as balance")
             // ,db::raw("case when invoice_hdr.status = '6' then grand_total-(select credit from kas_det where reference = invoice_hdr.invoice_number) else 0 end as balance")
-            ,DB::raw("to_char(to_date(invoice_hdr.invoice_date,'dd-mm-yyyy') + INTERVAL '1 day' *coalesce((select top_batas_1 from third_party where kode = invoice_hdr.customer_id),0), 'dd/mm/yyyy') as jatuh_tempo")
-            ,DB::raw("to_date(to_char(to_date(invoice_hdr.invoice_date,'dd-mm-yyyy') + INTERVAL '1 day' *coalesce((select top_batas_1 from third_party where kode = invoice_hdr.customer_id),0), 'dd/mm/yyyy'),'dd/mm/yyyy') as jatuh_tempo_2")
+            // ,DB::raw("to_char(to_date(invoice_hdr.invoice_date,'dd-mm-yyyy') + INTERVAL '1 day' *coalesce((select top_batas_1 from third_party where kode = invoice_hdr.customer_id),0), 'dd/mm/yyyy') as jatuh_tempo")
+            // ,DB::raw("to_date(to_char(to_date(invoice_hdr.invoice_date,'dd-mm-yyyy') + INTERVAL '1 day' *coalesce((select top_batas_1 from third_party where kode = invoice_hdr.customer_id),0), 'dd/mm/yyyy'),'dd/mm/yyyy') as jatuh_tempo_2")
+            ,DB::raw("to_char(to_date(invoice_hdr.sending_date,'dd-mm-yyyy') + INTERVAL '1 day' *coalesce((select top_batas_1 from third_party where kode = invoice_hdr.customer_id),0), 'dd/mm/yyyy') as jatuh_tempo")
+            ,DB::raw("to_date(to_char(to_date(invoice_hdr.sending_date,'dd-mm-yyyy') + INTERVAL '1 day' *coalesce((select top_batas_1 from third_party where kode = invoice_hdr.customer_id),0), 'dd/mm/yyyy'),'dd/mm/yyyy') as jatuh_tempo_2")
+            ,DB::raw("to_date(sending_date, 'DD-MM-YYYY') as sending_date_2")
         )
         ->orderBy('invoice_hdr.id')
         ->get(); 
