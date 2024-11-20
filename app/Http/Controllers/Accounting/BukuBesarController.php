@@ -214,7 +214,8 @@ class BukuBesarController extends Controller
         })
         ->whereNotIn('kas_hdr.status',['5'])
         ->select(
-            'depts.name as nama_dept'
+            DB::RAW("case when kas_det.cost_center = '' then (select name from depts where code = '007') else depts.name end as nama_dept")
+            // 'depts.name as nama_dept'
             ,'kas_det.account'
             ,'kas_hdr.period'
             ,'accounts.description as nama_akun'

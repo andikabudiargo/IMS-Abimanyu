@@ -140,7 +140,7 @@
       route:"{{ route('dnReceipt.list') }}",
       kolom:{!! $kolom !!},
       type:'POST',
-      arrColPrint:[1,2,3,4,5,6,7,8,9,10,11],
+      arrColPrint:[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15],
       columnDefs :[
         { width: '5%', targets: 0 },
       ],
@@ -157,7 +157,7 @@
   }
 
   submitDr=(idKu)=>{
-    console.log(idKu);
+    // console.log(idKu);
     let id = idKu;
     let status = $("#searchStatus").val();
     let url = "{{ route('dnReceipt.edit', ['id'=>':id','status'=>':status']) }}";
