@@ -1676,7 +1676,7 @@ class DebitNoteController extends Controller
         //     ->where('customer',$custCode);
         // })
         ->where('third_party',$custCode)
-        ->where('article_type','FG')
+        // ->where('article_type','FG')
         ->orderBy('article_desc')
         ->get();
 
