@@ -888,7 +888,7 @@ class DependentController extends Controller
         }elseif($dependent =='listSo'){
             $data= DB::table($table)
             ->where($field,$code)
-            ->whereNotIn('status',['5','6'])
+            ->whereNotIn('status',['5','6','8'])
             ->orderBy($order)
             ->get();
 
