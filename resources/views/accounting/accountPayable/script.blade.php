@@ -551,7 +551,8 @@
                                     <td  class="text-right" style="padding:0px 5px 0px 5px;"><input type="text" class="form-control-plaintext disabled-el" id="articleTotal" name="articleTotal[]" value="${humanizeNumber(parseFloat(result.detailRec[i].total).toFixed(2))}" style="text-align:right;" disabled/></td>
                                 </tr>`;
                             console.log(`Qty ${result.detailRec[i].article} : ${parseFloat(result.detailRec[i].qty)}`);
-                            grandTotalQty+=parseFloat(result.detailRec[i].qty);
+                            // grandTotalQty+=parseFloat(result.detailRec[i].qty);
+                            grandTotalQty+=Number(result.detailRec[i].qty);
                             console.log('Grand Total :'+parseFloat(grandTotalQty));
                         }                       
 
@@ -565,7 +566,8 @@
                         let sumQty=0;
                         $('input:checkbox[name=customCheck]:checked').each(function(){
                             recNumber += $(this).data('rec-number')+",";
-                            sumQty += parseFloat($(this).data('sum-qty'));
+                            // sumQty += parseFloat($(this).data('sum-qty'));
+                            sumQty += Number($(this).data('sum-qty'));
                         });
 
                         console.log('Grand Total :'+grandTotalQty);
