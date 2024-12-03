@@ -532,7 +532,7 @@
                 success:function(result){
                     let isiTabel= "";
                     let grandTotalQty=0;
-                    console.log(result.detailRec)
+                    // console.log(result.detailRec)
                     if(result.detailRec.length>0){
                         for(i=0;i<result.detailRec.length;i++){
                             urutanRow++;
@@ -560,8 +560,8 @@
                             $('#articleAccount'+i).val(result.detailRec[i].account).trigger('change');
                         }
                         $('.activateSelect2').select2();
-                        $("#grandTotalQty").val(grandTotalQty);
-                        // console.log('Grand Total :'+grandTotalQty);
+                        $("#grandTotalQty").val(grandTotalQty*1);
+                        console.log('Grand Total :'+grandTotalQty*1);
                     }
 
                     $('#totalPO').val(humanizeNumber(result.summaryRec[0].total_amount_po));
