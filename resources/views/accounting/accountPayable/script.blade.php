@@ -329,8 +329,6 @@
         });
         recNumber=recNumber.slice(0,-1);
         let tableIsi = $('#listOfRec > tbody  tr').length;
-        
-        // console.log('Grand Total Check :'+sumQty);
 
         if(parseFloat($("#grandTotalQty").val())!=sumQty){
             Swal.fire("Warning","Data belum sesuai harus di submit ulang","warning"); 
@@ -555,7 +553,6 @@
                             console.log(`Qty ${result.detailRec[i].article} : ${parseFloat(result.detailRec[i].qty)}`);
                             grandTotalQty=parseFloat(grandTotalQty)+parseFloat(result.detailRec[i].qty);
                             console.log('Grand Total :'+grandTotalQty);
-                            
                         }                       
 
                         $("#listOfRec tbody").append(isiTabel);
@@ -565,6 +562,12 @@
                         $('.activateSelect2').select2();
                         $("#grandTotalQty").val(grandTotalQty);
                         console.log('Grand Total :'+grandTotalQty);
+                        let sumQty=0;
+                        $('input:checkbox[name=customCheck]:checked').each(function(){
+                            recNumber += $(this).data('rec-number')+",";
+                            sumQty += parseFloat($(this).data('sum-qty'));
+                        });
+                        console.log('Grand Total Cek :'+sumQty);
                     }
 
                     $('#totalPO').val(humanizeNumber(result.summaryRec[0].total_amount_po));
