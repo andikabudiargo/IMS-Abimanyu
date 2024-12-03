@@ -552,8 +552,10 @@
                                     <td  class="text-right" style="padding:0px 5px 0px 5px;"><input type="text" class="form-control-plaintext disabled-el" id="articlePrice" name="articlePrice[]" value="${humanizeNumber(parseFloat(result.detailRec[i].price).toFixed(2))}" style="text-align:right;" disabled/></td>
                                     <td  class="text-right" style="padding:0px 5px 0px 5px;"><input type="text" class="form-control-plaintext disabled-el" id="articleTotal" name="articleTotal[]" value="${humanizeNumber(parseFloat(result.detailRec[i].total).toFixed(2))}" style="text-align:right;" disabled/></td>
                                 </tr>`;
-                            grandTotalQty+=parseFloat(result.detailRec[i].qty);
                             console.log(`Qty ${result.detailRec[i].article} : ${result.detailRec[i].qty}`);
+                            grandTotalQty+=parseFloat(result.detailRec[i].qty);
+                            console.log('Grand Total :'+grandTotalQty);
+                            
                         }                       
 
                         $("#listOfRec tbody").append(isiTabel);
@@ -561,8 +563,8 @@
                             $('#articleAccount'+i).val(result.detailRec[i].account).trigger('change');
                         }
                         $('.activateSelect2').select2();
-                        $("#grandTotalQty").val(grandTotalQty*1);
-                        console.log('Grand Total :'+grandTotalQty*1);
+                        $("#grandTotalQty").val(grandTotalQty);
+                        console.log('Grand Total :'+grandTotalQty);
                     }
 
                     $('#totalPO').val(humanizeNumber(result.summaryRec[0].total_amount_po));
