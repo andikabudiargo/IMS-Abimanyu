@@ -562,7 +562,7 @@
                         }
                         $('.activateSelect2').select2();
                         $("#grandTotalQty").val(grandTotalQty);
-                        console.log('Grand Total :'+grandTotalQty);
+                        console.log('Grand Total :'+Math.trunc(grandTotalQty));
                         let sumQty=0;
                         $('input:checkbox[name=customCheck]:checked').each(function(){
                             recNumber += $(this).data('rec-number')+",";
@@ -570,7 +570,7 @@
                             sumQty += Number($(this).data('sum-qty'));
                         });
 
-                        console.log('Grand Total :'+grandTotalQty);
+                        console.log('Cek Grand Total :'+Math.trunc(sumQty));
                     }
 
                     $('#totalPO').val(humanizeNumber(result.summaryRec[0].total_amount_po));
