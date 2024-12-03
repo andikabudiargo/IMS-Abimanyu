@@ -550,7 +550,7 @@
                                     <td  class="text-right" style="padding:0px 5px 0px 5px;"><input type="text" class="form-control-plaintext disabled-el" id="articlePrice" name="articlePrice[]" value="${humanizeNumber(parseFloat(result.detailRec[i].price).toFixed(2))}" style="text-align:right;" disabled/></td>
                                     <td  class="text-right" style="padding:0px 5px 0px 5px;"><input type="text" class="form-control-plaintext disabled-el" id="articleTotal" name="articleTotal[]" value="${humanizeNumber(parseFloat(result.detailRec[i].total).toFixed(2))}" style="text-align:right;" disabled/></td>
                                 </tr>`;
-                            console.log(`Qty ${result.detailRec[i].article} : ${parseFloat(result.detailRec[i].qty)}`);
+                            console.log(`Qty ${result.detailRec[i].article} : ${Number(result.detailRec[i].qty)}`);
                             // grandTotalQty+=parseFloat(result.detailRec[i].qty);
                             grandTotalQty+=Number(result.detailRec[i].qty);
                             console.log('Grand Total :'+parseFloat(grandTotalQty));
