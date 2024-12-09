@@ -511,6 +511,7 @@
     }
 
     cmdSubmit=()=> {
+        $("#cmdSubmit").attr('disabled','disabled');
         let recNumber="";
         let apNumber=$('#apNumber').val();
         $('input:checkbox[name=customCheck]:checked').each(function(){
@@ -568,6 +569,7 @@
                             sumQty += Number($(this).data('sum-qty'));
                         });
                         console.log('Cek Grand Total :'+Math.trunc(sumQty));
+                        $("#cmdSubmit").removeAttr('disabled');
                     }
 
                     $('#totalPO').val(humanizeNumber(result.summaryRec[0].total_amount_po));
@@ -590,10 +592,12 @@
                 error: function (response) {
                     //Error here
                     Swal.fire("Warning","Get list data failed","warning");
+                    $("#cmdSubmit").removeAttr('disabled');
                 }
             })
         }else{
             Swal.fire("Warning","Po atau No Receiving belum dipilih","warning");
+            $("#cmdSubmit").removeAttr('disabled');
         }
     }
 
