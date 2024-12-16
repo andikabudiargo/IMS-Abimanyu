@@ -10,9 +10,9 @@
                     <h4 class="card-title">@yield('title')</h4>
                 </div> --}}
                 <div class="card-body">
-                    <h4>Conversion : {{ $conversion->conversion_value ? number_format($conversion->conversion_value) : '' }}</h4>
-                    <h4>Last Update : {{ $conversion->created_at }}</h4>
-                    <h4>Updated By : {{ $conversion->created_by }}</h4>
+                    <h4>Conversion : {{ $conversion ? number_format($conversion->conversion_value) : '' }}</h4>
+                    <h4>Last Update : {{ $conversion ? $conversion->created_at :'' }}</h4>
+                    <h4>Updated By : {{ $conversion ? $conversion->created_by :'' }}</h4>
                 </div>
             </div>
             <div class="card">
