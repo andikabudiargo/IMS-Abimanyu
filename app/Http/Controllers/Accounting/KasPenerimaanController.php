@@ -692,22 +692,33 @@ class KasPenerimaanController extends Controller
             status 6 = closed
         */
 
-        $vcNumber = DB::table('kas_hdr')->where('id',$id)->where('status','<>','6')->value('voucher_number');
 
-        $rowAffected=DB::table('kas_hdr')
-        ->where('voucher_number',$vcNumber)
-        ->update(
-            [
-                'status' =>$status,
-                'updated_by' => Auth::user()->username,
-                'updated_at' => date('Y-m-d H:i:s')
-            ]
-        );
-        
-        // $rowAffected = DB::table('kas_hdr')->where('id',$id)->delete();
+        /*
+         kalau status  1 atau  masih new bisa di delete permanen, tapi kalau statusnya selain itu ditandai delete cancel saja
+        */
+
+        $vcStatus = DB::table('kas_hdr')->where('id',$id)->first();
+        $vcNumber = $vcStatus->voucher_number;
+
+        if ($vcStatus->status === '1'){
+            $rowAffected = DB::table('kas_hdr')->where('id',$id)->delete();
+            IF ($rowAffected){
+                DB::table('kas_det')->where('voucher_number',$vcStatus->voucher_number)->delete();
+            }
+        }else{
+            $vcNumber = DB::table('kas_hdr')->where('id',$id)->where('status','<>','6')->value('voucher_number');
+            $rowAffected=DB::table('kas_hdr')
+            ->where('voucher_number',$vcNumber)
+            ->update(
+                [
+                    'status' =>$status,
+                    'updated_by' => Auth::user()->username,
+                    'updated_at' => date('Y-m-d H:i:s')
+                ]
+            );
+        }
 
         if($rowAffected>0){
-            // DB::table('kas_det')->where('voucher_number',$vcNumber)->delete();
             $title ="Delete $this->title";
             $alert  ="success";
             $message  = "$vcNumber Successfully Deleted";
