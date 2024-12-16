@@ -77,7 +77,8 @@ let showDataTables = (opt) => {
         [ '10', '25', '50', 'all' ]
       ],
       excelCustomize:"",
-      excelMessageBottom:""
+      excelMessageBottom:"",
+      initComplete:""
     }, opt);
     let button = opt.buttons == true ? 'B' : '';
     $(function(){
@@ -177,6 +178,7 @@ let showDataTables = (opt) => {
           scrollX: true, //pakai ini supaya waktu responsive  bisa di scroll horizontal
           columns: opt.kolom,
           scrollY: opt.scrollY,
+          initComplete: opt.initComplete
       });
     });
     //$('div.head-label').html('<h6 class="mb-0">Data Users</h6>');   

@@ -144,9 +144,32 @@
             </li>
             @endcan
 
+            {{-- @can('conversion-index') --}}
+            <li class=" {{ in_array(\Request::segment(1), ['conversion1','conversionSetting1']) ? 'active' : '' }} nav-item">
+              <a class="d-flex align-items-center" href="javascript:void(0);">
+                <i data-feather="repeat"></i>
+                <span class="menu-title text-truncate" data-i18n="Form Elements">Conversion
+                </span>
+              </a>
+              <ul class="menu-content">
+                <li class="{{ \Request::segment(1) == 'conversion'  ? 'active' : '' }}">
+                  <a class="d-flex align-items-center" href="{{ route('conversion.index') }}">
+                    <i data-feather="circle"></i>
+                    <span class="menu-item text-truncate" data-i18n="Conversion">Conversion</span>
+                  </a>
+                </li>
+                <li class="{{ \Request::segment(1) == 'conversionSetting'  ? 'active' : '' }}">
+                  <a class="d-flex align-items-center" href="{{ route('conversionSetting.index') }}">
+                    <i data-feather="circle"></i>
+                    <span class="menu-item text-truncate" data-i18n="Conversion setting">Setting</span>
+                  </a>
+                </li>
+              </ul>
+            </li>
+            {{-- @endcan --}}
           </ul>
         </li>
-
+        
         <li class=" {{ in_array(\Request::segment(1), ['purchaseOrders','suppliers','purchaseRequests','forecastPurchase']) ? 'active' : '' }} nav-item">
           <a class="d-flex align-items-center" href="javascript:void(0);">
             <i data-feather='shopping-cart'></i>
