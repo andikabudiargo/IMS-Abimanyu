@@ -135,38 +135,82 @@ class BankKeluarController extends Controller
             "BK-ASN-23-XII-0192"
         */
 
+        // $getCurrentYear = date('y');
+        // $inputYear = $year;
+        // $basicCode = "______-$inputYear";
+
+        // $getResetRule = DB::table('master_code')
+        // ->where('code_key',$key)
+        // ->value('reset_by');
+
+        // if($getResetRule == 'YEAR'){
+        //     $getLastNumber = DB::table('kas_hdr')
+        //     ->where('voucher_number','like',$basicCode.'%')
+        //     // ->where('status','<>','5')
+        //     ->where('voucher_type',$key)
+        //     ->orderBy('id','desc')
+        //     ->first();
+        // }else{
+        //     $getLastNumber = DB::table('kas_hdr')
+        //     // ->where('status','<>','5')
+        //     ->where('voucher_type',$key)
+        //     ->orderBy('id','desc')
+        //     ->first();
+        // }       
+
+        // if ($getLastNumber){
+        //     $getYear = explode('-',$getLastNumber->voucher_number)[2];
+        //     $getLastCode = explode('-',$getLastNumber->voucher_number)[4];
+        //     $newCode = ($getLastCode*1)+1;
+        // }else{
+        //     $getYear = $getCurrentYear;
+        //     $newCode = 1;
+        // }
+
+        // $newCode = str_pad($newCode,4,"0",STR_PAD_LEFT);
+        // $months = ['I', 'II', 'III','IV','V', 'VI', 'VII', 'VIII','IX','X','XI','XII'];
+        // $month = $months[$period-1];
+        // $year = $inputYear;
+        // $code="$key-ASN-$year-$month-$newCode";
+
+        // return $code;
+
+        /*
+            BK-ASN-23-XI-0106
+            BK/10/23/0077
+        */
+
         $getCurrentYear = date('y');
         $inputYear = $year;
-        $basicCode = "______-$inputYear";
+        $basicCode1 = "$key-ASN-$inputYear";
+        $basicCode2 = "$key/__/$inputYear";
+        $getLastCode = DB::table('kas_hdr')
+        ->where(function($query) use ($basicCode1,$basicCode2){
+            $query->where('voucher_number','like',$basicCode1.'%');
+            $query->orWhere('voucher_number','like',$basicCode2.'%');
+        })
+        // ->where('invoice_number','like',$basicCode1.'%')
+        // ->orWhere('invoice_number','like',$basicCode2.'%')
+        ->where('status','<>','5')
+        ->where('voucher_type',$key)
+        ->orderBy(DB::raw("right(voucher_number,4)::numeric"),'desc')
+        ->select(DB::raw("right(voucher_number,4) as last_code"))
+        ->value('last_code');
 
-        $getResetRule = DB::table('master_code')
-        ->where('code_key',$key)
-        ->value('reset_by');
+        $getLastCode = $getLastCode ? $getLastCode : 1;
 
-        if($getResetRule == 'YEAR'){
-            $getLastNumber = DB::table('kas_hdr')
-            ->where('voucher_number','like',$basicCode.'%')
-            // ->where('status','<>','5')
-            ->where('voucher_type',$key)
-            ->orderBy('id','desc')
-            ->first();
+        $getMissingCode = DB::SELECT("SELECT generate_series(0001, $getLastCode) as missing_code
+        except
+        select voucher_number::integer from (select right(voucher_number,4) as voucher_number from kas_hdr 
+        where (voucher_number like '$basicCode1%' or  voucher_number like '$basicCode2%') and (status <> '5') and (voucher_type = '$key') order by  id) as oki
+        order by missing_code limit 1");
+
+        if(count($getMissingCode) > 0){
+            $newCode = $getMissingCode[0]->missing_code;
         }else{
-            $getLastNumber = DB::table('kas_hdr')
-            // ->where('status','<>','5')
-            ->where('voucher_type',$key)
-            ->orderBy('id','desc')
-            ->first();
-        }       
-
-        if ($getLastNumber){
-            $getYear = explode('-',$getLastNumber->voucher_number)[2];
-            $getLastCode = explode('-',$getLastNumber->voucher_number)[4];
             $newCode = ($getLastCode*1)+1;
-        }else{
-            $getYear = $getCurrentYear;
-            $newCode = 1;
         }
-
+        
         $newCode = str_pad($newCode,4,"0",STR_PAD_LEFT);
         $months = ['I', 'II', 'III','IV','V', 'VI', 'VII', 'VIII','IX','X','XI','XII'];
         $month = $months[$period-1];
@@ -688,17 +732,43 @@ class BankKeluarController extends Controller
             status 6 = closed
         */
 
-        $vcNumber = DB::table('kas_hdr')->where('id',$id)->where('status','<>','6')->value('voucher_number');
+        // $vcNumber = DB::table('kas_hdr')->where('id',$id)->where('status','<>','6')->value('voucher_number');
 
-        $rowAffected=DB::table('kas_hdr')
-        ->where('voucher_number',$vcNumber)
-        ->update(
-            [
-                'status' =>$status,
-                'updated_by' => Auth::user()->username,
-                'updated_at' => date('Y-m-d H:i:s')
-            ]
-        );
+        // $rowAffected=DB::table('kas_hdr')
+        // ->where('voucher_number',$vcNumber)
+        // ->update(
+        //     [
+        //         'status' =>$status,
+        //         'updated_by' => Auth::user()->username,
+        //         'updated_at' => date('Y-m-d H:i:s')
+        //     ]
+        // );
+
+        /*
+            kalau status  1 atau  masih new bisa di delete permanen, tapi kalau statusnya selain itu ditandai delete cancel saja
+        */
+
+        $vcStatus = DB::table('kas_hdr')->where('id',$id)->first();
+        $vcNumber = $vcStatus->voucher_number;
+        $rowAffected = 0;
+
+        if ($vcStatus->status === '1'){
+            $rowAffected = DB::table('kas_hdr')->where('id',$id)->delete();
+            if($rowAffected){
+                DB::table('kas_det')->where('voucher_number',$vcNumber)->delete();
+            }
+        }else{
+            $vcNumber = DB::table('kas_hdr')->where('id',$id)->where('status','<>','6')->value('voucher_number');
+            $rowAffected=DB::table('kas_hdr')
+            ->where('voucher_number',$vcNumber)
+            ->update(
+                [
+                    'status' =>$status,
+                    'updated_by' => Auth::user()->username,
+                    'updated_at' => date('Y-m-d H:i:s')
+                ]
+            );
+        }
         
         // $rowAffected = DB::table('kas_hdr')->where('id',$id)->delete();
 

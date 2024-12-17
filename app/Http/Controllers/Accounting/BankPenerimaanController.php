@@ -138,6 +138,11 @@ class BankPenerimaanController extends Controller
             maka invoice terbaru di tahun 2022 otomatis menjadi INV-ASN-22-VII-001
         */
 
+        /*
+            BM-ASN-23-X-0045
+            BM/10/23/0006
+        */
+
         $getCurrentYear = date('y');
         $inputYear = $year;
         $basicCode1 = "$key-ASN-$inputYear";
@@ -810,52 +815,70 @@ class BankPenerimaanController extends Controller
             status 6 = closed
         */
 
-        $vcNumber = DB::table('kas_hdr')->where('id',$id)->where('status','<>','6')->value('voucher_number');
-        $newVcNumber =  $vcNumber."(D)";
-        for ($i=0;$i<10;$i++){
-            $sudahPernahDelete  = DB::table('kas_hdr')->where('voucher_number',$newVcNumber)->count();
-            $newVcNumber = $sudahPernahDelete == 0 ? $newVcNumber : $newVcNumber."(D)";
-            if ($sudahPernahDelete == 0){
-                break;
+        /*
+            kalau status  1 atau  masih new bisa di delete permanen, tapi kalau statusnya selain itu ditandai delete cancel saja
+        */
+
+        $vcStatus = DB::table('kas_hdr')->where('id',$id)->first();
+        $vcNumber = $vcStatus->voucher_number;
+        $rowAffected = 0;
+
+        if ($vcStatus->status === '1'){
+            $rowAffected = DB::table('kas_hdr')->where('id',$id)->delete();
+            if($rowAffected){
+                DB::table('kas_det')->where('voucher_number',$vcNumber)->delete();
             }
-        }
-        
-        $rowAffected=DB::table('kas_hdr')
-        ->where('voucher_number',$vcNumber)
-        ->update(
-            [
-                'voucher_number' => $newVcNumber,
-                'status' =>$status,
-                'updated_by' => Auth::user()->username,
-                'updated_at' => date('Y-m-d H:i:s')
-            ]
-        );
-        
-        // $rowAffected = DB::table('kas_hdr')->where('id',$id)->delete();
+        }else{
 
-        if($rowAffected>0){
-
-            $rowAffected=DB::table('kas_det')
+            $vcNumber = DB::table('kas_hdr')->where('id',$id)->where('status','<>','6')->value('voucher_number');
+            $newVcNumber =  $vcNumber."(D)";
+            for ($i=0;$i<10;$i++){
+                $sudahPernahDelete  = DB::table('kas_hdr')->where('voucher_number',$newVcNumber)->count();
+                $newVcNumber = $sudahPernahDelete == 0 ? $newVcNumber : $newVcNumber."(D)";
+                if ($sudahPernahDelete == 0){
+                    break;
+                }
+            }
+        
+            $rowAffected=DB::table('kas_hdr')
             ->where('voucher_number',$vcNumber)
             ->update(
                 [
                     'voucher_number' => $newVcNumber,
+                    'status' =>$status,
                     'updated_by' => Auth::user()->username,
                     'updated_at' => date('Y-m-d H:i:s')
                 ]
             );
+        
+            // $rowAffected = DB::table('kas_hdr')->where('id',$id)->delete();
 
-            DB::table('approval_history')
-            ->where('module_number',$vcNumber)
-            ->where('module_code',$this->moduleCode)
-            ->update(
-                [   
-                    'module_number' => $newVcNumber,
-                    'updated_by' => Auth::user()->username,
-                    'updated_at' => date('Y-m-d H:i:s')
-                ]
-            );
-            
+            if($rowAffected>0){
+
+                $rowAffected=DB::table('kas_det')
+                ->where('voucher_number',$vcNumber)
+                ->update(
+                    [
+                        'voucher_number' => $newVcNumber,
+                        'updated_by' => Auth::user()->username,
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]
+                );
+
+                DB::table('approval_history')
+                ->where('module_number',$vcNumber)
+                ->where('module_code',$this->moduleCode)
+                ->update(
+                    [   
+                        'module_number' => $newVcNumber,
+                        'updated_by' => Auth::user()->username,
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]
+                );
+            }
+        }
+
+        if($rowAffected>0){
             $title ="Delete $this->title";
             $alert  ="success";
             $message  = "$vcNumber Successfully Deleted";
