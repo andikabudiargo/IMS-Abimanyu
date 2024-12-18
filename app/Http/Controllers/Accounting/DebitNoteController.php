@@ -118,43 +118,91 @@ class DebitNoteController extends Controller
             "INV-ASN-24-I-0001"
         */
         
+        // $getCurrentYear = date('y');
+        // $inputYear = $year;
+        // $basicCode = "_______-$inputYear";
+
+        // $getResetRule = DB::table('master_code')
+        // ->where('code_key',$key)
+        // ->value('reset_by');
+
+        // if($getResetRule == 'YEAR'){
+        //     $getLastNumber = DB::table('debit_note_hdr')
+        //     ->where('dn_number','like',$basicCode.'%')
+        //     ->where('status','<>','5')
+        //     ->orderBy('id','desc')
+        //     ->first();
+        // }else{
+        //     $getLastNumber = DB::table('debit_note_hdr')
+        //     ->where('status','<>','5')
+        //     ->orderBy('id','desc')
+        //     ->first();
+        // }       
+
+        // if ($getLastNumber){
+        //     $getYear = explode('-',$getLastNumber->dn_number)[3];
+        //     $getLastCode = explode('-',$getLastNumber->dn_number)[5];
+        //     $newCode = ($getLastCode*1)+1;
+        // }else{
+        //     $getYear = $getCurrentYear;
+        //     $newCode = 1;
+        // }
+        
+        // $newCode = str_pad($newCode,4,"0",STR_PAD_LEFT);
+        // $months = ['I', 'II', 'III','IV','V', 'VI', 'VII', 'VIII','IX','X','XI','XII'];
+        // $month = $months[$period-1];
+        // $year = $inputYear;
+        // $code="$key-ASN-$year-$month-$newCode";
+       
+        // return $code;
+
+        $voucherType = $key;
         $getCurrentYear = date('y');
         $inputYear = $year;
-        $basicCode = "_______-$inputYear";
+        $basicCode = "$key-ASN-$inputYear"; // INV-DN-ASN-24-III-0002
+                           
+        $getLastCode = DB::table('debit_note_hdr')
+        ->where('dn_number','like',$basicCode.'%')
+        ->where('status','<>','5')
+        ->orderBy(DB::raw("right(dn_number,4)::numeric"),'desc')
+        ->select(DB::raw("right(dn_number,4) as last_code"))
+        ->value('last_code');
 
-        $getResetRule = DB::table('master_code')
-        ->where('code_key',$key)
-        ->value('reset_by');
+        $getLastCode = $getLastCode ? $getLastCode : 1;
 
-        if($getResetRule == 'YEAR'){
-            $getLastNumber = DB::table('debit_note_hdr')
-            ->where('dn_number','like',$basicCode.'%')
-            ->where('status','<>','5')
-            ->orderBy('id','desc')
-            ->first();
+        $getMissingCode = DB::SELECT("SELECT generate_series(0001, $getLastCode) as missing_code
+        except
+        select dn_number::integer from (select right(dn_number,4) as dn_number from debit_note_hdr 
+        where (dn_number like '%$basicCode%') and status <> '5' order by  id) as oki
+        order by missing_code limit 1");
+
+        if(count($getMissingCode) > 0){
+            /*
+                ini karena di tahun 2024 ada data yang kehapus ditengah dan nomornya kecil jadi di skip aja
+            */
+            if($year == '24'){
+                $newCode = ($getLastCode*1)+1;
+            }else{
+                $newCode = $getMissingCode[0]->missing_code;
+            }
+            // $newCode = $getMissingCode[0]->missing_code;
         }else{
-            $getLastNumber = DB::table('debit_note_hdr')
-            ->where('status','<>','5')
-            ->orderBy('id','desc')
-            ->first();
-        }       
-
-        if ($getLastNumber){
-            $getYear = explode('-',$getLastNumber->dn_number)[3];
-            $getLastCode = explode('-',$getLastNumber->dn_number)[5];
             $newCode = ($getLastCode*1)+1;
-        }else{
-            $getYear = $getCurrentYear;
-            $newCode = 1;
         }
-        
+
         $newCode = str_pad($newCode,4,"0",STR_PAD_LEFT);
         $months = ['I', 'II', 'III','IV','V', 'VI', 'VII', 'VIII','IX','X','XI','XII'];
         $month = $months[$period-1];
         $year = $inputYear;
-        $code="$key-ASN-$year-$month-$newCode";
+        $code ="$key-ASN-$year-$month-$newCode";
        
         return $code;
+
+        /*
+            17/12/2024    
+            Permintaan baru :
+            Untuk pengkodean akan mencari nomor yang hilang telebih dahulu untuk diisi, jika tidak ada maka akan diisi dengan nomor terakhir + 1
+        */
     }
 
     public function create(Request $request)

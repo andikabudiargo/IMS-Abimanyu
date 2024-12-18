@@ -123,45 +123,99 @@ class GeneralJournalController extends Controller
             // $code="$key/$month/$year/$newCode";
         */
 
+        // $getCurrentYear = date('y');
+        // $inputYear = $year;
+        // $basicCode = "______-$inputYear";
+
+        // $getResetRule = DB::table('master_code')
+        // ->where('code_key',$key)
+        // ->value('reset_by');
+
+        // if($getResetRule == 'YEAR'){
+        //     $getLastNumber = DB::table('kas_hdr')
+        //     ->where('voucher_number','like',$basicCode.'%')
+        //     // ->where('status','<>','5')
+        //     ->where('voucher_type',$key)
+        //     ->orderBy('id','desc')
+        //     ->first();
+        // }else{
+        //     $getLastNumber = DB::table('kas_hdr')
+        //     // ->where('status','<>','5')
+        //     ->where('voucher_type',$key)
+        //     ->orderBy('id','desc')
+        //     ->first();
+        // }       
+
+        // if ($getLastNumber){
+        //     $getYear = explode('-',$getLastNumber->voucher_number)[2];
+        //     $getLastCode = explode('-',$getLastNumber->voucher_number)[4];
+        //     $newCode = ($getLastCode*1)+1;
+        // }else{
+        //     $getYear = $getCurrentYear;
+        //     $newCode = 1;
+        // }
+
+        // $newCode = str_pad($newCode,4,"0",STR_PAD_LEFT);
+        // $months = ['I', 'II', 'III','IV','V', 'VI', 'VII', 'VIII','IX','X','XI','XII'];
+        // $month = $months[$period-1];
+        // $year = $inputYear;
+        // $code="$key-ASN-$year-$month-$newCode";
+        
+        // return $code;
+
+        $voucherType = $key;
         $getCurrentYear = date('y');
         $inputYear = $year;
-        $basicCode = "______-$inputYear";
+        $basicCode1 = "$key-ASN-$inputYear"; // GJ-ASN-23-IX-0003
+        // $basicCode1 = "______-$inputYear"; // GJ-ASN-23-IX-0003
+        // $basicCode2 = "_____/$inputYear"; // KK/10/23/0797
+                       
+        $getLastCode = DB::table('kas_hdr')
+        ->where(function($query) use ($basicCode1,$basicCode2){
+            $query->where('voucher_number','like',$basicCode1.'%');
+            // $query->orWhere('voucher_number','like',$basicCode2.'%');
+        })
+        ->where('status','<>','5')
+        ->where('voucher_type',$voucherType) 
+        ->orderBy(DB::raw("right(voucher_number,4)::numeric"),'desc')
+        ->select(DB::raw("right(voucher_number,4) as last_code"))
+        ->value('last_code');
 
-        $getResetRule = DB::table('master_code')
-        ->where('code_key',$key)
-        ->value('reset_by');
+        $getLastCode = $getLastCode ? $getLastCode : 1;
 
-        if($getResetRule == 'YEAR'){
-            $getLastNumber = DB::table('kas_hdr')
-            ->where('voucher_number','like',$basicCode.'%')
-            // ->where('status','<>','5')
-            ->where('voucher_type',$key)
-            ->orderBy('id','desc')
-            ->first();
+        $getMissingCode = DB::SELECT("SELECT generate_series(0001, $getLastCode) as missing_code
+        except
+        select voucher_number::integer from (select right(voucher_number,4) as voucher_number from kas_hdr 
+        where (voucher_number like '%$basicCode1%') and status <> '5' and voucher_type = '$voucherType' order by  id) as oki
+        order by missing_code limit 1");
+
+        if(count($getMissingCode) > 0){
+            /*
+                ini karena di tahun 2024 ada data yang kehapus ditengah dan nomornya kecil jadi di skip aja
+            */
+            if($year == '24'){
+                $newCode = ($getLastCode*1)+1;
+            }else{
+                $newCode = $getMissingCode[0]->missing_code;
+            }
+            // $newCode = $getMissingCode[0]->missing_code;
         }else{
-            $getLastNumber = DB::table('kas_hdr')
-            // ->where('status','<>','5')
-            ->where('voucher_type',$key)
-            ->orderBy('id','desc')
-            ->first();
-        }       
-
-        if ($getLastNumber){
-            $getYear = explode('-',$getLastNumber->voucher_number)[2];
-            $getLastCode = explode('-',$getLastNumber->voucher_number)[4];
             $newCode = ($getLastCode*1)+1;
-        }else{
-            $getYear = $getCurrentYear;
-            $newCode = 1;
         }
 
         $newCode = str_pad($newCode,4,"0",STR_PAD_LEFT);
         $months = ['I', 'II', 'III','IV','V', 'VI', 'VII', 'VIII','IX','X','XI','XII'];
         $month = $months[$period-1];
         $year = $inputYear;
-        $code="$key-ASN-$year-$month-$newCode";
-        
+        $code ="$key-ASN-$year-$month-$newCode";
+       
         return $code;
+
+        /*
+            17/12/2024    
+            Permintaan baru :
+            Untuk pengkodean akan mencari nomor yang hilang telebih dahulu untuk diisi, jika tidak ada maka akan diisi dengan nomor terakhir + 1
+        */
     }
 
     public function index(Request $request)

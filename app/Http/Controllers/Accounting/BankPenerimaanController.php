@@ -169,7 +169,15 @@ class BankPenerimaanController extends Controller
         order by missing_code limit 1");
 
         if(count($getMissingCode) > 0){
-            $newCode = $getMissingCode[0]->missing_code;
+            /*
+                ini karena di tahun 2024 ada data yang kehapus ditengah dan nomornya kecil jadi di skip aja
+            */
+            if($year == '24'){
+                $newCode = ($getLastCode*1)+1;
+            }else{
+                $newCode = $getMissingCode[0]->missing_code;
+            }
+            // $newCode = $getMissingCode[0]->missing_code;
         }else{
             $newCode = ($getLastCode*1)+1;
         }
