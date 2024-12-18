@@ -171,10 +171,11 @@ class GeneralJournalController extends Controller
         // $basicCode2 = "_____/$inputYear"; // KK/10/23/0797
                        
         $getLastCode = DB::table('kas_hdr')
-        ->where(function($query) use ($basicCode1,$basicCode2){
-            $query->where('voucher_number','like',$basicCode1.'%');
-            // $query->orWhere('voucher_number','like',$basicCode2.'%');
-        })
+        // ->where(function($query) use ($basicCode1,$basicCode2){
+        //     $query->where('voucher_number','like',$basicCode1.'%');
+        //     // $query->orWhere('voucher_number','like',$basicCode2.'%');
+        // })
+        ->where('voucher_number','like',$basicCode1.'%')
         ->where('status','<>','5')
         ->where('voucher_type',$voucherType) 
         ->orderBy(DB::raw("right(voucher_number,4)::numeric"),'desc')
