@@ -46,7 +46,7 @@
             <div class="col-md-2 col-12" style="max-width: 10.66667%;padding-right:2px;padding-left:2px;">
                 <div class="form-group margin-nol">
                     <label for="aConversion" class="d-block d-md-none">Conversion</label>
-                    <input type="text" class="form-control numeral-mask-digit text-right disabled-el enable-tooltip" id = "aConversion" name="aConversion[]" 
+                    <input type="text" class="form-control text-right disabled-el enable-tooltip" id = "aConversion" name="aConversion[]" 
                     data-toggle="tooltip" 
                     data-placement="bottom" 
                     title="Selling Price – Purchase Price / Nilai Konversi"
@@ -134,7 +134,7 @@
         });
     }
 
-    add_new_row = (deliveryNumber,customerCode,customerName,articleCode,articleDescription) => {
+    add_new_row = (deliveryNumber,customerCode,customerName,articleCode,articleDescription, purchasePrice, sellingPrice,conversionTotal) => {
         cloneCount++;
         $("#item_row").append($("#new_row").clone().html());
         $("#item_row").find('#baru').attr('id', 'new_row'+ cloneCount);
@@ -153,13 +153,23 @@
         $("#aArticleCode"+ cloneCount).val(articleCode);
         $("#aArticleDescription"+ cloneCount).val(articleDescription);
         $("#aArticleDescription"+ cloneCount).attr('title',articleDescription);
+        if(inEdit == 'true'){
+            $("#aPurchasePrice"+ cloneCount).val(purchasePrice);
+            $("#aSellingPrice"+ cloneCount).val(sellingPrice);
+            $("#aConversion"+ cloneCount).val(conversionTotal);
+            hitungGrandTotal();
+        }
+        if(inShow == 'true'){
+            $("#aPurchasePrice"+ cloneCount).attr('readonly',true);
+            $("#aSellingPrice"+ cloneCount).attr('readonly',true);
+        }
         $("#aCustomerName"+ cloneCount).tooltip();
         $("#aArticleDescription"+ cloneCount).tooltip();
         $("#aConversion"+ cloneCount).tooltip();
         mask_thousand_digit(numberOfDecimalDigit);
         hitungTotal();
     };
-
+    
     function hitungTotal(){
         let objPurchasePrice = $('#item_row input[name="aPurchasePrice[]"]');
         let objSellligPrice = $('#item_row input[name="aSellingPrice[]"]')

@@ -119,7 +119,7 @@
                             <div class="form-group row mb-03">
                                 <label for="totalConversion" class="col-sm-5 col-form-label titik-dua">Total harga konversi</label>
                                 <div class="col-sm-6">
-                                    <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit" id="totalConversion" disabled />
+                                    <input type="text" class="form-control text-right font-weight-bold" id="totalConversion" disabled />
                                 </div>
                             </div>
                         </div>
@@ -201,6 +201,7 @@
     const deliveryDate = $('#deliveryDate');
     let currentDate = todayDate('dd-mm-yyyy');
     let inEdit = 'true';
+    let inShow = 'false';
 
     if (deliveryDate.length) {
      deliveryDate.flatpickr({
@@ -211,11 +212,9 @@
 
     $(document).ready(function(){           
         validateFormToast('frmAdd');
-
         let details = {!! $details !!};
-        
         for(let i=0;i<details.length;i++){
-            add_new_row(details[i].delivery_number,details[i].customer_id,details[i].customer_name,details[i].artikel_code,details[i].article_description);
+            add_new_row(details[i].delivery_number,details[i].customer_id,details[i].customer_name,details[i].artikel_code,details[i].article_description,details[i].purchase_price,details[i].selling_price,details[i].conversion_total);
         }
 
         feather.replace({
@@ -280,8 +279,8 @@
                     dnNumber:dnNumber,
                 },
                 success:function(result){
-                    // console.log(details)
-                    for(let i=0;i<details.length;i++){
+                    // console.log(result.data)
+                    for(let i=0;i<result.data.length;i++){
                         add_new_row(result.data[i].delivery_number,result.data[i].customer_id,result.data[i].customer_name,result.data[i].artikel_code,result.data[i].article_description);
                     }
                     disabledEnabledSelect2();
@@ -292,7 +291,7 @@
     }
 
     function disabledEnabledSelect2(){
-        let arrValueSelected = $("#article_row input[name='aDnNumber[]']").map(function(){return $(this).val();}).get();
+        let arrValueSelected = $("#item_row input[name='aDnNumber[]']").map(function(){return $(this).val();}).get();
         arrValueSelected = Array.from(new Set(arrValueSelected));
         dnSelect.find("option").removeAttr('disabled',true).trigger("chosen:updated");
         arrValueSelected.forEach((key, index) => {
@@ -326,6 +325,7 @@
             let objSellligPrice = $('#item_row input[name="aSellingPrice[]"]')
             let objConversion = $('#cValue').val()
             let objArticleCode = $('#item_row input[name="aArticleCode[]"]')
+            let objArticleDescription = $('#item_row input[name="aArticleDescription[]"]')
             let objDnNumber = $('#item_row input[name="aDnNumber[]"]')
             let objCustomerCode = $('#item_row input[name="aCustomerCode[]"]')
             let objConversionTotal = $('#item_row input[name="aConversion[]"]')
@@ -342,6 +342,11 @@
                     let aConversionTotal = objConversionTotal.eq(i).val().replace(/,/gi, '') || 0
                     let aArticleCode = objArticleCode.eq(i).val()
                     let aCustomerCode = objCustomerCode.eq(i).val()
+
+                    if ( aSellingPrice == 0 ) {
+                        pesan +=`Selling price ${objArticleDescription.val()}, cannot be empty ! <br>`; 
+                        flag=1;
+                    }
 
                     details.push({
                         'dn_number':aDnNumber,
@@ -382,7 +387,6 @@
                         }else{
                             show_msg(data.title, data.message, data.alert);
                             $('#cNumber').val(data.cNumber);
-                            inEdit = 'false';
                             $('.disabled-el').attr('disabled','disabled');
                             window.location.reload();
                         }

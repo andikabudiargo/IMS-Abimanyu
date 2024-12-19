@@ -3,7 +3,6 @@
 @section('content')
 @include('layouts.breadcrumb')
 @include('partials.alert')
-
 <section id="article-index">
   <div class="card">
     <div class="card-header">  
@@ -53,7 +52,6 @@
     </div>
   </div>
 </section>
-
 <section id="table-article">
   <div class="card">
     <div class="card-header">
@@ -85,7 +83,7 @@
     </div>
   </div>
 </section>
-
+@include('partials.delete-modal')
 @endsection
 @section('styles')
 <style>
@@ -105,6 +103,12 @@ td.wrapok {
   $(document).ready(function(){    
     btnSummary.style.display = "none";
     btnDetail.style.display = "none";
+    let href;
+    $(document).on('click', '#deleteButton', function(event) {
+        event.preventDefault();
+        href = $(this).data('href');
+        $('#modalConfirmation').attr("action", href);
+    });
   });
 
   $("#btnSearch").click(function(e){

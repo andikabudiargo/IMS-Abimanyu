@@ -123,7 +123,8 @@ class ConversionController extends Controller
 
         return view("conversion.conversion.index",$data);
     }
-        public function create(Request $request)
+
+    public function create(Request $request)
     {
         $data['title'] = "Create $this->title";
         $data['subtitle'] = "Create $this->title";
@@ -160,10 +161,24 @@ class ConversionController extends Controller
         // dd($data['header']);
 
         $data['details'] = DB::table('conversion_det')
+        ->leftJoin('delivery_hdr','delivery_hdr.delivery_number','=','conversion_det.dn_number')
+        ->leftJoin('article','article.article_code','=','conversion_det.article_code')
+        ->leftJoin('third_party','third_party.kode','=','conversion_det.customer_id')
         ->where('conversion_code',$data['header']->conversion_code)
+        ->select(DB::raw("concat(article.article_alternative_code,' - ',article.article_desc) as article_description")
+        ,'article.article_code as artikel_code'
+        ,'article.article_desc'
+        ,'delivery_hdr.delivery_number'
+        ,'delivery_hdr.customer_id'
+        ,'third_party.nama as customer_name'
+        ,'conversion_det.purchase_price'
+        ,'conversion_det.selling_price'
+        ,'conversion_det.conversion'
+        ,'conversion_det.conversion_total'
+        )
         ->get();
 
-        $data['conversionVal'] = $data['details'][0]->conversions;
+        $data['conversionVal'] = $data['details'][0]->conversion;
 
         return view("conversion.conversion.edit",$data);
 
@@ -251,8 +266,40 @@ class ConversionController extends Controller
                             'updated_at' => date('Y-m-d H:i:s'),
                         ];
                     }
-
                     DB::table('conversion_det')->insert($dataSet);
+                }else{
+                    DB::table('conversion_hdr')
+                    ->where('conversion_code',$conversionNumber)
+                    ->update([
+                        'conversion_name' => $conversionName,
+                        'note' => $note,
+                        'created_at' => date('Y-m-d H:i:s'),
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]);
+
+                
+                    $dataSet = [];
+                    foreach ($details as $val) {
+                        $dataSet[] = [
+                            'conversion_code' => $conversionNumber,
+                            'dn_number' => $val->dn_number,
+                            'customer_id' => $val->customer_id,
+                            'article_code' => $val->article_code,
+                            'purchase_price' => $val->purchase_price,
+                            'selling_price' => $val->selling_price,
+                            'conversion' => $val->conversion,
+                            'conversion_total' => $val->conversion_total,
+                            'created_by' => Auth::user()->username,
+                            'updated_by' => Auth::user()->username,
+                            'created_at' => date('Y-m-d H:i:s'),
+                            'updated_at' => date('Y-m-d H:i:s'),
+                        ];
+                    }
+
+                    if($dataSet){
+                        DB::table('conversion_det')->where('conversion_code',$conversionNumber)->delete();
+                        DB::table('conversion_det')->insert($dataSet);
+                    }
                 }
                     
                 DB::commit();
@@ -361,32 +408,35 @@ class ConversionController extends Controller
     
     public function destroy(Request $request)
     {
+        $id=Crypt::decryptString($request->id);
         $username =  Auth::user()->username;    
-        $customerId=$request->customerId;
-        $articleCode=$request->articleCode;
-        $year=$request->year;
-        $articleDesc=$request->articleDesc;
-        $conversionNumber=$request->uconversionNumber;
 
-        $rowAffected=DB::table('forecasting_sales')
-        ->where('forcast_number',$conversionNumber)
-        ->where('customer_id',$customerId)
-        ->where('article_code',$articleCode)
-        ->where('year',$year)
+        $conversionNumber = DB::table('conversion_hdr')
+        ->where('id',$id)
+        ->value('conversion_code');
+        
+        $rowAffected=DB::table('conversion_hdr')
+        ->where('id',$id)
         ->delete();
 
         if($rowAffected>0){
+            DB::table('conversion_det')
+            ->where('conversion_code',$conversionNumber)
+            ->delete();
+
             $title ="Delete $this->title";
             $alert  ="success";
-            $message  = "$conversionNumber $articleDesc Successfully Deleted";
-            \LogActivity::addToLog('FC Sales ',"username: $username Status $message");
-            return response()->json(array('status'=>"1",'message'=>$message,'alert'=>$alert,'conversionNumber'=>$conversionNumber));
+            $message  = "$conversionNumber Successfully Deleted";
+            \LogActivity::addToLog("Conversion Sales","username: $username Status $message");
+            return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);
+            // return response()->json(array('status'=>"1",'message'=>$message,'alert'=>$alert,'conversionNumber'=>$conversionNumber));
         }else{
             $title ="Delete $this->title";
             $alert  ="warning";
-            $message  = "$conversionNumber $articleDesc Failed to Delete";
-            \LogActivity::addToLog('FC Sales delete ',"username: $username Status $message");
-            return response()->json(array('status'=>"0",'message'=>$message,'alert'=>$alert,'conversionNumber'=>$conversionNumber));
+            $message  = "$conversionNumber Failed to Delete";
+            \LogActivity::addToLog("Conversion Sales","username: $username Status $message");
+            return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);
+            // return response()->json(array('status'=>"0",'message'=>$message,'alert'=>$alert,'conversionNumber'=>$conversionNumber));
         }
     }
     public function show(Request $request)
@@ -395,32 +445,39 @@ class ConversionController extends Controller
         $id=Crypt::decryptString($request->id);
         $username =  Auth::user()->username;
 
-        $data['title'] = "Edit $this->title";
-        $data['subtitle'] = "Edit $this->title";
+        $data['title'] = "Detail $this->title";
+        $data['subtitle'] = "Detail $this->title";
                 
         $data['customers'] = DB::table('third_party')
         ->where('third_party_type','cust')
         ->orderBy('nama')
         ->get();
 
-        $header = DB::table('forecasting_sales_hdr')
+        $data['header'] = DB::table('conversion_hdr')
         ->where('id',$id)
         ->first();
 
-        $data['articles'] = DB::table('article')
-        ->where('status','1')
-        ->where('article_type','FG')
-        ->orderBy('article_alternative_code','asc')
+        // dd($data['header']);
+
+        $data['details'] = DB::table('conversion_det')
+        ->leftJoin('delivery_hdr','delivery_hdr.delivery_number','=','conversion_det.dn_number')
+        ->leftJoin('article','article.article_code','=','conversion_det.article_code')
+        ->leftJoin('third_party','third_party.kode','=','conversion_det.customer_id')
+        ->where('conversion_code',$data['header']->conversion_code)
+        ->select(DB::raw("concat(article.article_alternative_code,' - ',article.article_desc) as article_description")
+        ,'article.article_code as artikel_code'
+        ,'article.article_desc'
+        ,'delivery_hdr.delivery_number'
+        ,'delivery_hdr.customer_id'
+        ,'third_party.nama as customer_name'
+        ,'conversion_det.purchase_price'
+        ,'conversion_det.selling_price'
+        ,'conversion_det.conversion'
+        ,'conversion_det.conversion_total'
+        )
         ->get();
 
-        $data['forcastNumber'] = $header->forcast_number;
-        $data['forcastName'] = $header->forcast_name;
-        $data['note'] = $header->note;
-        $data['year'] = $header->year;
-        $data['bulanAwal'] = $header->month_start;
-        $data['bulanAkhir'] = $header->month_end;
-
-        $data['bulan'] = ['1'=>"Januari",'2'=>"Februari",'3'=>"Maret",'4'=>"April",'5'=>"Mei",'6'=>"Juni",'7'=>"Juli",'8'=>"Agustus",'9'=>"September",'10'=>"Oktober",'11'=>"November",'12'=>"Desember"];
+        $data['conversionVal'] = $data['details'][0]->conversion;
 
         return view("conversion.conversion.show",$data);
 
@@ -468,29 +525,29 @@ class ConversionController extends Controller
             
             // if (Auth::user()->can('conversion-edit')) {
                 // if ( $data->statusku == '2' or $data->statusku == '1') {
-                // $buttons .=     '<a href="'. route('conversion.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
-                //                     <i data-feather="file-text"></i>
-                //                     Edit
-                //                 </a>';
-                // $buttons .=     '<a href="'. route('conversion.show', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
-                //                 <i data-feather="list"></i>
-                //                 Detail
-                //             </a>';
+                $buttons .=     '<a href="'. route('conversion.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+                                    <i data-feather="file-text"></i>
+                                    Edit
+                                </a>';
+                $buttons .=     '<a href="'. route('conversion.show', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+                                <i data-feather="list"></i>
+                                Detail
+                            </a>';
                 // }
             // }            
             
             // if (Auth::user()->can('conversion-delete')) {
-            //     // if ($data->statusku != '5') {
-            //         $buttons .=         "<a href='javascript:;'
-            //                             id='deleteButton'
-            //                             class='dropdown-item'
-            //                             data-toggle='modal'
-            //                             data-target='#smallModal'
-            //                             data-href='". route("conversion.destroy", ['id'=>Crypt::encryptString($data->id)]) ."'>
-            //                             <i data-feather='trash-2' class='feather-14-red'></i>
-            //                             Delete
-            //                         </a>";
-            //     // }
+                // if ($data->statusku != '5') {
+                    $buttons .=  "<a href='javascript:;'
+                                        id='deleteButton'
+                                        class='dropdown-item'
+                                        data-toggle='modal'
+                                        data-target='#smallModal'
+                                        data-href='". route("conversion.destroy", ['id'=>Crypt::encryptString($data->id)]) ."'>
+                                        <i data-feather='trash-2' class='feather-14-red'></i>
+                                        Delete
+                                    </a>";
+                // }
             // }
 
             $buttons .=     '</div>
@@ -555,13 +612,22 @@ class ConversionController extends Controller
         $date = strtotime($deliveryDate);
         $deliveryDate = date('Y-m-d', $date);
 
+        $result = DB::select("select delivery_number from delivery_det where
+        delivery_number in (select dn_number from conversion_det)
+        and concat(delivery_number,article_code) not in (select concat(dn_number,article_code) from conversion_det)");
+        $masihBisaDipanggil = [];
+        foreach($result as $row){
+            $masihBisaDipanggil[] = $row->delivery_number;
+        }
+        // dd($masihBisaDipanggil);
         $data= DB::table('delivery_hdr') 
         ->where(function ($query) use ($customerCode) {
             $customerCode ? $query->where('customer_id',$customerCode) : '';
         })
-        ->whereNotIn("delivery_number", function($query) {
+        ->whereNotIn("delivery_number", function($query)  use ($masihBisaDipanggil) {
             $query->select("dn_number")
-            ->from('conversion_det');
+            ->from('conversion_det')
+            ->whereNotIn('dn_number',$masihBisaDipanggil);
             // ->orWhere('ap_number','<>',$apNumber);
         })
         ->where(db::raw("to_date(delivery_date,'dd-mm-yyyy')"),$deliveryDate)
@@ -588,12 +654,16 @@ class ConversionController extends Controller
     public function getListArticle(Request $request)
     {
         $dnNumber = $request->dnNumber;
-                
         $data= DB::table('delivery_det') 
             ->leftJoin('delivery_hdr','delivery_hdr.delivery_number','=','delivery_det.delivery_number')
             ->leftJoin('article','article.article_code','=','delivery_det.article_code')
             ->leftJoin('third_party','third_party.kode','=','delivery_hdr.customer_id')
             ->where('delivery_det.delivery_number','=',$dnNumber)
+            ->whereNotIn("delivery_det.article_code", function($query) use ($dnNumber) {
+                $query->select("article_code")
+                ->from('conversion_det')
+                ->where('dn_number',$dnNumber);
+            })
             ->orderBy('article.article_desc')
             ->select(DB::raw("concat(article.article_alternative_code,' - ',article.article_desc) as article_description")
             ,'article.article_code as artikel_code'

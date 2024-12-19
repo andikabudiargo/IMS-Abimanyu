@@ -182,6 +182,7 @@
     const deliveryDate = $('#deliveryDate');
     let currentDate = todayDate('dd-mm-yyyy');
     let inEdit = 'false';
+    let inShow = 'false';
 
     if (deliveryDate.length) {
      deliveryDate.flatpickr({
@@ -265,7 +266,8 @@
     }
 
     function disabledEnabledSelect2(){
-        let arrValueSelected = $("#article_row input[name='aDnNumber[]']").map(function(){return $(this).val();}).get();
+        let arrValueSelected = $("#item_row input[name='aDnNumber[]']").map(function(){return $(this).val();}).get();
+        console.log(arrValueSelected)
         arrValueSelected = Array.from(new Set(arrValueSelected));
         dnSelect.find("option").removeAttr('disabled',true).trigger("chosen:updated");
         arrValueSelected.forEach((key, index) => {
@@ -299,6 +301,7 @@
             let objSellligPrice = $('#item_row input[name="aSellingPrice[]"]')
             let objConversion = $('#cValue').val()
             let objArticleCode = $('#item_row input[name="aArticleCode[]"]')
+            let objArticleDescription = $('#item_row input[name="aArticleDescription[]"]')
             let objDnNumber = $('#item_row input[name="aDnNumber[]"]')
             let objCustomerCode = $('#item_row input[name="aCustomerCode[]"]')
             let objConversionTotal = $('#item_row input[name="aConversion[]"]')
@@ -315,6 +318,11 @@
                     let aConversionTotal = objConversionTotal.eq(i).val().replace(/,/gi, '') || 0
                     let aArticleCode = objArticleCode.eq(i).val()
                     let aCustomerCode = objCustomerCode.eq(i).val()
+
+                    if ( aSellingPrice == 0 ) {
+                        pesan +=`Selling price ${objArticleDescription.val()}, cannot be empty ! <br>`; 
+                        flag=1;
+                    }
 
                     details.push({
                         'dn_number':aDnNumber,
