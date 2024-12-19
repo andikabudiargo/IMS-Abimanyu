@@ -299,10 +299,10 @@
                 }
             });
 
-            if (articles.length == 0){
-                pesan +="Articles must be filled in completely <br>"; 
-                flag=1;
-            }
+                if (articles.length == 0){
+                    pesan +="Articles must be filled in completely <br>"; 
+                    flag=1;
+                }
 
             if (flag==0){
 
