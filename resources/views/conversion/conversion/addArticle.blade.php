@@ -153,6 +153,7 @@
         $("#aArticleCode"+ cloneCount).val(articleCode);
         $("#aArticleDescription"+ cloneCount).val(articleDescription);
         $("#aArticleDescription"+ cloneCount).attr('title',articleDescription);
+        
         if(inEdit == 'true'){
             $("#aPurchasePrice"+ cloneCount).val(purchasePrice);
             $("#aSellingPrice"+ cloneCount).val(sellingPrice);
@@ -167,7 +168,10 @@
         $("#aArticleDescription"+ cloneCount).tooltip();
         $("#aConversion"+ cloneCount).tooltip();
         mask_thousand_digit(numberOfDecimalDigit);
-        hitungTotal();
+
+        if((inShow != 'true') || (inEdit != 'true')){
+            hitungTotal();
+        };
     };
     
     function hitungTotal(){

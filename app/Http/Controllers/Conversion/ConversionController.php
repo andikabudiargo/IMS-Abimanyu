@@ -493,10 +493,14 @@ class ConversionController extends Controller
 
         if ($deliveryDate){
             $date = explode("to",$deliveryDate);
-            $fromDate = trim($date[0]);
-            $toDate = trim($date[1]);
+            // $fromDate = trim($date[0]);
+            // $toDate = trim($date[1]);
 
             if(count($date)>1){
+                
+                $fromDate = trim($date[0]);
+                $toDate = trim($date[1]);
+
                 $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
                 $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
             }else{
@@ -645,10 +649,11 @@ class ConversionController extends Controller
 
         if ($deliveryDate){
             $date = explode("to",$deliveryDate);
-            $fromDate = trim($date[0]);
-            $toDate = trim($date[1]);
-
+        
             if(count($date)>1){
+                $fromDate = trim($date[0]);
+                $toDate = trim($date[1]);
+
                 $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
                 $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
             }else{
@@ -656,7 +661,6 @@ class ConversionController extends Controller
                 $toDate = $fromDate; 
             }
         }
-
 
         $result = DB::select("select delivery_number from delivery_det where
         delivery_number in (select dn_number from conversion_det)

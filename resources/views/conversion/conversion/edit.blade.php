@@ -245,10 +245,10 @@
             flag = 1;
         }
 
-        if (!customerCode && !deliveryDate){
-            pesan += "Customer dan Delivery Date harus diisi<br>";
-            flag = 1;
-        }
+        // if (!customerCode && !deliveryDate){
+        //     pesan += "Customer dan Delivery Date harus diisi<br>";
+        //     flag = 1;
+        // }
 
         if (flag == 0){
             $.ajax({
