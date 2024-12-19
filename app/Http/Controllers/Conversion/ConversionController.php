@@ -614,7 +614,7 @@ class ConversionController extends Controller
         ,'delivery_hdr.delivery_date'
         ,'delivery_hdr.note'
         )
-        ->where(function ($query) use ($customer, $conversionName, $deliveryDate, $conversionNumber) {
+        ->where(function ($query) use ($customer, $conversionName, $deliveryDate, $conversionNumber,$fromDate,$toDate) {
             $customer ? $query->where("conversion_code",'=',$customer) : '';
             $deliveryDate ? $query->wherein('dn_number', function($query) use ($deliveryDate,$fromDate,$toDate) {
                     $query->select('delivery_number')
