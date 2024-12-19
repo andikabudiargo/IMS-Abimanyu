@@ -34,13 +34,13 @@
                                 </div>
                             </div>
                             <div class="form-row">
-                                <div class="form-group col-md-6">
+                                <div class="form-group col-md-7">
                                     <label for="cName">Conversion Name*</label>
                                     <input type="text" id="cName" name="cName" class="form-control" required/>
                                 </div>
                             </div>
                             <div class="form-row">
-                                <div class="form-group col-md-6">
+                                <div class="form-group col-md-7">
                                     <label class="form-label" for="cNote">Notes</label>
                                     <textarea type="text" id="cNote" name="cNote" class="form-control" rows="1" ></textarea>
                                 </div>
@@ -55,9 +55,9 @@
                                         @endforeach
                                     </select>
                                 </div>
-                                <div class="form-group col-md-2">
+                                <div class="form-group col-md-3">
                                     <label class="form-label" for="deliveryDate">Delivery Date</label>
-                                    <input type="text" id="deliveryDate" name="deliveryDate" class="form-control flatpickr" placeholder="DD-MM-YYYY" />
+                                    <input type="text" id="deliveryDate" name="deliveryDate" class="form-control flatpickr-range" placeholder="DD-MM-YYYY" />
                                 </div>
                             </div>
                             <div class="form-row">
@@ -184,10 +184,18 @@
     let inEdit = 'false';
     let inShow = 'false';
 
-    if (deliveryDate.length) {
-     deliveryDate.flatpickr({
+    // if (deliveryDate.length) {
+    //  deliveryDate.flatpickr({
+    //         dateFormat: "d-m-Y",
+    //         // maxDate: "today"
+    //     });
+    // }
+
+    rangePickr = $('.flatpickr-range');
+    if (rangePickr.length) {
+        rangePickr.flatpickr({
             dateFormat: "d-m-Y",
-            // maxDate: "today"
+            mode: 'range'
         });
     }
 

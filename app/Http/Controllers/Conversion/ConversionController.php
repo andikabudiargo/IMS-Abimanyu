@@ -488,25 +488,38 @@ class ConversionController extends Controller
         $conversionName = $request->conversionName;
         $deliveryDate = $request->deliveryDate;
         $conversionNumber = $request->conversionNumber;
+        $fromDate = "";
+        $toDate = "";
 
         if ($deliveryDate){
-            $deliveryDate = implode("/", array_reverse(explode("-", trim($deliveryDate))));
+            $date = explode("to",$deliveryDate);
+            $fromDate = trim($date[0]);
+            $toDate = trim($date[1]);
+
+            if(count($date)>1){
+                $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+                $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
+            }else{
+                $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+                $toDate = $fromDate; 
+            }
         }
 
         $data = DB::table('conversion_hdr')
-        ->where(function ($query) use ($customer, $conversionName, $deliveryDate, $conversionNumber) {
+        ->where(function ($query) use ($customer, $conversionName, $deliveryDate, $conversionNumber,$fromDate,$toDate) {
             $customer ? $query->whereIn("conversion_code", function($query) use ($customer) {
                 $query->select("conversion_code")
                 ->from('conversion_det')
                 ->Where('customer_id','=',$customer);
             }) : '';
-            $deliveryDate ? $query->whereIn("conversion_code", function($query) use ($deliveryDate) {
+            $deliveryDate ? $query->whereIn("conversion_code", function($query) use ($deliveryDate,$fromDate,$toDate) {
                 $query->select("conversion_code")
                 ->from('conversion_det')
-                    ->wherein('dn_number', function($query1) use ($deliveryDate) {
+                    ->wherein('dn_number', function($query1) use ($deliveryDate,$fromDate,$toDate) {
                     $query1->select('delivery_number')
                     ->from('delivery_hdr')
-                    ->Where(DB::raw("to_date(delivery_date,'DD-MM-YYYY')"),'=',$deliveryDate);
+                    ->whereBetween(DB::raw("to_date(delivery_date,'DD-MM-YYYY')"), [$fromDate, $toDate]);
+                    // ->Where(DB::raw("to_date(delivery_date,'DD-MM-YYYY')"),'=',$deliveryDate);
                 });
             }) : '';
             $conversionName ? $query->where('conversion_name','ilike','%'.$conversionName.'%') : '';
@@ -571,8 +584,21 @@ class ConversionController extends Controller
         $deliveryDate = $request->deliveryDate;
         $conversionNumber = $request->conversionNumber;
 
+        $fromDate = "";
+        $toDate = "";
+
         if ($deliveryDate){
-            $deliveryDate = implode("/", array_reverse(explode("-", trim($deliveryDate))));
+            $date = explode("to",$deliveryDate);
+            $fromDate = trim($date[0]);
+            $toDate = trim($date[1]);
+
+            if(count($date)>1){
+                $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+                $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
+            }else{
+                $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+                $toDate = $fromDate; 
+            }
         }
 
         $data = DB::table('conversion_det')
@@ -590,10 +616,11 @@ class ConversionController extends Controller
         )
         ->where(function ($query) use ($customer, $conversionName, $deliveryDate, $conversionNumber) {
             $customer ? $query->where("conversion_code",'=',$customer) : '';
-            $deliveryDate ? $query->wherein('dn_number', function($query1) use ($deliveryDate) {
+            $deliveryDate ? $query->wherein('dn_number', function($query) use ($deliveryDate,$fromDate,$toDate) {
                     $query->select('delivery_number')
                     ->from('delivery_hdr')
-                    ->Where(DB::raw("to_date(delivery_date,'DD-MM-YYYY')"),'=',$deliveryDate);
+                    ->whereBetween(DB::raw("to_date(delivery_date,'DD-MM-YYYY')"), [$fromDate, $toDate]);
+                    // ->Where(DB::raw("to_date(delivery_date,'DD-MM-YYYY')"),'=',$deliveryDate);
                 }) : '';
             $conversionName ? $query->where('conversion_hdr.conversion_name','ilike','%'.$conversionName.'%') : '';
             $conversionNumber ? $query->where('conversion_det.conversion_code','ilike','%'.$conversionNumber.'%') : '';
@@ -609,8 +636,27 @@ class ConversionController extends Controller
     {
         $customerCode = $request->customerCode;
         $deliveryDate = $request->deliveryDate;
-        $date = strtotime($deliveryDate);
-        $deliveryDate = date('Y-m-d', $date);
+        // $date = strtotime($deliveryDate);
+        // $deliveryDate = date('Y-m-d', $date);
+        $deliveryDate = $request->deliveryDate;
+
+        $fromDate = "";
+        $toDate = "";
+
+        if ($deliveryDate){
+            $date = explode("to",$deliveryDate);
+            $fromDate = trim($date[0]);
+            $toDate = trim($date[1]);
+
+            if(count($date)>1){
+                $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+                $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
+            }else{
+                $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+                $toDate = $fromDate; 
+            }
+        }
+
 
         $result = DB::select("select delivery_number from delivery_det where
         delivery_number in (select dn_number from conversion_det)
@@ -630,7 +676,8 @@ class ConversionController extends Controller
             ->whereNotIn('dn_number',$masihBisaDipanggil);
             // ->orWhere('ap_number','<>',$apNumber);
         })
-        ->where(db::raw("to_date(delivery_date,'dd-mm-yyyy')"),$deliveryDate)
+        // ->where(db::raw("to_date(delivery_date,'dd-mm-yyyy')"),$deliveryDate)
+        ->whereBetween(DB::raw("to_date(delivery_date,'DD-MM-YYYY')"), [$fromDate, $toDate])
         ->whereIn('status',['4','8'])
         ->orderBy('delivery_number','asc')
         ->select('delivery_number','customer_id')

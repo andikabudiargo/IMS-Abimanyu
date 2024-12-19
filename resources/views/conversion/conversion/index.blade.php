@@ -25,9 +25,9 @@
                 <label for="conversionName">Forecasting Name</label>
                 <input type="text" id="conversionName" name="conversionName" class="form-control"  required/>
             </div>
-            <div class="form-group col-md-2">
+            <div class="form-group col-md-3">
               <label class="form-label" for="deliveryDate">Delivery Date</label>
-              <input type="text" id="deliveryDate" name="deliveryDate" class="form-control flatpickr" placeholder="DD-MM-YYYY" />
+              <input type="text" id="deliveryDate" name="deliveryDate" class="form-control flatpickr-range" placeholder="DD-MM-YYYY" />
             </div>
             <div class="form-group col-md-3">
                 <label for="customerCode">Customer</label>
@@ -141,11 +141,19 @@ td.wrapok {
       showListDetail(customer,conversionName,deliveryDate1,conversionNumber);
   });
 
-  if (deliveryDate.length) {
-    deliveryDate.flatpickr({
-          dateFormat: "d-m-Y",
-          // maxDate: "today"
-      });
+  // if (deliveryDate.length) {
+  //   deliveryDate.flatpickr({
+  //         dateFormat: "d-m-Y",
+  //         // maxDate: "today"
+  //     });
+  // }
+
+  rangePickr = $('.flatpickr-range');
+  if (rangePickr.length) {
+    rangePickr.flatpickr({
+      dateFormat: "d-m-Y",
+      mode: 'range'
+    });
   }
 
   const showList = (customer,conversionName,deliveryDate1,conversionNumber) => {  
@@ -206,7 +214,7 @@ td.wrapok {
       tableId:"detailedTable",
       route:"{{ route('conversion.list.detail') }}",
       kolom:{!! $kolomDetail !!},
-      arrColPrint:[1,2,3,4,5,6,7],
+      arrColPrint:[0,1,2,3,4,5,6,7],
       columnDefs :[
         { width: '5%', targets: 0 },
         {
