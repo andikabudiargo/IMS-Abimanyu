@@ -2124,11 +2124,17 @@ class AccountPayableController extends Controller
             ,db::raw("case when ap_invoice.status = '6' then (select voucher_date from kas_hdr where voucher_number = (select kas_det.voucher_number from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status not in ('5','6') and reference = ap_invoice.inv_number and account = third_party.account)) else '' end as voucher_date")
             ,db::raw("case when ap_invoice.status = '6' then (select kas_det.voucher_number from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status not in ('5','6') and reference = ap_invoice.inv_number and account = third_party.account) else '' end as voucher_number")
             ,db::raw("case when ap_invoice.status = '6' then (select debit from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status not in ('5','6') and reference = ap_invoice.inv_number and account = third_party.account) else 0 end as voucher_amount")
-            ,db::raw("grand_total-coalesce((select debit from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status not in ('5','6') and reference = ap_invoice.inv_number and account = third_party.account),0) as balance")            
+            ,db::raw("grand_total-coalesce(case when ap_invoice.status = '6' then (select debit from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status not in ('5','6') and reference = ap_invoice.inv_number and account = third_party.account) else 0 end,0) as balance")            
             ,db::raw("to_char(to_date(ap_date,'dd-mm-yyyy') + (interval '1 day' * top_batas_1), 'DD/MM/YYYY')  as due_date")
         )
         ->orderBy('ap_invoice.id')
         ->get(); 
+
+        /*
+            tadinya ini :
+            ,db::raw("grand_total-coalesce((select debit from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status not in ('5','6') and reference = ap_invoice.inv_number and account = third_party.account),0) as balance")            
+        */
+        
 
         $lockDateToDate = date('Y-m-d',strtotime($this->lockDate));
 
