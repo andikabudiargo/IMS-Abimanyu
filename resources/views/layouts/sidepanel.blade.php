@@ -603,7 +603,7 @@
         </li>
         <li class=" navigation-header"><span data-i18n="Settings">Settings</span><i data-feather="more-horizontal"></i>
         </li>
-        <li class=" {{ in_array(\Request::segment(1), ['setting','users','roles','permissions','company','approval','lockTransaction']) ? 'active' : '' }} nav-item">
+        <li class=" {{ in_array(\Request::segment(1), ['setting','users','roles','permissions','company','approval','lockTransaction','masterPpn']) ? 'active' : '' }} nav-item">
           <a class="d-flex align-items-center" href="javascript:void(0);">
             <i data-feather="settings"></i>
             <span class="menu-title text-truncate" data-i18n="Form Elements">Setting
@@ -642,6 +642,12 @@
               <a class="d-flex align-items-center" href="{{ route('lockTransaction.index') }}">
                 <i data-feather="lock"></i>
                 <span class="menu-item text-truncate" data-i18n="Input">Lock Transaction</span>
+              </a>
+            </li>
+            <li class="{{ \Request::segment(1) == 'masterPpn' && \Request::segment(2) == '' ? 'active' : '' }}">
+              <a class="d-flex align-items-center" href="{{ route('masterPpn.index') }}">
+                <i data-feather="circle"></i>
+                <span class="menu-item text-truncate" data-i18n="Input">Master PPN</span>
               </a>
             </li>
             @endcan

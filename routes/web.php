@@ -55,6 +55,7 @@ Route::group( ['middleware' => ['auth']], function() {
 
 	Route::get('setting',['as'=>'setting.index','uses'=>'AttributeController@index']);
 	Route::post('setting/store',['as'=>'setting.store','uses'=>'AttributeController@store']);
+	Route::post('setting/ppn',['as'=>'setting.ppn','uses'=>'AttributeController@getLastPpn1']);
 
 	Route::get('show.menu',['as'=>'show.menu','uses'=>'MenuController@showmenu']);
 	Route::get('daftar.menu',['as'=>'daftar.menu','uses'=>'MenuController@daftarmenu']);
@@ -942,6 +943,14 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('stockTake',['as'=>'stockTake.index','uses'=>'StockTake\StockTakeController@index']);
 	Route::post('stockTake/import',['as'=>'stockTake.import','uses'=>'StockTake\StockTakeController@import']);
 	Route::get('stockTake/export',['as'=>'stockTake.export','uses'=>'StockTake\StockTakeController@export']);
+
+
+	Route::get('masterPpn',['as'=>'masterPpn.index','uses'=>'Accounting\MasterPpnController@index']);
+	Route::get('masterPpn/create',['as'=>'masterPpn.create','uses'=>'Accounting\MasterPpnController@create']);
+	Route::get('masterPpn/edit',['as'=>'masterPpn.edit','uses'=>'Accounting\MasterPpnController@edit']);
+	Route::post('masterPpn/store',['as'=>'masterPpn.store','uses'=>'Accounting\MasterPpnController@store']);
+	Route::post('masterPpn/delete',['as'=>'masterPpn.destroy','uses'=>'Accounting\MasterPpnController@destroy']);
+	Route::get('masterPpn/list',['as'=>'masterPpn.list','uses'=>'Accounting\MasterPpnController@list']);
 
 	Route::get('filesBackup',['as'=>'file.index','uses'=>'FilesController@index']);
 	Route::get('filesBackup/download',['as'=>'file.download','uses'=>'FilesController@download']);
