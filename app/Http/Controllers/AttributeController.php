@@ -113,4 +113,59 @@ class AttributeController extends Controller
         
     }
 
+    public static function getLastPpn($tanggal){
+        /* Format tanggal harus dd-mm-yyyy*/
+
+        $ppnDate = implode("-",array_reverse(explode("-", trim($tanggal))));
+        $ppnValue = 11; //default kalau benar2 kosong
+
+        $ppnValue = db::table('master_ppn')
+        ->where('ppn_start_date',"<=",$ppnDate)
+        ->where('ppn_end_date',">=",$ppnDate)
+        ->orderBy('ppn_start_date','desc')
+        ->value('ppn_value');
+
+        if(!$ppnValue){
+            $ppnValue = db::table('master_ppn')
+            ->where('ppn_end_date',"<=",$ppnDate)
+            ->orderBy('ppn_start_date','desc')
+            ->value('ppn_value');
+        }
+
+        /*kalau database kosong ini yang dikeluarin*/
+        if(!$ppnValue){
+            $ppnValue = 11;
+        }
+
+        return $ppnValue;
+    }
+
+    public function getLastPpn1(Request $request){
+        /* Format tanggal harus dd-mm-yyyy*/
+
+        $tanggal = $request->ppnDate;
+        $ppnDate = implode("-",array_reverse(explode("-", trim($tanggal))));
+        $ppnValue = 11; //default kalau benar2 kosong
+
+        $ppnValue = db::table('master_ppn')
+        ->where('ppn_start_date',"<=",$ppnDate)
+        ->where('ppn_end_date',">=",$ppnDate)
+        ->orderBy('ppn_start_date','desc')
+        ->value('ppn_value');
+
+        if(!$ppnValue){
+            $ppnValue = db::table('master_ppn')
+            ->where('ppn_end_date',"<=",$ppnDate)
+            ->orderBy('ppn_start_date','desc')
+            ->value('ppn_value');
+        }
+
+        /*kalau database kosong ini yang dikeluarin*/
+        if(!$ppnValue){
+            $ppnValue = 11;
+        }
+
+        return $ppnValue;
+    }
+
 }
