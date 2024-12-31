@@ -14,6 +14,7 @@ use DB;
 use PDF;
 use AppHelpers;
 use Approval;
+use App\Http\Controllers\AttributeController as Attributes;
 
 class SalesOrderController extends Controller
 {
@@ -167,6 +168,9 @@ class SalesOrderController extends Controller
         $data['attribute'] = DB::table('attributes')
         ->where('attr_name','main')
         ->pluck('attr_value','attr_code');
+
+        // $ppnDate = date('d-m-Y');
+        $data['ppnValue']  = Attributes::getLastPpn();
 
         $data['lockDate'] = $this->lockDateIndex;
 

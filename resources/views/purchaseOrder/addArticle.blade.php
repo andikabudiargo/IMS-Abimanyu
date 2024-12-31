@@ -214,9 +214,18 @@
 
     $('#pkp').change(function() {
         if ($(this).is(':checked')) {
-            $('#ppn').val("{{ $vatValue }}");
-            $('#ppn').removeAttr('disabled');
-            hitungGrandTotal();
+            let aOrderDate = orderDate.val();
+            getActivePpn(aOrderDate).done(function (result) {
+                if(result){
+                    $('#ppn').val(result);
+                    $("#nilaiPPN").text(`${result}%`);
+                    $('#ppn').removeAttr('disabled');
+                    hitungGrandTotal();
+                    console.log(`PPN: ${result}%`);
+                }else{
+                    $('#pkp').prop('checked', false);
+                }
+            })
         }else{
             $('#ppn').val(0);
             $('#ppn').attr('disabled','disabled');
@@ -753,6 +762,32 @@
 
     $("input[type='text']").click(function () {
         $(this).select();
+    });
+
+    getActivePpn = (tanggal) => {
+        return $.ajax({
+            async: false,
+            url:"{{route('setting.lastPpn')}}",
+            method:"GET",
+            data:{
+                tanggal:tanggal,
+            },
+            success:function(result){
+            }
+        });
+    }
+
+    orderDate.change(function () {
+        let aOrderDate = $(this).val();
+        getActivePpn(aOrderDate).done(function (result) {
+            if(result){
+                $('#ppn').val(result);
+                $("#nilaiPPN").text(`${result}%`);
+                if ($('#pkp').is(':checked')) {
+                    hitungGrandTotal();                               
+                }
+            }
+        })
     });
 
     $.ajaxSetup({

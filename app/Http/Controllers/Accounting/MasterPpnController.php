@@ -44,8 +44,8 @@ class MasterPpnController extends Controller
         $data['title'] = "$this->title";
         $data['kolom'] = $this->getTableColoumn();
 
-        $ppnDate = '30-12-2019';
-        $ppnValue = Attributes::getLastPpn($ppnDate);
+        // $ppnDate = '30-12-2020';
+        $data['ppnValue'] = Attributes::getLastPpn();
         
         return view("accounting.masterPpn.index",$data);
     }

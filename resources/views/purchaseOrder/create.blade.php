@@ -235,11 +235,21 @@
         let top = $(this).find(":selected").data("top") || 0;
         $("#term").val(top);
         if (pkp =='Y'){
-            $("#pkp").attr('checked','checked');
-            // $("#nilaiPPN").text("{{ $vatValue }}%");
-            $("#ppn").val("{{ $vatValue }}");
+            let aOrderDate = orderDate.val();
+            getActivePpn(aOrderDate).done(function (result) {
+                if(result){
+                    $('#ppn').val(result);
+                    $("#nilaiPPN").text(`${result}%`);
+                    $('#ppn').removeAttr('disabled');
+                    hitungGrandTotal();
+                    console.log(`PPN: ${result}%`);
+                    $('#pkp').prop('checked', true);
+                }else{
+                    $('#pkp').prop('checked', false);
+                }
+            })
         }else{
-            $("#pkp").removeAttr('checked');
+            $('#pkp').prop('checked', false);
         }
         
         changeselect('pRequest','prSelect',suppCode); 

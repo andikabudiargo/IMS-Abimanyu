@@ -60,7 +60,7 @@
 <section id="table-article">
     <div class="card">
       <div class="card-header">
-        <h4 class="card-title"> @yield('title') List</h4>
+        <h4 class="card-title"> @yield('title') List  <small>Active PPN : {{ $ppnValue }}%</small></h4>
         <div class="heading-elements">
             <ul class="list-inline mb-0">
                 <li><a data-action="collapse"><i data-feather="chevron-down"></i></a></li>

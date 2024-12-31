@@ -58,7 +58,7 @@
                                 <div class="col-md-2">
                                     <label class="form-label" for="ppn">PPN</label>
                                     <div class="input-group">
-                                        <input type="text" class="form-control angka text-right" id="ppn" name="ppn" value="{{ $attribute['ppn'] }}" maxlength="2" />
+                                        <input type="text" class="form-control angka text-right" id="ppn" name="ppn" value="{{ $ppnValue }}" maxlength="2" />
                                         <div class="input-group-append">
                                             <span class="input-group-text">%</span>
                                         </div>

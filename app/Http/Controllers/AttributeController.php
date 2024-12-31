@@ -113,10 +113,19 @@ class AttributeController extends Controller
         
     }
 
-    public static function getLastPpn($tanggal){
-        /* Format tanggal harus dd-mm-yyyy*/
+    public static function getLastPpn($tanggal=null){
+        /* 
+            Format tanggal harus dd-mm-yyyy
+            kalau tanggal kosong maka ambil tanggal sekarang
+         
+         */
 
-        $ppnDate = implode("-",array_reverse(explode("-", trim($tanggal))));
+        if(!$tanggal){
+            $ppnDate = date('Y-m-d');
+        }else{
+            $ppnDate = implode("-",array_reverse(explode("-", trim($tanggal))));
+        }
+
         $ppnValue = 11; //default kalau benar2 kosong
 
         $ppnValue = db::table('master_ppn')
@@ -143,7 +152,20 @@ class AttributeController extends Controller
     public function getLastPpn1(Request $request){
         /* Format tanggal harus dd-mm-yyyy*/
 
-        $tanggal = $request->ppnDate;
+        /* 
+            Format tanggal harus dd-mm-yyyy
+            kalau tanggal kosong maka ambil tanggal sekarang
+         
+        */
+
+        $tanggal = $request->tanggal;
+
+        if(!$tanggal){
+            $ppnDate = date('Y-m-d');
+        }else{
+            $ppnDate = implode("-",array_reverse(explode("-", trim($tanggal))));
+        }
+        
         $ppnDate = implode("-",array_reverse(explode("-", trim($tanggal))));
         $ppnValue = 11; //default kalau benar2 kosong
 

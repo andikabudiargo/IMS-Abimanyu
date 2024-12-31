@@ -55,7 +55,7 @@ Route::group( ['middleware' => ['auth']], function() {
 
 	Route::get('setting',['as'=>'setting.index','uses'=>'AttributeController@index']);
 	Route::post('setting/store',['as'=>'setting.store','uses'=>'AttributeController@store']);
-	Route::post('setting/ppn',['as'=>'setting.ppn','uses'=>'AttributeController@getLastPpn1']);
+	Route::get('setting/lastPpn',['as'=>'setting.lastPpn','uses'=>'AttributeController@getLastPpn1']);
 
 	Route::get('show.menu',['as'=>'show.menu','uses'=>'MenuController@showmenu']);
 	Route::get('daftar.menu',['as'=>'daftar.menu','uses'=>'MenuController@daftarmenu']);
