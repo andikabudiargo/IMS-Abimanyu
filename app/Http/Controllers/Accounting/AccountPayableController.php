@@ -15,6 +15,7 @@ use DB;
 use PDF;
 use AppHelpers;
 use Approval;
+use App\Http\Controllers\AttributeController as Attributes; 
 
 /*
 catatan:
@@ -44,9 +45,11 @@ class AccountPayableController extends Controller
         $this->moduleCode = "AP";
         $this->voucherCode = "APV";
 
-        $this->nilaiPpn = DB::table('attributes')
-        ->where('attr_id','mainppn')
-        ->value('attr_value');
+        // $this->nilaiPpn = DB::table('attributes')
+        // ->where('attr_id','mainppn')
+        // ->value('attr_value');
+        
+        $this->nilaiPpn  = Attributes::getLastPpn();
 
         $this->nilaiPph23 = DB::table('attributes')
         ->where('attr_id','mainpph23')

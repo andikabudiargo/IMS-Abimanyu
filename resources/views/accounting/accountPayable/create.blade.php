@@ -105,6 +105,11 @@
                                             <input type="text" id="taxInvoiceNumber" name="taxInvoiceNumber" class="form-control" value="" disabled/>
                                         </div>
                                     </div>
+                                    {{-- <div class="form-group col-md-2 d-none"> --}}
+                                    <div class="form-group col-md-2">
+                                        <label class="form-label" for="ppn">PPN</label>
+                                        <input type="text" class="form-control" id="ppnValue" name="ppnValue" value="0" maxlength="2" />
+                                    </div>
                                     <div class="form-row">
                                         <div class="form-group col-md-12">
                                             <label class="form-label" for="note">Notes</label>

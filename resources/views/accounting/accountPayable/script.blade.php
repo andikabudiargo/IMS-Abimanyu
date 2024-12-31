@@ -14,6 +14,14 @@
     let dariEdit="";
     let urutanRow = 0;
     let depts = '{!! $depts !!}';
+    $("#ppnValue").val("{{ $nilaiPPN }}");
+
+    invoiceDate = $('#invoiceDate');
+    if (invoiceDate.length) {
+        invoiceDate.flatpickr({
+            dateFormat: "d-m-Y"
+        });
+    }
 
     let delayTimer;
     let delayTimerTax;
@@ -115,6 +123,17 @@
 
     $("#vatCheck").change(function() {
         if(this.checked) {
+            let aInvDate = invoiceDate.val();
+            if(aInvDate){
+                getActivePpn(aInvDate).done(function (result) {
+                    if(result){
+                        sNilaiPPN = result;
+                        $("#ppnValue").val(sNilaiPPN);
+                        console.log(sNilaiPPN);
+                    }
+                })
+            }
+            
             let basisAmount = parseFloat($('#basisAmount').val().replace(/,/gi, '')) || 0;
             $("#totalPPN").val(parseFloat(basisAmount * (sNilaiPPN/100)).toFixed(2));
             $("#nilaiPPN").text(sNilaiPPN+'%');
@@ -161,6 +180,7 @@
         if(edit == 'false'){
             if($('#vatCheck').is(':checked') ) {
                 if(!$("#totalPPN").val()){
+                    sNilaiPPN = $("#ppnValue").val();
                     clearTimeout(delayTimerTax);
                     delayTimerTax = setTimeout(function() {
                         $("#totalPPN").val(parseFloat(ba * (sNilaiPPN/100)).toFixed(2));
@@ -222,12 +242,32 @@
         hitungTotal();
     });
    
-    invoiceDate = $('#invoiceDate');
-    if (invoiceDate.length) {
-        invoiceDate.flatpickr({
-            dateFormat: "d-m-Y"
+    getActivePpn = (tanggal) => {
+        return $.ajax({
+            async: false,
+            url:"{{route('setting.lastPpn')}}",
+            method:"GET",
+            data:{
+                tanggal:tanggal,
+            },
+            success:function(result){
+            }
         });
     }
+
+    invoiceDate.change(function () {
+        let aInvoiceDate = $(this).val();
+        getActivePpn(aInvoiceDate).done(function (result) {
+            if(result){
+                $("#ppnValue").val(result);
+                $("#nilaiPPN").text(`${result}%`);
+                // $("#vatCheck").prop("checked",false);
+                if($("#vatCheck").is(':checked')){
+                    $("#vatCheck").change();
+                }
+            }
+        })
+    });
 
     apDate = $('#apDate');
     if (apDate.length) {
@@ -575,10 +615,10 @@
                     $('#totalPO').val(humanizeNumber(result.summaryRec[0].total_amount_po));
                     $('#basisAmountA').val(humanizeNumber(parseFloat(result.summaryRec[0].basis_amount).toFixed(2)));
                     // $('#basisAmount').val(humanizeNumber(parseFloat(result.summaryRec[0].basis_amount).toFixed(2)));
-                    
+                    let zNilaiPPN = $("#ppnValue").val();
                     if ((result.summaryRec[0].nilai_pajak>0) && (edit=='false')){
                         $("#vatCheck").prop("checked",true);
-                        $('#nilaiPPN').text(sNilaiPPN+"%");
+                        $('#nilaiPPN').text(zNilaiPPN+"%");
                         $("#taxInvoiceNumber").removeAttr('disabled');
                         $("#taxInvoiceNumber").prop('required',true);
                         $("#totalPPN").removeAttr('disabled');
