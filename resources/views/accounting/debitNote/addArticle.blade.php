@@ -96,6 +96,20 @@
     let showDetail="";
     let edit="";
     let dataArticle="";
+    $("#ppn").val("{{ $nilaiPPN }}");
+
+    getActivePpn = (tanggal) => {
+        return $.ajax({
+            async: false,
+            url:"{{route('setting.lastPpn')}}",
+            method:"GET",
+            data:{
+                tanggal:tanggal,
+            },
+            success:function(result){
+            }
+        });
+    }
 
     let delayTimer;
     function inputDecimal(ele) {
@@ -278,6 +292,16 @@
 
     $("#vatCheck").change(function() {
         if(this.checked) {
+            let aDebitNDate = debitNDate.val();
+            if(aDebitNDate){
+                getActivePpn(aDebitNDate).done(function (result) {
+                    if(result){
+                        sNilaiPPN = result;
+                        $("#ppn").val(sNilaiPPN);
+                        console.log(`Nilai PPN sesuai Invoice : ${sNilaiPPN}`);
+                    }
+                })
+            }
             let totalAmount = parseFloat($('#totalAmount').val().replace(/,/gi, '')) || 0;
             $("#totalPPN").val((totalAmount * (sNilaiPPN/100)).toFixed(2)).trigger("input");
             $("#nilaiPPN").text(sNilaiPPN+'%');
@@ -409,6 +433,20 @@
 
     $(document).on('keyup', '.recalculate', function(e){
         hitungGrandTotal();
+    });
+
+    $('#debitNDate').change(function () {
+        let aDebitDate = $(this).val();
+        getActivePpn(aDebitDate).done(function (result) {
+            if(result){
+                $("#ppn").val(result);
+                sNilaiPPN = result;
+                $("#nilaiPPN").text(`${result}%`);
+                if($("#vatCheck").is(':checked')){
+                    $("#vatCheck").change();
+                }
+            }
+        })
     });
 
     

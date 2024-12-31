@@ -14,6 +14,7 @@ use DB;
 use PDF;
 use AppHelpers;
 use Approval;
+use App\Http\Controllers\AttributeController as Attributes; 
 
 class DebitNoteController extends Controller
 {
@@ -29,9 +30,11 @@ class DebitNoteController extends Controller
         $this->title = "Debit Note";
         $this->moduleCode = "INV-DN";
 
-        $this->nilaiPpn = DB::table('attributes')
-        ->where('attr_id','mainppn')
-        ->value('attr_value');
+        // $this->nilaiPpn = DB::table('attributes')
+        // ->where('attr_id','mainppn')
+        // ->value('attr_value');
+
+        $this->nilaiPpn  = Attributes::getLastPpn();
 
         $this->nilaiPph23 = DB::table('attributes')
         ->where('attr_id','mainpph23')
@@ -1151,7 +1154,9 @@ class DebitNoteController extends Controller
         $data['status'] ='1';
         $data['no'] = 0 ;
 
-        $data['nilaiPPN'] = $this->nilaiPpn;
+        $ppn = Attributes::getLastPpn($header->dn_date);
+        $data['nilaiPPN'] = $header->ppn ? $header->ppn : $ppn;       
+        // $data['nilaiPPN'] = $this->nilaiPpn;
         $data['nilaiPPH'] = $this->nilaiPph23;
         // $data['totalPpn'] = $header->total_ppn;
         // $data['totalPph'] = $header->total_pph;
