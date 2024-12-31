@@ -260,6 +260,7 @@
         getActivePpn(aInvoiceDate).done(function (result) {
             if(result){
                 $("#ppnValue").val(result);
+                sNilaiPPN = result;
                 $("#nilaiPPN").text(`${result}%`);
                 // $("#vatCheck").prop("checked",false);
                 if($("#vatCheck").is(':checked')){

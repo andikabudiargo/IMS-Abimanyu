@@ -14,6 +14,17 @@ use DB;
 use PDF;
 use AppHelpers;
 use Approval;
+use App\Http\Controllers\AttributeController as Attributes; 
+
+/*
+    Update 31/12/2024
+
+    O : Pak kalau saya lihat di program, untuk yang Invoice customer (AR), nilai PPN nya berdasarkan nilai PPN di SO yang di pilih, apakah sekarang nilai PPN nya mau berdasarkan Invoice Date?
+    A : Pak katanya ini dari Invoice Date saja, jangan mengambil dari SO
+
+    Sebelumnya untuk AR besaran PPN nya berdasarkan inputan dari SO, sekarang berubah menjadi sesuai dengan invoice date
+
+*/
 
 class InvoiceController extends Controller
 {
@@ -30,9 +41,11 @@ class InvoiceController extends Controller
         $this->title = "Invoice";
         $this->moduleCode = "INV";
 
-        $this->nilaiPpn = DB::table('attributes')
-        ->where('attr_id','mainppn')
-        ->value('attr_value');
+        // $this->nilaiPpn = DB::table('attributes')
+        // ->where('attr_id','mainppn')
+        // ->value('attr_value');
+
+        $this->nilaiPpn  = Attributes::getLastPpn();
 
         $this->nilaiPph23 = DB::table('attributes')
         ->where('attr_id','mainpph23')
@@ -1492,12 +1505,14 @@ class InvoiceController extends Controller
         $data['status'] ='1';
         $data['no'] = 0 ;
 
-        $ppn = DB::table('sales_order_hdr')
-        ->where ('so_code','=',$invHdr->so_number)
-        ->value('ppn');
+        // $ppn = DB::table('sales_order_hdr')
+        // ->where ('so_code','=',$invHdr->so_number)
+        // ->value('ppn');
+
+        $ppn = Attributes::getLastPpn($invHdr->invoice_date);
 
         // $data['nilaiPPN'] = $this->nilaiPpn;
-        $data['nilaiPPN'] = $invHdr->ppn ? $invHdr->ppn : $ppn;        
+        $data['nilaiPPN'] = $invHdr->ppn ? $invHdr->ppn : $ppn;       
         // $data['nilaiPPN'] = $data['header']->ppn;        
         $data['nilaiPPH'] = $this->nilaiPph23;
 

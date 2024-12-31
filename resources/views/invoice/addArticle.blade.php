@@ -93,6 +93,20 @@
     let sNilaiPPH= "{{ $nilaiPPH }}";
     let showDetail="";
     let edit="";
+    $("#ppn").val("{{ $nilaiPPN }}");
+
+    getActivePpn = (tanggal) => {
+        return $.ajax({
+            async: false,
+            url:"{{route('setting.lastPpn')}}",
+            method:"GET",
+            data:{
+                tanggal:tanggal,
+            },
+            success:function(result){
+            }
+        });
+    }
 
     let delayTimer;
     function inputDecimal(ele) {
@@ -173,10 +187,10 @@
 
     soNumber.change(function(){
         if($(this).val()){
-            let ppn = $(this).find(":selected").data("ppn");
-            $('#ppn').val(ppn);
-            sNilaiPPN=ppn;
-            console.log(ppn);
+            // let ppn = $(this).find(":selected").data("ppn");
+            // $('#ppn').val(ppn);
+            // sNilaiPPN=ppn;
+            // console.log(`Nilai PPN SO : ${sNilaiPPN}%`);
             searchDn($(this).val());
         }
     })
@@ -341,6 +355,16 @@
 
     $("#vatCheck").change(function() {
         if(this.checked) {
+            let aInvDate = invDate.val();
+            if(aInvDate){
+                getActivePpn(aInvDate).done(function (result) {
+                    if(result){
+                        sNilaiPPN = result;
+                        $("#ppn").val(sNilaiPPN);
+                        console.log(`Nilai PPN sesuai Invoice : ${sNilaiPPN}`);
+                    }
+                })
+            }
             let totalAmount = parseFloat($('#totalAmount').val().replace(/,/gi, '')) || 0;
             $("#totalPPN").val((totalAmount * (sNilaiPPN/100)).toFixed(2)).trigger("input");
             $("#nilaiPPN").text(sNilaiPPN+'%');
@@ -530,5 +554,19 @@
         mask_thousand_digit(2);
         
     }
+
+    $('#invDate').change(function () {
+        let aInvoiceDate = $(this).val();
+        getActivePpn(aInvoiceDate).done(function (result) {
+            if(result){
+                $("#ppn").val(result);
+                sNilaiPPN = result;
+                $("#nilaiPPN").text(`${result}%`);
+                if($("#vatCheck").is(':checked')){
+                    $("#vatCheck").change();
+                }
+            }
+        })
+    });
 
 </script>

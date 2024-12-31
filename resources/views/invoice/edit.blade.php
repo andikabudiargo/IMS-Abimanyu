@@ -362,6 +362,8 @@
 @include('invoice.addArticle')
 <script type="text/javascript">
     let currentDate = todayDate('dd-mm-yyyy');
+    sNilaiPPN = "{{ $header->ppn }}";
+    console.log(`Nilai PPN : ${sNilaiPPN}%`);
     
     $(document).ready(function(){
         validateFormToast('frmAdd');
