@@ -273,6 +273,7 @@ class SalesOrderController extends Controller
             $alert ="error";
             return response()->json(array('status' => 0,'title' => $title, 'message' => $error_array,'alert' =>$alert));
         }else{
+            $hasilUpdate = AppHelpers::resetCode('SO');
             $soCode = $this->getLastCode('SO');
             DB::beginTransaction();
             try {
