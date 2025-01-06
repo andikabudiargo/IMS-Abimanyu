@@ -11,6 +11,9 @@ use Response;
 use App\Permission;
 use DataTables;
 use DB;
+use Excel;
+use App\Imports\safetyStockImport;
+use App\Exports\safetyStockExport;
 
 class ArticleController extends Controller
 {
@@ -480,7 +483,7 @@ class ArticleController extends Controller
         DB::beginTransaction();
 
         try {
-                $row_affected=DB::table('article')
+                $rowAffected=DB::table('article')
                 ->where('id',$id)
                 ->update(
                     [
@@ -563,7 +566,7 @@ class ArticleController extends Controller
                 
                 DB::commit();
 
-                if($row_affected>0){
+                if($rowAffected>0){
                     DB::commit();
                     $title ="Update $this->title";
                     $alert  ="success";
@@ -603,7 +606,7 @@ class ArticleController extends Controller
 
         $statusDelete ='Deleted';
         if ($count > 1){
-            $row_affected=DB::table('article')
+            $rowAffected=DB::table('article')
             ->where('id',$id)
             ->update(
                 [
@@ -614,12 +617,12 @@ class ArticleController extends Controller
             );
             $statusDelete ='Freeze';
         }else{
-            $row_affected = DB::table('article')
+            $rowAffected = DB::table('article')
             ->where('id',$id)
             ->delete();
         }
 
-        if($row_affected>0){
+        if($rowAffected>0){
             $title ="$statusDelete $this->title";
             $alert  ="success";
             $message  = "$this->title $articleAltCode $artCode is successfully $statusDelete";
@@ -1035,7 +1038,7 @@ class ArticleController extends Controller
 
             $articleDesc=db::table('article_request')->where('id',$id)->value('article_desc');
 
-            $row_affected=DB::table('article_request')
+            $rowAffected=DB::table('article_request')
             ->where('id',$id)->delete();
 
             DB::commit();
@@ -1152,7 +1155,7 @@ class ArticleController extends Controller
         DB::beginTransaction();
 
         try {
-                $row_affected=DB::table('article_request')
+                $rowAffected=DB::table('article_request')
                 ->where('id',$id)
                 ->update(
                     [
@@ -1228,7 +1231,7 @@ class ArticleController extends Controller
                 
                 DB::commit();
 
-                if($row_affected>0){
+                if($rowAffected>0){
                     DB::commit();
                     $title ="Update $this->title";
                     $alert  ="success";
@@ -1265,7 +1268,7 @@ class ArticleController extends Controller
         DB::beginTransaction();
 
         try {
-                $row_affected=DB::table('article_request')
+                $rowAffected=DB::table('article_request')
                 ->where('id',$id)
                 ->update(
                     [
@@ -1277,7 +1280,7 @@ class ArticleController extends Controller
                 
                 DB::commit();
 
-                if($row_affected>0){
+                if($rowAffected>0){
                     DB::commit();
                     $title ="Approve $this->title";
                     $alert  ="success";
@@ -1566,7 +1569,7 @@ class ArticleController extends Controller
                     ]); 
                 }
 
-                $row_affected=DB::table('article_request')
+                $rowAffected=DB::table('article_request')
                 ->where('article_code',$articleCodeRequest)
                 ->update(
                     [
@@ -1605,6 +1608,141 @@ class ArticleController extends Controller
             \LogActivity::addToLog($title,"username: $username Status $message");
             return redirect()->back()->with(['status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'articleCode'=>$articleCode]);
         }   
+    }
+
+    public function safetyStockImportExcel(Request $request)
+    {
+
+        $JumlahData = 0;
+        // validasi
+		$this->validate($request, [
+			'file' => 'required|mimes:xls,xlsx'
+		]);
+ 
+		// menangkap file excel
+		$file = $request->file('file');
+ 
+		// // membuat nama file unik
+		$namaFile = rand().$file->getClientOriginalName();
+ 
+		// // upload ke folder file_siswa di dalam folder public
+		// $file->move('file_siswa',$namaFile);
+		// import data
+		// Excel::import(new SiswaImport, public_path('/file_siswa/'.$namaFile));
+
+        $data['filename']=$namaFile;
+        db::table('import_stock_take_tmp')->delete();
+        Excel::import(new safetyStockImport($data), $file);
+
+        $dataValidasi = DB::table('import_stock_take_tmp')
+        ->leftJoin('article','article.article_alternative_code','import_stock_take_tmp.article_code')
+        ->select('import_stock_take_tmp.article_code'
+        ,'import_stock_take_tmp.qty'
+        ,DB::RAW("concat(
+            case when import_stock_take_tmp.qty::text ~ '^[0-9.]+$' = false then concat('Urutan ',row_number() over(),': Qty salah - ',qty) end,
+            case when article.article_code is null then concat('Urutan ',row_number() over(),': Article Code:',import_stock_take_tmp.article_code, ' tidak terdaftar') end
+            ) as notes")
+        )
+        ->where('file_name', $namaFile)
+        ->get();
+
+        $dataNotes=[];
+        foreach ($dataValidasi as $val) {
+            if($val->notes){
+                $dataNotes[]= [$val->notes];
+            }
+        } 
+
+        $title ="Import $this->title";
+        $pesan="";
+
+        if (count($dataNotes) > 0 ){
+            $pesan .='Ada error pada data yang diupload, silahkan cek notes error!';
+            $status = 0;
+            $alert = "error";
+            $message = $dataNotes;
+            $data = "";
+
+        }else{
+
+            // return redirect()->back()->with('success', 'Excel file imported successfully!');
+            $data = db::table('import_stock_take_tmp')
+            ->leftJoin('article','article.article_alternative_code','import_stock_take_tmp.article_code')
+            ->select('article.article_code'
+            ,'article.uom'
+            ,'import_stock_take_tmp.qty')
+            ->where('file_name', $namaFile)
+            ->get();
+
+            $JumlahData = db::table('import_stock_take_tmp')
+            ->where('file_name', $namaFile)
+            ->count();
+            
+            $status = 1;
+            $alert = "success";
+            $message  = "$title is successfully imported";
+
+        }
+                  
+        // $alert  ="success";
+        // $message  = "$title is successfully imported";
+
+        return response()->json(array('status' => $status,'title' => $title, 'message' => $message,'alert' =>$alert,'dataDetail'=>$data,'pesan'=>$pesan,'namaFile'=>$namaFile,'JumlahData'=>$JumlahData));
+
+        // return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message,'dataDetail'=>$data]);
+    }
+
+    public function safetyStockExport()
+    {
+		return Excel::download(new safetyStockExport, 'safety_stock_template.xls');
+	}
+
+    public function updateSafetyStock(Request $request)
+    {
+        $username =  Auth::user()->username;
+        $filename = $request->file;
+        $type = $request->type;
+        $rowAffected = 0;
+        $title ="Update Safety Stock update";
+                
+        DB::beginTransaction();
+        try {
+
+            if($type == 'update'){
+                $rowAffected = db::select("UPDATE article
+                SET safety_stock = (select 
+                (case when qty is not null then qty::numeric else 0 end) as qty from import_stock_take_tmp 
+                where article_code = article.article_alternative_code and file_name = '$filename')
+                where article_alternative_code  in (select article_code from import_stock_take_tmp where file_name = '$filename')");
+            }
+
+            if($type == 'cancel'){
+                $title ="Canceled Safety Stock update";
+            }
+
+            $rowAffected = DB::table('import_stock_take_tmp')->where('file_name', $filename)->delete();
+                                                    
+            if($rowAffected>0){
+                DB::commit();
+                $alert  ="success";
+                $message  = "Safety Stock update $filename is successfully updated";
+                \LogActivity::addToLog($title,"username: $username Status $message");
+                return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert));
+            }else{
+                $alert  ="warning";
+                $message  = "Safety Stock update $filename is failed to updated";
+                \LogActivity::addToLog($title,"username: $username Status $message");
+                return response()->json(array('status' => 0,'title' => $title, 'message' => $message,'alert'=>$alert));
+            }
+
+        } catch (Exception $e) {
+            DB::rollBack();
+            $title ="Update $this->title";
+            $alert  ="warning";
+            $message  = "$this->title $filename is failed to updated";
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return response()->json(array('status' => 0,'title' => $title, 'message' => $message,'alert'=>$alert));
+        }
     }
     
 }

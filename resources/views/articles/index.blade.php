@@ -59,10 +59,52 @@
                     </div>
                 </div>
             </form>
+            
           </div>
         </div>
       </div>
     </div>
+</section>
+<section id="table-article">
+  <div class="card">
+    <div class="card-header">
+      <h4 class="card-title"> Adjustment Safety Stock</h4>
+      <div class="heading-elements">
+          <ul class="list-inline mb-0">
+              <li><a data-action="collapse"><i data-feather="chevron-down"></i></a></li>
+              <li><a data-action="reload"><i data-feather="rotate-cw"></i></a></li>
+          </ul>
+      </div>
+    </div>
+    <div class="card-content collapse show">
+      <div class="card-body">
+        <form id="frmExcel" name="frmExcel" method="POST" enctype="multipart/form-data">
+          @csrf
+          <div class="form-row">
+              <div class="col-lg-3 col-md-12">
+                  <div class="form-group">
+                      <div>
+                          <input type="file" class="custom-file-input" name="file" id="file" required/>
+                          <label class="custom-file-label" for="file">Choose file</label>
+                      </div>
+                  </div>
+              </div>
+              <div class="col-lg-6 col-md-12">
+                  <button type="button" class="btn btn-primary">
+                      <i data-feather="upload" class="align-middle mr-sm-25 mr-0"></i>
+                      <span class="align-middle d-sm-inline-block d-none" id="uploadExcel">Upload Excel</span>
+                  </button>
+              </div>
+          </div>
+          <div class="form-row">
+              <div class="col-lg-3 col-md-12">
+                  <a href="{{ route('articles.safetyStock.export.excel') }}" class="btn btn-light"><i data-feather="download"></i> Downlod Template</a>
+              </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
 </section>
 <section id="table-article">
     <div class="card">
@@ -125,7 +167,104 @@
         let href = $(this).data('href');
         $('#modalConfirmation').attr("action", href);
     });
+    $('#frmExcel').on('submit', function(event){
+        event.preventDefault();
+        $.ajax({
+            url:"{{ route('articles.safetyStock.import.excel') }}",
+            method:"POST",
+            data: new FormData(this),
+            dataType:"json",
+            contentType:false,
+            cache:false,
+            processData:false,
+            beforeSend:function(){
+                $('#uploadExcel').attr('disabled','disabled');
+            },
+            success:function(data){
+                
+                $('#file').val(null);
+                if(data.status == 1){
+                    Swal.fire({
+                        title: "Proses validasi...",
+                        icon: "warning",
+                        showConfirmButton: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        },
+                    })
+
+                    let timerId = setInterval(() => checkVariable(), 1000);
+                    function checkVariable() {
+                        if (data.dataDetail.length > 0) {
+                            clearInterval(timerId);
+                            $(".loading-spinner-container").removeClass("-show");
+
+                            Swal.fire({
+                              title: `Yakin akan proses update sejumlah ${data.JumlahData} data?`,
+                              showDenyButton: true,
+                              // showCancelButton: true,
+                              confirmButtonText: 'Yes',
+                              denyButtonText: 'Cancel',
+                              customClass: {
+                                actions: 'my-actions',
+                                cancelButton: 'order-1 right-gap',
+                                confirmButton: 'order-2',
+                                denyButton: 'order-3',
+                              },
+                            }).then((result) => {
+                              if (result.isConfirmed) {
+                                updateDataSafetyStock(data.namaFile,'update');
+                                // Swal.fire('Saved!', data.namaFile, 'success')
+                              } else if (result.isDenied) {
+                                updateDataSafetyStock(data.namaFile,'cancel');
+                                // Swal.fire('Changes are not saved', '', 'info')
+                              }
+                            })
+                        }
+                    }
+
+                }
+            },
+            error: function(xhr, status, error) {
+                let err = JSON.parse(xhr.responseText);
+                // Swal.fire('Error..',err.errors.file[0],'error');
+                Swal.fire('Error..',err.message,'error');
+                $(".loading-spinner-container").removeClass("-show");
+            }
+        })
+    });
   });
+
+  updateDataSafetyStock = (file,type) => {
+    $.ajax({
+      url:"{{ route('articles.safetyStock.update') }}",
+      method:"POST",
+      data: {
+        file:file,
+        type:type
+      },
+      dataType:"json",
+      success:function(data){
+          show_msg(data.title, data.message, data.alert);
+          
+          
+          // if(data.status == 1){
+          //     Swal.fire('Success..',data.message,'success');
+          //     location.reload();
+          // } else {
+          //     for(let i = 0; i < data.message.length; i++) {
+          //         show_msg(data.title, data.message[i], data.alert);
+          //     }
+          //     swal.fire("warning",data.pesan,"warning");
+          //     $(".loading-spinner-container").removeClass("-show");
+          // }
+      },
+      error: function(xhr, status, error) {
+          Swal.fire('Error..','Error','error');
+          // $(".loading-spinner-container").removeClass("-show");
+      }
+    })
+  }
 
   //refresh di cards
   $('a[data-action="reload"]').on('click', function () {
@@ -201,103 +340,16 @@
     });
   }
 
-  // function movement(artCode,artikelAlternativeCode,artDesc){
-
-  //   $('#mdlmovement').modal('show');
-  //   $('#mdlartikel').text('|'+artikelAlternativeCode+'-'+artDesc);
-
-  //   let dtdom = dtdomGlob;
-  //   let arr_col_print =[2,3,4,5,6,7]; 
-  //   $(function(){
-  //     let oTable =$("#mdlmovetable").DataTable({
-  //       ajax:
-  //       {
-  //         url:'{{ route("article.movement")}}',
-  //         data:{
-  //           articleCode:artCode
-  //         },
-  //       },
-  //       processing: true,
-  //       serverSide: true,
-  //       buttons: true,
-  //       dom:dtdom,
-  //       lengthMenu: [
-  //         [ 10, 25, 50, -1 ],
-  //         [ '10', '25', '50', 'all' ]
-  //       ],
-  //       buttons: [
-  //         {
-  //           extend: 'collection',
-  //           className: 'btn btn-outline-secondary dropdown-toggle mt-07',
-  //           text: feather.icons['share'].toSvg({ class: 'font-small-4 mr-50' }) + 'Export',
-  //           buttons: [
-  //             {
-  //               extend: 'print',
-  //               text: feather.icons['printer'].toSvg({ class: 'font-small-4 mr-50' }) + 'Print',
-  //               className: 'dropdown-item',
-  //               exportOptions: { columns: arr_col_print }
-  //             },
-  //             {
-  //               extend: 'csv',
-  //               text: feather.icons['file-text'].toSvg({ class: 'font-small-4 mr-50' }) + 'Csv',
-  //               className: 'dropdown-item',
-  //               exportOptions: { columns: arr_col_print }
-  //             },
-  //             {
-  //               extend: 'excel',
-  //               text: feather.icons['file'].toSvg({ class: 'font-small-4 mr-50' }) + 'Excel',
-  //               className: 'dropdown-item',
-  //               exportOptions: { columns: arr_col_print }
-  //             },
-  //             {
-  //               extend: 'pdf',
-  //               text: feather.icons['clipboard'].toSvg({ class: 'font-small-4 mr-50' }) + 'Pdf',
-  //               className: 'dropdown-item',
-  //               exportOptions: { columns: arr_col_print }
-  //             },
-  //             {
-  //               extend: 'copy',
-  //               text: feather.icons['copy'].toSvg({ class: 'font-small-4 mr-50' }) + 'Copy',
-  //               className: 'dropdown-item',
-  //               exportOptions: { columns: arr_col_print }
-  //             }
-  //           ],
-  //           init: function (api, node, config) {
-  //             $(node).removeClass('btn-secondary');
-  //             $(node).parent().removeClass('btn-group');
-  //             setTimeout(function () {
-  //               $(node).closest('.dt-buttons').removeClass('btn-group').addClass('d-inline-flex');
-  //             }, 50);
-  //           }
-  //         },
-  //       ],
-  //       language: {
-  //         paginate: {
-  //           // remove previous & next text from pagination
-  //           previous: '&nbsp;',
-  //           next: '&nbsp;'
-  //         }
-  //       },
-  //       columnDefs: [
-  //         { className: 'dt-right', 'targets': [ 4,5,6,7 ] },
-  //       ],
-  //       order: [[ 2, 'asc' ]],
-  //       bDestroy: true, //pakai ini supaya bisa di load berulang2
-  //       // scrollX: true, //pakai ini supaya waktu responsive  bisa di scroll horizontal
-  //       columns: [
-  //         { data: 'movement_code', name: 'movement_code' },
-  //         { data: 'movement_date', name: 'movement_date'},
-  //         { data: 'movement_type', name: 'movement_type'},
-  //         { data: 'movement_transnno', name: 'movement_transnno'},
-  //         { data: "movement_price", render: $.fn.dataTable.render.number( ',', '.', 0 ) },
-  //         { data: "movement_min", render: $.fn.dataTable.render.number( ',', '.', 3 ) },
-  //         { data: "movement_plus", render: $.fn.dataTable.render.number( ',', '.', 3 ) },
-  //         { data: "balanceqty", render: $.fn.dataTable.render.number( ',', '.', 3 ) },
-  //         { data: 'movement_desc', name: 'movement_desc'}
-  //       ],
-  //     });
-  //   });
-  // }
+  $("#uploadExcel").click(function(){
+      if (!$("#frmExcel")[0].checkValidity()){
+          $("#frmExcel").submit();
+      }else{
+          $(".loading-spinner-container").addClass("-show");
+          $("#uploadExcel").attr('disabled','disabled');
+          $('.disabled-el').removeAttr('disabled');
+          $("#frmExcel").submit();
+      }
+  });
 
   $.ajaxSetup({
     headers: {

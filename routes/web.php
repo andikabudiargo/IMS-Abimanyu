@@ -218,6 +218,10 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('articleTypes/update',['as'=>'articleType.update','uses'=>'ArticleTypeController@update']);
 	Route::post('articleTypes/delete',['as'=>'articleType.destroy','uses'=>'ArticleTypeController@destroy']);
 
+	Route::post('articles/safetyStock/import',['as'=>'articles.safetyStock.import.excel','uses'=>'ArticleController@safetyStockImportExcel']);
+	Route::get('articles/safetyStock/export',['as'=>'articles.safetyStock.export.excel','uses'=>'ArticleController@safetyStockExport']);
+	Route::post('articles/safetyStock/update',['as'=>'articles.safetyStock.update','uses'=>'ArticleController@updateSafetyStock']);
+
 	Route::get('banks',['as'=>'banks.index','uses'=>'BankController@index','middleware' => ['permission:bank-index']]);
 	Route::get('banks/create',['as'=>'bank.create','uses'=>'BankController@create','middleware' => ['permission:bank-create']]);
 	Route::post('banks/store',['as'=>'bank.store','uses'=>'BankController@store']);
