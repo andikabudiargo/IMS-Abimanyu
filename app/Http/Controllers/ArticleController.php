@@ -12,8 +12,8 @@ use App\Permission;
 use DataTables;
 use DB;
 use Excel;
-use App\Imports\safetyStockImport;
-use App\Exports\safetyStockExport;
+use App\Imports\SafetyStockImport;
+use App\Exports\SafetyStockExport;
 
 class ArticleController extends Controller
 {
@@ -1632,7 +1632,7 @@ class ArticleController extends Controller
 
         $data['filename']=$namaFile;
         db::table('import_stock_take_tmp')->delete();
-        Excel::import(new safetyStockImport($data), $file);
+        Excel::import(new SafetyStockImport($data), $file);
 
         $dataValidasi = DB::table('import_stock_take_tmp')
         ->leftJoin('article','article.article_alternative_code','import_stock_take_tmp.article_code')
@@ -1694,7 +1694,7 @@ class ArticleController extends Controller
 
     public function safetyStockExport()
     {
-		return Excel::download(new safetyStockExport, 'safety_stock_template.xls');
+		return Excel::download(new SafetyStockExport, 'safety_stock_template.xls');
 	}
 
     public function updateSafetyStock(Request $request)
