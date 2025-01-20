@@ -31,6 +31,8 @@ class MasterPpnController extends Controller
             ['data'=>'ppn_value','name'=>'ppn_value','title'=>'PPN Value'],
             ['data'=>'ppn_start_date','name'=>'ppn_start_date','title'=>'Start Date'],
             ['data'=>'ppn_end_date','name'=>'ppn_end_date','title'=>'End Date'],
+            ['data'=>'pembilang','name'=>'pembilang','title'=>'Pembilang'],
+            ['data'=>'penyebut','name'=>'penyebut','title'=>'Penyebut'],
             ['data'=>'created_by','name'=>'created_by','title'=>'Created By'],
             ['data'=>'created_at','name'=>'created_at','title'=>'Created At'],
             ['data'=>'updated_by','name'=>'updated_by','title'=>'Updated By'],
@@ -60,6 +62,8 @@ class MasterPpnController extends Controller
         $aIdKu = $request->aIdKu;
         $status = 1;
         $rowAffected = null;
+        $aPembilang = is_null($request->aPembilang) ? 1 : preg_replace('/[^0-9.]+/', '', $request->aPembilang);
+        $aPenyebut = is_null($request->aPenyebut) ? 1 : preg_replace('/[^0-9.]+/', '', $request->aPenyebut);
                
         DB::beginTransaction();
         try {
@@ -73,7 +77,9 @@ class MasterPpnController extends Controller
                     'ppn_start_date' => $aStartDate,
                     'ppn_end_date' => $aEndDate,
                     'updated_by' => Auth::user()->username,
-                    'updated_at' => date('Y-m-d H:i:s')
+                    'updated_at' => date('Y-m-d H:i:s'),
+                    'pembilang' =>$aPembilang,
+                    'penyebut' =>$aPenyebut
                 ]);
                 
             }else{  
@@ -86,7 +92,9 @@ class MasterPpnController extends Controller
                     'created_by' => Auth::user()->username,
                     'updated_by' => Auth::user()->username,
                     'created_at' => date('Y-m-d H:i:s'),
-                    'updated_at' => date('Y-m-d H:i:s')
+                    'updated_at' => date('Y-m-d H:i:s'),
+                    'pembilang' =>$aPembilang,
+                    'penyebut' =>$aPenyebut
                 ]);
             }
 
@@ -127,7 +135,7 @@ class MasterPpnController extends Controller
         $aStartDate = $data->ppn_start_date ? date('d-m-Y', strtotime($data->ppn_start_date)):'';
         $aEndDate = $data->ppn_end_date ? date('d-m-Y', strtotime($data->ppn_end_date)):'';
 
-        return response()->json(array('year' => $data->ppn_year, 'ppnValue' => $data->ppn_value, 'startDate' => $aStartDate, 'endDate' => $aEndDate,'id' => $id));
+        return response()->json(array('year' => $data->ppn_year, 'ppnValue' => $data->ppn_value, 'startDate' => $aStartDate, 'endDate' => $aEndDate,'id' => $id,'pembilang'=>$data->pembilang,'penyebut'=>$data->penyebut));
         
     }
 

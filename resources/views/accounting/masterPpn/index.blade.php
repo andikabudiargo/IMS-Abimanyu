@@ -41,6 +41,14 @@
                                     <label class="form-label" for="endDate">End Date*</label>
                                     <input type="text" id="endDate" name="endDate" class="form-control" placeholder="DD-MM-YYYY" value="" required/>
                                 </div>
+                                <div class="form-group col-md-2">
+                                    <label class="form-label" for="pembilang">Pembilang</label>
+                                    <input type="text" id="pembilang" name="pembilang" class="form-control numeral-mask" />
+                                </div>
+                                <div class="form-group col-md-2">
+                                    <label class="form-label" for="penyebut">Penyebut</label>
+                                    <input type="text" id="penyebut" name="penyebut" class="form-control numeral-mask" />
+                                </div>
                             </div>                            
                             <div class="form-row">
                                 <div class="col-md-12">
@@ -102,6 +110,8 @@
     const aPpnValue = $("#ppnValue");
     const startDate = $('#startDate');
     const idKu = $('#idKu');
+    const aPembilang = $("#pembilang");
+    const aPenyebut = $("#penyebut");
 
     if (startDate.length) {
         startDate.flatpickr({
@@ -142,6 +152,8 @@
             let vStartDate = startDate.val(); 
             let vEndDate = endDate.val();
             let vPpnValue = aPpnValue.val();
+            let vPembilang = aPembilang.val();
+            let vPenyebut = aPenyebut.val();
             let flag = 0;
             let pesan = "";
     
@@ -172,6 +184,8 @@
                         aStartDate:vStartDate,
                         aEndDate:vEndDate,
                         aPpnValue:vPpnValue,
+                        aPembilang :vPembilang,
+                        aPenyebut : vPenyebut,
                         aIdKu:idKu.val()
                     },
                     dataType: "json",
@@ -188,6 +202,8 @@
                             endDate.val("");
                             aPpnValue.val("");
                             idKu.val("");
+                            aPembilang.val("");
+                            aPenyebut.val("");
                             showList();
                         }
                     },
@@ -237,6 +253,8 @@
                     startDate.val(response.startDate); 
                     endDate.val(response.endDate);
                     aPpnValue.val(response.ppnValue);
+                    aPembilang.val(response.pembilang);
+                    aPenyebut.val(response.penyebut);
                 }
             }
         })
