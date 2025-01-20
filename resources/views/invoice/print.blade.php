@@ -672,7 +672,8 @@
                                 <td width="23.3%" colspan="2" align="right" style="border: 1px solid #0c0c0c;">{{ number_format($val->sub_total,2) }}</td>
                             </tr>
                             <tr style="height:25px">
-                                <td colspan="" style="border: 1px solid #0c0c0c;">PPN {{ $nilaiPPN }}% </td>
+                                {{-- <td colspan="" style="border: 1px solid #0c0c0c;">PPN {{ $nilaiPPN }}% </td> --}}
+                                <td colspan="" style="border: 1px solid #0c0c0c;">PPN 12% </td>
                                 <td colspan="2" align="right" style="border: 1px solid #0c0c0c;">{{ number_format($val->ppn,2) }}</td>
                             </tr>
                             <tr style="height:25px">
