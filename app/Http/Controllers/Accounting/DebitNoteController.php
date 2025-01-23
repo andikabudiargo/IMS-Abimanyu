@@ -1185,9 +1185,8 @@ class DebitNoteController extends Controller
         $data['status'] ='1';
         $data['no'] = 0 ;
 
-        $ppn = Attributes::getLastPpn($header->dn_date)['ppnValue'];
-        $data['nilaiPPN'] = $header->ppn ? $header->ppn : $ppn;       
-        // $data['nilaiPPN'] = $this->nilaiPpn;
+        $ppn = $this->nilaiPpn;;
+        $data['nilaiPPN'] = $header->ppn ? $header->ppn : $ppn;
         $data['nilaiPPH'] = $header->pph23 ? $header->pph23 : $this->nilaiPph23;
         // $data['totalPpn'] = $header->total_ppn;
         // $data['totalPph'] = $header->total_pph;
