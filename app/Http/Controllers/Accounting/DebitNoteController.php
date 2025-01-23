@@ -36,9 +36,11 @@ class DebitNoteController extends Controller
         // ->where('attr_id','mainppn')
         // ->value('attr_value');
 
-        $this->nilaiPpn  = Attributes::getLastPpn()['ppnValue'];
-        $this->ppnPembilang = Attributes::getLastPpn()['pembilang'];
-        $this->ppnPenyebut = Attributes::getLastPpn()['penyebut'];
+        $this->nilaiPpn  = Attributes::getLastPpn();
+
+        // $this->nilaiPpn  = Attributes::getLastPpn()['ppnValue'];
+        // $this->ppnPembilang = Attributes::getLastPpn()['pembilang'];
+        // $this->ppnPenyebut = Attributes::getLastPpn()['penyebut'];
 
         $this->nilaiPph23 = DB::table('attributes')
         ->where('attr_id','mainpph23')
@@ -226,8 +228,8 @@ class DebitNoteController extends Controller
         $data['nilaiPPN'] = $this->nilaiPpn;
         $data['nilaiPPH'] = $this->nilaiPph23;
 
-        $data['ppnPenyebut'] = $this->ppnPenyebut;
-        $data['ppnPembilang'] = $this->ppnPembilang; 
+        // $data['ppnPenyebut'] = $this->ppnPenyebut;
+        // $data['ppnPembilang'] = $this->ppnPembilang; 
 
         $data['status']='DRAFT';
 
@@ -1186,7 +1188,7 @@ class DebitNoteController extends Controller
         $ppn = Attributes::getLastPpn($header->dn_date)['ppnValue'];
         $data['nilaiPPN'] = $header->ppn ? $header->ppn : $ppn;       
         // $data['nilaiPPN'] = $this->nilaiPpn;
-        $data['nilaiPPH'] = $this->nilaiPph23;
+        $data['nilaiPPH'] = $header->pph23 ? $header->pph23 : $this->nilaiPph23;
         // $data['totalPpn'] = $header->total_ppn;
         // $data['totalPph'] = $header->total_pph;
 
