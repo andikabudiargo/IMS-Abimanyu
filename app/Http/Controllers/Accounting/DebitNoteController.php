@@ -24,6 +24,8 @@ class DebitNoteController extends Controller
     private $nilaiPph23;
     private $lockDate;
     private $lockDateIndex;
+    private $ppnPenyebut;
+    private $ppnPembilang;
 
     public function __construct()
     {
@@ -34,7 +36,9 @@ class DebitNoteController extends Controller
         // ->where('attr_id','mainppn')
         // ->value('attr_value');
 
-        $this->nilaiPpn  = Attributes::getLastPpn();
+        $this->nilaiPpn  = Attributes::getLastPpn()['ppnValue'];
+        $this->ppnPembilang = Attributes::getLastPpn()['pembilang'];
+        $this->ppnPenyebut = Attributes::getLastPpn()['penyebut'];
 
         $this->nilaiPph23 = DB::table('attributes')
         ->where('attr_id','mainpph23')
@@ -76,6 +80,7 @@ class DebitNoteController extends Controller
             ['data'=> 'po_number', 'name'=> 'po_number','title'=>'PO Number' ],
             ['data'=> 'customer_name', 'name'=> 'customer_name','title'=>'Customer' ],
             ['data'=> 'dpp', 'name'=> 'dpp','title'=>'DPP' ],
+            // ['data'=> 'dpp_lain_value', 'name'=> 'dpp_lain_value','title'=>'DPP Nilai Lain'],
             ['data'=> 'total_ppn', 'name'=> 'total_ppn','title'=>'PPN' ],
             ['data'=> 'total_pph', 'name'=> 'total_pph','title'=>'PPH' ],
             ['data'=> 'grand_total', 'name'=> 'grand_total','title'=>'Total' ],
@@ -221,6 +226,9 @@ class DebitNoteController extends Controller
         $data['nilaiPPN'] = $this->nilaiPpn;
         $data['nilaiPPH'] = $this->nilaiPph23;
 
+        $data['ppnPenyebut'] = $this->ppnPenyebut;
+        $data['ppnPembilang'] = $this->ppnPembilang; 
+
         $data['status']='DRAFT';
 
         return view("accounting.debitNote.create",$data);
@@ -250,6 +258,10 @@ class DebitNoteController extends Controller
 
         $accountPenjualan = DB::table('third_party')->where('kode',$customer)->value('coa_penjualan');
         $accountPiutang = DB::table('third_party')->where('kode',$customer)->value('account');
+
+        $dppLainValue=is_null($request->totalDppNilaiLain) ? 0 : preg_replace('/[^0-9.]+/', '', $request->totalDppNilaiLain);
+        $dppPembilang = $request->pembilangNumber;
+        $dppPenyebut = $request->penyebutNumber;
 
        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','6'=>'PAID','7'=>'REVISED'];
 
@@ -317,7 +329,10 @@ class DebitNoteController extends Controller
                     'total_pph' =>$totalPph,
                     'period'=> $period,
                     'account_piutang' =>$accountPiutang,
-                    'account_penjualan' =>$accountPenjualan
+                    'account_penjualan' =>$accountPenjualan,
+                    'dpp_lain_value' => $dppLainValue,
+                    'dpp_lain_pembilang' => $dppPembilang,
+                    'dpp_lain_penyebut' => $dppPenyebut 
                 ]);
 
                 $dataSet = [];
@@ -395,8 +410,11 @@ class DebitNoteController extends Controller
         $statusDn = ['DRAFT','VALIDATE','APPROVED','','','PAID','REVISED'];
         $data['statusInv'] = $statusDn[$data['header']->status-1];
 
-        $data['nilaiPPN'] = $this->nilaiPpn;
-        $data['nilaiPPH'] = $this->nilaiPph23;
+        $data['nilaiPPN'] = $data['header']->ppn;
+        $data['nilaiPPH'] = $data['header']->pph23;
+
+        $data['ppnPenyebut'] = $data['header']->dpp_lain_penyebut;
+        $data['ppnPembilang'] = $data['header']->dpp_lain_pembilang;
 
         return view("accounting.debitNote.show",$data);
         
@@ -461,8 +479,11 @@ class DebitNoteController extends Controller
         $status = ['DRAFT','VALIDATE','APPROVED','','','PAID','REVISED'];
         $data['status'] = $status[$data['header']->status-1];
 
-        $data['nilaiPPN'] = $this->nilaiPpn;
-        $data['nilaiPPH'] = $this->nilaiPph23;
+        $data['nilaiPPN'] = $data['header']->ppn;
+        $data['nilaiPPH'] = $data['header']->pph23;
+
+        $data['ppnPenyebut'] = $data['header']->dpp_lain_penyebut;
+        $data['ppnPembilang'] = $data['header']->dpp_lain_pembilang;
 
         return view("accounting.debitNote.edit",$data);
     }
@@ -492,6 +513,10 @@ class DebitNoteController extends Controller
 
         $accountPenjualan = DB::table('third_party')->where('kode',$customer)->value('coa_penjualan');
         $accountPiutang = DB::table('third_party')->where('kode',$customer)->value('account');
+
+        $dppLainValue=is_null($request->totalDppNilaiLain) ? 0 : preg_replace('/[^0-9.]+/', '', $request->totalDppNilaiLain);
+        $dppPembilang = $request->pembilangNumber;
+        $dppPenyebut = $request->penyebutNumber;
 
         // $data['status'] = ['1'=>'DRAFT','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','6'=>'CLOSED','6'=>'PAID'];
 
@@ -556,7 +581,10 @@ class DebitNoteController extends Controller
                             'total_pph' =>$totalPph,
                             'period' =>$period,
                             'account_piutang' =>$accountPiutang,
-                            'account_penjualan' =>$accountPenjualan
+                            'account_penjualan' =>$accountPenjualan,
+                            'dpp_lain_value' => $dppLainValue,
+                            'dpp_lain_pembilang' => $dppPembilang,
+                            'dpp_lain_penyebut' => $dppPenyebut 
                         ]
                     );
 
@@ -1058,35 +1086,39 @@ class DebitNoteController extends Controller
         $jumlahData = DB::table('debit_note_det')
         ->where('dn_number',$dnNumber)
         ->select('article_code'
-        ,db::raw('sum(qty) as qty'))
-        ->groupBy([
-            'article_code'
-        ])->get();
+        // ,db::raw('sum(qty) as qty'))
+        ,'qty')
+        // ->groupBy([
+        //     'article_code'
+        // ])
+        ->get();
 
         // dd(count($jumlahData));
         $jumlahData = count($jumlahData);
-
+        
         $limits = $jumlahData <= 20 ? $jumlahData : 30;
        
         $data['details']=DB::table('debit_note_det')
         // ->leftJoin('article','article.article_code','debit_note_det.article_code')
         // ->select('article.article_desc'
         ->select('article_code'
-        ,db::raw('sum(qty) as qty')
+        // ,db::raw('sum(qty) as qty')
+        ,'qty'
         ,'price'
         ,'price_service')
         ->where('dn_number',$dnNumber)
-        ->groupBy([
-            // 'article.article_code'
-            // ,'article.article_desc'
-            // ,'qty'
-            'article_code'
-            ,'price'
-            ,'price_service'
-        ])
+        // ->groupBy([
+        //     // 'article.article_code'
+        //     // ,'article.article_desc'
+        //     // ,'qty'
+        //     'article_code'
+        //     ,'price'
+        //     ,'price_service'
+        // ])
         // ->orderBy('article.article_code')
         ->orderBy('article_code')
         ->limit($limits)
+        ->orderBy('id')
         ->get();
 
         $data['details2']=DB::table('debit_note_det')
@@ -1109,13 +1141,10 @@ class DebitNoteController extends Controller
         ->orderBy('article_code')
         ->offset($limits)
         ->get();
-
-        
-        
+              
         $header=DB::table('debit_note_hdr')
         ->where('dn_number',$dnNumber)
         ->first();
-
 
         // $listpo=DB::select("SELECT string_agg(distinct po_number,',') as po_list from debit_note_det where dn_number = '$dnNumber'");
         /*revisi PO diambil langsung dari data SO */
@@ -1154,7 +1183,7 @@ class DebitNoteController extends Controller
         $data['status'] ='1';
         $data['no'] = 0 ;
 
-        $ppn = Attributes::getLastPpn($header->dn_date);
+        $ppn = Attributes::getLastPpn($header->dn_date)['ppnValue'];
         $data['nilaiPPN'] = $header->ppn ? $header->ppn : $ppn;       
         // $data['nilaiPPN'] = $this->nilaiPpn;
         $data['nilaiPPH'] = $this->nilaiPph23;
@@ -1203,6 +1232,9 @@ class DebitNoteController extends Controller
         }
         
         $data['printType'] = $printType;
+
+        $data['ppnPenyebut'] = $header->dpp_lain_penyebut;
+        $data['ppnPembilang'] = $header->dpp_lain_pembilang;
 
         if ($printType == '12'){
             return view('accounting.debitNote.print',$data);    
