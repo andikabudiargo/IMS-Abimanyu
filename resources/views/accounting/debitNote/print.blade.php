@@ -419,6 +419,7 @@
                 </tbody>
             </table>
         </div>
+        
         @if(count($details2)==0)
             <div class="sub_div">
                 <table id="tblContent2" style="table-layout:fixed;">
@@ -564,7 +565,7 @@
                                         <h2 style="margin:0px">INVOICE</h2>
                                     </td>
                                     <td style="border: 1px solid #0c0c0c;padding-left:5px;padding-right:5px">
-                                        <b style="font-size:17px" >{{ $dnHdr->invoice_number }}</b>
+                                        <b style="font-size:17px" >{{ $dnHdr->dn_number }}</b>
                                     </td>
                                 </tr>
                                 <tr>
