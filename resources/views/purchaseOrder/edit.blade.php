@@ -71,6 +71,8 @@
                                     <div class="input-group">
                                         <input type="text" class="form-control angka text-right" id="ppn" name="ppn" value="{{ $header->ppn }}" maxlength="2" />
                                         <input type="text" class="form-control angka text-right" id="pph23" name="pph23" value="{{ $header->pph22 }}" maxlength="2" />
+                                        <input type="text" class="form-control" id="pembilangNumber" name="pembilangNumber" value="{{ $header->dpp_lain_pembilang }}"/>
+                                        <input type="text" class="form-control" id="penyebutNumber" name="penyebutNumber" value="{{ $header->dpp_lain_penyebut }}">
                                         <div class="input-group-append">
                                             <span class="input-group-text">%</span>
                                         </div>
@@ -213,7 +215,7 @@
                         </button>
                     </div> --}}
                     <div class="d-flex justify-content-between align-items-end mt-75">
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <div class="form-group row mb-03">
                                 <label for="totalRow" class="col-sm-4 col-form-label titik-dua">Row(s)</label>
                                 <div class="col-sm-4">
@@ -227,7 +229,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-5">
+                        <div class="col-md-6">
                             <div class="form-group row mb-03">
                                 <div class="col-sm-2"></div>
                                 <div class="col-sm-4">
@@ -256,6 +258,21 @@
                                 </div>
                                 <div class="col-sm-6">
                                     <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit" id="totalDpp" disabled />
+                                </div>
+                            </div>
+                            <div class="form-group row mb-03">
+                                <div class="col-sm-2"></div>
+                                <div class="col-sm-4">
+                                    <label for="totalDiscount" class="col-form-label titik-dua">DPP Nilai Lain <span id="nilaiDppLain">{{ $header->dpp_lain_value  ? $header->dpp_lain_pembilang."/".$header->dpp_lain_penyebut : '' }}</span></label>
+                                </div>
+                                <div class="col-sm-2" style="padding-right: 0rem;display: flex;align-items: center;">
+                                    <div class="custom-control custom-checkbox">
+                                        <input type="checkbox" class="custom-control-input" id="nilaiLainCheck" name="nilaiLainCheck"  {{ $header->dpp_lain_value >0 ? 'checked' : '' }}/>
+                                        <label class="custom-control-label" for="nilaiLainCheck"></label>
+                                    </div>
+                                </div>
+                                <div class="col-sm-4" style="padding-left: 0rem;">
+                                    <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el" oninput='inputDecimal(this)' id="totalDppNilaiLain"  name="totalDppNilaiLain" value="{{ $header->dpp_lain_value>0 ? number_format($header->dpp_lain_value,2) : 0 }}" disabled/>
                                 </div>
                             </div>
                             <div class="form-group row mb-03">
@@ -421,15 +438,33 @@
             let aOrderDate = orderDate.val();
             getActivePpn(aOrderDate).done(function (result) {
                 if(result){
-                    $('#ppn').val(result);
-                    $("#nilaiPPN").text(`${result}%`);
-                    $('#ppn').removeAttr('disabled');
+                    sNilaiPPN = result.ppnValue;
+                    sNilaiPpnPembilang = result.pembilang;
+                    sNilaiPpnPenyebut = result.penyebut;
+                    $("#ppn").val(sNilaiPPN);
+                    $("#nilaiPPN").text(`${sNilaiPPN}%`);
+                    $("#pembilangNumber").val(sNilaiPpnPembilang);
+                    $("#penyebutNumber").val(sNilaiPpnPenyebut);
+                    $("#nilaiDppLain").text(`${sNilaiPpnPembilang}/${sNilaiPpnPenyebut}`);
+                    $('#ppn').prop('disabled', false);
                     hitungGrandTotal();
-                    console.log(`PPN: ${result}%`);
                     $('#pkp').prop('checked', true);
+                    $("#nilaiLainCheck").prop('disabled', false);
                 }else{
                     $('#pkp').prop('checked', false);
                 }
+
+                // if(result){
+                //     let zNilaiPPN = result.ppnValue;
+                //     $('#ppn').val(zNilaiPPN);
+                //     $("#nilaiPPN").text(`${zNilaiPPN}%`);
+                //     $('#ppn').removeAttr('disabled');
+                //     hitungGrandTotal();
+                //     console.log(`PPN: ${zNilaiPPN}%`);
+                //     $('#pkp').prop('checked', true);
+                // }else{
+                //     $('#pkp').prop('checked', false);
+                // }
             })
         }else{
             $('#pkp').prop('checked', false);

@@ -80,6 +80,8 @@
 </style>
 
 <script type="text/javascript">
+    let sNilaiPpnPembilang= "{{ $ppnPembilang }}";
+    let sNilaiPpnPenyebut= "{{ $ppnPenyebut }}";
        
     let cloneCount = {{ isset($detail) ? count($detail) :1 }};
 
@@ -97,7 +99,7 @@
         let customer = cust[0];
     })
 
-    $('#ppn').on('keyup', function() {
+    $('#ppn,#pph23').on('keyup', function() {
         hitungGrandTotal();
     });
     
@@ -249,6 +251,7 @@
         let totalAmount=0
         let totalAmountJasa=0
         let totalAmountMaterial=0
+        sNilaiPPN = ppn;
 
         let arr = objQtyTiw.map(function (i) {
             let qty = parseFloat(objQTY.eq(i).val().replace(/,/gi, '')) || 0;
@@ -259,16 +262,27 @@
             totalAmountMaterial+= (qty*price)+(qty*priceJasa);
             totalAmountJasa+= (qty*priceJasa);
         }).get();
-        
+
+        $("#totalPPN").val(humanizeNumber(parseFloat(((parseInt(ppn)*totalAmountMaterial)/100)).toFixed(2)));
+
+        if ($("#nilaiLainCheck").is(':checked')) {
+            let zDppNilaiLain = totalAmountMaterial * (sNilaiPpnPembilang/sNilaiPpnPenyebut);
+            $("#totalDppNilaiLain").val(humanizeNumber(parseFloat(zDppNilaiLain).toFixed(2)));
+            let qTotalPpn = Math.round(zDppNilaiLain * (sNilaiPPN/100));
+            $("#totalPPN").val(humanizeNumber(parseFloat(qTotalPpn).toFixed(2)));
+        }else{
+            $("#totalDppNilaiLain").val('');
+        }
+
+        let iTotalPpn = $("#totalPPN").val().replace(/,/gi, '') || 0;
         
         $("#totalRow").val(objArticle.length);
         $("#nilaiPPN").text(ppn+"%");
         $("#nilaiPPH23").text(pph23+"%");
         $("#totalQTY").val(humanizeNumber(parseFloat(totalQty).toFixed(2)));
         $("#totalAmount").val(humanizeNumber(parseFloat(totalAmount).toFixed(2)));
-        $("#totalPPN").val(humanizeNumber(parseFloat(((parseInt(ppn)*totalAmountMaterial)/100)).toFixed(2)));
         $("#totalPPH").val(humanizeNumber(parseFloat(((pph23*totalAmountJasa)/100)).toFixed(2)));
-        $("#totalNetto").val(humanizeNumber(parseFloat((totalAmount+((parseInt(ppn)*totalAmount)/100)-((pph23*totalAmountJasa)/100))).toFixed(2)));
+        $("#totalNetto").val(humanizeNumber(parseFloat((totalAmount+(parseFloat(iTotalPpn))-((pph23*totalAmountJasa)/100))).toFixed(2)));
         mask_thousand_digit(2);
 
     }
@@ -288,6 +302,71 @@
         }
       })
     }
+
+    getActivePpn = (tanggal) => {
+        return $.ajax({
+            async: false,
+            url:"{{route('setting.lastPpn')}}",
+            method:"GET",
+            data:{
+                tanggal:tanggal,
+            },
+            success:function(result){
+            }
+        });
+    }
+
+    hitungNilaiLain = () =>{
+        let aOrderDate = $('#orderDate').val();
+        if(aOrderDate){
+            getActivePpn(aOrderDate).done(function (result) {
+                if(result){
+                    sNilaiPPN = result.ppnValue;
+                    sNilaiPpnPembilang = result.pembilang;
+                    sNilaiPpnPenyebut = result.penyebut;
+                    $("#ppn").val(sNilaiPPN);
+                    $("#pembilangNumber").val(sNilaiPpnPembilang);
+                    $("#penyebutNumber").val(sNilaiPpnPenyebut);
+                }
+            })
+        }
+        
+        /*
+            jika ada DPP nilai lain maka perhituangan DPP lain-lain
+            rumus 11/12* 
+            dan untuk PPN 12% nya dihitung dari DPP Nilai Lain * 12%
+        */
+
+        let totalAmount = parseFloat($('#totalAmount').val().replace(/,/gi, '')) || 0;
+        let zDppNilaiLain = totalAmount * (sNilaiPpnPembilang/sNilaiPpnPenyebut);
+
+        $("#totalDppNilaiLain").val(parseFloat(zDppNilaiLain).toFixed(2));
+        $("#nilaiDppLain").text(`${sNilaiPpnPembilang}/${sNilaiPpnPenyebut}`);
+        totalAmount = zDppNilaiLain;
+        let zTotalPPn = Math.round(totalAmount * (sNilaiPPN/100));
+        console.log(`BA Tanpa pembulatan dari nilai lain:${totalAmount * (sNilaiPPN/100)}`);
+        $("#totalPPN").val(parseFloat(zTotalPPn).toFixed(2)).trigger("input");
+        $("#nilaiPPN").text(sNilaiPPN+'%');
+        mask_thousand();
+        mask_thousand_digit(2);
+        hitungGrandTotal()
+    }
+
+    $("#nilaiLainCheck").change(function() {
+        let aOrderDate = $('#orderDate').val();
+        if (aOrderDate){
+            if(this.checked) {
+                hitungNilaiLain();
+            }else{
+                $("#totalDppNilaiLain").val('');
+                $("#nilaiDppLain").text('');
+                hitungGrandTotal()
+            }
+        }else{
+            swal.fire('Warning',"Invoice date belum diisi !!",'warning');
+            $("#nilaiLainCheck").prop('checked', false);
+        }
+    });
     
     $.ajaxSetup({
         headers: {

@@ -21,6 +21,8 @@
                             @csrf
                             <input type="text" id="ppn" name="ppn" values="{{ $nilaiPPN }}" hidden>
                             <input type="text" id="pph23" name="ppn23" values="{{ $nilaiPPH }}" hidden>
+                            <input type="text" class="form-control" id="pembilangNumber" name="pembilangNumber" value="{{ $header->dpp_lain_pembilang }}" hidden/>
+                            <input type="text" class="form-control" id="penyebutNumber" name="penyebutNumber" value="{{ $header->dpp_lain_penyebut }}" hidden/>
                             <datalist id="articlesList">
                             </datalist>
                             <div class="row">
@@ -102,7 +104,7 @@
                     </div>
                     <hr>
                     <div class="d-flex justify-content-between align-items-end mt-75">
-                        <div class="col-md-4">
+                        <div class="col-md-7">
                             <div class="form-group row mb-03">
                                 {{-- <label for="totalRow" class="col-sm-4 col-form-label titik-dua tanpa-padding">Row(s)</label>
                                 <div class="col-sm-3">
@@ -116,7 +118,7 @@
                                 </div> --}}
                             </div>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <div class="form-group row mb-03">
                                 <label for="totalAmount" class="col-sm-4 col-form-label titik-dua tanpa-padding">DPP</label>
                                 <div class="col-sm-6">
@@ -125,7 +127,19 @@
                                 </div>
                             </div>
                             <div class="form-group row mb-03">
-                                <label for="totalPPN" class="col-sm-4 col-form-label titik-dua">PPN <span id="nilaiPPN"></span> </label>
+                                <label for="nilaiLainCheck" class="col-sm-4 col-form-label titik-dua">DPP Nilai Lain <span id="nilaiDppLain">{{ $header->dpp_lain_value  ? $header->dpp_lain_pembilang."/".$header->dpp_lain_penyebut : '' }}</span></label>
+                                <div class="col-sm-1" style="padding-right: 0rem;display: flex;align-items: center;">
+                                    <div class="custom-control custom-checkbox">
+                                        <input type="checkbox" class="custom-control-input" id="nilaiLainCheck" name="nilaiLainCheck" {{ $header->dpp_lain_value >0 ? 'checked' : '' }}/>
+                                        <label class="custom-control-label" for="nilaiLainCheck"></label>
+                                    </div>
+                                </div>    
+                                <div class="col-sm-5">
+                                    <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el" oninput='inputDecimal(this)' value="{{ $header->dpp_lain_value>0 ? number_format($header->dpp_lain_value,2) : 0 }}" id="totalDppNilaiLain"  name="totalDppNilaiLain" disabled/>
+                                </div>
+                            </div>
+                            <div class="form-group row mb-03">
+                                <label for="totalPPN" class="col-sm-4 col-form-label titik-dua">PPN <span id="nilaiPPN">{{ $header->ppn >0 ? $nilaiPPN."%" : '' }}</span> </label>
                                 <div class="col-sm-1" style="padding-right: 0rem;display: flex;align-items: center;">
                                     <div class="custom-control custom-checkbox">
                                         <input type="checkbox" class="custom-control-input" id="vatCheck" name="vatCheck" {{ $header->total_ppn >0 ? 'checked' : '' }} />
@@ -267,6 +281,35 @@
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+    }
+
+    @media screen 
+    and (min-device-width: 1200px) 
+    and (max-device-width: 1600px) 
+    and (-webkit-min-device-pixel-ratio: 1) { 
+        .lebar-list-item{
+            width:150%;
+        }
+        .container-list-item{
+            max-width:100%;
+            overflow-x:auto;
+            scrollbar-width: thin;
+            margin-top:7px;
+        }
+    }
+
+    @media only screen and (min-width: 600px)
+    and (max-width: 1200px)
+    {
+        .lebar-list-item{
+            width:200%;
+        }
+        .container-list-item{
+            max-width:100%;
+            overflow-x:auto;
+            scrollbar-width: thin;
+            margin-top:7px;
+        }
     }
 
 </style>
@@ -445,6 +488,9 @@
                 let fakturPajak =$('#fakturPajak').val();
                 let totalAmount = $('#totalAmount').val().replace(/,/gi, '') || 0;
                 let grandTotal = $('#totalNetto').val().replace(/,/gi, '') || 0;
+                let aPembilangNumber = $('#pembilangNumber').val();
+                let aPenyebutNumber = $('#penyebutNumber').val();
+                let aTotalDppNilaiLain = $('#totalDppNilaiLain').val().replace(/,/gi, '') || 0;
 
                 $.ajax({
                     type: "post",
@@ -463,7 +509,10 @@
                         poNumber:poNumber,
                         fakturPajak:fakturPajak,
                         totalAmount:totalAmount,
-                        grandTotal:grandTotal
+                        grandTotal:grandTotal,
+                        pembilangNumber:aPembilangNumber,
+                        penyebutNumber:aPenyebutNumber,
+                        totalDppNilaiLain:aTotalDppNilaiLain
                     },
                     dataType: "json",
                     success: function(data) {

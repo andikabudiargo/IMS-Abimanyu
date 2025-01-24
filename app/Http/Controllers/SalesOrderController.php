@@ -22,6 +22,9 @@ class SalesOrderController extends Controller
     private $moduleCode;
     private $lockDate;
     private $lockDateIndex;
+    private $nilaiPpn;
+    private $ppnPenyebut;
+    private $ppnPembilang;
 
     public function __construct()
     {
@@ -48,6 +51,10 @@ class SalesOrderController extends Controller
         $lockDateHereIndex = $lockDate1 ? $lockDate1 : '2023-01-01' ;
         $lockDateAtIndex = date('d-m-Y', strtotime($lockDateHere));
         $this->lockDateIndex = $lockDateAtIndex;
+
+        $this->nilaiPpn  = Attributes::getLastPpn()['ppnValue'];
+        $this->ppnPembilang = Attributes::getLastPpn()['pembilang'];
+        $this->ppnPenyebut = Attributes::getLastPpn()['penyebut'];
     }
 
     public function getTableColoumn(){
@@ -170,7 +177,9 @@ class SalesOrderController extends Controller
         ->pluck('attr_value','attr_code');
 
         // $ppnDate = date('d-m-Y');
-        $data['ppnValue']  = Attributes::getLastPpn();
+        $data['ppnValue']  = $this->nilaiPpn;
+        $data['ppnPenyebut'] = $this->ppnPenyebut;
+        $data['ppnPembilang'] = $this->ppnPembilang; 
 
         $data['lockDate'] = $this->lockDateIndex;
 
@@ -231,6 +240,10 @@ class SalesOrderController extends Controller
         $status = '1';
         $gudang = 'false';
         $kurs = 1;
+
+        $dppLainValue=is_null($request->totalDppNilaiLain) ? 0 : preg_replace('/[^0-9.]+/', '', $request->totalDppNilaiLain);
+        $dppPembilang = $request->pembilangNumber;
+        $dppPenyebut = $request->penyebutNumber;
 
         // status:
         // 1 = New
@@ -295,11 +308,22 @@ class SalesOrderController extends Controller
                     'updated_by' => Auth::user()->username,
                     'created_at' => date('Y-m-d H:i:s'),
                     'updated_at' => date('Y-m-d H:i:s'),
-                    'origin_so_code' => $soCode
+                    'origin_so_code' => $soCode,
+                    'dpp_lain_value' => $dppLainValue,
+                    'dpp_lain_pembilang' => $dppPembilang,
+                    'dpp_lain_penyebut' => $dppPenyebut
                 ]);
 
+                $dppLainBagi = $dppLainValue ? $dppPembilang/$dppPenyebut : 1;
+
                 $dataSet = [];
-                foreach ($articles as $val) {
+                $ppnFinal = '';
+                foreach ($articles as $val) {                    
+                    if($dppLainValue){
+                        $ppnFinal =  (($val->price*$val->qty)+($val->price_service*$val->qty)*$dppLainBagi) * $ppn/100;
+                    }else{
+                        $ppnFinal =  (($val->price*$val->qty)+($val->price_service*$val->qty)) * $ppn/100;
+                    }
                     $dataSet[] = [
                         'so_code' => $soCode,
                         'article_code' => $val->article_code,
@@ -307,7 +331,7 @@ class SalesOrderController extends Controller
                         'uom' => $val->uom,
                         'price' => $val->price,
                         'price_service' => $val->price_service,
-                        'ppn' => (($val->price*$val->qty)+($val->price_service*$val->qty)) * $ppn/100,
+                        'ppn' => round($ppnFinal),
                         'pph23' => ($val->price_service*$val->qty) * $pph23/100,
                         'status' => $status,
                         'created_by' => Auth::user()->username,
@@ -443,6 +467,10 @@ class SalesOrderController extends Controller
         $statusSo = ['NEW','VALIDATED','APPROVED','RECEIVED','CANCELED','CLOSED','PAID','REVISED'];
         $data['statusSo'] = $statusSo[$data['headers'][0]->status-1];
 
+        $data['ppnPembilang'] = $data['headers'][0]->dpp_lain_pembilang;
+        $data['ppnPenyebut'] = $data['headers'][0]->dpp_lain_penyebut;
+
+
         return view("salesOrder.show",$data);
         
     }
@@ -510,6 +538,9 @@ class SalesOrderController extends Controller
         $data['statusSo'] = $statusSo[$data['header']->status-1];
 
         $data['lockDate'] = $this->lockDateIndex;
+
+        $data['ppnPenyebut'] = $data['header']->dpp_lain_penyebut;
+        $data['ppnPembilang'] = $data['header']->dpp_lain_pembilang; 
 
         return view("salesOrder.edit",$data);
         
@@ -605,6 +636,10 @@ class SalesOrderController extends Controller
         $approveLevel = $request->approveLevel;
         $statusSimpan = $request->statusSimpan;
 
+        $dppLainValue=is_null($request->totalDppNilaiLain) ? 0 : preg_replace('/[^0-9.]+/', '', $request->totalDppNilaiLain);
+        $dppPembilang = $request->pembilangNumber;
+        $dppPenyebut = $request->penyebutNumber;
+
         // status:
         // 1 = New
         // 2 = Updated
@@ -680,7 +715,10 @@ class SalesOrderController extends Controller
                         'gudang' => $gudang ,
                         'note' =>  $note,
                         'updated_by' => Auth::user()->username,
-                        'updated_at' => date('Y-m-d H:i:s')
+                        'updated_at' => date('Y-m-d H:i:s'),
+                        'dpp_lain_value' => $dppLainValue,
+                        'dpp_lain_pembilang' => $dppPembilang,
+                        'dpp_lain_penyebut' => $dppPenyebut
                     ]
                 );
 
@@ -694,12 +732,22 @@ class SalesOrderController extends Controller
 
                 //Delete kalo article tidak ada di po $orderNumber dan article nya $val->article_code
                 //berdasarkan 2 kondisi
+                
+                $dppLainBagi = $dppLainValue ? $dppPembilang/$dppPenyebut : 1;
+
                 DB::table('sales_order_det')
                     ->whereNotIn(DB::raw("CONCAT(so_code,article_code)"),$dataSet)
                     ->where('so_code',$orderNumber)
                     ->delete();
 
                 foreach ($articles as $val) {
+
+                    if($dppLainValue){
+                        $ppnFinal =  (($val->price*$val->qty)+($val->price_service*$val->qty)*$dppLainBagi) * $ppn/100;
+                    }else{
+                        $ppnFinal =  (($val->price*$val->qty)+($val->price_service*$val->qty)) * $ppn/100;
+                    }
+
                     DB::table('sales_order_det')
                     ->updateOrInsert(
                         ['so_code' => $orderNumber,'article_code' => $val->article_code],
@@ -709,7 +757,7 @@ class SalesOrderController extends Controller
                         'uom' => $val->uom,
                         'price' => $val->price,
                         'price_service' => $val->price_service,
-                        'ppn' => (($val->price*$val->qty)+($val->price_service*$val->qty)) * $ppn/100,
+                        'ppn' => round($ppnFinal),
                         'pph23' => ($val->price_service*$val->qty) * $pph23/100,
                         'updated_by' => Auth::user()->username,
                         'updated_at' => date('Y-m-d H:i:s')
@@ -1418,7 +1466,10 @@ class SalesOrderController extends Controller
             num_revision,
             revised_by,
             revised_at,
-            reason
+            reason,
+            dpp_lain_value,
+            dpp_lain_pembilang,
+            dpp_lain_penyebut
         )
         select 
             '$soNew',
@@ -1442,7 +1493,10 @@ class SalesOrderController extends Controller
             $numRevision,
             '$username',
             '".date('Y-m-d H:i:s')."',
-            '$reasonRequest'
+            '$reasonRequest',
+            dpp_lain_value,
+            dpp_lain_pembilang,
+            dpp_lain_penyebut
         from sales_order_hdr where so_code = '$soOrigin'";
 
         $sqlDet="INSERT into sales_order_det

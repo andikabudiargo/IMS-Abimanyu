@@ -38,6 +38,8 @@ class AccountPayableController extends Controller
     private $nilaiPph42;
     private $lockDate;
     private $lockDateIndex;
+    private $ppnPenyebut;
+    private $ppnPembilang;
 
     public function __construct()
     {
@@ -49,7 +51,9 @@ class AccountPayableController extends Controller
         // ->where('attr_id','mainppn')
         // ->value('attr_value');
         
-        $this->nilaiPpn  = Attributes::getLastPpn();
+        $this->nilaiPpn  = Attributes::getLastPpn()['ppnValue'];
+        $this->ppnPembilang = Attributes::getLastPpn()['pembilang'];
+        $this->ppnPenyebut = Attributes::getLastPpn()['penyebut'];
 
         $this->nilaiPph23 = DB::table('attributes')
         ->where('attr_id','mainpph23')
@@ -112,11 +116,10 @@ class AccountPayableController extends Controller
             ['data'=> 'proforma_inv_number', 'name'=> 'proforma_inv_number','title'=>'Proforma','visible'=>false],
             ['data'=> 'tax_inv_number', 'name'=> 'tax_inv_number','title'=>'Tax Inv Number'],
             ['data'=> 'inv_date', 'name'=> 'inv_date','title'=>'Inv Date'],
-
             ['data'=> 'ap_date', 'name'=> 'ap_date','title'=>'Receive AP'],
             ['data'=> 'due_date', 'name'=> 'due_date','title'=>'Due date'],
-
             ['data'=> 'basis_amount', 'name'=> 'basis_amount','title'=>'DPP'],
+            ['data'=> 'dpp_lain_value', 'name'=> 'dpp_lain_value','title'=>'DPP Nilai Lain'],
             ['data'=> 'vat', 'name'=> 'vat','title'=>'VAT'],
             ['data'=> 'pph21', 'name'=> 'pph21','title'=>'PPH21'],
             ['data'=> 'pph23', 'name'=> 'pph23','title'=>'PPH23'],
@@ -500,18 +503,36 @@ class AccountPayableController extends Controller
         ->get();
 
         // dd($detailRec);
+        /*
+            17/1/2025
+            pertanyaan:
+            iya pak PO berdasarakan tanggal pembuatan, misalkan pada saat bikin PO itu PPN rate nya 11%,  lalu dilakukan pembayaran dan rate pada saat  pembayaran itu 12%,  di AP nya ikut yang 11% atau 12%?
+
+            Jawaban pak Leo:
+            AP ikut rate 12% pa , Pembayaran tergantung AP bukan PO, meskipun PO rate 11% tp AP rate 12% yang di bayar rate 12%
+            tergantung pengakuan AP nya
+
+            tanggal invoice AP ya pa, bkn saat di buat AP atau received AP
+
+            patokan range datenya adalah Invoice date
+
+            Rate PPN sebelumnya mengikuti rate PPN nya PO
+            sekarang rate PPN berdasarkan rate PPN saat ini
+        */
+
+        $nilaiPPN = $this->nilaiPpn;
 
         $summaryRec =  DB::select("SELECT z.*
         ,basis_amount1 - (basis_amount1*y.discount/100) as basis_amount
         ,ppn as vat
         ,y.discount as nilai_discount
-        ,(((basis_amount1-(basis_amount1*y.discount/100))*y.ppn/100)) as nilai_pajak
+        ,(((basis_amount1-(basis_amount1*y.discount/100))*$nilaiPPN/100)) as nilai_pajak
         ,(((basis_amount1-(basis_amount1*y.discount/100))*y.pph22/100)) as nilai_pph
         ,pkp as pkp
         ,pph22 as pph22
         ,(basis_amount1*y.discount/100) as discount
         ,(select sum(qty) as qty  from purchase_order_det where po_number = z.po_number) as total_qty_po
-        ,(basis_amount1 - (basis_amount1*y.discount/100)) + ((basis_amount1-(basis_amount1*y.discount/100))*y.ppn/100) - ((basis_amount1-(basis_amount1*y.discount/100))*y.pph22/100) total_netto
+        ,(basis_amount1 - (basis_amount1*y.discount/100)) + ((basis_amount1-(basis_amount1*y.discount/100))*$nilaiPPN/100) - ((basis_amount1-(basis_amount1*y.discount/100))*y.pph22/100) total_netto
         ,((select sum(qty*price) as qty  from purchase_order_det where po_number = z.po_number)) as total_amount_po
         ,((select sum(qty*price) as qty  from purchase_order_det where po_number = z.po_number) -(select coalesce(sum(basis_amount),0) from ap_invoice where po_number = z.po_number)) as po_balance
         from 
@@ -527,6 +548,33 @@ class AccountPayableController extends Controller
         --and a.qty > 0
         group by b.po_number) z
         left join purchase_order_hdr y on y.po_number = z.po_number");
+
+        // $summaryRec =  DB::select("SELECT z.*
+        // ,basis_amount1 - (basis_amount1*y.discount/100) as basis_amount
+        // ,ppn as vat
+        // ,y.discount as nilai_discount
+        // ,(((basis_amount1-(basis_amount1*y.discount/100))*y.ppn/100)) as nilai_pajak
+        // ,(((basis_amount1-(basis_amount1*y.discount/100))*y.pph22/100)) as nilai_pph
+        // ,pkp as pkp
+        // ,pph22 as pph22
+        // ,(basis_amount1*y.discount/100) as discount
+        // ,(select sum(qty) as qty  from purchase_order_det where po_number = z.po_number) as total_qty_po
+        // ,(basis_amount1 - (basis_amount1*y.discount/100)) + ((basis_amount1-(basis_amount1*y.discount/100))*y.ppn/100) - ((basis_amount1-(basis_amount1*y.discount/100))*y.pph22/100) total_netto
+        // ,((select sum(qty*price) as qty  from purchase_order_det where po_number = z.po_number)) as total_amount_po
+        // ,((select sum(qty*price) as qty  from purchase_order_det where po_number = z.po_number) -(select coalesce(sum(basis_amount),0) from ap_invoice where po_number = z.po_number)) as po_balance
+        // from 
+        // (select b.po_number
+        // ,sum(a.qty) as total_qty_rec
+        // ,(sum(a.qty*a.price)) as basis_amount1
+        // -- ,(sum(a.qty*c.price)) as basis_amount1
+        // from receiving_det a
+        // left join receiving_hdr b on a.rec_number = b.rec_number 
+        // -- left join purchase_order_det c on c.po_number = b.po_number and c.article_code = a.article_code 
+        // -- where a.rec_number in ('REC-ASN/2022/XI/4','REC-ASN/2023/I/1')
+        // where a.rec_number in ($result)
+        // --and a.qty > 0
+        // group by b.po_number) z
+        // left join purchase_order_hdr y on y.po_number = z.po_number");
         
         return response()->json(array('detailRec'=>$detailRec,'summaryRec'=>$summaryRec));
     }
@@ -584,6 +632,9 @@ class AccountPayableController extends Controller
         $data['nilaiPPH23'] = $this->nilaiPph23;
         $data['nilaiPPH21'] = $this->nilaiPph21;
         $data['nilaiPPH42'] = $this->nilaiPph42;
+
+        $data['ppnPenyebut'] = $this->ppnPenyebut;
+        $data['ppnPembilang'] = $this->ppnPembilang; 
         
         return view("accounting.accountPayable.create",$data);
     }
@@ -636,6 +687,11 @@ class AccountPayableController extends Controller
         $pph21 = is_null($request->totalPPH21) ? 0 : preg_replace('/[^0-9.]+/', '', $request->totalPPH21);
         $pph42 = is_null($request->totalPPH42) ? 0 : preg_replace('/[^0-9.]+/', '', $request->totalPPH42);
 
+        $dppLainValue=is_null($request->totalDppNilaiLain) ? 0 : preg_replace('/[^0-9.]+/', '', $request->totalDppNilaiLain);
+        $vatValue = $request->ppnValue;
+        $dppPembilang = $request->pembilangNumber;
+        $dppPenyebut = $request->penyebutNumber;
+
         $typePph ='';        
         if($pph23 > 0 && $typePph==''){
             $typePph='PPH23';
@@ -683,30 +739,49 @@ class AccountPayableController extends Controller
         }
                 
         $status = '1';
-                
         // $status = ['1'=>'DRAFT','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','6'=>'CLOSED','6'=>'PAID']
-        
         $messages = [
             'required' => 'The field is required.',
             'unique' => 'The code has already been taken', 
-            'iunique' => "Invoice Number : $invoiceNumber on PO: $poNumber has already exist",
+            'iunique1' => "Invoice Number : $invoiceNumber on Supplier: $suppCode is already exist",
+            'iunique2' => "Tax Invoice Number : $taxInvoiceNumber on Supplier: $suppCode is already exist",
         ];
         
-        Validator::extend('iunique', function ($attribute, $value, $parameters, $validator) use ($poNumber) {
+        Validator::extend('iunique1', function ($attribute, $value, $parameters, $validator) use ($suppCode) {
             $query = DB::table($parameters[0]);
             $column = $query->getGrammar()->wrap($parameters[1]);
             $column2 = $query->getGrammar()->wrap($parameters[2]);
             return !$query->whereRaw("lower({$column}) = lower(?)", [$value])
-                          ->whereRaw("lower({$column2}) = lower(?)", [$poNumber])->count();
+                          ->whereRaw("lower({$column2}) = lower(?)", [$suppCode])
+                          ->count();
         });
 
-        $rule = [
-            // 'poNumberDet'  => 'required',
-            // 'invoiceNumber'=>'required|iunique:ap_invoice,inv_number,po_number',
-            // 'doDate'  => 'required',
-        ];
+        Validator::extend('iunique2', function ($attribute, $value, $parameters, $validator) use ($suppCode) {
+            $query = DB::table($parameters[0]);
+            $column = $query->getGrammar()->wrap($parameters[1]);
+            $column2 = $query->getGrammar()->wrap($parameters[2]);
+            return !$query->whereRaw("lower({$column}) = lower(?)", [$value])
+                          ->whereRaw("lower({$column2}) = lower(?)", [$suppCode])
+                          ->count();
+        });
 
-        $this->validate($request,$rule,$messages);
+        $validation = Validator::make($request->all(),$rules = [
+            'invoiceNumber'=>'required|iunique1:ap_invoice,inv_number,supplier_id',
+            'taxInvoiceNumber'=>'required|iunique2:ap_invoice,tax_inv_number,supplier_id',
+        ],$messages);
+        
+        $error_array = array();
+        $success_output = '';
+        // return $validation;
+        if ($validation->fails()){
+            foreach ($validation->messages()->getMessages() as $field_name => $messages){
+                $error_array[] = $messages;
+            }
+           
+            $title="Save $this->title";
+            $alert ="error";
+            return response()->json(array('status' => 0,'title' => $title, 'message' => $error_array,'alert' =>$alert));
+        }
 
         $inputYear = substr($apDate,-4)*1;
         $inputMonth = explode("-",$apDate)[1]*1;
@@ -778,7 +853,12 @@ class AccountPayableController extends Controller
                     'inv_number' => $invoiceNumber,
                     'tax_inv_number' =>$taxInvoiceNumber,
                     'ap_date' =>$apDate,
-                    'period' =>$period
+                    'period' =>$period,
+                    'vat_value' => $vatValue,
+                    'dpp_lain_value' => $dppLainValue,
+                    'dpp_lain_pembilang' => $dppPembilang,
+                    'dpp_lain_penyebut' => $dppPenyebut
+
                 ]);
 
                 if($rowAffected){
@@ -1037,6 +1117,9 @@ class AccountPayableController extends Controller
         $data['nilaiPPH21'] = $this->nilaiPph21;
         $data['nilaiPPH42'] = $this->nilaiPph42;
 
+        $data['ppnPenyebut'] = $this->ppnPenyebut;
+        $data['ppnPembilang'] = $this->ppnPembilang;
+
         $data['statusRevision'] = '';
         
         return view("accounting.accountPayable.edit",$data);
@@ -1077,6 +1160,11 @@ class AccountPayableController extends Controller
         $pph23 = is_null($request->totalPPH23) ? 0 : preg_replace('/[^0-9.]+/', '', $request->totalPPH23);
         $pph21 = is_null($request->totalPPH21) ? 0 : preg_replace('/[^0-9.]+/', '', $request->totalPPH21);
         $pph42 = is_null($request->totalPPH42) ? 0 : preg_replace('/[^0-9.]+/', '', $request->totalPPH42);
+
+        $dppLainValue=is_null($request->totalDppNilaiLain) ? 0 : preg_replace('/[^0-9.]+/', '', $request->totalDppNilaiLain);
+        $vatValue = $request->ppnValue;
+        $dppPembilang = $request->pembilangNumber;
+        $dppPenyebut = $request->penyebutNumber;
 
         $typePph ='';        
         if($pph23 > 0 && $typePph==''){
@@ -1181,7 +1269,11 @@ class AccountPayableController extends Controller
                         'account_total' => $acountTotal,
                         'account_vat' => $accountVat,
                         'account_pph' => $accountPph,
-                        'period' => $period
+                        'period' => $period,
+                        'vat_value' => $vatValue,
+                        'dpp_lain_value' => $dppLainValue,
+                        'dpp_lain_pembilang' => $dppPembilang,
+                        'dpp_lain_penyebut' => $dppPenyebut
                     ]
                 );
 

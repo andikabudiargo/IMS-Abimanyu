@@ -14,6 +14,7 @@ use DB;
 use PDF;
 use AppHelpers;
 use Approval;
+use App\Http\Controllers\AttributeController as Attributes;
 
 class PurchaseOrderController extends Controller
 {
@@ -25,15 +26,21 @@ class PurchaseOrderController extends Controller
     private $nilaiPph42;
     private $lockDate;
     private $lockDateIndex;
+    private $ppnPenyebut;
+    private $ppnPembilang;
 
     public function __construct()
     {
         $this->title = "Purchase Order";
         $this->moduleCode = "PO";
         
-        $this->nilaiPpn = DB::table('attributes')
-        ->where('attr_id','mainppn')
-        ->value('attr_value');
+        $this->nilaiPpn  = Attributes::getLastPpn()['ppnValue'];
+        $this->ppnPembilang = Attributes::getLastPpn()['pembilang'];
+        $this->ppnPenyebut = Attributes::getLastPpn()['penyebut'];
+
+        // $this->nilaiPpn = DB::table('attributes')
+        // ->where('attr_id','mainppn')
+        // ->value('attr_value');
 
         $this->nilaiPph23 = DB::table('attributes')
         ->where('attr_id','mainpph23')
@@ -180,6 +187,10 @@ class PurchaseOrderController extends Controller
 
         $data['lockDate'] = $this->lockDate;
 
+        $data['ppnValue']  = $this->nilaiPpn;
+        $data['ppnPenyebut'] = $this->ppnPenyebut;
+        $data['ppnPembilang'] = $this->ppnPembilang;
+
         return view("purchaseOrder.create",$data);
     }
 
@@ -203,6 +214,10 @@ class PurchaseOrderController extends Controller
         $note = $request->note;
         $status = '1';
         $poLeadCode = $poType=='std' ? 'PO' : 'POSUB'; 
+
+        $dppLainValue=is_null($request->totalDppNilaiLain) ? 0 : preg_replace('/[^0-9.]+/', '', $request->totalDppNilaiLain);
+        $dppPembilang = $request->pembilangNumber;
+        $dppPenyebut = $request->penyebutNumber;
 
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'RECEIVED','5'=>'CANCELED','6'=>'CLOSED','7'=>'REVISED','8'=>'DECLINE'];
 
@@ -263,11 +278,22 @@ class PurchaseOrderController extends Controller
                         'created_by' => Auth::user()->username,
                         'updated_by' => Auth::user()->username,
                         'created_at' => date('Y-m-d H:i:s'),
-                        'updated_at' => date('Y-m-d H:i:s')
+                        'updated_at' => date('Y-m-d H:i:s'),
+                        'dpp_lain_value' => $dppLainValue,
+                        'dpp_lain_pembilang' => $dppPembilang,
+                        'dpp_lain_penyebut' => $dppPenyebut
                     ]);
-
+                    
+                    $dppLainBagi = $dppLainValue ? $dppPembilang/$dppPenyebut : 1;
                     $dataSet = [];
                     foreach ($articles as $val) {
+                        
+                        if($dppLainValue){
+                            $ppnFinal =  (($val->price*$val->qty)+($val->price_service*$val->qty)*$dppLainBagi) * $ppn/100;
+                        }else{
+                            $ppnFinal =  (($val->price*$val->qty)+($val->price_service*$val->qty)) * $ppn/100;
+                        }
+
                         $dataSet[] = [
                             'po_number' => $poNumber,
                             'pr_number' => $val->pRequest,
@@ -276,7 +302,8 @@ class PurchaseOrderController extends Controller
                             'uom' => $val->uom,
                             'old_price' => $val->price,
                             'price' => $val->newPrice,
-                            'ppn' => round(($val->qty*$val->newPrice)*($ppn/100)),
+                            'ppn' => round($ppnFinal),
+                            // 'ppn' => round(($val->qty*$val->newPrice)*($ppn/100)),
                             'pph22' => $totalPph,
                             'created_by' => Auth::user()->username,
                             'created_at' => date('Y-m-d H:i:s'),
@@ -375,6 +402,10 @@ class PurchaseOrderController extends Controller
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'RECEIVED','5'=>'CANCELED','6'=>'CLOSED','7'=>'RVISED','8'=>'DECLINE'];
         $statusPo = ['NEW','VALIDATED','APPROVED','RECEIVED','CANCELED','CLOSED','REVISED','DECLINE'];
         $data['statusPo'] = $statusPo[$data['headers'][0]->status-1];
+
+        $data['ppnValue']  = $data['headers'][0]->ppn;
+        $data['ppnPenyebut'] = $data['headers'][0]->dpp_lain_penyebut;
+        $data['ppnPembilang'] = $data['headers'][0]->dpp_lain_pembilang;
         
         return view("purchaseOrder.show",$data);        
     }
@@ -492,6 +523,10 @@ class PurchaseOrderController extends Controller
 
         $data['lockDate'] = $this->lockDate;
 
+        $data['ppnValue']  = $data['header']->ppn;
+        $data['ppnPenyebut'] = $data['header']->dpp_lain_penyebut;
+        $data['ppnPembilang'] = $data['header']->dpp_lain_pembilang;
+
         return view("purchaseOrder.edit",$data);
     }
 
@@ -541,7 +576,10 @@ class PurchaseOrderController extends Controller
             updated_by,
             created_at,
             updated_at,
-            reason
+            reason,
+            dpp_lain_value,
+            dpp_lain_pembilang,
+            dpp_lain_penyebut
         )
         select 
             '$poNew',
@@ -569,7 +607,10 @@ class PurchaseOrderController extends Controller
             '$username',
             '".date('Y-m-d H:i:s')."',
             '".date('Y-m-d H:i:s')."',
-            '$reasonRequest'
+            '$reasonRequest',
+            dpp_lain_value,
+            dpp_lain_pembilang,
+            dpp_lain_penyebut
         from purchase_order_hdr where po_number = '$poOrigin'";
 
         // regexp_replace(CONCAT(note,', $reason'),', ',''),
@@ -677,6 +718,10 @@ class PurchaseOrderController extends Controller
         $totalPph = $request->totalPph;
         $discount = $request->discount;
         $note = $request->note;
+
+        $dppLainValue=is_null($request->totalDppNilaiLain) ? 0 : preg_replace('/[^0-9.]+/', '', $request->totalDppNilaiLain);
+        $dppPembilang = $request->pembilangNumber;
+        $dppPenyebut = $request->penyebutNumber;
         
         $statusSimpan = $request->statusSimpan;
         if ( $statusSimpan == 'approve' ){
@@ -744,7 +789,10 @@ class PurchaseOrderController extends Controller
                             'termin' =>$termin,
                             'order_type' => $poType,
                             'updated_by' => Auth::user()->username,
-                            'updated_at' => date('Y-m-d H:i:s')
+                            'updated_at' => date('Y-m-d H:i:s'),
+                            'dpp_lain_value' => $dppLainValue,
+                            'dpp_lain_pembilang' => $dppPembilang,
+                            'dpp_lain_penyebut' => $dppPenyebut
                         ]
                     );
 
@@ -784,7 +832,16 @@ class PurchaseOrderController extends Controller
                         ->where('po_number',$poNumber)
                         ->delete();
                                   
+                    $dppLainBagi = $dppLainValue ? $dppPembilang/$dppPenyebut : 1;
+
                     foreach ($articles as $val) {
+                        
+                        if($dppLainValue){
+                            $ppnFinal =  (($val->price*$val->qty)+($val->price_service*$val->qty)*$dppLainBagi) * $ppn/100;
+                        }else{
+                            $ppnFinal =  (($val->price*$val->qty)+($val->price_service*$val->qty)) * $ppn/100;
+                        }
+
                         DB::table('purchase_order_det')
                         ->updateOrInsert(
                             ['po_number' => $poNumber
@@ -799,7 +856,8 @@ class PurchaseOrderController extends Controller
                             'uom' => $val->uom,
                             // 'old_price' => $val->price,
                             'price' => $val->newPrice,
-                            'ppn' => round(($val->qty*$val->newPrice)*($ppn/100)),
+                            'ppn' => round($ppnFinal),
+                            // 'ppn' => round(($val->qty*$val->newPrice)*($ppn/100)),
                             'pph22' => $totalPph,
                             'updated_by' => Auth::user()->username,
                             'updated_at' => date('Y-m-d H:i:s')

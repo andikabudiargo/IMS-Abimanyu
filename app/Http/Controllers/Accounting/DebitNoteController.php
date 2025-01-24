@@ -36,11 +36,9 @@ class DebitNoteController extends Controller
         // ->where('attr_id','mainppn')
         // ->value('attr_value');
 
-        $this->nilaiPpn  = Attributes::getLastPpn();
-
-        // $this->nilaiPpn  = Attributes::getLastPpn()['ppnValue'];
-        // $this->ppnPembilang = Attributes::getLastPpn()['pembilang'];
-        // $this->ppnPenyebut = Attributes::getLastPpn()['penyebut'];
+        $this->nilaiPpn  = Attributes::getLastPpn()['ppnValue'];
+        $this->ppnPembilang = Attributes::getLastPpn()['pembilang'];
+        $this->ppnPenyebut = Attributes::getLastPpn()['penyebut'];
 
         $this->nilaiPph23 = DB::table('attributes')
         ->where('attr_id','mainpph23')
@@ -82,7 +80,7 @@ class DebitNoteController extends Controller
             ['data'=> 'po_number', 'name'=> 'po_number','title'=>'PO Number' ],
             ['data'=> 'customer_name', 'name'=> 'customer_name','title'=>'Customer' ],
             ['data'=> 'dpp', 'name'=> 'dpp','title'=>'DPP' ],
-            // ['data'=> 'dpp_lain_value', 'name'=> 'dpp_lain_value','title'=>'DPP Nilai Lain'],
+            ['data'=> 'dpp_lain_value', 'name'=> 'dpp_lain_value','title'=>'DPP Nilai Lain'],
             ['data'=> 'total_ppn', 'name'=> 'total_ppn','title'=>'PPN' ],
             ['data'=> 'total_pph', 'name'=> 'total_pph','title'=>'PPH' ],
             ['data'=> 'grand_total', 'name'=> 'grand_total','title'=>'Total' ],
@@ -228,8 +226,8 @@ class DebitNoteController extends Controller
         $data['nilaiPPN'] = $this->nilaiPpn;
         $data['nilaiPPH'] = $this->nilaiPph23;
 
-        // $data['ppnPenyebut'] = $this->ppnPenyebut;
-        // $data['ppnPembilang'] = $this->ppnPembilang; 
+        $data['ppnPenyebut'] = $this->ppnPenyebut;
+        $data['ppnPembilang'] = $this->ppnPembilang; 
 
         $data['status']='DRAFT';
 
@@ -1185,7 +1183,7 @@ class DebitNoteController extends Controller
         $data['status'] ='1';
         $data['no'] = 0 ;
 
-        $ppn = $this->nilaiPpn;;
+        $ppn = $this->nilaiPpn;
         $data['nilaiPPN'] = $header->ppn ? $header->ppn : $ppn;
         $data['nilaiPPH'] = $header->pph23 ? $header->pph23 : $this->nilaiPph23;
         // $data['totalPpn'] = $header->total_ppn;

@@ -21,6 +21,9 @@
                             @csrf
                             <input type="text" id="ppn" name="ppn" values="{{ $nilaiPPN }}" hidden>
                             <input type="text" id="pph23" name="ppn23" values="{{ $nilaiPPH }}" hidden>
+                            <input type="text" class="form-control" id="pembilangNumber" name="pembilangNumber" value="{{ $header->dpp_lain_pembilang }}" hidden/>
+                            <input type="text" class="form-control" id="penyebutNumber" name="penyebutNumber" value="{{ $header->dpp_lain_penyebut }}" hidden/>
+
                             <div class="row">
                                 <div class="col-md-6 col-12">
                                     <div class="form-row">
@@ -119,40 +122,50 @@
                 </div>
                 <div class="card-body">
                     @include('invoice.headerColumn')
-
                     <div class="" id="articleRow" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px">
                     </div>
-
                     <div class="" id="article_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px" hidden>
                         <input type="text" id ="last_row_number" class="d-none" value="{{ count($detail) }}">
                     </div>
                     <div class="d-flex justify-content-between align-items-end mt-75 ml-75">
                     </div>
                     <div class="d-flex justify-content-between align-items-end mt-75">
-                        <div class="col-md-4">
+                        <div class="col-md-7">
                             <div class="form-group row mb-03">
-                                <label for="totalRow" class="col-sm-4 col-form-label titik-dua tanpa-padding">Row(s)</label>
-                                <div class="col-sm-3">
+                                <label for="totalRow" class="col-sm-2 col-form-label titik-dua tanpa-padding">Row(s)</label>
+                                <div class="col-sm-2">
                                     <input type="text" class="form-control text-right font-weight-bold" id="totalRow" disabled/>
                                 </div>
                             </div>
                             <div class="form-group row mb-03">
-                                <label for="totalQTY" class="col-sm-4 col-form-label titik-dua tanpa-padding">Total QTY</label>
-                                <div class="col-sm-5">
+                                <label for="totalQTY" class="col-sm-2 col-form-label titik-dua tanpa-padding">Total QTY</label>
+                                <div class="col-sm-2">
                                     <input type="text" class="form-control text-right font-weight-bold" id="totalQTY" disabled/>
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <div class="form-group row mb-03">
-                                <label for="totalAmount" class="col-sm-4 col-form-label titik-dua tanpa-padding">DPP</label>
+                                <label for="totalAmount" class="col-sm-4 col-form-label titik-dua tanpa-padding">Selling Price</label>
                                 <div class="col-sm-6">
                                     <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el" id="totalAmount" value="{{ $header->grand_total>0 ?  number_format($header->grand_total,2) : 0 }}"disabled />
                                     <input type="hidden" class="form-control text-right font-weight-bold" id="totalAmountJasa"/>
                                 </div>
                             </div>
                             <div class="form-group row mb-03">
-                                <label for="totalPPN" class="col-sm-4 col-form-label titik-dua">PPN <span id="nilaiPPN"></span> </label>
+                                <label for="nilaiLainCheck" class="col-sm-4 col-form-label titik-dua">VAT Object <span id="nilaiDppLain">{{ $header->dpp_lain_value  ? $header->dpp_lain_pembilang."/".$header->dpp_lain_penyebut : '' }}</span></label>
+                                <div class="col-sm-1" style="padding-right: 0rem;display: flex;align-items: center;">
+                                    <div class="custom-control custom-checkbox">
+                                        <input type="checkbox" class="custom-control-input" id="nilaiLainCheck" name="nilaiLainCheck" {{ $header->dpp_lain_value >0 ? 'checked' : '' }}/>
+                                        <label class="custom-control-label" for="nilaiLainCheck"></label>
+                                    </div>
+                                </div>    
+                                <div class="col-sm-5">
+                                    <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el" oninput='inputDecimal(this)' value="{{ $header->dpp_lain_value>0 ? number_format($header->dpp_lain_value,2) : 0 }}" id="totalDppNilaiLain"  name="totalDppNilaiLain" disabled/>
+                                </div>
+                            </div>
+                            <div class="form-group row mb-03">
+                                <label for="totalPPN" class="col-sm-4 col-form-label titik-dua">VAT <span id="nilaiPPN"></span></label>
                                 <div class="col-sm-1" style="padding-right: 0rem;display: flex;align-items: center;">
                                     <div class="custom-control custom-checkbox">
                                         <input type="checkbox" class="custom-control-input" id="vatCheck" name="vatCheck" {{ $header->total_ppn >0 ? 'checked' : '' }} />
@@ -164,7 +177,7 @@
                                 </div>
                             </div>
                             <div class="form-group row mb-03">
-                                <label for="totalPPH" class="col-sm-4 col-form-label titik-dua">PPH23 <span id="nilaiPPH"></span> </label>
+                                <label for="totalPPH" class="col-sm-4 col-form-label titik-dua">WHT 23 <span id="nilaiPPH"></span> </label>
                                 <div class="col-sm-1" style="padding-right: 0rem;display: flex;align-items: center;">
                                     <div class="custom-control custom-checkbox">
                                         <input type="checkbox" class="custom-control-input" id="pph23Check" name="pph23Check" name="vatCheck" {{ $header->total_pph >0 ? 'checked' : '' }}/>
@@ -176,7 +189,7 @@
                                 </div>
                             </div>
                             <div class="form-group row mb-03">
-                                <label for="totalNetto" class="col-sm-4 col-form-label titik-dua tanpa-padding">Netto</label>
+                                <label for="totalNetto" class="col-sm-4 col-form-label titik-dua tanpa-padding">Total Bill</label>
                                 <div class="col-sm-6">
                                     <input type="text" class="form-control text-right numeral-mask-digit font-weight-bold" id="totalNetto" value="{{ $header->grand_total>0 ? $header->grand_total : 0 }}" disabled/>
                                 </div>
@@ -546,6 +559,9 @@
                 let totalAmount = $('#totalAmount').val().replace(/,/gi, '') || 0;
                 let grandTotal = $('#totalNetto').val().replace(/,/gi, '') || 0;
                 let sendingDate = $('#sendingDate').val();
+                let aPembilangNumber = $('#pembilangNumber').val();
+                let aPenyebutNumber = $('#penyebutNumber').val();
+                let aTotalDppNilaiLain = $('#totalDppNilaiLain').val().replace(/,/gi, '') || 0;
 
                 $.ajax({
                     type: "post",
@@ -565,7 +581,10 @@
                         fakturPajak:fakturPajak,
                         totalAmount:totalAmount,
                         grandTotal:grandTotal,
-                        sendingDate:sendingDate
+                        sendingDate:sendingDate,
+                        pembilangNumber:aPembilangNumber,
+                        penyebutNumber:aPenyebutNumber,
+                        totalDppNilaiLain:aTotalDppNilaiLain
                     },
                     dataType: "json",
                     success: function(data) {
@@ -584,6 +603,7 @@
                             $('#customer').attr('disabled','disabled');
                             $('#totalPPN').attr('disabled','disabled');
                             $('#totalPPH').attr('disabled','disabled');
+                            $('#totalDppNilaiLain').attr('disabled','disabled');
                             // $('#cmdSave').attr('disabled','disabled');
                         }
                     },

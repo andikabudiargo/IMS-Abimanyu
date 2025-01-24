@@ -210,6 +210,10 @@
                                                             <td class="text-right">{{ number_format($header2->sum_amount,2) }}</td>
                                                         </tr>
                                                         <tr>
+                                                            <td>DPP Nilai Lain {{ $header2->dpp_lain_pembilang ? $header2->dpp_lain_pembilang.'/'.$header2->dpp_lain_penyebut :'' }}</td>
+                                                            <td class="text-right">{{ number_format($header2->dpp_lain_value,2) }}</td>
+                                                        </tr>
+                                                        <tr>
                                                             <td>PPN {{ $header->ppn }}%</td>
                                                             <td class="text-right">{{ number_format($header2->sum_ppn,2) }}</td>
                                                         </tr>

@@ -22,6 +22,9 @@
                             {{-- <input type="text" id="poNumberi" name="poNumberi" hidden> --}}
                             <input type="text" id="ppn" name="ppn" values="{{ $nilaiPPN }}" hidden>
                             <input type="text" id="pph23" name="ppn23" values="{{ $nilaiPPH }}" hidden>
+                            <input type="text" class="form-control" id="pembilangNumber" name="pembilangNumber" hidden/>
+                            <input type="text" class="form-control" id="penyebutNumber" name="penyebutNumber" hidden/>
+
                             <div class="row">
                                 <div class="col-md-6 col-12">
                                     <div class="form-row">
@@ -123,37 +126,47 @@
                 <div class="card-body" >
                     @include('invoice.headerColumn')
                     <input type="text" id ="last_row_number" class="d-none" value="0">
-                    
                     <div class="" id="articleRow" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px">
                     </div>
-
                     <div class="" id="article_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px" hidden>
                     </div>
                     <div class="d-flex justify-content-between align-items-end mt-75">
-                        <div class="col-md-4">
+                        <div class="col-md-7">
                             <div class="form-group row mb-03">
-                                <label for="totalRow" class="col-sm-4 col-form-label titik-dua tanpa-padding">Row(s)</label>
-                                <div class="col-sm-3">
+                                <label for="totalRow" class="col-sm-2 col-form-label titik-dua tanpa-padding">Row(s)</label>
+                                <div class="col-sm-2">
                                     <input type="text" class="form-control text-right font-weight-bold" id="totalRow" disabled/>
                                 </div>
                             </div>
                             <div class="form-group row mb-03">
-                                <label for="totalQTY" class="col-sm-4 col-form-label titik-dua tanpa-padding">Total QTY</label>
-                                <div class="col-sm-5">
+                                <label for="totalQTY" class="col-sm-2 col-form-label titik-dua tanpa-padding">Total QTY</label>
+                                <div class="col-sm-2">
                                     <input type="text" class="form-control text-right font-weight-bold" id="totalQTY" disabled/>
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <div class="form-group row mb-03">
-                                <label for="totalAmount" class="col-sm-4 col-form-label titik-dua tanpa-padding">DPP</label>
+                                <label for="totalAmount" class="col-sm-4 col-form-label titik-dua tanpa-padding">Selling Price</label>
                                 <div class="col-sm-6">
                                     <input type="text" class="form-control text-right font-weight-bold" id="totalAmount" disabled />
                                     <input type="hidden" class="form-control text-right font-weight-bold" id="totalAmountJasa" disabled />
                                 </div>
                             </div>
                             <div class="form-group row mb-03">
-                                <label for="totalPPN" class="col-sm-4 col-form-label titik-dua">PPN <span id="nilaiPPN"></span> </label>
+                                <label for="nilaiLainCheck" class="col-sm-4 col-form-label titik-dua">VAT Object <span id="nilaiDppLain"></span></label>
+                                <div class="col-sm-1" style="padding-right: 0rem;display: flex;align-items: center;">
+                                    <div class="custom-control custom-checkbox">
+                                        <input type="checkbox" class="custom-control-input" id="nilaiLainCheck" name="nilaiLainCheck" />
+                                        <label class="custom-control-label" for="nilaiLainCheck"></label>
+                                    </div>
+                                </div>    
+                                <div class="col-sm-5">
+                                    <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el" oninput='inputDecimal(this)' id="totalDppNilaiLain"  name="totalDppNilaiLain" disabled/>
+                                </div>
+                            </div>
+                            <div class="form-group row mb-03">
+                                <label for="totalPPN" class="col-sm-4 col-form-label titik-dua">VAT <span id="nilaiPPN"></span> </label>
                                 <div class="col-sm-1" style="padding-right: 0rem;display: flex;align-items: center;">
                                     <div class="custom-control custom-checkbox">
                                         <input type="checkbox" class="custom-control-input" id="vatCheck" name="vatCheck" />
@@ -165,7 +178,7 @@
                                 </div>
                             </div>
                             <div class="form-group row mb-03">
-                                <label for="totalPPH" class="col-sm-4 col-form-label titik-dua">PPH23 <span id="nilaiPPH"></span> </label>
+                                <label for="totalPPH" class="col-sm-4 col-form-label titik-dua">WHT 23 <span id="nilaiPPH"></span> </label>
                                 <div class="col-sm-1" style="padding-right: 0rem;display: flex;align-items: center;">
                                     <div class="custom-control custom-checkbox">
                                         <input type="checkbox" class="custom-control-input" id="pph23Check" name="pph23Check" />
@@ -177,7 +190,7 @@
                                 </div>
                             </div>
                             <div class="form-group row mb-03">
-                                <label for="totalNetto" class="col-sm-4 col-form-label titik-dua tanpa-padding">Netto</label>
+                                <label for="totalNetto" class="col-sm-4 col-form-label titik-dua tanpa-padding">Total Bill</label>
                                 <div class="col-sm-6">
                                     <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el" id="totalNetto" disabled/>
                                 </div>
@@ -374,6 +387,9 @@
                     let totalAmount = $('#totalAmount').val().replace(/,/gi, '') || 0;
                     let grandTotal = $('#totalNetto').val().replace(/,/gi, '') || 0;
                     let sendingDate = $('#sendingDate').val();
+                    let aPembilangNumber = $('#pembilangNumber').val();
+                    let aPenyebutNumber = $('#penyebutNumber').val();
+                    let aTotalDppNilaiLain = $('#totalDppNilaiLain').val().replace(/,/gi, '') || 0;
     
                     $.ajax({
                         type: "post",
@@ -393,7 +409,10 @@
                             fakturPajak:fakturPajak,
                             totalAmount:totalAmount,
                             grandTotal:grandTotal,
-                            sendingDate:sendingDate
+                            sendingDate:sendingDate,
+                            pembilangNumber:aPembilangNumber,
+                            penyebutNumber:aPenyebutNumber,
+                            totalDppNilaiLain:aTotalDppNilaiLain
                         },
                         dataType: "json",
                         success: function(data) {

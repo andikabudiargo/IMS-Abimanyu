@@ -35,6 +35,8 @@ class InvoiceController extends Controller
     private $nilaiPph23;
     private $lockDate;
     private $lockDateIndex;
+    private $ppnPenyebut;
+    private $ppnPembilang;
 
     public function __construct()
     {
@@ -45,7 +47,9 @@ class InvoiceController extends Controller
         // ->where('attr_id','mainppn')
         // ->value('attr_value');
 
-        $this->nilaiPpn  = Attributes::getLastPpn();
+        $this->nilaiPpn  = Attributes::getLastPpn()['ppnValue'];
+        $this->ppnPembilang = Attributes::getLastPpn()['pembilang'];
+        $this->ppnPenyebut = Attributes::getLastPpn()['penyebut'];
 
         $this->nilaiPph23 = DB::table('attributes')
         ->where('attr_id','mainpph23')
@@ -88,6 +92,7 @@ class InvoiceController extends Controller
             ['data'=> 'po_number', 'name'=> 'po_number','title'=>'PO Number' ],
             ['data'=> 'customer_name', 'name'=> 'customer_name','title'=>'Customer' ],
             ['data'=> 'dpp', 'name'=> 'dpp','title'=>'DPP' ],
+            ['data'=> 'dpp_lain_value', 'name'=> 'dpp_lain_value','title'=>'DPP Nilai Lain'],
             ['data'=> 'total_ppn', 'name'=> 'total_ppn','title'=>'PPN' ],
             ['data'=> 'total_pph', 'name'=> 'total_pph','title'=>'PPH' ],
             ['data'=> 'grand_total', 'name'=> 'grand_total','title'=>'Total' ],
@@ -340,8 +345,11 @@ class InvoiceController extends Controller
 
         $data['nilaiPPN'] = $this->nilaiPpn;
         $data['nilaiPPH'] = $this->nilaiPph23;
+        $data['ppnPenyebut'] = $this->ppnPenyebut;
+        $data['ppnPembilang'] = $this->ppnPembilang; 
 
         $data['status']='NEW';
+
 
         return view("invoice.create",$data);
     }
@@ -374,6 +382,10 @@ class InvoiceController extends Controller
 
         $sendingDate = $request->sendingDate;
 
+        $dppLainValue=is_null($request->totalDppNilaiLain) ? 0 : preg_replace('/[^0-9.]+/', '', $request->totalDppNilaiLain);
+        $dppPembilang = $request->pembilangNumber;
+        $dppPenyebut = $request->penyebutNumber;
+
        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','6'=>'PAID','7'=>'REVISED'];
 
         $messages = [
@@ -388,14 +400,14 @@ class InvoiceController extends Controller
             return !$query->whereRaw("lower({$column}) = lower(?)", [$value])->count();
         });
 
-        $validation = Validator::make($request->all(),$messages = [
+        $validation = Validator::make($request->all(),$rules = [
             // 'poNumber'=>'required|unique:sales_order_hdr,po_number',
             // // 'orderNumber' => 'required',
             // 'orderDate'  => 'required',
             // 'currency'  => 'required',
             // 'type'  => 'required',
             'customer'  => 'required',
-        ]);
+        ],$messages);
         
         $error_array = array();
         $success_output = '';
@@ -442,7 +454,10 @@ class InvoiceController extends Controller
                     'period'=> $period,
                     'account_piutang' =>$accountPiutang,
                     'account_penjualan' =>$accountPenjualan,
-                    'sending_date' => $sendingDate
+                    'sending_date' => $sendingDate,
+                    'dpp_lain_value' => $dppLainValue,
+                    'dpp_lain_pembilang' => $dppPembilang,
+                    'dpp_lain_penyebut' => $dppPenyebut
                 ]);
 
                 $dataSet = [];
@@ -561,7 +576,9 @@ class InvoiceController extends Controller
         ->where ('so_code','=',$data['header'] -> so_number)
         ->value('ppn');
 
-        $data['nilaiPPN'] = $data['header']->ppn ? $data['header']->ppn :$ppn;        
+        $data['nilaiPPN'] = $data['header']->ppn ? $data['header']->ppn :$ppn; 
+        $data['ppnPenyebut'] = $this->ppnPenyebut;
+        $data['ppnPembilang'] = $this->ppnPembilang;        
         // $data['nilaiPPN'] = $this->nilaiPpn;
         $data['nilaiPPH'] = $this->nilaiPph23;
 
@@ -632,6 +649,9 @@ class InvoiceController extends Controller
         // $data['nilaiPPN'] = $data['header']->ppn;        
         $data['nilaiPPH'] = $this->nilaiPph23;
 
+        $data['ppnPenyebut'] = $this->ppnPenyebut;
+        $data['ppnPembilang'] = $this->ppnPembilang; 
+
         return view("invoice.edit",$data);
     }
 
@@ -663,6 +683,10 @@ class InvoiceController extends Controller
         $accountPiutang = DB::table('third_party')->where('kode',$customer)->value('account');
 
         $sendingDate = $request->sendingDate;
+
+        $dppLainValue=is_null($request->totalDppNilaiLain) ? 0 : preg_replace('/[^0-9.]+/', '', $request->totalDppNilaiLain);
+        $dppPembilang = $request->pembilangNumber;
+        $dppPenyebut = $request->penyebutNumber;
 
         // $data['status'] = ['1'=>'DRAFT','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','6'=>'PAID'];
 
@@ -729,7 +753,10 @@ class InvoiceController extends Controller
                             'period' =>$period,
                             'account_piutang' =>$accountPiutang,
                             'account_penjualan' =>$accountPenjualan,
-                            'sending_date' => $sendingDate
+                            'sending_date' => $sendingDate,
+                            'dpp_lain_value' => $dppLainValue,
+                            'dpp_lain_pembilang' => $dppPembilang,
+                            'dpp_lain_penyebut' => $dppPenyebut
                         ]
                     );
 
@@ -1462,9 +1489,7 @@ class InvoiceController extends Controller
         ->orderBy('article.article_code')
         ->offset($limits)
         ->get();
-
-        
-        
+       
         $header=DB::table('invoice_hdr')
         ->where('invoice_number',$invNumber)
         ->first();
@@ -1477,7 +1502,9 @@ class InvoiceController extends Controller
 
         $data['listpo'] = $listpo[0]->po_list;
 
-        $data['totals']=DB::select("SELECT total_ppn as ppn,
+        $data['totals']=DB::select("SELECT 
+        b.dpp_lain_value,
+        total_ppn as ppn,
         total_material,
         total_service,
         total_pph as pph23 
@@ -1509,9 +1536,10 @@ class InvoiceController extends Controller
         // ->where ('so_code','=',$invHdr->so_number)
         // ->value('ppn');
 
-        $ppn = Attributes::getLastPpn($invHdr->invoice_date);
+        $ppn = Attributes::getLastPpn($invHdr->invoice_date)['ppnValue'];
 
         // $data['nilaiPPN'] = $this->nilaiPpn;
+        // $data['nilaiPPN'] = $invHdr->ppn ? $invHdr->ppn : $ppn;  
         $data['nilaiPPN'] = $invHdr->ppn ? $invHdr->ppn : $ppn;       
         // $data['nilaiPPN'] = $data['header']->ppn;        
         $data['nilaiPPH'] = $this->nilaiPph23;

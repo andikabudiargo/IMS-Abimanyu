@@ -60,6 +60,8 @@
                                     <label class="form-label" for="ppn">PPN</label>
                                     <div class="input-group">
                                         <input type="text" class="form-control angka text-right" id = "ppn" name="ppn" value="{{ $header->ppn }}" maxlength="2" />
+                                        <input type="text" class="form-control" id="pembilangNumber" name="pembilangNumber" value="{{ $header->dpp_lain_pembilang }}" hidden />
+                                        <input type="text" class="form-control" id="penyebutNumber" name="penyebutNumber" value="{{ $header->dpp_lain_penyebut }}" hidden/>
                                         <div class="input-group-append">
                                             <span class="input-group-text">%</span>
                                         </div>
@@ -198,7 +200,7 @@
                     </div>
                     <hr>
                     <div class="d-flex justify-content-between align-items-end mt-75">
-                        <div class="col-md-4">
+                        <div class="col-md-7">
                             <div class="form-group row mb-03">
                                 <label for="totalRow" class="col-sm-4 col-form-label titik-dua tanpa-padding">Row(s)</label>
                                 <div class="col-sm-3">
@@ -212,11 +214,23 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <div class="form-group row mb-03">
                                 <label for="totalAmount" class="col-sm-4 col-form-label titik-dua tanpa-padding">Bruto</label>
                                 <div class="col-sm-6">
                                     <input type="text" class="form-control text-right font-weight-bold" id="totalAmount" disabled />
+                                </div>
+                            </div>
+                            <div class="form-group row mb-03">
+                                <label for="nilaiLainCheck" class="col-sm-4 col-form-label titik-dua">DPP Nilai Lain <span id="nilaiDppLain">{{ $header->dpp_lain_value  ? $header->dpp_lain_pembilang."/".$header->dpp_lain_penyebut : '' }}</span></label>
+                                <div class="col-sm-1" style="padding-right: 0rem;display: flex;align-items: center;">
+                                    <div class="custom-control custom-checkbox">
+                                        <input type="checkbox" class="custom-control-input" id="nilaiLainCheck" name="nilaiLainCheck" {{ $header->dpp_lain_value >0 ? 'checked' : '' }}/>
+                                        <label class="custom-control-label" for="nilaiLainCheck"></label>
+                                    </div>
+                                </div>    
+                                <div class="col-sm-5">
+                                    <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit" oninput='inputDecimal(this)' value="{{ $header->dpp_lain_value>0 ? number_format($header->dpp_lain_value,2) : 0 }}" id="totalDppNilaiLain"  name="totalDppNilaiLain" disabled/>
                                 </div>
                             </div>
                             <div class="form-group row mb-03">
@@ -469,6 +483,9 @@
                 let totalPph = $('#totalPPH').val().replace(/,/gi, '') || 0;
                 let note = $('#note').val();
                 let approveLevel = $('#approveLevel').val();
+                let aPembilangNumber = $('#pembilangNumber').val();
+                let aPenyebutNumber = $('#penyebutNumber').val();
+                let aTotalDppNilaiLain = $('#totalDppNilaiLain').val().replace(/,/gi, '') || 0;
         
                 $.ajax({
                     type: "post",
@@ -488,7 +505,10 @@
                         totalPpn:totalPpn,
                         note:note,
                         approveLevel:approveLevel,
-                        statusSimpan:statusSimpan
+                        statusSimpan:statusSimpan,
+                        pembilangNumber:aPembilangNumber,
+                        penyebutNumber:aPenyebutNumber,
+                        totalDppNilaiLain:aTotalDppNilaiLain
                     },
                     dataType: "json",
                     success: function(data) {
@@ -503,6 +523,7 @@
                         }else{
                             show_msg(data.title, data.message, data.alert);
                             $('#orderNum').attr('disabled','disabled');
+                            $('#totalDppNilaiLain').prop('disabled',true);
                             reloadPage();
                         }
                     },

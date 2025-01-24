@@ -160,7 +160,7 @@
                     <div class="d-flex justify-content-between align-items-end mt-75 ml-75">
                     </div>
                     <div class="d-flex justify-content-between align-items-end mt-75">
-                        <div class="col-md-4">
+                        <div class="col-md-7">
                             {{-- <div class="form-group row mb-03">
                                 <label for="totalRow" class="col-sm-4 col-form-label titik-dua tanpa-padding">Row(s)</label>
                                 <div class="col-sm-3">
@@ -174,27 +174,33 @@
                                 </div>
                             </div> --}}
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <div class="form-group row mb-03">
-                                <label for="totalAmount" class="col-sm-4 col-form-label titik-dua tanpa-padding">DPP</label>
+                                <label for="totalAmount" class="col-sm-4 col-form-label titik-dua tanpa-padding">Selling Price</label>
                                 <div class="col-sm-6">
                                     <input type="text" class="form-control text-right font-weight-bold" id="totalAmount" value="{{ number_format((($header->grand_total-$header->total_ppn)+$header->total_pph),2) }}" disabled />
                                 </div>
                             </div>
                             <div class="form-group row mb-03">
-                                <label for="totalPPN" class="col-sm-4 col-form-label titik-dua tanpa-padding">PPN <span id="nilaiPPN">{{ $nilaiPPN }}%</span> </label>
+                                <label for="totalDppNilaiLain" class="col-sm-4 col-form-label titik-dua">VAT Object <span id="nilaiDppLain">{{ $header->dpp_lain_value  ? $header->dpp_lain_pembilang."/".$header->dpp_lain_penyebut : '' }}</span></label>
+                                <div class="col-sm-6">
+                                    <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el" oninput='inputDecimal(this)' value="{{ $header->dpp_lain_value>0 ? number_format($header->dpp_lain_value,2) : 0 }}" id="totalDppNilaiLain"  name="totalDppNilaiLain" disabled/>
+                                </div>
+                            </div>
+                            <div class="form-group row mb-03">
+                                <label for="totalPPN" class="col-sm-4 col-form-label titik-dua tanpa-padding">VAT <span id="nilaiPPN">{{ $nilaiPPN }}%</span> </label>
                                 <div class="col-sm-6">
                                     <input type="text" class="form-control text-right font-weight-bold" id="totalPPN" value="{{ number_format($header->total_ppn,2) }}"  disabled/>
                                 </div>
                             </div>
                             <div class="form-group row mb-03">
-                                <label for="totalPPH" class="col-sm-4 col-form-label titik-dua tanpa-padding">PPH23 <span id="nilaiPPH23">{{ $nilaiPPH }}%</span> </label>
+                                <label for="totalPPH" class="col-sm-4 col-form-label titik-dua tanpa-padding">WHT 23 <span id="nilaiPPH23">{{ $nilaiPPH }}%</span> </label>
                                 <div class="col-sm-6">
                                     <input type="text" class="form-control text-right font-weight-bold" id="totalPPH" value="{{ number_format($header->total_pph,2) }}" disabled/>
                                 </div>
                             </div>
                             <div class="form-group row mb-03">
-                                <label for="totalNetto" class="col-sm-4 col-form-label titik-dua tanpa-padding">Netto</label>
+                                <label for="totalNetto" class="col-sm-4 col-form-label titik-dua tanpa-padding">Total Bill</label>
                                 <div class="col-sm-6">
                                     <input type="text" class="form-control text-right font-weight-bold" id="totalNetto" value="{{ number_format($header->grand_total,2) }}" disabled/>
                                 </div>

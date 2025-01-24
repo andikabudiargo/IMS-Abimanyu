@@ -7,6 +7,8 @@
     let sNilaiPPH23= "{{ $nilaiPPH23 }}";
     let sNilaiPPH21= "{{ $nilaiPPH21 }}";
     let sNilaiPPH42= "{{ $nilaiPPH42 }}";
+    let sNilaiPpnPembilang= "{{ $ppnPembilang }}";
+    let sNilaiPpnPenyebut= "{{ $ppnPenyebut }}";
     let showDetail="";
     let listArticle="";
     let listCoa="";
@@ -14,7 +16,13 @@
     let dariEdit="";
     let urutanRow = 0;
     let depts = '{!! $depts !!}';
-    $("#ppnValue").val("{{ $nilaiPPN }}");
+
+    $("#ppnValue").val(sNilaiPPN);
+    $("#pembilangNumber").val(sNilaiPpnPembilang);
+    $("#penyebutNumber").val(sNilaiPpnPenyebut);
+
+    // let ppnPenyebut = "{{ $ppnPenyebut }}";
+    // let ppnPembilang = "{{ $ppnPembilang }}"; 
 
     invoiceDate = $('#invoiceDate');
     if (invoiceDate.length) {
@@ -25,6 +33,7 @@
 
     let delayTimer;
     let delayTimerTax;
+    let delayTimerLain;
     function inputDecimal(ele) {
         clearTimeout(delayTimer);
         delayTimer = setTimeout(function() {
@@ -121,39 +130,132 @@
         }
     });
 
+    hitungPpn = () => {
+        let aInvDate = invoiceDate.val();
+        if(aInvDate){
+            getActivePpn(aInvDate).done(function (result) {
+                if(result){
+                    sNilaiPPN = result.ppnValue;
+                    sNilaiPpnPembilang = result.pembilang;
+                    sNilaiPpnPenyebut = result.penyebut;
+                    $("#ppnValue").val(sNilaiPPN);
+                    $("#pembilangNumber").val(sNilaiPpnPembilang);
+                    $("#penyebutNumber").val(sNilaiPpnPenyebut);
+                    // sNilaiPPN = result;
+                    // console.log(sNilaiPPN);
+                }
+            })
+        }
+        
+        let basisAmount = parseFloat($('#basisAmount').val().replace(/,/gi, '')) || 0;
+
+        if($("#totalDppNilaiLain").val()){
+            basisAmount = $("#totalDppNilaiLain").val().replace(/,/gi, '');
+        }
+
+        let zTotalPPn = Math.round(basisAmount * (sNilaiPPN/100));
+        console.log(`BA Tanpa pembulatan dari ppn:${basisAmount * (sNilaiPPN/100)}`);
+        // $("#totalPPN").val(parseFloat(basisAmount * (sNilaiPPN/100)).toFixed(2));
+        $("#totalPPN").val(parseFloat(zTotalPPn).toFixed(2));
+        $("#nilaiPPN").text(sNilaiPPN+'%');
+        $("#totalPPN").removeAttr('disabled');
+        $("#taxInvoiceNumber").removeAttr('disabled');
+        $("#taxInvoiceNumber").prop('required',true);
+        $("#totalPPN").prop('required',true);
+        $("#totalPPN").focus().select();
+        mask_thousand_digit(2);
+        mask_thousand();
+        hitungTotal();
+    }
+
     $("#vatCheck").change(function() {
-        if(this.checked) {
-            let aInvDate = invoiceDate.val();
-            if(aInvDate){
-                getActivePpn(aInvDate).done(function (result) {
-                    if(result){
-                        sNilaiPPN = result;
-                        $("#ppnValue").val(sNilaiPPN);
-                        console.log(sNilaiPPN);
-                    }
-                })
+        let aInvDate = invoiceDate.val();
+        if (aInvDate){
+            if(this.checked) {
+                hitungPpn();
+            }else{
+                $("#totalPPN").val('');
+                $("#nilaiPPN").text('');
+                $("#taxInvoiceNumber").val('');
+                $("#taxInvoiceNumber").attr('disabled','disabled');
+                $("#taxInvoiceNumber").prop('required',false);
+                $("#totalPPN").prop('required',false);
+                $("#totalPPN").attr('disabled','disabled');
+                $("#nilaiDppLain").text('');
+                $("#totalDppNilaiLain").val('');
+                $("#nilaiLainCheck").prop('checked', false);
+                hitungTotal();
             }
-            
-            let basisAmount = parseFloat($('#basisAmount').val().replace(/,/gi, '')) || 0;
-            $("#totalPPN").val(parseFloat(basisAmount * (sNilaiPPN/100)).toFixed(2));
-            $("#nilaiPPN").text(sNilaiPPN+'%');
-            $("#totalPPN").removeAttr('disabled');
-            $("#taxInvoiceNumber").removeAttr('disabled');
-            $("#taxInvoiceNumber").prop('required',true);
-            $("#totalPPN").prop('required',true);
-            $("#totalPPN").focus().select();
-            mask_thousand_digit(2);
-            mask_thousand();
-            hitungTotal();
         }else{
-            $("#totalPPN").val('');
-            $("#nilaiPPN").text('');
-            $("#taxInvoiceNumber").val('');
-            $("#taxInvoiceNumber").attr('disabled','disabled');
-            $("#taxInvoiceNumber").prop('required',false);
-            $("#totalPPN").prop('required',false);
-            $("#totalPPN").attr('disabled','disabled');
-            hitungTotal();
+            swal.fire('Warning',"Invoice date belum diisi !!",'warning');
+            $("#vatCheck").prop('checked', false);
+            $("#nilaiLainCheck").prop('checked', false);
+        }
+    });
+
+    hitungNilaiLain = () =>{
+        let aInvDate = invoiceDate.val();
+        if(aInvDate){
+            getActivePpn(aInvDate).done(function (result) {
+                if(result){
+                    sNilaiPPN = result.ppnValue;
+                    sNilaiPpnPembilang = result.pembilang;
+                    sNilaiPpnPenyebut = result.penyebut;
+                    $("#ppnValue").val(sNilaiPPN);
+                    $("#pembilangNumber").val(sNilaiPpnPembilang);
+                    $("#penyebutNumber").val(sNilaiPpnPenyebut);
+
+                    // console.log(sNilaiPPN);
+                }
+            })
+        }
+        
+        /*
+            jika ada DPP nilai lain maka perhituangan DPP lain-lain
+            rumus 11/12* 
+            dan untuk PPN 12% nya dihitung dari DPP Nilai Lain * 12%
+        */
+
+        let basisAmount = parseFloat($('#basisAmount').val().replace(/,/gi, '')) || 0;
+        let zDppNilaiLain = basisAmount * (sNilaiPpnPembilang/sNilaiPpnPenyebut);
+
+        $("#totalDppNilaiLain").val(parseFloat(zDppNilaiLain).toFixed(2));
+        $("#nilaiDppLain").text(`${sNilaiPpnPembilang}/${sNilaiPpnPenyebut}`);
+        basisAmount = zDppNilaiLain;
+        let zTotalPPn = Math.round(basisAmount * (sNilaiPPN/100));
+        console.log(`BA Tanpa pembulatan dari nilai lain:${basisAmount * (sNilaiPPN/100)}`);
+        $("#vatCheck").prop('checked', true);
+        $("#totalPPN").val(parseFloat(zTotalPPn).toFixed(2));
+        $("#nilaiPPN").text(sNilaiPPN+'%');
+        $("#totalPPN").removeAttr('disabled');
+        $("#taxInvoiceNumber").removeAttr('disabled');
+        $("#taxInvoiceNumber").prop('required',true);
+        $("#totalPPN").prop('required',true);
+        $("#totalPPN").focus().select();
+        mask_thousand_digit(2);
+        mask_thousand();
+        hitungTotal();
+    }
+
+    $("#nilaiLainCheck").change(function() {
+        let aInvDate = invoiceDate.val();
+        if (aInvDate){
+            if(this.checked) {
+                hitungNilaiLain();
+            }else{
+                $("#totalDppNilaiLain").val('');
+                $("#nilaiDppLain").text('');
+                hitungTotal();
+                if($('#vatCheck').is(':checked')) {
+                    hitungPpn();
+                }
+            }
+        }else{
+            swal.fire('Warning',"Invoice date belum diisi !!",'warning');
+            $("#vatCheck").prop('checked', false);
+            $("#nilaiLainCheck").prop('checked', false);
+            $("#totalDppNilaiLain").val('');
+            $("#nilaiDppLain").text('');
         }
     });
 
@@ -161,6 +263,7 @@
         // console.log(edit);
         let ba = parseFloat($('#basisAmount').val().replace(/[^0-9.]/g, '')) || 0;
         let baA = parseFloat($('#basisAmountA').val().replace(/[^0-9.]/g, '')) || 0;
+        // let dppNilaiLain = parseFloat($('#dppNilaiLain').val().replace(/[^0-9.]/g, '')) || 0;
 
         let vat = parseFloat($('#totalPPN').val().replace(/[^0-9.]/g, '')) || 0;
         let pph23 = parseFloat($('#totalPPH23').val().replace(/[^0-9.]/g, '')) || 0;
@@ -176,17 +279,30 @@
         
         totalDebit = sumFromArray(debit);
         ba = baA + totalDebit;
-
+    
         if(edit == 'false'){
             if($('#vatCheck').is(':checked') ) {
                 if(!$("#totalPPN").val()){
                     sNilaiPPN = $("#ppnValue").val();
+                    let zDppNilaiLain = ba * (sNilaiPpnPembilang/sNilaiPpnPenyebut);
+                    let zba = zDppNilaiLain ? zDppNilaiLain : ba;
                     clearTimeout(delayTimerTax);
                     delayTimerTax = setTimeout(function() {
-                        $("#totalPPN").val(parseFloat(ba * (sNilaiPPN/100)).toFixed(2));
-                    }, 2100); 
+                        let qTotalPpn = Math.round(zba * (sNilaiPPN/100));
+                        $("#totalPPN").val(humanizeNumber(parseFloat(qTotalPpn).toFixed(2)));
+                    }, 2100);
                 }
                 vat = parseFloat($('#totalPPN').val().replace(/[^0-9.]/g, '')) || 0;
+            }
+
+            if ($("#nilaiLainCheck").is(':checked')) {
+                let zDppNilaiLain = ba * (sNilaiPpnPembilang/sNilaiPpnPenyebut);
+                // clearTimeout(delayTimerLain);
+                // delayTimerLain = setTimeout(function() {
+                    $("#totalDppNilaiLain").val(humanizeNumber(parseFloat(zDppNilaiLain).toFixed(2)));
+                    let qTotalPpn = Math.round(zDppNilaiLain * (sNilaiPPN/100));
+                    $("#totalPPN").val(humanizeNumber(parseFloat(qTotalPpn).toFixed(2)));
+                // }, 2100);
             }
 
             if($("#pph23Check").is(':checked') ) {
@@ -227,6 +343,7 @@
         }
 
         $('#basisAmount').val(humanizeNumber(parseFloat(ba).toFixed(2)))
+        // $('#dppNilaiLain').val(humanizeNumber(parseFloat(dppNilaiLain).toFixed(2)))
         $('#grandTotal').val(humanizeNumber(parseFloat(total).toFixed(2)));
 
         mask_thousand_digit(2);
@@ -259,10 +376,21 @@
         let aInvoiceDate = $(this).val();
         getActivePpn(aInvoiceDate).done(function (result) {
             if(result){
-                $("#ppnValue").val(result);
-                sNilaiPPN = result;
-                $("#nilaiPPN").text(`${result}%`);
-                // $("#vatCheck").prop("checked",false);
+                sNilaiPPN = result.ppnValue;
+                sNilaiPpnPembilang = result.pembilang;
+                sNilaiPpnPenyebut = result.penyebut;
+
+                $("#ppnValue").val(sNilaiPPN);
+                $("#pembilangNumber").val(sNilaiPpnPembilang);
+                $("#penyebutNumber").val(sNilaiPpnPenyebut);
+                // sNilaiPPN = result;
+                $("#nilaiPPN").text(`${sNilaiPPN}%`);
+                $("#nilaiDppLain").text(`${sNilaiPpnPembilang}/${sNilaiPpnPenyebut}`);
+                
+                if($("#nilaiLainCheck").is(':checked')){
+                    $("#nilaiLainCheck").change();
+                }
+
                 if($("#vatCheck").is(':checked')){
                     $("#vatCheck").change();
                 }
@@ -516,6 +644,8 @@
     kosongkanData = () =>{
         $('#basisAmount').val(0);
         $('#basisAmountA').val(0);
+        $('#dppNilainLain').val(0);
+        $('#dppNilainLainA').val(0);
         $('#currency').val("IDR").trigger("change");
         $('#rate').val("");
         $('#accountBa').val("").trigger("change");
@@ -602,30 +732,34 @@
                         }
                         $('.activateSelect2').select2();
                         $("#grandTotalQty").val(grandTotalQty);
-                        console.log('Grand Total :'+Math.trunc(grandTotalQty));
+                        // console.log('Grand Total :'+Math.trunc(grandTotalQty));
                         let sumQty=0;
                         $('input:checkbox[name=customCheck]:checked').each(function(){
                             recNumber += $(this).data('rec-number')+",";
                             // sumQty += parseFloat($(this).data('sum-qty'));
                             sumQty += Number($(this).data('sum-qty'));
                         });
-                        console.log('Cek Grand Total :'+Math.trunc(sumQty));
+                        // console.log('Cek Grand Total :'+Math.trunc(sumQty));
                         $("#cmdSubmit").removeAttr('disabled');
                     }
 
                     $('#totalPO').val(humanizeNumber(result.summaryRec[0].total_amount_po));
                     $('#basisAmountA').val(humanizeNumber(parseFloat(result.summaryRec[0].basis_amount).toFixed(2)));
+                    // let dppNilainLain = (11/12)*result.summaryRec[0].basis_amount;
+                    // $('#dppNilaiLainA').val(humanizeNumber(parseFloat(dppNilainLain.toFixed(2))));
                     // $('#basisAmount').val(humanizeNumber(parseFloat(result.summaryRec[0].basis_amount).toFixed(2)));
                     let zNilaiPPN = $("#ppnValue").val();
                     if ((result.summaryRec[0].nilai_pajak>0) && (edit=='false')){
-                        $("#vatCheck").prop("checked",true);
+                        // $("#vatCheck").prop("checked",true); 
+                                                
                         $('#nilaiPPN').text(zNilaiPPN+"%");
                         $("#taxInvoiceNumber").removeAttr('disabled');
                         $("#taxInvoiceNumber").prop('required',true);
                         $("#totalPPN").removeAttr('disabled');
                         $("#totalPPN").prop('required',true);
-                        $('#nilaiPPN').val(humanizeNumber(result.summaryRec[0].vat));
-                        $('#totalPPN').val(humanizeNumber(parseFloat(result.summaryRec[0].nilai_pajak).toFixed(2)));
+                                               
+                        // $('#nilaiPPN').val(humanizeNumber(result.summaryRec[0].vat));
+                        // $('#totalPPN').val(humanizeNumber(parseFloat(result.summaryRec[0].nilai_pajak).toFixed(2)));
                     }                                        
                     hitungTotal();
                     edit = 'false';

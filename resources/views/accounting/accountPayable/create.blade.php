@@ -108,6 +108,8 @@
                                     <div class="form-group col-md-2 d-none">
                                         <label class="form-label" for="ppn">PPN</label>
                                         <input type="text" class="form-control" id="ppnValue" name="ppnValue" />
+                                        <input type="text" class="form-control" id="pembilangNumber" name="pembilangNumber" />
+                                        <input type="text" class="form-control" id="penyebutNumber" name="penyebutNumber" />
                                     </div>
                                     <div class="form-row">
                                         <div class="form-group col-md-12">
@@ -198,23 +200,35 @@
                             </div>
                             <hr>
                             <div class="d-flex justify-content-between align-items-end mt-75">
-                                <div class="col-md-8"></div>
-                                <div class="col-md-4">
+                                <div class="col-md-7"></div>
+                                <div class="col-md-6">
                                     <div class="form-group row mb-03">
-                                        <label for="basisAmount" class="col-sm-4 col-form-label titik-dua">DPP</label>
+                                        <label for="basisAmount" class="col-sm-4 col-form-label titik-dua">Selling Price</label>
                                         <div class="col-sm-6">
                                             <input type="text" class="form-control text-right font-weight-bold disabled-el" id="basisAmount" name="basisAmount" disabled />
                                             <input type="hidden" class="form-control text-right font-weight-bold disabled-el" id="basisAmountA" name="basisAmountA" />
                                         </div>
                                     </div>
                                     <div class="form-group row mb-03 d-none">
-                                        <label for="totalPPN" class="col-sm-4 col-form-label titik-dua">Discount </label>
+                                        <label for="totalDiscount" class="col-sm-4 col-form-label titik-dua">Discount </label>
                                         <div class="col-sm-6">
                                             <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el" oninput='inputDecimal(this)' id="totalDiscount" name="totalDiscount" />
                                         </div>
                                     </div>
                                     <div class="form-group row mb-03">
-                                        <label for="totalPPN" class="col-sm-4 col-form-label titik-dua">PPN <span id="nilaiPPN"></span> </label>
+                                        <label for="nilaiLainCheck" class="col-sm-4 col-form-label titik-dua">VAT Object <span id="nilaiDppLain"></span></label>
+                                        <div class="col-sm-1" style="padding-right: 0rem;display: flex;align-items: center;">
+                                            <div class="custom-control custom-checkbox">
+                                                <input type="checkbox" class="custom-control-input" id="nilaiLainCheck" name="nilaiLainCheck" />
+                                                <label class="custom-control-label" for="nilaiLainCheck"></label>
+                                            </div>
+                                        </div>    
+                                        <div class="col-sm-5">
+                                            <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el" oninput='inputDecimal(this)' id="totalDppNilaiLain"  name="totalDppNilaiLain" disabled/>
+                                        </div>
+                                    </div>
+                                    <div class="form-group row mb-03">
+                                        <label for="vatCheck" class="col-sm-4 col-form-label titik-dua">VAT <span id="nilaiPPN"></span> </label>
                                         <div class="col-sm-1" style="padding-right: 0rem;display: flex;align-items: center;">
                                             <div class="custom-control custom-checkbox">
                                                 <input type="checkbox" class="custom-control-input" id="vatCheck" name="vatCheck" />
@@ -225,9 +239,8 @@
                                             <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el" oninput='inputDecimal(this)' id="totalPPN"  name="totalPPN" disabled/>
                                         </div>
                                     </div>
-                                    
                                     <div class="form-group row mb-03">
-                                        <label for="totalPPH23" class="col-sm-4 col-form-label titik-dua">PPH23 <span id="nilaiPPH23"></span> </label>
+                                        <label for="totalPPH23" class="col-sm-4 col-form-label titik-dua">WHT 23 <span id="nilaiPPH23"></span> </label>
                                         <div class="col-sm-1" style="padding-right: 0rem;display: flex;align-items: center;">
                                             <div class="custom-control custom-checkbox">
                                                 <input type="checkbox" class="custom-control-input" id="pph23Check" name="pph23Check" />
@@ -239,7 +252,7 @@
                                         </div>
                                     </div>
                                     <div class="form-group row mb-03">
-                                        <label for="totalPPH21" class="col-sm-4 col-form-label titik-dua">PPH21 <span id="nilaiPPH21"></span> </label>
+                                        <label for="totalPPH21" class="col-sm-4 col-form-label titik-dua">WHT 21 <span id="nilaiPPH21"></span> </label>
                                         <div class="col-sm-1" style="padding-right: 0rem;display: flex;align-items: center;">
                                             <div class="custom-control custom-checkbox">
                                                 <input type="checkbox" class="custom-control-input" id="pph21Check" name="pph21Check" />
@@ -251,7 +264,7 @@
                                         </div>
                                     </div>
                                     <div class="form-group row mb-03">
-                                        <label for="totalPPH42" class="col-sm-4 col-form-label titik-dua">PPH4(2) <span id="nilaiPPH42"></span> </label>
+                                        <label for="totalPPH42" class="col-sm-4 col-form-label titik-dua">VAT 4 <span id="nilaiPPH42"></span> </label>
                                         <div class="col-sm-1" style="padding-right: 0rem;display: flex;align-items: center;">
                                             <div class="custom-control custom-checkbox">
                                                 <input type="checkbox" class="custom-control-input" id="pph42Check" name="pph42Check" />
@@ -263,7 +276,7 @@
                                         </div>
                                     </div>
                                     <div class="form-group row mb-03">
-                                        <label for="grandTotal" class="col-sm-4 col-form-label titik-dua">Total</label>
+                                        <label for="grandTotal" class="col-sm-4 col-form-label titik-dua">Total Bill</label>
                                         <div class="col-sm-6">
                                             <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el" id="grandTotal" name="grandTotal" disabled/>
                                             <input type="hidden" class="form-control text-right font-weight-bold" id="grandTotalQty" name="grandTotalQty" disabled/>

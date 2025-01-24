@@ -200,10 +200,10 @@
                             </div>
                             <hr>
                             <div class="d-flex justify-content-between align-items-end mt-75">
-                                <div class="col-md-8"></div>
-                                <div class="col-md-4">
+                                <div class="col-md-7"></div>
+                                <div class="col-md-6">
                                     <div class="form-group row mb-03">
-                                        <label for="basisAmount" class="col-sm-4 col-form-label titik-dua">DPP</label>
+                                        <label for="basisAmount" class="col-sm-4 col-form-label titik-dua">Selling Price</label>
                                         <div class="col-sm-6">
                                             <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el" id="basisAmount" name="basisAmount" value="{{ number_format($header->basis_amount,2) }}" disabled />
                                         </div>
@@ -215,7 +215,19 @@
                                         </div>
                                     </div>
                                     <div class="form-group row mb-03">
-                                        <label for="totalPPN" class="col-sm-4 col-form-label titik-dua">PPN <span id="nilaiPPN"></span> </label>
+                                        <label for="nilaiLainCheck" class="col-sm-4 col-form-label titik-dua">VAT Object <span id="nilaiDppLain">{{ $header->dpp_lain_value  ? $header->dpp_lain_pembilang."/".$header->dpp_lain_penyebut : '' }}</span></label>
+                                        <div class="col-sm-1" style="padding-right: 0rem;display: flex;align-items: center;">
+                                            <div class="custom-control custom-checkbox">
+                                                <input type="checkbox" class="custom-control-input" id="nilaiLainCheck" name="nilaiLainCheck" {{ $header->dpp_lain_value >0 ? 'checked' : '' }} disabled/>
+                                                <label class="custom-control-label" for="nilaiLainCheck"></label>
+                                            </div>
+                                        </div>    
+                                        <div class="col-sm-5">
+                                            <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el" oninput='inputDecimal(this)' value="{{ $header->dpp_lain_value>0 ? number_format($header->dpp_lain_value,2) : 0 }}" id="totalDppNilaiLain"  name="totalDppNilaiLain" disabled/>
+                                        </div>
+                                    </div>
+                                    <div class="form-group row mb-03">
+                                        <label for="totalPPN" class="col-sm-4 col-form-label titik-dua">VAT <span id="nilaiPPN">{{ $header->vat >0 ? $nilaiPPN."%" : '' }}</span> </label>
                                         <div class="col-sm-1" style="padding-right: 0rem;display: flex;align-items: center;">
                                             <div class="custom-control custom-checkbox">
                                                 <input type="checkbox" class="custom-control-input" id="vatCheck" name="vatCheck" {{ $header->vat ? 'checked':'' }} disabled/>
@@ -227,7 +239,7 @@
                                         </div>
                                     </div>
                                     <div class="form-group row mb-03">
-                                        <label for="totalPPH23" class="col-sm-4 col-form-label titik-dua">PPH23 <span id="nilaiPPH23">{{ $header->pph23_type == 'PPH23' ? $nilaiPPH23."%" : '' }}</span> </label>
+                                        <label for="totalPPH23" class="col-sm-4 col-form-label titik-dua">WHT 23 <span id="nilaiPPH23">{{ $header->pph23_type == 'PPH23' ? $nilaiPPH23."%" : '' }}</span> </label>
                                         <div class="col-sm-1" style="padding-right: 0rem;display: flex;align-items: center;">
                                             <div class="custom-control custom-checkbox">
                                                 <input type="checkbox" class="custom-control-input" id="pph23Check" name="pph23Check" {{ $header->pph23_type == 'PPH23' ?'checked' : '' }}/>
@@ -239,7 +251,7 @@
                                         </div>
                                     </div>
                                     <div class="form-group row mb-03">
-                                        <label for="totalPPH21" class="col-sm-4 col-form-label titik-dua">PPH21 <span id="nilaiPPH21">{{ $header->pph23_type == 'PPH21' ? $nilaiPPH21."%" : '' }}</span> </label>
+                                        <label for="totalPPH21" class="col-sm-4 col-form-label titik-dua">WHT 21 <span id="nilaiPPH21">{{ $header->pph23_type == 'PPH21' ? $nilaiPPH21."%" : '' }}</span> </label>
                                         <div class="col-sm-1" style="padding-right: 0rem;display: flex;align-items: center;">
                                             <div class="custom-control custom-checkbox">
                                                 <input type="checkbox" class="custom-control-input" id="pph21Check" name="pph21Check" {{ $header->pph23_type == 'PPH21' ?'checked' : '' }}/>
@@ -251,7 +263,7 @@
                                         </div>
                                     </div>
                                     <div class="form-group row mb-03">
-                                        <label for="totalPPH42" class="col-sm-4 col-form-label titik-dua">PPH4(2) <span id="nilaiPPH42">{{ $header->pph23_type == 'PPH42' ? $nilaiPPH42."%" : '' }}</span> </label>
+                                        <label for="totalPPH42" class="col-sm-4 col-form-label titik-dua">VAT 4 <span id="nilaiPPH42">{{ $header->pph23_type == 'PPH42' ? $nilaiPPH42."%" : '' }}</span> </label>
                                         <div class="col-sm-1" style="padding-right: 0rem;display: flex;align-items: center;">
                                             <div class="custom-control custom-checkbox">
                                                 <input type="checkbox" class="custom-control-input" id="pph42Check" name="pph42Check" {{ $header->pph23_type == 'PPH42' ?'checked' : '' }}/>
@@ -263,7 +275,7 @@
                                         </div>
                                     </div>
                                     <div class="form-group row mb-03">
-                                        <label for="grandTotal" class="col-sm-4 col-form-label titik-dua">Total</label>
+                                        <label for="grandTotal" class="col-sm-4 col-form-label titik-dua">Total Bill</label>
                                         <div class="col-sm-6">
                                             <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el" id="grandTotal" name="grandTotal" value="{{ number_format($header->grand_total,2) }}" disabled/>
                                         </div>
@@ -342,240 +354,3 @@
 
 </script>
 @endsection
-
-
-
-{{-- @extends('layouts.app')
-@section('title', $title)
-@section('content')
-@include('layouts.breadcrumb')
-<section id="basic-tabs-components">
-    <div class="row match-height">
-        <div class="col-xl-12 col-lg-12">
-            <div class="card">
-                <div class="card-header">
-                </div>
-                <div class="card-body">
-                    <ul class="nav nav-tabs" role="tablist">
-                        @foreach($sub_details as $key =>$sub_detail )
-                            <li class="nav-item">
-                                <a class="nav-link {{ $key == 0 ? 'active':'' }}" id="profile-tab" data-toggle="tab" href="#rev{{ $key }}" aria-controls="revisi{{ $key }}" role="tab" aria-selected="false">{{ $key == 0 ? 'Main':'Revision '.$key }}</a>
-                            </li>
-                        @endforeach
-                    </ul>
-                    <div class="tab-content">
-                        @foreach($sub_details as $key =>$sub_detail )
-                            <div class="tab-pane {{ $key == 0 ? 'active':'' }}" id="rev{{ $key }}" aria-labelledby="revison{{ $key }}-tab" role="tabpanel">
-                                <div class="card">
-                                    <div class="card-header">
-                                        <h4 class="card-title">Status: <span> {{ $key == 0 ? 'Main':'Revision '.$key }}</span></h4>
-                                        <div class="heading-elements">
-                                            <ul class="list-inline mb-0">
-                                                <li><a data-action="collapse"><i data-feather="chevron-down"></i></a></li>
-                                            </ul>
-                                        </div>    
-                                    </div>
-                                    <div class="card-content collapse show">
-                                        <div class="card-body">
-                                            <form autocomplete="off">
-                                                @csrf
-                                                <div class="form-row">
-                                                    <div class="form-group col-md-3">
-                                                        <label>AP Number</label> <small class="text-muted"> automatic</small>
-                                                        <input type="text" class="form-control text-hitam" value="{{ $sub_detail->ap_number }}" disabled />
-                                                    </div>
-                                                    <div class="form-group col-md-3">
-                                                        <label for="profInvoice">Prof Invoice</label>
-                                                        <input type="text" id="profInvoice" name="profInvoice" class="form-control text-hitam disabled-el" value="{{ $sub_detail->proforma_inv_number }}" disabled />
-                                                    </div>
-                                                </div>
-                                                <div class="form-row">
-                                                    <div class="form-group col-md-6">
-                                                        <label class="form-label">Supplier</label>
-                                                        <input type="text" class="form-control text-hitam" value="{{ $sub_detail->supplier_id }} - {{ $sub_detail->nama }}" disabled />
-                                                    </div>
-                                                </div>
-                                                <div class="form-row">
-                                                    <div class="form-group col-md-3">
-                                                        <label class="form-label">PO Number</label>
-                                                        <input type="text" class="form-control text-hitam" value="{{ $sub_detail->po_number }}" disabled />
-                                                    </div>
-                                                    <div class="form-group col-md-3">
-                                                        <label class="form-label">Rec.Number/LPB</label>
-                                                        <input type="text" class="form-control text-hitam" value="{{ $sub_detail->rec_number }}" disabled />
-                                                    </div>
-                                                </div>
-                                                <hr>
-                                                <div class="form-row">                                    
-                                                    <div class="form-group col-md-6 d-none">
-                                                        <label>Supplier</label>
-                                                        <input type="text" class="form-control text-hitam" value="{{ $sub_detail->supplier_id }} - {{ $sub_detail->nama }}" disabled />
-                                                    </div>
-                                                    <div class="form-group col-md-3 d-none">
-                                                        <label>PO Number</label>
-                                                        <input type="text" class="form-control text-hitam" value="{{ $sub_detail->po_number }}" disabled />
-                                                    </div>       
-                                                </div>
-                                                <div class="form-row">
-                                                    <div class="form-group col-md-2">
-                                                        <label>Total PO</label>
-                                                        <input type="text" class="form-control numeral-mask text-right text-hitam" value="{{ $sub_detail->due_date }}" disabled/>
-                                                    </div>
-                                                    <div class="form-group col-md-2">
-                                                        <label>Balance</label>
-                                                        <input type="text" class="form-control numeral-mask text-right text-hitam" value="{{ $sub_detail->due_date }}" disabled/>
-                                                    </div>
-                                                    <div class="form-group col-md-2">
-                                                        <label>Receive Date</label>
-                                                        <input type="text" class="form-control text-hitam" value="{{ $sub_detail->rec_date }}" placeholder="DD-MM-YYYY" disabled/>
-                                                    </div>
-                                                    <div class="form-group col-md-2">
-                                                        <label>Due Date</label>
-                                                        <input type="text" class="form-control text-hitam" value="{{ $sub_detail->due_date }}" placeholder="DD-MM-YYYY" disabled/>
-                                                    </div>       
-                                                </div>
-                                                <hr>
-                                                <div class="form-row">
-                                                    <div class="form-group col-md-2">
-                                                        <label>Currency*</label>
-                                                        <input type="text" class="form-control text-hitam" value="{{ $sub_detail->currency }}" disabled />
-                                                    </div>
-                                                    <div class="form-group col-md-2">
-                                                        <label>Rate</label>
-                                                        <input type="text" class="form-control numeral-mask text-right  text-hitam" value="{{ $sub_detail->kurs }}" disabled/>
-                                                    </div>  
-                                                </div>                         
-                                                <div class="form-row">
-                                                    <div class="form-group col-md-2">
-                                                        <label>Invoice Number</label>
-                                                        <input type="text" class="form-control text-hitam" value="{{ $sub_detail->inv_number }}" disabled/>
-                                                    </div>
-                                                    <div class="form-group col-md-2">
-                                                        <label>Invoice Date</label>
-                                                        <input type="text" class="form-control text-hitam" value="{{ $sub_detail->inv_date }}" placeholder="DD-MM-YYYY" disabled/>
-                                                    </div> 
-                                                </div>
-                                                <div class="form-row">
-                                                    <div class="form-group col-md-2">
-                                                        <label>Tax Invoice Number</label>
-                                                        <input type="text" class="form-control text-hitam" value="{{ $sub_detail->tax_inv_number }}" disabled />
-                                                    </div>
-                                                </div>
-                                                <div class="form-row">
-                                                    <div class="form-group col-md-2">
-                                                        <label>Basis Amount</label>
-                                                        <input type="text" class="form-control numeral-mask text-right text-hitam" value="{{ $sub_detail->basis_amount }}" disabled/>
-                                                    </div>
-                                                    <div class="form-group col-md-4">
-                                                        <label class="form-label" for="accountBasisA">COA</label>
-                                                        <select class="select2 form-control w-100" id="accountBasisA" name="accountBasisA" disabled>
-                                                            <option value="">Choose option</option>
-                                                            @foreach($accountBa as $val)
-                                                                <option value="{{ $val->account }}" {{ $sub_detail->account_ba == $val->account ? 'selected' : '' }}>{{ $val->account }} - {{ $val->description }}</option>
-                                                            @endforeach
-                                                        </select>
-                                                    </div>
-                                                </div>
-                                                <div class="form-row">
-                                                    <div class="form-group col-md-2">
-                                                        <label>VAT</label>
-                                                        <input type="text" class="form-control numeral-mask text-right text-hitam" value="{{ $sub_detail->vat }}" disabled />
-                                                    </div>
-                                                    <div class="form-group col-md-4">
-                                                        <label class="form-label" for="accounVat">COA*</label>
-                                                        <select class="select2 form-control w-100" id="accounVat" name="accounVat" required disabled>
-                                                            <option value="1100.73">1100.73 - PPN MASUKAN (SUPPLIER)</option>
-                                                        </select>
-                                                    </div>
-                                                </div>
-                                                <div class="form-row">
-                                                    <div class="form-group col-md-3">
-                                                        <div class="custom-control custom-checkbox">
-                                                            <input type="checkbox" class="custom-control-input" {{ $sub_detail->pph23 ? 'checked' : '' }} disabled />
-                                                            <label class="custom-control-label">PPH23</label>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                
-                                                <div class="{{ $sub_detail->pph23 ? '' : 'd-none'  }}">
-                                                    <div class="form-row d-flex align-items-end">
-                                                        <div class="form-group col-md-3">
-                                                            <label>PPH 23</label>
-                                                            <input type="text" class="form-control numeral-mask text-right text-hitam" value="{{ $sub_detail->pph23 }}" disabled />
-                                                        </div>
-                                                        <div class="form-group col-md-6">
-                                                            <div class="demo-inline-spacing">
-                                                                <div class="custom-control custom-radio">
-                                                                    <input type="radio" id="sewa" name="pph23Type" value="sewa" class="custom-control-input" {{ old('pph23Type',$details->pph23_type) == 'sewa' ? 'checked' : '' }} checked />
-                                                                    <label class="custom-control-label" for="sewa">Sewa</label>
-                                                                </div>
-                                                                <div class="custom-control custom-radio">
-                                                                    <input type="radio" id="jasa" name="pph23Type" value="jasa" class="custom-control-input" {{ old('pph23Type',$details->pph23_type) == 'jasa' ? 'checked' : '' }} />
-                                                                    <label class="custom-control-label" for="jasa">Jasa</label>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div class="form-row">
-                                                    <div class="form-group col-md-2">
-                                                        <label>Other Deductions</label>
-                                                        <input type="text" class="form-control numeral-mask text-right text-hitam" value="{{ $sub_detail->other_deduction }}" disabled/>
-                                                    </div>
-                                                </div>
-                                                <div class="form-row">
-                                                    <div class="form-group col-md-2">
-                                                        <label>Total</label>
-                                                        <input type="text" class="form-control numeral-mask text-right text-hitam" value="{{ ($sub_detail->basis_amount+$sub_detail->vat+$sub_detail->pph23) - $sub_detail->other_deduction }}" disabled/>
-                                                    </div>
-                                                    <div class="form-group col-md-4">
-                                                        <label class="form-label" for="account">COA*</label>
-                                                        <select class="select2 form-control w-100" id="account" name="account" required disabled>
-                                                            <option value="2000.11">2000.11 - HUTANG USAHA (SUPPLIER)</option>
-                                                        </select>
-                                                    </div>
-                                                </div>
-                                                
-                                                <div class="form-row">
-                                                    <div class="form-group col-md-5">
-                                                        <label class="form-label" for="note">Notes</label>
-                                                        <textarea type="text" id="note" name="note" class="form-control" rows="1" >{{ $sub_detail->note }}</textarea>
-                                                    </div>
-                                                </div>
-                                            </form>
-                                        </div>
-                                    </div>
-                                </div> 
-                            </div>
-                        @endforeach
-                        <div class="form-row">
-                            <div class="col-md-12">
-                                <a href="{{ route('aps.index') }}" class="btn btn-light">Back</a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-@include('receiving.addArticle')
-@endsection
-@section('styles')
-<style>
-</style>
-@endsection
-@section('scripts')
-<script type="text/javascript">
-    $(document).ready(function(){
-        mask_thousand();
-    });
-           
-    $.ajaxSetup({
-        headers: {
-            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-        }
-    });
-
-</script>
-@endsection --}}

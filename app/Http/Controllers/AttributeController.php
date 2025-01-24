@@ -127,26 +127,38 @@ class AttributeController extends Controller
         }
 
         $ppnValue = 11; //default kalau benar2 kosong
+        $ppnPembilang = 11;
+        $ppnPenyebut = 12;
 
         $ppnValue = db::table('master_ppn')
         ->where('ppn_start_date',"<=",$ppnDate)
         ->where('ppn_end_date',">=",$ppnDate)
         ->orderBy('ppn_start_date','desc')
-        ->value('ppn_value');
+        ->first();
+        // ->value('ppn_value');
 
         if(!$ppnValue){
             $ppnValue = db::table('master_ppn')
             ->where('ppn_end_date',"<=",$ppnDate)
             ->orderBy('ppn_start_date','desc')
-            ->value('ppn_value');
+            ->first();
+            // ->value('ppn_value');
         }
 
         /*kalau database kosong ini yang dikeluarin*/
         if(!$ppnValue){
             $ppnValue = 11;
+            $ppnPembilang = 11;
+            $ppnPenyebut = 12;
+        }else{
+            $aPpnValue = $ppnValue->ppn_value;
+            $ppnPembilang = $ppnValue ->pembilang;
+            $ppnPenyebut = $ppnValue ->penyebut;
         }
 
-        return $ppnValue;
+        $result = ['ppnValue'=> $aPpnValue, 'pembilang' => $ppnPembilang, 'penyebut'=>$ppnPenyebut];
+        return $result;
+        
     }
 
     public function getLastPpn1(Request $request){
@@ -173,21 +185,31 @@ class AttributeController extends Controller
         ->where('ppn_start_date',"<=",$ppnDate)
         ->where('ppn_end_date',">=",$ppnDate)
         ->orderBy('ppn_start_date','desc')
-        ->value('ppn_value');
+        ->first();
+        // ->value('ppn_value');
 
         if(!$ppnValue){
             $ppnValue = db::table('master_ppn')
             ->where('ppn_end_date',"<=",$ppnDate)
             ->orderBy('ppn_start_date','desc')
-            ->value('ppn_value');
+            ->first();
+            // ->value('ppn_value');
         }
-
+        
         /*kalau database kosong ini yang dikeluarin*/
+        // dd($ppnValue->ppn_value);
         if(!$ppnValue){
-            $ppnValue = 11;
+            $aPpnValue = 11;
+            $ppnPembilang = 11;
+            $ppnPenyebut = 12;
+        }else{
+            $aPpnValue = $ppnValue->ppn_value;
+            $ppnPembilang = $ppnValue ->pembilang;
+            $ppnPenyebut = $ppnValue ->penyebut;
         }
-
-        return $ppnValue;
+        $result = ['ppnValue'=> $aPpnValue, 'pembilang' => $ppnPembilang, 'penyebut'=>$ppnPenyebut];
+        
+        return $result;
     }
 
 }

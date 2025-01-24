@@ -297,11 +297,11 @@
                                 <tr>
                                     {{-- <td  colspan="3" rowspan="3" class="border-atas" style="border-bottom: 1px solid black;"></td> --}}
                                     <td align="left" class="border-atas" rowspan="3" colspan="3"></td>
-                                    <td  align="left" class="border-atas" >PPN</td>
+                                    <td  align="left" class="border-atas" >VAT</td>
                                     <td  align="right" class="border-atas" >{{ number_format($vat) }}</td>
                                 </tr>
                                 <tr>
-                                    <td  align="left" class="border-atas" >Total</td>
+                                    <td  align="left" class="border-atas" >Total Bill</td>
                                     <td  align="right" class="border-atas" >{{ number_format($basisAmount+$vat) }}</td>
                                 </tr>
                                 <tr class="border-atas">

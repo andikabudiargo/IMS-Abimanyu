@@ -65,6 +65,8 @@
                                     <div class="input-group">
                                         <input type="text" class="form-control angka text-right" id="ppn" name="ppn" value="0" maxlength="2" />
                                         <input type="text" class="form-control angka text-right" id="pph23" name="pph23" value="0" maxlength="2" />
+                                        <input type="text" class="form-control" id="pembilangNumber" name="pembilangNumber" />
+                                        <input type="text" class="form-control" id="penyebutNumber" name="penyebutNumber" />
                                         <div class="input-group-append">
                                             <span class="input-group-text">%</span>
                                         </div>
@@ -130,7 +132,7 @@
                         </button>
                     </div> --}}
                     <div class="d-flex justify-content-between align-items-end mt-75">
-                        <div class="col-md-4">
+                        <div class="col-md-7">
                             <div class="form-group row mb-03">
                                 <label for="totalRow" class="col-sm-4 col-form-label titik-dua">Row(s)</label>
                                 <div class="col-sm-3">
@@ -144,7 +146,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-5">
+                        <div class="col-md-6">
                             <div class="form-group row mb-03">
                                 <label for="totalAmount" class="col-sm-3 col-form-label titik-dua">Sub Total</label>
                                 <div class="col-sm-6">
@@ -164,6 +166,18 @@
                                 <label for="totalDpp" class="col-sm-3 col-form-label titik-dua">DPP</label>
                                 <div class="col-sm-6">
                                     <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit" id="totalDpp" disabled />
+                                </div>
+                            </div>
+                            <div class="form-group row mb-03">
+                                <label for="nilaiLainCheck" class="col-sm-3 col-form-label titik-dua">DPP Nilai Lain <span id="nilaiDppLain"></span></label>
+                                <div class="col-sm-1" style="padding-right: 0rem;display: flex;align-items: center;">
+                                    <div class="custom-control custom-checkbox">
+                                        <input type="checkbox" class="custom-control-input" id="nilaiLainCheck" name="nilaiLainCheck" />
+                                        <label class="custom-control-label" for="nilaiLainCheck"></label>
+                                    </div>
+                                </div>    
+                                <div class="col-sm-5">
+                                    <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el" oninput='inputDecimal(this)' id="totalDppNilaiLain"  name="totalDppNilaiLain" disabled/>
                                 </div>
                             </div>
                             <div class="form-group row mb-03">
@@ -213,9 +227,11 @@
     $(document).ready(function(){           
         validateFormToast("frmAdd");
         $('#orderDate').val(currentDate);
-        // $("#nilaiPPN").text("{{ $vatValue }}%");
+        // $("#nilaiPPN").text("{{ $ppnValue }}%");
         // disabledEnabledSelect2();
         mask_thousand_digit(2);
+        $("#nilaiLainCheck").prop('disabled', true);
+        $("#totalPPN").prop('disabled', true);
 
     });
 
@@ -229,30 +245,43 @@
         changeSelectPr(suppCode,prNumber);
     });
 
-    objSupplier.change(function(e){        
-        let suppCode = $(this).val();
-        let pkp = $(this).find(":selected").data("pkp");
-        let top = $(this).find(":selected").data("top") || 0;
-        $("#term").val(top);
-        if (pkp =='Y'){
-            let aOrderDate = orderDate.val();
-            getActivePpn(aOrderDate).done(function (result) {
-                if(result){
-                    $('#ppn').val(result);
-                    $("#nilaiPPN").text(`${result}%`);
-                    $('#ppn').removeAttr('disabled');
-                    hitungGrandTotal();
-                    console.log(`PPN: ${result}%`);
-                    $('#pkp').prop('checked', true);
-                }else{
-                    $('#pkp').prop('checked', false);
-                }
-            })
+    objSupplier.change(function(e){    
+        let aOrderDate = orderDate.val();
+        if (aOrderDate){
+
+            let suppCode = $(this).val();
+            let pkp = $(this).find(":selected").data("pkp");
+            let top = $(this).find(":selected").data("top") || 0;
+            $("#term").val(top);
+            if (pkp =='Y'){
+                let aOrderDate = orderDate.val();
+                getActivePpn(aOrderDate).done(function (result) {
+                    if(result){
+                        sNilaiPPN = result.ppnValue;
+                        sNilaiPpnPembilang = result.pembilang;
+                        sNilaiPpnPenyebut = result.penyebut;
+                        $("#ppn").val(sNilaiPPN);
+                        $("#nilaiPPN").text(`${sNilaiPPN}%`);
+                        $("#pembilangNumber").val(sNilaiPpnPembilang);
+                        $("#penyebutNumber").val(sNilaiPpnPenyebut);
+                        $("#nilaiDppLain").text(`${sNilaiPpnPembilang}/${sNilaiPpnPenyebut}`);
+                        $('#ppn').prop('disabled', false);
+                        hitungGrandTotal();
+                        $('#pkp').prop('checked', true);
+                        $("#nilaiLainCheck").prop('disabled', false);
+                    }else{
+                        $('#pkp').prop('checked', false);
+                    }
+                })
+            }else{
+                $('#pkp').prop('checked', false);
+            }   
+            changeselect('pRequest','prSelect',suppCode); 
         }else{
-            $('#pkp').prop('checked', false);
+            swal.fire('Warning',"Order date belum diisi !!",'warning');
+            $("pkp").prop('checked', false);
+            $("#nilaiLainCheck").prop('checked', false);
         }
-        
-        changeselect('pRequest','prSelect',suppCode); 
     });
 
 </script>

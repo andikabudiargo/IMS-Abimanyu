@@ -97,6 +97,8 @@
     let edit="";
     let dataArticle="";
     $("#ppn").val("{{ $nilaiPPN }}");
+    let sNilaiPpnPembilang= "{{ $ppnPembilang }}";
+    let sNilaiPpnPenyebut= "{{ $ppnPenyebut }}";
 
     getActivePpn = (tanggal) => {
         return $.ajax({
@@ -233,14 +235,34 @@
         $("#totalAmount").val(humanizeNumber(totalAmount.toFixed(2)));
         
         if(edit == 'false'){
-            $("#nilaiPPN").text(ppn+"%");
+            // $("#nilaiPPN").text(ppn+"%");
             $("#nilaiPPH23").text(pph23+"%");
             $("#totalAmountJasa").val(humanizeNumber(totalAmountJasa.toFixed(2)));
 
             if ($('#vatCheck').is(':checked')){ 
-                $("#totalPPN").val(humanizeNumber(((parseFloat(ppn)*totalAmountMaterial)/100).toFixed(2)));
+
+                // if(!$("#totalPPN").val()){
+                    sNilaiPPN = $("#ppnValue").val();
+                    let zDppNilaiLain = totalAmountMaterial * (sNilaiPpnPembilang/sNilaiPpnPenyebut);
+                    let zba = zDppNilaiLain ? zDppNilaiLain : totalAmountMaterial;
+                    // clearTimeout(delayTimerTax);
+                    // delayTimerTax = setTimeout(function() {
+                        let qTotalPpn = Math.round(zba * (sNilaiPPN/100));
+                        $("#totalPPN").val(humanizeNumber(parseFloat(qTotalPpn).toFixed(2)));
+                    // }, 2100);
+                // }
+                // $("#totalPPN").val(humanizeNumber(((parseFloat(ppn)*totalAmountMaterial)/100).toFixed(2)));
             }else{
                 $("#totalPPN").val(0);
+            }
+
+            if ($("#nilaiLainCheck").is(':checked')) {
+                let zDppNilaiLain = totalAmountMaterial * (sNilaiPpnPembilang/sNilaiPpnPenyebut);
+                $("#totalDppNilaiLain").val(humanizeNumber(parseFloat(zDppNilaiLain).toFixed(2)));
+                let qTotalPpn = Math.round(zDppNilaiLain * (sNilaiPPN/100));
+                $("#totalPPN").val(humanizeNumber(parseFloat(qTotalPpn).toFixed(2)));
+            }else{
+                $("#totalDppNilaiLain").val('');
             }
     
             if ($('#pph23Check').is(':checked')){
@@ -290,35 +312,142 @@
         }
     });
 
+    hitungPpn = () => {
+        let aDebitNDate = debitNDate.val();
+        if(aDebitNDate){
+            getActivePpn(aDebitNDate).done(function (result) {
+                if(result){
+                    // sNilaiPPN = result;
+                    sNilaiPPN = result.ppnValue;
+                    sNilaiPpnPembilang = result.pembilang;
+                    sNilaiPpnPenyebut = result.penyebut;
+                    $("#ppn").val(sNilaiPPN);
+                    $("#pembilangNumber").val(sNilaiPpnPembilang);
+                    $("#penyebutNumber").val(sNilaiPpnPenyebut);
+                    console.log(`Nilai PPN sesuai Invoice Date : ${sNilaiPPN}`);
+                }
+            })
+        }
+
+        let totalAmount = parseFloat($('#totalAmount').val().replace(/,/gi, '')) || 0;
+        
+       if($("#totalDppNilaiLain").val()){
+            totalAmount = $("#totalDppNilaiLain").val().replace(/,/gi, '');
+        }
+
+        let zTotalPPn = Math.round(totalAmount * (sNilaiPPN/100));
+        console.log(`BA Tanpa pembulatan dari ppn:${totalAmount * (sNilaiPPN/100)}`);
+        $("#totalPPN").val(parseFloat(zTotalPPn).toFixed(2));
+        $("#nilaiPPN").text(sNilaiPPN+'%');
+        $("#totalPPN").removeAttr('disabled');
+        $("#totalPPN").prop('required',true);
+        $("#totalPPN").focus().select();
+        mask_thousand();
+        mask_thousand_digit(2);
+        // totalSummary();
+    }
+
     $("#vatCheck").change(function() {
-        if(this.checked) {
-            let aDebitNDate = debitNDate.val();
-            if(aDebitNDate){
-                getActivePpn(aDebitNDate).done(function (result) {
-                    if(result){
-                        sNilaiPPN = result;
-                        $("#ppn").val(sNilaiPPN);
-                        console.log(`Nilai PPN sesuai Invoice : ${sNilaiPPN}`);
-                    }
-                })
+        let aDebitNDate = debitNDate.val();
+        if(aDebitNDate){
+            if(this.checked) {
+                hitungPpn();
+                // let aDebitNDate = debitNDate.val();
+                // if(aDebitNDate){
+                //     getActivePpn(aDebitNDate).done(function (result) {
+                //         if(result){
+                //             // sNilaiPPN = result;
+                //             sNilaiPPN = result.ppnValue;
+                //             $("#ppn").val(sNilaiPPN);
+                //             console.log(`Nilai PPN sesuai Invoice : ${sNilaiPPN}`);
+                //         }
+                //     })
+                // }
+                // let totalAmount = parseFloat($('#totalAmount').val().replace(/,/gi, '')) || 0;
+                // $("#totalPPN").val((totalAmount * (sNilaiPPN/100)).toFixed(2)).trigger("input");
+                // $("#nilaiPPN").text(sNilaiPPN+'%');
+                // $("#totalPPN").removeAttr('disabled');
+                // $("#totalPPN").prop('required',true);
+                // $("#totalPPN").focus().select();
+                // mask_thousand();
+                // mask_thousand_digit(2);
+                // // totalSummary();
+                // hitungGrandTotal();
+            }else{
+                $("#totalPPN").val(0);
+                $("#nilaiPPN").text('');
+                $("#totalPPN").prop('required',false);
+                $("#totalPPN").attr('disabled','disabled');
+                $("#nilaiDppLain").text('');
+                $("#totalDppNilaiLain").val('');
+                $("#nilaiLainCheck").prop('checked', false);
+                // totalSummary();
+                hitungGrandTotal();
             }
-            let totalAmount = parseFloat($('#totalAmount').val().replace(/,/gi, '')) || 0;
-            $("#totalPPN").val((totalAmount * (sNilaiPPN/100)).toFixed(2)).trigger("input");
-            $("#nilaiPPN").text(sNilaiPPN+'%');
-            $("#totalPPN").removeAttr('disabled');
-            $("#totalPPN").prop('required',true);
-            $("#totalPPN").focus().select();
-            mask_thousand();
-            mask_thousand_digit(2);
-            // totalSummary();
-            hitungGrandTotal();
         }else{
-            $("#totalPPN").val(0);
-            $("#nilaiPPN").text('');
-            $("#totalPPN").prop('required',false);
-            $("#totalPPN").attr('disabled','disabled');
-            // totalSummary();
-            hitungGrandTotal();
+            swal.fire('Warning',"Invoice date belum diisi !!",'warning');
+            $("#vatCheck").prop('checked', false);
+            $("#nilaiLainCheck").prop('checked', false);
+        }
+    });
+
+    hitungNilaiLain = () =>{
+        let aDebitNDate = debitNDate.val();
+        if(aDebitNDate){
+            getActivePpn(aDebitNDate).done(function (result) {
+                if(result){
+                    sNilaiPPN = result.ppnValue;
+                    sNilaiPpnPembilang = result.pembilang;
+                    sNilaiPpnPenyebut = result.penyebut;
+                    $("#ppn").val(sNilaiPPN);
+                    $("#pembilangNumber").val(sNilaiPpnPembilang);
+                    $("#penyebutNumber").val(sNilaiPpnPenyebut);
+                }
+            })
+        }
+        
+        /*
+            jika ada DPP nilai lain maka perhituangan DPP lain-lain
+            rumus 11/12* 
+            dan untuk PPN 12% nya dihitung dari DPP Nilai Lain * 12%
+        */
+
+        let totalAmount = parseFloat($('#totalAmount').val().replace(/,/gi, '')) || 0;
+        let zDppNilaiLain = totalAmount * (sNilaiPpnPembilang/sNilaiPpnPenyebut);
+
+        $("#totalDppNilaiLain").val(parseFloat(zDppNilaiLain).toFixed(2));
+        $("#nilaiDppLain").text(`${sNilaiPpnPembilang}/${sNilaiPpnPenyebut}`);
+        totalAmount = zDppNilaiLain;
+        let zTotalPPn = Math.round(totalAmount * (sNilaiPPN/100));
+        console.log(`BA Tanpa pembulatan dari nilai lain:${totalAmount * (sNilaiPPN/100)}`);
+        $("#vatCheck").prop('checked', true);
+        $("#totalPPN").val(parseFloat(zTotalPPn).toFixed(2)).trigger("input");
+        $("#nilaiPPN").text(sNilaiPPN+'%');
+        $("#totalPPN").removeAttr('disabled');
+        $("#totalPPN").prop('required',true);
+        $("#totalPPN").focus().select();
+        mask_thousand();
+        mask_thousand_digit(2);
+        // totalSummary();
+    }
+
+    $("#nilaiLainCheck").change(function() {
+        let aDebitNDate = debitNDate.val();
+        if (aDebitNDate){
+            if(this.checked) {
+                hitungNilaiLain();
+            }else{
+                $("#totalDppNilaiLain").val('');
+                $("#nilaiDppLain").text('');
+                hitungTotal();
+                if($('#vatCheck').is(':checked')) {
+                    hitungPpn();
+                }
+            }
+        }else{
+            swal.fire('Warning',"Invoice date belum diisi !!",'warning');
+            $("#vatCheck").prop('checked', false);
+            $("#nilaiLainCheck").prop('checked', false);
         }
     });
 
@@ -439,9 +568,20 @@
         let aDebitDate = $(this).val();
         getActivePpn(aDebitDate).done(function (result) {
             if(result){
-                $("#ppn").val(result);
-                sNilaiPPN = result;
-                $("#nilaiPPN").text(`${result}%`);
+                sNilaiPPN = result.ppnValue;
+                sNilaiPpnPembilang = result.pembilang;
+                sNilaiPpnPenyebut = result.penyebut;
+
+                $("#ppn").val(sNilaiPPN);
+                $("#pembilangNumber").val(sNilaiPpnPembilang);
+                $("#penyebutNumber").val(sNilaiPpnPenyebut);
+                $("#nilaiPPN").text(`${sNilaiPPN}%`);
+                $("#nilaiDppLain").text(`${sNilaiPpnPembilang}/${sNilaiPpnPenyebut}`);
+                
+                if($("#nilaiLainCheck").is(':checked')){
+                    $("#nilaiLainCheck").change();
+                }
+
                 if($("#vatCheck").is(':checked')){
                     $("#vatCheck").change();
                 }

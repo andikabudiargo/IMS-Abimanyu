@@ -184,10 +184,20 @@
     const prSelect = $('#prSelect');
     const objSupplier = $('#supplier');
     const defaultPph23 = "{{ $pph23Value }}";
-    const defaultPpn = "{{ $vatValue }}";
-    $("#nilaiPPN").text("{{ $vatValue }}%");
+    const defaultPpn = "{{ $ppnValue }}";
+    
+    let sNilaiPPN= "{{ $ppnValue }}";
+    let sNilaiPpnPembilang= "{{ $ppnPembilang }}";
+    let sNilaiPpnPenyebut= "{{ $ppnPenyebut }}";
+
+    $("#nilaiPPN").text("{{ $ppnValue }}%");
     $("#nilaiPPH").text("{{ $pph23Value }}%");
     let lockedAt = "{{ $lockDate }}";
+
+    $("#ppnValue").val(sNilaiPPN);
+    $("#pembilangNumber").val(sNilaiPpnPembilang);
+    $("#penyebutNumber").val(sNilaiPpnPenyebut);
+    
 
     let delayTimer;
     function inputDecimal(ele) {
@@ -212,26 +222,136 @@
         });
     }
 
-    $('#pkp').change(function() {
-        if ($(this).is(':checked')) {
-            let aOrderDate = orderDate.val();
+    hitungPpn = () => {
+        let aOrderDate = orderDate.val();
+        if(aOrderDate){
             getActivePpn(aOrderDate).done(function (result) {
                 if(result){
-                    $('#ppn').val(result);
-                    $("#nilaiPPN").text(`${result}%`);
+                    sNilaiPPN = result.ppnValue;
+                    sNilaiPpnPembilang = result.pembilang;
+                    sNilaiPpnPenyebut = result.penyebut;
+                    $("#pembilangNumber").val(sNilaiPpnPembilang);
+                    $("#penyebutNumber").val(sNilaiPpnPenyebut);
+                    $('#ppn').val(sNilaiPPN);
+                    $("#nilaiPPN").text(`${sNilaiPPN}%`);
                     $('#ppn').removeAttr('disabled');
-                    hitungGrandTotal();
-                    console.log(`PPN: ${result}%`);
-                }else{
-                    $('#pkp').prop('checked', false);
+                    $("#nilaiDppLain").text(`${sNilaiPpnPembilang}/${sNilaiPpnPenyebut}`);
+                    
                 }
             })
+        }
+        
+        let basisAmount = parseFloat($("#totalDpp").val().replace(/,/gi, '')) || 0;
+
+        if($("#totalDppNilaiLain").val()){
+            basisAmount = $("#totalDppNilaiLain").val().replace(/,/gi, '');
+        }
+
+        let zTotalPPn = Math.round(basisAmount * (sNilaiPPN/100));
+        console.log(`BA Tanpa pembulatan dari ppn:${basisAmount * (sNilaiPPN/100)}`);
+        // $("#totalPPN").val(parseFloat(basisAmount * (sNilaiPPN/100)).toFixed(2));
+        $("#totalPPN").val(parseFloat(zTotalPPn).toFixed(2));
+        // $("#nilaiPPN").text(sNilaiPPN+'%');
+        $("#totalPPN").prop('disabled', false);
+        $("#totalPPN").prop('required',true);
+        $("#totalPPN").focus().select();
+        $("#nilaiLainCheck").prop('disabled', false);
+        mask_thousand_digit(2);
+        mask_thousand();
+        hitungGrandTotal();
+    }
+
+    $('#pkp').change(function() {
+        let aOrderDate = orderDate.val();
+        if(aOrderDate){
+            if ($(this).is(':checked')) {
+                hitungPpn();
+            }else{
+                $('#ppn').val(0);
+                $('#ppn').attr('disabled','disabled');
+                $("#pkp").prop('checked', false);
+                $("#totalPPN").val('');
+                $("#nilaiLainCheck").prop('checked', false);
+                $("#nilaiLainCheck").prop('disabled', true);
+                $("#nilaiDppLain").text('');
+                $("#totalDppNilaiLain").val('');
+                $("#totalPPN").prop('disabled', true);
+                hitungGrandTotal();
+            }
         }else{
-            $('#ppn').val(0);
-            $('#ppn').attr('disabled','disabled');
+            swal.fire('Warning',"Order date belum diisi !!",'warning');
+            $("#pkp").prop('checked', false);
+            $("#nilaiLainCheck").prop('checked', false);
+            $("#nilaiLainCheck").prop('disabled', true);
+            $("#nilaiDppLain").text('');
+            $("#totalDppNilaiLain").val('');
             hitungGrandTotal();
         }
     });
+
+    hitungNilaiLain = () =>{
+        let aOrderDate = orderDate.val();
+        if(aOrderDate){
+            getActivePpn(aOrderDate).done(function (result) {
+                if(result){
+                    sNilaiPPN = result.ppnValue;
+                    sNilaiPpnPembilang = result.pembilang;
+                    sNilaiPpnPenyebut = result.penyebut;
+                    $("#ppn").val(sNilaiPPN);
+                    $("#nilaiPPN").text(`${sNilaiPPN}%`);
+                    $("#pembilangNumber").val(sNilaiPpnPembilang);
+                    $("#penyebutNumber").val(sNilaiPpnPenyebut);
+                    $('#ppn').removeAttr('disabled');
+                }
+            })
+        }
+        
+        /*
+            jika ada DPP nilai lain maka perhituangan DPP lain-lain
+            rumus 11/12* 
+            dan untuk PPN 12% nya dihitung dari DPP Nilai Lain * 12%
+        */
+
+        let basisAmount = parseFloat($("#totalDpp").val().replace(/,/gi, '')) || 0;
+        let zDppNilaiLain = basisAmount * (sNilaiPpnPembilang/sNilaiPpnPenyebut);
+
+        $("#totalDppNilaiLain").val(parseFloat(zDppNilaiLain).toFixed(2));
+        $("#nilaiDppLain").text(`${sNilaiPpnPembilang}/${sNilaiPpnPenyebut}`);
+        basisAmount = zDppNilaiLain;
+        let zTotalPPn = Math.round(basisAmount * (sNilaiPPN/100));
+        console.log(`BA Tanpa pembulatan dari nilai lain:${basisAmount * (sNilaiPPN/100)}`);
+        $("#vatCheck").prop('checked', true);
+        $("#totalPPN").val(parseFloat(zTotalPPn).toFixed(2));
+        // $("#nilaiPPN").text(sNilaiPPN+'%');
+        $("#totalPPN").removeAttr('disabled');
+        $("#totalPPN").prop('required',true);
+        $("#totalPPN").focus().select();
+        mask_thousand_digit(2);
+        mask_thousand();
+        hitungGrandTotal();
+    }
+
+    $("#nilaiLainCheck").change(function() {
+        let aOrderDate = orderDate.val();
+        if (aOrderDate){
+            if(this.checked) {
+                hitungNilaiLain();
+            }else{
+                $("#totalDppNilaiLain").val('');
+                $("#nilaiDppLain").text('');
+                hitungGrandTotal();
+                if($('#vatCheck').is(':checked')) {
+                    hitungPpn();
+                }
+            }
+        }else{
+            swal.fire('Warning',"Order date belum diisi !!",'warning');
+            $("pkp").prop('checked', false);
+            $("#nilaiLainCheck").prop('checked', false);
+            hitungGrandTotal();
+        }
+    });
+
     
     $('#persenDiscount,#ppn').on('keyup', function() {
         hitungGrandTotal();
@@ -329,6 +449,9 @@
                 let persenDiscount = $('#persenDiscount').val().replace(/,/gi, '') || 0;
                 let tax = $('#pkp').is(':checked') ? 'PKP' : '';
                 let poNumber = $('#poNumber').val();
+                let aPembilangNumber = $('#pembilangNumber').val();
+                let aPenyebutNumber = $('#penyebutNumber').val();
+                let aTotalDppNilaiLain = $('#totalDppNilaiLain').val().replace(/,/gi, '') || 0;
 
                 $.ajax({
                     type: "post",
@@ -348,7 +471,10 @@
                         totalPpn:totalPpn,
                         kurs:kurs,
                         note:note,
-                        discount:persenDiscount
+                        discount:persenDiscount,
+                        pembilangNumber:aPembilangNumber,
+                        penyebutNumber:aPenyebutNumber,
+                        totalDppNilaiLain:aTotalDppNilaiLain
                     },
                     dataType: "json",
                     success: function(data) {
@@ -463,6 +589,9 @@
                 let approveLevel = $('#approveLevel').val();
                 let maxLevel = $('#maxLevel').val();
                 let tax = $('#pkp').is(':checked') ? 'PKP' : '';
+                let aPembilangNumber = $('#pembilangNumber').val();
+                let aPenyebutNumber = $('#penyebutNumber').val();
+                let aTotalDppNilaiLain = $('#totalDppNilaiLain').val().replace(/,/gi, '') || 0;
 
                 $.ajax({
                     type: "post",
@@ -485,7 +614,10 @@
                         discount:persenDiscount,
                         statusSimpan:statusSimpan,
                         approveLevel:approveLevel,
-                        maxLevel:maxLevel
+                        maxLevel:maxLevel,
+                        pembilangNumber:aPembilangNumber,
+                        penyebutNumber:aPenyebutNumber,
+                        totalDppNilaiLain:aTotalDppNilaiLain
                     },
                     dataType: "json",
                     success: function(data) {
@@ -602,6 +734,7 @@
         $('.disabled-el').attr('disabled','disabled');
     };
 
+    let delayTimerTax;
     function changeSelectPr(suppCode,prNumber) {
         if (prNumber){
             $.ajax({
@@ -621,6 +754,14 @@
                     }
                     disabledEnabledSelect2();
                     $('#prSelect').val("").trigger("change");
+
+                    clearTimeout(delayTimerTax);
+                    delayTimerTax = setTimeout(function() {
+                        console.log("oki ganteng");
+                        hitungGrandTotal();
+                    }, 2100);
+                    
+                    
                 }
             });
         }
@@ -741,6 +882,25 @@
         
         totalQty = sumFromArray(qty);
         totalAmount = sumFromArray(qty,price);
+        totalBa = totalAmount-((totalAmount*parseFloat(persenDiscount))/100);
+
+        let qTotalPpn = 0 ;
+
+        if($('#pkp').is(':checked') ) {
+            if($('#ppn').val()){
+                sNilaiPPN = $("#ppn").val();
+                qTotalPpn = Math.round(totalBa * (sNilaiPPN/100));
+                $("#totalPPN").val(humanizeNumber(parseFloat(qTotalPpn).toFixed(2)));
+                $("#totalPPN").prop('disabled', false);
+            }
+        }
+        
+        if ($("#nilaiLainCheck").is(':checked')) {
+            let zDppNilaiLain = totalBa * (sNilaiPpnPembilang/sNilaiPpnPenyebut);
+            $("#totalDppNilaiLain").val(humanizeNumber(parseFloat(zDppNilaiLain).toFixed(2)));
+            qTotalPpn = Math.round(zDppNilaiLain * (sNilaiPPN/100));
+            $("#totalPPN").val(humanizeNumber(parseFloat(qTotalPpn).toFixed(2)));
+        }
 
         // mask_thousand_digit(2);
 
@@ -753,10 +913,13 @@
         $("#totalQTY").val(totalQty);
         $("#totalAmount").val(humanizeNumber(parseFloat(totalAmount).toFixed(2)));
         $("#totalDiscount").val(nilaiDisc ?humanizeNumber(nilaiDisc.toFixed(2)):0);
-        $("#totalDpp").val(humanizeNumber((totalAmount-((totalAmount*parseFloat(persenDiscount))/100)).toFixed(2)));
-        $("#totalPPN").val(nilaiPpn ?humanizeNumber(nilaiPpn.toFixed(2)):0 );
+        $("#totalDpp").val(humanizeNumber(totalBa.toFixed(2)));
+        // $("#totalDpp").val(humanizeNumber((totalAmount-((totalAmount*parseFloat(persenDiscount))/100)).toFixed(2)));
+        // $("#totalPPN").val(nilaiPpn ?humanizeNumber(nilaiPpn.toFixed(2)):0 );
         $("#totalPPH").val(nilaiPph23 ?humanizeNumber(nilaiPph23.toFixed(2)):0 );
-        $("#totalNetto").val(humanizeNumber(((totalAmount-((totalAmount*parseFloat(persenDiscount))/100))+(parseFloat((parseFloat(ppn)*(totalAmount-((totalAmount*parseFloat(persenDiscount))/100))))/100)-(parseFloat((parseFloat(pph23)*(totalAmount-((totalAmount*parseFloat(persenDiscount))/100))))/100)).toFixed(2)));
+        $grandTotal = (totalBa+qTotalPpn)-nilaiPph23;        
+        $("#totalNetto").val(humanizeNumber($grandTotal.toFixed(2)));
+        // $("#totalNetto").val(humanizeNumber(((totalAmount-((totalAmount*parseFloat(persenDiscount))/100))+(parseFloat((parseFloat(ppn)*(totalAmount-((totalAmount*parseFloat(persenDiscount))/100))))/100)-(parseFloat((parseFloat(pph23)*(totalAmount-((totalAmount*parseFloat(persenDiscount))/100))))/100)).toFixed(2)));
         
     }
 
@@ -781,8 +944,15 @@
         let aOrderDate = $(this).val();
         getActivePpn(aOrderDate).done(function (result) {
             if(result){
-                $('#ppn').val(result);
-                $("#nilaiPPN").text(`${result}%`);
+                sNilaiPPN = result.ppnValue;
+                sNilaiPpnPembilang = result.pembilang;
+                sNilaiPpnPenyebut = result.penyebut;
+                $("#pembilangNumber").val(sNilaiPpnPembilang);
+                $("#penyebutNumber").val(sNilaiPpnPenyebut);
+                $('#ppn').val(sNilaiPPN);
+                $("#nilaiPPN").text(`${sNilaiPPN}%`);
+                $('#ppn').removeAttr('disabled');
+
                 if ($('#pkp').is(':checked')) {
                     hitungGrandTotal();                               
                 }

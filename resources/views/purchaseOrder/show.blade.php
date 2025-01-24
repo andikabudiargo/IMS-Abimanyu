@@ -154,11 +154,19 @@
                                                             <td class="text-right">{{ number_format($header2->sum_amount,2) }}</td>
                                                         </tr>
                                                         <tr>
-                                                            <td>Discount {{ number_format($header2->discount,2) }}%</td>
+                                                            <td>Discount {{ $header2->discount ? number_format($header2->discount,2).'%':'' }}</td>
                                                             <td class="text-right">{{ number_format($header2->sum_discount,2) }}</td>
                                                         </tr>
                                                         <tr>
-                                                            <td>PPN {{ $vatValue }}%</td>
+                                                            <td>DPP</td>
+                                                            <td class="text-right">{{ number_format($header2->sum_amount-$header2->sum_discount,2) }}</td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td>DPP Nilai Lain {{ $header2->dpp_lain_pembilang ? $header2->dpp_lain_pembilang.'/'.$header2->dpp_lain_penyebut :'' }}</td>
+                                                            <td class="text-right">{{ number_format($header2->dpp_lain_value,2) }}</td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td>PPN {{ $ppnValue }}%</td>
                                                             <td class="text-right">{{ number_format($header2->sum_ppn,2) }}</td>
                                                         </tr>
                                                         <tr>
