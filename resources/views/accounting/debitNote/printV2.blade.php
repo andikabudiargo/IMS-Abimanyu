@@ -322,7 +322,6 @@
                 <tr>
                 <td>
                 <div class="footer-space">
-
                 </div>
                 </td>
                 </tr>
@@ -388,7 +387,7 @@
                 <tbody>
                     @foreach ($totals as $val )            
                         <tr style="height:25px">
-                            <td colspan="3" rowspan="4" style="border-bottom: 1px solid black;">
+                            <td colspan="3" rowspan="5" style="border-bottom: 1px solid black;">
                                 <table style="table-layout:fixed;">
                                     <tr>
                                         <td style="border-right: none;border-left: none;padding-right:0px" width="15%" valign="top"><b>Terbilang : </b></td>
@@ -396,19 +395,23 @@
                                     </tr>
                                 </table>
                             </td>
-                            <td width="10.6%" colspan="" style="border: 1px solid #0c0c0c;padding-left:10px">DPP</td>
+                            <td width="10.6%" colspan="" style="border: 1px solid #0c0c0c;padding-left:10px">Selling Price</td>
                             <td width="13.9%" colspan="" align="right" style="border: 1px solid #0c0c0c;padding-left:10px">{{ number_format($val->sub_total,2) }}</td>
                         </tr>
                         <tr style="height:25px">
-                            <td colspan="" style="border: 1px solid #0c0c0c;padding-left:10px">PPN {{ $nilaiPPN }}% </td>
+                            <td colspan="" style="border: 1px solid #0c0c0c;padding-left:10px">VAT Object</td>
+                            <td colspan="" align="right" style="border: 1px solid #0c0c0c;padding-left:10px">{{ number_format($val->dpp_lain_value,2) }}</td>
+                        </tr>
+                        <tr style="height:25px">
+                            <td colspan="" style="border: 1px solid #0c0c0c;padding-left:10px">VAT {{ $nilaiPPN }}% </td>
                             <td colspan="" align="right" style="border: 1px solid #0c0c0c;padding-left:10px">{{ number_format($val->ppn,2) }}</td>
                         </tr>
                         <tr style="height:25px">
-                            <td colspan="" style="border: 1px solid #0c0c0c;padding-left:10px">PPH 23</td>
+                            <td colspan="" style="border: 1px solid #0c0c0c;padding-left:10px">WHT 23</td>
                             <td colspan="" align="right" style="border: 1px solid #0c0c0c;padding-left:10px">{{ $val->pph23 ? '-'.number_format($val->pph23,2):'-' }}</td>
                         </tr>
                         <tr style="height:25px">
-                            <td colspan="" style="border: 1px solid #0c0c0c;padding-left:10px">Total</td>
+                            <td colspan="" style="border: 1px solid #0c0c0c;padding-left:10px">Total Bill</td>
                             <td colspan="" align="right" style="border: 1px solid #0c0c0c;padding-left:10px">{{ number_format($val->grand_total,2) }}</td>
                         </tr>
                     @endforeach

@@ -1156,6 +1156,7 @@ class DebitNoteController extends Controller
         $data['listpo'] = $header->po_number;
 
         $data['totals']=DB::select("SELECT total_ppn as ppn,
+        b.dpp_lain_value,
         total_material,
         total_service,
         total_pph as pph23 
