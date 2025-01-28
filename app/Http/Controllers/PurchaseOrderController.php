@@ -289,9 +289,9 @@ class PurchaseOrderController extends Controller
                     foreach ($articles as $val) {
                         
                         if($dppLainValue){
-                            $ppnFinal =  (($val->price*$val->qty)+($val->price_service*$val->qty)*$dppLainBagi) * $ppn/100;
+                            $ppnFinal =  (($val->newPrice*$val->qty)*$dppLainBagi) * $ppn/100;
                         }else{
-                            $ppnFinal =  (($val->price*$val->qty)+($val->price_service*$val->qty)) * $ppn/100;
+                            $ppnFinal =  (($val->newPrice*$val->qty)) * $ppn/100;
                         }
 
                         $dataSet[] = [
@@ -837,9 +837,9 @@ class PurchaseOrderController extends Controller
                     foreach ($articles as $val) {
                         
                         if($dppLainValue){
-                            $ppnFinal =  (($val->price*$val->qty)+($val->price_service*$val->qty)*$dppLainBagi) * $ppn/100;
+                            $ppnFinal =  (($val->newPrice*$val->qty)*$dppLainBagi) * $ppn/100;
                         }else{
-                            $ppnFinal =  (($val->price*$val->qty)+($val->price_service*$val->qty)) * $ppn/100;
+                            $ppnFinal =  (($val->newPrice*$val->qty)) * $ppn/100;
                         }
 
                         DB::table('purchase_order_det')
