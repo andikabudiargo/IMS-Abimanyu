@@ -1530,7 +1530,7 @@ class PurchaseOrderController extends Controller
         ->where('po_number',$poNumber)
         ->get();
 
-        $nilaiPpn = $this->nilaiPpn;
+        $nilaiPpn = $poHdr->ppn;
         $nilaiPph23 = $this->nilaiPph23;
 
         $data['totals']=DB::select("SELECT *
