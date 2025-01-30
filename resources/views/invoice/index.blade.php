@@ -198,7 +198,7 @@
       tableId:"detailedTable",
       route:"{{ route('invoice.list') }}",
       kolom:{!! $kolom !!},
-      arrColPrint:[1,2,4,5,6,7,8,9,10,11,12,15,17,19,20,21,22,23,27],
+      arrColPrint:[1,2,4,5,6,7,8,9,10,11,12,13,15,17,19,20,21,22,23,27],
       columnDefs :[
         { width: '5%', targets: 0 },
         {
