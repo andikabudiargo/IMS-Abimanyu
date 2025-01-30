@@ -366,11 +366,12 @@ class PurchaseOrderController extends Controller
         ,DB::raw('(select count(*) from purchase_order_det where po_number = purchase_order_hdr.po_number) as sum_row')
         ,DB::raw('(select sum(qty*price) from purchase_order_det where po_number = purchase_order_hdr.po_number) as sum_amount')
         ,DB::raw('(select sum((qty*price)*purchase_order_hdr.discount/100) from purchase_order_det where po_number = purchase_order_hdr.po_number) as sum_discount')
-        ,DB::raw('(select sum(((qty*price)-((qty*price)*purchase_order_hdr.discount/100))*purchase_order_hdr.ppn/100) from purchase_order_det where po_number = purchase_order_hdr.po_number) as sum_ppn')
+        ,DB::raw('(select case when purchase_order_hdr.dpp_lain_value > 0 then round(purchase_order_hdr.dpp_lain_value*purchase_order_hdr.ppn/100) else round(sum(((qty*price)-((qty*price)*purchase_order_hdr.discount/100))*purchase_order_hdr.ppn/100)) end as ppn from purchase_order_det where po_number = purchase_order_hdr.po_number) as sum_ppn')
         ,DB::raw('(select sum(((qty*price)-((qty*price)*purchase_order_hdr.discount/100))*purchase_order_hdr.pph22/100) from purchase_order_det where po_number = purchase_order_hdr.po_number) as sum_pph22')
         )
         ->orderBy('id')
         ->get();
+        
 
         $poNumber = $data['headers'][0]->origin_po_number;
         
@@ -1536,12 +1537,15 @@ class PurchaseOrderController extends Controller
         $data['totals']=DB::select("SELECT *
         ,gross 
         ,(gross*nilai_discount/100) as discount 
-        ,(gross-(gross*nilai_discount/100))+((gross-(gross*nilai_discount/100))*nilai_ppn/100)-((gross-(gross*nilai_discount/100))*nilai_pph23/100) as netto 
-        ,(gross-(gross*nilai_discount/100)) as dpp 
-        ,(gross-(gross*nilai_discount/100))*nilai_ppn/100 as ppn 
+        ,case when dpp_lain > 0 then (gross-(gross*nilai_discount/100))+round((dpp_lain*nilai_ppn/100))-((gross-(gross*nilai_discount/100))*nilai_pph23/100)
+        else (gross-(gross*nilai_discount/100))+round(((gross-(gross*nilai_discount/100))*nilai_ppn/100))-((gross-(gross*nilai_discount/100))*nilai_pph23/100)end as netto
+        --,(gross-(gross*nilai_discount/100))+((gross-(gross*nilai_discount/100))*nilai_ppn/100)-((gross-(gross*nilai_discount/100))*nilai_pph23/100) as netto 
+        ,(gross-(gross*nilai_discount/100)) as dpp
+        ,case when dpp_lain > 0 then round(dpp_lain*nilai_ppn/100) else round((gross-(gross*nilai_discount/100))*nilai_ppn/100) end as ppn
+        --,(gross-(gross*nilai_discount/100))*nilai_ppn/100 as ppn 
         ,(gross-(gross*nilai_discount/100))*nilai_pph23/100 as pph23 
         ,'$nilaiPpn' as angka_ppn
-        ,'$nilaiPph23' as angka_pph23 
+        ,'$nilaiPph23' as angka_pph23       
         from (
             select a.po_number
             ,authorized_by
@@ -1551,6 +1555,9 @@ class PurchaseOrderController extends Controller
             ,max(b.discount) as nilai_discount
             ,max(b.ppn) as nilai_ppn
             ,max(b.pph22) as nilai_pph23
+            ,max(b.dpp_lain_value) as dpp_lain
+            ,max(b.dpp_lain_pembilang) as pembilang
+            ,max(b.dpp_lain_penyebut) as penyebut
             -- ,sum(qty*price*b.ppn/100) as ppn 
             -- ,sum(qty*price*b.pph22/100) as pph23 
             from purchase_order_det a
