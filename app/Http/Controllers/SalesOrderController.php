@@ -373,7 +373,8 @@ class SalesOrderController extends Controller
         ,DB::raw('(select sum(qty) from sales_order_det where so_code = sales_order_hdr.so_code) as sum_qty') 
         ,DB::raw('(select count(*) from sales_order_det where so_code = sales_order_hdr.so_code) as sum_row')
         ,DB::raw('(select (sum((qty*price) + (qty*price_service))) from sales_order_det where so_code = sales_order_hdr.so_code) as sum_amount')
-        ,DB::raw('(select (sum(((qty*price) + (qty*price_service))*sales_order_hdr.ppn/100)) from sales_order_det where so_code = sales_order_hdr.so_code) as sum_ppn')
+        ,DB::raw('(select case when dpp_lain_value > 0 then round(dpp_lain_value*sales_order_hdr.ppn/100) else round((sum(((qty*price) + (qty*price_service))*sales_order_hdr.ppn/100))) end from sales_order_det where so_code = sales_order_hdr.so_code) as sum_ppn')
+        // ,DB::raw('(select (sum(((qty*price) + (qty*price_service))*sales_order_hdr.ppn/100)) from sales_order_det where so_code = sales_order_hdr.so_code) as sum_ppn')
         ,DB::raw('(select (sum(((qty*price_service))*sales_order_hdr.pph23/100)) from sales_order_det where so_code = sales_order_hdr.so_code) as sum_pph23')
         )
         ->where('origin_so_code', function($query) use ($id){
@@ -1226,14 +1227,23 @@ class SalesOrderController extends Controller
         ->orderBy('sales_order_det.id')
         ->get();
 
-        $data['totals']=DB::select("SELECT *,(total_material+total_service) as sub_total,((total_material+total_service+ppn)-pph23) as grand_total from (
+        $data['totals']=DB::select("SELECT *
+        ,(total_material+total_service) as sub_total
+        ,case when dpp_lain > 0 then (((total_material+total_service)+round(((total_material+total_service)*(pembilang/penyebut))*nilai_ppn/100))-pph23) else ((total_material+total_service+(round((total_material+total_service)*nilai_ppn/100)))-pph23) end as grand_total 
+        ,case when dpp_lain > 0 then round(((total_material+total_service)*(pembilang/penyebut))*nilai_ppn/100) else round((total_material+total_service)*nilai_ppn/100) end as ppn
+        from (
             select 
             a.so_code,
             sum(qty) as qty,
             -- sum(qty*price) + sum(qty*price_service) as gross,
             sum(qty*price) as total_material,
             sum(qty*price_service) as total_service,
-            sum(a.ppn) as ppn,
+            max(b.dpp_lain_value) as dpp_lain,
+            max(b.dpp_lain_pembilang) as pembilang,
+            max(b.dpp_lain_penyebut) as penyebut,
+            max(b.ppn) as nilai_ppn,
+            -- case when max(b.dpp_lain_value) > 0 then sum(((qty*price_service)+(qty*price))/(max(b.dpp_lain_pembilang)/max(b.dpp_lain_penyebut))) else sum(a.ppn) end as ppn,
+            sum(a.ppn) as ppn1,
             sum(a.pph23) as pph23 
             from sales_order_det a
             left join sales_order_hdr b
