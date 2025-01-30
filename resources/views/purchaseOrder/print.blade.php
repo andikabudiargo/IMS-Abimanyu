@@ -158,7 +158,8 @@
                             <tr><td  width="60%">Subtotal</td><td style="padding:0px">:</td></td><td align="right">{{ number_format($totals[0]->gross,2) }}</td></tr>
                             <tr><td >Discount {{ number_format($totals[0]->nilai_discount,2) }}%</td><td style="padding:0px">:</td><td align="right">{{ number_format($totals[0]->discount,2) }}</td></tr>
                             <tr><td >DPP</td><td style="padding:0px">:</td></td><td align="right">{{ number_format($totals[0]->dpp,2) }}</td></tr>
-                            <tr><td >PPN {{ $totals[0]->angka_ppn }}%</td><td style="padding:0px">:</td><td align="right">{{ number_format($totals[0]->ppn,2) }}</td></tr>
+                            {{-- <tr><td >PPN {{ $totals[0]->angka_ppn }}%</td><td style="padding:0px">:</td><td align="right">{{ number_format($totals[0]->ppn,2) }}</td></tr> --}}
+                            <tr><td >PPN </td><td style="padding:0px">:</td><td align="right">{{ number_format($totals[0]->ppn,2) }}</td></tr>
                             <tr><td >PPH23 {{ $totals[0]->angka_pph23 }}%</td><td style="padding:0px">:</td><td align="right">{{ number_format($totals[0]->pph23,2) }}</td></tr>
                             <tr><td >Total:</td><td style="padding:0px">:</td><td align="right">{{ number_format($totals[0]->netto,2) }}</td></tr>
                         </tbody>

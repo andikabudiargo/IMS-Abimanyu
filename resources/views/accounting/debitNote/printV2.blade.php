@@ -403,7 +403,8 @@
                             <td colspan="" align="right" style="border: 1px solid #0c0c0c;padding-left:10px">{{ number_format($val->dpp_lain_value,2) }}</td>
                         </tr>
                         <tr style="height:25px">
-                            <td colspan="" style="border: 1px solid #0c0c0c;padding-left:10px">VAT {{ $nilaiPPN }}% </td>
+                            {{-- <td colspan="" style="border: 1px solid #0c0c0c;padding-left:10px">VAT {{ $nilaiPPN }}% </td> --}}
+                            <td colspan="" style="border: 1px solid #0c0c0c;padding-left:10px">VAT</td>
                             <td colspan="" align="right" style="border: 1px solid #0c0c0c;padding-left:10px">{{ number_format($val->ppn,2) }}</td>
                         </tr>
                         <tr style="height:25px">

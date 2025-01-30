@@ -213,6 +213,18 @@
                                 </div>
                             </div>
                             <div class="form-group row mb-03">
+                                <label for="nilaiLainCheck" class="col-sm-4 col-form-label titik-dua">DPP Nilai Lain <span id="nilaiDppLain">{{ $header->dpp_lain_pembilang ? $header->dpp_lain_pembilang.'/'.$header->dpp_lain_penyebut :'' }}</span></label>
+                                <div class="col-sm-1" style="padding-right: 0rem;display: flex;align-items: center;">
+                                    <div class="custom-control custom-checkbox">
+                                        <input type="checkbox" class="custom-control-input" id="nilaiLainCheck" name="nilaiLainCheck" {{ $header->dpp_lain_value >0 ? 'checked' : '' }}/>
+                                        <label class="custom-control-label" for="nilaiLainCheck"></label>
+                                    </div>
+                                </div>    
+                                <div class="col-sm-5">
+                                    <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit" oninput='inputDecimal(this)' value="{{ $header->dpp_lain_value>0 ? number_format($header->dpp_lain_value,2) : 0 }}" id="totalDppNilaiLain"  name="totalDppNilaiLain" disabled/>
+                                </div>
+                            </div>
+                            <div class="form-group row mb-03">
                                 <label for="totalPPN" class="col-sm-4 col-form-label titik-dua tanpa-padding">PPN <span id="nilaiPPN"></span> </label>
                                 <div class="col-sm-6">
                                     <input type="text" class="form-control text-right font-weight-bold" id="totalPPN" disabled/>
