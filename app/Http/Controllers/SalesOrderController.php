@@ -605,6 +605,9 @@ class SalesOrderController extends Controller
         $statusSo = ['NEW','VALIDATED','APPROVED','RECEIVED','CANCELED','CLOSED','PAID','REVISED'];
         $data['statusSo'] = $statusSo[$data['header']->status-1];
 
+        $data['ppnPembilang'] = $data['header']->dpp_lain_pembilang;
+        $data['ppnPenyebut'] = $data['header']->dpp_lain_penyebut;
+
         return view("salesOrder.close",$data);
         
     }
