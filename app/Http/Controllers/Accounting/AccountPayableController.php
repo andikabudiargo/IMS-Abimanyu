@@ -765,10 +765,16 @@ class AccountPayableController extends Controller
                           ->count();
         });
 
-        $validation = Validator::make($request->all(),$rules = [
-            'invoiceNumber'=>'required|iunique1:ap_invoice,inv_number,supplier_id',
-            'taxInvoiceNumber'=>'required|iunique2:ap_invoice,tax_inv_number,supplier_id',
-        ],$messages);
+        if($vat > 0){
+            $validation = Validator::make($request->all(),$rules = [
+                'invoiceNumber'=>'required|iunique1:ap_invoice,inv_number,supplier_id',
+                'taxInvoiceNumber'=>'required|iunique2:ap_invoice,tax_inv_number,supplier_id',
+            ],$messages);
+        }else{
+            $validation = Validator::make($request->all(),$rules = [
+                'invoiceNumber'=>'required|iunique1:ap_invoice,inv_number,supplier_id',
+            ],$messages);
+        }
         
         $error_array = array();
         $success_output = '';

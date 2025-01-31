@@ -245,6 +245,8 @@
             }else{
                 $("#totalDppNilaiLain").val('');
                 $("#nilaiDppLain").text('');
+                $("#taxInvoiceNumber").prop('disabled',true);
+                $("#taxInvoiceNumber").prop('required',false);
                 hitungTotal();
                 if($('#vatCheck').is(':checked')) {
                     hitungPpn();
@@ -748,19 +750,19 @@
                     // let dppNilainLain = (11/12)*result.summaryRec[0].basis_amount;
                     // $('#dppNilaiLainA').val(humanizeNumber(parseFloat(dppNilainLain.toFixed(2))));
                     // $('#basisAmount').val(humanizeNumber(parseFloat(result.summaryRec[0].basis_amount).toFixed(2)));
-                    let zNilaiPPN = $("#ppnValue").val();
-                    if ((result.summaryRec[0].nilai_pajak>0) && (edit=='false')){
-                        // $("#vatCheck").prop("checked",true); 
+                    // let zNilaiPPN = $("#ppnValue").val();
+                    // if ((result.summaryRec[0].nilai_pajak>0) && (edit=='false')){
+                    //     // $("#vatCheck").prop("checked",true); 
                                                 
-                        $('#nilaiPPN').text(zNilaiPPN+"%");
-                        $("#taxInvoiceNumber").removeAttr('disabled');
-                        $("#taxInvoiceNumber").prop('required',true);
-                        $("#totalPPN").removeAttr('disabled');
-                        $("#totalPPN").prop('required',true);
+                    //     $('#nilaiPPN').text(zNilaiPPN+"%");
+                    //     $("#taxInvoiceNumber").removeAttr('disabled');
+                    //     $("#taxInvoiceNumber").prop('required',true);
+                    //     $("#totalPPN").removeAttr('disabled');
+                    //     $("#totalPPN").prop('required',true);
                                                
-                        // $('#nilaiPPN').val(humanizeNumber(result.summaryRec[0].vat));
-                        // $('#totalPPN').val(humanizeNumber(parseFloat(result.summaryRec[0].nilai_pajak).toFixed(2)));
-                    }                                        
+                    //     // $('#nilaiPPN').val(humanizeNumber(result.summaryRec[0].vat));
+                    //     // $('#totalPPN').val(humanizeNumber(parseFloat(result.summaryRec[0].nilai_pajak).toFixed(2)));
+                    // }                                        
                     hitungTotal();
                     edit = 'false';
                 },
