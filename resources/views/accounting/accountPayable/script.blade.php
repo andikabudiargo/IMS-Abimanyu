@@ -389,9 +389,11 @@
                 $("#nilaiPPN").text(`${sNilaiPPN}%`);
                 $("#nilaiDppLain").text(`${sNilaiPpnPembilang}/${sNilaiPpnPenyebut}`);
                 
-                if($("#nilaiLainCheck").is(':checked')){
-                    $("#nilaiLainCheck").change();
-                }
+                $("#nilaiLainCheck").prop('checked',true).change();
+
+                // if($("#nilaiLainCheck").is(':checked')){
+                //     $("#nilaiLainCheck").change();
+                // }
 
                 if($("#vatCheck").is(':checked')){
                     $("#vatCheck").change();

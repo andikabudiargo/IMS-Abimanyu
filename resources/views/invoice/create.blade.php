@@ -285,6 +285,8 @@
         $('#totalPPH').attr('disabled','disabled');
         showDetail='false';
         edit='false';
+
+        $("#nilaiLainCheck").prop('checked',true).change();
     });
 
     const invDate = $('#invDate');

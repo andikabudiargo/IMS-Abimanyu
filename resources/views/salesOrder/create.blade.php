@@ -260,6 +260,7 @@
     $(document).ready(function(){           
         validateFormToast("frmAdd");
         $('#orderDate').val(currentDate);
+        $("#nilaiLainCheck").prop('checked',true).change();
     });
     
     $("#cmdSave").click(function(){    

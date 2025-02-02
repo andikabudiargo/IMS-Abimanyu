@@ -266,6 +266,7 @@
         if(aOrderDate){
             if ($(this).is(':checked')) {
                 hitungPpn();
+                $("#nilaiLainCheck").prop('checked',true).change();
             }else{
                 $('#ppn').val(0);
                 $('#ppn').attr('disabled','disabled');

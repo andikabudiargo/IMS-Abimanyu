@@ -585,6 +585,7 @@
                 if($("#vatCheck").is(':checked')){
                     $("#vatCheck").change();
                 }
+                $("#nilaiLainCheck").prop('checked',true).change();
             }
         })
     });

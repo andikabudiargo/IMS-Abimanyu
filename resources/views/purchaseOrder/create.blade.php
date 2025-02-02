@@ -233,6 +233,8 @@
         $("#nilaiLainCheck").prop('disabled', true);
         $("#totalPPN").prop('disabled', true);
 
+        // $("#nilaiLainCheck").prop('checked',true).change();
+
     });
 
     document.querySelector('#cmdSave').addEventListener('click',() =>{
