@@ -407,7 +407,7 @@ class TargetSoController extends Controller
                     //Delete kalo article tidak ada di po $tsoCode dan article nya $val->article_code
                     //berdasarkan 2 kondisi
                     DB::table('target_order_det')
-                        ->whereNotIn(DB::raw("CONCAT(tso_code,article_code)"),$dataSet)
+                        // ->whereNotIn(DB::raw("CONCAT(tso_code,article_code)"),$dataSet)
                         ->where('tso_code',$tsoCode)
                         ->delete();
                                   
