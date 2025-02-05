@@ -281,6 +281,11 @@ class AccountPayableController extends Controller
         $output="";
         $edit = $request->edit;        
 
+        /*
+            revisi 5/2/2025, PO yang sudah closed tetap bisa di panggil datanya di AP
+
+        */
+        
         if($edit == 'true'){
             $data= DB::table("purchase_order_hdr") 
             ->where("supplier_id",$supp)
@@ -297,7 +302,8 @@ class AccountPayableController extends Controller
             //     ->whereNotIn('rec_number',$listRec);
 
             // })
-            ->whereIn("status",['3','6'])
+            // ->whereIn("status",['3','6'])
+            ->whereIn("status",['3'])
             ->orderBy("po_number")
             ->select("po_number","po_date","currency","kurs")
             ->get();
