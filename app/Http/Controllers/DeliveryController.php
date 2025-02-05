@@ -1388,8 +1388,8 @@ class DeliveryController extends Controller
         ,'delivery_hdr.delivery_number as delivery_number_1'
         ,DB::raw("concat(kode,'-',nama) as customer_name")
         ,DB::raw("(select count(*) from invoice_det a where a.dn_number = delivery_hdr.delivery_number and invoice_number in (select invoice_number from invoice_hdr where status not in  ('5','7','10'))) as sudah_di_bayar")
-        ,DB::RAW("(select approval_order from approval_history where approval_history.module_number = 'DN/ASN/25/01/1271' order by approval_order desc limit 1) as last_approval")
-        ,DB::RAW("(select username from approval_history where approval_history.module_number = 'DN/ASN/25/01/1271' order by approval_order desc limit 1) as last_approval_by")
+        ,DB::RAW("(select approval_order from approval_history where approval_history.module_number = delivery_hdr.delivery_number order by approval_order desc limit 1) as last_approval")
+        ,DB::RAW("(select username from approval_history where approval_history.module_number = delivery_hdr.delivery_number order by approval_order desc limit 1) as last_approval_by")
         // ,DB::raw("(select reason from delivery_hdr a where a.origin_delivery_number = delivery_hdr.delivery_number and status ='7' order by id desc limit 1) as cancel_reason")
         )
         ->where(db::raw("(select sum(qty) from delivery_det where delivery_number = delivery_hdr.delivery_number)"),">",0)
