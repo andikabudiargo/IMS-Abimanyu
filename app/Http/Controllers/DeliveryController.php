@@ -86,6 +86,8 @@ class DeliveryController extends Controller
             ['data'=> 'created_by', 'name'=> 'created_by','title'=>'Created By'],
             ['data'=> 'created_at', 'name'=> 'created_at','title'=>'Created At'],
             ['data'=> 'reason', 'name'=> 'reason','title'=>'Revisi Reason'],
+            ['data'=> 'last_approval', 'name'=> 'last_approval','title'=>'Last Approval'],
+            ['data'=> 'last_approval_by', 'name'=> 'last_approval_by','title'=>'Last Approval By'],
             
         ];
         return json_encode($kolom, true);
@@ -1386,6 +1388,8 @@ class DeliveryController extends Controller
         ,'delivery_hdr.delivery_number as delivery_number_1'
         ,DB::raw("concat(kode,'-',nama) as customer_name")
         ,DB::raw("(select count(*) from invoice_det a where a.dn_number = delivery_hdr.delivery_number and invoice_number in (select invoice_number from invoice_hdr where status not in  ('5','7','10'))) as sudah_di_bayar")
+        ,DB::RAW("(select approval_order from approval_history where approval_history.module_number = 'DN/ASN/25/01/1271' order by approval_order desc limit 1) as last_approval")
+        ,DB::RAW("(select username from approval_history where approval_history.module_number = 'DN/ASN/25/01/1271' order by approval_order desc limit 1) as last_approval_by")
         // ,DB::raw("(select reason from delivery_hdr a where a.origin_delivery_number = delivery_hdr.delivery_number and status ='7' order by id desc limit 1) as cancel_reason")
         )
         ->where(db::raw("(select sum(qty) from delivery_det where delivery_number = delivery_hdr.delivery_number)"),">",0)
