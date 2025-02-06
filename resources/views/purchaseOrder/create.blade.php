@@ -271,6 +271,7 @@
                         hitungGrandTotal();
                         $('#pkp').prop('checked', true);
                         $("#nilaiLainCheck").prop('disabled', false);
+                        $("#nilaiLainCheck").prop('checked',true).change();
                     }else{
                         $('#pkp').prop('checked', false);
                     }
