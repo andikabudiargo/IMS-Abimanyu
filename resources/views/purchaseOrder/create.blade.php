@@ -250,11 +250,12 @@
     objSupplier.change(function(e){    
         let aOrderDate = orderDate.val();
         if (aOrderDate){
-
             let suppCode = $(this).val();
             let pkp = $(this).find(":selected").data("pkp");
             let top = $(this).find(":selected").data("top") || 0;
             $("#term").val(top);
+            $("#nilaiLainCheck").prop('checked',false).change();
+            $("#nilaiLainCheck").prop('disabled', true);
             if (pkp =='Y'){
                 let aOrderDate = orderDate.val();
                 getActivePpn(aOrderDate).done(function (result) {
@@ -274,8 +275,8 @@
                         $("#nilaiLainCheck").prop('checked',true).change();
                     }else{
                         $('#pkp').prop('checked', false);
-                        $("#nilaiLainCheck").prop('disabled', true);
                         $("#nilaiLainCheck").prop('checked',false).change();
+                        $("#nilaiLainCheck").prop('disabled', true);
                     }
                 })
             }else{
