@@ -274,6 +274,8 @@
                         $("#nilaiLainCheck").prop('checked',true).change();
                     }else{
                         $('#pkp').prop('checked', false);
+                        $("#nilaiLainCheck").prop('disabled', true);
+                        $("#nilaiLainCheck").prop('checked',false).change();
                     }
                 })
             }else{
