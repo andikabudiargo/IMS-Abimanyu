@@ -1109,13 +1109,16 @@ class PurchaseRequestController extends Controller
              
         return Datatables::of($data)
         ->addColumn('status', function ($data) {
+            // $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-secondary','badge-secondary'];
+            // $statusPo = ['NEW','VALIDATED','APPROVED','RECEIVED','CANCELED','CLOSED','PO','REVISED'];
+
             $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-secondary','badge-danger'];
             $statusPr = ['NEW','VALIDATED','APPROVED','RECEIVED','CANCELED','CLOSED','PO','REVISED','REJECTED'];
 
             if($data->statusku == 0){
-                return "<div class='badge ".$badges[0]."'>".$statusPo[0]."</div>";
+                return "<div class='badge ".$badges[0]."'>".$statusPr[0]."</div>";
             }else{
-                return "<div class='badge ".$badges[$data->statusku-1]."'>".$statusPo[$data->statusku-1]."</div>";
+                return "<div class='badge ".$badges[$data->statusku-1]."'>".$statusPr[$data->statusku-1]."</div>";
             }
             
         })
