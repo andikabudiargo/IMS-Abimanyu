@@ -920,7 +920,7 @@ class DebitNoteController extends Controller
         $searchSo = strtolower($request->searchSo);
         $searchCustomer = $request->searchCustomer; 
         $searchStatus = $request->searchStatus;
-        $debitNDate = $request->recDate;
+        $debitNDate = $request->dnDate;
         $fromDate = "";
         $toDate = "";
 
