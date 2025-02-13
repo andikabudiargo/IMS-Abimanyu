@@ -105,6 +105,7 @@ class InvoiceController extends Controller
             ['data'=> 'voucher_amount', 'name'=> 'voucher_amount','title'=>'Amount Paid'],
             ['data'=> 'balance', 'name'=> 'balance','title'=>'Balance'],
             ['data'=> 'voucher_number', 'name'=> 'voucher_number','title'=>'Voucher Number'],
+            ['data'=> 'note', 'name'=> 'note','title'=>'Note'],
             ['data'=> 'approval_by', 'name'=> 'approval_by','title'=>'Approved By' ],
             ['data'=> 'approval_at', 'name'=> 'approval_at','title'=>'Approved At' ],
             ['data'=> 'created_by', 'name'=> 'created_by','title'=>'Created By' ],
