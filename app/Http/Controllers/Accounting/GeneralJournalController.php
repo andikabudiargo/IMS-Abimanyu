@@ -731,6 +731,7 @@ class GeneralJournalController extends Controller
         ->where('voucher_number',$vcNumber)
         ->update(
             [
+                'voucher_number'=>$vcNumber."(D)",
                 'status' =>$status,
                 'updated_by' => Auth::user()->username,
                 'updated_at' => date('Y-m-d H:i:s')
@@ -740,6 +741,16 @@ class GeneralJournalController extends Controller
         // $rowAffected = DB::table('kas_hdr')->where('id',$id)->delete();
 
         if($rowAffected>0){
+            $rowAffected=DB::table('kas_det')
+            ->where('voucher_number',$vcNumber)
+            ->update(
+                [
+                    'voucher_number'=>$vcNumber."(D)",
+                    'updated_by' => Auth::user()->username,
+                    'updated_at' => date('Y-m-d H:i:s')
+                ]
+            );
+
             // DB::table('kas_det')->where('voucher_number',$vcNumber)->delete();
             $title ="Delete $this->title";
             $alert  ="success";
