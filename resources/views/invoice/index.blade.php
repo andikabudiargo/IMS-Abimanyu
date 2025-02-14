@@ -220,7 +220,7 @@
         searchStatus:searchStatus,
         recDate:recDate
       },
-      orderColumn:[[ 26, 'desc' ]],
+      orderColumn:[[ 27, 'desc' ]],
       excelFileName:'invoice_customer'
     });
   }
