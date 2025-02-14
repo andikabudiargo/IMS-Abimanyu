@@ -357,6 +357,11 @@
                         });
                     }
 
+                    if (parseInt(qty) > parseInt(qtySo)){
+                        pesan +="Items "+ articleDesc +"-"+qty+"-"+qtySo+" QTY Delivery is higher than QTY SO<br>"; 
+                        flag=1;
+                    }
+
                     // console.log(articles);
                     // if (qty == 0){
                     //     pesan +="QTY of items "+ articleDesc +" cannot be 0 <br>"; 

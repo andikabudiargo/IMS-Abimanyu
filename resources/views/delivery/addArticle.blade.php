@@ -206,6 +206,7 @@
         mask_thousand();
         hitungTotal();
         hitungGrandTotalLoad();
+        cekQty();
     }
 
     function hitungTotal(){

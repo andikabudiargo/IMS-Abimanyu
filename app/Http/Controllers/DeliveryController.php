@@ -564,7 +564,8 @@ class DeliveryController extends Controller
             ,'article.*'
             ,'uom.*'
             // ,DB::RAW("(select sum(qty) from sales_order_det a where a.so_code = delivery_det.so_number and a.article_code = delivery_det.article_code group by a.article_code) - delivery_det.qty as qty_so")
-            ,DB::RAW("(select sum(qty) from sales_order_det a where a.so_code = delivery_det.so_number and a.article_code = delivery_det.article_code group by a.article_code) as qty_so")
+            ,DB::RAW("((select sum(qty) from sales_order_det a where a.so_code = delivery_det.so_number and a.article_code = delivery_det.article_code group by a.article_code)
+            -coalesce((select sum(qty) from delivery_det z where z.delivery_number in (select delivery_number from delivery_hdr where so_number = delivery_det.so_number and status not in ('5','7')) and article_code = delivery_det.article_code group by article_code),0))+delivery_det.qty as qty_so")
         )
         ->where('delivery_det.delivery_number',$dnNumber)
         ->orderBy('delivery_det.id')
