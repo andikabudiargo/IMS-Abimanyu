@@ -470,7 +470,8 @@ class AccountPayableController extends Controller
         $detailRec = DB::table('receiving_det')
         ->leftJoin('receiving_hdr','receiving_hdr.rec_number','receiving_det.rec_number')
         ->leftJoin('article','article.article_code','receiving_det.article_code')
-        ->leftJoin(DB::RAW("(select * from ap_invoice_det where ap_number='$apNumber') as ap"),'ap.reference','receiving_det.article_code')
+        // ->leftJoin(DB::RAW("(select * from ap_invoice_det where ap_number='$apNumber') as ap"),'ap.reference','receiving_det.article_code')
+        ->leftJoin(DB::RAW("(select distinct account, reference from ap_invoice_det where ap_number='$apNumber') as ap"),'ap.reference','receiving_det.article_code')
         // ->leftJoin(DB::RAW("(select * from purchase_order_det where po_number = '$poNumber') AS po"),function($join){
         //     $join->on('po.po_number','=','receiving_hdr.po_number')
         //         ->on('po.article_code','=','receiving_det.article_code');
@@ -506,6 +507,7 @@ class AccountPayableController extends Controller
         // ->groupBy(db::raw("(select dept from purchase_request_hdr where pr_number in (select pr_number from purchase_order_det where po_number = receiving_hdr.po_number ) limit 1)"))
         ->groupBy(db::raw("(select dept from purchase_request_hdr where pr_number in (select pr_number from purchase_order_det where po_number = receiving_hdr.po_number and purchase_order_det.article_code = receiving_det.article_code) limit 1)"))
         ->groupBy('ap.account')
+        ->orderBy('receiving_det.article_code')
         ->get();
 
         // dd($detailRec);
@@ -987,7 +989,8 @@ class AccountPayableController extends Controller
         $data['detailRec'] = DB::table('receiving_det')
         ->leftJoin('receiving_hdr','receiving_hdr.rec_number','receiving_det.rec_number')
         ->leftJoin('article','article.article_code','receiving_det.article_code')
-        ->leftJoin(DB::RAW("(select * from ap_invoice_det where ap_number='$apNumber') as ap"),'ap.reference','receiving_det.article_code')
+        ->leftJoin(DB::RAW("(select distinct account, reference from ap_invoice_det where ap_number='$apNumber') as ap"),'ap.reference','receiving_det.article_code')
+        // ->leftJoin(DB::RAW("(select * from ap_invoice_det where ap_number='$apNumber') as ap"),'ap.reference','receiving_det.article_code')
         // ->leftJoin(DB::RAW("(select * from purchase_order_det where po_number = '$poNumber') AS po"),function($join){
         //     $join->on('po.po_number','=','receiving_hdr.po_number')
         //         ->on('po.article_code','=','receiving_det.article_code');
