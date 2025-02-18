@@ -204,7 +204,7 @@ class PurchaseOrderController extends Controller
         $currency = $request->currency;
         $supplier = $request->supplier;
         $tax = $request->tax;
-        $ppn = $request->ppn;
+        $ppn = $tax ? $request->ppn : 0;
         $termin = $request -> term;
         $pph = 0;
         $kurs = $request -> kurs;
@@ -711,7 +711,7 @@ class PurchaseOrderController extends Controller
         $currency = $request->currency;
         $supplier = $request->supplier;
         $tax = $request->tax;
-        $ppn = $request->ppn;
+        $ppn = $tax ? $request->ppn : 0;
         $termin = $request -> term;
         $pph = 0;
         $kurs = $request -> kurs;
