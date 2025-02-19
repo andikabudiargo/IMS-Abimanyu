@@ -150,7 +150,7 @@
       tableId:"detailedTable",
       route:"{{ route('transferIn.list') }}",
       kolom:{!! $kolom !!},
-      arrColPrint:[1,2,3,4,5,6,7,8],
+      arrColPrint:[1,2,3,4,5,6,7,8,9,10,11],
       columnDefs :[
         { width: '5%', targets: 0 },
       ],
@@ -160,7 +160,7 @@
         searchStatus:searchStatus,
         trDate:trDate
       },
-      orderColumn:[[ 7, 'desc' ]],
+      orderColumn:[[ 9, 'desc' ]],
       excelFileName:'transfer_in'
     });
   }
@@ -176,10 +176,10 @@
       tableId:"detailedTable",
       route:"{{ route('transferIn.list.detail') }}",
       kolom:{!! $kolomDetail !!},
-      arrColPrint:[0,1,2,3,4,5,6,7,8,10,11],
+      arrColPrint:[0,1,2,3,4,5,6,7,8,9,10,12,13],
       columnDefs :[
         { width: '5%', targets: 0 },
-        { className: 'text-right','targets': [4] },
+        { className: 'text-right','targets': [5] },
       ],
       dataSearch:  {
         searchTr:searchTr,
@@ -187,7 +187,7 @@
         searchStatus:searchStatus,
         trDate:trDate
       },
-      orderColumn:[[ 0, 'asc' ],[ 1, 'asc' ],[ 2, 'asc' ]],
+      orderColumn:[[ 0, 'asc' ],[ 2, 'asc' ],[ 3, 'asc' ]],
       excelFileName:'transfer_in'
     });
   }

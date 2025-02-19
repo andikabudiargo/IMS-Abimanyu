@@ -28,11 +28,24 @@
                                     <label for="trDate">Date*</label>
                                     <input type="text" id="trDate" name="trDate" value="{{ $header->tr_date }}" class="form-control" placeholder="DD-MM-YYYY" required disabled/>
                                 </div>
+                                <div class="form-group col-md-2">
+                                    <label for="noReference">Reference No</label>
+                                    <input type="text" id="noReference" name="noReference" value="{{ old('noReference',$header->reference_no) }}" class="form-control" disabled/>
+                                </div>
                             </div>
                             <div class="form-row">
                                 <div class="form-group col-md-5">
                                     <label class="form-label" for="note">Notes</label>
                                     <textarea type="text" id="note" name="note" class="form-control" rows="1" disabled>{{ $header->note }}</textarea>
+                                </div>
+                                <div class="form-group col-md-2">
+                                    <label class="form-label" for="locationCode">Location</label>
+                                    <select class="select2 form-control" id="locationCode" name="locationCode" disabled>
+                                        <option value=""></option>
+                                        @foreach($locations as $val)
+                                            <option value="{{$val->location_code}}" {{$val->location_code == $header->location_code ? "selected" : ""}} >{{$val->location_name}}</option>
+                                        @endforeach
+                                    </select>
                                 </div>
                             </div>                            
                         </form>

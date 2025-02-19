@@ -229,6 +229,11 @@
                 
                 let trDate = $('#trDate').val();
                 let note = $('#note').val();
+                let locationCode = $('#locationCode').val();
+                let referenceNo = $('#noReference').val();
+
+                console.log(locationCode);
+
                 $.ajax({
                     type: "post",
                     url: url,
@@ -236,7 +241,9 @@
                         articles:JSON.stringify(articles),
                         trNumber:trNumber,
                         trDate:trDate,
-                        note:note
+                        note:note,
+                        locationCode:locationCode,
+                        referenceNo:referenceNo
                     },
                     dataType: "json",
                     success: function(data) {

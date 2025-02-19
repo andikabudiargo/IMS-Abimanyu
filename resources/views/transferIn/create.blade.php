@@ -29,11 +29,24 @@
                                     <label for="trDate">Date*</label>
                                     <input type="text" id="trDate" name="trDate" class="form-control" placeholder="DD-MM-YYYY" required/>
                                 </div>
+                                <div class="form-group col-md-2">
+                                    <label for="noReference">Reference No</label>
+                                    <input type="text" id="noReference" name="noReference" class="form-control"/>
+                                </div>
                             </div>
                             <div class="form-row">
                                 <div class="form-group col-md-5">
                                     <label class="form-label" for="note">Notes</label>
                                     <textarea type="text" id="note" name="note" class="form-control" rows="1" ></textarea>
+                                </div>
+                                <div class="form-group col-md-2">
+                                    <label class="form-label" for="locationCode">Location</label>
+                                    <select class="select2 form-control" id="locationCode" name="locationCode" required>
+                                        <option value=""></option>
+                                        @foreach($locations as $val)
+                                            <option value="{{$val->location_code}}" >{{$val->location_name}}</option>
+                                        @endforeach
+                                    </select>
                                 </div>
                             </div>                            
                         </form>

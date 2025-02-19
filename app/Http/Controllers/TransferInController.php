@@ -76,13 +76,16 @@ class TransferInController extends Controller
         [
             ['data'=>'action','name'=>'action','title'=>'action','orderable'=> false,'searchable'=>false],
             ['data'=>'tr_number','name'=>'tr_number','title'=>'Tr Number'],
+            ['data'=>'reference_no','name'=>'reference_no','title'=>'Reference'],
             ['data'=>'tr_date','name'=>'tr_date','title'=>'Date'],
             ['data'=>'tr_type','name'=>'tr_type','title'=>'Type'],
             ['data'=>'status','name'=>'status','title'=>'Status'],
+            ['data'=>'location_name','name'=>'location_name','title'=>'Location'],
             ['data'=>'note','name'=>'note','title'=>'Note'],
             ['data'=>'approval_by','name'=>'approval_by','title'=>'Approved By'],
             ['data'=>'created_at','name'=>'created_at','title'=>'Created At'],
-            ['data'=>'created_by','name'=>'created_by','title'=>'Created By']
+            ['data'=>'created_by','name'=>'created_by','title'=>'Created By'],
+            ['data'=>'approved_at','name'=>'approved_at','title'=>'Approved At']
         ];
         return json_encode($kolom, true);
     }
@@ -91,7 +94,8 @@ class TransferInController extends Controller
     {
         $kolom=
         [
-            ['data'=>'tr_number','name'=>'tr_number','title'=>'TSO Code'],
+            ['data'=>'tr_number','name'=>'tr_number','title'=>'Tr number'],
+            ['data'=>'reference_no','name'=>'reference_no','title'=>'Reference'],
             ['data'=>'tr_date','name'=>'tr_date','title'=>'Date'],
             ['data'=>'article_alternative_code','name'=>'article_alternative_code','title'=>'Article Code'],
             ['data'=>'article_desc','name'=>'article_desc','title'=>'Article desc'],
@@ -99,6 +103,7 @@ class TransferInController extends Controller
             ['data'=>'uom','name'=>'uom','title'=>'UOM'],
             ['data'=>'note','name'=>'note','title'=>'Note'],
             ['data'=>'status','name'=>'status','title'=>'Status'],
+            ['data'=>'location_name','name'=>'location_name','title'=>'Location'],
             ['data'=>'approval_by','name'=>'approval_by','title'=>'Approved By'],
             ['data'=>'created_by','name'=>'created_by','title'=>'Created By'],
             ['data'=>'created_at','name'=>'created_at','title'=>'Created Date'],
@@ -152,6 +157,10 @@ class TransferInController extends Controller
 
         $data['lockDate'] = $this->lockDate;
 
+        $data['locations'] = DB::table('goods_location_master')
+        ->orderBy('location_name')
+        ->get();
+
         return view("transferIn.create",$data);
 
     }
@@ -165,6 +174,9 @@ class TransferInController extends Controller
         $note = $request->note;
         $status = '1';
         $poLeadCode = $trType; 
+
+        $locationCode = $request->locationCode;
+        $referenceNo = $request->referenceNo;
 
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','5'=>'CANCELED'];
 
@@ -208,13 +220,16 @@ class TransferInController extends Controller
                         'tr_type' => $trType,
                         'status' => $status,
                         'note' => $note,
-                        'created_by' => Auth::user()->username,
-                        'updated_by' => Auth::user()->username,
+                        'created_by' => $username,
+                        'updated_by' => $username,
                         'created_at' => date('Y-m-d H:i:s'),
-                        'updated_at' => date('Y-m-d H:i:s')
+                        'updated_at' => date('Y-m-d H:i:s'),
+                        'reference_no' => $referenceNo,
+                        'location_code' => $locationCode,
                     ]);
 
                     $dataSet = [];
+                    $dataSetLocation = [];
                     foreach ($articles as $val) {
                         $dataSet[] = [
                             'tr_number' => $trNumber,
@@ -222,11 +237,32 @@ class TransferInController extends Controller
                             'qty' => $val->qty,
                             'uom' => $val->uom,
                             'note' => $val->note,
-                            'created_by' => Auth::user()->username,
-                            'updated_by' => Auth::user()->username,
+                            'created_by' => $username,
+                            'updated_by' => $username,
                             'created_at' => date('Y-m-d H:i:s'),
-                            'updated_at' => date('Y-m-d H:i:s')
+                            'updated_at' => date('Y-m-d H:i:s'),
+                            'location_code' => $locationCode,
                         ];
+
+                        DB::table('goods_location')
+                        ->updateOrInsert(
+                            ['article_code' => $val->article_code],
+                            [
+                                'location_code' => $locationCode,
+                                'article_code' => $val->article_code,
+                                'updated_by' => Auth::user()->username,
+                                'updated_at' => date('Y-m-d H:i:s')
+                            ]
+                        );
+
+                        // $dataSetLocation[] = [
+                        //     'location_code' => $locationCode,
+                        //     'article_code' => $val->article_code,
+                        //     'created_by' => $username,
+                        //     'updated_by' => $username,
+                        //     'created_at' => date('Y-m-d H:i:s'),
+                        //     'updated_at' => date('Y-m-d H:i:s')
+                        // ];
                     }
 
                     if ($rowAffected){
@@ -554,6 +590,10 @@ class TransferInController extends Controller
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'','5'=>'CANCELED'];
         $statusTr = ['NEW','VALIDATED','APPROVED','POSTED','CANCELED'];
         $data['statusTr'] = $statusTr[$data['header']->status-1];
+
+        $data['locations'] = DB::table('goods_location_master')
+        ->orderBy('location_name')
+        ->get();
        
         return view("transferIn.show",$data);        
     }
@@ -578,6 +618,10 @@ class TransferInController extends Controller
         ,DB::RAW("(select string_agg(unit_to,',' order by unit_from) as uom_member from uom_con where unit_from = transfer_det.uom)")
         )
         ->orderBy('id')
+        ->get();
+
+        $data['locations'] = DB::table('goods_location_master')
+        ->orderBy('location_name')
         ->get();
 
         $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode,$trNumber,$username);
@@ -609,6 +653,9 @@ class TransferInController extends Controller
         $note = $request->note;
         $status = '1';
         $poLeadCode = $trType; 
+
+        $locationCode = $request->locationCode;
+        $referenceNo = $request->referenceNo;
               
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','5'=>'CANCELED'];
 
@@ -654,6 +701,7 @@ class TransferInController extends Controller
                         'note' => $note,
                         'updated_by' => Auth::user()->username,
                         'updated_at' => date('Y-m-d H:i:s'),
+                        'location_code' => $locationCode,
                     ]
                 );
 
@@ -681,6 +729,18 @@ class TransferInController extends Controller
                             'article_code' => $val->article_code,
                             'qty' => $val->qty,
                             'uom' => $val->uom,
+                            'updated_by' => Auth::user()->username,
+                            'updated_at' => date('Y-m-d H:i:s'),
+                            'location_code' => $locationCode,
+                        ]
+                    );
+
+                    DB::table('goods_location')
+                    ->updateOrInsert(
+                        ['article_code' => $val->article_code],
+                        [
+                            'location_code' => $locationCode,
+                            'article_code' => $val->article_code,
                             'updated_by' => Auth::user()->username,
                             'updated_at' => date('Y-m-d H:i:s')
                         ]
@@ -713,7 +773,7 @@ class TransferInController extends Controller
         $trNumber = $request->trNumber;
         $statusLevelApproval = Approval::approvalLevelPosition($this->moduleCode,$trNumber,$username);        
         $nextLevel = $statusLevelApproval[0]->next_level;
-        $statusTso = $statusLevelApproval[0]->next_level == $statusLevelApproval[0]->max_level ? '3' :'2';
+        $statusTr = $statusLevelApproval[0]->next_level == $statusLevelApproval[0]->max_level ? '3' :'2';
                 
         DB::beginTransaction();
         try {
@@ -721,7 +781,7 @@ class TransferInController extends Controller
                 ->where('tr_number',$trNumber)
                 ->update(
                     [
-                        'status' => $statusTso,
+                        'status' => $statusTr,
                         'updated_by' => Auth::user()->username,
                         'updated_at' => date('Y-m-d H:i:s')
                     ]
@@ -747,7 +807,7 @@ class TransferInController extends Controller
                 $alert  ="success";
                 $message  = "$title $trNumber is successfully Approve-".$nextLevel;
                 \LogActivity::addToLog($title,"username: $username Status $message");
-                return response()->json(array('statusPo' => $statusTso,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'trNumber'=>$trNumber));
+                return response()->json(array('statusTr' => $statusTr,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'trNumber'=>$trNumber));
 
         } catch (Exception $e) {
             DB::rollBack();
@@ -755,7 +815,7 @@ class TransferInController extends Controller
             $alert  ="warning";
             $message  = "$title $trNumber is failed to Approve-".$nextLevel;
             \LogActivity::addToLog($title,"username: $username Status $message");
-            return response()->json(array('statusPo' => $statusTso,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'trNumber'=>$trNumber));
+            return response()->json(array('statusTr' => $statusTr,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'trNumber'=>$trNumber));
         }
     }
 
@@ -818,14 +878,20 @@ class TransferInController extends Controller
         })
         ->select('transfer_hdr.*'
         ,DB::raw("(select STRING_AGG((select name from users where username = a.username), ' -> ' ORDER BY approval_order) AS main from approval_history a where module_number = transfer_hdr.tr_number) as approval_by")
+        ,DB::raw("(select location_name from goods_location_master where location_code = transfer_hdr.location_code limit 1)")
+        ,DB::raw("(select created_at as approved_at from approval_history where module_number = transfer_hdr.tr_number order by approval_order desc limit 1)")
         )
+        ->leftJoin('goods_location','goods_location.location_code','transfer_hdr.location_code')
         ->where('tr_type',$trType)
         ->orderBy('id')
         ->get(); 
 
         $lockDateToDate = date('Y-m-d',strtotime($this->lockDate));
-        // $trDate = date('Y-m-d', strtotime('30-12-2023'));
-               
+        $trDate = date('Y-m-d', strtotime('30-12-2023'));
+        
+        // dd($trDate ." > ". $lockDateToDate);
+        // dd($trDate > $lockDateToDate);
+       
         return Datatables::of($data)
         ->addColumn('action', function ($data) use($lockDateToDate) {
             $buttons = '<div class="d-inline-flex">
@@ -983,18 +1049,19 @@ class TransferInController extends Controller
         ->leftJoin('uom','uom.code','transfer_det.uom')
         ->where(function ($query) use ($searchTr,$searchStatus,$trDate,$fromDate,$toDate,$searchType) {
             $searchType ? $query->where('tr_type',$searchType) : '';
-            $searchTr ? $query->where('tr_number','ilike','%'.$searchTr.'%') : '';
+            $searchTr ? $query->where('transfer_det.tr_number','ilike','%'.$searchTr.'%') : '';
             $searchStatus ? $query->where('transfer_hdr.status',$searchStatus) : '';
             $trDate ? $query->whereBetween(DB::raw("to_date(tr_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
         })
         ->where('tr_type',$trType)
         ->select('transfer_det.*'
-        ,'transfer_hdr.*'
-        ,'article.article_alternative_code'
-        ,'article.article_desc'
-        ,'uom_group'
-        ,DB::raw("(select STRING_AGG((select name from users where username = a.username), ' -> ' ORDER BY approval_order) AS main from approval_history a where module_number = transfer_hdr.tr_number) as approval_by")
-        // ,DB::raw("case when uom_group = 'PIECE' then TO_CHAR(qty,'999,999,999') when uom_group <> 'PIECE' then TO_CHAR(qty,'999,999,999.999') end as qty")
+            ,'transfer_hdr.*'
+            ,'article.article_alternative_code'
+            ,'article.article_desc'
+            ,'uom_group'
+            ,DB::raw("(select STRING_AGG((select name from users where username = a.username), ' -> ' ORDER BY approval_order) AS main from approval_history a where module_number = transfer_hdr.tr_number) as approval_by")
+            ,DB::raw("(select location_name from goods_location_master where location_code = (select location_code from goods_location where article_code = transfer_det.article_code limit 1) limit 1)")
+            // ,DB::raw("case when uom_group = 'PIECE' then TO_CHAR(qty,'999,999,999') when uom_group <> 'PIECE' then TO_CHAR(qty,'999,999,999.999') end as qty")
         )
         ->orderBy('transfer_det.id')
         ->get(); 
@@ -1002,8 +1069,8 @@ class TransferInController extends Controller
         return Datatables::of($data)
         ->addColumn('status', function ($data) {
             $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-danger'];            
-            $statusTso = ['NEW','VALIDATED','POSTED','APPROVED','DELETED'];
-            return "<div class='badge ".$badges[$data->status - 1]."'>".$statusTso[$data->status - 1]."</div>";
+            $statusTr = ['NEW','VALIDATED','POSTED','APPROVED','DELETED'];
+            return "<div class='badge ".$badges[$data->status - 1]."'>".$statusTr[$data->status - 1]."</div>";
         })
         ->rawColumns(['status'])
         ->make(true);
