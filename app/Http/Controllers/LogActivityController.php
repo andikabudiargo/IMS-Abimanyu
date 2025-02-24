@@ -36,7 +36,10 @@ class LogActivityController extends Controller
     public function index()
     {
         $data['kolom'] = $this->getTableColoumn();
-        $data['users'] = db::table('users')->where('status','1')->get();
+        $data['users'] = db::table('users')
+        ->where('status','1')
+        ->whereNotIn('name',['Direktur','admin','oki','Administrator','Supervisor'])
+        ->get();
         return view('log.logActivity',$data);
     }
 
