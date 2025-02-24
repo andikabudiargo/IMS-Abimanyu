@@ -8,24 +8,36 @@ use DataTables;
 
 class LogActivityController extends Controller
 {
-    /**
-     * Create a new controller instance.
-     *
-     * @return void
-     */
     public function __construct()
     {
         $this->middleware('auth');
     }
 
-    /**
-     * Show the application dashboard.
-     *
-     * @return \Illuminate\Contracts\Support\Renderable
-     */
+    public function getTableColoumn(){
+        $kolom=
+        [
+            // ['data'>'id',title:'No',render: function (data, type, row, meta) {
+            //         return meta.row + meta.settings._iDisplayStart + 1;
+            //     }, orderable: false, searchable: false
+            // },
+            ['data'=>'subject','name'=>'subject','title'=>'Subject'],
+            ['data'=>'description','name'=>'description','title'=>'Description'],
+            // ['data'=>'url','name'=>'url','title'=>'URL'],
+            // ['data'=>'method','name'=>'method','title'=>'Method'],
+            // ['data'=>'agent','name'=>'agen','title'=>'User Agent'],
+            ['data'=>'ip','name'=>'ip','title'=>'IP Address'],
+            ['data'=>'name','name'=>'name','title'=>'Username'],
+            ['data'=>'created_at','name'=>'created_at','title'=>'Date'],
+        ];
+
+        return json_encode($kolom, true);
+    }
+
     public function index()
     {
-        return view('log.logActivity');
+        $data['kolom'] = $this->getTableColoumn();
+        $data['users'] = db::table('users')->where('status','1')->get();
+        return view('log.logActivity',$data);
     }
 
     public function myTestAddToLog()
@@ -35,36 +47,59 @@ class LogActivityController extends Controller
     }
 
 
-    public function showLogLists()
+    public function showLogLists(Request $request)
     {
+        $searchDesc = $request->searchDesc;
+        $searchSubject = $request->searchSubject ? $request->searchSubject : '';
+        $searchUserId = $request->searchUserId;
+        $searchDate = $request->searchDate;
+        $fromDate = "";
+        $toDate = "";
 
-        $logs = \LogActivity::logActivityLists();
-        return Datatables::of($logs)
-        // ->addColumn('action', function ($logs) {
-        //     $buttons = '<div class="d-inline-flex">
-        //                     <a class="pr-1 dropdown-toggle hide-arrow text-primary" data-toggle="dropdown">
-        //                         <i data-feather="more-vertical"></i>
-        //                     </a>';
-        //     $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
-        //     $buttons .=         '<a href="'. route('users.edit', $logs->id) .'" class="dropdown-item">
-        //                             <i data-feather="file-text"></i>
-        //                             Details
-        //                         </a>';
-        //     $buttons .=         '<a href="javascript:;" onclick="validasidelete(\''.$logs->id.'\')" class="dropdown-item">
-        //                             <i data-feather="x-square"></i>
-        //                             Delete
-        //                         </a>';
-        //     $buttons .=     '</div>
-        //                 </div>';
+        if ($searchDate){
+            $date = explode("to",$searchDate);
+            if(count($date)>1){
+                $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+                $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
+            }else{
+                $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+                $toDate = $fromDate; 
+            }
+        }
 
-        //     return $buttons;
-        // })
+        // $jumlahArray = $searchSubject ? count($searchSubject) : '';
+        
+        // if($jumlahArray>0){
+        //     $dataIsi = $searchDesc.$searchUserId.$searchDate;
+        // }else{
+        //     $dataIsi = $searchDesc.$searchSubject.$searchUserId.$searchDate;
+        // }
 
-        ->addColumn('date',function ($logs){
-            return $logs->created_at;
-        })
+        $dataIsi = $searchDesc.$searchSubject.$searchUserId.$searchDate;
+        
+        if ($dataIsi != ''){
+            $data = DB::table('log_activities')
+            ->leftJoin('users','log_activities.user_id','users.username')
+            ->where(function ($query) use ($searchDesc,$searchSubject,$searchUserId,$searchDate,$fromDate,$toDate) {
+                $searchDesc ? $query->where('description','ilike','%'.$searchDesc.'%') : '';
+                $searchSubject ? $query->where('subject','ilike','%'.$searchSubject.'%') : '';
+                // $searchSubject ? $query->whereIn('subject',$searchSubject) : '';
+                $searchUserId ? $query->where('user_id','=',$searchUserId) : '';
+                $searchDate ? $query->whereBetween('log_activities.created_at', [$fromDate, $toDate]) : '';
+            })
+            // ->limit(1000)
+            ->get();
+        }else{
+            $data = DB::table('log_activities')
+            ->leftJoin('users','log_activities.user_id','users.username')
+            ->orderBy('log_activities.created_at','desc')
+            ->limit(1000)
+            ->get();
+            // $logs = \LogActivity::logActivityLists();
+        }
+
+        return Datatables::of($data)
         ->make(true);
-
     }
 
 }
