@@ -249,6 +249,7 @@
             { data: 'action', name: 'action',title:'action', orderable: false, searchable: false },
             { data: 'code', name: 'code',title:'Kode' },
             { data: 'name', name: 'name',title:'Nama' },
+            { data: 'dept_type', name: 'dept_type',title:'Type' },
             { data: 'description', name: 'description',title:'Keterangan' }
         ],
       });

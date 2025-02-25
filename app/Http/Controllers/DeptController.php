@@ -35,6 +35,7 @@ class DeptController extends Controller
         $desc = $request->input('desc');
         $status = '1';
         $pesan = '';
+        $deptType = $request->deptType;
         
         $messages = [
             'required' => 'The field is required.',
@@ -65,7 +66,8 @@ class DeptController extends Controller
                     'created_by' => Auth::user()->username,
                     'updated_by' => Auth::user()->username,
                     'created_at' => date('Y-m-d H:i:s'),
-                    'updated_at' => date('Y-m-d H:i:s')
+                    'updated_at' => date('Y-m-d H:i:s'),
+                    'dept_type' => $deptType
                 ]);
 
                 DB::commit();
@@ -108,6 +110,7 @@ class DeptController extends Controller
         $desc = $request->input('desc');
         $status = '1';
         $pesan = '';
+        $deptType = $request->deptType;
         
         $messages = [
             'required' => 'The field is required.',
@@ -133,7 +136,8 @@ class DeptController extends Controller
                         'status'=>$status,
                         'description'=>$desc,
                         'updated_by' => Auth::user()->username,
-                        'updated_at' => date('Y-m-d H:i:s')
+                        'updated_at' => date('Y-m-d H:i:s'),
+                        'dept_type' => $deptType
                     ]
                 );
 

@@ -31,6 +31,15 @@
                             </div>
                         </div>
                         <div class="row">
+                            <div class="form-group col-md-12">
+                                <label class="form-label" for="deptType">Type*</label>
+                                <select class="select2 form-control" id="deptType" name="deptType" required>
+                                    <option value="direct" {{ $dept->dept_type == 'direct' ? "selected" : ""}}>Direct</option>
+                                    <option value="indirect" {{ $dept->dept_type == 'indirect' ? "selected" : ""}}>InDirect</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row">
                             <div class="col-12">
                                 <div class="form-group">
                                     <label for="desc">Keterangan</label>

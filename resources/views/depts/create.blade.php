@@ -31,6 +31,15 @@
                             </div>
                         </div>
                         <div class="row">
+                            <div class="form-group col-md-12">
+                                <label class="form-label" for="deptType">Type*</label>
+                                <select class="select2 form-control" id="deptType" name="deptType" required>
+                                    <option value="direct">Direct</option>
+                                    <option value="indirect">In Direct</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row">
                             <div class="col-12">
                                 <div class="form-group">
                                     <label for="desc">Keterangan</label>
