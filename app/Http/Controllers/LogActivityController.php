@@ -83,6 +83,7 @@ class LogActivityController extends Controller
         if ($dataIsi != ''){
             $data = DB::table('log_activities')
             ->leftJoin('users','log_activities.user_id','users.username')
+            ->select('log_activities.*','users.name')
             ->where(function ($query) use ($searchDesc,$searchSubject,$searchUserId,$searchDate,$fromDate,$toDate) {
                 $searchDesc ? $query->where('description','ilike','%'.$searchDesc.'%') : '';
                 $searchSubject ? $query->where('subject','ilike','%'.$searchSubject.'%') : '';
@@ -95,6 +96,7 @@ class LogActivityController extends Controller
         }else{
             $data = DB::table('log_activities')
             ->leftJoin('users','log_activities.user_id','users.username')
+            ->select('log_activities.*','users.name')
             ->orderBy('log_activities.created_at','desc')
             ->limit(1000)
             ->get();
