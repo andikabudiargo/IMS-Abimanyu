@@ -302,8 +302,8 @@ class AccountPayableController extends Controller
             //     ->whereNotIn('rec_number',$listRec);
 
             // })
-            // ->whereIn("status",['3','6'])
-            ->whereIn("status",['3'])
+            ->whereIn("status",['3','6']) // yang sudah approved dan yang sudah closed
+            // ->whereIn("status",['3'])
             ->orderBy("po_number")
             ->select("po_number","po_date","currency","kurs")
             ->get();
