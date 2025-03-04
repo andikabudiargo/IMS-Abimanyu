@@ -885,6 +885,7 @@ class TransferInController extends Controller
         ->where('tr_type',$trType)
         ->orderBy('id')
         ->get(); 
+        
 
         $lockDateToDate = date('Y-m-d',strtotime($this->lockDate));
         $trDate = date('Y-m-d', strtotime('30-12-2023'));
