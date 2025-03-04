@@ -881,7 +881,7 @@ class TransferInController extends Controller
         ,DB::raw("(select location_name from goods_location_master where location_code = transfer_hdr.location_code limit 1)")
         ,DB::raw("(select created_at as approved_at from approval_history where module_number = transfer_hdr.tr_number order by approval_order desc limit 1)")
         )
-        ->leftJoin('goods_location','goods_location.location_code','transfer_hdr.location_code')
+        // ->leftJoin('goods_location','goods_location.location_code','transfer_hdr.location_code')
         ->where('tr_type',$trType)
         ->orderBy('id')
         ->get(); 
