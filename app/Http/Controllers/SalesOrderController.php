@@ -15,6 +15,8 @@ use PDF;
 use AppHelpers;
 use Approval;
 use App\Http\Controllers\AttributeController as Attributes;
+use App\Exports\ReportSoExport;
+use Maatwebsite\Excel\Facades\Excel;
 
 class SalesOrderController extends Controller
 {
@@ -1321,7 +1323,7 @@ class SalesOrderController extends Controller
             ['data'=>'qty_kirim','name'=>'qty_kirim','title'=>'Pengiriman'],
             ['data'=>'balance','name'=>'balance','title'=>'Sisa Order'],
             ['data'=>'note','name'=>'note','title'=>'Note'],
-            ['data'=>'date_period','name'=>'date_period','title'=>'date_period','visible'=>false],
+            ['data'=>'date_period','name'=>'date_period','title'=>'Date Period','visible'=>false],
             ['data'=>'detail','name'=>'detail','title'=>'Detail'],
         ];
         return json_encode($kolom, true);
@@ -1389,6 +1391,8 @@ class SalesOrderController extends Controller
         ->whereNotIn('sales_order_hdr.status',['5','8'])
         ->where('sales_order_det.status',['1'])
         ->select('sales_order_det.*'
+        ,'sales_order_det.status as status_det'
+        ,'sales_order_det.qty as qty_det'
         ,'sales_order_hdr.po_number'
         ,'sales_order_hdr.status as statusku'
         ,'sales_order_hdr.so_code'
@@ -1407,10 +1411,10 @@ class SalesOrderController extends Controller
         // left join delivery_hdr b on a.delivery_number=b.delivery_number 
         // where a.so_number = sales_order_hdr.so_code and a.article_code = sales_order_det.article_code 
         // and status <> '5' group by article_code),0)-sales_order_det.qty) as balance")
-        ,db::raw("case when sales_order_det.status = '0' then 0 else (coalesce((select sum(qty) from delivery_det a
-        left join delivery_hdr b on a.delivery_number=b.delivery_number 
-        where a.so_number = sales_order_hdr.so_code and a.article_code = sales_order_det.article_code 
-        and b.status not in ('5','7')  group by article_code),0)-sales_order_det.qty) end as balance")
+        // ,db::raw("case when sales_order_det.status = '0' then 0 else (coalesce((select sum(qty) from delivery_det a
+        // left join delivery_hdr b on a.delivery_number=b.delivery_number 
+        // where a.so_number = sales_order_hdr.so_code and a.article_code = sales_order_det.article_code 
+        // and b.status not in ('5','7')  group by article_code),0)-sales_order_det.qty) end as balance")
         // ,'sales_order_hdr.status as statusKu'
         // ,'uom_group'
         // ,'qty_target'
@@ -1425,7 +1429,7 @@ class SalesOrderController extends Controller
         where a.so_number = sales_order_hdr.so_code and a.article_code = sales_order_det.article_code 
         and b.status not in ('5','7')  group by article_code),0)-sales_order_det.qty) end"),'!=',0)
         ->where('article.article_desc',"<>",'')
-        ->orderBy('sales_order_det.id')
+        // ->orderBy('sales_order_det.id')
         ->get(); 
     
         return Datatables::of($data)
@@ -1436,6 +1440,13 @@ class SalesOrderController extends Controller
                 </a>';
             }else{
                 return '';
+            }
+        })
+        ->addColumn('balance', function ($data) {
+            if($data->status_det == 0){
+                return 0;
+            }else{
+                return $data->qty_kirim-$data->qty_det;    
             }
         })
         ->rawColumns(['detail'])
@@ -1611,6 +1622,21 @@ class SalesOrderController extends Controller
 
         ->rawColumns(['statusku'])
         ->make(true);
+    }
+
+    public function exportSo(Request $request) 
+    {
+        // $soNumber = $request->so_code;
+        $searchOrder = $request->searchOrder;
+        $seachPo = strtolower($request->seachPo);
+        $searchCustomer = $request->searchCustomer;
+        $orderDate = $request->orderDate;
+
+        // $filename = str_replace('/','_', $soNumber);
+        $filename = 'SO_REPORT';
+        
+        return Excel::download(new ReportSoExport($searchOrder,$seachPo,$searchCustomer,$orderDate), $filename.'.xlsx');
+
     }
 
     

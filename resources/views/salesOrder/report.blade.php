@@ -6,7 +6,7 @@
 <section id="article-index">
   <div class="card">
     <div class="card-header">  
-      <h4 class="card-title">Filter</h4>
+      <h4 class="card-title">Filter1</h4>
       <div class="heading-elements">
         <ul class="list-inline mb-0">
             <li><a data-action="collapse"><i data-feather="chevron-down"></i></a></li>
@@ -43,6 +43,7 @@
             <div class="form-row">
                 <div class="col-12"> 
                     <button type="button" class="btn btn-primary" id ="btnSearch" name="btnSearch">Search</button>
+                    {{-- <button type="button" class="btn btn-info" id ="cmdExport" name="cmdExport"><i class="fa fa-download"></i> Downlod Excel</button> --}}
                 </div>
             </div>
         </form>
@@ -135,33 +136,41 @@
   });
 
   const showList = (searchOrder,seachPo,searchCustomer,orderDate) => {
-    if ($('#detailedTable tr').length >0){
-        let table= $('#detailedTable').DataTable();
-        table.destroy();
-        $('#detailedTable tbody > tr').remove();
-        $("#detailedTable thead > tr").remove();
-    }
-    showDataTables({
-      tableId:"detailedTable",
-      route:"{{ route('salesOrder.list.report') }}",
-      kolom:{!! $kolom !!},
-      arrColPrint:[0,1,2,3,4,5,6,7,8,9,10,11],
-      columnDefs :[
-        {
-            targets: [ 7,8,9 ],
-            render: $.fn.dataTable.render.number(',','.',2,''),
-            className: "text-right"
+    if(orderDate){
+      $(".loading-spinner-container").addClass("-show");
+      if ($('#detailedTable tr').length >0){
+          let table= $('#detailedTable').DataTable();
+          table.destroy();
+          $('#detailedTable tbody > tr').remove();
+          $("#detailedTable thead > tr").remove();
+      }
+      showDataTables({
+        tableId:"detailedTable",
+        route:"{{ route('salesOrder.list.report') }}",
+        kolom:{!! $kolom !!},
+        arrColPrint:[0,1,2,3,4,5,6,7,8,9,10,11],
+        columnDefs :[
+          {
+              targets: [ 7,8,9 ],
+              render: $.fn.dataTable.render.number(',','.',2,''),
+              className: "text-right"
+          },
+        ],
+        dataSearch:  {
+          searchOrder:searchOrder,
+          seachPo:seachPo,
+          searchCustomer:searchCustomer,
+          orderDate:orderDate
         },
-      ],
-      dataSearch:  {
-        searchOrder:searchOrder,
-        seachPo:seachPo,
-        searchCustomer:searchCustomer,
-        orderDate:orderDate
-      },
-      orderColumn:[[ 11, 'asc' ],[ 4, 'asc' ]],
-      excelFileName:'report_sales_order'
-    });
+        orderColumn:[[ 11, 'asc' ],[ 4, 'asc' ]],
+        excelFileName:'report_sales_order',
+        initComplete: function(settings, json) {
+          $(".loading-spinner-container").removeClass("-show");
+        }
+      });
+    }else{
+      swal.fire("Warning","Isi tanggal terlebih dahulu","warning")
+    }
   }
 
   searchCustomer.change(function(e){        
@@ -221,6 +230,27 @@
       ],
     });
   }
+
+  $("#cmdExport").click(function(){
+    let so = searchOrder.val()
+    let po = seachPo.val()
+    let cust = searchCustomer.val()
+    let uDate = orderDate.val()
+
+    if(uDate){
+      
+      let url = "{{ route('salesOrderReport.export', ['searchOrder'=>':so','seachPo'=>':po','searchCustomer'=>':cust','orderDate'=>':uDate']) }}";
+      url = url.replace('%3Aso', so);
+      url = url.replace('%3Apo', po);
+      url = url.replace('%3Acust', cust);
+      url = url.replace('%3AuDate', uDate);
+      url = url.replaceAll("&amp;", "&").replace("&amp;", "&");
+      window.location.href = url;
+
+    }else{
+      swal.fire("Warning","Isi tanggal terlebih dahulu","warning")
+    }
+  });
 
   $.ajaxSetup({
     headers: {
