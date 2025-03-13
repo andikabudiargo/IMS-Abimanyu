@@ -578,7 +578,10 @@ class ReceivingController extends Controller
         $username =  Auth::user()->username;
         $id=Crypt::decryptString($request->id);
         $recNumber = $request->recNumber;
-        $recNumber = DB::table('receiving_hdr')->where('id',$id)->value('rec_number');
+        // $recNumber = DB::table('receiving_hdr')->where('id',$id)->value('rec_number');
+        $recHdrq = DB::table('receiving_hdr')->where('id',$id)->first();
+        $recNumber = $recHdrq->rec_number; 
+        $lastStatus = $recHdrq->status; 
         $recType = "NORMAL";
         $siteCode = 'HO';
         $location ='WH';
@@ -592,194 +595,209 @@ class ReceivingController extends Controller
 
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED','10'=>'REVISI'];
         //  ['NEW','VALIDATE','APPROVED','POSTED','CANCELED','','','','','REVISI']; 
-            
-        if ($recNumber){
-            $data = DB::table('receiving_det')
-            ->leftJoin('receiving_hdr','receiving_hdr.rec_number','receiving_det.rec_number')
-            ->leftJoin('article','article.article_code','receiving_det.article_code')
-            ->where('receiving_det.rec_number',$recNumber)
-            // ->where('receiving_hdr.status','3')
-            ->select('receiving_det.*'
-            ,'article.article_type'
-            ,'article.uom as uom_article'
-            ,DB::RAW("average_cost(receiving_det.article_code,'$siteCode','$location','$moduleCode') as average_cost")
-            ,DB::RAW("(receiving_det.qty*uom_conversion(receiving_det.uom_rec,article.uom))+(receiving_det.qty_free*uom_conversion(receiving_det.uom_rec,article.uom)) as total_qty")
-            )
-            ->get();
 
-
-            foreach($data as $val){
-                //insert article code kalo belum ada di tabel item_stock
-                // if( $val->total_qty > 0 ){
-                    DB::table('article_stock')
-                    ->updateOrInsert(
-                        [ 'site_code' =>$siteCode,
-                          'article_code' => $val->article_code,
-                          'location_number'=> $location
-                        ],
-                        [
-                          'dept_code'=>$val->article_type,
-                          'uom'=>$val->uom_article,
-                        ]
-                    );
-    
-                    //update qty nya ditambahkan dengan qty baru
-                    $rowAffected = DB::table('article_stock')
-                    ->where('site_code',$siteCode)
-                    ->where('article_code',$val->article_code)
-                    ->where('location_number',$location)
-                    ->update([
-                        'article_qty' => DB::raw('coalesce(article_qty,0) + '.$val->total_qty)
-                    ]);
-
-                    if ($rowAffected > 0){
-                        DB::table('article')
-                        ->where('article_code',$val->article_code)
-                        ->update(
-                        [   
-                            'lastcost' => $val->price,
-                            'avgcost' =>  $val->average_cost,
-                            'updated_by' => Auth::user()->username,
-                            'updated_at' => date('Y-m-d H:i:s')
-                        ]
-                        );
-                    }
-                // }
-
-                // $rowAffected = DB::table('article_stock')
-                // ->where('site_code',$siteCode)
-                // ->where('article_code',$val->article_code)
-                // ->increment('article_qty', $val->total_qty);
-
-            }
-                    
-            $rowAffected = DB::table('receiving_hdr')
-            ->where('rec_number',$recNumber)
-            ->update(
-                [   
-                    'status' => $status,
-                    'updated_by' => Auth::user()->username,
-                    'updated_at' => date('Y-m-d H:i:s')
-                ]
-            );
-            
-            if ($rowAffected > 0){
-                $movements = DB::table('receiving_det')
+        //kalau sudah posting tidak bisa di posting lagi
+        if ($lastStatus != '4'){
+            if ($recNumber){
+                $data = DB::table('receiving_det')
                 ->leftJoin('receiving_hdr','receiving_hdr.rec_number','receiving_det.rec_number')
                 ->leftJoin('article','article.article_code','receiving_det.article_code')
                 ->where('receiving_det.rec_number',$recNumber)
-                ->where('receiving_hdr.status','4')
-                ->where('qty', '<>', 0)
-                ->select(
-                    DB::RAW("'$movementDate' as movement_date")
-                    // 'receiving_hdr.rec_date as movement_date'
-                    ,'receiving_det.article_code'
-                    ,'article.article_desc'
-                    ,DB::raw("0 as movement_min")
-                    ,DB::RAW("(uom_conversion(receiving_det.uom_rec,article.uom)*receiving_det.qty) as movement_plus")
-                    ,DB::raw("receiving_det.price as movement_price ")
-                    ,'receiving_hdr.rec_number as movement_transnno'
-                    ,DB::raw("'$moduleCode' as movement_type")
-                    ,'receiving_hdr.po_number as movement_desc'
+                // ->where('receiving_hdr.status','3')
+                ->select('receiving_det.*'
+                ,'article.article_type'
+                ,'article.uom as uom_article'
+                ,DB::RAW("average_cost(receiving_det.article_code,'$siteCode','$location','$moduleCode') as average_cost")
+                ,DB::RAW("(receiving_det.qty*uom_conversion(receiving_det.uom_rec,article.uom))+(receiving_det.qty_free*uom_conversion(receiving_det.uom_rec,article.uom)) as total_qty")
                 )
                 ->get();
-                
-                $dataSetMovement = [];
-                foreach ($movements as $val) {
-                    $dataSetMovement[] = [
-                        'movement_date' => $val->movement_date,
-                        'artikel_code' => $val->article_code,
-                        'artikel_desc' => $val->article_desc,
-                        'movement_min' => $val->movement_min,
-                        'movement_plus' => $val->movement_plus,
-                        'movement_price' => $val->movement_price,
-                        'movement_transnno' => $val->movement_transnno,
-                        'movement_type' => $val->movement_type,
-                        'movement_desc' => $val->movement_desc,
-                        'created_by' => Auth::user()->username,
-                        'created_at' => date('Y-m-d H:i:s'),
-                        'site_code' => $siteCode,
-                        'location_number' => $location,
-                        'last_qty' => DB::raw("get_last_qty('$val->article_code','$todayDate','$siteCode','$location') + ($val->movement_min+$val->movement_plus)")
-                    ];
+
+                foreach($data as $val){
+                    //insert article code kalo belum ada di tabel item_stock
+                    // if( $val->total_qty > 0 ){
+                        DB::table('article_stock')
+                        ->updateOrInsert(
+                            [ 'site_code' =>$siteCode,
+                            'article_code' => $val->article_code,
+                            'location_number'=> $location
+                            ],
+                            [
+                            'dept_code'=>$val->article_type,
+                            'uom'=>$val->uom_article,
+                            ]
+                        );
+        
+                        //update qty nya ditambahkan dengan qty baru
+                        $rowAffected = DB::table('article_stock')
+                        ->where('site_code',$siteCode)
+                        ->where('article_code',$val->article_code)
+                        ->where('location_number',$location)
+                        ->update([
+                            'article_qty' => DB::raw('coalesce(article_qty,0) + '.$val->total_qty)
+                        ]);
+
+                        if ($rowAffected > 0){
+                            DB::table('article')
+                            ->where('article_code',$val->article_code)
+                            ->update(
+                            [   
+                                'lastcost' => $val->price,
+                                'avgcost' =>  $val->average_cost,
+                                'updated_by' => Auth::user()->username,
+                                'updated_at' => date('Y-m-d H:i:s')
+                            ]
+                            );
+                        }
+                    // }
+
+                    // $rowAffected = DB::table('article_stock')
+                    // ->where('site_code',$siteCode)
+                    // ->where('article_code',$val->article_code)
+                    // ->increment('article_qty', $val->total_qty);
+
                 }
+                        
+                $rowAffected = DB::table('receiving_hdr')
+                ->where('rec_number',$recNumber)
+                ->update(
+                    [   
+                        'status' => $status,
+                        'updated_by' => Auth::user()->username,
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]
+                );
+                
+                if ($rowAffected > 0){
+                    $movements = DB::table('receiving_det')
+                    ->leftJoin('receiving_hdr','receiving_hdr.rec_number','receiving_det.rec_number')
+                    ->leftJoin('article','article.article_code','receiving_det.article_code')
+                    ->where('receiving_det.rec_number',$recNumber)
+                    ->where('receiving_hdr.status','4')
+                    ->where('qty', '<>', 0)
+                    ->select(
+                        DB::RAW("'$movementDate' as movement_date")
+                        // 'receiving_hdr.rec_date as movement_date'
+                        ,'receiving_det.article_code'
+                        ,'article.article_desc'
+                        ,DB::raw("0 as movement_min")
+                        ,DB::RAW("(uom_conversion(receiving_det.uom_rec,article.uom)*receiving_det.qty) as movement_plus")
+                        ,DB::raw("receiving_det.price as movement_price ")
+                        ,'receiving_hdr.rec_number as movement_transnno'
+                        ,DB::raw("'$moduleCode' as movement_type")
+                        ,'receiving_hdr.po_number as movement_desc'
+                    )
+                    ->get();
+                    
+                    $dataSetMovement = [];
+                    foreach ($movements as $val) {
+                        $dataSetMovement[] = [
+                            'movement_date' => $val->movement_date,
+                            'artikel_code' => $val->article_code,
+                            'artikel_desc' => $val->article_desc,
+                            'movement_min' => $val->movement_min,
+                            'movement_plus' => $val->movement_plus,
+                            'movement_price' => $val->movement_price,
+                            'movement_transnno' => $val->movement_transnno,
+                            'movement_type' => $val->movement_type,
+                            'movement_desc' => $val->movement_desc,
+                            'created_by' => Auth::user()->username,
+                            'created_at' => date('Y-m-d H:i:s'),
+                            'site_code' => $siteCode,
+                            'location_number' => $location,
+                            'last_qty' => DB::raw("get_last_qty('$val->article_code','$todayDate','$siteCode','$location') + ($val->movement_min+$val->movement_plus)")
+                        ];
+                    }
 
-                DB::table('movement')->insert($dataSetMovement);
+                    DB::table('movement')->insert($dataSetMovement);
 
-                DB::statement("INSERT into kas_hdr (voucher_number,voucher_type,voucher_date,receive_from,amount,period,year,note,status,created_by,updated_by,created_at,updated_at,description)
-                select rec_number as voucher_number
-                ,'REC' as voucher_type
-                ,do_date as voucher_date
-                ,supplier_id as receive_from
-                ,(select sum((qty+qty_free)*price) from receiving_det where rec_number = receiving_hdr.rec_number) as amount
-                ,substring(do_date,4,2)::integer as period
-                ,substring(do_date,7) as year,note
-                ,'3' as status
-                ,created_by
-                ,updated_by
-                ,now()
-                ,now()
-                ,rec_number as description 
-                from receiving_hdr
-                where status = '4'
-                and rec_number in (select rec_number
-                from receiving_det
-                left join article on article.article_code = receiving_det.article_code
-                where article_type in ('RMP','CM1','CM2','RM'))
-                and rec_number = '$recNumber'
-                order by created_at");
+                    DB::statement("INSERT into kas_hdr (voucher_number,voucher_type,voucher_date,receive_from,amount,period,year,note,status,created_by,updated_by,created_at,updated_at,description)
+                    select rec_number as voucher_number
+                    ,'REC' as voucher_type
+                    ,do_date as voucher_date
+                    ,supplier_id as receive_from
+                    ,(select sum((qty+qty_free)*price) from receiving_det where rec_number = receiving_hdr.rec_number) as amount
+                    ,substring(do_date,4,2)::integer as period
+                    ,substring(do_date,7) as year,note
+                    ,'3' as status
+                    ,created_by
+                    ,updated_by
+                    ,now()
+                    ,now()
+                    ,rec_number as description 
+                    from receiving_hdr
+                    where status = '4'
+                    and rec_number in (select rec_number
+                    from receiving_det
+                    left join article on article.article_code = receiving_det.article_code
+                    where article_type in ('RMP','CM1','CM2','RM'))
+                    and rec_number = '$recNumber'
+                    order by created_at");
 
-                DB::statement("INSERT into kas_det (voucher_number,account,description,debit,created_by,updated_by,created_at,updated_at,cost_center) 
-                select rec_number as voucher_number
-                ,case when article_type='RMP' then '1100.31' when article_type='RM' then '1100.31' when article_type='CM1' then '1100.32.1' when article_type='CM2' then '1100.32.2' else '' end as account
-                ,concat(rec_number,' ',article_desc) 
-                ,(qty+qty_free)*price as debit
-                ,receiving_det.created_by
-                ,receiving_det.updated_by
-                ,now()
-                ,now()
-                ,'003' as cost_center
-                from receiving_det
-                left join article on article.article_code = receiving_det.article_code
-                where article_type in ('RMP','CM1','CM2','RM')
-                and (qty+qty_free) > 0
-                and rec_number in (select rec_number from receiving_hdr where status = '4' and rec_number = '$recNumber')
-                order by receiving_det.created_at");
+                    DB::statement("INSERT into kas_det (voucher_number,account,description,debit,created_by,updated_by,created_at,updated_at,cost_center) 
+                    select rec_number as voucher_number
+                    ,case when article_type='RMP' then '1100.31' when article_type='RM' then '1100.31' when article_type='CM1' then '1100.32.1' when article_type='CM2' then '1100.32.2' else '' end as account
+                    ,concat(rec_number,' ',article_desc) 
+                    ,(qty+qty_free)*price as debit
+                    ,receiving_det.created_by
+                    ,receiving_det.updated_by
+                    ,now()
+                    ,now()
+                    ,'003' as cost_center
+                    from receiving_det
+                    left join article on article.article_code = receiving_det.article_code
+                    where article_type in ('RMP','CM1','CM2','RM')
+                    and (qty+qty_free) > 0
+                    and rec_number in (select rec_number from receiving_hdr where status = '4' and rec_number = '$recNumber')
+                    order by receiving_det.created_at");
 
-                $idKu = Crypt::encryptString($id);
+                    $idKu = Crypt::encryptString($id);
 
-                DB::commit();
-                $title ="Posting $this->title";
-                $alert  ="success";
-                $message  = "$title $recNumber Successfully Posted";
-                \LogActivity::addToLog($title,"username: $username Status $message");
+                    DB::commit();
+                    $title ="Posting $this->title";
+                    $alert  ="success";
+                    $message  = "$title $recNumber Successfully Posted";
+                    \LogActivity::addToLog($title,"username: $username Status $message");
 
-                if($dariNew=='true'){
-                    return response()->json(array('statusRec' => $status, 'title' => $title, 'status' => 1, 'message' => $message,'alert'=>$alert,'recNumber'=>$recNumber,'idKu'=>$idKu));
+                    if($dariNew=='true'){
+                        return response()->json(array('statusRec' => $status, 'title' => $title, 'status' => 1, 'message' => $message,'alert'=>$alert,'recNumber'=>$recNumber,'idKu'=>$idKu));
+                    }else{
+                        return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);
+                    }      
+                    // return response()->json(array('statusRec' => $statusRec,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'recNumber'=>$recNumber));
                 }else{
-                    return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);
-                }      
-                // return response()->json(array('statusRec' => $statusRec,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'recNumber'=>$recNumber));
-            }else{
 
+                    $title ="Posting $this->title";
+                    $alert  ="warning";
+                    $message  = "$title $recNumber Failed to Posting";
+                    \LogActivity::addToLog($title,"username: $username Status $message");
+
+                    if($dariNew=='true'){
+                        return response()->json(array('statusRec' => $status, 'title' => $title, 'status' => 0, 'message' => $message,'alert'=>$alert,'recNumber'=>$recNumber,'idKu'=>$idKu));
+                    }else{
+                        return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);
+                    }     
+                    // return response()->json(array('statusRec' => $statusRec,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'recNumber'=>$recNumber));
+                }
+            }else{
                 $title ="Posting $this->title";
                 $alert  ="warning";
                 $message  = "$title $recNumber Failed to Posting";
                 \LogActivity::addToLog($title,"username: $username Status $message");
-
-                if($dariNew=='true'){
-                    return response()->json(array('statusRec' => $status, 'title' => $title, 'status' => 0, 'message' => $message,'alert'=>$alert,'recNumber'=>$recNumber,'idKu'=>$idKu));
-                }else{
-                    return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);
-                }     
-                // return response()->json(array('statusRec' => $statusRec,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'recNumber'=>$recNumber));
+                return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);
             }
         }else{
+
+            $idKu = Crypt::encryptString($id);
             $title ="Posting $this->title";
             $alert  ="warning";
             $message  = "$title $recNumber Failed to Posting";
             \LogActivity::addToLog($title,"username: $username Status $message");
-            return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);
+
+            if($dariNew=='true'){
+                return response()->json(array('statusRec' => $status, 'title' => $title, 'status' => 0, 'message' => $message,'alert'=>$alert,'recNumber'=>$recNumber,'idKu'=>$idKu));
+            }else{
+                return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);
+            }
         }
     }
 

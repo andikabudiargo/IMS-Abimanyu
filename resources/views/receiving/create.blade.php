@@ -441,6 +441,9 @@
 
     $("#cmdPrint").click(function(){
         /* Posting langsung print*/
+        $("#cmdPrint").prop('disabled',true);
+        $('#cmdSave').hide();
+        $('#cmdPrint').hide();
         let objQty= $('input[name="qty_rec[]"]');
         let objUom= $('select[name="uom[]"]');
         let objQtyFree= $('input[name="qty_free[]"]');
