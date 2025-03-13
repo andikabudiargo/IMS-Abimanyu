@@ -530,6 +530,9 @@
 
     $("#cmdPrint").click(function(){
         /* Posting langdung print*/
+        $("#cmdPrint").attr('disabled','disabled');
+        $('#cmdPrint').hide();
+        $('#cmdSave').hide();
         let objQty= $('input[name="qtyInv[]"]');
         let objUom= $('select[name="uom[]"]');       
         let dnNumber = $('#dnNumber').val();   
