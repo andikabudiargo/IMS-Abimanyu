@@ -210,7 +210,10 @@ class TransferOutController extends Controller
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED'];
         $username =  Auth::user()->username;
         $id=Crypt::decryptString($request->id);
-        $trNumber = DB::table('transfer_hdr')->where('id',$id)->where('status','3')->value('tr_number');
+        // $trNumber = DB::table('transfer_hdr')->where('id',$id)->where('status','3')->value('tr_number');
+        $hdrQ = DB::table('transfer_hdr')->where('id',$id)->where('status','3')->first();
+        $trNumber = $hdrQ->tr_number;
+        $lastStatus = $hdrQ->status;    
         $trType = $this->moduleCode;
         $siteCode = 'HO';
         $location ='WH';
@@ -218,121 +221,129 @@ class TransferOutController extends Controller
         $todayDate = date('Y-m-d');
         $movementDate = date("d-m-Y");
 
-        if ($trNumber){
-            $data = DB::table('transfer_det')
-            ->leftJoin('transfer_hdr','transfer_hdr.tr_number','transfer_det.tr_number')
-            ->leftJoin('article','article.article_code','transfer_det.article_code')
-            ->where('transfer_det.tr_number',$trNumber)
-            // ->where('transfer_hdr.status','3')
-            ->select('transfer_det.*','article.article_type','article.uom as uom_article',
-                DB::RAW("transfer_det.qty*coalesce(uom_conversion(transfer_det.uom,article.uom),1) as total_qty")
-            )
-            ->get();
-
-            foreach($data as $val){
-                //insert article code kalo belum ada di tabel item_stock
-                DB::table('article_stock')
-                ->updateOrInsert(
-                    [ 'site_code' =>$siteCode,
-                        'article_code' => $val->article_code,
-                        'location_number'=>$location
-                    ],
-                    [
-                        'dept_code'=>$val->article_type,
-                        'uom'=>$val->uom_article
-                    ]
-                );
-
-                //update qty nya ditambahkan dengan qty baru
-                DB::table('article_stock')
-                ->where('site_code',$siteCode)
-                ->where('article_code',$val->article_code)
-                ->where('location_number',$location)
-                ->update([
-                    'article_qty' => DB::raw('coalesce(article_qty,0) - '.$val->total_qty)
-                ]);
-
-                //update qty nya ditambahkan dengan qty baru
-                // $rowAffected = DB::table('article_stock')
-                // ->where('site_code',$siteCode)
-                // ->where('article_code',$val->article_code)
-                // ->decrement('article_qty', $val->total_qty);
-            }
-                    
-            
-            $rowAffected = DB::table('transfer_hdr')
-            ->where('tr_number',$trNumber)
-            ->update(
-                [   
-                    'status' => $status,
-                    'updated_by' => Auth::user()->username,
-                    'updated_at' => date('Y-m-d H:i:s')
-                ]
-            );
-            
-            if ($rowAffected > 0){
-                $movements = DB::table('transfer_det')
+        if ($lastStatus!=4){
+            if ($trNumber){
+                $data = DB::table('transfer_det')
                 ->leftJoin('transfer_hdr','transfer_hdr.tr_number','transfer_det.tr_number')
                 ->leftJoin('article','article.article_code','transfer_det.article_code')
                 ->where('transfer_det.tr_number',$trNumber)
-                ->where('transfer_hdr.status','4')
-                ->where('qty', '<>', 0)
-                ->select(
-                    // DB::RAW("now()::timestamp::date as movement_date" )
-                    // 'tr_date as movement_date'
-                    DB::RAW("'$movementDate' as movement_date")
-                    ,'transfer_det.article_code'
-                    ,'article.article_desc'
-                    ,DB::raw("0 as movement_plus")
-                    ,DB::RAW("coalesce((uom_conversion(transfer_det.uom,article.uom)*transfer_det.qty),1) as movement_min")
-                    ,DB::raw(" 0 as movement_price ")
-                    ,'transfer_hdr.tr_number as movement_transnno'
-                    ,DB::raw("'$trType' as movement_type")
-                    ,'transfer_hdr.note as movement_desc'
+                // ->where('transfer_hdr.status','3')
+                ->select('transfer_det.*','article.article_type','article.uom as uom_article',
+                    DB::RAW("transfer_det.qty*coalesce(uom_conversion(transfer_det.uom,article.uom),1) as total_qty")
                 )
                 ->get();
-                
-                $dataSetMovement = [];
-                foreach ($movements as $val) {
-                    $dataSetMovement[] = [
-                        'movement_date' => $val->movement_date,
-                        'artikel_code' => $val->article_code,
-                        'artikel_desc' => $val->article_desc,
-                        'movement_min' => $val->movement_min,
-                        'movement_plus' => $val->movement_plus,
-                        'movement_price' => $val->movement_price,
-                        'movement_transnno' => $val->movement_transnno,
-                        'movement_type' => $val->movement_type,
-                        'movement_desc' => $val->movement_desc,
-                        'created_by' => Auth::user()->username,
-                        'created_at' => date('Y-m-d H:i:s'),
-                        'site_code' => $siteCode,
-                        'location_number' => $location,
-                        'last_qty' => DB::raw("get_last_qty('$val->article_code','$todayDate','$siteCode','$location') - ($val->movement_min+$val->movement_plus)")
-                    ];
+
+                foreach($data as $val){
+                    //insert article code kalo belum ada di tabel item_stock
+                    DB::table('article_stock')
+                    ->updateOrInsert(
+                        [ 'site_code' =>$siteCode,
+                            'article_code' => $val->article_code,
+                            'location_number'=>$location
+                        ],
+                        [
+                            'dept_code'=>$val->article_type,
+                            'uom'=>$val->uom_article
+                        ]
+                    );
+
+                    //update qty nya ditambahkan dengan qty baru
+                    DB::table('article_stock')
+                    ->where('site_code',$siteCode)
+                    ->where('article_code',$val->article_code)
+                    ->where('location_number',$location)
+                    ->update([
+                        'article_qty' => DB::raw('coalesce(article_qty,0) - '.$val->total_qty)
+                    ]);
+
+                    //update qty nya ditambahkan dengan qty baru
+                    // $rowAffected = DB::table('article_stock')
+                    // ->where('site_code',$siteCode)
+                    // ->where('article_code',$val->article_code)
+                    // ->decrement('article_qty', $val->total_qty);
                 }
+                        
+                
+                $rowAffected = DB::table('transfer_hdr')
+                ->where('tr_number',$trNumber)
+                ->update(
+                    [   
+                        'status' => $status,
+                        'updated_by' => Auth::user()->username,
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]
+                );
+                
+                if ($rowAffected > 0){
+                    $movements = DB::table('transfer_det')
+                    ->leftJoin('transfer_hdr','transfer_hdr.tr_number','transfer_det.tr_number')
+                    ->leftJoin('article','article.article_code','transfer_det.article_code')
+                    ->where('transfer_det.tr_number',$trNumber)
+                    ->where('transfer_hdr.status','4')
+                    ->where('qty', '<>', 0)
+                    ->select(
+                        // DB::RAW("now()::timestamp::date as movement_date" )
+                        // 'tr_date as movement_date'
+                        DB::RAW("'$movementDate' as movement_date")
+                        ,'transfer_det.article_code'
+                        ,'article.article_desc'
+                        ,DB::raw("0 as movement_plus")
+                        ,DB::RAW("coalesce((uom_conversion(transfer_det.uom,article.uom)*transfer_det.qty),1) as movement_min")
+                        ,DB::raw(" 0 as movement_price ")
+                        ,'transfer_hdr.tr_number as movement_transnno'
+                        ,DB::raw("'$trType' as movement_type")
+                        ,'transfer_hdr.note as movement_desc'
+                    )
+                    ->get();
+                    
+                    $dataSetMovement = [];
+                    foreach ($movements as $val) {
+                        $dataSetMovement[] = [
+                            'movement_date' => $val->movement_date,
+                            'artikel_code' => $val->article_code,
+                            'artikel_desc' => $val->article_desc,
+                            'movement_min' => $val->movement_min,
+                            'movement_plus' => $val->movement_plus,
+                            'movement_price' => $val->movement_price,
+                            'movement_transnno' => $val->movement_transnno,
+                            'movement_type' => $val->movement_type,
+                            'movement_desc' => $val->movement_desc,
+                            'created_by' => Auth::user()->username,
+                            'created_at' => date('Y-m-d H:i:s'),
+                            'site_code' => $siteCode,
+                            'location_number' => $location,
+                            'last_qty' => DB::raw("get_last_qty('$val->article_code','$todayDate','$siteCode','$location') - ($val->movement_min+$val->movement_plus)")
+                        ];
+                    }
 
-                DB::table('movement')->insert($dataSetMovement);
+                    DB::table('movement')->insert($dataSetMovement);
 
-                DB::commit();
-                $title ="Posting $this->title";
-                $alert  ="success";
-                $message  = "$title $trNumber Successfully Posted";
-                \LogActivity::addToLog($title,"username: $username Status $message");
-                return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);
-                // return response()->json(array('statusRec' => $statusRec,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'trNumber'=>$trNumber));
+                    DB::commit();
+                    $title ="Posting $this->title";
+                    $alert  ="success";
+                    $message  = "$title $trNumber Successfully Posted";
+                    \LogActivity::addToLog($title,"username: $username Status $message");
+                    return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);
+                    // return response()->json(array('statusRec' => $statusRec,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'trNumber'=>$trNumber));
+                }else{
+                    $title ="Posting $this->title";
+                    $alert  ="warning";
+                    $message  = "$title $trNumber Failed to Posting";
+                    \LogActivity::addToLog($title,"username: $username Status $message");
+                    return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);
+                    // return response()->json(array('statusRec' => $statusRec,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'trNumber'=>$trNumber));
+                }
             }else{
                 $title ="Posting $this->title";
                 $alert  ="warning";
                 $message  = "$title $trNumber Failed to Posting";
                 \LogActivity::addToLog($title,"username: $username Status $message");
                 return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);
-                // return response()->json(array('statusRec' => $statusRec,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'trNumber'=>$trNumber));
             }
         }else{
             $title ="Posting $this->title";
             $alert  ="warning";
-            $message  = "$title $trNumber Failed to Posting";
+            $message  = "$title $trNumber Failed to Posting, Already posted";
             \LogActivity::addToLog($title,"username: $username Status $message");
             return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);
         }
