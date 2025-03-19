@@ -1319,7 +1319,7 @@ class SalesOrderController extends Controller
             ['data'=>'so_date','name'=>'so_date','title'=>'Tanggal SO'],
             ['data'=>'article_alternative_code','name'=>'article_alternative_code','title'=>'Article code'],
             ['data'=>'article_desc','name'=>'article_desc','title'=>'Article desc'],
-            ['data'=>'qty','name'=>'qty','title'=>'Qty SO'],
+            ['data'=>'qty_det','name'=>'qty_det','title'=>'Qty SO'],
             ['data'=>'qty_kirim','name'=>'qty_kirim','title'=>'Pengiriman'],
             ['data'=>'balance','name'=>'balance','title'=>'Sisa Order'],
             ['data'=>'note','name'=>'note','title'=>'Note'],
@@ -1411,10 +1411,10 @@ class SalesOrderController extends Controller
         // left join delivery_hdr b on a.delivery_number=b.delivery_number 
         // where a.so_number = sales_order_hdr.so_code and a.article_code = sales_order_det.article_code 
         // and status <> '5' group by article_code),0)-sales_order_det.qty) as balance")
-        // ,db::raw("case when sales_order_det.status = '0' then 0 else (coalesce((select sum(qty) from delivery_det a
-        // left join delivery_hdr b on a.delivery_number=b.delivery_number 
-        // where a.so_number = sales_order_hdr.so_code and a.article_code = sales_order_det.article_code 
-        // and b.status not in ('5','7')  group by article_code),0)-sales_order_det.qty) end as balance")
+        ,db::raw("case when sales_order_det.status = '0' then 0 else (coalesce((select sum(qty) from delivery_det a
+        left join delivery_hdr b on a.delivery_number=b.delivery_number 
+        where a.so_number = sales_order_hdr.so_code and a.article_code = sales_order_det.article_code 
+        and b.status not in ('5','7')  group by article_code),0)-sales_order_det.qty) end as balance")
         // ,'sales_order_hdr.status as statusKu'
         // ,'uom_group'
         // ,'qty_target'
@@ -1442,13 +1442,13 @@ class SalesOrderController extends Controller
                 return '';
             }
         })
-        ->addColumn('balance', function ($data) {
-            if($data->status_det == 0){
-                return 0;
-            }else{
-                return $data->qty_kirim-$data->qty_det;    
-            }
-        })
+        // ->addColumn('balance', function ($data) {
+        //     if($data->status_det == 0){
+        //         return 0;
+        //     }else{
+        //         return $data->qty_kirim-$data->qty_det;    
+        //     }
+        // })
         ->rawColumns(['detail'])
         ->make(true);
     }
