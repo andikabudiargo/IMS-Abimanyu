@@ -199,11 +199,16 @@ class BankKeluarController extends Controller
 
         $getLastCode = $getLastCode ? $getLastCode : 1;
 
-        $getMissingCode = DB::SELECT("SELECT generate_series(0001, $getLastCode) as missing_code
-        except
-        select voucher_number::integer from (select right(voucher_number,4) as voucher_number from kas_hdr 
-        where (voucher_number like '$basicCode1%' or  voucher_number like '$basicCode2%') and (status <> '5') and (voucher_type = '$key') order by  id) as oki
-        order by missing_code limit 1");
+        // $getMissingCode = DB::SELECT("SELECT generate_series(0001, $getLastCode) as missing_code
+        // except
+        // select voucher_number::integer from (select right(voucher_number,4) as voucher_number from kas_hdr 
+        // where (voucher_number like '$basicCode1%' or  voucher_number like '$basicCode2%') and (status <> '5') and (voucher_type = '$key') order by  id) as oki
+        // order by missing_code limit 1");
+
+        // hilang no ini 
+        // BK-ASN-25-III-0240
+
+        $getMissingCode =  0;
 
         if(count($getMissingCode) > 0){
             /*
