@@ -57,7 +57,7 @@ class ReportDnExport implements FromView,ShouldAutoSize,WithColumnFormatting,Wit
             $judul = $val->article_alternative_code." - ".$articleDesc;
             
             $barisIsiJudul = "<tr>
-                                <td></td><td align='center'>$articleAlternative - $articleDesc</td><td></td><td></td><td></td>
+                                <td></td><td align='center'>$articleAlternative - $articleDesc</td><td></td><td></td><td></td><td></td>
                             </tr>";
             // $barisIsiJudul = "<tr><td>$articleAlternative</td><td>$soNumber</td><td colspan='3'>".strtoupper($judul)."</td>
             //                         <td > QTY SO : ".number_format($qtySo,2)."</td> </tr>";
@@ -75,40 +75,50 @@ class ReportDnExport implements FromView,ShouldAutoSize,WithColumnFormatting,Wit
             ,ceil((select sum(qty) from sales_order_det where so_code = a.so_number and article_code = a.article_code)) as qty_so 
             ,ceil((select sum(qty) from delivery_det where so_number = a.so_number and article_code = a.article_code and delivery_det.delivery_number in (select delivery_number from delivery_hdr where status not in ('5','7','10')))) as qty_delivery
             ,ceil((select sum(qty) from sales_order_det where so_code = a.so_number and article_code = a.article_code)) - (select sum(qty) from delivery_det where so_number = a.so_number and article_code = a.article_code and delivery_det.delivery_number in (select delivery_number from delivery_hdr where status not in ('5','7','10'))) as sisa_so
+            ,(select invoice_number from invoice_det where dn_number = a.delivery_number limit 1) as invoice_number
             from delivery_det a 
             left join delivery_hdr b on b.delivery_number = a.delivery_number
             left join article c on c.article_code = a.article_code
             where a.so_number = '$soNumber' and a.article_code = '$articleCode'
             and b.status not in ('5','7','10')
             order by date_delivery,b.delivery_number");
+
             $jumlahBaris++;
+
             $barisIsiJudul .= "<tr >
                     <td align='left'>No.</td>
                     <td>Delivery Number</td>
                     <td>Delivery Date</td>
                     <td>Qty delivery</td>
-                    <td > Qty SO : ".number_format($qtySo,2)."</td> 
+                    <td>Invoice No.</td>
+                    <td> Qty SO : ".number_format($qtySo,2)."</td> 
                 </tr>";
+
             foreach($isiJudul as $key=>$item){
                 $no = $key+1;
                 $barisIsiJudul .= "<tr >
                     <td align='left'>$no</td>
                     <td>$item->delivery_number</td>
                     <td>$item->delivery_date</td>
-                    <td align='left'>".number_format($item->qty,2,'.',',')."</td>
+                    <td align='left'>$item->qty</td>
+                    <td>$item->invoice_number</td>
                     <td></td>
                 </tr>";
                 $jumlahBaris++;
             }
+
+            // <td align='left'>".number_format($item->qty,2,'.',',')."</td>
+            
             $barisTotal = "<tr><td></td><td></td><td></td>
-                            <td align='left'>".number_format($qtyDelivery,2,'.',',')."</td>
+                            <td align='left'>$qtyDelivery</td>
+                            <td></td>
                             <td > Qty Sisa : ".number_format($qtySisa,2)."</td>
                         </tr>";
             
-            // $barisTotal .= "<tr><td></td><td></td><td></td><td></td><td></td></tr>";
-                      
             $barisAll .= $barisIsiJudul.$barisTotal;
         }; 
+
+        // <td align='left'>".number_format($qtyDelivery,2,'.',',')."</td>
 
         $salesOrders = DB::table('sales_order_hdr')
         ->leftJoin('third_party','third_party.kode','sales_order_hdr.customer_id')
@@ -129,7 +139,8 @@ class ReportDnExport implements FromView,ShouldAutoSize,WithColumnFormatting,Wit
     public function columnFormats(): Array
     {
         return [
-            'D' => NumberFormat::FORMAT_NUMBER_00,
+            // 'D' => NumberFormat::FORMAT_NUMBER_00,
+            'D' => NumberFormat::FORMAT_NUMBER_COMMA_SEPARATED1,
         ];
     }
 
@@ -140,7 +151,6 @@ class ReportDnExport implements FromView,ShouldAutoSize,WithColumnFormatting,Wit
                 $alphabet   = $event->sheet->getHighestDataColumn();
                 $totalRow   = $event->sheet->getHighestDataRow();
                 $cellRange  = 'A1:'.$alphabet.$totalRow;
-
                 $event->sheet->getDelegate()->getStyle($cellRange)->getFont()->setSize(10);
                 // $cellRange = 'A1:W1'; // All headers
                 // $event->sheet->getDelegate()->getStyle($cellRange)->getFont()->setSize(14);
