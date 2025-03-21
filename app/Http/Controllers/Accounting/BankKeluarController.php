@@ -210,7 +210,8 @@ class BankKeluarController extends Controller
 
         $getMissingCode =  0;
 
-        if(count($getMissingCode) > 0){
+        // if(count($getMissingCode) > 0){
+        if($getMissingCode > 0){
             /*
                 ini karena di tahun 2024 ada data yang kehapus ditengah dan nomornya kecil jadi di skip aja
             */
