@@ -15,6 +15,26 @@ use PDF;
 use AppHelpers;
 use Approval;
 
+/*
+    21/3/2025 
+    pertanyaan: 
+    Nah itu kemaren ada bentrok nomor jadi ada nomor BK-ASN-25-II-0241 itu di delete, 
+    sedangkan sekarang sudah ada nomor BK-ASN-25-III-0241, 
+    nomor terakhir pada saat itu adalah BK-ASN-25-III-0261
+    karena nomor 0241 itu hilang maka nomor selanjutnya itu BK-ASN-25-III-0241 bukan BK-ASN-25-III-0262
+    karena kan mengganti yang di delete
+
+    tapi karena BK-ASN-25-III-0241 sudah ada sebelumnya maka nomornya bentrok
+
+    apakah ada usukl untu penomoran yang bentrok seperti ini?
+
+    jawaban ibu Hanna Syifa :
+    izin jawab pak, sebaiknya melanjutkan nomer di BK-ASN-25-III-0262 saja pak
+    , agar tidak terjadi bentrok. jadi untuk nomer yg sudah terhapus biar terhapus aja tidak perlu 
+    ada transaksi baru yg menggantikan nomer tersebut
+
+*/
+
 class BankKeluarController extends Controller
 {
     private $title;
@@ -203,6 +223,12 @@ class BankKeluarController extends Controller
         // except
         // select voucher_number::integer from (select right(voucher_number,4) as voucher_number from kas_hdr 
         // where (voucher_number like '$basicCode1%' or  voucher_number like '$basicCode2%') and (status <> '5') and (voucher_type = '$key') order by  id) as oki
+        // order by missing_code limit 1");
+
+        // $getMissingCode = DB::SELECT("SELECT generate_series(0001, $getLastCode) as missing_code
+        // except
+        // select voucher_number::integer from (select right(voucher_number,4) as voucher_number from kas_hdr 
+        // where (voucher_number like '$basicCode1%' or  voucher_number like '$basicCode2%') and (voucher_type = '$key') order by  id) as oki
         // order by missing_code limit 1");
 
         // hilang no ini 
