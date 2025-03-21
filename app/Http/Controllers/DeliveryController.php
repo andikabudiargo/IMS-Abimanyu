@@ -1898,13 +1898,14 @@ class DeliveryController extends Controller
             $qtySisa = $qtySo -$qtyDelivery;
 
             $judul = $val->article_alternative_code." - ".$articleDesc;
-            $barisIsiJudul = "<tr><td colspan='3' align='left' style='background-color:white;border-right-color:white'>".strtoupper($judul)."</td>
+            $barisIsiJudul = "<tr><td colspan='4' align='left' style='background-color:white;border-right-color:white'>".strtoupper($judul)."</td>
                                     <td align='right' style='background-color:white;'> Qty SO:".number_format($qtySo,2)."</td> </tr>";
             $barisIsiJudul .= "<tr >
                     <td class='detail-padding' align='left' scope='row' style='padding-left:5px;padding-right:3px' width='5%'>No</td>
                     <td class='detail-padding' align='left' style='padding-left:5px;padding-right:3px'>Delivery Number</td>
                     <td class='detail-padding  align='left' style='padding-left:5px;padding-right:3px'>Delivery Date</td>
                     <td class='detail-padding' align='left' style='padding-left:5px;padding-right:3px'>Qty Delivery</td>
+                    <td class='detail-padding  align='left' style='padding-left:5px;padding-right:3px'>Invoice No.</td>
                 </tr>";
             
             $isiJudul=DB::select("SELECT a.article_code, c.article_alternative_code, c.article_desc,a.delivery_number
@@ -1914,6 +1915,7 @@ class DeliveryController extends Controller
             ,ceil((select sum(qty) from sales_order_det where so_code = a.so_number and article_code = a.article_code)) as qty_so 
             ,ceil((select sum(qty) from delivery_det where so_number = a.so_number and article_code = a.article_code and delivery_det.delivery_number in (select delivery_number from delivery_hdr where status not in ('5','7','10')))) as qty_delivery
             ,ceil((select sum(qty) from sales_order_det where so_code = a.so_number and article_code = a.article_code)) - (select sum(qty) from delivery_det where so_number = a.so_number and article_code = a.article_code and delivery_det.delivery_number in (select delivery_number from delivery_hdr where status not in ('5','7','10'))) as sisa_so
+            ,(select invoice_number from invoice_det where dn_number = a.delivery_number limit 1) as invoice_number
             from delivery_det a 
             left join delivery_hdr b on b.delivery_number = a.delivery_number
             left join article c on c.article_code = a.article_code
@@ -1928,20 +1930,21 @@ class DeliveryController extends Controller
                     <td class='detail-padding' align='left' style='padding-left:5px;padding-right:3px'>$item->delivery_number</td>
                     <td class='detail-padding  align='left' style='padding-left:5px;padding-right:3px'>$item->delivery_date</td>
                     <td class='detail-padding' align='left' style='padding-left:5px;padding-right:3px'>".number_format($item->qty,2)."</td>
+                    <td class='detail-padding' align='left' style='padding-left:5px;padding-right:3px'>$item->invoice_number</td>
                 </tr>";
                 $jumlahBaris++;
             }
             $barisTotal = "<tr><td colspan='3' style='background-color:white;border-right-color:white;'></td>
-                                <td align='left' style='background-color:white;border-left-color:white;padding-left:5px;padding-right:3px'>
+                                <td colspan='2'align='left' style='background-color:white;border-left-color:white;padding-left:5px;padding-right:3px'>
                                 <div style='float:left;width:50%;'>".number_format($qtyDelivery,2)."</div>
                                 <div style='float:right;width:50%;padding-right:10px' align='right'>Qty Sisa:".number_format($qtySisa,2)."</div>
                                 </td> 
                             </tr>";
             
             end($headers);
-            $pemisah = "<tr><td colspan='4' style='border-right-color:white;border-left-color:white;'></td> </tr>";
+            $pemisah = "<tr><td colspan='5' style='border-right-color:white;border-left-color:white;'></td> </tr>";
             if ($kunci === key($headers)) {
-                $pemisah = "<tr><td colspan='4' style='border-right-color:white;border-left-color:white;border-bottom-color:white'></td> </tr>";
+                $pemisah = "<tr><td colspan='5' style='border-right-color:white;border-left-color:white;border-bottom-color:white'></td> </tr>";
             }
 
             $barisTotal = $barisTotal.$pemisah;
