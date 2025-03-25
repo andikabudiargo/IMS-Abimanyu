@@ -51,7 +51,7 @@ class DatabaseBackUp extends Command
         } elseif (PHP_OS_FAMILY === "Linux") {
             //on linux
             // $command = "PGPASSWORD=".env('DB_PASSWORD')." pg_dump --no-owner -h 127.0.0.1  -p 5432 -U ".env('DB_USERNAME')." " . env('DB_DATABASE') . " > " . storage_path() . "/app/backup/" . $sourceFile;
-            $command = "PGPASSWORD=".env('DB_PASSWORD')." pg_dump -Fc --no-owner -h 127.0.0.1  -p 5432 -U ".env('DB_USERNAME')." " . env('DB_DATABASE') . " > " . storage_path() . "/app/backup/" . $sourceFile;
+            $command = "PGPASSWORD=".env('DB_PASSWORD')." pg_dump --no-owner -h 127.0.0.1  -p 5432 -U ".env('DB_USERNAME')." " . env('DB_DATABASE') . " > " . storage_path() . "/app/backup/" . $sourceFile;
         }
 
         $returnVar = NULL;
