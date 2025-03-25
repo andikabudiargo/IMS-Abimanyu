@@ -1486,7 +1486,7 @@ class DeliveryController extends Controller
                 }
             }
 
-            if ($data->status == '4'){
+            if ($data->status == '10' || $data->status == '3' || $data->status == '4'){
                 $buttons .=         '<a href="'. route('delivery.print', ['id'=>Crypt::encryptString($data->id)]) .'" target="_blank" class="dropdown-item">
                                         <i data-feather="printer"></i>
                                         Print
