@@ -188,12 +188,12 @@
                         <table width="100%" class="oki" >
                             <tr class="tanpa-padding">
                                 <td class="tanpa-padding font-14" width="10%">Tanggal</td>
-                                <td class="tanpa-padding font-14" width="40%">: {{ $header->voucher_date }}</td>
-                                <td class="tanpa-padding font-14" width="10%">Departemen</td><td >: {{ $costCenter }}</td>
+                                <td class="tanpa-padding font-14" width="43%">: {{ $header->voucher_date }}</td>
+                                <td class="tanpa-padding font-14" width="10%">Departemen</td><td class="font-8">: {{ $costCenter }}</td>
                             </tr>
                             <tr class="tanpa-padding">
                                 <td class="tanpa-padding font-14" width="10%">Kepada</td>
-                                <td class="tanpa-padding font-14" width="40%">: {{ $header->supplier_name }}</td>
+                                <td class="tanpa-padding font-8" width="43%">: {{ $header->supplier_name }}</td>
                                 <td class="tanpa-padding font-14" width="10%">Halaman</td><td>: <span class="pagenum"></span></td>
                             </tr>
                         </table>
@@ -262,7 +262,7 @@
                     <td  align="right"  >{{ number_format($total->total_credit,2)}}</td>
                 </tr>
                 <tr>
-                    <td  align="left"  colspan="6">Note: {{ $header->note }}</td>
+                    <td  align="left" colspan="6">Note: {{ $header->note }}</td>
                 </tr>                                
             </tbody>
         </table>
@@ -279,8 +279,8 @@
                 <td align="center" style="border-color: white;" width="5%"></td>
             </tr>
             <tr>
-                <td align="center" style="border-color: white;height='25'"><br><br><br>{{ $approval1 ? 'Approval 1':'' }}</td>
-                <td align="center" style="border-color: white;"></td>
+                <td align="center" style="border-color: white;height='25'">{{ $approval1 ? 'Approval 1':'' }}</td>
+                <td align="center" style="border-color: white;"><br><br></td>
                 <td align="center" style="border-color: white;">{{ $approval2 ? 'Approval 2':'' }}</td>
                 <td align="center" style="border-color: white;"></td>
                 <td align="center" style="border-color: white;">{{ $approval3 ? 'Approval 3':'' }}</td>
@@ -289,7 +289,7 @@
                 <td align="center" style="border-color: white;"></td>
             </tr>
             <tr>
-                <td align="center"  style="border-bottom: 1px solid black;border-left: white;border-right: white;">{{ $approval1 ? $approval1->name:'' }}</td>
+                <td align="center" style="border-bottom: 1px solid black;border-left: white;border-right: white;">{{ $approval1 ? $approval1->name:'' }}</td>
                 <td align="center" style="border-color: white;"></td>
                 <td align="center" style="border-bottom: 1px solid black;border-left: white;border-right: white;">  {{ $approval2 ? $approval2->name:'' }}  </td>
                 <td align="center" style="border-color: white;"></td>
