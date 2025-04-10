@@ -187,6 +187,10 @@
             font-size: medium;
         }
 
+        .font-8 {
+            font-size: 8pt;
+        }
+
         .font-13{
             font-size:11pt;
             /* font-size: medium; */
@@ -243,8 +247,9 @@
                                     <table width="100%">
                                         <tr class="tanpa-padding">
                                             <td class="tanpa-padding font-14" width="10%">Tanggal</td>
-                                            <td class="tanpa-padding font-14">: {{ $header->voucher_date }}</td>
-                                            <td style="text-align:right">Departemen</td><td>: {{ $costCenter }}</td>
+                                            <td class="tanpa-padding font-14" width="40%">: {{ $header->voucher_date }}</td>
+                                            <td class="tanpa-padding font-14"  width="10%" style="text-align:right">Departemen</td>
+                                            <td rowspan="2" style="vertical-align:top;">: {{ $costCenter }}</td>
                                         </tr>
                                         <tr class="tanpa-padding">
                                             <td class="tanpa-padding font-14">Dari</td>
