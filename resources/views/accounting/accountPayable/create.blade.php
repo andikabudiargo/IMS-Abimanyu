@@ -264,7 +264,7 @@
                                         </div>
                                     </div>
                                     <div class="form-group row mb-03">
-                                        <label for="totalPPH42" class="col-sm-4 col-form-label titik-dua">VAT 4 <span id="nilaiPPH42"></span> </label>
+                                        <label for="totalPPH42" class="col-sm-4 col-form-label titik-dua">WHT 4(2) <span id="nilaiPPH42"></span> </label>
                                         <div class="col-sm-1" style="padding-right: 0rem;display: flex;align-items: center;">
                                             <div class="custom-control custom-checkbox">
                                                 <input type="checkbox" class="custom-control-input" id="pph42Check" name="pph42Check" />
