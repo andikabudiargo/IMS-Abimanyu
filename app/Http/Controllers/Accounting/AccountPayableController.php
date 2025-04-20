@@ -2368,6 +2368,12 @@ class AccountPayableController extends Controller
         //                 <span>'.$data->ap_number.'</span>
         //             </a>';            
         // })
+
+        ->addColumn('ap_number', function ($data) {
+            return '<a href="'. route('accountPayable.print', ['id'=>Crypt::encryptString($data->id)]) .'" target="_blank" class="dropdown-item" style="padding:0px">
+                '.$data->ap_number.'
+            </a>';
+        })
         
         ->addColumn('status', function ($data) {
             $badges=['badge-light-primary','badge-light-info','badge-light-success','badge-light-warning','badge-light-danger','badge-light-dark','badge-light-secondary','badge-light-danger'];

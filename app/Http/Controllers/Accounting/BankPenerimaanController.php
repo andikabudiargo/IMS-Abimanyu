@@ -1024,7 +1024,12 @@ class BankPenerimaanController extends Controller
             $status = ['NEW','VALIDATED','APPROVED','','DELETED','CLOSED'];
             return "<div class='badge ".$badges[$data->status - 1]."'>".$status[$data->status - 1]."</div>";
         })
-        ->rawColumns(['action','statusku'])
+        ->addColumn('voucher_number', function ($data) {
+            return '<a href="'. route('bankPenerimaan.print', ['id'=>Crypt::encryptString($data->id)]) .'" target="_blank" style="padding:0px">
+                '.$data->voucher_number.'
+            </a>';
+        })
+        ->rawColumns(['action','statusku','voucher_number'])
         ->make(true);
     }
 
