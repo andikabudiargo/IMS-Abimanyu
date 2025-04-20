@@ -91,6 +91,7 @@ class InvoiceController extends Controller
             ['data'=> 'so_number', 'name'=> 'so_number','title'=>'SO Number' ],
             ['data'=> 'po_number', 'name'=> 'po_number','title'=>'PO Number' ],
             ['data'=> 'customer_name', 'name'=> 'customer_name','title'=>'Customer' ],
+            ['data'=> 'faktur_pajak', 'name'=> 'faktur_pajak','title'=>'Tax number' ],
             ['data'=> 'dpp', 'name'=> 'dpp','title'=>'DPP' ],
             ['data'=> 'dpp_lain_value', 'name'=> 'dpp_lain_value','title'=>'DPP Nilai Lain'],
             ['data'=> 'total_ppn', 'name'=> 'total_ppn','title'=>'PPN' ],

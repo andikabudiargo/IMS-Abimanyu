@@ -64,23 +64,23 @@
                                         </div>
                                     </div>
                                     <div class="form-row">
+                                        {{-- <div class="form-group col-md-5">
+                                            <label class="form-label" for="dnNumber">DN Number*</label>
+                                            <input type="text" id="dnNumber" name="dnNumber" value="{{ $header->dn_number }}" class="form-control" disabled />
+                                            <select class="select2 form-control" id="dnNumber" name="dnNumber" >
+                                            </select>
+                                        </div> --}}
+                                        <div class="form-group col-md-6">
+                                            <label for="fakturPajak">Tax Number</label>
+                                            <input type="text" id="fakturPajak" name="fakturPajak" value="{{ $header->faktur_pajak }}" class="form-control" required />
+                                        </div>
+                                    </div>
+                                    <div class="form-row">
                                         <div class="form-group col-md-12">
                                             <label class="form-label" for="note">Notes</label>
                                             <textarea type="text" id="note" name="note" class="form-control" rows="1" >{{ $header->note }}</textarea>
                                         </div>
                                     </div>
-                                    {{-- <div class="form-row">
-                                        <div class="form-group col-md-5">
-                                            <label class="form-label" for="dnNumber">DN Number*</label>
-                                            <input type="text" id="dnNumber" name="dnNumber" value="{{ $header->dn_number }}" class="form-control" disabled /> --}}
-                                            {{-- <select class="select2 form-control" id="dnNumber" name="dnNumber" >
-                                            </select> --}}
-                                        {{-- </div> --}}
-                                        {{-- <div class="form-group col-md-6">
-                                            <label for="fakturPajak">Faktur pajak*</label>
-                                            <input type="text" id="fakturPajak" name="fakturPajak" value="{{ $header->faktur_pajak }}" class="form-control" required />
-                                        </div> --}}
-                                    {{-- </div> --}}
                                 </div>
                                 <div class="col-md-6 col-12">
                                     <div class="form-row">

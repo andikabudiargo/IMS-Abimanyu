@@ -71,10 +71,10 @@
                                             <select class="select2 form-control" id="dnNumber" name="dnNumber" required>
                                             </select>
                                         </div> --}}
-                                        {{-- <div class="form-group col-md-6">
-                                            <label for="fakturPajak">Faktur pajak*</label>
+                                        <div class="form-group col-md-6">
+                                            <label for="fakturPajak">Tax Number</label>
                                             <input type="text" id="fakturPajak" name="fakturPajak" class="form-control" />
-                                        </div> --}}
+                                        </div>
                                     </div>
                                     <div class="form-row">
                                         <div class="form-group col-md-12">

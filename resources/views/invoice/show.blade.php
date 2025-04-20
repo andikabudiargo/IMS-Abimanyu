@@ -60,16 +60,16 @@
                                             <input type="text" id="soNumber" name="soNumber" value="{{ $header->so_number }}" class="form-control" disabled />
                                         </div>
                                     </div>
-                                    {{-- <div class="form-row">
-                                        <div class="form-group col-md-3">
+                                    <div class="form-row">
+                                        {{-- <div class="form-group col-md-3">
                                             <label class="form-label" for="dnNumber"  disabled>DN Number*</label>
                                             <input type="text" id="dnNumber" name="dnNumber" value="{{ $header->dn_number }}" class="form-control" disabled />
-                                        </div>
+                                        </div> --}}
                                         <div class="form-group col-md-6">
-                                            <label for="fakturPajak">Faktur pajak*</label>
+                                            <label for="fakturPajak">Tax Number</label>
                                             <input type="text" id="fakturPajak" name="fakturPajak" value="{{ $header->faktur_pajak }}" class="form-control" disabled />
                                         </div>
-                                    </div> --}}
+                                    </div>
                                     <div class="form-row">
                                         <div class="form-group col-md-12">
                                             <label class="form-label" for="note">Notes</label>
@@ -315,60 +315,8 @@
 <script type="text/javascript">
     let currentDate = todayDate('dd-mm-yyyy');
     $(document).ready(function(){
-        // let detail = {!!  $detail !!};
-        // for (let i = 0; i < detail.length; i++) {
-        //     article=detail[i].article_code;
-        //     articleCode=detail[i].article_alternative_code;
-        //     articleDesc=detail[i].article_desc;
-        //     qtySo=detail[i].qty;
-        //     uomGroup=detail[i].uom_group;
-        //     uom=detail[i].uom;
-        //     price=detail[i].price;
-        //     priceService=detail[i].price_service;
-        //     soCode=detail[i].so_number;
-        //     dnNumberData=detail[i].dn_number;
-        //     poNumber=detail[i].po_number;
-        //     add_new_row(article,articleCode,articleDesc,qtySo,uomGroup,uom,price,priceService,soCode,dnNumberData,poNumber);
-        // }
         hitungTotal();
     });
-     
-    // let cloneCount=0;
-    // function add_new_row(article,articleCode,articleDesc,qty,uomGroup,uom,price,priceJasa,soCode,dnNumber,poNumber) {
-    //     $("#article_row").append($("#new_row").clone().html());
-    //     cloneCount++;
-    //     $("#article_row").find('#baru').attr('id', 'new_row'+ cloneCount);
-    //     $("#new_row"+ cloneCount).find('#uom').attr('id', 'uom'+ cloneCount);
-    //     $("#new_row"+ cloneCount).find('#qtyInv').attr('id', 'qtyInv'+ cloneCount);
-    //     $("#new_row"+ cloneCount).find('#totalLine').attr('id', 'totalLine'+ cloneCount);
-    //     $("#new_row"+ cloneCount).find('#totalJasa').attr('id', 'totalJasa'+ cloneCount);
-    //     $("#new_row"+ cloneCount).find('#subTotal').attr('id', 'subTotal'+ cloneCount);
-    //     $("#new_row"+ cloneCount).find('#articleId').attr('id', 'articleId'+ cloneCount);
-    //     $("#new_row"+ cloneCount).find('#price').attr('id', 'price'+ cloneCount);
-    //     $("#new_row"+ cloneCount).find('#priceJasa').attr('id', 'priceJasa'+cloneCount);
-    //     $('#articleId'+ cloneCount).attr('data-code', article);
-    //     $('#articleId'+ cloneCount).attr('data-desc', articleDesc);
-    //     $('#articleId'+ cloneCount).attr('data-uom', uom);
-    //     $('#articleId'+ cloneCount).attr('data-price', price);
-    //     $('#articleId'+ cloneCount).attr('data-price-service', priceJasa);
-    //     $('#articleId'+ cloneCount).attr('data-so-code', soCode);
-    //     $('#articleId'+ cloneCount).attr('data-dn-number', dnNumber);
-    //     $('#articleId'+ cloneCount).attr('data-po-number', poNumber);
-    //     // $('#articleId'+ cloneCount).val(articleCode +" - " + articleDesc);
-    //     $('#articleId'+ cloneCount).val(articleDesc);
-    //     $('#price'+ cloneCount).val(price);
-    //     $('#priceJasa'+ cloneCount).val(priceJasa);
-    //     $('#qtyInv'+ cloneCount).val(qty);
-    //     $('#uom'+ cloneCount).val(uom);
-    //     $('#totalLine'+ cloneCount).val(qty*price).trigger('change');
-    //     $('#totalJasa'+ cloneCount).val(qty*priceJasa).trigger('change');
-    //     $('#subTotal'+ cloneCount).val((qty*price)+(qty*priceJasa)).trigger('change');
-    //     tombolPanah('qtyInv');
-    //     mask_thousand();
-    //     hitungTotal();
-    //     hitungGrandTotal();
-        
-    // }
     
     $.ajaxSetup({
         headers: {
