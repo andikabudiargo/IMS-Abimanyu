@@ -12,8 +12,8 @@
     }
 
     td.isian{
-        padding-right:10px;
-        padding-left:10px;
+        padding-right:5px;
+        padding-left:5px;
     }
 
     td.isian-satu{
@@ -46,7 +46,7 @@
                         data-nama-el-kiri='account'
                         data-type-el-kanan='select'
                         data-nama-el-kanan='vcRef' --}}
-                        id="vcDesc" name="vcDesc[]" />
+                        id="vcDesc" name="vcDesc[]" autocomplete='off'/>
                     </td>
                     <td class="isian" style="">
                         <select class="form-control tombol-panah" id="vcRef" name="vcRef[]">                            
@@ -66,7 +66,7 @@
                         data-nama-el-kiri='vcCc'
                         data-type-el-kanan='input'
                         data-nama-el-kanan='vcCredit'
-                        id = "vcDebit" name="vcDebit[]" maxlength="20" oninput='inputDecimal(this)'/>
+                        id = "vcDebit" name="vcDebit[]" maxlength="20" oninput='inputDecimal(this)' autocomplete='off'/>
                     </td>
                     <td class="isian" style="width: 10%">
                         <input type="text" class="form-control-plaintext numeral-mask-digit text-right tombol-panah" 
@@ -74,7 +74,7 @@
                         data-nama-el-kiri='vcDebit'
                         data-type-el-kanan='input'
                         data-nama-el-kanan='vcDesc'
-                        id = "vcCredit" name="vcCredit[]" maxlength="20" oninput='inputDecimal(this)'/>
+                        id = "vcCredit" name="vcCredit[]" maxlength="20" oninput='inputDecimal(this)' autocomplete='off'/>
                     </td>
                     <td class="isian text-center" style="width: 5%">
                         <a onmouseover="this.style.cursor='pointer'" onclick="$(this).parents('.tanda-baris').remove();hitungGrandTotal()" data-toggle="tooltip" data-placement="left" title="Delete row">
@@ -263,10 +263,14 @@
                 }
     
                 if (accountNumber.substring(0,7) =='1100.40'){
-                    if(recFrom){
+                    if(recFrom == coa){
                         invList('referenceAr',objSupp,recFrom,'',ref);
                     }else{
-                        Swal.fire('Warning..','Data customer sebagai supplier masih kosing','warning');
+                        Swal.fire('Warning..','Data customer sebagai supplier masih kosong / tidak sesuai','warning');
+                        objVcDebit.eq(objIndex).val("");
+                        objVcCredit.eq(objIndex).val("");
+                        objVcRef.eq(objIndex).empty().trigger('change');
+                        hitungGrandTotal();
                     }
                 }else{
                     objVcDebit.eq(objIndex).val("");

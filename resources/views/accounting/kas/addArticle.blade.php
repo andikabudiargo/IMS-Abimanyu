@@ -66,7 +66,7 @@
                         data-nama-el-kiri='vcCc'
                         data-type-el-kanan='input'
                         data-nama-el-kanan='vcCredit'
-                        id = "vcDebit" name="vcDebit[]" maxlength="20" oninput='inputDecimal(this)'/>
+                        id = "vcDebit" name="vcDebit[]" maxlength="20" oninput='inputDecimal(this)' autocomplete='off'/>
                     </td>
                     <td class="isian" style="width: 10%">
                         <input type="text" class="form-control-plaintext numeral-mask-digit text-right tombol-panah" 
@@ -74,7 +74,7 @@
                         data-nama-el-kiri='vcDebit'
                         data-type-el-kanan='input'
                         data-nama-el-kanan='vcDesc'
-                        id = "vcCredit" name="vcCredit[]" maxlength="20" oninput='inputDecimal(this)'/>
+                        id = "vcCredit" name="vcCredit[]" maxlength="20" oninput='inputDecimal(this)' autocomplete='off'/>
                     </td>
                     <td class="isian text-center" style="width: 5%">
                         <a onmouseover="this.style.cursor='pointer'" onclick="$(this).parents('.tanda-baris').remove();hitungGrandTotal()" data-toggle="tooltip" data-placement="left" title="Delete row">
