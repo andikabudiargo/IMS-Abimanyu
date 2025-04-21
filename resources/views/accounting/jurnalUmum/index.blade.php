@@ -3,11 +3,10 @@
 @section('content')
 @include('layouts.breadcrumb')
 @include('partials.alert')
-
 <section id="article-index">
   <div class="card">
     <div class="card-header">  
-      <h4 class="card-title">Filter</h4>
+      <h4 class="card-title">Filter <small class="text-muted"> {{ $lockDate ? "Locked From : ".$lockDate : '' }}</small></h4>
       <div class="heading-elements">
         <ul class="list-inline mb-0">
             <li><a data-action="collapse"><i data-feather="chevron-down"></i></a></li>
@@ -26,7 +25,7 @@
                 <label class="form-label" for="vcDate">Date</label>
                 <input type="text" id="vcDate" name="vcDate" class="form-control flatpickr-range" placeholder="YYYY-MM-DD to YYYY-MM-DD" />
               </div>
-              <div class="form-group col-md-3">
+              <div class="form-group col-md-1">
                 <label class="form-label" for="period">Period</label>
                 <select class="select2 form-control" id="period" name="period" >
                     <option value=""></option>
@@ -35,7 +34,7 @@
                     @endfor
                 </select>
               </div>
-              <div class="form-group col-md-3">
+              <div class="form-group col-md-1">
                 <label class="form-label" for="year">Year</label>
                 <select class="select2 form-control" id="year" name="year" >
                   <option value=""></option>
@@ -44,8 +43,6 @@
                   @endfor
                 </select>
               </div>
-            </div>
-            <div class="form-row">
               <div class="form-group col-md-2"> 
                 <label class="form-label" for="searchStatus">Status</label>
                 <select class="select2 form-control" id="searchStatus" name="searchStatus">
@@ -159,7 +156,7 @@
       tableId:"detailedTable",
       route:"{{ route('jurnalUmum.list') }}",
       kolom:{!! $kolom !!},
-      arrColPrint:[1,3,4,5,6,7,8,9,10,11,12],
+      arrColPrint:[1,3,4,5,6,7,8,9,10,12,13,14,15],
       columnDefs :[
         { width: '5%', targets: 0 },
         {
@@ -175,7 +172,7 @@
         year:year,
         searchStatus:searchStatus
       },
-      orderColumn:[[ 10,'asc']],
+      orderColumn:[[ 15,'desc']],
       excelFileName:'jurnal_umum'
     });
   }

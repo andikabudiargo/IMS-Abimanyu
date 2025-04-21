@@ -64,6 +64,9 @@ class GeneralJournalController extends Controller
             ['data'=>'period','name'=>'period','title'=>'Period'],
             ['data'=>'note','name'=>'note','title'=>'Note'],
             ['data'=>'statusku','name'=>'statusku','title'=>'Status'],
+            ['data'=>'tax_number','name'=>'tax_number','title'=>'Tax Number'],
+            ['data'=>'invoice_date_2','name'=>'invoice_date_2','title'=>'Invoice Date'],
+            ['data'=>'invoice_date','name'=>'invoice_date','title'=>'Invoice Date','visible'=>false],
             ['data'=> 'approval_by', 'name'=> 'approval_by','title'=>'Approved By' ],
             ['data'=> 'approval_at', 'name'=> 'approval_at','title'=>'Approved At' ],
             ['data'=>'created_by','name'=>'created_by','title'=>'Created By'],
@@ -72,30 +75,30 @@ class GeneralJournalController extends Controller
         return json_encode($kolom, true);
     }
 
-    public function getTableColoumnDetail()
-    {
-        $kolom=
-        [
-            ['data'=>'action','name'=>'action','title'=>'action','orderable'=> false,'searchable'=>false],
-            ['data'=>'voucher_number','name'=>'voucher_number','title'=>'Voucher Number'],
-            ['data'=>'account_number','name'=>'account_number','title'=>'Account Number'],
-            ['data'=>'reference','name'=>'reference','title'=>'Reference'],
-            ['data'=>'amount','name'=>'amount','title'=>'Amount'],           
-            ['data'=>'voucher_date','name'=>'voucher_date','title'=>'Date'],
-            ['data'=>'currency','name'=>'currency','title'=>'Currency'],
-            ['data'=>'kurs','name'=>'kurs','title'=>'Kurs'],
-            ['data'=>'note','name'=>'note','title'=>'Note'],
-            ['data'=>'order_no','name'=>'order_no','title'=>'Urutan'],
-            ['data'=>'decription','name'=>'decription','title'=>'Desciption'],
-            ['data'=>'debit','name'=>'debit','title'=>'Debit account'],
-            ['data'=>'credit','name'=>'credit','title'=>'Credit account'],
-            ['data'=>'amount','name'=>'amount','title'=>'Amount'],
-            ['data'=>'memo','name'=>'memo','title'=>'Memo'],
-            ['data'=>'auth_by','name'=>'auth_by','title'=>'Auth By'],
-            ['data'=>'prep_by','name'=>'prep_by','title'=>'Prep By']
-        ];
-        return json_encode($kolom, true);
-    }
+    // public function getTableColoumnDetail()
+    // {
+    //     $kolom=
+    //     [
+    //         ['data'=>'action','name'=>'action','title'=>'action','orderable'=> false,'searchable'=>false],
+    //         ['data'=>'voucher_number','name'=>'voucher_number','title'=>'Voucher Number'],
+    //         ['data'=>'account_number','name'=>'account_number','title'=>'Account Number'],
+    //         ['data'=>'reference','name'=>'reference','title'=>'Reference'],
+    //         ['data'=>'amount','name'=>'amount','title'=>'Amount'],           
+    //         ['data'=>'voucher_date','name'=>'voucher_date','title'=>'Date'],
+    //         ['data'=>'currency','name'=>'currency','title'=>'Currency'],
+    //         ['data'=>'kurs','name'=>'kurs','title'=>'Kurs'],
+    //         ['data'=>'note','name'=>'note','title'=>'Note'],
+    //         ['data'=>'order_no','name'=>'order_no','title'=>'Urutan'],
+    //         ['data'=>'decription','name'=>'decription','title'=>'Desciption'],
+    //         ['data'=>'debit','name'=>'debit','title'=>'Debit account'],
+    //         ['data'=>'credit','name'=>'credit','title'=>'Credit account'],
+    //         ['data'=>'amount','name'=>'amount','title'=>'Amount'],
+    //         ['data'=>'memo','name'=>'memo','title'=>'Memo'],
+    //         ['data'=>'auth_by','name'=>'auth_by','title'=>'Auth By'],
+    //         ['data'=>'prep_by','name'=>'prep_by','title'=>'Prep By']
+    //     ];
+    //     return json_encode($kolom, true);
+    // }
 
     public function getLastCode($key,$period,$year)
     {
@@ -225,7 +228,7 @@ class GeneralJournalController extends Controller
         $data['type'] = 'jurnalUmum';
 
         $data['kolom'] = $this->getTableColoumn();
-        $data['kolomDetail'] = $this->getTableColoumnDetail();
+        // $data['kolomDetail'] = $this->getTableColoumnDetail();
 
         $status = ['NEW','VALIDATED','APPROVED','','DELETED','CLOSED'];
         $data['status'] = ['1'=>'NEW','2'=>'VALIDATED','3'=>'APPROVED'];
@@ -266,7 +269,9 @@ class GeneralJournalController extends Controller
         $status = '1';
         $leadCode =$this->moduleCode;
         $paidToDesc = $request->paidToDesc;
-        
+        $invoiceDate = $request->invoiceDate;
+        $taxNumber = $request->taxNumber;
+
         /* batal pengkodean untuk angka romawi/bulan  jadi nya dari period
             $periodNomor=(int)explode('-', $vcDate)[1];
         */
@@ -325,7 +330,9 @@ class GeneralJournalController extends Controller
                     'created_by' => Auth::user()->username,
                     'updated_by' => Auth::user()->username,
                     'created_at' => date('Y-m-d H:i:s'),
-                    'updated_at' => date('Y-m-d H:i:s')
+                    'updated_at' => date('Y-m-d H:i:s'),
+                    'invoice_date' => $invoiceDate,
+                    'tax_number' => $taxNumber,
                 ]);
 
                 $dataSet = [];
@@ -470,6 +477,8 @@ class GeneralJournalController extends Controller
         $status = '1';
         $leadCode =$this->moduleCode;
         $paidToDesc = $request->paidToDesc;
+        $invoiceDate = $request->invoiceDate;
+        $taxNumber = $request->taxNumber;
         
         $messages = [
             'required' => 'The field is required.',
@@ -516,7 +525,9 @@ class GeneralJournalController extends Controller
                             'period' =>$period,
                             'note' => $note,
                             'updated_by' => Auth::user()->username,
-                            'updated_at' => date('Y-m-d H:i:s')
+                            'updated_at' => date('Y-m-d H:i:s'),
+                            'invoice_date' => $invoiceDate,
+                            'tax_number' => $taxNumber,
                         ]
                     );
 
@@ -807,6 +818,8 @@ class GeneralJournalController extends Controller
             'kas_hdr.*'
             ,DB::raw("to_char(to_date(voucher_date, 'DD-MM-YYYY'), 'DD/MM/YYYY') as voucher_date")
             ,DB::raw("to_date(voucher_date, 'DD-MM-YYYY') as voucher_date_2")
+            ,DB::raw("to_date(invoice_date, 'DD-MM-YYYY') as invoice_date")
+            ,DB::raw("to_date(invoice_date, 'DD-MM-YYYY') as invoice_date_2")
             ,'kas_hdr.status as statusku'
             // ,db::raw("concat(third_party.kode,'-',third_party.nama) as supplier_name")
             ,db::raw("case when paid_to = 'other' then kas_hdr.description else third_party.nama end as supplier_name")

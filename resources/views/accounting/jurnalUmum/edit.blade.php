@@ -63,6 +63,16 @@
                                 </div>
                             </div>
                             <div class="form-row">
+                                <div class="form-group col-md-3">
+                                    <label for="taxNumber">Tax Number</label>
+                                    <input type="text" id="taxNumber" name="taxNumber" value="{{ $header->tax_number }}" class="form-control" value="" />
+                                </div>
+                                <div class="form-group col-md-3">
+                                    <label for="invoiceDate">Invoice Date</label>
+                                    <input type="text" id="invoiceDate" name="invoiceDate" value="{{ $header->invoice_date }}" class="form-control" placeholder="DD-MM-YYYY" />
+                                </div>
+                            </div>
+                            <div class="form-row">
                                 <div class="form-group col-md-9">
                                     <label class="form-label" for="note">Notes</label>
                                     <textarea type="text" id="note" name="note" class="form-control" rows="1" >{{ $header->note }}</textarea>
@@ -294,6 +304,13 @@
             dateFormat: "d-m-Y",
         });
     }
+
+    invoiceDate = $('#invoiceDate');
+    if (invoiceDate.length) {
+        invoiceDate.flatpickr({
+            dateFormat: "d-m-Y",
+        });
+    }
     
     function reloadPage(){
         window.location.reload();
@@ -317,6 +334,8 @@
         let paidTo = $('#paidTo').val();
         let vcNumber = $('#voucherNumber').val();
         let paidToDesc = $('#paidToDesc').val();
+        let vInvoiceDate = $('#invoiceDate').val();
+        let taxNumber = $('#taxNumber').val();
     
         if (((parseFloat(objTotalVcDebit)-parseFloat(objTotalVcCredit)) == 0) && (parseFloat(objTotalVcCredit)==parseFloat(totalAmount))){
             if (!$("#frmAdd")[0].checkValidity()){
@@ -379,7 +398,9 @@
                             totalAmount:totalAmount,
                             paidTo:paidTo,
                             vcNumber:vcNumber,
-                            paidToDesc:paidToDesc
+                            paidToDesc:paidToDesc,
+                            invoiceDate:vInvoiceDate,
+                            taxNumber:taxNumber
                         },
                         dataType: "json",
                         success: function(data) {

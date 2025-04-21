@@ -47,7 +47,6 @@
                                         @foreach ($suppliers as $val)
                                             <option value="{{ $val->kode }}">{{ $val->kode }} | {{ $val->nama }}</option>
                                         @endforeach
-                                        
                                     </select>
                                 </div>
                                 <div class="form-group col-md-3 d-none other-desc">
@@ -61,6 +60,16 @@
                                         <label for="totalAmount">Amount*</label>
                                         <input type="text" id="totalAmount" name="totalAmount" class="form-control text-right numeral-mask-digit" oninput='inputDecimal(this)' maxlength="20" required/>
                                     </div>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group col-md-3">
+                                    <label for="taxNumber">Tax Number</label>
+                                    <input type="text" id="taxNumber" name="taxNumber" class="form-control" value="" />
+                                </div>
+                                <div class="form-group col-md-3">
+                                    <label for="invoiceDate">Invoice Date</label>
+                                    <input type="text" id="invoiceDate" name="invoiceDate" class="form-control" placeholder="DD-MM-YYYY" />
                                 </div>
                             </div>
                             <div class="form-row">
@@ -209,6 +218,13 @@
             dateFormat: "d-m-Y",
         });
     }
+
+    invoiceDate = $('#invoiceDate');
+    if (invoiceDate.length) {
+        invoiceDate.flatpickr({
+            dateFormat: "d-m-Y",
+        });
+    }
     
     $("#cmdSave").click(function(){  
         let objTotalVcDebit= $('#vcTotalDebit').val().replace(/,/gi, '') || 0;
@@ -219,6 +235,8 @@
         let note = $('#note').val();
         let paidTo = $('#paidTo').val();
         let paidToDesc = $('#paidToDesc').val();
+        let vInvoiceDate = $('#invoiceDate').val();
+        let taxNumber = $('#taxNumber').val();
         if (!$("#frmAdd")[0].checkValidity()){
             $("#frmAdd").submit();
         }else{   
@@ -280,7 +298,9 @@
                             note:note,
                             totalAmount:totalAmount,
                             paidTo:paidTo,
-                            paidToDesc:paidToDesc
+                            paidToDesc:paidToDesc,
+                            invoiceDate:vInvoiceDate,
+                            taxNumber:taxNumber
                         },
                         dataType: "json",
                         success: function(data) {

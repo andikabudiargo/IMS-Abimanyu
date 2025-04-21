@@ -47,6 +47,16 @@
                                 </div>
                             </div>
                             <div class="form-row">
+                                <div class="form-group col-md-3">
+                                    <label for="invoiceNumber">Tax Number</label>
+                                    <input type="text" id="invoiceNumber" name="invoiceNumber" value="{{ $header->tax_number }}" class="form-control" value="" />
+                                </div>
+                                <div class="form-group col-md-3">
+                                    <label for="invoiceDate">Invoice Date</label>
+                                    <input type="text" id="invoiceDate" name="invoiceDate" value="{{ $header->invoice_date }}" class="form-control" placeholder="DD-MM-YYYY" />
+                                </div>
+                            </div>
+                            <div class="form-row">
                                 <div class="form-group col-md-10">
                                     <label class="form-label" for="note">Notes</label>
                                     <textarea type="text" id="note" name="note" class="form-control" rows="1" >{{ $header->note }}</textarea>
