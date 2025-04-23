@@ -252,9 +252,9 @@
                             let id = data.idKu;
                             let url = "{{ route('dnReplace.print', ['id'=>':id']) }}";
                             url = url.replace('%3Aid', id);
-                            console.log(url)
-                            // window.open(url, '_blank');
-                            // reloadPage();
+                            // console.log(url)
+                            window.open(url, '_blank');
+                            reloadPage();
                             
                         }
                     },
