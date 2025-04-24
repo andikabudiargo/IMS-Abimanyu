@@ -74,6 +74,13 @@ class BomReportController extends Controller
         // ->where('article_type','<>','RM')
         ->select('article.*', 'third_party.nama as cust_name','group_materials.name as group')
         ->get();
+
+        $data['articlesRm'] = DB::table('article')
+        ->leftJoin('third_party','article.third_party','third_party.kode')
+        ->leftJoin('group_materials','group_materials.code','=','article.group_of_material')
+        ->whereIn('article_type',['RMNP','RMP']) 
+        ->select('article.*', 'third_party.nama as cust_name','group_materials.name as group')
+        ->get();
        
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'RECEIVED','5'=>'DELETED','6'=>'CLOSED','7'=>'REVISED'];
         $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','5'=>'DELETED'];
@@ -87,16 +94,18 @@ class BomReportController extends Controller
         $searchBom = strtolower($request->searchBom);
         $articleMaterial = $request->articleMaterial;
         $articleCode = $request->articleCode;
+        $articleCodeRm = $request->articleCodeRm;
 
         $data = DB::table('bom_det')
         ->leftJoin('bom_hdr','bom_hdr.bom_code','bom_det.bom_code')
         ->leftJoin('article','article.article_code','bom_hdr.article_code')
         ->leftJoin('article as b','b.article_code','bom_det.article_code')
         ->leftJoin('article as c','c.article_code','bom_hdr.article_code_rm')
-        ->where(function ($query) use ($searchBom,$articleCode,$articleMaterial) {
+        ->where(function ($query) use ($searchBom,$articleCode,$articleMaterial,$articleCodeRm) {
             $searchBom ? $query->where('bom_det.bom_code','ilike','%'.$searchBom.'%') : '';
             $articleCode ? $query->where('bom_hdr.article_code','ilike','%'.$articleCode.'%') : '';
             $articleMaterial ? $query->where('bom_det.article_code','ilike','%'.$articleMaterial.'%') : '';
+            $articleCodeRm ? $query->where('bom_hdr.article_code_rm','ilike','%'.$articleCodeRm.'%') : '';
         })
         ->where('bom_hdr.status','<>','7')
         ->select('bom_det.*','bom_hdr.*'

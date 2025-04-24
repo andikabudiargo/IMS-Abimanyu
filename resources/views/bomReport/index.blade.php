@@ -30,6 +30,15 @@
                 </select>
               </div>
               <div class="form-group col-md-4">
+                <label class="form-label" for="articleCodeRm">Article RM</label>
+                <select class="select2 form-control" id="articleCodeRm" name="articleCodeRm">
+                    <option value="">All</option>
+                    @foreach($articlesRm as $val)
+                        <option value="{{ $val->article_code }}" >{{ $val->article_alternative_code }} - {{ $val->article_desc }}</option>
+                    @endforeach
+                </select>
+              </div>
+              <div class="form-group col-md-4">
                 <label class="form-label" for="articleMaterial">Article Material</label>
                 <select class="select2 form-control" id="articleMaterial" name="articleMaterial">
                     <option value="">All</option>
@@ -95,16 +104,17 @@
   let searchBom = $("#searchBom");
   let articleCode = $("#articleCode");
   let articleMaterial = $("#articleMaterial");
+  let articleCodeRm = $("#articleCodeRm");
 
   $(document).ready(function(){    
 
   });
 
   $("#btnSearch").click(function(e){
-    showList(searchBom.val(),articleCode.val(),articleMaterial.val());
+    showList(searchBom.val(),articleCode.val(),articleMaterial.val(),articleCodeRm.val());
   });
 
-  const showList = (searchBom,articleCode,articleMaterial) => {
+  const showList = (searchBom,articleCode,articleMaterial,articleCodeRm) => {
     if ($('#detailedTable tr').length >0){
         let table= $('#detailedTable').DataTable();
         table.destroy();
@@ -128,7 +138,8 @@
       dataSearch:  {
         searchBom:searchBom,
         articleCode:articleCode,
-        articleMaterial:articleMaterial
+        articleMaterial:articleMaterial,
+        articleCodeRm:articleCodeRm
       },
       orderColumn:[[ 1, 'desc' ]],
       excelFileName:'detail_bom',
