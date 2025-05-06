@@ -96,6 +96,15 @@
                     @endforeach
                 </select>
               </div>
+              <div class="form-group col-md-2">
+                <label class="form-label" for="period">Period</label>
+                <select class="select2 form-control" id="period" name="period" >
+                    <option value=""></option>
+                    @for ($i = 1; $i <= 12; $i++)
+                        <option value="{{ $i }}">{{ $i }}</option>
+                    @endfor
+                </select>
+              </div>
             </div>
             <div class="form-row">
                 <div class="col-12"> 
@@ -183,11 +192,12 @@
     let searchCustomer = $("#searchCustomer").val(); 
     let searchStatus = $("#searchStatus").val();
     let recDate = $("#recDate").val();
-    showList(searchInv,searchSo,searchCustomer,searchStatus,recDate);
+    let searchPeriod = $("#period").val();
+    showList(searchInv,searchSo,searchCustomer,searchStatus,recDate,searchPeriod);
 
   });
 
-  const showList = (searchInv,searchSo,searchCustomer,searchStatus,recDate) => {
+  const showList = (searchInv,searchSo,searchCustomer,searchStatus,recDate,searchPeriod) => {
     if ($('#detailedTable tr').length >0){
         let table= $('#detailedTable').DataTable();
         table.destroy();
@@ -218,7 +228,8 @@
         searchSo:searchSo,
         searchCustomer:searchCustomer,
         searchStatus:searchStatus,
-        recDate:recDate
+        recDate:recDate,
+        searchPeriod:searchPeriod
       },
       orderColumn:[[ 28, 'desc' ]],
       excelFileName:'invoice_customer'
