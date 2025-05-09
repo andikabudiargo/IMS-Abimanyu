@@ -916,7 +916,7 @@ class DebitNoteController extends Controller
     public function list(Request $request)
     {
        
-        $searchInv = strtolower($request->searchInv);
+        $searchInv = strtolower($request->searchDn);
         $searchSo = strtolower($request->searchSo);
         $searchCustomer = $request->searchCustomer; 
         $searchStatus = $request->searchStatus;
