@@ -240,18 +240,18 @@
             $("#totalAmountJasa").val(humanizeNumber(totalAmountJasa.toFixed(2)));
 
             if ($('#vatCheck').is(':checked')){ 
-
-                // if(!$("#totalPPN").val()){
-                    sNilaiPPN = $("#ppnValue").val();
+                    sNilaiPPN = $("#ppn").val();
                     let zDppNilaiLain = totalAmountMaterial * (sNilaiPpnPembilang/sNilaiPpnPenyebut);
-                    let zba = zDppNilaiLain ? zDppNilaiLain : totalAmountMaterial;
+                    let zba = $("#nilaiLainCheck").is(':checked') ? zDppNilaiLain : totalAmountMaterial;
+                    // let zba = zDppNilaiLain ? zDppNilaiLain : totalAmountMaterial;
+                    let qTotalPpn = Math.round(zba * (sNilaiPPN/100));
+                    $("#totalPPN").val(humanizeNumber(parseFloat(qTotalPpn).toFixed(2)));
+                    
                     // clearTimeout(delayTimerTax);
                     // delayTimerTax = setTimeout(function() {
-                        let qTotalPpn = Math.round(zba * (sNilaiPPN/100));
-                        $("#totalPPN").val(humanizeNumber(parseFloat(qTotalPpn).toFixed(2)));
+                        // let qTotalPpn = Math.round(zba * (sNilaiPPN/100));
+                        // $("#totalPPN").val(humanizeNumber(parseFloat(qTotalPpn).toFixed(2)));
                     // }, 2100);
-                // }
-                // $("#totalPPN").val(humanizeNumber(((parseFloat(ppn)*totalAmountMaterial)/100).toFixed(2)));
             }else{
                 $("#totalPPN").val(0);
             }
@@ -324,19 +324,18 @@
                     $("#ppn").val(sNilaiPPN);
                     $("#pembilangNumber").val(sNilaiPpnPembilang);
                     $("#penyebutNumber").val(sNilaiPpnPenyebut);
-                    console.log(`Nilai PPN sesuai Invoice Date : ${sNilaiPPN}`);
+                    // console.log(`Nilai PPN sesuai Invoice Date : ${sNilaiPPN}`);
                 }
             })
         }
 
         let totalAmount = parseFloat($('#totalAmount').val().replace(/,/gi, '')) || 0;
         
-       if($("#totalDppNilaiLain").val()){
+        if($("#totalDppNilaiLain").val()){
             totalAmount = $("#totalDppNilaiLain").val().replace(/,/gi, '');
         }
-
         let zTotalPPn = Math.round(totalAmount * (sNilaiPPN/100));
-        console.log(`BA Tanpa pembulatan dari ppn:${totalAmount * (sNilaiPPN/100)}`);
+        // console.log(`BA Tanpa pembulatan dari ppn:${totalAmount * (sNilaiPPN/100)}`);
         $("#totalPPN").val(parseFloat(zTotalPPn).toFixed(2));
         $("#nilaiPPN").text(sNilaiPPN+'%');
         $("#totalPPN").removeAttr('disabled');
@@ -352,27 +351,7 @@
         if(aDebitNDate){
             if(this.checked) {
                 hitungPpn();
-                // let aDebitNDate = debitNDate.val();
-                // if(aDebitNDate){
-                //     getActivePpn(aDebitNDate).done(function (result) {
-                //         if(result){
-                //             // sNilaiPPN = result;
-                //             sNilaiPPN = result.ppnValue;
-                //             $("#ppn").val(sNilaiPPN);
-                //             console.log(`Nilai PPN sesuai Invoice : ${sNilaiPPN}`);
-                //         }
-                //     })
-                // }
-                // let totalAmount = parseFloat($('#totalAmount').val().replace(/,/gi, '')) || 0;
-                // $("#totalPPN").val((totalAmount * (sNilaiPPN/100)).toFixed(2)).trigger("input");
-                // $("#nilaiPPN").text(sNilaiPPN+'%');
-                // $("#totalPPN").removeAttr('disabled');
-                // $("#totalPPN").prop('required',true);
-                // $("#totalPPN").focus().select();
-                // mask_thousand();
-                // mask_thousand_digit(2);
-                // // totalSummary();
-                // hitungGrandTotal();
+                hitungGrandTotal();
             }else{
                 $("#totalPPN").val(0);
                 $("#nilaiPPN").text('');
@@ -419,7 +398,7 @@
         $("#nilaiDppLain").text(`${sNilaiPpnPembilang}/${sNilaiPpnPenyebut}`);
         totalAmount = zDppNilaiLain;
         let zTotalPPn = Math.round(totalAmount * (sNilaiPPN/100));
-        console.log(`BA Tanpa pembulatan dari nilai lain:${totalAmount * (sNilaiPPN/100)}`);
+        // console.log(`BA Tanpa pembulatan dari nilai lain:${totalAmount * (sNilaiPPN/100)}`);
         $("#vatCheck").prop('checked', true);
         $("#totalPPN").val(parseFloat(zTotalPPn).toFixed(2)).trigger("input");
         $("#nilaiPPN").text(sNilaiPPN+'%');
@@ -428,7 +407,6 @@
         $("#totalPPN").focus().select();
         mask_thousand();
         mask_thousand_digit(2);
-        // totalSummary();
     }
 
     $("#nilaiLainCheck").change(function() {
@@ -436,6 +414,7 @@
         if (aDebitNDate){
             if(this.checked) {
                 hitungNilaiLain();
+                hitungGrandTotal();
             }else{
                 $("#totalDppNilaiLain").val('');
                 $("#nilaiDppLain").text('');
@@ -443,6 +422,7 @@
                 if($('#vatCheck').is(':checked')) {
                     hitungPpn();
                 }
+                hitungGrandTotal();
             }
         }else{
             swal.fire('Warning',"Invoice date belum diisi !!",'warning');
@@ -514,39 +494,7 @@
         // }
         
     }
-
-    // $(document).on('change', '.article-select', function(e){
-    //     let objArticle = $('#article_row input[name="articleId[]"]');
-    //     let objUom= $('#article_row input[name="uom[]"]');
-    //     let $this=$(this);
-    //     if ($this.val()){
-    //         let objIndex = objArticle.index(this);
-    //         let uom = objArticle.eq(objIndex).find(":selected").data("uom");
-    //         objUom.eq(objIndex).val(uom);
-    //         $("#totalRow").val($(".article-select>option:not([value='']):selected").length);
-    //         disabledEnabledSelect2();
-    //     }
-    // });
-
-    // function disabledEnabledSelect2(){
-    //     let records = $('.article-select').length-1;
-    //     if (records > 0){
-    //         objCustomer.attr('disabled','disabled');
-    //     }else{
-    //         objCustomer.removeAttr('disabled');
-    //         objCustomer.val('').trigger('change');;
-    //         objAccountPiutang.val('');
-    //         poNumber.val('');
-    //         soNumber.val('');
-    //         objTotalAmountJasa.val('');
-    //         objTotalQTY.val('');
-    //         objTotalAmount.val('');
-    //         objTotalPPN.val('');
-    //         objTotalPPH.val('');
-    //         objTotalNetto.val('');
-    //     }        
-    // }
-
+   
     recordCount = () =>{
         let records = $('.article-select').length-1;
         $('#totalRow').text(records);

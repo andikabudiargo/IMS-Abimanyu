@@ -480,7 +480,7 @@ class DebitNoteController extends Controller
         $data['status'] = $status[$data['header']->status-1];
 
         $data['nilaiPPN'] = $data['header']->ppn;
-        $data['nilaiPPH'] = $data['header']->pph23;
+        $data['nilaiPPH'] = $data['header']->pph23 ? $data['header']->pph23 : $this->nilaiPph23 ;
 
         $data['ppnPenyebut'] = $data['header']->dpp_lain_penyebut;
         $data['ppnPembilang'] = $data['header']->dpp_lain_pembilang;
