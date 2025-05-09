@@ -165,7 +165,7 @@ td.wrapok {
       tableId:"detailedTable",
       route:"{{ route('bankPenerimaan.list') }}",
       kolom:{!! $kolom !!},
-      arrColPrint:[1,3,4,5,6,7,8,9,10,11,12],
+      arrColPrint:[1,4,5,6,7,8,9,10,11,12],
       columnDefs :[
         { width: '5%', targets: 0 },
         {
