@@ -987,11 +987,23 @@ class ReceivingController extends Controller
 
     public function revision(Request $request)
     {
+        /*
+            26/3/2025
+            Update/revisi program kalau pada saat revisi ternyata di PO nya article nya dihapus dan ada article baru
+            maka article yang tadinya tidak ada di PO akan di insert ke receiving tapi kalau tidak ada di PO akan di hapus di receiving
+        */
+
+        /*
+            14/5/2025
+            Pada saat revisi harga / price mengikuti harga terbaru dari PO nya
+        */
+
         $username =  Auth::user()->username;
         $id=Crypt::decryptString($request->id);
         $receiving=DB::table('receiving_hdr')->where('id',$id)->first();
         $recOrigin=$receiving->rec_number;
         $recStatus=$receiving->status;
+        $poNumber=$receiving->po_number;
         
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED','10'=>'REVISI'];
         //  ['NEW','VALIDATE','APPROVED','POSTED','CANCELED','','','','','REVISI']; 
@@ -1088,9 +1100,52 @@ class ReceivingController extends Controller
             pr_number
         from receiving_det where rec_number = '$recOrigin'";
 
+        $sqlDetFromPO="INSERT into receiving_det
+        (
+            rec_number,
+            article_code,
+            qty,
+            uom_rec,
+            qty_free,
+            uom_free,
+            price,
+            created_by,
+            updated_by,
+            created_at,
+            updated_at,
+            pr_number
+        )
+        select 
+            '$recOrigin',
+            article_code,
+            0,
+            uom,
+            0,
+            null,
+            price,
+            '$username',
+            '$username',
+            '".date('Y-m-d H:i:s')."',
+            '".date('Y-m-d H:i:s')."',
+            pr_number 
+        from purchase_order_det 
+        where po_number = '$poNumber' and article_code not in (select article_code from receiving_det where rec_number = '$recNew')";
+
+        $sqlUpdatePriceFromPo ="UPDATE receiving_det r set price = 
+            (select price from purchase_order_det po where po.po_number ='$poNumber' 
+            and po.pr_number = r.pr_number
+            and po.article_code =r.article_code)
+            where rec_number = '$recOrigin'";
+
+        $deleteArticleNotInPO = "DELETE from receiving_det where rec_number = '$recOrigin' 
+        and article_code not in (select article_code from purchase_order_det where po_number = '$poNumber')";
+        
         $rowAffected =  DB::select($sqlHdr);
         if ($rowAffected){
             DB::select($sqlDet);
+            DB::select($sqlDetFromPO);
+            DB::select($deleteArticleNotInPO);
+            DB::select($sqlUpdatePriceFromPo);
 
             // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED','10'=>'REVISI'];
             // ['NEW','VALIDATE','APPROVED','POSTED','CANCELED','','','','','REVISI']; 
