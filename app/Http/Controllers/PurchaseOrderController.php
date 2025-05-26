@@ -547,7 +547,8 @@ class PurchaseOrderController extends Controller
         $reason = "(Revision by $username, Reason: $reasonRequest)";
 
         if ($checkNewPo > 0){
-            $poNew = $poOrigin.'-R'.$numRevision+1;
+            $numRevision = $numRevision+1;
+            $poNew = $poOrigin.'-R'.$numRevision;
         }        
                 
         $sqlHdr = "INSERT into purchase_order_hdr 
