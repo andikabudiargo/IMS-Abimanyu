@@ -786,7 +786,8 @@ class TargetSoController extends Controller
         // $reasonPr = $request->reason;
 
         if ($checkNewTso > 0){
-            $tsoNew = $tsoOrigin.'-R'.$numRevision+1;
+            $numRevision = $numRevision+1;
+            $tsoNew = $tsoOrigin.'-R'.$numRevision;
         } 
 
         /*
@@ -1353,7 +1354,8 @@ class TargetSoController extends Controller
         $checkNewPo=DB::table('purchase_order_hdr')->where('po_number',$poNew)->count();
 
         if ($checkNewPo > 0){
-            $poNew = $poOrigin.'-R'.$numRevision+1;
+            $numRevision = $numRevision+1;
+            $poNew = $poOrigin.'-R'.$numRevision;
         } 
                 
         $sqlHdr = "INSERT into purchase_order_hdr 
