@@ -1464,7 +1464,7 @@ class SalesOrderController extends Controller
         $reason = $reasonRequest;
 
         if ($checkNewSo > 0){
-            $soNew = $soOrigin.'-R'.$numRevision+1;
+            $soNew = $soOrigin.'-R'.($numRevision+1);
         }        
                 
         $sqlHdr = "INSERT into sales_order_hdr 

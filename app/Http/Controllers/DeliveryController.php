@@ -1235,7 +1235,7 @@ class DeliveryController extends Controller
         $reason = $request->reason;
 
         if ($checkNewDn > 0){
-            $dnNew = $dnOrigin.'-R'.$numRevision+1;
+            $dnNew = $dnOrigin.'-R'.($numRevision+1);
         } 
                 
         $sqlHdr = "INSERT into delivery_hdr 
