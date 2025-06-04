@@ -27,7 +27,9 @@
                                     role="tab" 
                                     aria-selected="false" 
                                     data-ajax-detail="true" 
-                                    data-po-number="{{ $header->pr_number }}">{{ $key == 0 ? 'Main':'Revision '.($key-1) }}</a>
+                                    data-po-number="{{ $header->pr_number }}">
+                                        {{ $key == 0 ? 'Main':'Revision '.($key-1) }}
+                                    </a>
                                 </li>
                             @endforeach
                         </ul>
@@ -68,16 +70,16 @@
                                             </div>
                                         </div>
                                         @if($header2->order_type == 'tso')
-                                        <div class="form-row" id="tsoBox">
-                                            <div class="form-group col-md-2">
-                                                <label for="stockDate">Stock Date</label>
-                                                <input type="text" id="stockDate" name="stockDate" class="form-control disabled-el" placeholder="DD-MM-YYYY" value="{{ date_format(date_create($header2->stock_date),'d-m-Y') }}" disabled/>
+                                            <div class="form-row" id="tsoBox">
+                                                <div class="form-group col-md-2">
+                                                    <label for="stockDate">Stock Date</label>
+                                                    <input type="text" id="stockDate" name="stockDate" class="form-control disabled-el" placeholder="DD-MM-YYYY" value="{{ date_format(date_create($header2->stock_date),'d-m-Y') }}" disabled/>
+                                                </div>
+                                                <div class="form-group col-md-5">
+                                                    <label for="tsoCode">Target SO Number</label>
+                                                    <input type="text" id="tsoCode" name="tsoCode" class="form-control disabled-el" value="{{ $header2->tso_code }}" disabled/>
+                                                </div>
                                             </div>
-                                            <div class="form-group col-md-5">
-                                                <label for="tsoCode">Target SO Number</label>
-                                                <input type="text" id="tsoCode" name="tsoCode" class="form-control disabled-el" value="{{ $header2->tso_code }}" disabled/>
-                                            </div>
-                                        </div>
                                         @endif
                                         <div class="form-row">
                                             <div class="form-group col-md-7">
@@ -86,22 +88,21 @@
                                             </div>
                                         </div>
                                         @if($key!=0)
-                                        <div class="form-row">
-                                            <div class="form-group col-md-7">
-                                                <label class="form-label" for="rReason">Revision reason</label>
-                                                <textarea type="text" id="rReason" name="rReason" class="form-control" rows="1" disabled >{{ $header2->reason }}</textarea>
+                                            <div class="form-row">
+                                                <div class="form-group col-md-7">
+                                                    <label class="form-label" for="rReason">Revision reason</label>
+                                                    <textarea type="text" id="rReason" name="rReason" class="form-control" rows="1" disabled >{{ $header2->reason }}</textarea>
+                                                </div>
                                             </div>
-                                        </div>
                                         @endif
                                         @if($header2->reject_reason)
-                                        <div class="form-row">
-                                            <div class="form-group col-md-7">
-                                                <label class="form-label" for="rejectReason">Reject Info</label>
-                                                <textarea type="text" id="rejectReason" name="rejectReason" class="form-control" rows="1" disabled >Rejected By: {{ $header2->rejected_by }} | Rejected At:{{ $header2->rejected_at }} | Reason: {{ $header2->reject_reason }}</textarea>
+                                            <div class="form-row">
+                                                <div class="form-group col-md-7">
+                                                    <label class="form-label" for="rejectReason">Reject Info</label>
+                                                    <textarea type="text" id="rejectReason" name="rejectReason" class="form-control" rows="1" disabled >Rejected By: {{ $header2->rejected_by }} | Rejected At:{{ $header2->rejected_at }} | Reason: {{ $header2->reject_reason }}</textarea>
+                                                </div>
                                             </div>
-                                        </div>
                                         @endif
-                                        
                                     </form>
                                     <hr>
                                     <div class="table-responsive main-table">
@@ -131,6 +132,7 @@
                                                             @endif
                                                         @endforeach
                                                     @endif
+                                                    <th class="text-right">Balance</th>
                                                     <th class="text-right">Note</th>
                                                 </tr>
                                             </thead>
@@ -148,30 +150,38 @@
                                                             {{ $histori = explode("->",$item->notes);}}
                                                         @endphp 
 
-                                                        {{-- @if ($key ==0)
-                                                            <td class="text-right">{{ number_format(intval($item->qty -$histori[count($histori)-1])) }}</td>
-                                                        @endif --}}
+                                                        @php
+                                                            {{ $terakhir = ""; $sebelumnya = ""; }}
+                                                        @endphp
 
                                                         @if ($key !=0)
-                                                            @foreach( $headers as $key1 => $oki )
-                                                                @if ($key1 < $key and $key1!= 0)
-                                                                    @if( $key1 < count($histori) )
-                                                                        <td class="text-right">{{ number_format(intval($histori[$key1])) }}</td>
+                                                            @foreach( $headers as $keyHdr => $oki )
+                                                                @if ($keyHdr < $key and $keyHdr!= 0)
+                                                                    @if( $keyHdr < count($histori) )
+                                                                        <td class="text-right">{{ number_format(intval($histori[$keyHdr-1])) }}</td>
+                                                                        @php
+                                                                            {{ $terakhir = $histori[$keyHdr-1]; }}
+                                                                        @endphp
                                                                     @else
                                                                         <td class="text-right"></td>
                                                                     @endif
                                                                 @endif
                                                             @endforeach
+                                                            <td>{{ number_format(intval($item->qty)-intval($terakhir)) }}</td>
                                                         @else
-                                                            @foreach( $headers as $key1 => $oki )
-                                                                @if ($key1 > $key and $key1!= 0)
-                                                                    @if( $key1 < count($histori) )
-                                                                        <td class="text-right">{{ number_format(intval($histori[$key1])) }}</td>
+                                                            @foreach( $headers as $keyHdr => $oki )
+                                                                @if ($keyHdr > $key and $keyHdr!= 0)
+                                                                    @if( $keyHdr < count($histori) )
+                                                                        <td class="text-right">{{ number_format(intval($histori[$keyHdr-1])) }}</td>
+                                                                        @php
+                                                                            {{ $terakhir = $histori[$keyHdr-1]; }}
+                                                                        @endphp
                                                                     @else
                                                                         <td class="text-right"></td>
                                                                     @endif
                                                                 @endif
                                                             @endforeach
+                                                            <td>{{ number_format(intval($item->qty)-intval($terakhir)) }}</td>
                                                         @endif
                                                         
                                                         <td>{{ $item->note }}</td>

@@ -285,41 +285,48 @@ class PurchaseRequestController extends Controller
     {
         $username =  Auth::user()->username;
         $id=Crypt::decryptString($request->id);
+        $prType = $request->prType;
         $data['title'] = "Detail $this->title";
         $data['subtitle'] = "Detail $this->title";
 
+        $originPrNumber = DB::table('purchase_request_hdr')->where('id',$id)->value('pr_number');
+
         $data['headers'] = DB::table('purchase_request_hdr')
-        ->select('purchase_request_hdr.*'
-        ,DB::raw('(select sum(qty) from purchase_request_det where pr_number = purchase_request_hdr.pr_number) as sum_qty') 
-        ,DB::raw('(select count(*) from purchase_request_det where pr_number = purchase_request_hdr.pr_number) as sum_row')
-        )
-        ->where('origin_pr_number', function($query) use ($id){
-            $query->select('pr_number')->from('purchase_request_hdr')->where('id',$id);
-        })
-        ->orderBy('id')
-        ->get();
+            ->select('purchase_request_hdr.*'
+                ,DB::raw('(select sum(qty) from purchase_request_det where pr_number = purchase_request_hdr.pr_number) as sum_qty') 
+                ,DB::raw('(select count(*) from purchase_request_det where pr_number = purchase_request_hdr.pr_number) as sum_row')
+            )
+            ->whereIn('purchase_request_hdr.pr_number', function($query) use ($originPrNumber){
+                $query->select('pr_number')->from('purchase_request_det')->where('origin_pr_number','ilike',$originPrNumber.'%');
+            })
+            ->where('origin_pr_number', $originPrNumber)
+            // ->where('origin_pr_number', function($query) use ($id){
+            //     $query->select('pr_number')->from('purchase_request_hdr')->where('id',$id);
+            // })
+            // ->orderBy('revised_at')
+            ->orderBy('id','asc')
+            ->get();
 
         $prNumber = $data['headers'][0]->pr_number;
-
         $dept= $data['headers'][0]->dept;
 
         $data['details'] = DB::table('purchase_request_det')
-        ->whereIn('purchase_request_det.pr_number', function($query) use ($prNumber){
-            $query->select('pr_number')->from('purchase_request_hdr')->where('origin_pr_number',$prNumber);
-        })
-        ->leftJoin('uom','uom.code','=','purchase_request_det.uom')
-        ->leftJoin('article','article.article_code','=','purchase_request_det.article_code')
-        ->leftJoin('third_party','third_party.kode','article.third_party')
-        ->select('purchase_request_det'.'.*'
-            ,'uom.uom_group'
-            ,'third_party.nama as supplier_name'
-            ,DB::raw("concat(article_alternative_code,'-',article_desc) as article")
-            ,DB::raw("(select STRING_AGG( (qty::real)::text,' -> ' ORDER BY pr_number) AS main from purchase_request_det p where article_code = purchase_request_det.article_code and pr_number like '$prNumber%' ) as notes")
+            ->whereIn('purchase_request_det.pr_number', function($query) use ($prNumber){
+                $query->select('pr_number')->from('purchase_request_hdr')->where('origin_pr_number',$prNumber);
+            })
+            ->leftJoin('uom','uom.code','=','purchase_request_det.uom')
+            ->leftJoin('article','article.article_code','=','purchase_request_det.article_code')
+            ->leftJoin('third_party','third_party.kode','article.third_party')
+            ->select('purchase_request_det'.'.*'
+                ,'uom.uom_group'
+                ,'third_party.nama as supplier_name'
+                ,DB::raw("concat(article_alternative_code,'-',article_desc) as article")
+                ,DB::raw("(select STRING_AGG( (qty::real)::text,' -> ' ORDER BY p.id) AS main from purchase_request_det p where article_code = purchase_request_det.article_code and pr_number like '$prNumber%' ) as notes")
 
-        )
-        ->orderBy('purchase_request_det.pr_number')
-        ->orderBy('purchase_request_det.id')
-        ->get();       
+            )
+            // ->orderBy('purchase_request_det.pr_number')
+            ->orderBy('purchase_request_det.id')
+            ->get();
 
         $data['depts'] = DB::table('depts')
         ->orderBy('name')
@@ -332,17 +339,17 @@ class PurchaseRequestController extends Controller
         $moduleNumber = $prNumber;
 
         $data['approvalHistory'] = DB::select("SELECT DISTINCT ON (a.approval_order) a.approval_order 
-        ,(select name from users where username = a.username) as name
-        ,(select STRING_AGG((select name from users where username = p.username),',' ORDER BY module_code) AS main from approval_level p where module_code = a.module_code and approval_order = a.approval_order and username in (select username from user_dept where dept = '$dept')) as petugas
-        ,(select approval_number from approval_master where module_code = a.module_code) as max_approval,
-        case when module_number is not null then true else false end status
-        ,b.status as statusApprove
-        from approval_level a
-        left join (select * from approval_history where module_number = '$moduleNumber') b
-        on b.module_code = a.module_code and b.approval_order = a.approval_order and b.username = a.username
-        where a.approval_order <= (select approval_number from approval_master where module_code ='$moduleCode')
-        and a.module_code = '$moduleCode'
-        order by a.approval_order,module_number");
+            ,(select name from users where username = a.username) as name
+            ,(select STRING_AGG((select name from users where username = p.username),',' ORDER BY module_code) AS main from approval_level p where module_code = a.module_code and approval_order = a.approval_order and username in (select username from user_dept where dept = '$dept')) as petugas
+            ,(select approval_number from approval_master where module_code = a.module_code) as max_approval,
+            case when module_number is not null then true else false end status
+            ,b.status as statusApprove
+            from approval_level a
+            left join (select * from approval_history where module_number = '$moduleNumber') b
+            on b.module_code = a.module_code and b.approval_order = a.approval_order and b.username = a.username
+            where a.approval_order <= (select approval_number from approval_master where module_code ='$moduleCode')
+            and a.module_code = '$moduleCode'
+            order by a.approval_order,module_number");
 
         $data['approveValidate'] = DB::select("SELECT username= '$username' as validate,current_level + 1 as next_level,* from (
             select username,approval_order,
@@ -361,7 +368,13 @@ class PurchaseRequestController extends Controller
         $statusPr = ['NEW','VALIDATED','APPROVED','RECEIVED','CANCELED','CLOSED','PO','REVISED','REJECTED'];
         $data['statusPr'] = $statusPr[$data['headers'][0]->status-1];
 
-        return view("purchaseRequest.show",$data);
+        if ($prType == 'tso'){
+            return view("purchaseRequest.showPrtso",$data);
+        }else{
+            return view("purchaseRequest.show",$data);
+        }
+
+        // return view("purchaseRequest.show",$data);
         
     }
 
@@ -976,7 +989,8 @@ class PurchaseRequestController extends Controller
                                     Print
                                 </a>';
 
-            $buttons .=         '<a href="'. route('purchaseRequest.show', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+
+            $buttons .=         '<a href="'. route('purchaseRequest.show', ['id'=>Crypt::encryptString($data->id),'prType'=>$data->order_type]) .'" class="dropdown-item">
                                     <i data-feather="list"></i>
                                     Detail
                                 </a>';
@@ -1142,9 +1156,46 @@ class PurchaseRequestController extends Controller
         ->select('purchase_request_hdr.*','depts.name')
         ->where('purchase_request_hdr.id',$id)
         ->first();
+        
+        $prNumber = $prHdr->pr_number;
+        $prType = $prHdr->order_type;
 
-        $prNumber=$prHdr -> pr_number;
+        $lastPrNumberHdrQ=DB::table('purchase_request_hdr')
+        ->whereIn('purchase_request_hdr.pr_number', function($query) use ($prNumber) {
+            $query->select('pr_number')
+            ->from('purchase_request_det') 
+            ->where('pr_number','like',$prNumber.'%');
+        })
+        ->where('origin_pr_number',$prNumber)
+        ->orderBy('id','desc')
+        // ->first();
+        ->get();
 
+        $lastPrNumberHdr = $lastPrNumberHdrQ[0]->pr_number;
+        $jumlahData = $lastPrNumberHdrQ->count();
+        
+        $jumlahData1 = $jumlahData-2;
+        $colName1="Add-".$jumlahData1;
+
+        $jumlahData2 = $jumlahData-3;
+        $colName2="Add-".$jumlahData2;
+
+        if($jumlahData == 1){
+            $colName1="Semifix";
+            $colName2="KOSONG";
+        }
+
+        if($jumlahData == 2){
+            $colName1="Fix";
+            $colName2="Semifix";
+        }
+
+        if($jumlahData == 3){
+            $jumlahData1 = $jumlahData-2;
+            $colName1="Add-".$jumlahData1;
+            $colName2="Fix";
+        }
+    
         /*
             untuk kode supplier diambil dari main supplier di article, karena pada saat pembuatan PR tidak masukin kode supplier
         */
@@ -1154,13 +1205,16 @@ class PurchaseRequestController extends Controller
         ->leftJoin('third_party','third_party.kode','article.third_party')
         ->select('article_alternative_code'
         ,'article_desc'
-        ,'qty'
+        ,'purchase_request_det.qty'
+        ,'lp.last_qty'
+        , db::raw("qty-last_qty as balance")
         ,'purchase_request_det.uom'
         ,'purchase_request_det.note as notes'
         ,'third_party.nama as supp_name'
         // ,DB::raw("(select STRING_AGG( (qty::real)::text,' -> ' ORDER BY pr_number) AS main from (select * from purchase_request_det p where article_code = purchase_request_det.article_code and pr_number like '$prNumber%' limit 2) sub) as notes")
         )
-        ->where('pr_number',$prNumber)
+        ->leftJoin(db::raw("(select article_code,qty as last_qty from purchase_request_det where pr_number = '$lastPrNumberHdr') as lp"),'lp.article_code','=','purchase_request_det.article_code')
+        ->where('purchase_request_det.pr_number',$prNumber)
         ->orderBy('purchase_request_det.id')
         ->get();
 
@@ -1210,9 +1264,17 @@ class PurchaseRequestController extends Controller
         ->where('approval_order',5)
         ->first();
 
+        $data['colName1']=$colName1;
+        $data['colName2']=$colName2;
+
         view()->share($data);
 
-        $pdf = PDF::loadView('purchaseRequest.print');
+        if ($prType == 'tso'){
+            $pdf = PDF::loadView('purchaseRequest.printTso');
+        }else{
+            $pdf = PDF::loadView('purchaseRequest.print');
+        }
+
         return $pdf->stream("PR_$prNumber.pdf");
 
     }
@@ -2322,6 +2384,7 @@ class PurchaseRequestController extends Controller
             order by alternative";
             */
     }
+    /*
 
     // public function revisionPoFromPr($poOrigin,$prNumber,$reason){
         // dibatalkan tanggl a6-11-2023
