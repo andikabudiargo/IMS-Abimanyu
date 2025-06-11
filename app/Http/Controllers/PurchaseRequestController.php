@@ -1207,7 +1207,7 @@ class PurchaseRequestController extends Controller
         ,'article_desc'
         ,'purchase_request_det.qty'
         ,'lp.last_qty'
-        , db::raw("qty-last_qty as balance")
+        , db::raw("coalesce(qty,0)-coalesce(last_qty,0) as balance")
         ,'purchase_request_det.uom'
         ,'purchase_request_det.note as notes'
         ,'third_party.nama as supp_name'
