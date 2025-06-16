@@ -273,8 +273,8 @@
                                 <tr>
                                     <th width="10%">No Account</th>
                                     <th width="20%">Account Name</th>
-                                    <th width="16%">Referensi</th>
-                                    <th width="19%">Keterangan</th>
+                                    <th width="15%">Referensi</th>
+                                    <th width="20%">Keterangan</th>
                                     <th width="13%">Debet</th>
                                     <th width="13%">Kredit</th>
                                 </tr>
