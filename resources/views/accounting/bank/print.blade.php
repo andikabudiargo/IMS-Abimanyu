@@ -132,7 +132,7 @@
         }
 
         #tblContent  td {
-            padding : 3px 10px 3px 10px;
+            padding : 2px 5px 2px 5px;
             border-bottom: none;
             border-left: thin solid var(--line-color);
             border-right: thin solid var(--line-color);
@@ -273,8 +273,8 @@
                                 <tr>
                                     <th width="10%">No Account</th>
                                     <th width="20%">Account Name</th>
-                                    <th width="15%">Referensi</th>
-                                    <th width="20%">Keterangan</th>
+                                    <th width="16%">Referensi</th>
+                                    <th width="19%">Keterangan</th>
                                     <th width="13%">Debet</th>
                                     <th width="13%">Kredit</th>
                                 </tr>
