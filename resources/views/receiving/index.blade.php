@@ -172,6 +172,7 @@
       tableId:"detailedTable",
       route:"{{ route('receiving.list') }}",
       kolom:{!! $kolom !!},
+      type:'POST',
       arrColPrint:[1,2,3,4,5,6,7,8,9,10,11,12],
       columnDefs :[
         { width: '5%', targets: 0 }
