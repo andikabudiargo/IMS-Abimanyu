@@ -132,7 +132,7 @@
         }
 
         #tblContent  td {          
-            padding : 3px 10px 3px 10px;
+            padding : 0px 3px 0px 3px;
             border-bottom: none;
             border-left: thin solid var(--line-color);
             border-right: thin solid var(--line-color);
@@ -162,6 +162,11 @@
         .font-16{
             /* font-size:16pt; */
             font-size: medium;
+        }
+
+        .font-11{
+            /* font-size:12pt; */
+            font-size: 11.5pt;
         }
          
     </style>
@@ -232,7 +237,7 @@
                     </thead>
                     <tbody>
                         @foreach ($details as $val )
-                            <tr class="border-bottom">
+                            <tr class="border-bottom {{ (count($details)) < 8 ? "" : "font-11" }} ">
                                 <td scope="row" class="border-bottom" align="right">{{ ++$no }}</td>
                                 <td class="border-bottom" align="left">{{ $val->article_alternative_code }}</td>
                                 <td class="border-bottom" align="left">{{ $val->article_desc }}</td>
@@ -250,14 +255,16 @@
                     <tr colspan="2" class="border-bottom">
                         <td class="border-bottom" align="left" colspan="3" style="border:none">Status:{{ $status }}</td>
                     </tr>
-                    <tr><td colspan="2" height="10"></td></tr>
+                    @if((count($details)) < 8)
+                        <tr><td colspan="2" height="10"></td></tr>
+                    @endif
                     <tr>
                         <td align="center" width="50%"></td>
                         <td align="center">Prepared By</td>
                     </tr>
                     <tr>
-                        <td align="center" height="30"></td>
-                        <td align="center" height="30"></td>
+                        <td align="center" height="{{ (count($details)) < 8 ? "30" : "20" }}"></td>
+                        <td align="center" height="{{ (count($details)) < 8 ? "30" : "20" }}"></td>
                     </tr>
                     <tr>
                         {{-- <td align="center"> {{ $approved }} </td>
