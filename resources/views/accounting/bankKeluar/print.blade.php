@@ -220,7 +220,7 @@
                         <td align="left" class="isi-data">{{ $val->account }}</td>
                         <td align="left" class="isi-data">{{ $val->account_name }}</td>
                         <td align="left" class="isi-data">{{ $val->reference }}</td>
-                        <td align="left" class="isi-data">{{ $val->description }}</td>
+                        <td align="left" class="isi-data font-small">{{ $val->description }}</td>
                         <td align="right" class="isi-data">{{ number_format($val->debit,2) }}</td>
                         <td align="right" class="isi-data">{{ number_format($val->credit,2) }}</td>
                     </tr>
@@ -232,7 +232,7 @@
                     <?php //$totalBaris = 7 ?>
                 @endif --}}
 
-                <?php $totalBaris = 20 ?>
+                <?php $totalBaris = 19 ?>
 
                 @for ($i=1;$i< $totalBaris-(count($details));$i++)
                     <tr >
