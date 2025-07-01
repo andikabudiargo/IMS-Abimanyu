@@ -25,6 +25,10 @@ Delete : dihapus di tabel ap_invoice, ap_invoice_detail,kas_det,kas_hdr,approval
 Edit: akan edit tabel ap_invoice, ap_invoice_detail,kas_det,kas_hdr
 Edit: kalau sudah di approved maka semua approved akan dihapus di tabel approval_history jadi harus approved lagi
 
+1/7/2025
+Permintaan dari pak Leo untuk AP date diambil dari invoice date, 
+untuk itu di semua tabel diubah menjadi invoice date
+
 */
 
 class AccountPayableController extends Controller
@@ -2222,8 +2226,10 @@ class AccountPayableController extends Controller
             ,'third_party.kode'
             // ,DB::raw("to_char(to_date(ap_invoice.ap_date, 'DD-MM-YYYY'), 'DD Month YYYY') as ap_date")
             ,DB::raw("to_char(to_date(ap_invoice.ap_date, 'DD-MM-YYYY'), 'DD/MM/YYYY') as ap_date")
-            ,DB::raw("to_date(ap_invoice.ap_date, 'DD-MM-YYYY') as ap_date_2")
-            ,DB::raw("to_char(ap_invoice.created_at, 'DD/MM/YYYY') as ap_date_1")
+            // ,DB::raw("to_date(ap_invoice.ap_date, 'DD-MM-YYYY') as ap_date_2")
+            // ,DB::raw("to_char(ap_invoice.created_at, 'DD/MM/YYYY') as ap_date_1")
+            ,DB::raw("ap_invoice.inv_date as ap_date_1")
+            ,DB::raw("ap_invoice.inv_date as ap_date_2")
             ,DB::raw("(select STRING_AGG ( a.rec_number,',' ORDER BY a.id) as list_rec from ap_invoice_detail a where ap_number = ap_invoice.ap_number) as list_rec")
             ,'third_party.nama as supplier_name'
             ,db::raw("(select (select name from users where username = z.username) from approval_history z where module_number = ap_invoice.ap_number order by approval_order desc limit 1) as approval_by")
