@@ -231,6 +231,7 @@
                 add_new_row_edit(article,qtyTarget,qtyForcast)
                 if (i==(data.length-1)){
                     $(".loading-spinner-container").removeClass("-show");
+                    mask_thousand_satuan();
                 }
             }
         }

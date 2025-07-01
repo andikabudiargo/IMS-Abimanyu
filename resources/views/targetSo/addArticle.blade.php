@@ -157,7 +157,7 @@
                     let uom=$this.eq(i).find(":selected").data("uom")||'PCS';
                 
                     // es6
-                    let obj = articles.find(obj => obj.plu == plu);
+                    let obj = articles.find(obj => obj.article_code == plu);
                     
                     if(obj) {
                         pesan +="Article "+articleName+" entered more than once !! <br>"; 
@@ -264,8 +264,8 @@
                     let uom=objUom.eq(i).text();
                 
                     // es6
-                    let obj = articles.find(obj => obj.plu == plu);
-                    
+                    let obj = articles.find(obj => obj.article_code == plu);
+             
                     if(obj) {
                         pesan +="Article "+articleName+" entered more than once !! <br>"; 
                         flag=1;
@@ -384,14 +384,14 @@
             $("#new_row"+ cloneCount).find('#articleId').attr('id', 'articleId'+ cloneCount);
             changeselect('tsoArticle','articleId'+ cloneCount,'','');
             $('#number'+ cloneCount).text(cloneCount);
-            $("#articleId"+cloneCount).select2();
+            // $("#articleId"+cloneCount).select2();
             $('#remove_button').tooltip();
             // tombolPanah('qtyTarget','','qtyForcast');
             // tombolPanah('qtyForcast','qtyTarget','');
             mask_thousand_satuan();
             // splitArticle();
-            hitungTotal();
-            hitungGrandTotal();
+            // hitungTotal();
+            // hitungGrandTotal();
             $('[data-toggle="tooltip"]').tooltip();
     };
 
@@ -401,22 +401,20 @@
         $("#article_row").find('#baru').attr('id', 'new_row'+ cloneCount);
         $("#new_row"+ cloneCount).find('#number').attr('id', 'number'+ cloneCount);
         $("#new_row"+ cloneCount).find('#articleId').attr('id', 'articleId'+ cloneCount);
-        changeselect('tsoArticle','articleId'+ cloneCount,'','');
+        changeselect('tsoArticle','articleId'+ cloneCount,articleId);
         $("#new_row"+ cloneCount).find('#qtyTarget').attr('id', 'qtyTarget'+ cloneCount);
         $("#new_row"+ cloneCount).find('#qtyForcast').attr('id', 'qtyForcast'+ cloneCount);
-        $('#articleId'+ cloneCount).val(articleId);
         $('#qtyTarget'+ cloneCount).val(qtyTarget);
         $('#qtyForcast'+ cloneCount).val(qtyForcast);
         $('#number'+ cloneCount).text(cloneCount);
-        $("#articleId"+cloneCount).select2();
-        $('#remove_button').tooltip();
-        tombolPanah('qtyTarget','','qtyForcast');
-        tombolPanah('qtyForcast','qtyTarget','');
-        mask_thousand_satuan();
-        // splitArticle();
-        hitungTotal();
-        hitungGrandTotal();
-        $('[data-toggle="tooltip"]').tooltip();
+        // $('#remove_button').tooltip();
+        // tombolPanah('qtyTarget','','qtyForcast');
+        // tombolPanah('qtyForcast','qtyTarget','');
+        // mask_thousand_satuan();
+        // // splitArticle();
+        // hitungTotal();
+        // hitungGrandTotal();
+        // $('[data-toggle="tooltip"]').tooltip();
     };
 
     function isiArticle(dependent) {
@@ -435,10 +433,10 @@
     function changeselect(dependent,obj,article) {
         $('#'+obj).attr('disabled','disabled');
         $('#'+obj).html(dataArticle);
-        $('#'+obj).select2();
         $('#'+obj).val(article).trigger('change');
+        $('#'+obj).select2();
         $('#'+obj).removeAttr('disabled');
-        $('#'+obj).select2('focus');
+        // $('#'+obj).select2('focus');
     }
 
     function splitArticle(){
