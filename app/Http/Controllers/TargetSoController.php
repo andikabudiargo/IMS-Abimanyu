@@ -742,7 +742,7 @@ class TargetSoController extends Controller
         ->leftJoin('uom','uom.code','target_order_det.uom')
         ->where(function ($query) use ($searchTso,$searchStatus,$tsoDate,$fromDate,$toDate,$searchCustomer) {
             $searchCustomer ? $query->where('customer_id',$searchCustomer) : '';
-            $searchTso ? $query->where('target_order_det.tso_code','ilike','%'.$searchTso.'%') : '';
+            $searchTso ? $query->where('target_order_det.tso_code','ilike','%'.$searchTso) : '';
             $searchStatus ? $query->where('target_order_hdr.status',$searchStatus) : '';
             $tsoDate ? $query->whereBetween(DB::raw("to_date(tso_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
         })
