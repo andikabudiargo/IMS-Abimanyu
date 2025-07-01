@@ -61,6 +61,7 @@
 <script type="text/javascript">
 
     const listItem = () => {
+        $('#cmdSelect').removeAttr('disabled');
         $('#mdlList').modal('show');
     }
 
@@ -121,6 +122,7 @@
     }
 
     document.querySelector('#cmdSelect').addEventListener('click',() =>{
+        $('#cmdSelect').attr('disabled','disabled');
         let objMdlQtyTarget= $('#articleList input[name="mdlQtyTarget[]"]');
         let objMdlQtyForcast= $('#articleList input[name="mdlQtyForcast[]"]');
         let articles = []; 
