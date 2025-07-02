@@ -2217,7 +2217,8 @@ class AccountPayableController extends Controller
             $searchSupplier ? $query->where('supplier_id','ilike','%'.$searchSupplier.'%') : '';
             $searchStatus ? $query->where('ap_invoice.status','=',$searchStatus) : '';
             // $apDate ? $query->whereBetween(DB::raw("to_date(ap_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
-            $apDate ? $query->whereBetween('ap_invoice.created_at', [$fromDate, $toDate]) : '';
+            // $apDate ? $query->whereBetween('ap_invoice.created_at', [$fromDate, $toDate]) : '';
+            $apDate ? $query->whereBetween(DB::raw("to_date(inv_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
             $apPeriod ? $query->where('period',$apPeriod) : '';
         })
         ->whereNotIn('ap_invoice.status',['5'])
