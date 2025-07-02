@@ -47,7 +47,7 @@ class ReportDnExport implements FromView,ShouldAutoSize,WithColumnFormatting,Wit
 
         foreach($headers as $val){
             $articleCode = $val->article_code;
-            $articleDesc = $val->article_desc;
+            $articleDesc = htmlspecialchars($val->article_desc,ENT_QUOTES);
             $soNumber = $val->so_number;
             $articleAlternative = $val->article_alternative_code;
             $qtySo = $val->qty_so;
