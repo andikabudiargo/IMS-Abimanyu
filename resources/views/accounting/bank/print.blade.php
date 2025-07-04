@@ -222,6 +222,16 @@
             margin-left : 0.8mm;
         }
 
+        .sub_div_2 {
+            position: absolute;
+            /* margin-right: 8mm; */
+            bottom: 0px;
+            background-color:white;
+            width  : 787.7px;
+            margin-left : 0.8mm;
+            border-top: thin solid var(--line-color);
+        }
+
     </style>
 </head>
 {{-- <body class="{{ (count($details)) < 7 ? "A4A5" : "A4" }}"> --}}
@@ -357,7 +367,6 @@
             </table>
             <br><br><br>
             <table width="100%">
-                {{-- <tr><td colspan="5" height="3"></td></tr> --}}
                 <tr> 
                     {{-- <td align="center" width="10%"></td> --}}
                     <td align="center" width="20%">Dibuat oleh</td>
@@ -403,15 +412,15 @@
         <br>
         </div>
     @else
-        <div class="sub_div">
-        <table>
-            <tr>
-                <td>
-                </td>
-                <td align="right" width="10%"> Page 1 of 2</td>
-            </tr>
-        </table>
-        <br>
+        <div class="sub_div_2">
+            <table>
+                <tr>
+                    <td>
+                    </td>
+                    <td align="right" width="10%"> Page 1 of 2</td>
+                </tr>
+            </table>
+            <br>
         </div>
     @endif
 </div>

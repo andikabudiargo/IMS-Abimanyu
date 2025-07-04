@@ -1058,7 +1058,7 @@ class BankPenerimaanController extends Controller
         ->orderBy('id')
         ->get();
 
-        $limits = 25;
+        $limits = 24;
 
         $data['details']=DB::table('kas_det')
         ->leftJoin('accounts','accounts.account','kas_det.account')
