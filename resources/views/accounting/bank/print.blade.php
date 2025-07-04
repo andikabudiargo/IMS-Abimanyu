@@ -271,12 +271,13 @@
                         <table id="tblContent" class="font-small" style="table-layout:fixed;">
                             <thead>
                                 <tr>
-                                    <th width="10%">No Account</th>
-                                    <th width="20%">Account Name</th>
+
+                                    <th width="8%">No Account</th>
+                                    <th width="22%">Account Name</th>
                                     <th width="15%">Referensi</th>
-                                    <th width="20%">Keterangan</th>
-                                    <th width="13%">Debet</th>
-                                    <th width="13%">Kredit</th>
+                                    <th width="24%">Keterangan</th>
+                                    <th width="11%">Debet</th>
+                                    <th width="11%">Kredit</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -338,16 +339,17 @@
             </tr>
         </tfoot>
     </table>
+
     @if(count($details2)==0)
         <div class="sub_div">
             <table id="tblContent2" class="font-small" style="table-layout:fixed;">
                 <tr>
-                    <td  align="left" width="9.2%"class="border-atas" ></td>
-                    <td  align="left" width="20.8%" class="border-atas" ></td>
-                    <td  align="left" width="15%" class="border-atas" ></td>
-                    <td  align="left" width="21%" class="border-atas" >Total</td>
-                    <td  align="right" width="12.7%" class="border-atas" >{{ number_format($total->total_debit,2) }}</td>
-                    <td  align="right" width="12.7%" class="border-atas" >{{ number_format($total->total_credit,2)}}</td>
+                    <td  align="left" width="6.7%"class="border-atas" ></td>
+                    <td  align="left" width="22.6%" class="border-atas" ></td>
+                    <td  align="left" width="14.75%" class="border-atas" ></td>
+                    <td  align="left" width="24.85%" class="border-atas" >Total</td>
+                    <td  align="right" width="10.2%" class="border-atas" >{{ number_format($total->total_debit,2) }}</td>
+                    <td  align="right" width="10.2%" class="border-atas" >{{ number_format($total->total_credit,2)}}</td>
                 </tr>
                 <tr class="border-atas">
                     <td  align="left" class="border-atas" colspan="6">Note: {{ $header->note }}</td>
