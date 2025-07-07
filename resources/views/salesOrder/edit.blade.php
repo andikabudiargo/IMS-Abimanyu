@@ -26,7 +26,7 @@
                                 </div>
                                 <div class="form-group col-md-2">
                                     <label for="orderDate">Order Date</label>
-                                    <input type="text" id="orderDate" name="orderDate" class="form-control flatpickr-basic" value="{{ $header->so_date }}" placeholder="DD-MM-YYYY" disabled/>
+                                    <input type="text" id="orderDate" name="orderDate" class="form-control flatpickr-basic" value="{{ $header->so_date }}" placeholder="DD-MM-YYYY" required/>
                                 </div>
                                 <div class="form-group col-md-3">
                                     <label for="salesman">Salesman*</label>

@@ -367,6 +367,20 @@
             $("#nilaiLainCheck").prop('checked', false);
         }
     });
+
+    let orderDateFp = $('#orderDate');
+    if (orderDateFp.length) {
+        orderDateFp.flatpickr({
+            dateFormat: "d-m-Y"
+        });
+    }
+
+    orderDateFp.change(function() {
+        let aOrderDate = $('#orderDate').val();
+        if (aOrderDate){
+            $("#nilaiLainCheck").prop('checked',true).change();
+        }
+    });
     
     $.ajaxSetup({
         headers: {
