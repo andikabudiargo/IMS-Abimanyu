@@ -256,6 +256,7 @@
 <script type="text/javascript">    
     let currentDate = todayDate('dd-mm-yyyy');
     let lockedAt = "{{ $lockDate }}";
+    statusSo = 'NEW';
     
     $(document).ready(function(){           
         validateFormToast("frmAdd");

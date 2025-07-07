@@ -5,7 +5,7 @@
         <div class="form-row">
             <div class="col-md-4 col-12">
                 <div class="form-group margin-nol">
-                    <label for="article_id" class="d-block d-md-none">Article Code</label>
+                    <label for="article_id" class="d-block d-md-none jumlahArticle">Article Code</label>
                     <select class="dynamicSelect form-control " id="article_id" name="article_id[]" data-dependent="article_id">
                     </select>
                     {{-- <small class="text-muted" ><span id = "group" name="group[]"></span></small></p> --}}
@@ -60,7 +60,7 @@
             </div>
             <div class="col-md-1 col-12">
                 <div class="form-group margin-nol">
-                    <a onmouseover="this.style.cursor='pointer'" onclick="$(this).parents('.tanda-baris').remove();">
+                    <a onmouseover="this.style.cursor='pointer'" onclick="$(this).parents('.tanda-baris').remove();hitungGrandTotal()">
                         <i data-feather="trash-2" class="remove_button feather-24">
                         </i>
                     </a>
@@ -82,8 +82,8 @@
 <script type="text/javascript">
     let sNilaiPpnPembilang= "{{ $ppnPembilang }}";
     let sNilaiPpnPenyebut= "{{ $ppnPenyebut }}";
-       
     let cloneCount = {{ isset($detail) ? count($detail) :1 }};
+    let statusSo  = '';
 
     let delayTimer;
     function inputDecimal(ele) {
@@ -176,7 +176,7 @@
         let objPriceJasa= $('#article_row input[name="priceJasa[]"]');
         let objTotalJasa= $('#article_row input[name="totalJasa[]"]');
         let objTotalAll= $('#article_row input[name="totalAll[]"]');
-        
+  
         objQty.keyup(function() {
             let indexnya= objQty.index(this);
             hitungTotalPerBaris(indexnya);
@@ -252,6 +252,18 @@
         let totalAmountJasa=0
         let totalAmountMaterial=0
         sNilaiPPN = ppn;
+
+        let countOfArticle = objArticle.length;
+
+        console.log(statusSo);
+
+        if(statusSo == 'NEW'){
+            if (countOfArticle > 0) {
+                $('#cust').attr('disabled', 'disabled');
+            }else{
+                $('#cust').removeAttr('disabled');
+            }
+        }
 
         let arr = objQtyTiw.map(function (i) {
             let qty = parseFloat(objQTY.eq(i).val().replace(/,/gi, '')) || 0;
@@ -344,7 +356,7 @@
         $("#nilaiDppLain").text(`${sNilaiPpnPembilang}/${sNilaiPpnPenyebut}`);
         totalAmount = zDppNilaiLain;
         let zTotalPPn = Math.round(totalAmount * (sNilaiPPN/100));
-        console.log(`BA Tanpa pembulatan dari nilai lain:${totalAmount * (sNilaiPPN/100)}`);
+        // console.log(`BA Tanpa pembulatan dari nilai lain:${totalAmount * (sNilaiPPN/100)}`);
         $("#totalPPN").val(parseFloat(zTotalPPn).toFixed(2)).trigger("input");
         $("#nilaiPPN").text(sNilaiPPN+'%');
         mask_thousand();

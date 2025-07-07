@@ -398,6 +398,8 @@
         $('.sku-select-system').select2();
     });
 
+    statusSo = "{{ $statusSo }}";
+
     simpanData = (statusSimpan) =>{
         $('#cmdSave').attr('disabled','disabled');
         if (!$("#frmAdd")[0].checkValidity()){
