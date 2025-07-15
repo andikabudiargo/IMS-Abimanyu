@@ -195,11 +195,20 @@ class GeneralJournalController extends Controller
         // order by missing_code limit 1");
 
         //status delete tidak di skip
-        $getMissingCode = DB::SELECT("SELECT generate_series(0001, $getLastCode) as missing_code
-        except
-        select voucher_number::integer from (select right(voucher_number,4) as voucher_number from kas_hdr 
-        where (voucher_number like '%$basicCode1%') and voucher_type = '$voucherType' order by  id) as oki
-        order by missing_code limit 1");
+
+        if($year == '23'){    
+            $getMissingCode = DB::SELECT("SELECT generate_series(0001, $getLastCode) as missing_code
+            except
+            select voucher_number::integer from (select right(voucher_number,4) as voucher_number from kas_hdr 
+            where (voucher_number like '%$basicCode1%') and voucher_type = '$voucherType' order by  id) as oki
+            order by missing_code limit 1");
+        }else{
+            $getMissingCode = DB::SELECT("SELECT generate_series(0001, $getLastCode) as missing_code
+            except
+            select voucher_number::integer from (select right(voucher_number,4) as voucher_number from kas_hdr 
+            where (voucher_number like '%$basicCode1%') and status <> '5' and voucher_type = '$voucherType' order by  id) as oki
+            order by missing_code limit 1");
+        }
 
         if(count($getMissingCode) > 0){
             /*
