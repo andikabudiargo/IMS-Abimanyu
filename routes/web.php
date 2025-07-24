@@ -344,6 +344,7 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('deliveryReportSoAcc',['as'=>'delivery.report.so.acc','uses'=>'DeliveryController@reportSoAcc','middleware' => ['permission:delivery-report-acc']]);
 	Route::get('deliveryReportSoAcc/print',['as'=>'delivery.print.so','uses'=>'DeliveryController@printReportSo']);
 	Route::get('deliveryReportSoAcc/export',['as'=>'delivery.export.so','uses'=>'DeliveryController@exportSo']);
+	Route::get('deliveryReportSoAcc/list/so',['as'=>'delivery.list.so.dn','uses'=>'DeliveryController@listSoDn']);
 	
 	Route::get('dnReceipt',['as'=>'dnReceipt.index','uses'=>'DeliveryReceiptController@index','middleware' => ['permission:dnReceipt-index']]);
 	// Route::get('dnReceipt/create',['as'=>'dnReceipt.create','uses'=>'DeliveryReceiptController@create','middleware' => ['permission:dnReceipt-create']]);

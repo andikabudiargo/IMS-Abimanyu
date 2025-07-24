@@ -5,15 +5,21 @@
 <title>{{ $title }}</title>
 <style type="text/css">
 
-    @page { margin: 110px 10px 10px 10px; }
+    @page { margin: 50px 10px 10px 10px; }
     body { margin: 10px; }
 
     header { 
         position: fixed; 
+        top: -10px; 
+        left: 10px; 
+        right: 10px; 
+        height: 10px; 
+
+        /* position: fixed; 
         top: -80px; 
         left: 10px; 
         right: 10px; 
-        height: 50px; 
+        height: 50px;  */
     }
 
     footer {
@@ -124,9 +130,10 @@
         opacity: 0.1;
     }
 
-    
+    .page-break {
+        page-break-after: always;
+    }
 
-   
 </style>
 </head>
 <body>
@@ -137,10 +144,10 @@
                 <tr>
                     <td colspan="3" align='right' class="font-10">Halaman: <span class="pagenum"></span></td>
                 </tr>
-                <tr>
+                {{-- <tr>
                     <td colspan="3" align='center' class="font-10"> <strong>SO REPORT</strong></td>
-                </tr>
-                <tr>
+                </tr> --}}
+                {{-- <tr>
                     <td valign="" width="3%" class="font-10 header-padding">No Order</td>
                     <td valign="" width="30%" class="font-10 header-padding">: {{ $soNumber }}</td>
                     <td></td>
@@ -153,10 +160,22 @@
                 <tr>
                     <td valign="" width="3%" class="font-10 header-padding">Customer</td>
                     <td valign="" colspan ="2" width="30%" class="font-10 header-padding">: {{ $customer }}</td>
-                </tr>
+                </tr> --}}
             </tbody>
         </table>
     </header>
+    {{-- <table width="100%" class="oki"> --}}
+    <table width="100%" class="oki">
+        <tbody>
+            <tr>
+                <td colspan="8" align='center' class="font-10"> <strong>SO REPORT</strong></td>
+            </tr>
+             <tr>
+                <td valign='' width='3%' class='font-10 header-padding' style='border-right-color: white;border-left-color: white;'>Customer</td>
+                <td valign='' width='30%' class='font-10 header-padding' colspan='3' style='border-right-color: white;'>: {{ $customer }}</td>
+            </tr>
+        </tbody>
+    </table>
     <main>
         <table width="100%" class="font-8">
             <tbody>

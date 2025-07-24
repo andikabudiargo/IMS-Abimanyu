@@ -2,7 +2,7 @@
 @section('title', $title)
 @section('content')
 @include('layouts.breadcrumb')
-@include('partials.alert')
+{{-- @include('partials.alert') --}}
 <section id="add-index">
     <div class="form-row">
         <div class="col-md-12">
@@ -59,23 +59,25 @@
                                         </div>
                                     </div>
                                     <div class="form-row">
-                                        <div class="form-group col-md-12">
-                                            <label class="form-label" for="soNumber">SO Number*</label>
-                                            <select class="select2 form-control" id="soNumber" name="soNumber" required>
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <div class="form-row">
-                                        {{-- <div class="form-group col-md-5">
-                                            <label class="form-label" for="dnNumber">DN Number*</label>
-                                            <select class="select2 form-control" id="dnNumber" name="dnNumber" required>
-                                            </select>
-                                        </div> --}}
                                         <div class="form-group col-md-6">
-                                            <label for="fakturPajak">Tax Number</label>
-                                            <input type="text" id="fakturPajak" name="fakturPajak" class="form-control" />
+                                            <div class="form-group col-md-12" style="padding-right:0px;padding-left:0px">
+                                                <label for="soDate">SO Date</label>
+                                                <input type="text" id="soDate" name="soDate" class="form-control flatpickr-range" placeholder="DD-MM-YYYY"/>
+                                            </div>
+                                            <div class="form-group col-md-12" style="padding-right:0px;padding-left:0px">
+                                                <label for="fakturPajak">Tax Number</label>
+                                                <input type="text" id="fakturPajak" name="fakturPajak" class="form-control" />
+                                            </div>
+                                        </div>
+                                        <div class="form-group col-md-6">
+                                            <div class="form-group col-md-12" style="padding-right:0px;padding-left:0px" title="List SO adalah SO yang masih ada DN dan DN sudah di receipt tapi belum dibuatkan invoice">
+                                                <label class="form-label" for="soNumber">SO Number*</label>
+                                                <select class="select2 form-control" id="soNumber" name="soNumber" multiple required>
+                                                </select>
+                                            </div>
                                         </div>
                                     </div>
+                                    
                                     <div class="form-row">
                                         <div class="form-group col-md-12">
                                             <label class="form-label" for="note">Notes</label>
@@ -85,22 +87,21 @@
                                 </div>
                                 <div class="col-md-6 col-12">
                                     <div class="form-row">
-                                        <div class="col-sm-12">
-                                            <p class="mb-0">List DN*</p>
-                                            <div class="card-datatable table-responsive pt-0">
-                                                <table class="table table-bordered" id="listOfDn">
-                                                    <thead>
-                                                        <tr>
-                                                            <th scope="col" width="10%">Check</th>
-                                                            <th scope="col" width="30%">DN Number</th>
-                                                            <th scope="col" width="30%">Date</th>
-                                                            <th scope="col" width="30%">PO Number</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                    </tbody>
-                                                </table>
-                                            </div>
+                                        <p class="mb-0 pl-1">List of DN*</p>
+                                        <div class="col-sm-12 scrollable-box" >
+                                            <table class="table table-bordered" id="listOfDn">
+                                                <thead>
+                                                    <tr>
+                                                        <th scope="col" width="10%">Check</th>
+                                                        <th scope="col" width="20%">DN Number</th>
+                                                        <th scope="col" width="20%">Date</th>
+                                                        <th scope="col" width="30%">PO Number</th>
+                                                        <th scope="col" width="20%">SO Number</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                </tbody>
+                                            </table>
                                         </div>
                                     </div>
                                     <br>
@@ -111,7 +112,6 @@
                                     </div>
                                 </div>
                             </div>
-                            
                             <hr>
                         </form>
                     </div>
@@ -210,7 +210,6 @@
                         </div>
                     </div>
                 </div>
-                
             </div>
         </div>
     </div>
@@ -233,19 +232,6 @@
         right : 1px;
     }
 
-    td.isian{
-        padding-right:10px;
-        padding-left:10px;
-    }
-
-    td.isian-satu{
-        padding-right:5px;
-        padding-left:15px;
-        width: 25%;border-top: 1px solid #ffffff !important;
-        border-bottom: 1px solid #ffffff !important;
-        border-left: 1px solid #ffffff !important;
-    }
-
     td.disabled{
         background-color:#f8f8f8;
         color:black;
@@ -255,14 +241,6 @@
         padding-top: 5px;
         padding-bottom: 0px;
     }
-
-    .totalLine{
-        display: block;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-
 
 </style>
 @endsection
@@ -287,6 +265,7 @@
         edit='false';
 
         $("#nilaiLainCheck").prop('checked',true).change();
+        window.scrollTo(0, 0);
     });
 
     const invDate = $('#invDate');
@@ -392,6 +371,7 @@
                     let aPembilangNumber = $('#pembilangNumber').val();
                     let aPenyebutNumber = $('#penyebutNumber').val();
                     let aTotalDppNilaiLain = $('#totalDppNilaiLain').val().replace(/,/gi, '') || 0;
+                    let aSoDate = $('#soDate').val();
     
                     $.ajax({
                         type: "post",
@@ -414,7 +394,9 @@
                             sendingDate:sendingDate,
                             pembilangNumber:aPembilangNumber,
                             penyebutNumber:aPenyebutNumber,
-                            totalDppNilaiLain:aTotalDppNilaiLain
+                            totalDppNilaiLain:aTotalDppNilaiLain,
+                            soDate:aSoDate
+
                         },
                         dataType: "json",
                         success: function(data) {

@@ -14,51 +14,34 @@
     </div>
     <div class="card-content collapse show">
       <div class="card-body">
-        <form class="needs-validation" novalidate>
-            {{-- <div class="form-row">
+        <form class="needs-validation" novalidate autocomplete="off">
+            <div class="form-row">
               <div class="col-md-3 form-group">
-                <label for="dnDate">Delivery Date</label>
-                <input type="text" id="dnDate" name="dnDate" class="form-control flatpickr-range" placeholder="YYYY-MM-DD to YYYY-MM-DD" />
+                <label for="soDate">Delivery Date</label>
+                <input type="text" id="soDate" name="soDate" class="form-control flatpickr-range" placeholder="YYYY-MM-DD to YYYY-MM-DD" />
               </div>
               <div class="form-group col-md-6"> 
                 <label class="form-label" for="searchCustomer">Customer</label>
                 <select class="select2 form-control" id="searchCustomer" name="searchCustomer">
-                    <option value="">All</option>
+                    <option value=""></option>
                     @foreach($customers as $val)
                         <option value="{{$val->kode}}">{{$val->kode}} - {{$val->nama}}</option>
                     @endforeach
                 </select>
               </div>
-            </div> --}}
+            </div>
             <div class="form-row">
-              {{-- <div class="form-group col-md-3 d-none"> 
-                <label for="searchDn">Delivery Number</label>
-                <input type="text" class="form-control text-uppercase" id="searchDn" name="searchDn" placeholder=""  />
-              </div> --}}
               <div class="form-group col-md-9"> 
                 <label for="searchSo">SO Number</label> <small class="text-muted">Daftar So Yang sudah di buat DN</small>
-                <select class="select2 form-control" id="searchSo" name="searchSo">
+                <select class="select2 form-control" id="searchSo" name="searchSo" multiple>
                   <option value=""></option>
-                  @foreach($salesOrders as $val)
-                      <option value="{{ $val->so_code }}">{{ $val->so_code }} | {{ $val->nama }}  | {{ $val->po_number }}</option>
-                  @endforeach
                 </select>
               </div>
-              {{-- <div class="form-group col-md-2 d-none"> 
-                <label class="form-label" for="searchStatus">Delivery Status</label>
-                <select class="select2 form-control" id="searchStatus" name="searchStatus">
-                    <option value="">All</option>
-                    @foreach($status as $index=>$val)
-                        <option value="{{ $index }}">{{ $val }}</option>
-                    @endforeach
-                </select>
-              </div> --}}
             </div>
             <div class="form-row">
                 <div class="col-12"> 
                     <button type="button" class="btn btn-primary" id ="cmdPrint" name="cmdPrint">Print</button>
                     <button type="button" class="btn btn-info" id ="cmdExport" name="cmdExport"><i class="fa fa-download"></i> Downlod Excel</button>
-                    {{-- <a href="{{ route('stockTake.export') }}" class="btn btn-info"><i class="fa fa-download"></i> Downlod Excel </a> --}}
                 </div>
             </div>
         </form>
@@ -72,10 +55,69 @@
 @section('scripts')
 <script type="text/javascript">
   let searchSo = $("#searchSo");
-  // let searchDn = $("#searchDn");
-  // let searchCustomer = $("#searchCustomer"); 
-  // let searchStatus = $("#searchStatus");
-  // let dnDate = $("#dnDate");
+  let searchSoDate = $("#soDate");
+  let searchCustomer = $("#searchCustomer"); 
+  let rangePickr = $('.flatpickr-range');
+
+  $(document).ready(function(){    
+  
+  });
+
+  searchCustomer.change(function(){
+    searchSo.val("");
+    let aSearchSoDate = searchSoDate.val();
+    let aSearchCustomer = $(this).val();
+    if(aSearchCustomer || aSearchSoDate){
+      searchSo.empty();
+      searchSo.attr('disabled','disabled');
+      fSearchSo('searchSo',aSearchCustomer,aSearchSoDate);
+    }else{
+      searchSo.empty();
+      searchSo.attr('disabled','disabled');
+    }
+  })
+
+  function fSearchSo(obj,customer, soDate) {
+    if(customer || soDate){
+        $.ajax({
+            url:"{{ route('delivery.list.so.dn') }}",
+            method:"GET",
+            data:{
+                customer:customer,
+                soDate:soDate
+            },
+            success:function(result){
+                if(result){
+                    $('#'+obj).html(result);
+                    searchSo.removeAttr('disabled');
+                }
+            },
+            error: function (response) {
+                //Error here
+                Swal.fire("Warning","Get list SO failed","warning");
+            }
+        })
+    }
+  }
+
+  if (rangePickr.length) {
+    rangePickr.flatpickr({
+      dateFormat: "d-m-Y",
+      mode: 'range',
+      onClose: function(selectedDates, dateStr, instance) {
+        let aSearchSoDate = dateStr;
+        let aSearchCustomer = searchCustomer.val();
+        if(aSearchCustomer || aSearchSoDate){
+          searchSo.empty();
+          searchSo.attr('disabled','disabled');
+          fSearchSo('searchSo',aSearchCustomer,aSearchSoDate);
+        }else{
+          searchSo.empty();
+          searchSo.attr('disabled','disabled');
+        }
+      }
+    });
+  }
 
   $("#cmdPrint").click(function(){
     let id = searchSo.val();
@@ -95,10 +137,6 @@
     }
     // window.open(url, '_blank');
 
-  });
-
-  $(document).ready(function(){    
-  
   });
  
   $.ajaxSetup({

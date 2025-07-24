@@ -28,6 +28,35 @@
         background-color:#f8f8f8;
         color:black;
     }
+
+    .scrollable-box {
+
+        max-height: 50vh; /* 50% of viewport height */
+        overflow-y: auto;
+        overflow-x: auto;
+        /* max-height: 500px;
+        overflow-y: auto;
+        border: 1px solid #ccc;
+        padding: 10px; */
+    }
+
+    #listOfDn {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    #listOfDn th {
+        position: sticky;
+        top: 0;
+        background-color: #f8f8f8;
+        z-index: 10;
+        padding: 8px 12px;
+    }
+    
+    #listOfDn td {
+        padding: 8px 12px;
+        border: 1px solid #ddd;
+    }
     
 </style>
 {{-- table row untuk di clone--}}  
@@ -88,6 +117,7 @@
     const customer = $('#customer');
     const soNumber = $('#soNumber');
     const dnNumber = $('#dnNumber');
+    const soDate = $('#soDate');
 
     let sNilaiPPN= "{{ $nilaiPPN }}";
     let sNilaiPPH= "{{ $nilaiPPH }}";
@@ -119,42 +149,74 @@
         }, 1100); 
     }
 
-    customer.change(function(){
-        $('#accountPiutang').val("");
-        $('#soNumber').empty();
-        let coa = $(this).find(":selected").data("coa");
-        if(coa){
-            $('#accountPiutang').val(coa);
-            searchSo('soNumber',$(this).val());
-        }else{
-            Swal.fire("Warning","Customer belum memiliki COA Piutang","warning"); 
-        }
-    });
-    
-    function searchSo(obj,value) {
-        if(value){
+    function searchSo(obj,value, soDate) {
+        if(value && soDate){
             $.ajax({
                 url:"{{ route('invoice.list.so') }}",
                 method:"GET",
                 data:{
                     value:value,
+                    soDate:soDate
                 },
                 success:function(result){
-                    $('#'+obj).html(result);
-                    $('#'+obj).val('').trigger('change');
+                    if(result){
+                        $('#'+obj).html(result);
+                        soNumber.removeAttr('disabled');
+                    }
+                    // $('#'+obj).val('').trigger('change');
                 },
                 error: function (response) {
                     //Error here
-                    Swal.fire("Warning","Get list PO failed","warning");
+                    Swal.fire("Warning","Get list SO failed","warning");
                 }
             })
         }
     }
 
-    function searchDn(soNumber) {
+    function deleteSoNotInList() {
+
+        let allSoIds = $('#soNumber').val();
+        let allDnIds = $('#listOfDn tr').map(function() {
+            return this.id.split('_')[0] || null;
+        }).get().filter(Boolean);
+        let distinctDnIds = [...new Set(allDnIds)];
+
+        let invalidItems = $.map(distinctDnIds, function(item) {
+            return $.inArray(item, allSoIds) === -1 ? item : null;
+        }).filter(Boolean); // Remove null values
+
+        $.map(invalidItems, function(item) {
+            let classKu = item.replace(/\//g, ""); 
+            $("."+classKu).remove();
+        })
+
+    }
+
+    removeAllDn = () => {
+        $('#listOfDn tbody > tr').remove();
+    }
+
+    function getNewSoforList(soNumberKu) {
+
+        let allSoIds = soNumberKu;
+        let allDnIds = $('#listOfDn tr').map(function() {
+            return this.id.split('_')[0] || null;
+        }).get().filter(Boolean);
+
+        let distinctDnIds = [...new Set(allDnIds)];
+
+        let validItems = $.map(allSoIds, function(item) {
+            return $.inArray(item, distinctDnIds) === -1 ? item : null;
+        }).filter(Boolean); // Remove null values
+
+        return validItems;
+        
+    }
+
+    function searchDn(soNumberKu) {
         let invNumber = $('#invNumber').val();
-        $("#listOfDn > tbody").empty();
-        if(soNumber){
+        let soNumber = getNewSoforList(soNumberKu);
+        if(soNumber.length > 0){
             $.ajax({
                 url:"{{ route('invoice.list.dn') }}",
                 method:"GET",
@@ -167,40 +229,76 @@
                     if(result){
                         $('#cmdSubmit').removeAttr('disabled');
                         $("#listOfDn tbody").append(result);
-                        // if(invNumber){
-                        //     if (edit == 'true'){
-                        //         cmdSubmit();
-                        //     }
-                        // }
+                        deleteSoNotInList();
                     }else{
-                        $('#cmdSubmit').attr('disabled','disabled');
+                        // $('#cmdSubmit').attr('disabled','disabled');
+                        const currentValues = $('#soNumber').val();
+                        const newValues = currentValues.filter(item => item !== soNumber[0 ]); // Removes all instances of 3
+                        let simpleArray = newValues.join(",").split(",");
+                        $('#soNumber').val(simpleArray).trigger('change.select2',{ silent: true });
+                        Swal.fire("Warning","All deliveries have been processed at SO:"+soNumber[0],"warning");
                     }
-
-                    // $('#'+obj).html(result);
-                    // $('#'+obj).val('').trigger('change');
                 },
                 error: function (response) {
                     //Error here
                     Swal.fire("Warning","Get list DN failed","warning");
                 }
             })
+        }else{
+            deleteSoNotInList();
+            cmdSubmit();
         }
     }
 
+    let lastSelectedCustomerValue = customer.val();
+    
+    customer.focus(function() {
+        lastSelectedCustomerValue = $(this).val();
+    });
+
+    customer.change(function(){
+        $('#accountPiutang').val("");
+        $('#soNumber').empty();
+        soNumber.attr('disabled','disabled');
+        soDate.val("");
+        let coa = $(this).find(":selected").data("coa");
+        if(coa){
+            $('#accountPiutang').val(coa);
+            if(lastSelectedCustomerValue != $(this).val()){
+                removeAllDn();
+                if(soDate.val()){
+                    searchSo('soNumber',$(this).val(),soDate);
+                }
+            }
+            lastSelectedCustomerValue = $(this).val();
+        }else{
+            if(lastSelectedCustomerValue != $(this).val()){
+                Swal.fire("Warning","Customer belum memiliki COA Piutang","warning"); 
+            }else{
+                removeAllDn();
+            }
+        }
+    });
+    
     soNumber.change(function(){
-        if($(this).val()){
+        if($(this).val().length > 0){
             // let ppn = $(this).find(":selected").data("ppn");
             // $('#ppn').val(ppn);
             // sNilaiPPN=ppn;
             // console.log(`Nilai PPN SO : ${sNilaiPPN}%`);
             searchDn($(this).val());
+        }else{
+            customer.removeAttr('disabled')
+            soDate.removeAttr('disabled')
+            // soNumber.attr('disabled','disabled')
+            $("#listOfDn > tbody").empty();
         }
     })
 
     dnNumber.change(function(){
         searchDnDet($(this).val(),soNumber.val());
     })
-
+    
     function hitungTotal(){
         let objQtyInv= $('#article_row input[name="qtyInv[]"]');
         let objPrice= $('#article_row input[name="price[]"]');
@@ -283,7 +381,6 @@
             totalAmountJasa+= (qty*priceJasa);
         }).get();
 
-        
         // $("#vatCheck").prop("checked",true);
         // if((totalAmountJasa + totalAmount) > 0 ){
         //     $("#pph23Check").prop("checked",true);
@@ -385,7 +482,7 @@
                     $("#ppn").val(sNilaiPPN);
                     $("#pembilangNumber").val(sNilaiPpnPembilang);
                     $("#penyebutNumber").val(sNilaiPpnPenyebut);
-                    console.log(`Nilai PPN sesuai Invoice Date : ${sNilaiPPN}`);
+                    // console.log(`Nilai PPN sesuai Invoice Date : ${sNilaiPPN}`);
                 }
             })
         }
@@ -397,7 +494,7 @@
         }
 
         let zTotalPPn = Math.round(totalAmount * (sNilaiPPN/100));
-        console.log(`BA Tanpa pembulatan dari ppn:${totalAmount * (sNilaiPPN/100)}`);
+        // console.log(`BA Tanpa pembulatan dari ppn:${totalAmount * (sNilaiPPN/100)}`);
         $("#totalPPN").val(parseFloat(zTotalPPn).toFixed(2));
         $("#nilaiPPN").text(sNilaiPPN+'%');
         $("#totalPPN").removeAttr('disabled');
@@ -478,7 +575,7 @@
         $("#nilaiDppLain").text(`${sNilaiPpnPembilang}/${sNilaiPpnPenyebut}`);
         totalAmount = zDppNilaiLain;
         let zTotalPPn = Math.round(totalAmount * (sNilaiPPN/100));
-        console.log(`BA Tanpa pembulatan dari nilai lain:${totalAmount * (sNilaiPPN/100)}`);
+        // console.log(`BA Tanpa pembulatan dari nilai lain:${totalAmount * (sNilaiPPN/100)}`);
         $("#vatCheck").prop('checked', true);
         $("#totalPPN").val(parseFloat(zTotalPPn).toFixed(2)).trigger("input");
         $("#nilaiPPN").text(sNilaiPPN+'%');
@@ -521,32 +618,37 @@
     jumlahDetail = () =>{
         let jumlahData = $('#article_row input[name="articleId[]"]').length;
         if (jumlahData > 0 ){
-            $('#soNumber').attr('disabled','dieabled');
+            // $('#soNumber').attr('disabled','dieabled');
             $('#customer').attr('disabled','dieabled');
         }else{
-            $('#soNumber').removeAttr('disabled');
+            // $('#soNumber').removeAttr('disabled');
             $('#customer').removeAttr('disabled');
         }
     }
 
     cmdSubmit=()=> {
         let dnNumber="";
+        let soNumber="";
         let arrDn = $("input[name='dnNumber[]']").map(function(){return $(this).val();}).get();
         let jumlahCheck = 0;
 
         $('input:checkbox[name=customCheck]:checked').each(function(){
             // if(jQuery.inArray($(this).data('dn-number'), arrDn) == -1) {    
                 dnNumber += $(this).data('dn-number')+",";
+                soNumber += $(this).data('so-number')+",";
             // }
             jumlahCheck++;
         });
 
         dnNumber=dnNumber.slice(0,-1);
-        let soNumber= $('#soNumber').val();
+        soNumber=soNumber.slice(0,-1);
+
+        // let soNumber= $('#soNumber').val();
         $("#article_row").empty();
         $("#articleRow").empty();
         
-        if(jumlahCheck > 0 && soNumber){
+        // if(jumlahCheck > 0 && soNumber){
+        if(jumlahCheck > 0 ){
             $.ajax({
                 url:"{{ route('invoice.dn.det') }}",
                 method:"GET",
@@ -586,7 +688,6 @@
                             add_new_row_summary(article,articleCode,articleDesc,qtyDn,uomGroup,uom,price,priceService,soCode);
                         }
                     }
-
                     jumlahDetail();
                 },
                 error: function (response) {
@@ -644,7 +745,6 @@
         $('#totalJasa'+ cloneCount).val((qty*priceJasa).toFixed(2)).trigger('input');
         $('#subTotal'+ cloneCount).val(((qty*price)+(qty*priceJasa)).toFixed(2)).trigger('input');
 
-        tombolPanah('qtyInv');
         hitungTotal();
         hitungGrandTotal();
         mask_thousand();
@@ -708,5 +808,20 @@
             }
         })
     });
+
+    const rangePickr = $('.flatpickr-range');
+    if (rangePickr.length) {
+        rangePickr.flatpickr({
+            dateFormat: "d-m-Y",
+            mode: 'range',
+            onClose: function(selectedDates, dateStr, instance) {
+                $('#soNumber').empty();
+                removeAllDn();
+                if(dateStr && customer.val()){
+                    searchSo('soNumber', customer.val(), dateStr);
+                }
+            }
+        });
+    }
 
 </script>

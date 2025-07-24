@@ -55,20 +55,37 @@
                                         </div>
                                     </div>
                                     <div class="form-row">
+                                        <div class="form-group col-md-6">
+                                            <div class="form-group col-md-12" style="padding-right:0px;padding-left:0px">
+                                                <label for="soDate">SO Date</label>
+                                                <input type="text" id="soDate" name="soDate" value="{{ $soDateRange }}" class="form-control flatpickr-range" placeholder="DD-MM-YYYY" disabled/>
+                                            </div>
+                                            <div class="form-group col-md-12" style="padding-right:0px;padding-left:0px">
+                                                <label for="fakturPajak">Tax Number</label>
+                                                <input type="text" id="fakturPajak" name="fakturPajak" value="{{ $header->faktur_pajak }}" class="form-control" />
+                                            </div>
+                                        </div>
+                                        <div class="form-group col-md-6">
+                                            <label class="form-label" for="soNumber" disabled>SO Number*</label>
+                                            <textarea type="text" id="soNumber" name="soNumber" class="form-control" rows="4"  disabled>{{ $soNumbers }}</textarea>
+                                            {{-- <input type="text" id="soNumber" name="soNumber" value="{{ $soNumbers }}" class="form-control" disabled /> --}}
+                                        </div>
+                                    </div>
+                                    {{-- <div class="form-row">
                                         <div class="form-group col-md-12">
                                             <label class="form-label" for="soNumber" disabled>SO Number*</label>
                                             <input type="text" id="soNumber" name="soNumber" value="{{ $header->so_number }}" class="form-control" disabled />
                                         </div>
-                                    </div>
+                                    </div> --}}
                                     <div class="form-row">
                                         {{-- <div class="form-group col-md-3">
                                             <label class="form-label" for="dnNumber"  disabled>DN Number*</label>
                                             <input type="text" id="dnNumber" name="dnNumber" value="{{ $header->dn_number }}" class="form-control" disabled />
                                         </div> --}}
-                                        <div class="form-group col-md-6">
+                                        {{-- <div class="form-group col-md-6">
                                             <label for="fakturPajak">Tax Number</label>
                                             <input type="text" id="fakturPajak" name="fakturPajak" value="{{ $header->faktur_pajak }}" class="form-control" disabled />
-                                        </div>
+                                        </div> --}}
                                     </div>
                                     <div class="form-row">
                                         <div class="form-group col-md-12">
@@ -89,6 +106,7 @@
                                                             <th scope="col" width="30%">DN Number</th>
                                                             <th scope="col" width="30%">Date</th>
                                                             <th scope="col" width="30%">PO Number</th>
+                                                            <th scope="col" width="20%">SO Number</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody>
@@ -97,6 +115,7 @@
                                                             <td>{{ $val->delivery_number }}</td>
                                                             <td>{{ $val->delivery_date }}</td>
                                                             <td>{{ $val->po_number }}</td>
+                                                            <td>{{ $val->so_number }}</td>
                                                         </tr>
                                                         @endforeach
                                                     </tbody>

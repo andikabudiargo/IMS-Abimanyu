@@ -57,22 +57,45 @@
                                             <input type="text" id="sendingDate" name="sendingDate" class="form-control" value="{{ old('sendingDate',$header->sending_date) }}" placeholder="DD-MM-YYYY"/>
                                         </div>
                                     </div>
+
                                     <div class="form-row">
-                                        <div class="form-group col-md-12">
-                                            <label class="form-label" for="soNumber">SO Number*</label>
-                                            <input type="text" id="soNumber" name="soNumber" value="{{ $header->so_number }}" class="form-control" disabled />
-                                        </div>
-                                    </div>
-                                    <div class="form-row">
-                                        {{-- <div class="form-group col-md-5">
-                                            <label class="form-label" for="dnNumber">DN Number*</label>
-                                            <input type="text" id="dnNumber" name="dnNumber" value="{{ $header->dn_number }}" class="form-control" disabled />
-                                            <select class="select2 form-control" id="dnNumber" name="dnNumber" >
-                                            </select>
-                                        </div> --}}
                                         <div class="form-group col-md-6">
-                                            <label for="fakturPajak">Tax Number</label>
-                                            <input type="text" id="fakturPajak" name="fakturPajak" value="{{ $header->faktur_pajak }}" class="form-control" required />
+                                            <div class="form-group col-md-12" style="padding-right:0px;padding-left:0px">
+                                                <label for="soDate">SO Date</label>
+                                                <input type="text" id="soDate" name="soDate" value="{{ $soDateRange }}" class="form-control flatpickr-range" placeholder="DD-MM-YYYY" disabled/>
+                                            </div>
+                                            <div class="form-group col-md-12" style="padding-right:0px;padding-left:0px">
+                                                <label for="fakturPajak">Tax Number</label>
+                                                <input type="text" id="fakturPajak" name="fakturPajak" value="{{ $header->faktur_pajak }}" class="form-control" />
+                                            </div>
+                                        </div>
+                                        <div class="form-group col-md-6">
+                                            <div class="form-group col-md-12" style="padding-right:0px;padding-left:0px">
+                                                <label class="form-label" for="soNumber">SO Number*</label>
+                                                <select class="select2 form-control" id="soNumber" name="soNumber" title="List SO adalah SO yang masih ada DN dan DN sudah di receipt tapi belum dibuatkan invoice" multiple required>
+                                                    @foreach($listSo as $val)
+                                                        {{-- <option value="{{ $val->so_code }}" 
+                                                            data-po-number="{{ $val->po_number }}" 
+                                                            data-ppn="{{ $val->ppn }}" 
+                                                            data-pph23="{{ $val->pph23 }}'" 
+                                                            {{ in_array($val->so_code, old('soNumber',$soNumbers)) ? " selected ":"" }} 
+                                                            {{ $val->jumlah_del_no == 0 ? "Disabled" : ""}}
+                                                            title = "{{ $val->jumlah_del_no == 0 ? "DN kosong" : ""}}"
+                                                            >
+                                                            {{ $val->so_code }} - {{ $val->po_number }}
+                                                        </option> --}}
+
+                                                        <option value="{{ $val->so_code }}" 
+                                                            data-po-number="{{ $val->po_number }}" 
+                                                            data-ppn="{{ $val->ppn }}" 
+                                                            data-pph23="{{ $val->pph23 }}'" 
+                                                            {{ in_array($val->so_code, old('soNumber',$soNumbers)) ? " selected ":"" }} 
+                                                        >
+                                                            {{ $val->so_code }} - {{ $val->po_number }}
+                                                        </option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
                                         </div>
                                     </div>
                                     <div class="form-row">
@@ -84,22 +107,21 @@
                                 </div>
                                 <div class="col-md-6 col-12">
                                     <div class="form-row">
-                                        <div class="col-sm-12">
-                                            <p class="mb-0">List DN*</p>
-                                            <div class="card-datatable table-responsive pt-0">
-                                                <table class="table table-bordered" id="listOfDn">
-                                                    <thead>
-                                                        <tr>
-                                                            <th scope="col" width="10%">Check</th>
-                                                            <th scope="col" width="30%">DN Number</th>
-                                                            <th scope="col" width="30%">Date</th>
-                                                            <th scope="col" width="30%">PO Number</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                    </tbody>
-                                                </table>
-                                            </div>
+                                        <p class="mb-0 pl-1">List of DN*</p>
+                                        <div class="col-sm-12 scrollable-box" >
+                                            <table class="table table-bordered" id="listOfDn">
+                                                <thead>
+                                                    <tr>
+                                                        <th scope="col" width="10%">Check</th>
+                                                        <th scope="col" width="20%">DN Number</th>
+                                                        <th scope="col" width="20%">Date</th>
+                                                        <th scope="col" width="30%">PO Number</th>
+                                                        <th scope="col" width="20%">SO Number</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                </tbody>
+                                            </table>
                                         </div>
                                     </div>
                                     <br>
@@ -256,66 +278,6 @@
                             @endif
                         @endforeach
                     </div>
-                    {{-- <hr>
-                    <div class="form-row">
-                        <div class="col-md-12">
-                            <div class="form-row">
-                                <div class="col-md-12">
-                                    <a href="{{ route('invoice.index') }}" class="btn btn-light">Back</a>
-                                    @if( $approveValidate ? $approveValidate[0]->validate : '')
-                                        <input type="text" id ="approveLevel" name ="approveLevel" class="d-none" value="{{ $approveValidate[0]->next_level }}">
-                                        <input type="text" id ="maxLevel" name ="maxLevel" class="d-none" value="{{ $approveValidate[0]->max_level }}">
-                                        <button class="btn btn-success" type="button" id="cmdApprove" name="cmdApprove">Approve</button>
-                                        @if( $statusInv =='NEW')
-                                            <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave" >Update</button>
-                                        @endif
-                                    @else
-                                        @if( !$approveValidate && $statusInv =='NEW')
-                                            <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave" >Update</button>
-                                        @endif
-                                    @endif
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <hr>
-                    <div class="form-row card-statistics">
-                        @foreach($approvalHistory as $val)
-                            @if($val->status == true)
-                                <div class="statistics-body">
-                                    <div class="col-xl-3 col-sm-6 col-12 mb-2 mb-xl-0">
-                                        <div class="media">
-                                            <div class="avatar bg-light-{{ $val->statusapprove == 1 ? 'success':'warning' }} mr-2">
-                                                <div class="avatar-content">
-                                                    <i data-feather="{{ $val->statusapprove == 1 ? 'check':'x' }}" class="avatar-icon"></i>
-                                                </div>
-                                            </div>
-                                            <div class="media-body my-auto">
-                                                <h4 class="font-weight-bolder mb-0">{{ $val->statusapprove == 1 ? 'Approve':'Decline' }}-{{ $val->approval_order }}</h4>
-                                                <p class="card-text mb-0">{{ $val->name }}</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            @else
-                                <div class="statistics-body">
-                                    <div class="col-xl-3 col-sm-6 col-12 mb-2 mb-xl-0">
-                                        <div class="media">
-                                            <div class="avatar bg-light-danger mr-2">
-                                                <div class="avatar-content">
-                                                    <i data-feather="x" class="avatar-icon"></i>
-                                                </div>
-                                            </div>
-                                            <div class="media-body my-auto">
-                                                <h4 class="font-weight-bolder mb-0">Approve-{{ $val->approval_order }}</h4>
-                                                <p class="card-text mb-0">{{ $val->petugas }}</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            @endif
-                        @endforeach
-                    </div> --}}
                 </div>
             </div>
         </div>
@@ -376,7 +338,7 @@
 <script type="text/javascript">
     let currentDate = todayDate('dd-mm-yyyy');
     sNilaiPPN = "{{ $header->ppn }}";
-    console.log(`Nilai PPN : ${sNilaiPPN}%`);
+    // console.log(`Nilai PPN : ${sNilaiPPN}%`);
     
     $(document).ready(function(){
         validateFormToast('frmAdd');
@@ -417,10 +379,12 @@
         hitungTotal();
         edit='true';
         showDetail='false';
-        let soNumber = '{{ $soNumber }}';
-        searchDn(soNumber);
+
+        searchDn(soNumber.val());
         $("#nilaiPPN").text(sNilaiPPN+'%');
         $("#nilaiPPH").text(sNilaiPPH+'%');
+
+        window.scrollTo(0, 0);
 
     });
 
