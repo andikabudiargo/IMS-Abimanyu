@@ -1279,7 +1279,7 @@ class InvoiceController extends Controller
         ,'delivery_det.uom'
         ,'sales_order_det.price'
         ,'sales_order_det.price_service'
-        ,'delivery_det.so_number'
+        // ,'delivery_det.so_number'
         // ,'delivery_det.delivery_number'
         // ,'delivery_det.po_number'
         )
@@ -1293,7 +1293,7 @@ class InvoiceController extends Controller
         ,'delivery_det.uom'
         ,'sales_order_det.price'
         ,'sales_order_det.price_service'
-        ,'delivery_det.so_number'
+        // ,'delivery_det.so_number'
         // ,'delivery_det.delivery_number'
         // ,'delivery_det.po_number'
         ]

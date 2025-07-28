@@ -99,7 +99,8 @@
                                     <div class="form-row">
                                         <div class="col-sm-12">
                                             <p class="mb-0">List DN*</p>
-                                            <div class="card-datatable table-responsive pt-0">
+                                            <div class="col-sm-12 scrollable-box" >
+                                            {{-- <div class="card-datatable table-responsive pt-0"> --}}
                                                 <table class="table table-bordered" id="listOfDn">
                                                     <thead>
                                                         <tr>
