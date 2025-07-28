@@ -1989,7 +1989,7 @@ class DeliveryController extends Controller
                 $judul = $val->article_alternative_code." - ".$articleDesc;
 
                 $barisIsiJudul = "<tr>
-                                    <td colspan='7' class='font-10' align='left' style=''>".strtoupper($judul)."</td>
+                                    <td colspan='7' class='font-10' align='left' style='border-right-color:white;'>".strtoupper($judul)."</td>
                                     <td class='font-10' align='right' style=''> Qty SO:".number_format($qtySo,2)."</td>
                                   </tr>";
                 $barisIsiJudul .= "<tr class='font-9'>
@@ -2041,19 +2041,19 @@ class DeliveryController extends Controller
                                 </tr>";
 
                 $barisTotal = "<tr>
-                                    <td class='font-10' colspan='3' ></td>
-                                    <td  class='font-10' colspan='4' align='left' style='padding-left:5px'>".number_format($qtyDelivery,2)."</td>
+                                    <td class='font-10' colspan='3' style='background-color:white;border-right-color:white;'></td>
+                                    <td  class='font-10' colspan='4' align='left' style='padding-left:5px;background-color:white;border-right-color:white;'>".number_format($qtyDelivery,2)."</td>
                                     <td  class='font-10'  align='right'>QTY Sisa:".number_format($qtySisa,2)."</td>
                                     </td> 
                                 </tr>";
                 
                 end($headers);
-                // $pemisah = "<tr><td colspan='8' style='border-right-color:white;border-left-color:white;border-bottom-color:white;'></td> </tr>";
-                // if ($kunci === key($headers)) {
-                //     $pemisah = "<tr><td colspan='8' style='border-right-color:white;border-left-color:white;border-bottom-color:white;border-top-color:white'></td> </tr>";
-                // }
+                $pemisah = "<tr><td colspan='8' style='border-right-color:white;border-left-color:white;'></td> </tr>";
+                if ($kunci === key($headers)) {
+                    $pemisah = "<tr><td colspan='8' style='border-right-color:white;border-left-color:white;border-bottom-color:white;border-top-color:white'></td> </tr>";
+                }
 
-                $pemisah = "";
+                // $pemisah = "";
 
                 $barisTotal = $barisTotal.$pemisah;
                 $barisAll1 .=  $barisIsiJudul.$barisTotal;

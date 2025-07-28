@@ -46,6 +46,8 @@ class ReportDnExport extends DefaultValueBinder implements FromView,ShouldAutoSi
                             // <tr><td valign=''></td><td valign=''></td><td></td></tr>";
                             // <tr><td valign=''></td><td valign='' ></td><td></td></tr>";
 
+        $barisPemisah = "<tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>";
+
         foreach($soNumbers as $key => $value){
             $headers=DB::select("SELECT DISTINCT ON (c.article_alternative_code) a.article_code, a.so_number,c.article_alternative_code, c.article_desc,a.delivery_number
             ,ceil((select sum(qty) from sales_order_det where so_code = a.so_number and article_code = a.article_code)) as qty_so 
@@ -160,7 +162,7 @@ class ReportDnExport extends DefaultValueBinder implements FromView,ShouldAutoSi
                                 <td> Qty Sisa : ".number_format($qtySisa,2)."</td>
                             </tr>";
 
-                $barisAll1 .= $barisIsiJudul.$barisTotal;
+                $barisAll1 .= $barisPemisah.$barisIsiJudul.$barisTotal;
             }; 
 
             // $barisAll .= $headerBySO.$barisAll1;
@@ -267,8 +269,8 @@ class ReportDnExport extends DefaultValueBinder implements FromView,ShouldAutoSi
         // ->orderBy('so_code')
         // ->first();
         $customer = "<tr>
-                        <td valign=''>Customer</td><td valign=''>: $namaCustomer</td><td></td><td></td><td></td><td></td><td></tr>;
-                     <tr>";
+                        <td valign=''>Customer</td><td valign=''>: $namaCustomer</td><td></td><td></td><td></td><td></td><td>
+                    </tr>";
 
         $data['barisDetail']=$headerBySO.$customer.$barisAll;
         // $data['barisDetail']=$barisAll;
